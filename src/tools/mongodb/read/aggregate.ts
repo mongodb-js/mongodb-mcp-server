@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export const AggregateArgs = {
     pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
@@ -15,7 +15,7 @@ export class AggregateTool extends MongoDBToolBase {
         ...DbOperationArgs,
         ...AggregateArgs,
     };
-    protected operationType: DbOperationType = "read";
+    protected operationType: OperationType = "read";
 
     protected async execute({
         database,

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export class InsertManyTool extends MongoDBToolBase {
     protected name = "insert-many";
@@ -14,7 +14,7 @@ export class InsertManyTool extends MongoDBToolBase {
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()"
             ),
     };
-    protected operationType: DbOperationType = "create";
+    protected operationType: OperationType = "create";
 
     protected async execute({
         database,

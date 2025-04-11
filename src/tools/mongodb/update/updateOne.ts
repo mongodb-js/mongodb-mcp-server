@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export class UpdateOneTool extends MongoDBToolBase {
     protected name = "update-one";
@@ -26,7 +26,7 @@ export class UpdateOneTool extends MongoDBToolBase {
             .optional()
             .describe("Controls whether to insert a new document if no documents match the filter"),
     };
-    protected operationType: DbOperationType = "update";
+    protected operationType: OperationType = "update";
 
     protected async execute({
         database,

@@ -1,6 +1,6 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 import { z } from "zod";
 import { ExplainVerbosity, Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
@@ -34,7 +34,7 @@ export class ExplainTool extends MongoDBToolBase {
             .describe("The method and its arguments to run"),
     };
 
-    protected operationType: DbOperationType = "metadata";
+    protected operationType: OperationType = "metadata";
 
     static readonly defaultVerbosity = ExplainVerbosity.queryPlanner;
 

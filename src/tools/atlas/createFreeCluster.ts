@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
-import { ToolArgs } from "../tool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 import { ClusterDescription20240805 } from "../../common/atlas/openapi.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {
     protected name = "atlas-create-free-cluster";
     protected description = "Create a free MongoDB Atlas cluster";
+    protected operationType: OperationType = "create";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID to create the cluster in"),
         name: z.string().describe("Name of the cluster"),

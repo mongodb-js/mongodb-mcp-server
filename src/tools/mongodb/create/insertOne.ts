@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export class InsertOneTool extends MongoDBToolBase {
     protected name = "insert-one";
@@ -16,7 +16,7 @@ export class InsertOneTool extends MongoDBToolBase {
             ),
     };
 
-    protected operationType: DbOperationType = "create";
+    protected operationType: OperationType = "create";
 
     protected async execute({
         database,

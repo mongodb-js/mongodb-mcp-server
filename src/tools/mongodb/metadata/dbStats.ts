@@ -1,6 +1,6 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export class DbStatsTool extends MongoDBToolBase {
     protected name = "db-stats";
@@ -9,7 +9,7 @@ export class DbStatsTool extends MongoDBToolBase {
         database: DbOperationArgs.database,
     };
 
-    protected operationType: DbOperationType = "metadata";
+    protected operationType: OperationType = "metadata";
 
     protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

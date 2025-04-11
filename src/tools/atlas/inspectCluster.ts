@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
-import { ToolArgs } from "../tool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 import { ClusterDescription20240805 } from "../../common/atlas/openapi.js";
 
 export class InspectClusterTool extends AtlasToolBase {
     protected name = "atlas-inspect-cluster";
     protected description = "Inspect MongoDB Atlas cluster";
+    protected operationType: OperationType = "read";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID"),
         clusterName: z.string().describe("Atlas cluster name"),

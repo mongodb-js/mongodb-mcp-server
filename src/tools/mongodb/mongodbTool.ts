@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolBase } from "../tool.js";
+import { ToolBase, ToolCategory } from "../tool.js";
 import { Session } from "../../session.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -11,14 +11,12 @@ export const DbOperationArgs = {
     collection: z.string().describe("Collection name"),
 };
 
-export type DbOperationType = "metadata" | "read" | "create" | "update" | "delete";
-
 export abstract class MongoDBToolBase extends ToolBase {
     constructor(session: Session) {
         super(session);
     }
 
-    protected abstract operationType: DbOperationType;
+    protected category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
         const provider = this.session.serviceProvider;

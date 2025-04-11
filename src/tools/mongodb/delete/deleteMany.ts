@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export class DeleteManyTool extends MongoDBToolBase {
     protected name = "delete-many";
@@ -16,7 +16,7 @@ export class DeleteManyTool extends MongoDBToolBase {
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
             ),
     };
-    protected operationType: DbOperationType = "delete";
+    protected operationType: OperationType = "delete";
 
     protected async execute({
         database,

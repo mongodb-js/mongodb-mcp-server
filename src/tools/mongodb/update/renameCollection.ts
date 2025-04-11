@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export class RenameCollectionTool extends MongoDBToolBase {
     protected name = "rename-collection";
@@ -12,7 +12,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
         newName: z.string().describe("The new name for the collection"),
         dropTarget: z.boolean().optional().default(false).describe("If true, drops the target collection if it exists"),
     };
-    protected operationType: DbOperationType = "update";
+    protected operationType: OperationType = "update";
 
     protected async execute({
         database,

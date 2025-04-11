@@ -1,9 +1,11 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
+import { OperationType } from "../tool.js";
 
 export class ListProjectsTool extends AtlasToolBase {
     protected name = "atlas-list-projects";
     protected description = "List MongoDB Atlas projects";
+    protected operationType: OperationType = "read";
     protected argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {

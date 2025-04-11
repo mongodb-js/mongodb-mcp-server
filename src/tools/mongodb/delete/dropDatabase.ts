@@ -1,6 +1,6 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 
 export class DropDatabaseTool extends MongoDBToolBase {
     protected name = "drop-database";
@@ -8,7 +8,7 @@ export class DropDatabaseTool extends MongoDBToolBase {
     protected argsShape = {
         database: DbOperationArgs.database,
     };
-    protected operationType: DbOperationType = "delete";
+    protected operationType: OperationType = "delete";
 
     protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

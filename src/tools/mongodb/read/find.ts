@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { ToolArgs, OperationType } from "../../tool.js";
 import { SortDirection } from "mongodb";
 
 export const FindArgs = {
@@ -29,7 +29,7 @@ export class FindTool extends MongoDBToolBase {
         ...DbOperationArgs,
         ...FindArgs,
     };
-    protected operationType: DbOperationType = "read";
+    protected operationType: OperationType = "read";
 
     protected async execute({
         database,

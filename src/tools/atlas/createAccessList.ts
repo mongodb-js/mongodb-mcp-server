@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
-import { ToolArgs } from "../tool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 
 const DEFAULT_COMMENT = "Added by Atlas MCP";
 
 export class CreateAccessListTool extends AtlasToolBase {
     protected name = "atlas-create-access-list";
     protected description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
+    protected operationType: OperationType = "create";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID"),
         ipAddresses: z

@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
-import { ToolArgs } from "../tool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 import { CloudDatabaseUser, DatabaseUserRole } from "../../common/atlas/openapi.js";
 
 export class CreateDBUserTool extends AtlasToolBase {
     protected name = "atlas-create-db-user";
     protected description = "Create an MongoDB Atlas database user";
+    protected operationType: OperationType = "create";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID"),
         username: z.string().describe("Username for the new user"),

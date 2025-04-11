@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
-import { ToolArgs } from "../tool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 
 export class InspectAccessListTool extends AtlasToolBase {
     protected name = "atlas-inspect-access-list";
     protected description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
+    protected operationType: OperationType = "read";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID"),
     };

@@ -19,6 +19,7 @@ interface UserConfig {
         writeConcern: W;
         timeoutMS: number;
     };
+    disabledTools: Array<string>;
 }
 
 const defaults: UserConfig = {
@@ -29,6 +30,7 @@ const defaults: UserConfig = {
         writeConcern: "majority",
         timeoutMS: 30_000,
     },
+    disabledTools: [],
 };
 
 const mergedUserConfig = {
@@ -77,6 +79,12 @@ function getEnvConfig(): Partial<UserConfig> {
                 return;
             }
 
+            // Try to parse an array of values
+            if (value.indexOf(",") !== -1) {
+                obj[currentField] = value.split(",").map((v) => v.trim());
+                return;
+            }
+
             obj[currentField] = value;
             return;
         }
@@ -110,5 +118,7 @@ function SNAKE_CASE_toCamelCase(str: string): string {
 
 // Reads the cli args and parses them into a UserConfig object.
 function getCliConfig() {
-    return argv(process.argv.slice(2)) as unknown as Partial<UserConfig>;
+    return argv(process.argv.slice(2), {
+        array: ["disabledTools"],
+    }) as unknown as Partial<UserConfig>;
 }

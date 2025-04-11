@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
-import { ToolArgs } from "../tool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 import { PaginatedClusterDescription20240805, PaginatedOrgGroupView, Group } from "../../common/atlas/openapi.js";
 
 export class ListClustersTool extends AtlasToolBase {
     protected name = "atlas-list-clusters";
     protected description = "List MongoDB Atlas clusters";
+    protected operationType: OperationType = "read";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID to filter clusters").optional(),
     };

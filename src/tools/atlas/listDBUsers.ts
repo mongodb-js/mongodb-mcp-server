@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "./atlasTool.js";
-import { ToolArgs } from "../tool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 import { DatabaseUserRole, UserScope } from "../../common/atlas/openapi.js";
 
 export class ListDBUsersTool extends AtlasToolBase {
     protected name = "atlas-list-db-users";
     protected description = "List MongoDB Atlas database users";
+    protected operationType: OperationType = "read";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID to filter DB users"),
     };

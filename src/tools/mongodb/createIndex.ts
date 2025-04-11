@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, DbOperationType, MongoDBToolBase } from "./mongodbTool.js";
-import { ToolArgs } from "../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "./mongodbTool.js";
+import { ToolArgs, OperationType } from "../tool.js";
 import { IndexDirection } from "mongodb";
 
 export class CreateIndexTool extends MongoDBToolBase {
@@ -12,7 +12,7 @@ export class CreateIndexTool extends MongoDBToolBase {
         keys: z.record(z.string(), z.custom<IndexDirection>()).describe("The index definition"),
     };
 
-    protected operationType: DbOperationType = "create";
+    protected operationType: OperationType = "create";
 
     protected async execute({ database, collection, keys }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
