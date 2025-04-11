@@ -1,0 +1,43 @@
+name: Prepare release
+description: |
+  Bumps the version in package.json and creates a release PR. Once merged, the new
+  version will be published to npm.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact version to bump to or one of major, minor, patch"
+        required: true
+        default: "patch"
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+      - name: Bump version
+        id: bump-version
+        run: |
+          echo "NEW_VERSION=$(npm version ${{ inputs.version }} --no-git-tag-version)" >> $GITHUB_OUTPUT
+      - name: Create release PR
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # 7.0.8
+        with:
+          title: "Release v${{ steps.bump-version.outputs.NEW_VERSION }}"
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: "Bump version to v${{ steps.bump-version.outputs.NEW_VERSION }}"
+          body: |
+            This PR bumps the package version to v${{ steps.bump-version.outputs.NEW_VERSION }}.
+            Once merged, the new version will be published to npm.
+          base: main
+          branch: release/v${{ steps.bump-version.outputs.NEW_VERSION }}
