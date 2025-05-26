@@ -106,6 +106,22 @@ try {
         app.listen(PORT);
     } else {
         const transport = createEJsonTransport();
+
+    process.on("SIGINT", () => {
+        logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
+
+        server
+            .close()
+            .then(() => {
+                logger.info(LogId.serverClosed, "server", `Server closed successfully`);
+                process.exit(0);
+            })
+            .catch((err: unknown) => {
+                const error = err instanceof Error ? err : new Error(String(err));
+                logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error.message}`);
+                process.exit(1);
+            });
+    });
         await server.connect(transport);
     }
 } catch (error: unknown) {

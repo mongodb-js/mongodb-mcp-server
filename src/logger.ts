@@ -9,6 +9,9 @@ export type LogLevel = LoggingMessageNotification["params"]["level"];
 export const LogId = {
     serverStartFailure: mongoLogId(1_000_001),
     serverInitialized: mongoLogId(1_000_002),
+    serverCloseRequested: mongoLogId(1_000_003),
+    serverClosed: mongoLogId(1_000_004),
+    serverCloseFailure: mongoLogId(1_000_005),
 
     atlasCheckCredentials: mongoLogId(1_001_001),
     atlasDeleteDatabaseUserFailure: mongoLogId(1_001_002),

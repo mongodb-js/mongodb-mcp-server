@@ -89,7 +89,7 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
 }
 ```
 
-### Option 3: Standalone Service using command arguments
+#### Option 3: Standalone Service using command arguments
 
 Start Server using npx command:
 
@@ -111,7 +111,98 @@ You can use environment variables in the config file or set them and run the ser
 - Connection String via environment variables in the MCP file [example](#connection-string-with-environment-variables)
 - Atlas API credentials via environment variables in the MCP file [example](#atlas-api-credentials-with-environment-variables)
 
-#### Option 5: HTTP/SSE Transport (Custom Port)
+#### Option 5: Using Docker
+
+You can run the MongoDB MCP Server in a Docker container, which provides isolation and doesn't require a local Node.js installation.
+
+#### Run with Environment Variables
+
+You may provide either a MongoDB connection string OR Atlas API credentials:
+
+##### Option A: No configuration
+
+```shell
+docker run --rm -i \
+  mongodb/mongodb-mcp-server:latest
+```
+
+##### Option B: With MongoDB connection string
+
+```shell
+docker run --rm -i \
+  -e MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" \
+  mongodb/mongodb-mcp-server:latest
+```
+
+##### Option C: With Atlas API credentials
+
+```shell
+docker run --rm -i \
+  -e MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id" \
+  -e MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret" \
+  mongodb/mongodb-mcp-server:latest
+```
+
+##### Docker in MCP Configuration File
+
+Without options:
+
+```json
+{
+  "mcpServers": {
+    "MongoDB": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "mongodb/mongodb-mcp-server:latest"]
+    }
+  }
+}
+```
+
+With connection string:
+
+```json
+{
+  "mcpServers": {
+    "MongoDB": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
+        "mongodb/mongodb-mcp-server:latest"
+      ]
+    }
+  }
+}
+```
+
+With Atlas API credentials:
+
+```json
+{
+  "mcpServers": {
+    "MongoDB": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id",
+        "-e",
+        "MDB_MCP_API_CLIENT_SECRET=your-atlas-service-accounts-client-secret",
+        "mongodb/mongodb-mcp-server:latest"
+      ]
+    }
+  }
+}
+
+
+```
+
+#### Option 6: HTTP/SSE Transport (Custom Port)
 
 You can run the MCP server using HTTP or SSE transport by specifying the `--transportType` and (optionally) `--port` arguments. The default port is `5700` if not specified.
 
