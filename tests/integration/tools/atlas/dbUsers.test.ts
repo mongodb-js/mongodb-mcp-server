@@ -65,18 +65,18 @@ describeWithAtlas("db users", (integration) => {
 
                 const elements = getResponseElements(response);
                 expect(elements).toHaveLength(1);
-                expect(elements[0].text).toContain("created successfully");
-                expect(elements[0].text).toContain(userName);
-                expect(elements[0].text).not.toContain("testpassword");
+                expect(elements[0]?.text).toContain("created successfully");
+                expect(elements[0]?.text).toContain(userName);
+                expect(elements[0]?.text).not.toContain("testpassword");
             });
 
             it("should create a database user with generated password", async () => {
                 const response = await createUserWithMCP();
                 const elements = getResponseElements(response);
                 expect(elements).toHaveLength(1);
-                expect(elements[0].text).toContain("created successfully");
-                expect(elements[0].text).toContain(userName);
-                expect(elements[0].text).toContain("with password: `");
+                expect(elements[0]?.text).toContain("created successfully");
+                expect(elements[0]?.text).toContain(userName);
+                expect(elements[0]?.text).toContain("with password: `");
             });
         });
         describe("atlas-list-db-users", () => {
@@ -98,7 +98,7 @@ describeWithAtlas("db users", (integration) => {
                     .callTool({ name: "atlas-list-db-users", arguments: { projectId } })) as CallToolResult;
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
-                expect(response.content[0].text).toContain(userName);
+                expect(response.content[0]?.text).toContain(userName);
             });
         });
     });

@@ -54,7 +54,7 @@ describeWithMongoDB("dropCollection tool", (integration) => {
         );
         const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
         expect(collections).toHaveLength(1);
-        expect(collections[0].name).toBe("coll2");
+        expect(collections[0]?.name).toBe("coll2");
     });
 
     validateAutoConnectBehavior(integration, "drop-collection", () => {

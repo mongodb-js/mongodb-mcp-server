@@ -65,9 +65,13 @@ describeWithMongoDB("listDatabases tool", (integration) => {
 
 function getDbNames(content: unknown): (string | null)[] {
     const responseItems = getResponseElements(content);
-
-    return responseItems.map((item) => {
-        const match = item.text.match(/Name: (.*), Size: \d+ bytes/);
-        return match ? match[1] : null;
-    });
+    return responseItems
+        .map((item) => {
+            if (item && typeof item.text === "string") {
+                const match = item.text.match(/Name: ([^,]+), Size: \d+ bytes/);
+                return match ? match[1] : null;
+            }
+            return null;
+        })
+        .filter((item): item is string | null => item !== undefined);
 }

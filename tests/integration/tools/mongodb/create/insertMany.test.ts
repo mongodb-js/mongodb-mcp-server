@@ -82,7 +82,7 @@ describeWithMongoDB("insertMany tool", (integration) => {
         const content = getResponseContent(response.content);
         expect(content).toContain("Error running insert-many");
         expect(content).toContain("duplicate key error");
-        expect(content).toContain(insertedIds[0].toString());
+        expect(content).toContain(insertedIds[0]?.toString());
     });
 
     validateAutoConnectBehavior(integration, "insert-many", () => {

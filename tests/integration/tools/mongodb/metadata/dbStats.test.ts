@@ -28,9 +28,9 @@ describeWithMongoDB("dbStats tool", (integration) => {
             });
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(2);
-            expect(elements[0].text).toBe(`Statistics for database ${integration.randomDbName()}`);
+            expect(elements[0]?.text).toBe(`Statistics for database ${integration.randomDbName()}`);
 
-            const stats = JSON.parse(elements[1].text) as {
+            const stats = JSON.parse(elements[1]?.text ?? "{}") as {
                 db: string;
                 collections: number;
                 storageSize: number;
@@ -75,9 +75,9 @@ describeWithMongoDB("dbStats tool", (integration) => {
                 });
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(2);
-                expect(elements[0].text).toBe(`Statistics for database ${integration.randomDbName()}`);
+                expect(elements[0]?.text).toBe(`Statistics for database ${integration.randomDbName()}`);
 
-                const stats = JSON.parse(elements[1].text) as {
+                const stats = JSON.parse(elements[1]?.text ?? "{}") as {
                     db: string;
                     collections: unknown;
                     storageSize: unknown;

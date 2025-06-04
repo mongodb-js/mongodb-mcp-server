@@ -88,7 +88,7 @@ describeWithAtlas("clusters", (integration) => {
                 })) as CallToolResult;
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(2);
-                expect(response.content[0].text).toContain("has been created");
+                expect(response.content[0]?.text).toContain("has been created");
             });
         });
 
@@ -113,7 +113,7 @@ describeWithAtlas("clusters", (integration) => {
                 })) as CallToolResult;
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
-                expect(response.content[0].text).toContain(`${clusterName} | `);
+                expect(response.content[0]?.text).toContain(`${clusterName} | `);
             });
         });
 
@@ -135,7 +135,7 @@ describeWithAtlas("clusters", (integration) => {
                     .callTool({ name: "atlas-list-clusters", arguments: { projectId } })) as CallToolResult;
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(2);
-                expect(response.content[1].text).toContain(`${clusterName} | `);
+                expect(response.content[1]?.text).toContain(`${clusterName} | `);
             });
         });
 
@@ -178,7 +178,7 @@ describeWithAtlas("clusters", (integration) => {
                 })) as CallToolResult;
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
-                expect(response.content[0].text).toContain(`Connected to cluster "${clusterName}"`);
+                expect(response.content[0]?.text).toContain(`Connected to cluster "${clusterName}"`);
             });
         });
     });

@@ -37,11 +37,11 @@ describeWithMongoDB("logs tool", (integration) => {
 
         // Default limit is 50
         expect(elements.length).toBeLessThanOrEqual(51);
-        expect(elements[0].text).toMatch(/Found: \d+ messages/);
+        expect(elements[0]?.text).toMatch(/Found: \d+ messages/);
 
         for (let i = 1; i < elements.length; i++) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const log = JSON.parse(elements[i].text);
+            const log = JSON.parse(elements[i]?.text ?? "{}");
             expect(log).toHaveProperty("t");
             expect(log).toHaveProperty("msg");
         }
@@ -59,7 +59,7 @@ describeWithMongoDB("logs tool", (integration) => {
         const elements = getResponseElements(response);
         expect(elements.length).toBeLessThanOrEqual(51);
         for (let i = 1; i < elements.length; i++) {
-            const log = JSON.parse(elements[i].text) as { tags: string[] };
+            const log = JSON.parse(elements[i]?.text ?? "{}") as { tags: string[] };
             expect(log).toHaveProperty("t");
             expect(log).toHaveProperty("msg");
             expect(log).toHaveProperty("tags");
@@ -76,7 +76,7 @@ describeWithMongoDB("logs tool", (integration) => {
             validate: (content) => {
                 const elements = getResponseElements(content);
                 expect(elements.length).toBeLessThanOrEqual(51);
-                expect(elements[0].text).toMatch(/Found: \d+ messages/);
+                expect(elements[0]?.text).toMatch(/Found: \d+ messages/);
             },
         };
     });

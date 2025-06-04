@@ -23,7 +23,7 @@ describeWithAtlas("alerts", (integration) => {
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
 
-                const data = parseTable(response.content[0].text as string);
+                const data = parseTable(response.content[0]?.text as string);
                 expect(data).toBeArray();
 
                 // Since we can't guarantee alerts will exist, we just verify the table structure

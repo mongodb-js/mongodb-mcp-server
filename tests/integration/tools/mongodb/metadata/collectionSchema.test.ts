@@ -132,11 +132,11 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
                 expect(items).toHaveLength(2);
 
                 // Expect to find _id, name, age
-                expect(items[0].text).toEqual(
+                expect(items[0]?.text).toEqual(
                     `Found ${Object.entries(testCase.expectedSchema).length} fields in the schema for "${integration.randomDbName()}.foo"`
                 );
 
-                const schema = JSON.parse(items[1].text) as SimplifiedSchema;
+                const schema = JSON.parse(items[1]?.text ?? "{}") as SimplifiedSchema;
                 expect(schema).toEqual(testCase.expectedSchema);
             });
         }

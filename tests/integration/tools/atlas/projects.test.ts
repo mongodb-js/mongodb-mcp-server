@@ -43,7 +43,7 @@ describeWithAtlas("projects", (integration) => {
             })) as CallToolResult;
             expect(response.content).toBeArray();
             expect(response.content).toHaveLength(1);
-            expect(response.content[0].text).toContain(projName);
+            expect(response.content[0]?.text).toContain(projName);
         });
     });
     describe("atlas-list-projects", () => {
@@ -62,8 +62,8 @@ describeWithAtlas("projects", (integration) => {
                 .callTool({ name: "atlas-list-projects", arguments: {} })) as CallToolResult;
             expect(response.content).toBeArray();
             expect(response.content).toHaveLength(1);
-            expect(response.content[0].text).toContain(projName);
-            const data = parseTable(response.content[0].text as string);
+            expect(response.content[0]?.text).toContain(projName);
+            const data = parseTable(response.content[0]?.text as string);
             expect(data).toBeArray();
             expect(data.length).toBeGreaterThan(0);
             let found = false;

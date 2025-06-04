@@ -28,7 +28,7 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(1);
-        expect(elements[0].text).toEqual(
+        expect(elements[0]?.text).toEqual(
             'The indexes for "non-existent.people" cannot be determined because the collection does not exist.'
         );
     });
@@ -47,8 +47,8 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
-        expect(elements[0].text).toEqual('Found 1 indexes in the collection "people":');
-        expect(elements[1].text).toEqual('Name "_id_", definition: {"_id":1}');
+        expect(elements[0]?.text).toEqual('Found 1 indexes in the collection "people":');
+        expect(elements[1]?.text).toEqual('Name "_id_", definition: {"_id":1}');
     });
 
     it("returns all indexes for a collection", async () => {
@@ -74,8 +74,8 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(indexTypes.length + 2);
-        expect(elements[0].text).toEqual(`Found ${indexTypes.length + 1} indexes in the collection "people":`);
-        expect(elements[1].text).toEqual('Name "_id_", definition: {"_id":1}');
+        expect(elements[0]?.text).toEqual(`Found ${indexTypes.length + 1} indexes in the collection "people":`);
+        expect(elements[1]?.text).toEqual('Name "_id_", definition: {"_id":1}');
 
         for (const indexType of indexTypes) {
             const index = elements.find((element) => element.text.includes(`prop_${indexType}`));
