@@ -84,7 +84,7 @@ async function main() {
                 operationId: operation.operationId || "",
                 requiredParams,
                 hasResponseBody,
-                tag: operation.tags && operation.tags.length > 0 && operation.tags[0] ? operation.tags[0] : "",
+                tag: operation.tags?.[0] ?? "",
             });
         }
     }
