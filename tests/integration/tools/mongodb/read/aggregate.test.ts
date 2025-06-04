@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
     databaseCollectionParameters,
     validateToolMetadata,
@@ -83,14 +82,14 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(elements[0]?.text).toEqual('Found 2 documents in the collection "people":');
         expect(asObject(JSON.parse(elements[1]?.text ?? "{}"))).toEqual(
             expect.objectContaining({
-                _id: expect.any(Object),
+                _id: expect.any(Object) as object,
                 name: "Søren",
                 age: 15,
             })
         );
         expect(asObject(JSON.parse(elements[2]?.text ?? "{}"))).toEqual(
             expect.objectContaining({
-                _id: expect.any(Object),
+                _id: expect.any(Object) as object,
                 name: "Laura",
                 age: 10,
             })
