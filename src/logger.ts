@@ -32,6 +32,8 @@ export const LogId = {
 
     mongodbConnectFailure: mongoLogId(1_004_001),
     mongodbDisconnectFailure: mongoLogId(1_004_002),
+
+    toolUpdateFailure: mongoLogId(1_005_001),
 } as const;
 
 abstract class LoggerBase {
