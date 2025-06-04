@@ -42,7 +42,7 @@ export class ListProjectsTool extends AtlasToolBase {
         const rows = data.results
             .map((project) => {
                 const createdAt = project.created ? new Date(project.created).toLocaleString() : "N/A";
-                const orgName = project.orgId && orgs[project.orgId] ? orgs[project.orgId] : "N/A";
+                const orgName = orgs[project.orgId] ?? "N/A";
                 return `${project.name} | ${project.id} | ${orgName} | ${project.orgId} | ${createdAt}`;
             })
             .join("\n");
