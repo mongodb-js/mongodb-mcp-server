@@ -10,7 +10,7 @@ import { UserConfig } from "../config.js";
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
 
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update";
-export type ToolCategory = "mongodb" | "atlas";
+export type ToolCategory = "mongodb" | "atlas" | "local";
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;
