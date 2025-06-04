@@ -354,14 +354,14 @@ To learn more about Service Accounts, check the [MongoDB Atlas documentation](ht
 
 #### Quick Reference: Required roles per operation
 
-| What you want to do                        | Safest Role to Assign (where)         |
-|--------------------------------------------|---------------------------------------|
-| List orgs/projects                         | Org Member or Org Read Only (Org)     |
-| Create new projects                        | Org Project Creator (Org)             |
-| View clusters/databases in a project       | Project Read Only (Project)           |
-| Create/manage clusters in a project        | Project Cluster Manager (Project)     |
-| Manage project access lists                | Project IP Access List Admin (Project)|
-| Manage database users                      | Project Database Access Admin (Project)|
+| What you want to do                  | Safest Role to Assign (where)           |
+| ------------------------------------ | --------------------------------------- |
+| List orgs/projects                   | Org Member or Org Read Only (Org)       |
+| Create new projects                  | Org Project Creator (Org)               |
+| View clusters/databases in a project | Project Read Only (Project)             |
+| Create/manage clusters in a project  | Project Cluster Manager (Project)       |
+| Manage project access lists          | Project IP Access List Admin (Project)  |
+| Manage database users                | Project Database Access Admin (Project) |
 
 - **Prefer project-level roles** for most operations. Assign only to the specific projects you need to manage or view.
 - **Avoid Organization Owner** unless you require full administrative control over all projects and settings in the organization.
