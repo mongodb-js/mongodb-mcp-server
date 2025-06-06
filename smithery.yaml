@@ -1,0 +1,26 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: ../
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    properties:
+      connectionString:
+        type: string
+        description: The connection string to use to connect to MongoDB.
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      "command": "node",
+      "args": [
+        "dist/index.js"
+      ],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": config.connectionString
+      }
+    })

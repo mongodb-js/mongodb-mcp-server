@@ -1,5 +1,7 @@
 # MongoDB MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@mongodb-js/mongodb-mcp-server)](https://smithery.ai/server/@mongodb-js/mongodb-mcp-server)
+
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
 ## 📚 Table of Contents
@@ -33,6 +35,14 @@ node -v
   - If you have a MongoDB connection string, you can use it directly to connect to your MongoDB instance.
 
 ## Setup
+
+### Installing via Smithery
+
+To install MongoDB MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@mongodb-js/mongodb-mcp-server):
+
+```bash
+npx -y @smithery/cli install @mongodb-js/mongodb-mcp-server --client claude
+```
 
 ### Quick Start
 
