@@ -23,6 +23,8 @@ export interface UserConfig {
     connectOptions: ConnectOptions;
     disabledTools: Array<string>;
     readOnly?: boolean;
+    transportType?: "stdio" | "sse" | "http";
+    port: string;
 }
 
 const defaults: UserConfig = {
@@ -37,6 +39,8 @@ const defaults: UserConfig = {
     disabledTools: [],
     telemetry: "enabled",
     readOnly: false,
+    transportType: "stdio",
+    port: "5700",
 };
 
 export const config = {
