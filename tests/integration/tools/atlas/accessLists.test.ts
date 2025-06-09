@@ -67,7 +67,7 @@ describeWithAtlas("ip access lists", (integration) => {
                 })) as CallToolResult;
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
-                expect(response.content[0].text).toContain("IP/CIDR ranges added to access list");
+                expect(response.content[0]?.text).toContain("IP/CIDR ranges added to access list");
             });
         });
 
@@ -90,7 +90,7 @@ describeWithAtlas("ip access lists", (integration) => {
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
                 for (const value of values) {
-                    expect(response.content[0].text).toContain(value);
+                    expect(response.content[0]?.text).toContain(value);
                 }
             });
         });

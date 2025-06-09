@@ -75,7 +75,9 @@ export function parseTable(text: string): Record<string, string>[] {
         .map((cells) => {
             const row: Record<string, string> = {};
             cells.forEach((cell, index) => {
-                row[headers[index]] = cell;
+                if (headers) {
+                    row[headers[index] ?? ""] = cell;
+                }
             });
             return row;
         });
@@ -87,14 +89,14 @@ async function createProject(apiClient: ApiClient): Promise<Group> {
     const projectName: string = `testProj-` + randomId;
 
     const orgs = await apiClient.listOrganizations();
-    if (!orgs?.results?.length || !orgs.results[0].id) {
+    if (!orgs?.results?.length || !orgs.results[0]?.id) {
         throw new Error("No orgs found");
     }
 
     const group = await apiClient.createProject({
         body: {
             name: projectName,
-            orgId: orgs.results[0].id,
+            orgId: orgs.results[0]?.id ?? "",
         } as Group,
     });
 

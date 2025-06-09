@@ -89,12 +89,12 @@ describeWithMongoDB("explain tool", (integration) => {
 
                     const content = getResponseElements(response.content);
                     expect(content).toHaveLength(2);
-                    expect(content[0].text).toEqual(
+                    expect(content[0]?.text).toEqual(
                         `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.coll1". This information can be used to understand how the query was executed and to optimize the query performance.`
                     );
 
-                    expect(content[1].text).toContain("queryPlanner");
-                    expect(content[1].text).toContain("winningPlan");
+                    expect(content[1]?.text).toContain("queryPlanner");
+                    expect(content[1]?.text).toContain("winningPlan");
                 });
             }
         });
@@ -139,22 +139,22 @@ describeWithMongoDB("explain tool", (integration) => {
 
                         const content = getResponseElements(response.content);
                         expect(content).toHaveLength(2);
-                        expect(content[0].text).toEqual(
+                        expect(content[0]?.text).toEqual(
                             `Here is some information about the winning plan chosen by the query optimizer for running the given \`${testCase.method}\` operation in "${integration.randomDbName()}.people". This information can be used to understand how the query was executed and to optimize the query performance.`
                         );
 
-                        expect(content[1].text).toContain("queryPlanner");
-                        expect(content[1].text).toContain("winningPlan");
+                        expect(content[1]?.text).toContain("queryPlanner");
+                        expect(content[1]?.text).toContain("winningPlan");
 
                         if (indexed) {
                             if (testCase.method === "count") {
-                                expect(content[1].text).toContain("COUNT_SCAN");
+                                expect(content[1]?.text).toContain("COUNT_SCAN");
                             } else {
-                                expect(content[1].text).toContain("IXSCAN");
+                                expect(content[1]?.text).toContain("IXSCAN");
                             }
-                            expect(content[1].text).toContain("name_1");
+                            expect(content[1]?.text).toContain("name_1");
                         } else {
-                            expect(content[1].text).toContain("COLLSCAN");
+                            expect(content[1]?.text).toContain("COLLSCAN");
                         }
                     });
                 }

@@ -58,11 +58,11 @@ async function main() {
                     const httpCode = parseInt(code, 10);
                     if (httpCode >= 200 && httpCode < 300) {
                         const response = operation.responses[code];
-                        const responseObject = findObjectFromRef(response, openapi);
-                        if (responseObject.content) {
+                        const responseObject = findObjectFromRef(response, openapi) as OpenAPIV3_1.ResponseObject;
+                        if (responseObject && responseObject.content) {
                             for (const contentType in responseObject.content) {
                                 const content = responseObject.content[contentType];
-                                hasResponseBody = !!content.schema;
+                                hasResponseBody = !!content?.schema;
                             }
                         }
                     }
@@ -84,7 +84,7 @@ async function main() {
                 operationId: operation.operationId || "",
                 requiredParams,
                 hasResponseBody,
-                tag: operation.tags[0],
+                tag: operation.tags?.[0] ?? "",
             });
         }
     }

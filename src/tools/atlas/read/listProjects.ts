@@ -21,7 +21,8 @@ export class ListProjectsTool extends AtlasToolBase {
 
         const orgs: Record<string, string> = orgData.results
             .map((org) => [org.id || "", org.name])
-            .reduce((acc, [id, name]) => ({ ...acc, [id]: name }), {});
+            .filter(([id]) => id)
+            .reduce((acc, [id, name]) => ({ ...acc, [id as string]: name }), {});
 
         const data = orgId
             ? await this.session.apiClient.listOrganizationProjects({
@@ -41,7 +42,8 @@ export class ListProjectsTool extends AtlasToolBase {
         const rows = data.results
             .map((project) => {
                 const createdAt = project.created ? new Date(project.created).toLocaleString() : "N/A";
-                return `${project.name} | ${project.id} | ${orgs[project.orgId]} | ${project.orgId} | ${createdAt}`;
+                const orgName = orgs[project.orgId] ?? "N/A";
+                return `${project.name} | ${project.id} | ${orgName} | ${project.orgId} | ${createdAt}`;
             })
             .join("\n");
         const formattedProjects = `Project Name | Project ID | Organization Name | Organization ID | Created At

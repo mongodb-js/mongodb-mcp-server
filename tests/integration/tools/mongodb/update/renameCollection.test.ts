@@ -94,7 +94,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .find({})
                 .toArray();
             expect(docsInAfter).toHaveLength(1);
-            expect(docsInAfter[0].value).toEqual(42);
+            expect(docsInAfter[0]?.value).toEqual(42);
         });
 
         it("returns an error when renaming to an existing collection", async () => {
@@ -123,7 +123,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .find({})
                 .toArray();
             expect(docsInBefore).toHaveLength(1);
-            expect(docsInBefore[0].value).toEqual(42);
+            expect(docsInBefore[0]?.value).toEqual(42);
 
             const docsInAfter = await integration
                 .mongoClient()
@@ -132,7 +132,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .find({})
                 .toArray();
             expect(docsInAfter).toHaveLength(1);
-            expect(docsInAfter[0].value).toEqual(84);
+            expect(docsInAfter[0]?.value).toEqual(84);
         });
 
         it("renames to existing collection with dropTarget", async () => {
@@ -174,7 +174,7 @@ describeWithMongoDB("renameCollection tool", (integration) => {
                 .find({})
                 .toArray();
             expect(docsInAfter).toHaveLength(1);
-            expect(docsInAfter[0].value).toEqual(42);
+            expect(docsInAfter[0]?.value).toEqual(42);
         });
     });
 

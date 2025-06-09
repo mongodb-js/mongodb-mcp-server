@@ -45,7 +45,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
             });
             const items = getResponseElements(response.content);
             expect(items).toHaveLength(1);
-            expect(items[0].text).toContain('Name: "collection-1"');
+            expect(items[0]?.text).toContain('Name: "collection-1"');
 
             await mongoClient.db(integration.randomDbName()).createCollection("collection-2");
 

@@ -28,7 +28,13 @@ export class CreateProjectTool extends AtlasToolBase {
                         "No organizations were found in your MongoDB Atlas account. Please create an organization first."
                     );
                 }
-                organizationId = organizations.results[0].id;
+                const firstOrg = organizations.results[0];
+                if (!firstOrg?.id) {
+                    throw new Error(
+                        "The first organization found does not have an ID. Please check your Atlas account."
+                    );
+                }
+                organizationId = firstOrg.id;
                 assumedOrg = true;
             } catch {
                 throw new Error(

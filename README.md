@@ -36,6 +36,8 @@ node -v
 
 ### Quick Start
 
+> **Note:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
+
 Most MCP clients require a configuration file to be created or modified to add the MCP server.
 
 Note: The configuration file syntax can be different across clients. Please refer to the following links for the latest expected syntax:
@@ -320,13 +322,16 @@ You can disable telemetry using:
 
 To use the Atlas API tools, you'll need to create a service account in MongoDB Atlas:
 
+> **ℹ️ Note:** For a detailed breakdown of the minimum required permissions for each Atlas operation, see the [Atlas API Permissions](#atlas-api-permissions) section below.
+
 1. **Create a Service Account:**
 
    - Log in to MongoDB Atlas at [cloud.mongodb.com](https://cloud.mongodb.com)
    - Navigate to Access Manager > Organization Access
    - Click Add New > Applications > Service Accounts
    - Enter name, description and expiration for your service account (e.g., "MCP, MCP Server Access, 7 days")
-   - Select appropriate permissions (for full access, use Organization Owner)
+   - **Assign only the minimum permissions needed for your use case.**
+     - See [Atlas API Permissions](#atlas-api-permissions) for details.
    - Click "Create"
 
 To learn more about Service Accounts, check the [MongoDB Atlas documentation](https://www.mongodb.com/docs/atlas/api/service-accounts-overview/).
@@ -342,6 +347,26 @@ To learn more about Service Accounts, check the [MongoDB Atlas documentation](ht
 
 4. **Configure the MCP Server:**
    - Use one of the configuration methods below to set your `apiClientId` and `apiClientSecret`
+
+### Atlas API Permissions
+
+> **Security Warning:** Granting the Organization Owner role is rarely necessary and can be a security risk. Assign only the minimum permissions needed for your use case.
+
+#### Quick Reference: Required roles per operation
+
+| What you want to do                  | Safest Role to Assign (where)           |
+| ------------------------------------ | --------------------------------------- |
+| List orgs/projects                   | Org Member or Org Read Only (Org)       |
+| Create new projects                  | Org Project Creator (Org)               |
+| View clusters/databases in a project | Project Read Only (Project)             |
+| Create/manage clusters in a project  | Project Cluster Manager (Project)       |
+| Manage project access lists          | Project IP Access List Admin (Project)  |
+| Manage database users                | Project Database Access Admin (Project) |
+
+- **Prefer project-level roles** for most operations. Assign only to the specific projects you need to manage or view.
+- **Avoid Organization Owner** unless you require full administrative control over all projects and settings in the organization.
+
+For a full list of roles and their privileges, see the [Atlas User Roles documentation](https://www.mongodb.com/docs/atlas/reference/user-roles/#service-user-roles).
 
 ### Configuration Methods
 

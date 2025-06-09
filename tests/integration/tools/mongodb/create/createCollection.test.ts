@@ -34,7 +34,7 @@ describeWithMongoDB("createCollection tool", (integration) => {
 
             collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(1);
-            expect(collections[0].name).toEqual("bar");
+            expect(collections[0]?.name).toEqual("bar");
         });
     });
 
@@ -78,7 +78,7 @@ describeWithMongoDB("createCollection tool", (integration) => {
             expect(content).toEqual(`Collection "collection1" created in database "${integration.randomDbName()}".`);
             collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(1);
-            expect(collections[0].name).toEqual("collection1");
+            expect(collections[0]?.name).toEqual("collection1");
 
             // Make sure we didn't drop the existing collection
             documents = await mongoClient.db(integration.randomDbName()).collection("collection1").find({}).toArray();

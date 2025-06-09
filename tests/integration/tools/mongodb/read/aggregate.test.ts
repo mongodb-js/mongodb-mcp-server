@@ -35,7 +35,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(1);
-        expect(elements[0].text).toEqual('Found 0 documents in the collection "people":');
+        expect(elements[0]?.text).toEqual('Found 0 documents in the collection "people":');
     });
 
     it("can run aggragation on an empty collection", async () => {
@@ -53,7 +53,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(1);
-        expect(elements[0].text).toEqual('Found 0 documents in the collection "people":');
+        expect(elements[0]?.text).toEqual('Found 0 documents in the collection "people":');
     });
 
     it("can run aggragation on an existing collection", async () => {
@@ -79,11 +79,21 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(3);
-        expect(elements[0].text).toEqual('Found 2 documents in the collection "people":');
-        /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-        expect(JSON.parse(elements[1].text)).toEqual({ _id: expect.any(Object), name: "Søren", age: 15 });
-        expect(JSON.parse(elements[2].text)).toEqual({ _id: expect.any(Object), name: "Laura", age: 10 });
-        /* eslint-enable @typescript-eslint/no-unsafe-assignment */
+        expect(elements[0]?.text).toEqual('Found 2 documents in the collection "people":');
+        expect(asObject(JSON.parse(elements[1]?.text ?? "{}"))).toEqual(
+            expect.objectContaining({
+                _id: expect.any(Object) as object,
+                name: "Søren",
+                age: 15,
+            })
+        );
+        expect(asObject(JSON.parse(elements[2]?.text ?? "{}"))).toEqual(
+            expect.objectContaining({
+                _id: expect.any(Object) as object,
+                name: "Laura",
+                age: 10,
+            })
+        );
     });
 
     validateAutoConnectBehavior(integration, "aggregate", () => {
@@ -97,3 +107,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
         };
     });
 });
+
+function asObject(val: unknown): Record<string, unknown> {
+    if (typeof val === "object" && val !== null) return val as Record<string, unknown>;
+    throw new Error("Expected an object");
+}

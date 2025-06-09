@@ -16,9 +16,9 @@ describeWithAtlas("orgs", (integration) => {
                 .callTool({ name: "atlas-list-orgs", arguments: {} })) as CallToolResult;
             expect(response.content).toBeArray();
             expect(response.content).toHaveLength(1);
-            const data = parseTable(response.content[0].text as string);
+            const data = parseTable(response.content[0]?.text as string);
             expect(data).toHaveLength(1);
-            expect(data[0]["Organization Name"]).toEqual("MongoDB MCP Test");
+            expect(data[0]?.["Organization Name"]).toEqual("MongoDB MCP Test");
         });
     });
 });

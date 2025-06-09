@@ -50,8 +50,7 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
             };
         });
 
-    const instanceSize = (regionConfigs.length <= 0 ? undefined : regionConfigs[0].instanceSize) || "UNKNOWN";
-
+    const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
     const clusterInstanceType = instanceSize == "M0" ? "FREE" : "DEDICATED";
 
     return {

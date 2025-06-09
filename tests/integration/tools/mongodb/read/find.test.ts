@@ -149,10 +149,10 @@ describeWithMongoDB("find tool", (integration) => {
                 });
                 const elements = getResponseElements(response.content);
                 expect(elements).toHaveLength(expected.length + 1);
-                expect(elements[0].text).toEqual(`Found ${expected.length} documents in the collection "foo":`);
+                expect(elements[0]?.text).toEqual(`Found ${expected.length} documents in the collection "foo":`);
 
                 for (let i = 0; i < expected.length; i++) {
-                    expect(JSON.parse(elements[i + 1].text)).toEqual(expected[i]);
+                    expect(JSON.parse(elements[i + 1]?.text ?? "{}")).toEqual(expected[i]);
                 }
             });
         }
@@ -165,11 +165,11 @@ describeWithMongoDB("find tool", (integration) => {
             });
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(11);
-            expect(elements[0].text).toEqual('Found 10 documents in the collection "foo":');
+            expect(elements[0]?.text).toEqual('Found 10 documents in the collection "foo":');
 
             for (let i = 0; i < 10; i++) {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                expect(JSON.parse(elements[i + 1].text).value).toEqual(i);
+                expect(JSON.parse(elements[i + 1]?.text ?? "{}").value).toEqual(i);
             }
         });
 
@@ -194,10 +194,10 @@ describeWithMongoDB("find tool", (integration) => {
 
             const elements = getResponseElements(response.content);
             expect(elements).toHaveLength(2);
-            expect(elements[0].text).toEqual('Found 1 documents in the collection "foo":');
+            expect(elements[0]?.text).toEqual('Found 1 documents in the collection "foo":');
 
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            expect(JSON.parse(elements[1].text).value).toEqual(fooObject.value);
+            expect(JSON.parse(elements[1]?.text ?? "{}").value).toEqual(fooObject.value);
         });
     });
 

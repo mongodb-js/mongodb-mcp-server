@@ -37,7 +37,7 @@ describe("EJsonTransport", () => {
         );
 
         expect(messages.length).toBe(1);
-        const message = messages[0].message;
+        const message = messages[0]?.message;
 
         expect(message).toEqual({
             jsonrpc: "2.0",

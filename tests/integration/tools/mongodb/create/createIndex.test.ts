@@ -38,10 +38,10 @@ describeWithMongoDB("createIndex tool", (integration) => {
         const mongoClient = integration.mongoClient();
         const collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
         expect(collections).toHaveLength(1);
-        expect(collections[0].name).toEqual("coll1");
+        expect(collections[0]?.name).toEqual("coll1");
         const indexes = await mongoClient.db(integration.randomDbName()).collection(collection).indexes();
         expect(indexes).toHaveLength(expected.length + 1);
-        expect(indexes[0].name).toEqual("_id_");
+        expect(indexes[0]?.name).toEqual("_id_");
         for (const index of expected) {
             const foundIndex = indexes.find((i) => i.name === index.name);
             expectDefined(foundIndex);

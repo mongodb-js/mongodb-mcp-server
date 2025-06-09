@@ -93,6 +93,12 @@ export abstract class ToolBase {
         this.update = (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }) => {
             const tools = server["_registeredTools"] as { [toolName: string]: RegisteredTool };
             const existingTool = tools[this.name];
+
+            if (!existingTool) {
+                logger.warning(LogId.toolUpdateFailure, "tool", `Tool ${this.name} not found in update`);
+                return;
+            }
+
             existingTool.annotations = this.annotations;
 
             if (updates.name && updates.name !== this.name) {

@@ -53,7 +53,7 @@ describe("Session", () => {
                     typeof NodeDriverServiceProvider.connect
                 >;
                 expect(connectMock).toHaveBeenCalledOnce();
-                const connectionString = connectMock.mock.calls[0][0];
+                const connectionString = connectMock.mock.calls[0]?.[0];
                 if (testCase.expectAppName) {
                     expect(connectionString).toContain("appName=MongoDB+MCP+Server");
                 } else {
