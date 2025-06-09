@@ -49,6 +49,9 @@ Note: The configuration file syntax can be different across clients. Please refe
 
 #### Option 1: Connection String args
 
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=MongoDB&config=eyJjb21tYW5kIjoibnB4IC15IG1vbmdvZGItbWNwLXNlcnZlciAtLWNvbm5lY3Rpb25TdHJpbmcgbW9uZ29kYjovL2xvY2FsaG9zdDoyNzAxNy9teURhdGFiYXNlIn0%3D)
+
+
 You can pass your connection string via args, make sure to use a valid username and password.
 
 ```json
@@ -72,6 +75,8 @@ NOTE: The connection string can be configured to connect to any MongoDB cluster,
 #### Option 2: Atlas API credentials args
 
 Use your Atlas API Service Accounts credentials. Must follow all the steps in [Atlas API Access](#atlas-api-access) section.
+
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=MongoDB&config=eyJjb21tYW5kIjoibnB4IC15IG1vbmdvZGItbWNwLXNlcnZlciAtLWFwaUNsaWVudElkIHlvdXItYXRsYXMtc2VydmljZS1hY2NvdW50cy1jbGllbnQtaWQgLS1hcGlDbGllbnRTZWNyZXQgeW91ci1hdGxhcy1zZXJ2aWNlLWFjY291bnRzLWNsaWVudC1zZWNyZXQifQ%3D%3D)
 
 ```json
 {
