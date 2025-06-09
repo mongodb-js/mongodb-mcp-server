@@ -19,7 +19,7 @@ FROM node:lts-alpine
 COPY --from=builder /app/dist ./dist
 
 # Copy package.json for production install
-COPY ../package.json package-lock.json ./
+COPY ../package.json ../package-lock.json ./
 
 # Install only production dependencies
 RUN npm ci --production --ignore-scripts
