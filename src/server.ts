@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Session } from "./session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
+import { LocalTools } from "./tools/local/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import logger, { initializeLogger, LogId } from "./logger.js";
 import { ObjectId } from "mongodb";
@@ -134,7 +135,7 @@ export class Server {
     }
 
     private registerTools() {
-        for (const tool of [...AtlasTools, ...MongoDbTools]) {
+        for (const tool of [...AtlasTools, ...LocalTools, ...MongoDbTools]) {
             new tool(this.session, this.userConfig, this.telemetry).register(this.mcpServer);
         }
     }
