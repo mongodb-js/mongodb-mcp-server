@@ -14,15 +14,6 @@ type EventResult = {
     error?: Error;
 };
 
-export type TelemetryOptions = {
-    session: Session;
-    userConfig: UserConfig;
-    commonProperties?: CommonProperties;
-    eventCache?: EventCache;
-    getRawMachineId?: () => Promise<string>;
-    getContainerEnv?: () => Promise<boolean>;
-};
-
 async function fileExists(filePath: string): Promise<boolean> {
     try {
         await fs.stat(filePath);
