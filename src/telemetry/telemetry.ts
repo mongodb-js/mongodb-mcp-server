@@ -7,6 +7,7 @@ import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
+import fs from "fs/promises";
 
 type EventResult = {
     success: boolean;
@@ -15,38 +16,36 @@ type EventResult = {
 
 export const DEVICE_ID_TIMEOUT = 3000;
 
+export type TelemetryOptions = {
+    session: Session;
+    userConfig: UserConfig;
+    commonProperties?: CommonProperties;
+    eventCache?: EventCache;
+    getRawMachineId?: () => Promise<string>;
+};
+
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the device ID is retrieved or timeout occurs */
     public deviceIdPromise: Promise<string> | undefined;
     private deviceIdAbortController = new AbortController();
-    private eventCache: EventCache;
-    private getRawMachineId: () => Promise<string>;
 
     private constructor(
         private readonly session: Session,
         private readonly userConfig: UserConfig,
         private readonly commonProperties: CommonProperties,
-        { eventCache, getRawMachineId }: { eventCache: EventCache; getRawMachineId: () => Promise<string> }
-    ) {
-        this.eventCache = eventCache;
-        this.getRawMachineId = getRawMachineId;
-    }
+        private readonly eventCache: EventCache,
+        private readonly getRawMachineId: () => Promise<string>
+    ) {}
 
-    static create(
-        session: Session,
-        userConfig: UserConfig,
-        {
-            commonProperties = { ...MACHINE_METADATA },
-            eventCache = EventCache.getInstance(),
-            getRawMachineId = () => nodeMachineId.machineId(true),
-        }: {
-            eventCache?: EventCache;
-            getRawMachineId?: () => Promise<string>;
-            commonProperties?: CommonProperties;
-        } = {}
-    ): Telemetry {
-        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, getRawMachineId });
+    static create({ session, userConfig, commonProperties, eventCache, getRawMachineId }: TelemetryOptions): Telemetry {
+        const instance = new Telemetry(
+            session,
+            userConfig,
+            commonProperties || { ...MACHINE_METADATA },
+            eventCache || EventCache.getInstance(),
+            getRawMachineId || (() => nodeMachineId.machineId(true))
+        );
 
         void instance.start();
         return instance;
@@ -106,7 +105,7 @@ export class Telemetry {
      * Gets the common properties for events
      * @returns Object containing common properties for all events
      */
-    public getCommonProperties(): CommonProperties {
+    public async getCommonProperties(): Promise<CommonProperties> {
         return {
             ...this.commonProperties,
             mcp_client_version: this.session.agentRunner?.version,
@@ -114,7 +113,37 @@ export class Telemetry {
             session_id: this.session.sessionId,
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",
+            is_container_env: (await this.isContainerized()) ? "true" : "false",
         };
+    }
+
+    private async fileExists(filePath: string): Promise<boolean> {
+        try {
+            await fs.stat(filePath);
+            return true; // File exists
+        } catch (e: unknown) {
+            if (
+                e instanceof Error &&
+                (
+                    e as Error & {
+                        code: string;
+                    }
+                ).code === "ENOENT"
+            ) {
+                return false; // File does not exist
+            }
+            throw e; // Re-throw unexpected errors
+        }
+    }
+
+    private async isContainerized(): Promise<boolean> {
+        for (const file of ["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"]) {
+            const fileExists = await this.fileExists(file);
+            if (fileExists) {
+                return true;
+            }
+        }
+        return !!process.env.container;
     }
 
     /**
@@ -177,10 +206,11 @@ export class Telemetry {
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
         try {
+            const commonProperties = await this.getCommonProperties();
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
-                    properties: { ...this.getCommonProperties(), ...event.properties },
+                    properties: { ...commonProperties, ...event.properties },
                 }))
             );
             return { success: true };

@@ -55,7 +55,7 @@ describe("Telemetry", () => {
     }
 
     // Helper function to verify mock calls to reduce duplication
-    function verifyMockCalls({
+    async function verifyMockCalls({
         sendEventsCalls = 0,
         clearEventsCalls = 0,
         appendEventsCalls = 0,
@@ -77,11 +77,13 @@ describe("Telemetry", () => {
         expect(appendEvents.length).toBe(appendEventsCalls);
 
         if (sendEventsCalledWith) {
+            const commonProperties = await telemetry.getCommonProperties();
+
             expect(sendEvents[0]?.[0]).toEqual(
                 sendEventsCalledWith.map((event) => ({
                     ...event,
                     properties: {
-                        ...telemetry.getCommonProperties(),
+                        ...commonProperties,
                         ...event.properties,
                     },
                 }))
@@ -125,7 +127,9 @@ describe("Telemetry", () => {
             setAgentRunner: jest.fn().mockResolvedValue(undefined),
         } as unknown as Session;
 
-        telemetry = Telemetry.create(session, config, {
+        telemetry = Telemetry.create({
+            session,
+            userConfig: config,
             eventCache: mockEventCache,
             getRawMachineId: () => Promise.resolve(machineId),
         });
@@ -140,7 +144,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls({
+                await verifyMockCalls({
                     sendEventsCalls: 1,
                     clearEventsCalls: 1,
                     sendEventsCalledWith: [testEvent],
@@ -154,7 +158,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls({
+                await verifyMockCalls({
                     sendEventsCalls: 1,
                     appendEventsCalls: 1,
                     appendEventsCalledWith: [testEvent],
@@ -177,7 +181,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([newEvent]);
 
-                verifyMockCalls({
+                await verifyMockCalls({
                     sendEventsCalls: 1,
                     clearEventsCalls: 1,
                     sendEventsCalledWith: [cachedEvent, newEvent],
@@ -185,7 +189,7 @@ describe("Telemetry", () => {
             });
 
             it("should correctly add common properties to events", () => {
-                const commonProps = telemetry.getCommonProperties();
+                const commonProps = await telemetry.getCommonProperties();
 
                 // Use explicit type assertion
                 const expectedProps: Record<string, string> = {
@@ -212,7 +216,9 @@ describe("Telemetry", () => {
                 });
 
                 it("should successfully resolve the machine ID", async () => {
-                    telemetry = Telemetry.create(session, config, {
+                    telemetry = Telemetry.create({
+                        session,
+                        userConfig: config,
                         getRawMachineId: () => Promise.resolve(machineId),
                     });
 
@@ -228,7 +234,9 @@ describe("Telemetry", () => {
                 it("should handle machine ID resolution failure", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
-                    telemetry = Telemetry.create(session, config, {
+                    telemetry = Telemetry.create({
+                        session,
+                        userConfig: config,
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
                     });
 
@@ -250,7 +258,11 @@ describe("Telemetry", () => {
                 it("should timeout if machine ID resolution takes too long", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
-                    telemetry = Telemetry.create(session, config, { getRawMachineId: () => new Promise(() => {}) });
+                    telemetry = Telemetry.create({
+                        session,
+                        userConfig: config,
+                        getRawMachineId: () => new Promise(() => {}),
+                    });
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
@@ -290,7 +302,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls();
+                await verifyMockCalls();
             });
         });
 
@@ -315,7 +327,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls();
+                await verifyMockCalls();
             });
         });
     });

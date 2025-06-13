@@ -10,19 +10,21 @@ describe("Telemetry", () => {
 
         const actualHashedId = createHmac("sha256", actualId.toUpperCase()).update("atlascli").digest("hex");
 
-        const telemetry = Telemetry.create(
-            new Session({
+        const telemetry = Telemetry.create({
+            session: new Session({
                 apiBaseUrl: "",
             }),
-            config
-        );
+            userConfig: config,
+        });
 
-        expect(telemetry.getCommonProperties().device_id).toBe(undefined);
+        const commonProperties = await telemetry.getCommonProperties();
+
+        expect(commonProperties.device_id).toBe(undefined);
         expect(telemetry["isBufferingEvents"]).toBe(true);
 
         await telemetry.deviceIdPromise;
 
-        expect(telemetry.getCommonProperties().device_id).toBe(actualHashedId);
+        expect(commonProperties.device_id).toBe(actualHashedId);
         expect(telemetry["isBufferingEvents"]).toBe(false);
     });
 });
