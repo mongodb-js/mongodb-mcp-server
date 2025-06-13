@@ -180,7 +180,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([newEvent]);
 
-                verifyMockCalls({
+                await verifyMockCalls({
                     sendEventsCalls: 1,
                     clearEventsCalls: 1,
                     sendEventsCalledWith: [cachedEvent, newEvent],
