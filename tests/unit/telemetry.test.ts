@@ -130,6 +130,7 @@ describe("Telemetry", () => {
         telemetry = Telemetry.create(session, config, {
             eventCache: mockEventCache,
             getRawMachineId: () => Promise.resolve(machineId),
+            getContainerEnv: () => Promise.resolve(false),
         });
 
         config.telemetry = "enabled";
@@ -216,6 +217,7 @@ describe("Telemetry", () => {
                 it("should successfully resolve the machine ID", async () => {
                     telemetry = Telemetry.create(session, config, {
                         getRawMachineId: () => Promise.resolve(machineId),
+                        getContainerEnv: () => Promise.resolve(false),
                     });
 
                     expect(telemetry.isBufferingEvents()).toBe(true);
@@ -229,6 +231,7 @@ describe("Telemetry", () => {
 
                     telemetry = Telemetry.create(session, config, {
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
+                        getContainerEnv: () => Promise.resolve(false),
                     });
 
                     expect(telemetry.isBufferingEvents()).toBe(true);
@@ -243,37 +246,24 @@ describe("Telemetry", () => {
                     );
                 });
 
-                // it("should timeout if machine ID resolution takes too long", async () => {
-                //     const DEVICE_ID_TIMEOUT = 3000;
-                //     const loggerSpy = jest.spyOn(logger, "debug");
+                it("should timeout if machine ID resolution takes too long", async () => {
+                    const DEVICE_ID_TIMEOUT = 3000;
+                    const loggerSpy = jest.spyOn(logger, "debug");
 
-                //     telemetry = Telemetry.create(session, config, {
-                //         getRawMachineId: () => new Promise(() => {}),
-                //         getContainerEnv: () => Promise.resolve(false),
-                //     });
-                //     console.log("DEBUG 1");
-                //     expect(telemetry.isBufferingEvents()).toBe(true);
-                //     const commonProps = await telemetry.getAsyncCommonProperties();
-                //     console.log("DEBUG 2", commonProps);
-                //     expect(telemetry.isBufferingEvents()).toBe(true);
-                //     expect(commonProps.device_id).toBe(undefined);
-                //     console.log("DEBUG 3");
-                //     jest.advanceTimersByTime(DEVICE_ID_TIMEOUT / 2);
-                //     console.log("DEBUG 3", commonProps);
-                //     // Make sure the timeout doesn't happen prematurely.
-                //     expect(telemetry.isBufferingEvents()).toBe(true);
-                //     expect(commonProps.device_id).toBe(undefined);
-
-                //     jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
-                //     console.log("DEBUG 4", commonProps);
-                //     expect(commonProps.device_id).toBe("unknown");
-                //     expect(telemetry.isBufferingEvents()).toBe(false);
-                //     expect(loggerSpy).toHaveBeenCalledWith(
-                //         LogId.telemetryDeviceIdTimeout,
-                //         "telemetry",
-                //         "Device ID retrieval timed out"
-                //     );
-                // });
+                    telemetry = Telemetry.create(session, config, {
+                        getRawMachineId: () => new Promise(() => {}),
+                        getContainerEnv: () => Promise.resolve(false),
+                    });
+                    expect(telemetry.isBufferingEvents()).toBe(true);
+                    jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
+                    const commonProps = await telemetry.getAsyncCommonProperties();
+                    expect(commonProps.device_id).toBe("unknown");
+                    expect(loggerSpy).toHaveBeenCalledWith(
+                        LogId.telemetryDeviceIdTimeout,
+                        "telemetry",
+                        "Device ID retrieval timed out"
+                    );
+                });
             });
         });
 
