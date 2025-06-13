@@ -71,7 +71,7 @@ export abstract class ToolBase {
         const callback: ToolCallback<typeof this.argsShape> = async (...args) => {
             const startTime = Date.now();
             try {
-                logger.debug(LogId.toolExecute, "tool", `Executing ${this.name} with args: ${JSON.stringify(args)}`);
+                logger.debug(LogId.toolExecute, "tool", `Executing tool ${this.name}`);
 
                 const result = await this.execute(...args);
                 await this.emitToolEvent(startTime, result, ...args).catch(() => {});
