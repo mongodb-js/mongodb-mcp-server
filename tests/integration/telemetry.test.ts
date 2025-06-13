@@ -17,14 +17,12 @@ describe("Telemetry", () => {
             userConfig: config,
         });
 
-        const commonProperties = await telemetry.getCommonProperties();
-
-        expect(commonProperties.device_id).toBe(undefined);
+        expect(telemetry.getCommonProperties().device_id).toBe(undefined);
         expect(telemetry["isBufferingEvents"]).toBe(true);
 
         await telemetry.deviceIdPromise;
 
-        expect(commonProperties.device_id).toBe(actualHashedId);
+        expect(telemetry.getCommonProperties().device_id).toBe(actualHashedId);
         expect(telemetry["isBufferingEvents"]).toBe(false);
     });
 });

@@ -55,7 +55,7 @@ describe("Telemetry", () => {
     }
 
     // Helper function to verify mock calls to reduce duplication
-    async function verifyMockCalls({
+    function verifyMockCalls({
         sendEventsCalls = 0,
         clearEventsCalls = 0,
         appendEventsCalls = 0,
@@ -77,13 +77,11 @@ describe("Telemetry", () => {
         expect(appendEvents.length).toBe(appendEventsCalls);
 
         if (sendEventsCalledWith) {
-            const commonProperties = await telemetry.getCommonProperties();
-
             expect(sendEvents[0]?.[0]).toEqual(
                 sendEventsCalledWith.map((event) => ({
                     ...event,
                     properties: {
-                        ...commonProperties,
+                        ...telemetry.getCommonProperties(),
                         ...event.properties,
                     },
                 }))
@@ -144,7 +142,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                await verifyMockCalls({
+                verifyMockCalls({
                     sendEventsCalls: 1,
                     clearEventsCalls: 1,
                     sendEventsCalledWith: [testEvent],
@@ -158,7 +156,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                await verifyMockCalls({
+                verifyMockCalls({
                     sendEventsCalls: 1,
                     appendEventsCalls: 1,
                     appendEventsCalledWith: [testEvent],
@@ -181,7 +179,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([newEvent]);
 
-                await verifyMockCalls({
+                verifyMockCalls({
                     sendEventsCalls: 1,
                     clearEventsCalls: 1,
                     sendEventsCalledWith: [cachedEvent, newEvent],
@@ -189,8 +187,6 @@ describe("Telemetry", () => {
             });
 
             it("should correctly add common properties to events", () => {
-                const commonProps = await telemetry.getCommonProperties();
-
                 // Use explicit type assertion
                 const expectedProps: Record<string, string> = {
                     mcp_client_version: "1.0.0",
@@ -201,7 +197,7 @@ describe("Telemetry", () => {
                     device_id: hashedMachineId,
                 };
 
-                expect(commonProps).toMatchObject(expectedProps);
+                expect(telemetry.getCommonProperties()).toMatchObject(expectedProps);
             });
 
             describe("machine ID resolution", () => {
@@ -302,7 +298,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                await verifyMockCalls();
+                verifyMockCalls();
             });
         });
 
@@ -327,7 +323,7 @@ describe("Telemetry", () => {
 
                 await telemetry.emitEvents([testEvent]);
 
-                await verifyMockCalls();
+                verifyMockCalls();
             });
         });
     });

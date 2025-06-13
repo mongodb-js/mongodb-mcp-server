@@ -74,6 +74,7 @@ export class Telemetry {
         });
 
         this.commonProperties.device_id = await this.deviceIdPromise;
+        this.commonProperties.is_container_env = (await this.isContainerized()) ? "true" : "false";
 
         this.isBufferingEvents = false;
     }
@@ -105,7 +106,7 @@ export class Telemetry {
      * Gets the common properties for events
      * @returns Object containing common properties for all events
      */
-    public async getCommonProperties(): Promise<CommonProperties> {
+    public getCommonProperties(): CommonProperties {
         return {
             ...this.commonProperties,
             mcp_client_version: this.session.agentRunner?.version,
@@ -113,7 +114,6 @@ export class Telemetry {
             session_id: this.session.sessionId,
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",
-            is_container_env: (await this.isContainerized()) ? "true" : "false",
         };
     }
 
@@ -206,11 +206,10 @@ export class Telemetry {
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
         try {
-            const commonProperties = await this.getCommonProperties();
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
-                    properties: { ...commonProperties, ...event.properties },
+                    properties: { ...this.getCommonProperties(), ...event.properties },
                 }))
             );
             return { success: true };
