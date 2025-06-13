@@ -8,14 +8,11 @@ import { EventCache } from "./eventCache.js";
 import nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
 import fs from "fs/promises";
-import { get } from "http";
 
 type EventResult = {
     success: boolean;
     error?: Error;
 };
-
-export const DEVICE_ID_TIMEOUT = 3000;
 
 export type TelemetryOptions = {
     session: Session;
@@ -56,9 +53,10 @@ async function isContainerized(): Promise<boolean> {
 }
 
 export class Telemetry {
-    private isBufferingEvents: boolean = true;
     /** Resolves when the device ID is retrieved or timeout occurs */
+    private bufferingEvents: number = 2;
     public deviceIdPromise: Promise<string> | undefined;
+    public containerEnvPromise: Promise<boolean> | undefined;
     private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
     private getRawMachineId: () => Promise<string>;
@@ -68,7 +66,15 @@ export class Telemetry {
         private readonly session: Session,
         private readonly userConfig: UserConfig,
         private readonly commonProperties: CommonProperties,
-        { eventCache, getRawMachineId, getContainerEnv }: { eventCache: EventCache; getRawMachineId: () => Promise<string>; getContainerEnv: () => Promise<boolean> }
+        {
+            eventCache,
+            getRawMachineId,
+            getContainerEnv,
+        }: {
+            eventCache: EventCache;
+            getRawMachineId: () => Promise<string>;
+            getContainerEnv: () => Promise<boolean>;
+        }
     ) {
         this.eventCache = eventCache;
         this.getRawMachineId = getRawMachineId;
@@ -90,16 +96,21 @@ export class Telemetry {
             getContainerEnv?: () => Promise<boolean>;
         } = {}
     ): Telemetry {
-        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, getRawMachineId, getContainerEnv });
+        const instance = new Telemetry(session, userConfig, commonProperties, {
+            eventCache,
+            getRawMachineId,
+            getContainerEnv,
+        });
 
-        void instance.start();
+        instance.start();
         return instance;
     }
 
-    private async start(): Promise<void> {
+    private start(): void {
         if (!this.isTelemetryEnabled()) {
             return;
         }
+
         this.deviceIdPromise = getDeviceId({
             getMachineId: () => this.getRawMachineId(),
             onError: (reason, error) => {
@@ -116,25 +127,16 @@ export class Telemetry {
                 }
             },
             abortSignal: this.deviceIdAbortController.signal,
+        }).finally(() => {
+            this.bufferingEvents--;
         });
-
-        // try {
-        //     this.commonProperties.is_container_env = (await this.getContainerEnv()) ? "true" : "false";
-        // } catch (error: unknown) {
-        //     logger.info(
-        //         LogId.telemetryContainerEnvFailure,
-        //         "telemetry",
-        //         `Failed trying to check if is in container environment ${error as string}`
-        //     );
-        // }
-        this.commonProperties.device_id = await this.deviceIdPromise;
-        
-        this.isBufferingEvents = false;
+        this.containerEnvPromise = this.getContainerEnv().finally(() => {
+            this.bufferingEvents--;
+        });
     }
 
     public async close(): Promise<void> {
         this.deviceIdAbortController.abort();
-        this.isBufferingEvents = false;
         await this.emitEvents(this.eventCache.getEvents());
     }
 
@@ -170,6 +172,14 @@ export class Telemetry {
         };
     }
 
+    public async getAsyncCommonProperties(): Promise<CommonProperties> {
+        return {
+            ...this.getCommonProperties(),
+            is_container_env: (await this.containerEnvPromise) ? "true" : "false",
+            device_id: await this.deviceIdPromise,
+        };
+    }
+
     /**
      * Checks if telemetry is currently enabled
      * This is a method rather than a constant to capture runtime config changes
@@ -187,12 +197,16 @@ export class Telemetry {
         return !doNotTrack;
     }
 
+    public isBufferingEvents(): boolean {
+        return this.bufferingEvents > 0;
+    }
+
     /**
      * Attempts to emit events through authenticated and unauthenticated clients
      * Falls back to caching if both attempts fail
      */
     private async emit(events: BaseEvent[]): Promise<void> {
-        if (this.isBufferingEvents) {
+        if (this.isBufferingEvents()) {
             this.eventCache.appendEvents(events);
             return;
         }
@@ -230,10 +244,11 @@ export class Telemetry {
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
         try {
+            const commonProperties = await this.getAsyncCommonProperties();
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
-                    properties: { ...this.getCommonProperties(), ...event.properties },
+                    properties: { ...commonProperties, ...event.properties },
                 }))
             );
             return { success: true };
