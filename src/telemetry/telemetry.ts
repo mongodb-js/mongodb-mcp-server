@@ -8,6 +8,7 @@ import { EventCache } from "./eventCache.js";
 import nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
 import fs from "fs/promises";
+import { get } from "http";
 
 type EventResult = {
     success: boolean;
@@ -22,30 +23,74 @@ export type TelemetryOptions = {
     commonProperties?: CommonProperties;
     eventCache?: EventCache;
     getRawMachineId?: () => Promise<string>;
+    getContainerEnv?: () => Promise<boolean>;
 };
+
+async function fileExists(filePath: string): Promise<boolean> {
+    try {
+        await fs.stat(filePath);
+        return true; // File exists
+    } catch (e: unknown) {
+        if (
+            e instanceof Error &&
+            (
+                e as Error & {
+                    code: string;
+                }
+            ).code === "ENOENT"
+        ) {
+            return false; // File does not exist
+        }
+        throw e; // Re-throw unexpected errors
+    }
+}
+
+async function isContainerized(): Promise<boolean> {
+    for (const file of ["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"]) {
+        const exists = await fileExists(file);
+        if (exists) {
+            return true;
+        }
+    }
+    return !!process.env.container;
+}
 
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the device ID is retrieved or timeout occurs */
     public deviceIdPromise: Promise<string> | undefined;
     private deviceIdAbortController = new AbortController();
+    private eventCache: EventCache;
+    private getRawMachineId: () => Promise<string>;
+    private getContainerEnv: () => Promise<boolean>;
 
     private constructor(
         private readonly session: Session,
         private readonly userConfig: UserConfig,
         private readonly commonProperties: CommonProperties,
-        private readonly eventCache: EventCache,
-        private readonly getRawMachineId: () => Promise<string>
-    ) {}
+        { eventCache, getRawMachineId, getContainerEnv }: { eventCache: EventCache; getRawMachineId: () => Promise<string>; getContainerEnv: () => Promise<boolean> }
+    ) {
+        this.eventCache = eventCache;
+        this.getRawMachineId = getRawMachineId;
+        this.getContainerEnv = getContainerEnv;
+    }
 
-    static create({ session, userConfig, commonProperties, eventCache, getRawMachineId }: TelemetryOptions): Telemetry {
-        const instance = new Telemetry(
-            session,
-            userConfig,
-            commonProperties || { ...MACHINE_METADATA },
-            eventCache || EventCache.getInstance(),
-            getRawMachineId || (() => nodeMachineId.machineId(true))
-        );
+    static create(
+        session: Session,
+        userConfig: UserConfig,
+        {
+            commonProperties = { ...MACHINE_METADATA },
+            eventCache = EventCache.getInstance(),
+            getRawMachineId = () => nodeMachineId.machineId(true),
+            getContainerEnv = isContainerized,
+        }: {
+            commonProperties?: CommonProperties;
+            eventCache?: EventCache;
+            getRawMachineId?: () => Promise<string>;
+            getContainerEnv?: () => Promise<boolean>;
+        } = {}
+    ): Telemetry {
+        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, getRawMachineId, getContainerEnv });
 
         void instance.start();
         return instance;
@@ -73,9 +118,17 @@ export class Telemetry {
             abortSignal: this.deviceIdAbortController.signal,
         });
 
+        // try {
+        //     this.commonProperties.is_container_env = (await this.getContainerEnv()) ? "true" : "false";
+        // } catch (error: unknown) {
+        //     logger.info(
+        //         LogId.telemetryContainerEnvFailure,
+        //         "telemetry",
+        //         `Failed trying to check if is in container environment ${error as string}`
+        //     );
+        // }
         this.commonProperties.device_id = await this.deviceIdPromise;
-        this.commonProperties.is_container_env = (await this.isContainerized()) ? "true" : "false";
-
+        
         this.isBufferingEvents = false;
     }
 
@@ -115,35 +168,6 @@ export class Telemetry {
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",
         };
-    }
-
-    private async fileExists(filePath: string): Promise<boolean> {
-        try {
-            await fs.stat(filePath);
-            return true; // File exists
-        } catch (e: unknown) {
-            if (
-                e instanceof Error &&
-                (
-                    e as Error & {
-                        code: string;
-                    }
-                ).code === "ENOENT"
-            ) {
-                return false; // File does not exist
-            }
-            throw e; // Re-throw unexpected errors
-        }
-    }
-
-    private async isContainerized(): Promise<boolean> {
-        for (const file of ["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"]) {
-            const fileExists = await this.fileExists(file);
-            if (fileExists) {
-                return true;
-            }
-        }
-        return !!process.env.container;
     }
 
     /**

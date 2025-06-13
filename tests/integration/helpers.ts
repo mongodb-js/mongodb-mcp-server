@@ -67,7 +67,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create({ session, userConfig });
+        const telemetry = Telemetry.create(session, userConfig);
 
         mcpServer = new Server({
             session,

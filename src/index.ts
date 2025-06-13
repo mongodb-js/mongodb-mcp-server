@@ -20,7 +20,7 @@ try {
         version: packageInfo.version,
     });
 
-    const telemetry = Telemetry.create({ session, userConfig: config });
+    const telemetry = Telemetry.create(session, config);
 
     const server = new Server({
         mcpServer,

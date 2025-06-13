@@ -130,6 +130,7 @@ describe("Telemetry", () => {
             userConfig: config,
             eventCache: mockEventCache,
             getRawMachineId: () => Promise.resolve(machineId),
+            getContainerEnv: () => Promise.resolve(false),
         });
 
         config.telemetry = "enabled";
@@ -216,6 +217,7 @@ describe("Telemetry", () => {
                         session,
                         userConfig: config,
                         getRawMachineId: () => Promise.resolve(machineId),
+                        getContainerEnv: () => Promise.resolve(false),
                     });
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
@@ -234,6 +236,7 @@ describe("Telemetry", () => {
                         session,
                         userConfig: config,
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
+                        getContainerEnv: () => Promise.resolve(false),
                     });
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
@@ -258,6 +261,7 @@ describe("Telemetry", () => {
                         session,
                         userConfig: config,
                         getRawMachineId: () => new Promise(() => {}),
+                        getContainerEnv: () => Promise.resolve(false),
                     });
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);

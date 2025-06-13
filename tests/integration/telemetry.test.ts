@@ -10,11 +10,8 @@ describe("Telemetry", () => {
 
         const actualHashedId = createHmac("sha256", actualId.toUpperCase()).update("atlascli").digest("hex");
 
-        const telemetry = Telemetry.create({
-            session: new Session({
-                apiBaseUrl: "",
-            }),
-            userConfig: config,
+        const telemetry = Telemetry.create(new Session({ apiBaseUrl: "" }), config, {
+            getContainerEnv: () => Promise.resolve(false),
         });
 
         expect(telemetry.getCommonProperties().device_id).toBe(undefined);
