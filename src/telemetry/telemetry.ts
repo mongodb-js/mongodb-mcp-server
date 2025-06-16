@@ -32,14 +32,10 @@ async function isContainerized(): Promise<boolean> {
     if (process.env.container) {
         return true;
     }
-    for (const file of ["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"]) {
-        const exists = await fileExists(file);
-        if (exists) {
-            return true;
-        }
-    }
 
-    return false;
+    const exists = await Promise.all(["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"].map(fileExists));
+
+    return exists.includes(true);
 }
 
 export class Telemetry {
