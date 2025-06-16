@@ -39,8 +39,6 @@ async function isContainerized(): Promise<boolean> {
 }
 
 export class Telemetry {
-    /** Resolves when the device ID is retrieved or timeout occurs */
-    private pendingPromises: number = 2;
     private deviceIdPromise: Promise<string> | undefined;
     private containerEnvPromise: Promise<boolean> | undefined;
     private deviceIdAbortController = new AbortController();
@@ -110,12 +108,8 @@ export class Telemetry {
                 }
             },
             abortSignal: this.deviceIdAbortController.signal,
-        }).finally(() => {
-            this.pendingPromises--;
         });
-        this.containerEnvPromise = this.getContainerEnv().finally(() => {
-            this.pendingPromises--;
-        });
+        this.containerEnvPromise = this.getContainerEnv();
     }
 
     public async close(): Promise<void> {
@@ -174,20 +168,11 @@ export class Telemetry {
         return !doNotTrack;
     }
 
-    private hasPendingPromises(): boolean {
-        return this.pendingPromises > 0;
-    }
-
     /**
      * Attempts to emit events through authenticated and unauthenticated clients
      * Falls back to caching if both attempts fail
      */
     private async emit(events: BaseEvent[]): Promise<void> {
-        if (this.hasPendingPromises()) {
-            this.eventCache.appendEvents(events);
-            return;
-        }
-
         const cachedEvents = this.eventCache.getEvents();
         const allEvents = [...cachedEvents, ...events];
 
