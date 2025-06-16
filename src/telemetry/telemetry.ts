@@ -39,8 +39,8 @@ async function isContainerized(): Promise<boolean> {
 }
 
 export class Telemetry {
-    private deviceIdPromise: Promise<string> | undefined;
-    private containerEnvPromise: Promise<boolean> | undefined;
+    private deviceId: string | undefined;
+    private containerEnv: boolean | undefined;
     private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
     private getRawMachineId: () => Promise<string>;
@@ -64,7 +64,7 @@ export class Telemetry {
         this.getContainerEnv = getContainerEnv;
     }
 
-    static create(
+    static async create(
         session: Session,
         userConfig: UserConfig,
         {
@@ -76,23 +76,23 @@ export class Telemetry {
             getRawMachineId?: () => Promise<string>;
             getContainerEnv?: () => Promise<boolean>;
         } = {}
-    ): Telemetry {
+    ): Promise<Telemetry> {
         const instance = new Telemetry(session, userConfig, {
             eventCache,
             getRawMachineId,
             getContainerEnv,
         });
 
-        instance.start();
+        await instance.start();
         return instance;
     }
 
-    private start(): void {
+    private async start(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             return;
         }
 
-        this.deviceIdPromise = getDeviceId({
+        const deviceIdPromise = getDeviceId({
             getMachineId: () => this.getRawMachineId(),
             onError: (reason, error) => {
                 switch (reason) {
@@ -109,7 +109,9 @@ export class Telemetry {
             },
             abortSignal: this.deviceIdAbortController.signal,
         });
-        this.containerEnvPromise = this.getContainerEnv();
+        const containerEnvPromise = this.getContainerEnv();
+
+        [this.deviceId, this.containerEnv] = await Promise.all([deviceIdPromise, containerEnvPromise]);
     }
 
     public async close(): Promise<void> {
@@ -138,7 +140,7 @@ export class Telemetry {
      * Gets the common properties for events
      * @returns Object containing common properties for all events
      */
-    private async getCommonProperties(): Promise<CommonProperties> {
+    private getCommonProperties(): CommonProperties {
         return {
             ...MACHINE_METADATA,
             mcp_client_version: this.session.agentRunner?.version,
@@ -146,8 +148,8 @@ export class Telemetry {
             session_id: this.session.sessionId,
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",
-            is_container_env: (await this.containerEnvPromise) ? "true" : "false",
-            device_id: await this.deviceIdPromise,
+            is_container_env: this.containerEnv ? "true" : "false",
+            device_id: this.deviceId,
         };
     }
 
@@ -204,11 +206,10 @@ export class Telemetry {
      * Attempts to send events through the provided API client
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<void> {
-        const commonProperties = await this.getCommonProperties();
         await client.sendEvents(
             events.map((event) => ({
                 ...event,
-                properties: { ...commonProperties, ...event.properties },
+                properties: { ...this.getCommonProperties(), ...event.properties },
             }))
         );
     }

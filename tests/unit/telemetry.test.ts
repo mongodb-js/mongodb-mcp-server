@@ -99,7 +99,7 @@ describe("Telemetry", () => {
         }
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Reset mocks before each test
         jest.clearAllMocks();
 
@@ -137,7 +137,7 @@ describe("Telemetry", () => {
             getContainerEnv: () => Promise.resolve(false),
         };
 
-        telemetry = Telemetry.create(session, config, telemetryConfig);
+        telemetry = await Telemetry.create(session, config, telemetryConfig);
 
         config.telemetry = "enabled";
     });
@@ -247,7 +247,7 @@ describe("Telemetry", () => {
                 it("should handle machine ID resolution failure", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
-                    telemetry = Telemetry.create(session, config, {
+                    telemetry = await Telemetry.create(session, config, {
                         ...telemetryConfig,
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
                     });
@@ -266,7 +266,7 @@ describe("Telemetry", () => {
                 it("should timeout if machine ID resolution takes too long", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
-                    telemetry = Telemetry.create(session, config, {
+                    telemetry = await Telemetry.create(session, config, {
                         ...telemetryConfig,
                         getRawMachineId: () => new Promise(() => {}), // Never resolves
                     });
