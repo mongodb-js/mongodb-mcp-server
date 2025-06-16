@@ -77,7 +77,7 @@ describe("Telemetry", () => {
         expect(appendEvents.length).toBe(appendEventsCalls);
 
         if (sendEventsCalledWith) {
-            const commonProps = await telemetry.getAsyncCommonProperties();
+            const commonProps = await telemetry.getCommonProperties();
 
             expect(sendEvents[0]?.[0]).toEqual(
                 sendEventsCalledWith.map((event) => ({
@@ -198,7 +198,7 @@ describe("Telemetry", () => {
                     device_id: hashedMachineId,
                 };
 
-                const commonProps = await telemetry.getAsyncCommonProperties();
+                const commonProps = await telemetry.getCommonProperties();
 
                 expect(commonProps).toMatchObject(expectedProps);
             });
@@ -221,7 +221,7 @@ describe("Telemetry", () => {
                     });
 
                     expect(telemetry.hasPendingPromises()).toBe(true);
-                    const commonProps = await telemetry.getAsyncCommonProperties();
+                    const commonProps = await telemetry.getCommonProperties();
                     expect(telemetry.hasPendingPromises()).toBe(false);
                     expect(commonProps.device_id).toBe(hashedMachineId);
                 });
@@ -235,7 +235,7 @@ describe("Telemetry", () => {
                     });
 
                     expect(telemetry.hasPendingPromises()).toBe(true);
-                    const commonProps = await telemetry.getAsyncCommonProperties();
+                    const commonProps = await telemetry.getCommonProperties();
                     expect(telemetry.hasPendingPromises()).toBe(false);
                     expect(commonProps.device_id).toBe("unknown");
 
@@ -256,7 +256,7 @@ describe("Telemetry", () => {
                     });
                     expect(telemetry.hasPendingPromises()).toBe(true);
                     jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
-                    const commonProps = await telemetry.getAsyncCommonProperties();
+                    const commonProps = await telemetry.getCommonProperties();
                     expect(commonProps.device_id).toBe("unknown");
                     expect(loggerSpy).toHaveBeenCalledWith(
                         LogId.telemetryDeviceIdTimeout,

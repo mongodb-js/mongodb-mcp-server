@@ -14,7 +14,7 @@ describe("Telemetry", () => {
         });
 
         expect(telemetry.hasPendingPromises()).toBe(true);
-        const commonProps = await telemetry.getAsyncCommonProperties();
+        const commonProps = await telemetry.getCommonProperties();
 
         expect(commonProps.device_id).toBe(actualHashedId);
         expect(telemetry.hasPendingPromises()).toBe(false);

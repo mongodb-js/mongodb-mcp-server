@@ -50,8 +50,8 @@ async function isContainerized(): Promise<boolean> {
 export class Telemetry {
     /** Resolves when the device ID is retrieved or timeout occurs */
     private pendingPromises: number = 2;
-    public deviceIdPromise: Promise<string> | undefined;
-    public containerEnvPromise: Promise<boolean> | undefined;
+    private deviceIdPromise: Promise<string> | undefined;
+    private containerEnvPromise: Promise<boolean> | undefined;
     private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
     private getRawMachineId: () => Promise<string>;
@@ -156,7 +156,7 @@ export class Telemetry {
      * Gets the common properties for events
      * @returns Object containing common properties for all events
      */
-    public getCommonProperties(): CommonProperties {
+    public async getCommonProperties(): Promise<CommonProperties> {
         return {
             ...this.commonProperties,
             mcp_client_version: this.session.agentRunner?.version,
@@ -164,12 +164,6 @@ export class Telemetry {
             session_id: this.session.sessionId,
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",
-        };
-    }
-
-    public async getAsyncCommonProperties(): Promise<CommonProperties> {
-        return {
-            ...this.getCommonProperties(),
             is_container_env: (await this.containerEnvPromise) ? "true" : "false",
             device_id: await this.deviceIdPromise,
         };
@@ -239,7 +233,7 @@ export class Telemetry {
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
         try {
-            const commonProperties = await this.getAsyncCommonProperties();
+            const commonProperties = await this.getCommonProperties();
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
