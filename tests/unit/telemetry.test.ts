@@ -220,9 +220,9 @@ describe("Telemetry", () => {
                         getContainerEnv: () => Promise.resolve(false),
                     });
 
-                    expect(telemetry.isBufferingEvents()).toBe(true);
+                    expect(telemetry.hasPendingPromises()).toBe(true);
                     const commonProps = await telemetry.getAsyncCommonProperties();
-                    expect(telemetry.isBufferingEvents()).toBe(false);
+                    expect(telemetry.hasPendingPromises()).toBe(false);
                     expect(commonProps.device_id).toBe(hashedMachineId);
                 });
 
@@ -234,9 +234,9 @@ describe("Telemetry", () => {
                         getContainerEnv: () => Promise.resolve(false),
                     });
 
-                    expect(telemetry.isBufferingEvents()).toBe(true);
+                    expect(telemetry.hasPendingPromises()).toBe(true);
                     const commonProps = await telemetry.getAsyncCommonProperties();
-                    expect(telemetry.isBufferingEvents()).toBe(false);
+                    expect(telemetry.hasPendingPromises()).toBe(false);
                     expect(commonProps.device_id).toBe("unknown");
 
                     expect(loggerSpy).toHaveBeenCalledWith(
@@ -254,7 +254,7 @@ describe("Telemetry", () => {
                         getRawMachineId: () => new Promise(() => {}),
                         getContainerEnv: () => Promise.resolve(false),
                     });
-                    expect(telemetry.isBufferingEvents()).toBe(true);
+                    expect(telemetry.hasPendingPromises()).toBe(true);
                     jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
                     const commonProps = await telemetry.getAsyncCommonProperties();
                     expect(commonProps.device_id).toBe("unknown");

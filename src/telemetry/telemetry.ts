@@ -49,7 +49,7 @@ async function isContainerized(): Promise<boolean> {
 
 export class Telemetry {
     /** Resolves when the device ID is retrieved or timeout occurs */
-    private bufferingEvents: number = 2;
+    private pendingPromises: number = 2;
     public deviceIdPromise: Promise<string> | undefined;
     public containerEnvPromise: Promise<boolean> | undefined;
     private deviceIdAbortController = new AbortController();
@@ -123,10 +123,10 @@ export class Telemetry {
             },
             abortSignal: this.deviceIdAbortController.signal,
         }).finally(() => {
-            this.bufferingEvents--;
+            this.pendingPromises--;
         });
         this.containerEnvPromise = this.getContainerEnv().finally(() => {
-            this.bufferingEvents--;
+            this.pendingPromises--;
         });
     }
 
@@ -192,8 +192,8 @@ export class Telemetry {
         return !doNotTrack;
     }
 
-    public isBufferingEvents(): boolean {
-        return this.bufferingEvents > 0;
+    public hasPendingPromises(): boolean {
+        return this.pendingPromises > 0;
     }
 
     /**
@@ -201,7 +201,7 @@ export class Telemetry {
      * Falls back to caching if both attempts fail
      */
     private async emit(events: BaseEvent[]): Promise<void> {
-        if (this.isBufferingEvents()) {
+        if (this.hasPendingPromises()) {
             this.eventCache.appendEvents(events);
             return;
         }

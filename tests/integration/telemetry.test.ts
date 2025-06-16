@@ -13,10 +13,10 @@ describe("Telemetry", () => {
             getContainerEnv: () => new Promise((resolve) => resolve(false)),
         });
 
-        expect(telemetry.isBufferingEvents()).toBe(true);
+        expect(telemetry.hasPendingPromises()).toBe(true);
         const commonProps = await telemetry.getAsyncCommonProperties();
 
         expect(commonProps.device_id).toBe(actualHashedId);
-        expect(telemetry.isBufferingEvents()).toBe(false);
+        expect(telemetry.hasPendingPromises()).toBe(false);
     });
 });
