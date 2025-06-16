@@ -9,11 +9,6 @@ import nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
 import fs from "fs/promises";
 
-type EventResult = {
-    success: boolean;
-    error?: Error;
-};
-
 async function fileExists(filePath: string): Promise<boolean> {
     try {
         await fs.stat(filePath);
@@ -60,7 +55,6 @@ export class Telemetry {
     private constructor(
         private readonly session: Session,
         private readonly userConfig: UserConfig,
-        private readonly commonProperties: CommonProperties,
         {
             eventCache,
             getRawMachineId,
@@ -80,18 +74,16 @@ export class Telemetry {
         session: Session,
         userConfig: UserConfig,
         {
-            commonProperties = { ...MACHINE_METADATA },
             eventCache = EventCache.getInstance(),
             getRawMachineId = () => nodeMachineId.machineId(true),
             getContainerEnv = isContainerized,
         }: {
-            commonProperties?: CommonProperties;
             eventCache?: EventCache;
             getRawMachineId?: () => Promise<string>;
             getContainerEnv?: () => Promise<boolean>;
         } = {}
     ): Telemetry {
-        const instance = new Telemetry(session, userConfig, commonProperties, {
+        const instance = new Telemetry(session, userConfig, {
             eventCache,
             getRawMachineId,
             getContainerEnv,
@@ -156,9 +148,9 @@ export class Telemetry {
      * Gets the common properties for events
      * @returns Object containing common properties for all events
      */
-    public async getCommonProperties(): Promise<CommonProperties> {
+    private async getCommonProperties(): Promise<CommonProperties> {
         return {
-            ...this.commonProperties,
+            ...MACHINE_METADATA,
             mcp_client_version: this.session.agentRunner?.version,
             mcp_client_name: this.session.agentRunner?.name,
             session_id: this.session.sessionId,
@@ -186,7 +178,7 @@ export class Telemetry {
         return !doNotTrack;
     }
 
-    public hasPendingPromises(): boolean {
+    private hasPendingPromises(): boolean {
         return this.pendingPromises > 0;
     }
 
@@ -209,43 +201,34 @@ export class Telemetry {
             `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`
         );
 
-        const result = await this.sendEvents(this.session.apiClient, allEvents);
-        if (result.success) {
+        try {
+            await this.sendEvents(this.session.apiClient, allEvents);
             this.eventCache.clearEvents();
             logger.debug(
                 LogId.telemetryEmitSuccess,
                 "telemetry",
                 `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`
             );
-            return;
+        } catch (error: unknown) {
+            logger.debug(
+                LogId.telemetryEmitFailure,
+                "telemetry",
+                `Error sending event to client: ${error instanceof Error ? error.message : String(error)}`
+            );
+            this.eventCache.appendEvents(events);
         }
-
-        logger.debug(
-            LogId.telemetryEmitFailure,
-            "telemetry",
-            `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`
-        );
-        this.eventCache.appendEvents(events);
     }
 
     /**
      * Attempts to send events through the provided API client
      */
-    private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
-        try {
-            const commonProperties = await this.getCommonProperties();
-            await client.sendEvents(
-                events.map((event) => ({
-                    ...event,
-                    properties: { ...commonProperties, ...event.properties },
-                }))
-            );
-            return { success: true };
-        } catch (error) {
-            return {
-                success: false,
-                error: error instanceof Error ? error : new Error(String(error)),
-            };
-        }
+    private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<void> {
+        const commonProperties = await this.getCommonProperties();
+        await client.sendEvents(
+            events.map((event) => ({
+                ...event,
+                properties: { ...commonProperties, ...event.properties },
+            }))
+        );
     }
 }
