@@ -11,7 +11,7 @@ import fs from "fs/promises";
 
 async function fileExists(filePath: string): Promise<boolean> {
     try {
-        await fs.stat(filePath);
+        await fs.access(filePath, fs.constants.F_OK);
         return true; // File exists
     } catch (e: unknown) {
         if (
