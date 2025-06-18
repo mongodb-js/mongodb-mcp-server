@@ -3,6 +3,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { EJSON } from "bson";
+import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const AggregateArgs = {
     pipeline: z.array(z.record(z.string(), z.unknown())).describe("An array of aggregation stages to execute"),
@@ -23,6 +24,16 @@ export class AggregateTool extends MongoDBToolBase {
         pipeline,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+
+        // Check if aggregate operation uses an index if enabled
+        if (this.config.indexCheck) {
+            await checkIndexUsage(provider, database, collection, "aggregate", async () => {
+                return provider
+                    .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
+                    .explain("queryPlanner");
+            });
+        }
+
         const documents = await provider.aggregate(database, collection, pipeline).toArray();
 
         const content: Array<{ text: string; type: "text" }> = [
