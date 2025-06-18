@@ -24,11 +24,17 @@ startCommand:
         title: Read-only
         description: When set to true, only allows read and metadata operation types, disabling create/update/delete operations.
         default: false
+      indexCheck:
+        type: boolean
+        title: Index Check
+        description: When set to true, enforces that query operations must use an index, rejecting queries that would perform a collection scan.
+        default: false
   exampleConfig:
     atlasClientId: YOUR_ATLAS_CLIENT_ID
     atlasClientSecret: YOUR_ATLAS_CLIENT_SECRET
     connectionString: mongodb+srv://USERNAME:PASSWORD@YOUR_CLUSTER.mongodb.net
     readOnly: true
+    indexCheck: false
 
   commandFunction:
     # A function that produces the CLI command to start the MCP on stdio.
@@ -53,6 +59,10 @@ startCommand:
         if (config.connectionString) {
           args.push('--connectionString');
           args.push(config.connectionString);
+        }
+
+        if (config.indexCheck) {
+          args.push('--indexCheck');
         }
       }
 

@@ -1,0 +1,80 @@
+import { usesIndex, getIndexCheckErrorMessage } from "../../src/helpers/indexCheck.js";
+import { Document } from "mongodb";
+
+describe("indexCheck", () => {
+    describe("usesIndex", () => {
+        it("should return true for IXSCAN", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "IXSCAN",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return true for COUNT_SCAN", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "COUNT_SCAN",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return false for COLLSCAN", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "COLLSCAN",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(false);
+        });
+
+        it("should return true for nested IXSCAN in inputStage", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "LIMIT",
+                        inputStage: {
+                            stage: "IXSCAN",
+                        },
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return false for unknown stage types", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "UNKNOWN_STAGE",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(false);
+        });
+
+        it("should handle missing queryPlanner", () => {
+            const explainResult: Document = {};
+            expect(usesIndex(explainResult)).toBe(false);
+        });
+    });
+
+    describe("getIndexCheckErrorMessage", () => {
+        it("should generate appropriate error message", () => {
+            const message = getIndexCheckErrorMessage("testdb", "testcoll", "find");
+            expect(message).toContain("Index check failed");
+            expect(message).toContain("testdb.testcoll");
+            expect(message).toContain("find operation");
+            expect(message).toContain("collection scan (COLLSCAN)");
+            expect(message).toContain("MDB_MCP_INDEX_CHECK");
+        });
+    });
+});
