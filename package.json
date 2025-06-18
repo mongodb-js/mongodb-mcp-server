@@ -29,7 +29,10 @@
     "check:types": "tsc --noEmit --project tsconfig.json",
     "reformat": "prettier --write .",
     "generate": "./scripts/generate.sh",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
+    "test": "npm run test:unit && npm run test:integration",
+    "test:accuracy": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --testPathPattern=tests/accuracy",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --testPathPattern=tests/unit",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --testPathPattern=tests/integration"
   },
   "license": "Apache-2.0",
   "devDependencies": {
@@ -57,7 +60,8 @@
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.29.1",
-    "yaml": "^2.7.1"
+    "yaml": "^2.7.1",
+    "zod-to-json-schema": "^3.24.5"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.2",
