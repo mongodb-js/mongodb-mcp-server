@@ -184,8 +184,9 @@ export class Telemetry {
 
         if (this.flushing) {
             this.eventCache.appendEvents(events ?? []);
-            process.nextTick(() => { // try again if in the middle of a flush
-                this.flush();
+            process.nextTick(async () => {
+                // try again if in the middle of a flush
+                await this.flush();
             });
             return;
         }
@@ -220,8 +221,9 @@ export class Telemetry {
                 `Error sending event to client: ${error instanceof Error ? error.message : String(error)}`
             );
             this.eventCache.appendEvents(events ?? []);
-            process.nextTick(() => { // try again
-                this.flush();
+            process.nextTick(async () => {
+                // try again
+                await this.flush();
             });
         }
 
