@@ -106,38 +106,39 @@ export class Telemetry {
     private async getCommonProperties(): Promise<CommonProperties> {
         if (!this.cachedCommonProperties) {
             let deviceId: string | undefined;
+            let containerEnv: boolean | undefined;
             try {
-                deviceId = await getDeviceId({
-                    getMachineId: () => this.getRawMachineId(),
-                    onError: (reason, error) => {
-                        switch (reason) {
-                            case "resolutionError":
-                                logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", String(error));
-                                break;
-                            case "timeout":
-                                logger.debug(
-                                    LogId.telemetryDeviceIdTimeout,
-                                    "telemetry",
-                                    "Device ID retrieval timed out"
-                                );
-                                break;
-                            case "abort":
-                                // No need to log in the case of aborts
-                                break;
-                        }
-                    },
-                    abortSignal: this.deviceIdAbortController.signal,
-                });
+                await Promise.all([
+                    getDeviceId({
+                        getMachineId: () => this.getRawMachineId(),
+                        onError: (reason, error) => {
+                            switch (reason) {
+                                case "resolutionError":
+                                    logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", String(error));
+                                    break;
+                                case "timeout":
+                                    logger.debug(
+                                        LogId.telemetryDeviceIdTimeout,
+                                        "telemetry",
+                                        "Device ID retrieval timed out"
+                                    );
+                                    break;
+                                case "abort":
+                                    // No need to log in the case of aborts
+                                    break;
+                            }
+                        },
+                        abortSignal: this.deviceIdAbortController.signal,
+                    }).then((id) => {
+                        deviceId = id;
+                    }),
+                    this.getContainerEnv().then((env) => {
+                        containerEnv = env;
+                    }),
+                ]);
             } catch (error: unknown) {
                 const err = error instanceof Error ? error : new Error(String(error));
                 logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", err.message);
-            }
-            let containerEnv: boolean | undefined;
-            try {
-                containerEnv = await this.getContainerEnv();
-            } catch (error: unknown) {
-                const err = error instanceof Error ? error : new Error(String(error));
-                logger.debug(LogId.telemetryContainerEnvFailure, "telemetry", err.message);
             }
             this.cachedCommonProperties = {
                 ...MACHINE_METADATA,
@@ -183,6 +184,9 @@ export class Telemetry {
 
         if (this.flushing) {
             this.eventCache.appendEvents(events ?? []);
+            process.nextTick(() => { // try again if in the middle of a flush
+                this.flush();
+            });
             return;
         }
 
@@ -191,6 +195,10 @@ export class Telemetry {
         try {
             const cachedEvents = this.eventCache.getEvents();
             const allEvents = [...cachedEvents, ...(events ?? [])];
+            if (allEvents.length <= 0) {
+                this.flushing = false;
+                return;
+            }
 
             logger.debug(
                 LogId.telemetryEmitStart,
@@ -212,6 +220,9 @@ export class Telemetry {
                 `Error sending event to client: ${error instanceof Error ? error.message : String(error)}`
             );
             this.eventCache.appendEvents(events ?? []);
+            process.nextTick(() => { // try again
+                this.flush();
+            });
         }
 
         this.flushing = false;

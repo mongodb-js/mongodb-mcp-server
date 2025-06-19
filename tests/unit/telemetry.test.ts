@@ -84,18 +84,11 @@ describe("Telemetry", () => {
         expect(appendEvents.length).toBe(appendEventsCalls);
 
         if (sendEventsCalledWith) {
-            expect(sendEvents[0]?.[0]).toMatchObject(
-                sendEventsCalledWith.map((event) => ({
-                    ...event,
-                    properties: {
-                        ...event.properties,
-                    },
-                }))
-            );
+            expect(sendEvents[0]?.[0]).toMatchObject(sendEventsCalledWith);
         }
 
         if (appendEventsCalledWith) {
-            expect(appendEvents[0]?.[0]).toEqual(appendEventsCalledWith);
+            expect(appendEvents[0]?.[0]).toMatchObject(appendEventsCalledWith);
         }
     }
 
@@ -224,6 +217,31 @@ describe("Telemetry", () => {
                     sendEventsCalls: 1,
                     clearEventsCalls: 1,
                     sendEventsCalledWith: [checkEvent],
+                });
+            });
+
+            it("should send cache new event while sending another event", async () => {
+                const newEvent = createTestEvent({
+                    command: "new-command",
+                    component: "new-component",
+                });
+
+                const newEvent2 = createTestEvent({
+                    command: "new-command-2",
+                    component: "new-component-2",
+                });
+
+                telemetry.emitEvents([newEvent]);
+                telemetry.emitEvents([newEvent2]);
+
+                await nextTick(); // wait for the event to be sent
+
+                verifyMockCalls({
+                    sendEventsCalls: 1,
+                    clearEventsCalls: 1,
+                    appendEventsCalls: 1,
+                    sendEventsCalledWith: [newEvent],
+                    appendEventsCalledWith: [newEvent2],
                 });
             });
 
