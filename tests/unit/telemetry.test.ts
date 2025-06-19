@@ -274,6 +274,8 @@ describe("Telemetry", () => {
                 it("should timeout if machine ID resolution takes too long", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
+                    jest.useFakeTimers();
+                
                     telemetry = Telemetry.create(session, config, {
                         ...telemetryConfig,
                         getRawMachineId: () => new Promise(() => {}), // Never resolves
@@ -283,7 +285,11 @@ describe("Telemetry", () => {
 
                     telemetry.emitEvents([testEvent]);
 
-                    await delay(5000); // Wait for timeout
+                    jest.advanceTimersByTime(5000);
+
+                    jest.useRealTimers();
+                
+                    expect(loggerSpy).toHaveBeenCalledTimes(2);
 
                     expect(loggerSpy).toHaveBeenNthCalledWith(
                         2,
