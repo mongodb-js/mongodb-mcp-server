@@ -17,7 +17,6 @@ jest.mock("../../src/telemetry/eventCache.js");
 const MockEventCache = EventCache as jest.MockedClass<typeof EventCache>;
 
 const nextTick = () => new Promise((resolve) => process.nextTick(resolve));
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("Telemetry", () => {
     const machineId = "test-machine-id";
@@ -271,11 +270,11 @@ describe("Telemetry", () => {
                     );
                 });
 
-                it("should timeout if machine ID resolution takes too long", async () => {
+                it("should timeout if machine ID resolution takes too long", () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
                     jest.useFakeTimers();
-                
+
                     telemetry = Telemetry.create(session, config, {
                         ...telemetryConfig,
                         getRawMachineId: () => new Promise(() => {}), // Never resolves
@@ -288,7 +287,7 @@ describe("Telemetry", () => {
                     jest.advanceTimersByTime(5000);
 
                     jest.useRealTimers();
-                
+
                     expect(loggerSpy).toHaveBeenCalledTimes(2);
 
                     expect(loggerSpy).toHaveBeenNthCalledWith(
