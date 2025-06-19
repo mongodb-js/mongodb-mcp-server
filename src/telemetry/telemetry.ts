@@ -88,7 +88,7 @@ export class Telemetry {
 
     public async close(): Promise<void> {
         this.deviceIdAbortController.abort();
-        await this.flush(this.eventCache.getEvents());
+        await this.flush();
     }
 
     /**
@@ -175,14 +175,14 @@ export class Telemetry {
      * Attempts to flush events through authenticated and unauthenticated clients
      * Falls back to caching if both attempts fail
      */
-    private async flush(events: BaseEvent[]): Promise<void> {
+    public async flush(events?: BaseEvent[]): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             logger.info(LogId.telemetryEmitFailure, "telemetry", `Telemetry is disabled.`);
             return;
         }
 
         if (this.flushing) {
-            this.eventCache.appendEvents(events);
+            this.eventCache.appendEvents(events ?? []);
             return;
         }
 
@@ -190,7 +190,7 @@ export class Telemetry {
 
         try {
             const cachedEvents = this.eventCache.getEvents();
-            const allEvents = [...cachedEvents, ...events];
+            const allEvents = [...cachedEvents, ...(events ?? [])];
 
             logger.debug(
                 LogId.telemetryEmitStart,
@@ -211,7 +211,7 @@ export class Telemetry {
                 "telemetry",
                 `Error sending event to client: ${error instanceof Error ? error.message : String(error)}`
             );
-            this.eventCache.appendEvents(events);
+            this.eventCache.appendEvents(events ?? []);
         }
 
         this.flushing = false;
