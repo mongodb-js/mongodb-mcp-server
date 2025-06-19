@@ -270,7 +270,7 @@ describe("Telemetry", () => {
                     );
                 });
 
-                it("should timeout if machine ID resolution takes too long", async () => {
+                it("should timeout if machine ID resolution takes too long", () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
                     telemetry = Telemetry.create(session, config, {
