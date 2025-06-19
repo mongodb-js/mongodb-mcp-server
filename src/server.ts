@@ -130,7 +130,7 @@ export class Server {
             }
         }
 
-        this.telemetry.emitEvents([event]).catch(() => {});
+        this.telemetry.emitEvents([event]);
     }
 
     private registerTools() {

@@ -39,12 +39,12 @@ async function isContainerized(): Promise<boolean> {
 }
 
 export class Telemetry {
-    private deviceId: string | undefined;
-    private containerEnv: boolean | undefined;
     private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
     private getRawMachineId: () => Promise<string>;
     private getContainerEnv: () => Promise<boolean>;
+    private cachedCommonProperties?: CommonProperties;
+    private flushing: boolean = false;
 
     private constructor(
         private readonly session: Session,
@@ -64,7 +64,7 @@ export class Telemetry {
         this.getContainerEnv = getContainerEnv;
     }
 
-    static async create(
+    static create(
         session: Session,
         userConfig: UserConfig,
         {
@@ -76,81 +76,82 @@ export class Telemetry {
             getRawMachineId?: () => Promise<string>;
             getContainerEnv?: () => Promise<boolean>;
         } = {}
-    ): Promise<Telemetry> {
+    ): Telemetry {
         const instance = new Telemetry(session, userConfig, {
             eventCache,
             getRawMachineId,
             getContainerEnv,
         });
 
-        await instance.start();
         return instance;
-    }
-
-    private async start(): Promise<void> {
-        if (!this.isTelemetryEnabled()) {
-            return;
-        }
-
-        const deviceIdPromise = getDeviceId({
-            getMachineId: () => this.getRawMachineId(),
-            onError: (reason, error) => {
-                switch (reason) {
-                    case "resolutionError":
-                        logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", String(error));
-                        break;
-                    case "timeout":
-                        logger.debug(LogId.telemetryDeviceIdTimeout, "telemetry", "Device ID retrieval timed out");
-                        break;
-                    case "abort":
-                        // No need to log in the case of aborts
-                        break;
-                }
-            },
-            abortSignal: this.deviceIdAbortController.signal,
-        });
-        const containerEnvPromise = this.getContainerEnv();
-
-        [this.deviceId, this.containerEnv] = await Promise.all([deviceIdPromise, containerEnvPromise]);
     }
 
     public async close(): Promise<void> {
         this.deviceIdAbortController.abort();
-        await this.emitEvents(this.eventCache.getEvents());
+        await this.flush(this.eventCache.getEvents());
     }
 
     /**
      * Emits events through the telemetry pipeline
      * @param events - The events to emit
      */
-    public async emitEvents(events: BaseEvent[]): Promise<void> {
-        try {
-            if (!this.isTelemetryEnabled()) {
-                logger.info(LogId.telemetryEmitFailure, "telemetry", `Telemetry is disabled.`);
-                return;
-            }
-
-            await this.emit(events);
-        } catch {
-            logger.debug(LogId.telemetryEmitFailure, "telemetry", `Error emitting telemetry events.`);
-        }
+    public emitEvents(events: BaseEvent[]): void {
+        void this.flush(events);
     }
 
     /**
      * Gets the common properties for events
      * @returns Object containing common properties for all events
      */
-    private getCommonProperties(): CommonProperties {
-        return {
-            ...MACHINE_METADATA,
-            mcp_client_version: this.session.agentRunner?.version,
-            mcp_client_name: this.session.agentRunner?.name,
-            session_id: this.session.sessionId,
-            config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
-            config_connection_string: this.userConfig.connectionString ? "true" : "false",
-            is_container_env: this.containerEnv ? "true" : "false",
-            device_id: this.deviceId,
-        };
+    private async getCommonProperties(): Promise<CommonProperties> {
+        if (!this.cachedCommonProperties) {
+            let deviceId: string | undefined;
+            try {
+                deviceId = await getDeviceId({
+                    getMachineId: () => this.getRawMachineId(),
+                    onError: (reason, error) => {
+                        switch (reason) {
+                            case "resolutionError":
+                                logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", String(error));
+                                break;
+                            case "timeout":
+                                logger.debug(
+                                    LogId.telemetryDeviceIdTimeout,
+                                    "telemetry",
+                                    "Device ID retrieval timed out"
+                                );
+                                break;
+                            case "abort":
+                                // No need to log in the case of aborts
+                                break;
+                        }
+                    },
+                    abortSignal: this.deviceIdAbortController.signal,
+                });
+            } catch (error: unknown) {
+                const err = error instanceof Error ? error : new Error(String(error));
+                logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", err.message);
+            }
+            let containerEnv: boolean | undefined;
+            try {
+                containerEnv = await this.getContainerEnv();
+            } catch (error: unknown) {
+                const err = error instanceof Error ? error : new Error(String(error));
+                logger.debug(LogId.telemetryContainerEnvFailure, "telemetry", err.message);
+            }
+            this.cachedCommonProperties = {
+                ...MACHINE_METADATA,
+                mcp_client_version: this.session.agentRunner?.version,
+                mcp_client_name: this.session.agentRunner?.name,
+                session_id: this.session.sessionId,
+                config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
+                config_connection_string: this.userConfig.connectionString ? "true" : "false",
+                is_container_env: containerEnv ? "true" : "false",
+                device_id: deviceId,
+            };
+        }
+
+        return this.cachedCommonProperties;
     }
 
     /**
@@ -171,20 +172,32 @@ export class Telemetry {
     }
 
     /**
-     * Attempts to emit events through authenticated and unauthenticated clients
+     * Attempts to flush events through authenticated and unauthenticated clients
      * Falls back to caching if both attempts fail
      */
-    private async emit(events: BaseEvent[]): Promise<void> {
-        const cachedEvents = this.eventCache.getEvents();
-        const allEvents = [...cachedEvents, ...events];
+    private async flush(events: BaseEvent[]): Promise<void> {
+        if (!this.isTelemetryEnabled()) {
+            logger.info(LogId.telemetryEmitFailure, "telemetry", `Telemetry is disabled.`);
+            return;
+        }
 
-        logger.debug(
-            LogId.telemetryEmitStart,
-            "telemetry",
-            `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`
-        );
+        if (this.flushing) {
+            this.eventCache.appendEvents(events);
+            return;
+        }
+
+        this.flushing = true;
 
         try {
+            const cachedEvents = this.eventCache.getEvents();
+            const allEvents = [...cachedEvents, ...events];
+
+            logger.debug(
+                LogId.telemetryEmitStart,
+                "telemetry",
+                `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`
+            );
+
             await this.sendEvents(this.session.apiClient, allEvents);
             this.eventCache.clearEvents();
             logger.debug(
@@ -200,16 +213,20 @@ export class Telemetry {
             );
             this.eventCache.appendEvents(events);
         }
+
+        this.flushing = false;
     }
 
     /**
      * Attempts to send events through the provided API client
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<void> {
+        const commonProperties = await this.getCommonProperties();
+
         await client.sendEvents(
             events.map((event) => ({
                 ...event,
-                properties: { ...this.getCommonProperties(), ...event.properties },
+                properties: { ...commonProperties, ...event.properties },
             }))
         );
     }

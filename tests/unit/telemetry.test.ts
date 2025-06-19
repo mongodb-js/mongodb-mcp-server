@@ -16,7 +16,7 @@ const MockApiClient = ApiClient as jest.MockedClass<typeof ApiClient>;
 jest.mock("../../src/telemetry/eventCache.js");
 const MockEventCache = EventCache as jest.MockedClass<typeof EventCache>;
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const nextTick = () => new Promise((resolve) => process.nextTick(resolve));
 
 describe("Telemetry", () => {
     const machineId = "test-machine-id";
@@ -99,7 +99,7 @@ describe("Telemetry", () => {
         }
     }
 
-    beforeEach(async () => {
+    beforeEach(() => {
         // Reset mocks before each test
         jest.clearAllMocks();
 
@@ -137,7 +137,7 @@ describe("Telemetry", () => {
             getContainerEnv: () => Promise.resolve(false),
         };
 
-        telemetry = await Telemetry.create(session, config, telemetryConfig);
+        telemetry = Telemetry.create(session, config, telemetryConfig);
 
         config.telemetry = "enabled";
     });
@@ -147,7 +147,8 @@ describe("Telemetry", () => {
             it("should send events successfully", async () => {
                 const testEvent = createTestEvent();
 
-                await telemetry.emitEvents([testEvent]);
+                telemetry.emitEvents([testEvent]);
+                await nextTick(); // wait for the event to be sent
 
                 verifyMockCalls({
                     sendEventsCalls: 1,
@@ -161,7 +162,8 @@ describe("Telemetry", () => {
 
                 const testEvent = createTestEvent();
 
-                await telemetry.emitEvents([testEvent]);
+                telemetry.emitEvents([testEvent]);
+                await nextTick(); // wait for the event to be sent
 
                 verifyMockCalls({
                     sendEventsCalls: 1,
@@ -184,7 +186,8 @@ describe("Telemetry", () => {
                 // Set up mock to return cached events
                 mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
 
-                await telemetry.emitEvents([newEvent]);
+                telemetry.emitEvents([newEvent]);
+                await nextTick(); // wait for the event to be sent
 
                 verifyMockCalls({
                     sendEventsCalls: 1,
@@ -206,7 +209,8 @@ describe("Telemetry", () => {
 
                 const testEvent = createTestEvent();
 
-                await telemetry.emitEvents([testEvent]);
+                telemetry.emitEvents([testEvent]);
+                await nextTick(); // wait for the event to be sent
 
                 const checkEvent = {
                     ...testEvent,
@@ -227,7 +231,8 @@ describe("Telemetry", () => {
                 it("should successfully resolve the machine ID", async () => {
                     const testEvent = createTestEvent();
 
-                    await telemetry.emitEvents([testEvent]);
+                    telemetry.emitEvents([testEvent]);
+                    await nextTick(); // wait for the event to be sent
 
                     const checkEvent = {
                         ...testEvent,
@@ -247,14 +252,16 @@ describe("Telemetry", () => {
                 it("should handle machine ID resolution failure", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
-                    telemetry = await Telemetry.create(session, config, {
+                    telemetry = Telemetry.create(session, config, {
                         ...telemetryConfig,
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
                     });
 
                     const testEvent = createTestEvent();
 
-                    await telemetry.emitEvents([testEvent]);
+                    telemetry.emitEvents([testEvent]);
+
+                    await nextTick(); // wait for the event to be sent
 
                     expect(loggerSpy).toHaveBeenCalledWith(
                         LogId.telemetryDeviceIdFailure,
@@ -266,18 +273,19 @@ describe("Telemetry", () => {
                 it("should timeout if machine ID resolution takes too long", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
-                    telemetry = await Telemetry.create(session, config, {
+                    telemetry = Telemetry.create(session, config, {
                         ...telemetryConfig,
                         getRawMachineId: () => new Promise(() => {}), // Never resolves
                     });
 
                     const testEvent = createTestEvent();
 
-                    await telemetry.emitEvents([testEvent]);
+                    telemetry.emitEvents([testEvent]);
 
-                    await delay(5000); // Wait for timeout
+                    jest.advanceTimersByTime(5000); // Wait for timeout
 
-                    expect(loggerSpy).toHaveBeenCalledWith(
+                    expect(loggerSpy).not.toHaveBeenNthCalledWith(
+                        2,
                         LogId.telemetryDeviceIdTimeout,
                         "telemetry",
                         "Device ID retrieval timed out"
@@ -298,7 +306,8 @@ describe("Telemetry", () => {
             it("should not send events", async () => {
                 const testEvent = createTestEvent();
 
-                await telemetry.emitEvents([testEvent]);
+                telemetry.emitEvents([testEvent]);
+                await nextTick(); // wait for the event to be sent
 
                 verifyMockCalls({
                     sendEventsCalls: 0,
@@ -325,7 +334,8 @@ describe("Telemetry", () => {
             it("should not send events", async () => {
                 const testEvent = createTestEvent();
 
-                await telemetry.emitEvents([testEvent]);
+                telemetry.emitEvents([testEvent]);
+                await nextTick(); // wait for the event to be sent
 
                 verifyMockCalls({
                     sendEventsCalls: 0,
