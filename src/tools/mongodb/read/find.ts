@@ -44,9 +44,7 @@ export class FindTool extends MongoDBToolBase {
         // Check if find operation uses an index if enabled
         if (this.config.indexCheck) {
             await checkIndexUsage(provider, database, collection, "find", async () => {
-                return provider
-                    .find(database, collection, filter, { projection, limit, sort })
-                    .explain("queryPlanner");
+                return provider.find(database, collection, filter, { projection, limit, sort }).explain("queryPlanner");
             });
         }
 

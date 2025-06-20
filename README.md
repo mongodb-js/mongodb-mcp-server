@@ -267,7 +267,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `logPath`          | Folder to store logs.                                                                                                                                         |
 | `disabledTools`    | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
 | `readOnly`         | When set to true, only allows read and metadata operation types, disabling create/update/delete operations.                                                   |
-| `indexCheck`       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                           |
+| `indexCheck`       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
 | `telemetry`        | When set to disabled, disables telemetry collection.                                                                                                          |
 
 #### Log Path

@@ -64,6 +64,16 @@ export abstract class MongoDBToolBase extends ToolBase {
                         ],
                         isError: true,
                     };
+                case ErrorCodes.ForbiddenCollscan:
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: error.message,
+                            },
+                        ],
+                        isError: true,
+                    };
             }
         }
 
