@@ -2,15 +2,16 @@ import { Document } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "../errors.js";
 
-
 /**
  * Check if the query plan uses an index
  * @param explainResult The result of the explain query
  * @returns true if an index is used, false if it's a full collection scan
  */
 export function usesIndex(explainResult: Document): boolean {
-    const stage = explainResult?.queryPlanner?.winningPlan?.stage;
-    const inputStage = explainResult?.queryPlanner?.winningPlan?.inputStage;
+    const queryPlanner = explainResult?.queryPlanner as Document | undefined;
+    const winningPlan = queryPlanner?.winningPlan as Document | undefined;
+    const stage = winningPlan?.stage as string | undefined;
+    const inputStage = winningPlan?.inputStage as Document | undefined;
 
     // Check for index scan stages (including MongoDB 8.0+ stages)
     const indexScanStages = [
@@ -20,14 +21,14 @@ export function usesIndex(explainResult: Document): boolean {
         "EXPRESS_CLUSTERED_IXSCAN",
         "EXPRESS_UPDATE",
         "EXPRESS_DELETE",
-        "IDHACK"
+        "IDHACK",
     ];
 
-    if (indexScanStages.includes(stage)) {
+    if (stage && indexScanStages.includes(stage)) {
         return true;
     }
 
-    if (inputStage && indexScanStages.includes(inputStage.stage)) {
+    if (inputStage && inputStage.stage && indexScanStages.includes(inputStage.stage as string)) {
         return true;
     }
 
@@ -65,7 +66,10 @@ export async function checkIndexUsage(
         const explainResult = await explainCallback();
 
         if (!usesIndex(explainResult)) {
-            throw new MongoDBError(ErrorCodes.ForbiddenCollscan, getIndexCheckErrorMessage(database, collection, operation));
+            throw new MongoDBError(
+                ErrorCodes.ForbiddenCollscan,
+                getIndexCheckErrorMessage(database, collection, operation)
+            );
         }
     } catch (error) {
         if (error instanceof Error && error.message.includes("Index check failed")) {
