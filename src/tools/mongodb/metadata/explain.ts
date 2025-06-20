@@ -76,7 +76,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "count": {
                 const { query } = method.arguments;
-                result = await provider.mongoClient.db(database).command({
+                result = await provider.runCommandWithCheck(database, {
                     explain: {
                         count: collection,
                         query,

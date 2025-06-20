@@ -30,7 +30,7 @@ export class CountTool extends MongoDBToolBase {
         // Check if count operation uses an index if enabled
         if (this.config.indexCheck) {
             await checkIndexUsage(provider, database, collection, "count", async () => {
-                return provider.mongoClient.db(database).command({
+                return provider.runCommandWithCheck(database, {
                     explain: {
                         count: collection,
                         query,
