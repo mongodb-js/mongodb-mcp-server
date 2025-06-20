@@ -1,5 +1,7 @@
 import { Document } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { ErrorCodes, MongoDBError } from "../errors.js";
+
 
 /**
  * Check if the query plan uses an index
@@ -10,11 +12,22 @@ export function usesIndex(explainResult: Document): boolean {
     const stage = explainResult?.queryPlanner?.winningPlan?.stage;
     const inputStage = explainResult?.queryPlanner?.winningPlan?.inputStage;
 
-    if (stage === "IXSCAN" || stage === "COUNT_SCAN") {
+    // Check for index scan stages (including MongoDB 8.0+ stages)
+    const indexScanStages = [
+        "IXSCAN",
+        "COUNT_SCAN",
+        "EXPRESS_IXSCAN",
+        "EXPRESS_CLUSTERED_IXSCAN",
+        "EXPRESS_UPDATE",
+        "EXPRESS_DELETE",
+        "IDHACK"
+    ];
+
+    if (indexScanStages.includes(stage)) {
         return true;
     }
 
-    if (inputStage && (inputStage.stage === "IXSCAN" || inputStage.stage === "COUNT_SCAN")) {
+    if (inputStage && indexScanStages.includes(inputStage.stage)) {
         return true;
     }
 
@@ -52,7 +65,7 @@ export async function checkIndexUsage(
         const explainResult = await explainCallback();
 
         if (!usesIndex(explainResult)) {
-            throw new Error(getIndexCheckErrorMessage(database, collection, operation));
+            throw new MongoDBError(ErrorCodes.ForbiddenCollscan, getIndexCheckErrorMessage(database, collection, operation));
         }
     } catch (error) {
         if (error instanceof Error && error.message.includes("Index check failed")) {

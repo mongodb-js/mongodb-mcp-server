@@ -25,6 +25,61 @@ describe("indexCheck", () => {
             expect(usesIndex(explainResult)).toBe(true);
         });
 
+        it("should return true for IDHACK", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "IDHACK",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return true for EXPRESS_IXSCAN (MongoDB 8.0+)", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "EXPRESS_IXSCAN",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return true for EXPRESS_CLUSTERED_IXSCAN (MongoDB 8.0+)", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "EXPRESS_CLUSTERED_IXSCAN",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return true for EXPRESS_UPDATE (MongoDB 8.0+)", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "EXPRESS_UPDATE",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return true for EXPRESS_DELETE (MongoDB 8.0+)", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "EXPRESS_DELETE",
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
         it("should return false for COLLSCAN", () => {
             const explainResult: Document = {
                 queryPlanner: {
@@ -43,6 +98,20 @@ describe("indexCheck", () => {
                         stage: "LIMIT",
                         inputStage: {
                             stage: "IXSCAN",
+                        },
+                    },
+                },
+            };
+            expect(usesIndex(explainResult)).toBe(true);
+        });
+
+        it("should return true for nested EXPRESS_IXSCAN in inputStage", () => {
+            const explainResult: Document = {
+                queryPlanner: {
+                    winningPlan: {
+                        stage: "SORT",
+                        inputStage: {
+                            stage: "EXPRESS_IXSCAN",
                         },
                     },
                 },
