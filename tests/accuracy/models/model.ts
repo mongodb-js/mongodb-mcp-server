@@ -8,5 +8,7 @@ export type ToolDefinition = {
 export interface ModelFacade {
     name: string;
     available(): boolean;
-    generateContent(prompt: string, tools: ToolDefinition[]): Promise<{ toolCall: ToolCall[]; text?: string }>;
+
+    generatePlan(prompt: string, tools: ToolDefinition[]): Promise<string[]>;
+    generateContent(parts: string[], tools: ToolDefinition[]): Promise<{ toolCall: ToolCall[]; text?: string }>;
 }

@@ -5,7 +5,7 @@ describeAccuracyTest("1 step find queries", ({ prompt }) => {
         tool("find").verifyCalled({ database: "my", collection: "users", limit: 10 });
     });
 
-    prompt("find all red cards in database 'production' and collection 'cars'", (tool) => {
+    prompt("find all red cars in database 'production' and collection 'cars'", (tool) => {
         tool("find").verifyCalled({ filter: { color: "red" }, database: "production", collection: "cars", limit: 10 });
     });
 
