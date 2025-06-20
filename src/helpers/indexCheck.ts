@@ -72,7 +72,7 @@ export async function checkIndexUsage(
             );
         }
     } catch (error) {
-        if (error instanceof Error && error.message.includes("Index check failed")) {
+        if (error instanceof MongoDBError && error.code === ErrorCodes.ForbiddenCollscan) {
             throw error;
         }
 
