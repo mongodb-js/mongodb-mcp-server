@@ -28,7 +28,7 @@ export class DeleteManyTool extends MongoDBToolBase {
         // Check if delete operation uses an index if enabled
         if (this.config.indexCheck) {
             await checkIndexUsage(provider, database, collection, "deleteMany", async () => {
-                return provider.mongoClient.db(database).command({
+                return provider.runCommandWithCheck(database, {
                     explain: {
                         delete: collection,
                         deletes: [
