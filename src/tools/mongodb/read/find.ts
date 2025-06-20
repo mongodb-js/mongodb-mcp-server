@@ -4,6 +4,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { SortDirection } from "mongodb";
 import { EJSON } from "bson";
+import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const FindArgs = {
     filter: z
@@ -39,6 +40,14 @@ export class FindTool extends MongoDBToolBase {
         sort,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+
+        // Check if find operation uses an index if enabled
+        if (this.config.indexCheck) {
+            await checkIndexUsage(provider, database, collection, "find", async () => {
+                return provider.find(database, collection, filter, { projection, limit, sort }).explain("queryPlanner");
+            });
+        }
+
         const documents = await provider.find(database, collection, filter, { projection, limit, sort }).toArray();
 
         const content: Array<{ text: string; type: "text" }> = [

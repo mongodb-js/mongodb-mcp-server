@@ -2,6 +2,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { z } from "zod";
+import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const CountArgs = {
     query: z
@@ -25,6 +26,20 @@ export class CountTool extends MongoDBToolBase {
 
     protected async execute({ database, collection, query }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+
+        // Check if count operation uses an index if enabled
+        if (this.config.indexCheck) {
+            await checkIndexUsage(provider, database, collection, "count", async () => {
+                return provider.runCommandWithCheck(database, {
+                    explain: {
+                        count: collection,
+                        query,
+                    },
+                    verbosity: "queryPlanner",
+                });
+            });
+        }
+
         const count = await provider.count(database, collection, query);
 
         return {

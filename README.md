@@ -267,6 +267,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `logPath`          | Folder to store logs.                                                                                                                                         |
 | `disabledTools`    | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
 | `readOnly`         | When set to true, only allows read and metadata operation types, disabling create/update/delete operations.                                                   |
+| `indexCheck`       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
 | `telemetry`        | When set to disabled, disables telemetry collection.                                                                                                          |
 
 #### Log Path
@@ -311,6 +312,19 @@ You can enable read-only mode using:
 - **Command-line argument**: `--readOnly`
 
 When read-only mode is active, you'll see a message in the server logs indicating which tools were prevented from registering due to this restriction.
+
+#### Index Check Mode
+
+The `indexCheck` configuration option allows you to enforce that query operations must use an index. When enabled, queries that perform a collection scan will be rejected to ensure better performance.
+
+This is useful for scenarios where you want to ensure that database queries are optimized.
+
+You can enable index check mode using:
+
+- **Environment variable**: `export MDB_MCP_INDEX_CHECK=true`
+- **Command-line argument**: `--indexCheck`
+
+When index check mode is active, you'll see an error message if a query is rejected due to not using an index.
 
 #### Telemetry
 
@@ -430,7 +444,7 @@ export MDB_MCP_LOG_PATH="/path/to/logs"
 Pass configuration options as command-line arguments when starting the server:
 
 ```shell
-npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs
+npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs --readOnly --indexCheck
 ```
 
 #### MCP configuration file examples

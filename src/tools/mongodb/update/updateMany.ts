@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
+import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
     protected name = "update-many";
@@ -32,6 +33,27 @@ export class UpdateManyTool extends MongoDBToolBase {
         upsert,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+
+        // Check if update operation uses an index if enabled
+        if (this.config.indexCheck) {
+            await checkIndexUsage(provider, database, collection, "updateMany", async () => {
+                return provider.runCommandWithCheck(database, {
+                    explain: {
+                        update: collection,
+                        updates: [
+                            {
+                                q: filter || {},
+                                u: update,
+                                upsert: upsert || false,
+                                multi: true,
+                            },
+                        ],
+                    },
+                    verbosity: "queryPlanner",
+                });
+            });
+        }
+
         const result = await provider.updateMany(database, collection, filter, update, {
             upsert,
         });

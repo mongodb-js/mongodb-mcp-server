@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
+import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export class DeleteManyTool extends MongoDBToolBase {
     protected name = "delete-many";
@@ -23,6 +24,25 @@ export class DeleteManyTool extends MongoDBToolBase {
         filter,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+
+        // Check if delete operation uses an index if enabled
+        if (this.config.indexCheck) {
+            await checkIndexUsage(provider, database, collection, "deleteMany", async () => {
+                return provider.runCommandWithCheck(database, {
+                    explain: {
+                        delete: collection,
+                        deletes: [
+                            {
+                                q: filter || {},
+                                limit: 0, // 0 means delete all matching documents
+                            },
+                        ],
+                    },
+                    verbosity: "queryPlanner",
+                });
+            });
+        }
+
         const result = await provider.deleteMany(database, collection, filter);
 
         return {
