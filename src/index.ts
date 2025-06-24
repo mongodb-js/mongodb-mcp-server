@@ -47,9 +47,9 @@ try {
             });
     };
 
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
-    process.on("SIGQUIT", shutdown);
+    process.once("SIGINT", shutdown);
+    process.once("SIGTERM", shutdown);
+    process.once("SIGQUIT", shutdown);
 
     await server.connect(transport);
 } catch (error: unknown) {
