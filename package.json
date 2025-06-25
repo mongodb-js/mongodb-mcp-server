@@ -28,6 +28,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prepare": "npm run build",
     "build:clean": "rm -rf dist",
