@@ -52,4 +52,14 @@ module.exports = {
         ],
     },
     externals: [nodeExternals()],
+    plugins: [
+        // This is necessary to make the CLI executable. We originally have this
+        // in src/cli.ts but it gets erased during the bundling process.
+        new webpack.BannerPlugin({
+            banner: "#!/usr/bin/env node",
+            raw: true,
+            entryOnly: true,
+            include: "cli",
+        }),
+    ],
 };
