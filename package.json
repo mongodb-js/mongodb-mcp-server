@@ -7,7 +7,7 @@
   "author": "MongoDB <info@mongodb.com>",
   "homepage": "https://github.com/mongodb-js/mongodb-mcp-server",
   "repository": {
-    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
+    "url": "git+https://github.com/mongodb-js/mongodb-mcp-server.git"
   },
   "bin": {
     "mongodb-mcp-server": "dist/cli.cjs"
@@ -16,6 +16,9 @@
     "access": "public"
   },
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prepare": "npm run build",
     "build:clean": "rm -rf dist",
