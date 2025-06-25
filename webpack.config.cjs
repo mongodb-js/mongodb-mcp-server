@@ -13,13 +13,26 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, "dist"),
         filename: "[name].cjs",
+        // For both cli and lib, we want to output CommonJS modules because
+        // vscode extension unfortunately still uses classic node module
+        // resolution and to be able to use our mcp exports there we need to
+        // compile to CommonJS.
+        //
+        // The CLI entrypoint does not care if its CommonJS
+        // or ESM so to keep configuration simple we compile both to CommonJS.
         libraryTarget: "commonjs2",
         clean: {
+            // We emit types separately so if they are in the output directory
+            // we want to keep them.
             keep: "types",
         },
     },
     resolve: {
         extensions: [".ts", ".js"],
+        // This is necessary because our repo is a module and that requires us
+        // to write complete path imports. This however does not resolve
+        // correctly when inside the bundler which is why we use the
+        // extensionAlias.
         extensionAlias: {
             ".js": [".ts", ".js"],
             ".mjs": [".mts", ".mjs"],
