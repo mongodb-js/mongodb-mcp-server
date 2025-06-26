@@ -1,4 +1,4 @@
-import { defaultTestConfig, expectDefined, getResponseContent } from "./helpers.js";
+import { defaultTestConfig, getResponseContent } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 
 describe("IndexCheck integration tests", () => {
@@ -79,7 +79,7 @@ describe("IndexCheck integration tests", () => {
                             arguments: {
                                 database: integration.randomDbName(),
                                 collection: "find-test-collection",
-                                filter: { _id: docs[0]!._id }, // Uses _id index (IDHACK)
+                                filter: { _id: docs[0]?._id }, // Uses _id index (IDHACK)
                             },
                         });
 
