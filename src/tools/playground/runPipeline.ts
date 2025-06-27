@@ -2,17 +2,11 @@ import { OperationType, TelemetryToolMetadata, ToolArgs, ToolBase, ToolCategory 
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { EJSON } from "bson";
-
-const PLAYGROUND_SEARCH_URL = "https://search-playground.mongodb.com/api/tools/code-playground/search";
-
-const DEFAULT_DOCUMENTS = [
-    {
-        name: "First document",
-    },
-    {
-        name: "Second document",
-    },
-];
+import {
+    PlaygroundRunError,
+    PlaygroundRunRequest,
+    PlaygroundRunResponse,
+} from "../../common/playground/playgroundClient.js";
 
 const DEFAULT_SEARCH_INDEX_DEFINITION = {
     mappings: {
@@ -20,32 +14,16 @@ const DEFAULT_SEARCH_INDEX_DEFINITION = {
     },
 };
 
-const DEFAULT_PIPELINE = [
-    {
-        $search: {
-            index: "default",
-            text: {
-                query: "first",
-                path: {
-                    wildcard: "*",
-                },
-            },
-        },
-    },
-];
-
 const DEFAULT_SYNONYMS: Array<Record<string, unknown>> = [];
 
 export const RunPipelineOperationArgs = {
     documents: z
         .array(z.record(z.string(), z.unknown()))
         .max(500)
-        .describe("Documents to run the pipeline against. 500 is maximum.")
-        .default(DEFAULT_DOCUMENTS),
+        .describe("Documents to run the pipeline against. 500 is maximum."),
     aggregationPipeline: z
         .array(z.record(z.string(), z.unknown()))
-        .describe("MongoDB aggregation pipeline to run on the provided documents.")
-        .default(DEFAULT_PIPELINE),
+        .describe("MongoDB aggregation pipeline to run on the provided documents."),
     searchIndexDefinition: z
         .record(z.string(), z.unknown())
         .describe("MongoDB search index definition to create before running the pipeline.")
@@ -57,22 +35,6 @@ export const RunPipelineOperationArgs = {
         .optional()
         .default(DEFAULT_SYNONYMS),
 };
-
-interface RunRequest {
-    documents: string;
-    aggregationPipeline: string;
-    indexDefinition: string;
-    synonyms: string;
-}
-
-interface RunResponse {
-    documents: Array<Record<string, unknown>>;
-}
-
-interface RunErrorResponse {
-    code: string;
-    message: string;
-}
 
 export class RunPipeline extends ToolBase {
     protected name = "run-pipeline";
@@ -93,47 +55,24 @@ export class RunPipeline extends ToolBase {
         return {};
     }
 
-    private async runPipeline(runRequest: RunRequest): Promise<RunResponse> {
-        const options: RequestInit = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(runRequest),
-        };
-
-        let response: Response;
+    private async runPipeline(runRequest: PlaygroundRunRequest): Promise<PlaygroundRunResponse> {
+        // import PlaygroundClient dynamically so we can mock it properly in the tests
+        const { PlaygroundClient } = await import("../../common/playground/playgroundClient.js");
+        const client = new PlaygroundClient();
         try {
-            response = await fetch(PLAYGROUND_SEARCH_URL, options);
-        } catch {
-            throw new Error("Cannot run pipeline: network error.");
-        }
+            return await client.run(runRequest);
+        } catch (error: unknown) {
+            let message: string | undefined;
 
-        if (!response.ok) {
-            const errorMessage = await this.getPlaygroundResponseError(response);
-            throw new Error(`Pipeline run failed: ${errorMessage}`);
-        }
+            if (error instanceof PlaygroundRunError) {
+                message = `Error code: ${error.code}. Error message: ${error.message}.`;
+            }
 
-        try {
-            return (await response.json()) as RunResponse;
-        } catch {
-            throw new Error("Pipeline run failed: response is not valid JSON.");
+            throw new Error(message || "Cannot run pipeline.");
         }
     }
 
-    private async getPlaygroundResponseError(response: Response): Promise<string> {
-        let errorMessage = `HTTP ${response.status} ${response.statusText}.`;
-        try {
-            const errorResponse = (await response.json()) as RunErrorResponse;
-            errorMessage += ` Error code: ${errorResponse.code}. Error message: ${errorResponse.message}`;
-        } catch {
-            // Ignore JSON parse errors
-        }
-
-        return errorMessage;
-    }
-
-    private convertToRunRequest(toolArgs: ToolArgs<typeof this.argsShape>): RunRequest {
+    private convertToRunRequest(toolArgs: ToolArgs<typeof this.argsShape>): PlaygroundRunRequest {
         try {
             return {
                 documents: JSON.stringify(toolArgs.documents),
@@ -146,7 +85,7 @@ export class RunPipeline extends ToolBase {
         }
     }
 
-    private convertToToolResult(runResponse: RunResponse): CallToolResult {
+    private convertToToolResult(runResponse: PlaygroundRunResponse): CallToolResult {
         const content: Array<{ text: string; type: "text" }> = [
             {
                 text: `Found ${runResponse.documents.length} documents":`,
