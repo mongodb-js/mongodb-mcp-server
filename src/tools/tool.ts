@@ -74,12 +74,12 @@ export abstract class ToolBase {
                 logger.debug(LogId.toolExecute, "tool", `Executing tool ${this.name}`);
 
                 const result = await this.execute(...args);
-                this.emitToolEvent(startTime, result, ...args);
+                await this.emitToolEvent(startTime, result, ...args).catch(() => {});
                 return result;
             } catch (error: unknown) {
                 logger.error(LogId.toolExecuteFailure, "tool", `Error executing ${this.name}: ${error as string}`);
                 const toolResult = await this.handleError(error, args[0] as ToolArgs<typeof this.argsShape>);
-                this.emitToolEvent(startTime, toolResult, ...args);
+                await this.emitToolEvent(startTime, toolResult, ...args).catch(() => {});
                 return toolResult;
             }
         };
@@ -179,11 +179,11 @@ export abstract class ToolBase {
      * @param result - Whether the command succeeded or failed
      * @param args - The arguments passed to the tool
      */
-    private emitToolEvent(
+    private async emitToolEvent(
         startTime: number,
         result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): void {
+    ): Promise<void> {
         if (!this.telemetry.isTelemetryEnabled()) {
             return;
         }
@@ -209,6 +209,6 @@ export abstract class ToolBase {
             event.properties.project_id = metadata.projectId;
         }
 
-        this.telemetry.emitEvents([event]);
+        await this.telemetry.emitEvents([event]);
     }
 }

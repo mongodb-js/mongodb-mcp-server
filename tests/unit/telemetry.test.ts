@@ -1,6 +1,6 @@
 import { ApiClient } from "../../src/common/atlas/apiClient.js";
 import { Session } from "../../src/session.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { DEVICE_ID_TIMEOUT, Telemetry } from "../../src/telemetry/telemetry.js";
 import { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { config } from "../../src/config.js";
@@ -16,8 +16,6 @@ const MockApiClient = ApiClient as jest.MockedClass<typeof ApiClient>;
 jest.mock("../../src/telemetry/eventCache.js");
 const MockEventCache = EventCache as jest.MockedClass<typeof EventCache>;
 
-const nextTick = () => new Promise((resolve) => process.nextTick(resolve));
-
 describe("Telemetry", () => {
     const machineId = "test-machine-id";
     const hashedMachineId = createHmac("sha256", machineId.toUpperCase()).update("atlascli").digest("hex");
@@ -26,11 +24,6 @@ describe("Telemetry", () => {
     let mockEventCache: jest.Mocked<EventCache>;
     let session: Session;
     let telemetry: Telemetry;
-    let telemetryConfig: {
-        eventCache: EventCache;
-        getRawMachineId: () => Promise<string>;
-        getContainerEnv: () => Promise<boolean>;
-    };
 
     // Helper function to create properly typed test events
     function createTestEvent(options?: {
@@ -84,11 +77,19 @@ describe("Telemetry", () => {
         expect(appendEvents.length).toBe(appendEventsCalls);
 
         if (sendEventsCalledWith) {
-            expect(sendEvents[0]?.[0]).toMatchObject(sendEventsCalledWith);
+            expect(sendEvents[0]?.[0]).toEqual(
+                sendEventsCalledWith.map((event) => ({
+                    ...event,
+                    properties: {
+                        ...telemetry.getCommonProperties(),
+                        ...event.properties,
+                    },
+                }))
+            );
         }
 
         if (appendEventsCalledWith) {
-            expect(appendEvents[0]?.[0]).toMatchObject(appendEventsCalledWith);
+            expect(appendEvents[0]?.[0]).toEqual(appendEventsCalledWith);
         }
     }
 
@@ -124,13 +125,10 @@ describe("Telemetry", () => {
             setAgentRunner: jest.fn().mockResolvedValue(undefined),
         } as unknown as Session;
 
-        telemetryConfig = {
+        telemetry = Telemetry.create(session, config, {
             eventCache: mockEventCache,
             getRawMachineId: () => Promise.resolve(machineId),
-            getContainerEnv: () => Promise.resolve(false),
-        };
-
-        telemetry = Telemetry.create(session, config, telemetryConfig);
+        });
 
         config.telemetry = "enabled";
     });
@@ -140,8 +138,7 @@ describe("Telemetry", () => {
             it("should send events successfully", async () => {
                 const testEvent = createTestEvent();
 
-                telemetry.emitEvents([testEvent]);
-                await nextTick(); // wait for the event to be sent
+                await telemetry.emitEvents([testEvent]);
 
                 verifyMockCalls({
                     sendEventsCalls: 1,
@@ -155,8 +152,7 @@ describe("Telemetry", () => {
 
                 const testEvent = createTestEvent();
 
-                telemetry.emitEvents([testEvent]);
-                await nextTick(); // wait for the event to be sent
+                await telemetry.emitEvents([testEvent]);
 
                 verifyMockCalls({
                     sendEventsCalls: 1,
@@ -179,8 +175,7 @@ describe("Telemetry", () => {
                 // Set up mock to return cached events
                 mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
 
-                telemetry.emitEvents([newEvent]);
-                await nextTick(); // wait for the event to be sent
+                await telemetry.emitEvents([newEvent]);
 
                 verifyMockCalls({
                     sendEventsCalls: 1,
@@ -189,7 +184,9 @@ describe("Telemetry", () => {
                 });
             });
 
-            it("should correctly add common properties to events", async () => {
+            it("should correctly add common properties to events", () => {
+                const commonProps = telemetry.getCommonProperties();
+
                 // Use explicit type assertion
                 const expectedProps: Record<string, string> = {
                     mcp_client_version: "1.0.0",
@@ -200,86 +197,48 @@ describe("Telemetry", () => {
                     device_id: hashedMachineId,
                 };
 
-                const testEvent = createTestEvent();
-
-                telemetry.emitEvents([testEvent]);
-                await nextTick(); // wait for the event to be sent
-
-                const checkEvent = {
-                    ...testEvent,
-                    properties: {
-                        ...testEvent.properties,
-                        ...expectedProps,
-                    },
-                };
-
-                verifyMockCalls({
-                    sendEventsCalls: 1,
-                    clearEventsCalls: 1,
-                    sendEventsCalledWith: [checkEvent],
-                });
-            });
-
-            it("should send cache new event while sending another event", async () => {
-                const newEvent = createTestEvent({
-                    command: "new-command",
-                    component: "new-component",
-                });
-
-                const newEvent2 = createTestEvent({
-                    command: "new-command-2",
-                    component: "new-component-2",
-                });
-
-                telemetry.emitEvents([newEvent]);
-                telemetry.emitEvents([newEvent2]);
-
-                await nextTick(); // wait for the event to be sent
-
-                verifyMockCalls({
-                    sendEventsCalls: 1,
-                    clearEventsCalls: 1,
-                    appendEventsCalls: 1,
-                    sendEventsCalledWith: [newEvent],
-                    appendEventsCalledWith: [newEvent2],
-                });
+                expect(commonProps).toMatchObject(expectedProps);
             });
 
             describe("machine ID resolution", () => {
+                beforeEach(() => {
+                    jest.clearAllMocks();
+                    jest.useFakeTimers();
+                });
+
+                afterEach(() => {
+                    jest.clearAllMocks();
+                    jest.useRealTimers();
+                });
+
                 it("should successfully resolve the machine ID", async () => {
-                    const testEvent = createTestEvent();
-
-                    telemetry.emitEvents([testEvent]);
-                    await nextTick(); // wait for the event to be sent
-
-                    const checkEvent = {
-                        ...testEvent,
-                        properties: {
-                            ...testEvent.properties,
-                            device_id: hashedMachineId,
-                        },
-                    };
-
-                    verifyMockCalls({
-                        sendEventsCalls: 1,
-                        clearEventsCalls: 1,
-                        sendEventsCalledWith: [checkEvent],
+                    telemetry = Telemetry.create(session, config, {
+                        getRawMachineId: () => Promise.resolve(machineId),
                     });
+
+                    expect(telemetry["isBufferingEvents"]).toBe(true);
+                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
+
+                    await telemetry.deviceIdPromise;
+
+                    expect(telemetry["isBufferingEvents"]).toBe(false);
+                    expect(telemetry.getCommonProperties().device_id).toBe(hashedMachineId);
                 });
 
                 it("should handle machine ID resolution failure", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
                     telemetry = Telemetry.create(session, config, {
-                        ...telemetryConfig,
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
                     });
 
-                    const testEvent = createTestEvent();
+                    expect(telemetry["isBufferingEvents"]).toBe(true);
+                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    telemetry.emitEvents([testEvent]);
+                    await telemetry.deviceIdPromise;
 
-                    await nextTick(); // wait for the event to be sent
+                    expect(telemetry["isBufferingEvents"]).toBe(false);
+                    expect(telemetry.getCommonProperties().device_id).toBe("unknown");
 
                     expect(loggerSpy).toHaveBeenCalledWith(
                         LogId.telemetryDeviceIdFailure,
@@ -288,28 +247,27 @@ describe("Telemetry", () => {
                     );
                 });
 
-                it("should timeout if machine ID resolution takes too long", () => {
+                it("should timeout if machine ID resolution takes too long", async () => {
                     const loggerSpy = jest.spyOn(logger, "debug");
 
-                    jest.useFakeTimers();
+                    telemetry = Telemetry.create(session, config, { getRawMachineId: () => new Promise(() => {}) });
 
-                    telemetry = Telemetry.create(session, config, {
-                        ...telemetryConfig,
-                        getRawMachineId: () => new Promise(() => {}), // Never resolves
-                    });
+                    expect(telemetry["isBufferingEvents"]).toBe(true);
+                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    const testEvent = createTestEvent();
+                    jest.advanceTimersByTime(DEVICE_ID_TIMEOUT / 2);
 
-                    telemetry.emitEvents([testEvent]);
+                    // Make sure the timeout doesn't happen prematurely.
+                    expect(telemetry["isBufferingEvents"]).toBe(true);
+                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    jest.advanceTimersByTime(5000);
+                    jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
 
-                    jest.useRealTimers();
+                    await telemetry.deviceIdPromise;
 
-                    expect(loggerSpy).toHaveBeenCalledTimes(2);
-
-                    expect(loggerSpy).toHaveBeenNthCalledWith(
-                        2,
+                    expect(telemetry.getCommonProperties().device_id).toBe("unknown");
+                    expect(telemetry["isBufferingEvents"]).toBe(false);
+                    expect(loggerSpy).toHaveBeenCalledWith(
                         LogId.telemetryDeviceIdTimeout,
                         "telemetry",
                         "Device ID retrieval timed out"
@@ -330,12 +288,9 @@ describe("Telemetry", () => {
             it("should not send events", async () => {
                 const testEvent = createTestEvent();
 
-                telemetry.emitEvents([testEvent]);
-                await nextTick(); // wait for the event to be sent
+                await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls({
-                    sendEventsCalls: 0,
-                });
+                verifyMockCalls();
             });
         });
 
@@ -358,12 +313,9 @@ describe("Telemetry", () => {
             it("should not send events", async () => {
                 const testEvent = createTestEvent();
 
-                telemetry.emitEvents([testEvent]);
-                await nextTick(); // wait for the event to be sent
+                await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls({
-                    sendEventsCalls: 0,
-                });
+                verifyMockCalls();
             });
         });
     });
