@@ -1,6 +1,6 @@
-import { jest } from "@jest/globals";
+import { JSONSchema7 } from "json-schema";
 import { v4 as uuid } from "uuid";
-import { DynamicTool, tool as langChainTool } from "@langchain/core/tools";
+import { Tool as VercelTool, Schema, tool as createVercelTool, jsonSchema } from "ai";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -10,15 +10,22 @@ import { defaultTestConfig } from "../../integration/helpers.js";
 import { Session } from "../../../src/session.js";
 import { Telemetry } from "../../../src/telemetry/telemetry.js";
 import { Server } from "../../../src/server.js";
-import { AcceptableToolResponse } from "./models.js";
 import { ToolCall } from "./accuracy-scorers.js";
 
 type ToolResultGeneratorFn = (...parameters: unknown[]) => CallToolResult;
-type MockedToolResultGeneratorFn = jest.MockedFunction<ToolResultGeneratorFn>;
-type MockedTools = Record<string, MockedToolResultGeneratorFn>;
-export type ToolResultGenerators = Record<string, ToolResultGeneratorFn>;
-export type LangChainTool<T extends AcceptableToolResponse> = DynamicTool<T>;
-export type ToolResultTransformer<T extends AcceptableToolResponse> = (toolResult: CallToolResult) => T;
+export type MockedTools = Record<string, ToolResultGeneratorFn>;
+
+function getDefaultToolResultGeneratorFn(): ToolResultGeneratorFn {
+    return () => ({
+        content: [
+            {
+                type: "text",
+                text: `Mock implementation for tool not present`,
+            },
+        ],
+        isError: true,
+    });
+}
 
 export class TestTools {
     private mockedTools: MockedTools = {};
@@ -26,15 +33,7 @@ export class TestTools {
 
     constructor(private readonly mcpTools: Tool[]) {
         for (const mcpTool of mcpTools) {
-            this.mockedTools[mcpTool.name] = jest.fn<ToolResultGeneratorFn>().mockReturnValue({
-                content: [
-                    {
-                        type: "text",
-                        text: `Mock implementation for tool - ${mcpTool.name} not present`,
-                    },
-                ],
-                isError: true,
-            });
+            this.mockedTools[mcpTool.name] = getDefaultToolResultGeneratorFn();
         }
     }
 
@@ -42,9 +41,9 @@ export class TestTools {
         return this.recordedToolCalls;
     }
 
-    mockTools(toolResultGenerators: ToolResultGenerators) {
-        for (const toolName in toolResultGenerators) {
-            const toolResultGeneratorFn = toolResultGenerators[toolName];
+    mockTools(mockedTools: MockedTools) {
+        for (const toolName in mockedTools) {
+            const toolResultGeneratorFn = mockedTools[toolName];
             if (!this.mockedTools[toolName]) {
                 throw new Error(`Attempted to mock unrecognized tool - ${toolName}`);
             }
@@ -53,49 +52,40 @@ export class TestTools {
                 // Are you happy TS?
                 continue;
             }
-            this.mockedTools[toolName] = jest.fn(toolResultGeneratorFn);
+            this.mockedTools[toolName] = toolResultGeneratorFn;
         }
     }
 
-    langChainTools<T extends AcceptableToolResponse>(
-        transformToolResult: ToolResultTransformer<T>
-    ): LangChainTool<T>[] {
-        return this.mcpTools.map((mcpTool) => {
-            return langChainTool((...args) => {
-                console.log("????? args", args);
-                const [parameters, { runName, runId }] = args;
-                const toolCallId = typeof runId !== "undefined" ? `${runId}` : uuid();
-                return this.langChainToolResultGenerator(`${runName}`, parameters, toolCallId, transformToolResult);
-            }, mcpTool);
-        });
-    }
+    vercelAiTools(): Record<string, VercelTool<Schema<unknown>>> {
+        const vercelTools: Record<string, VercelTool<Schema<unknown>>> = {};
+        for (const tool of this.mcpTools) {
+            vercelTools[tool.name] = createVercelTool({
+                description: tool.description,
+                parameters: jsonSchema(tool.inputSchema as JSONSchema7),
+                // eslint-disable-next-line @typescript-eslint/require-await
+                execute: async (args: unknown) => {
+                    this.recordedToolCalls.push({
+                        toolCallId: uuid(),
+                        toolName: tool.name,
+                        parameters: args,
+                    });
+                    const toolResultGeneratorFn = this.mockedTools[tool.name];
+                    if (!toolResultGeneratorFn) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `Could not resolve tool generator for ${tool.name}`,
+                                },
+                            ],
+                        };
+                    }
 
-    private langChainToolResultGenerator<T extends AcceptableToolResponse>(
-        tool: string,
-        parameters: unknown,
-        toolCallId: string,
-        transformToolResult: ToolResultTransformer<T>
-    ): T {
-        this.recordedToolCalls.push({
-            toolCallId: toolCallId,
-            toolName: tool,
-            parameters,
-        });
-        const mockedToolResultGenerator = this.mockedTools[tool];
-        if (!mockedToolResultGenerator) {
-            // log as well
-            return transformToolResult({
-                content: [
-                    {
-                        type: "text",
-                        text: `Could not resolve tool generator for ${tool}`,
-                    },
-                ],
-                isError: true,
+                    return toolResultGeneratorFn(args);
+                },
             });
         }
-
-        return transformToolResult(mockedToolResultGenerator(parameters));
+        return vercelTools;
     }
 }
 
