@@ -29,7 +29,7 @@ export class AggregateTool extends MongoDBToolBase {
         if (this.config.indexCheck) {
             await checkIndexUsage(provider, database, collection, "aggregate", async () => {
                 return provider
-                    .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
+                    .aggregate(database, collection, pipeline)
                     .explain("queryPlanner");
             });
         }
