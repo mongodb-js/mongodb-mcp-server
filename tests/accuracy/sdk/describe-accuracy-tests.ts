@@ -16,13 +16,13 @@ export function describeAccuracyTests(
     models: TestableModels,
     accuracyTestConfigs: AccuracyTestConfig[]
 ) {
-    const accuracyDatetime = process.env.ACCURACY_DATETIME;
+    const accuracyDatetime = process.env.MDB_ACCURACY_DATETIME;
     if (!accuracyDatetime) {
-        throw new Error("ACCURACY_DATETIME environment variable is not set");
+        throw new Error("MDB_ACCURACY_DATETIME environment variable is not set");
     }
-    const accuracyCommit = process.env.ACCURACY_COMMIT;
+    const accuracyCommit = process.env.MDB_ACCURACY_COMMIT;
     if (!accuracyCommit) {
-        throw new Error("ACCURACY_COMMIT environment variable is not set");
+        throw new Error("MDB_ACCURACY_COMMIT environment variable is not set");
     }
 
     if (!models.length) {
