@@ -70,6 +70,7 @@ export function setupMongoDBIntegrationTest(): MongoDBIntegrationTest {
                     tmpDir: dbsDir,
                     logDir: path.join(tmpDir, "mongodb-runner", "logs"),
                     topology: "standalone",
+                    version: "8.0.10",
                 });
 
                 return;
