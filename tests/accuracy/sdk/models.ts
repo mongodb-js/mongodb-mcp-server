@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from "@himanshusinghs/google";
 import { ollama } from "ollama-ai-provider";
 
 export interface Model<P extends LanguageModelV1 = LanguageModelV1> {
+    readonly modelName: string;
     isAvailable(): boolean;
     getModel(): P;
 }
@@ -25,7 +26,7 @@ export class OllamaModel implements Model {
     constructor(readonly modelName: string) {}
 
     isAvailable(): boolean {
-        return true;
+        return false;
     }
 
     getModel() {
@@ -35,8 +36,8 @@ export class OllamaModel implements Model {
 
 const ALL_TESTABLE_MODELS = [
     new GeminiModel("gemini-1.5-flash"),
-    // new GeminiModel("gemini-2.0-flash"),
-    // new OllamaModel("qwen3:latest"),
+    new GeminiModel("gemini-2.0-flash"),
+    new OllamaModel("qwen3:latest"),
 ];
 
 export type TestableModels = ReturnType<typeof getAvailableModels>;
