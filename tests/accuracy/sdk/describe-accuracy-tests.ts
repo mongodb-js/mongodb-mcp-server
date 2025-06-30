@@ -5,7 +5,8 @@ import { ExpectedToolCall, parameterMatchingAccuracyScorer, toolCallingAccuracyS
 import { Agent, getVercelToolCallingAgent } from "./agent.js";
 import { appendAccuracySnapshot } from "./accuracy-snapshot.js";
 
-interface AccuracyTestConfig {
+export interface AccuracyTestConfig {
+    systemPrompt?: string;
     prompt: string;
     expectedToolCalls: ExpectedToolCall[];
     mockedTools: MockedTools;
@@ -17,13 +18,7 @@ export function describeAccuracyTests(
     accuracyTestConfigs: AccuracyTestConfig[]
 ) {
     const accuracyDatetime = process.env.MDB_ACCURACY_DATETIME;
-    if (!accuracyDatetime) {
-        throw new Error("MDB_ACCURACY_DATETIME environment variable is not set");
-    }
     const accuracyCommit = process.env.MDB_ACCURACY_COMMIT;
-    if (!accuracyCommit) {
-        throw new Error("MDB_ACCURACY_COMMIT environment variable is not set");
-    }
 
     if (!models.length) {
         console.warn(`No models available to test ${suiteName}`);
@@ -53,25 +48,31 @@ export function describeAccuracyTests(
             const toolCalls = testTools.getToolCalls();
             const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
             const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
-            await appendAccuracySnapshot({
-                datetime: accuracyDatetime,
-                commit: accuracyCommit,
-                model: model.modelName,
-                suite: suiteName,
-                test: testConfig.prompt,
-                toolCallingAccuracy,
-                parameterAccuracy: parameterMatchingAccuracy,
-            });
+            if (accuracyDatetime && accuracyCommit) {
+                await appendAccuracySnapshot({
+                    datetime: accuracyDatetime,
+                    commit: accuracyCommit,
+                    model: model.modelName,
+                    suite: suiteName,
+                    test: testConfig.prompt,
+                    toolCallingAccuracy,
+                    parameterAccuracy: parameterMatchingAccuracy,
+                });
+            } else {
+                console.info(
+                    `Skipping accuracy snapshot update for ${model.modelName} - ${suiteName} - ${testConfig.prompt}`
+                );
+            }
 
             try {
                 expect(toolCallingAccuracy).not.toEqual(0);
                 expect(parameterMatchingAccuracy).toBeGreaterThanOrEqual(0.5);
             } catch (error) {
                 console.warn(`Accuracy test failed for ${model.modelName} - ${suiteName} - ${testConfig.prompt}`);
-                console.warn(`Conversation`, JSON.stringify(conversation, null, 2));
-                console.warn(`Tool calls`, JSON.stringify(toolCalls, null, 2));
-                console.warn(`Tool calling accuracy`, toolCallingAccuracy);
-                console.warn(`Parameter matching accuracy`, parameterMatchingAccuracy);
+                console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
+                console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
+                console.debug(`Tool calling accuracy`, toolCallingAccuracy);
+                console.debug(`Parameter matching accuracy`, parameterMatchingAccuracy);
                 throw error;
             }
         });
