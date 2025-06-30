@@ -26,7 +26,7 @@ export class OllamaModel implements Model {
     constructor(readonly modelName: string) {}
 
     isAvailable(): boolean {
-        return false;
+        return true;
     }
 
     getModel() {
@@ -36,8 +36,8 @@ export class OllamaModel implements Model {
 
 const ALL_TESTABLE_MODELS = [
     new GeminiModel("gemini-1.5-flash"),
-    // new GeminiModel("gemini-2.0-flash"),
-    // new OllamaModel("qwen3:latest"),
+    new GeminiModel("gemini-2.0-flash"),
+    new OllamaModel("qwen3:1.7b"),
 ];
 
 export type TestableModels = ReturnType<typeof getAvailableModels>;
