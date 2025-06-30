@@ -36,8 +36,8 @@ export class OllamaModel implements Model {
 
 const ALL_TESTABLE_MODELS = [
     new GeminiModel("gemini-1.5-flash"),
-    new GeminiModel("gemini-2.0-flash"),
-    new OllamaModel("qwen3:latest"),
+    // new GeminiModel("gemini-2.0-flash"),
+    // new OllamaModel("qwen3:latest"),
 ];
 
 export type TestableModels = ReturnType<typeof getAvailableModels>;

@@ -8,23 +8,20 @@ const systemPrompt = [
     "When calling a tool, you MUST strictly follow its input schema and MUST provide all required arguments",
     "If a task requires multiple steps, you MUST call the necessary tools in sequence",
     'If you do not know the answer or the request cannot be fulfilled, you MUST reply with "I don\'t know"',
-    "You SHOULD assume that you are already connected to a MongoDB connection",
-].join("\n");
+];
 
 export interface Agent<M = unknown, T = unknown, R = unknown> {
     prompt(prompt: string, model: M, tools: T): Promise<R>;
 }
 
-export function getVercelToolCallingAgent(): Agent<
-    Model<LanguageModelV1>,
-    Record<string, Tool<Schema<unknown>>>,
-    { text: string; messages: unknown[] }
-> {
+export function getVercelToolCallingAgent(
+    requestedSystemPrompt?: string
+): Agent<Model<LanguageModelV1>, Record<string, Tool<Schema<unknown>>>, { text: string; messages: unknown[] }> {
     return {
         async prompt(prompt: string, model: Model<LanguageModelV1>, tools: Record<string, Tool<Schema<unknown>>>) {
             const result = await generateText({
                 model: model.getModel(),
-                system: systemPrompt,
+                system: [...systemPrompt, requestedSystemPrompt].join("\n"),
                 prompt,
                 tools,
                 maxSteps: 100,
