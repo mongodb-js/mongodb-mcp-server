@@ -28,7 +28,9 @@ export class AggregateTool extends MongoDBToolBase {
         // Check if aggregate operation uses an index if enabled
         if (this.config.indexCheck) {
             await checkIndexUsage(provider, database, collection, "aggregate", async () => {
-                return provider.aggregate(database, collection, pipeline).explain("queryPlanner");
+                return provider
+                    .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
+                    .explain("queryPlanner");
             });
         }
 

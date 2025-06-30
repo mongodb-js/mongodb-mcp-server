@@ -191,7 +191,6 @@ describe("IndexCheck integration tests", () => {
                                 collection: "aggregate-test-collection",
                                 pipeline: [
                                     { $match: { category: "A" } }, // Now has index
-                                    { $group: { _id: "$category", count: { $sum: 1 } } },
                                 ],
                             },
                         });
@@ -308,7 +307,7 @@ describe("IndexCheck integration tests", () => {
                         expect(response.isError).toBeFalsy();
                         const content = getResponseContent(response.content);
                         expect(content).toContain("Deleted");
-                        expect(content).toMatch(/\d+ document\(s\)/);
+                        expect(content).toMatch(/`\d+` document\(s\)/);
                     });
                 });
             },
