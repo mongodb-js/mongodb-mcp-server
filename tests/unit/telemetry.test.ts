@@ -367,4 +367,52 @@ describe("Telemetry", () => {
             });
         });
     });
+
+    describe("corner cases", () => {
+        it("this works", function () {
+            jest.useRealTimers();
+            const testEvent = createTestEvent();
+            const telemetry = Telemetry.create(session, config, {
+                ...telemetryConfig,
+                getRawMachineId: () =>
+                    new Promise<string>((resolve) => {
+                        setTimeout(() => {
+                            resolve("machineId");
+                        }, 100);
+                    }),
+                getContainerEnv: () =>
+                    new Promise<boolean>((resolve) => {
+                        setTimeout(() => {
+                            resolve(false);
+                        }, 100);
+                    }),
+            });
+
+            console.log("doing 1...");
+            telemetry.emitEvents([testEvent]);
+        });
+
+        it("this leads to out of memory error", function () {
+            jest.useRealTimers();
+            const testEvent = createTestEvent();
+            const telemetry = Telemetry.create(session, config, {
+                ...telemetryConfig,
+                getRawMachineId: () =>
+                    new Promise<string>((resolve) => {
+                        setTimeout(() => {
+                            resolve("machineId");
+                        }, 100);
+                    }),
+                getContainerEnv: () =>
+                    new Promise<boolean>((resolve) => {
+                        setTimeout(() => {
+                            resolve(false);
+                        }, 100);
+                    }),
+            });
+
+            telemetry.emitEvents([testEvent]);
+            telemetry.emitEvents([testEvent]);
+        });
+    });
 });
