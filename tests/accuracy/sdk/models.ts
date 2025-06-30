@@ -1,58 +1,42 @@
-import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { ChatOllama } from "@langchain/ollama";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { LanguageModelV1 } from "ai";
+import { createGoogleGenerativeAI } from "@himanshusinghs/google";
+import { ollama } from "ollama-ai-provider";
 
-type ToolResultForOllama = string;
-export type AcceptableToolResponse = CallToolResult | ToolResultForOllama;
-
-export interface Model<M extends BaseChatModel = BaseChatModel, T extends AcceptableToolResponse = CallToolResult> {
+export interface Model<P extends LanguageModelV1 = LanguageModelV1> {
     isAvailable(): boolean;
-    getLangChainModel(): M;
-    transformToolResult(callToolResult: CallToolResult): T;
+    getModel(): P;
 }
 
-export class GeminiModel implements Model<ChatGoogleGenerativeAI> {
+export class GeminiModel implements Model {
     constructor(readonly modelName: string) {}
 
     isAvailable(): boolean {
         return !!process.env.MDB_GEMINI_API_KEY;
     }
 
-    getLangChainModel(): ChatGoogleGenerativeAI {
-        return new ChatGoogleGenerativeAI({
-            model: this.modelName,
+    getModel() {
+        return createGoogleGenerativeAI({
             apiKey: process.env.MDB_GEMINI_API_KEY,
-        });
-    }
-
-    transformToolResult(callToolResult: CallToolResult) {
-        return callToolResult;
+        })(this.modelName);
     }
 }
 
-export class OllamaModel implements Model<ChatOllama, ToolResultForOllama> {
+export class OllamaModel implements Model {
     constructor(readonly modelName: string) {}
 
     isAvailable(): boolean {
-        return !!process.env.MDB_GEMINI_API_KEY;
+        return true;
     }
 
-    getLangChainModel(): ChatOllama {
-        return new ChatOllama({
-            model: this.modelName,
-        });
-    }
-
-    transformToolResult(callToolResult: CallToolResult): ToolResultForOllama {
-        return JSON.stringify(callToolResult);
+    getModel() {
+        return ollama(this.modelName);
     }
 }
 
 const ALL_TESTABLE_MODELS = [
-    // new GeminiModel("gemini-1.5-flash"),
+    new GeminiModel("gemini-1.5-flash"),
     // new GeminiModel("gemini-2.0-flash"),
-    new OllamaModel("qwen3:latest"),
+    // new OllamaModel("qwen3:latest"),
 ];
 
 export type TestableModels = ReturnType<typeof getAvailableModels>;
