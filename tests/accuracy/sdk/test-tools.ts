@@ -132,9 +132,6 @@ export async function discoverMongoDBTools(): Promise<Tool[]> {
         await mcpClient.connect(clientTransport);
 
         return (await mcpClient.listTools()).tools;
-    } catch (error: unknown) {
-        console.error("Unexpected error occured", error);
-        return [];
     } finally {
         await mcpClient?.close();
         await mcpServer?.session?.close();

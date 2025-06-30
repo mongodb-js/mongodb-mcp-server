@@ -29,7 +29,8 @@
     "check:types": "tsc --noEmit --project tsconfig.json",
     "reformat": "prettier --write .",
     "generate": "./scripts/generate.sh",
-    "test": "vitest --coverage"
+    "test": "vitest --coverage",
+    "test:accuracy": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern tests/accuracy"
   },
   "license": "Apache-2.0",
   "devDependencies": {
