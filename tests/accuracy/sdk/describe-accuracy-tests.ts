@@ -45,10 +45,11 @@ export function describeAccuracyTests(
 
         eachTest("$prompt", async function (testConfig) {
             testTools.mockTools(testConfig.mockedTools);
+            const toolsForModel = testTools.vercelAiTools();
             const promptForModel = testConfig.injectConnectedAssumption
                 ? [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ")
                 : testConfig.prompt;
-            const conversation = await agent.prompt(promptForModel, model, testTools.vercelAiTools());
+            const conversation = await agent.prompt(promptForModel, model, toolsForModel);
             const toolCalls = testTools.getToolCalls();
             const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
             const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
@@ -73,6 +74,7 @@ export function describeAccuracyTests(
                 expect(parameterMatchingAccuracy).toBeGreaterThanOrEqual(0.5);
             } catch (error) {
                 console.warn(`Accuracy test failed for ${model.modelName} - ${suiteName} - ${testConfig.prompt}`);
+                console.debug(`Provided tools`, JSON.stringify(toolsForModel, null, 2));
                 console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
                 console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
                 console.debug(`Tool calling accuracy`, toolCallingAccuracy);
