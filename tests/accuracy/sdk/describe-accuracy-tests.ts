@@ -7,6 +7,7 @@ import { appendAccuracySnapshot } from "./accuracy-snapshot.js";
 
 export interface AccuracyTestConfig {
     systemPrompt?: string;
+    injectConnectedAssumption?: boolean;
     prompt: string;
     expectedToolCalls: ExpectedToolCall[];
     mockedTools: MockedTools;
@@ -44,7 +45,10 @@ export function describeAccuracyTests(
 
         eachTest("$prompt", async function (testConfig) {
             testTools.mockTools(testConfig.mockedTools);
-            const conversation = await agent.prompt(testConfig.prompt, model, testTools.vercelAiTools());
+            const promptForModel = testConfig.injectConnectedAssumption
+                ? [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ")
+                : testConfig.prompt;
+            const conversation = await agent.prompt(promptForModel, model, testTools.vercelAiTools());
             const toolCalls = testTools.getToolCalls();
             const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
             const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
