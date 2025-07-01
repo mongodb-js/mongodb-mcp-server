@@ -13,7 +13,7 @@ export const FindArgs = {
         .describe("The query filter, matching the syntax of the query argument of db.collection.find()"),
     projection: z
         .record(z.string(), z.unknown())
-        .optional()
+        // .optional()
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
     limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
     sort: z
@@ -21,6 +21,23 @@ export const FindArgs = {
         .optional()
         .describe("A document, describing the sort order, matching the syntax of the sort argument of cursor.sort()"),
 };
+
+export function findResponse(collection: string, documents: unknown[]): CallToolResult {
+    return {
+        content: [
+            {
+                text: `Found ${documents.length} documents in the collection "${collection}":`,
+                type: "text",
+            },
+            ...documents.map<{ type: "text"; text: string }>((doc) => {
+                return {
+                    text: EJSON.stringify(doc),
+                    type: "text",
+                };
+            }),
+        ],
+    };
+}
 
 export class FindTool extends MongoDBToolBase {
     protected name = "find";
@@ -50,21 +67,6 @@ export class FindTool extends MongoDBToolBase {
 
         const documents = await provider.find(database, collection, filter, { projection, limit, sort }).toArray();
 
-        const content: Array<{ text: string; type: "text" }> = [
-            {
-                text: `Found ${documents.length} documents in the collection "${collection}":`,
-                type: "text",
-            },
-            ...documents.map((doc) => {
-                return {
-                    text: EJSON.stringify(doc),
-                    type: "text",
-                } as { text: string; type: "text" };
-            }),
-        ];
-
-        return {
-            content,
-        };
+        return findResponse(collection, documents);
     }
 }
