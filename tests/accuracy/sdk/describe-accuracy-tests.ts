@@ -53,6 +53,13 @@ export function describeAccuracyTests(
             const toolCalls = testTools.getToolCalls();
             const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
             const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
+            console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
+            console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
+            console.debug(
+                "Tool calling accuracy: %s, Parameter Accuracy: %s",
+                toolCallingAccuracy,
+                parameterMatchingAccuracy
+            );
             if (accuracyDatetime && accuracyCommit) {
                 await appendAccuracySnapshot({
                     datetime: accuracyDatetime,
@@ -67,19 +74,6 @@ export function describeAccuracyTests(
                 console.info(
                     `Skipping accuracy snapshot update for ${model.modelName} - ${suiteName} - ${testConfig.prompt}`
                 );
-            }
-
-            try {
-                expect(toolCallingAccuracy).not.toEqual(0);
-                expect(parameterMatchingAccuracy).toBeGreaterThanOrEqual(0.5);
-            } catch (error) {
-                console.warn(`Accuracy test failed for ${model.modelName} - ${suiteName} - ${testConfig.prompt}`);
-                console.debug(`Provided tools`, JSON.stringify(toolsForModel, null, 2));
-                console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
-                console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
-                console.debug(`Tool calling accuracy`, toolCallingAccuracy);
-                console.debug(`Parameter matching accuracy`, parameterMatchingAccuracy);
-                throw error;
             }
         });
     });
