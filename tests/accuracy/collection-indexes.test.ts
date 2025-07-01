@@ -37,6 +37,6 @@ describeAccuracyTests("collection-indexes", getAvailableModels(), [
     callsCollectionIndexes("How many indexes do I have in 'db1.coll1' namespace?"),
     callsCollectionIndexes("List all the indexes in coll1 collection in db1 database"),
     callsCollectionIndexes(
-        `Will this query: ${JSON.stringify({ year: 1994 })} on the namespace 'db1.coll1' be a collection scan?`
+        `Is the following query: ${JSON.stringify({ year: 1994 })} on the namespace 'db1.coll1' indexed?`
     ),
 ]);
