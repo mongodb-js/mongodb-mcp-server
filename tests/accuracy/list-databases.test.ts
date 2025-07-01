@@ -4,7 +4,7 @@ import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function describeListDatabasesAccuracyTests(prompt: string): AccuracyTestConfig {
     return {
-        systemPrompt: "Assume that you're already connected.",
+        injectConnectedAssumption: true,
         prompt: prompt,
         mockedTools: {
             "list-databases": function listDatabases() {
