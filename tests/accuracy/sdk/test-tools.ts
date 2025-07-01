@@ -12,7 +12,7 @@ import { Telemetry } from "../../../src/telemetry/telemetry.js";
 import { Server } from "../../../src/server.js";
 import { ToolCall } from "./accuracy-scorers.js";
 
-type ToolResultGeneratorFn = (...parameters: unknown[]) => CallToolResult;
+type ToolResultGeneratorFn = (...parameters: unknown[]) => CallToolResult | Promise<CallToolResult>;
 export type MockedTools = Record<string, ToolResultGeneratorFn>;
 
 function getDefaultToolResultGeneratorFn(): ToolResultGeneratorFn {
@@ -81,7 +81,7 @@ export class TestTools {
                         };
                     }
 
-                    return toolResultGeneratorFn(args);
+                    return await toolResultGeneratorFn(args);
                 },
             });
         }
