@@ -1,25 +1,24 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
+import { listDatabasesResponse } from "../../src/tools/mongodb/metadata/listDatabases.js";
 
-function describeListDatabasesAccuracyTests(prompt: string): AccuracyTestConfig {
+function callsListDatabases(prompt: string): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
         mockedTools: {
             "list-databases": function listDatabases() {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: "Name: db1",
-                        },
-                        {
-                            type: "text",
-                            text: "Name: db2",
-                        },
-                    ],
-                };
+                return listDatabasesResponse([
+                    {
+                        name: "db1",
+                        sizeOnDisk: "1024",
+                    },
+                    {
+                        name: "db2",
+                        sizeOnDisk: "2048",
+                    },
+                ]);
             },
         },
         expectedToolCalls: [
@@ -32,7 +31,7 @@ function describeListDatabasesAccuracyTests(prompt: string): AccuracyTestConfig 
 }
 
 describeAccuracyTests("list-databases", getAvailableModels(), [
-    describeListDatabasesAccuracyTests("How many databases do I have?"),
-    describeListDatabasesAccuracyTests("List all the databases in my cluster."),
-    describeListDatabasesAccuracyTests("Is there a sample_mflix database in my cluster?"),
+    callsListDatabases("How many databases do I have?"),
+    callsListDatabases("List all the databases in my cluster."),
+    callsListDatabases("Is there a sample_mflix database in my cluster?"),
 ]);
