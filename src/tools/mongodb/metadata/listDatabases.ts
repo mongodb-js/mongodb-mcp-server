@@ -3,6 +3,17 @@ import { MongoDBToolBase } from "../mongodbTool.js";
 import * as bson from "bson";
 import { OperationType } from "../../tool.js";
 
+export function listDatabasesResponse(databases: { name: string; sizeOnDisk: string }[]): CallToolResult {
+    return {
+        content: databases.map((db) => {
+            return {
+                text: `Name: ${db.name}, Size: ${db.sizeOnDisk} bytes`,
+                type: "text",
+            };
+        }),
+    };
+}
+
 export class ListDatabasesTool extends MongoDBToolBase {
     public name = "list-databases";
     protected description = "List all databases for a MongoDB connection";
@@ -13,13 +24,13 @@ export class ListDatabasesTool extends MongoDBToolBase {
         const provider = await this.ensureConnected();
         const dbs = (await provider.listDatabases("")).databases as { name: string; sizeOnDisk: bson.Long }[];
 
-        return {
-            content: dbs.map((db) => {
+        return listDatabasesResponse(
+            dbs.map((db) => {
                 return {
-                    text: `Name: ${db.name}, Size: ${db.sizeOnDisk.toString()} bytes`,
-                    type: "text",
+                    name: db.name,
+                    sizeOnDisk: db.sizeOnDisk.toString(),
                 };
-            }),
-        };
+            })
+        );
     }
 }
