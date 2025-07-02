@@ -22,7 +22,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
     - [Environment Variables](#environment-variables)
     - [Command-Line Arguments](#command-line-arguments)
     - [MCP Client Configuration](#mcp-configuration-file-examples)
-- [🤝 Contributing](#-contributing)
+- [🤝 Contributing](#contributing)
 
 <a name="getting-started"></a>
 ## Prerequisites
@@ -488,6 +488,6 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
 }
 ```
 
-## 🤝 Contributing
+## 🤝Contributing
 
 Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
