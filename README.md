@@ -207,7 +207,7 @@ With Atlas API credentials:
 }
 ```
 
-## 🛠️ Supported Tools {#supported-tools}
+## 🛠️ Supported Tools
 
 ### Tool List
 
@@ -488,6 +488,6 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
 }
 ```
 
-## 🤝 Contributing <a name="contributing"></a>
+## 🤝 Contributing
 
 Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
