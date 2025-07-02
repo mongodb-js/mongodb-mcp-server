@@ -6,7 +6,7 @@
 
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
-## 📚 Table of Contents {#getting-started}
+## 📚 Table of Contents
 
 - [🚀 Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
@@ -15,15 +15,16 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
-- [⚙️ Configuration](#configuration)
+- [⚙️ Configuration](#-configuration)
   - [Configuration Options](#configuration-options)
   - [Atlas API Access](#atlas-api-access)
   - [Configuration Methods](#configuration-methods)
     - [Environment Variables](#environment-variables)
     - [Command-Line Arguments](#command-line-arguments)
     - [MCP Client Configuration](#mcp-configuration-file-examples)
-- [🤝 Contributing](#contributing)
+- [🤝 Contributing](#-contributing)
 
+<a name="getting-started"></a>
 ## Prerequisites
 
 - Node.js (v20.10.0 or later)
@@ -487,6 +488,6 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
 }
 ```
 
-## 🤝 Contributing {#contributing}
+## 🤝 Contributing <a name="contributing"></a>
 
 Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
