@@ -15,7 +15,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
-- [⚙️ Configuration](#-configuration)
+- [⚙️ Configuration](#configuration)
   - [Configuration Options](#configuration-options)
   - [Atlas API Access](#atlas-api-access)
   - [Configuration Methods](#configuration-methods)
