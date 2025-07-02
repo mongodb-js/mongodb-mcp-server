@@ -6,7 +6,7 @@
 
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
-## 📚 Table of Contents
+## 📚 Table of Contents {#getting-started}
 
 - [🚀 Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
@@ -46,7 +46,7 @@ Most MCP clients require a configuration file to be created or modified to add t
 
 Note: The configuration file syntax can be different across clients. Please refer to the following links for the latest expected syntax:
 
-- **Windsurf**:https://docs.windsurf.com/windsurf/mcp
+- **Windsurf**: https://docs.windsurf.com/windsurf/mcp
 - **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
 - **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
 - **Cursor**: https://docs.cursor.com/context/model-context-protocol
@@ -206,7 +206,7 @@ With Atlas API credentials:
 }
 ```
 
-## 🛠️ Supported Tools
+## 🛠️ Supported Tools {#supported-tools}
 
 ### Tool List
 
@@ -487,6 +487,6 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
 }
 ```
 
-## 🤝 Contributing
+## 🤝 Contributing {#contributing}
 
 Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
