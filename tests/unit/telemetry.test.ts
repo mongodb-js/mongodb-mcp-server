@@ -138,6 +138,8 @@ describe("Telemetry", () => {
             it("should send events successfully", async () => {
                 const testEvent = createTestEvent();
 
+                await telemetry.dataPromise;
+
                 await telemetry.emitEvents([testEvent]);
 
                 verifyMockCalls({
@@ -151,6 +153,8 @@ describe("Telemetry", () => {
                 mockApiClient.sendEvents.mockRejectedValueOnce(new Error("API error"));
 
                 const testEvent = createTestEvent();
+
+                await telemetry.dataPromise;
 
                 await telemetry.emitEvents([testEvent]);
 
@@ -175,6 +179,8 @@ describe("Telemetry", () => {
                 // Set up mock to return cached events
                 mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
 
+                await telemetry.dataPromise;
+
                 await telemetry.emitEvents([newEvent]);
 
                 verifyMockCalls({
@@ -184,7 +190,9 @@ describe("Telemetry", () => {
                 });
             });
 
-            it("should correctly add common properties to events", () => {
+            it("should correctly add common properties to events", async () => {
+                await telemetry.dataPromise;
+
                 const commonProps = telemetry.getCommonProperties();
 
                 // Use explicit type assertion
