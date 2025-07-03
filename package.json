@@ -30,7 +30,8 @@
     "reformat": "prettier --write .",
     "generate": "./scripts/generate.sh",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --testPathIgnorePatterns=/tests/accuracy/",
-    "test:accuracy": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern tests/accuracy"
+    "test:accuracy": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern tests/accuracy",
+    "test:accuracy:c": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "license": "Apache-2.0",
   "devDependencies": {
@@ -45,6 +46,8 @@
     "@types/simple-oauth2": "^5.0.7",
     "@types/yargs-parser": "^21.0.3",
     "ai": "^4.3.16",
+    "autoevals": "^0.0.130",
+    "braintrust": "^0.0.209",
     "eslint": "^9.24.0",
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-jest": "^29.0.1",
