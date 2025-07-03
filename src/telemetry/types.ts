@@ -66,6 +66,7 @@ export type CommonStaticProperties = {
  */
 export type CommonProperties = {
     device_id?: string;
+    is_container_env?: boolean;
     mcp_client_version?: string;
     mcp_client_name?: string;
     config_atlas_auth?: TelemetryBoolSet;

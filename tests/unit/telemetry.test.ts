@@ -219,7 +219,7 @@ describe("Telemetry", () => {
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    await telemetry.deviceIdPromise;
+                    await telemetry.dataPromise;
 
                     expect(telemetry["isBufferingEvents"]).toBe(false);
                     expect(telemetry.getCommonProperties().device_id).toBe(hashedMachineId);
@@ -235,7 +235,7 @@ describe("Telemetry", () => {
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    await telemetry.deviceIdPromise;
+                    await telemetry.dataPromise;
 
                     expect(telemetry["isBufferingEvents"]).toBe(false);
                     expect(telemetry.getCommonProperties().device_id).toBe("unknown");
@@ -263,7 +263,7 @@ describe("Telemetry", () => {
 
                     jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
 
-                    await telemetry.deviceIdPromise;
+                    await telemetry.dataPromise;
 
                     expect(telemetry.getCommonProperties().device_id).toBe("unknown");
                     expect(telemetry["isBufferingEvents"]).toBe(false);

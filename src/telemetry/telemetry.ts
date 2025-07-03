@@ -7,6 +7,7 @@ import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
+import fs from "fs/promises";
 
 type EventResult = {
     success: boolean;
@@ -18,7 +19,7 @@ export const DEVICE_ID_TIMEOUT = 3000;
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the device ID is retrieved or timeout occurs */
-    public deviceIdPromise: Promise<string> | undefined;
+    public dataPromise: Promise<[string, boolean]> | undefined;
     private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
     private getRawMachineId: () => Promise<string>;
@@ -52,11 +53,32 @@ export class Telemetry {
         return instance;
     }
 
+    private async isContainerEnv(): Promise<boolean> {
+        if (process.platform !== "linux") {
+            return false; // we only support linux containers for now
+        }
+
+        if (process.env.container) {
+            return true;
+        }
+
+        const exists = await Promise.all(["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"].map(async (file) => {
+            try {
+                await fs.access(file);
+                return true;
+            } catch {
+                return false;
+            }
+        }));
+
+        return exists.includes(true);
+    }
+
     private async start(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             return;
         }
-        this.deviceIdPromise = getDeviceId({
+        this.dataPromise = Promise.all([getDeviceId({
             getMachineId: () => this.getRawMachineId(),
             onError: (reason, error) => {
                 switch (reason) {
@@ -72,9 +94,12 @@ export class Telemetry {
                 }
             },
             abortSignal: this.deviceIdAbortController.signal,
-        });
+        }), this.isContainerEnv()]);
 
-        this.commonProperties.device_id = await this.deviceIdPromise;
+        const [deviceId, containerEnv] = await this.dataPromise;
+
+        this.commonProperties.device_id = deviceId;
+        this.commonProperties.is_container_env = containerEnv;
 
         this.isBufferingEvents = false;
     }
