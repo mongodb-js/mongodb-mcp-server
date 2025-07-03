@@ -1,6 +1,7 @@
 import { LanguageModelV1 } from "ai";
 import { createGoogleGenerativeAI } from "@himanshusinghs/google";
 import { createAzure } from "@ai-sdk/azure";
+import { createOpenAI } from "@ai-sdk/openai";
 import { ollama } from "ollama-ai-provider";
 
 export interface Model<P extends LanguageModelV1 = LanguageModelV1> {
@@ -10,6 +11,20 @@ export interface Model<P extends LanguageModelV1 = LanguageModelV1> {
 }
 
 export class OpenAIModel implements Model {
+    constructor(readonly modelName: string) {}
+
+    isAvailable(): boolean {
+        return !!process.env.MDB_OPEN_AI_API_KEY;
+    }
+
+    getModel() {
+        return createOpenAI({
+            apiKey: process.env.MDB_OPEN_AI_API_KEY,
+        })(this.modelName);
+    }
+}
+
+export class AzureOpenAIModel implements Model {
     constructor(readonly modelName: string) {}
 
     isAvailable(): boolean {
@@ -53,7 +68,8 @@ export class OllamaModel implements Model {
 
 const ALL_TESTABLE_MODELS = [
     new GeminiModel("gemini-2.0-flash"),
-    new OpenAIModel("gpt-4o"),
+    // new OpenAIModel("gpt-4o"),
+    // new AzureOpenAIModel("gpt-4o"),
     // new OllamaModel("qwen3:1.7b"),
 ];
 
