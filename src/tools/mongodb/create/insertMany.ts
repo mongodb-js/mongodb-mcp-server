@@ -3,6 +3,21 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 
+export function insertManyResponse(collection: string, insertedCount: number, insertedIds: unknown[]): CallToolResult {
+    return {
+        content: [
+            {
+                text: `Inserted \`${insertedCount}\` document(s) into collection "${collection}"`,
+                type: "text",
+            },
+            {
+                text: `Inserted IDs: ${insertedIds.join(", ")}`,
+                type: "text",
+            },
+        ],
+    };
+}
+
 export class InsertManyTool extends MongoDBToolBase {
     public name = "insert-many";
     protected description = "Insert an array of documents into a MongoDB collection";
@@ -24,17 +39,6 @@ export class InsertManyTool extends MongoDBToolBase {
         const provider = await this.ensureConnected();
         const result = await provider.insertMany(database, collection, documents);
 
-        return {
-            content: [
-                {
-                    text: `Inserted \`${result.insertedCount}\` document(s) into collection "${collection}"`,
-                    type: "text",
-                },
-                {
-                    text: `Inserted IDs: ${Object.values(result.insertedIds).join(", ")}`,
-                    type: "text",
-                },
-            ],
-        };
+        return insertManyResponse(collection, result.insertedCount, Object.values(result.insertedIds));
     }
 }
