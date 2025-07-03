@@ -62,14 +62,16 @@ export class Telemetry {
             return true;
         }
 
-        const exists = await Promise.all(["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"].map(async (file) => {
-            try {
-                await fs.access(file);
-                return true;
-            } catch {
-                return false;
-            }
-        }));
+        const exists = await Promise.all(
+            ["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"].map(async (file) => {
+                try {
+                    await fs.access(file);
+                    return true;
+                } catch {
+                    return false;
+                }
+            })
+        );
 
         return exists.includes(true);
     }
@@ -78,23 +80,26 @@ export class Telemetry {
         if (!this.isTelemetryEnabled()) {
             return;
         }
-        this.dataPromise = Promise.all([getDeviceId({
-            getMachineId: () => this.getRawMachineId(),
-            onError: (reason, error) => {
-                switch (reason) {
-                    case "resolutionError":
-                        logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", String(error));
-                        break;
-                    case "timeout":
-                        logger.debug(LogId.telemetryDeviceIdTimeout, "telemetry", "Device ID retrieval timed out");
-                        break;
-                    case "abort":
-                        // No need to log in the case of aborts
-                        break;
-                }
-            },
-            abortSignal: this.deviceIdAbortController.signal,
-        }), this.isContainerEnv()]);
+        this.dataPromise = Promise.all([
+            getDeviceId({
+                getMachineId: () => this.getRawMachineId(),
+                onError: (reason, error) => {
+                    switch (reason) {
+                        case "resolutionError":
+                            logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", String(error));
+                            break;
+                        case "timeout":
+                            logger.debug(LogId.telemetryDeviceIdTimeout, "telemetry", "Device ID retrieval timed out");
+                            break;
+                        case "abort":
+                            // No need to log in the case of aborts
+                            break;
+                    }
+                },
+                abortSignal: this.deviceIdAbortController.signal,
+            }),
+            this.isContainerEnv(),
+        ]);
 
         const [deviceId, containerEnv] = await this.dataPromise;
 
