@@ -4,6 +4,17 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
+export function deleteManyResponse(collection: string, delectedCount: number): CallToolResult {
+    return {
+        content: [
+            {
+                text: `Deleted \`${delectedCount}\` document(s) from collection "${collection}"`,
+                type: "text",
+            },
+        ],
+    };
+}
+
 export class DeleteManyTool extends MongoDBToolBase {
     public name = "delete-many";
     protected description = "Removes all documents that match the filter from a MongoDB collection";
@@ -45,13 +56,6 @@ export class DeleteManyTool extends MongoDBToolBase {
 
         const result = await provider.deleteMany(database, collection, filter);
 
-        return {
-            content: [
-                {
-                    text: `Deleted \`${result.deletedCount}\` document(s) from collection "${collection}"`,
-                    type: "text",
-                },
-            ],
-        };
+        return deleteManyResponse(collection, result.deletedCount);
     }
 }
