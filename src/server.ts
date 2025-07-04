@@ -3,7 +3,7 @@ import { Session } from "./session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
-import logger, { setStdioPreset, setDockerPreset, LogId } from "./logger.js";
+import logger, { setStdioPreset, setContainerPreset, LogId } from "./logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./config.js";
@@ -67,7 +67,7 @@ export class Server {
         const containerEnv = await detectContainerEnv();
 
         if (containerEnv) {
-            setDockerPreset(this.mcpServer);
+            setContainerPreset(this.mcpServer);
         } else {
             await setStdioPreset(this.mcpServer, this.userConfig.logPath);
         }

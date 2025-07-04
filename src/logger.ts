@@ -187,7 +187,7 @@ export async function setStdioPreset(server: McpServer, logPath: string): Promis
     logger.setLoggers(mcpLogger, diskLogger);
 }
 
-export function setDockerPreset(server: McpServer): void {
+export function setContainerPreset(server: McpServer): void {
     const mcpLogger = new McpLogger(server);
     const consoleLogger = new ConsoleLogger();
 
