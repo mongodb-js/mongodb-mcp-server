@@ -1,9 +1,8 @@
-import { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { discoverMongoDBTools, TestTools, MockedTools } from "./test-tools.js";
 import { TestableModels } from "./models.js";
 import { ExpectedToolCall, parameterMatchingAccuracyScorer, toolCallingAccuracyScorer } from "./accuracy-scorers.js";
 import { Agent, getVercelToolCallingAgent } from "./agent.js";
-import { appendAccuracySnapshot } from "./accuracy-snapshot.js";
+import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
+import { AccuracyTestingClient, MockedTools } from "./accuracy-testing-client.js";
 
 export interface AccuracyTestConfig {
     systemPrompt?: string;
@@ -13,68 +12,71 @@ export interface AccuracyTestConfig {
     mockedTools: MockedTools;
 }
 
-export function describeAccuracyTests(
-    suiteName: string,
-    models: TestableModels,
-    accuracyTestConfigs: AccuracyTestConfig[]
-) {
-    const accuracyDatetime = process.env.MDB_ACCURACY_DATETIME;
-    const accuracyCommit = process.env.MDB_ACCURACY_COMMIT;
+export function describeSuite(suiteName: string, testConfigs: AccuracyTestConfig[]) {
+    return {
+        [suiteName]: testConfigs,
+    };
+}
 
+export function describeAccuracyTests(
+    models: TestableModels,
+    accuracyTestConfigs: {
+        [suiteName: string]: AccuracyTestConfig[];
+    }
+) {
     if (!models.length) {
-        console.warn(`No models available to test ${suiteName}`);
-        return;
+        throw new Error("No models available to test!");
     }
 
     const eachModel = describe.each(models);
-    const eachTest = it.each(accuracyTestConfigs);
+    const eachSuite = describe.each(Object.keys(accuracyTestConfigs));
 
-    eachModel(`$modelName - ${suiteName}`, function (model) {
-        let mcpTools: Tool[];
-        let testTools: TestTools;
+    eachModel(`$modelName`, function (model) {
+        const mdbIntegration = setupMongoDBIntegrationTest();
+        const populateTestData = prepareTestData(mdbIntegration);
+
+        let testMCPClient: AccuracyTestingClient;
         let agent: Agent;
 
         beforeAll(async () => {
-            mcpTools = await discoverMongoDBTools();
-        });
-
-        beforeEach(() => {
-            testTools = new TestTools(mcpTools);
+            testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString());
             agent = getVercelToolCallingAgent();
         });
 
-        eachTest("$prompt", async function (testConfig) {
-            testTools.mockTools(testConfig.mockedTools);
-            const toolsForModel = testTools.vercelAiTools();
-            const promptForModel = testConfig.injectConnectedAssumption
-                ? [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ")
-                : testConfig.prompt;
-            const conversation = await agent.prompt(promptForModel, model, toolsForModel);
-            const toolCalls = testTools.getToolCalls();
-            const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
-            const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
-            console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
-            console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
-            console.debug(
-                "Tool calling accuracy: %s, Parameter Accuracy: %s",
-                toolCallingAccuracy,
-                parameterMatchingAccuracy
-            );
-            if (accuracyDatetime && accuracyCommit) {
-                await appendAccuracySnapshot({
-                    datetime: accuracyDatetime,
-                    commit: accuracyCommit,
-                    model: model.modelName,
-                    suite: suiteName,
-                    test: testConfig.prompt,
-                    toolCallingAccuracy,
-                    parameterAccuracy: parameterMatchingAccuracy,
-                });
-            } else {
-                console.info(
-                    `Skipping accuracy snapshot update for ${model.modelName} - ${suiteName} - ${testConfig.prompt}`
+        beforeEach(async () => {
+            await populateTestData();
+            testMCPClient.resetForTests();
+        });
+
+        afterAll(async () => {
+            await testMCPClient.close();
+        });
+
+        eachSuite("%s", function (suiteName) {
+            const eachTest = it.each(accuracyTestConfigs[suiteName] ?? []);
+
+            eachTest("$prompt", async function (testConfig) {
+                testMCPClient.mockTools(testConfig.mockedTools);
+                const toolsForModel = await testMCPClient.vercelTools();
+                const promptForModel = testConfig.injectConnectedAssumption
+                    ? [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ")
+                    : testConfig.prompt;
+                const conversation = await agent.prompt(promptForModel, model, toolsForModel);
+                const toolCalls = testMCPClient.getToolCalls();
+                const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
+                const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(
+                    testConfig.expectedToolCalls,
+                    toolCalls
                 );
-            }
+                console.debug(testConfig.prompt);
+                console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
+                // console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
+                console.debug(
+                    "Tool calling accuracy: %s, Parameter Accuracy: %s",
+                    toolCallingAccuracy,
+                    parameterMatchingAccuracy
+                );
+            });
         });
     });
 }

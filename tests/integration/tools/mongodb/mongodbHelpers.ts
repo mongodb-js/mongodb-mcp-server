@@ -2,12 +2,37 @@ import { MongoCluster } from "mongodb-runner";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import { MongoClient, ObjectId } from "mongodb";
+import { Document, MongoClient, ObjectId } from "mongodb";
 import { getResponseContent, IntegrationTest, setupIntegrationTest, defaultTestConfig } from "../../helpers.js";
 import { UserConfig } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const testDataDumpPath = path.join(__dirname, "..", "..", "..", "accuracy", "test-data-dumps");
+
+const testDataPaths = [
+    {
+        db: "comics",
+        collection: "books",
+        path: path.join(testDataDumpPath, "comics.books.json"),
+    },
+    {
+        db: "comics",
+        collection: "characters",
+        path: path.join(testDataDumpPath, "comics.characters.json"),
+    },
+    {
+        db: "mflix",
+        collection: "movies",
+        path: path.join(testDataDumpPath, "mflix.movies.json"),
+    },
+    {
+        db: "mflix",
+        collection: "shows",
+        path: path.join(testDataDumpPath, "mflix.shows.json"),
+    },
+];
 
 interface MongoDBIntegrationTest {
     mongoClient: () => MongoClient;
@@ -169,4 +194,30 @@ export function validateAutoConnectBehavior(
             expect(content).toContain("You need to connect to a MongoDB instance before you can access its data.");
         });
     });
+}
+
+export function prepareTestData(integration: MongoDBIntegrationTest) {
+    const testData: {
+        db: string;
+        collection: string;
+        data: Document[];
+    }[] = [];
+
+    beforeAll(async () => {
+        for (const { db, collection, path } of testDataPaths) {
+            testData.push({
+                db,
+                collection,
+                data: JSON.parse(await fs.readFile(path, "utf8")) as Document[],
+            });
+        }
+    });
+
+    return async function populateTestData() {
+        const client = integration.mongoClient();
+        for (const { db, collection, data } of testData) {
+            await client.db(db).dropCollection(collection);
+            await client.db(db).collection(collection).insertMany(data);
+        }
+    };
 }
