@@ -1,6 +1,8 @@
 import fs from "fs/promises";
 
-export async function detectContainerEnv(): Promise<boolean> {
+let containerEnv: boolean | undefined;
+
+async function internalDetectContainerEnv(): Promise<boolean> {
     if (process.platform !== "linux") {
         return false; // we only support linux containers for now
     }
@@ -21,4 +23,13 @@ export async function detectContainerEnv(): Promise<boolean> {
     );
 
     return exists.includes(true);
+}
+
+export async function detectContainerEnv(): Promise<boolean> {
+    if (containerEnv !== undefined) {
+        return containerEnv;
+    }
+
+    containerEnv = await internalDetectContainerEnv();
+    return containerEnv;
 }
