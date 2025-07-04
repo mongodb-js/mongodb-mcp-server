@@ -3,7 +3,7 @@ import { Session } from "./session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
-import logger, { initializeLogger, LogId } from "./logger.js";
+import logger, { setStdioPreset, setContainerPreset, LogId } from "./logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./config.js";
@@ -11,6 +11,7 @@ import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
+import { detectContainerEnv } from "./common/container.js";
 
 export interface ServerOptions {
     session: Session;
@@ -63,7 +64,13 @@ export class Server {
             return existingHandler(request, extra);
         });
 
-        await initializeLogger(this.mcpServer, this.userConfig.logPath);
+        const containerEnv = await detectContainerEnv();
+
+        if (containerEnv) {
+            setContainerPreset(this.mcpServer);
+        } else {
+            await setStdioPreset(this.mcpServer, this.userConfig.logPath);
+        }
 
         await this.mcpServer.connect(transport);
 

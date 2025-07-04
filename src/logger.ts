@@ -180,11 +180,16 @@ class CompositeLogger extends LoggerBase {
 const logger = new CompositeLogger();
 export default logger;
 
-export async function initializeLogger(server: McpServer, logPath: string): Promise<LoggerBase> {
+export async function setStdioPreset(server: McpServer, logPath: string): Promise<void> {
     const diskLogger = await DiskLogger.fromPath(logPath);
     const mcpLogger = new McpLogger(server);
 
     logger.setLoggers(mcpLogger, diskLogger);
+}
 
-    return logger;
+export function setContainerPreset(server: McpServer): void {
+    const mcpLogger = new McpLogger(server);
+    const consoleLogger = new ConsoleLogger();
+
+    logger.setLoggers(mcpLogger, consoleLogger);
 }
