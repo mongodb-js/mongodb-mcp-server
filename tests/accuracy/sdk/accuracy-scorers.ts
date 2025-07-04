@@ -37,28 +37,37 @@ export function parameterMatchingAccuracyScorer(
         return 1;
     }
 
-    const toolCallScores: number[] = [];
-    const checkedToolCallIds = new Set<string>();
+    const usedActualIndexes = new Set<number>();
+    const scores: number[] = [];
 
-    for (const expectedToolCall of expectedToolCalls) {
-        const matchingActualToolCall = actualToolCalls.find(
-            (actualToolCall) =>
-                actualToolCall.toolName === expectedToolCall.toolName &&
-                !checkedToolCallIds.has(actualToolCall.toolCallId)
-        );
+    for (const expectedCall of expectedToolCalls) {
+        // Find all unmatched actual tool calls with the same tool name
+        const candidates = actualToolCalls
+            .map((call, index) => ({ call, index }))
+            .filter(({ call, index }) => !usedActualIndexes.has(index) && call.toolName === expectedCall.toolName);
 
-        if (!matchingActualToolCall) {
-            toolCallScores.push(0);
+        if (candidates.length === 0) {
+            scores.push(0);
             continue;
         }
 
-        checkedToolCallIds.add(matchingActualToolCall.toolCallId);
-        const score = compareParams(expectedToolCall.parameters, matchingActualToolCall.parameters);
-        toolCallScores.push(score);
+        // Pick the candidate with the best parameter match
+        let bestScore = -1;
+        let bestIndex = -1;
+        for (const { call, index } of candidates) {
+            const score = compareParams(expectedCall.parameters, call.parameters);
+            if (score > bestScore) {
+                bestScore = score;
+                bestIndex = index;
+            }
+        }
+
+        usedActualIndexes.add(bestIndex);
+        scores.push(bestScore);
     }
 
-    const totalScore = toolCallScores.reduce((sum, score) => sum + score, 0);
-    return totalScore / toolCallScores.length;
+    const totalScore = scores.reduce((sum, score) => sum + score, 0);
+    return totalScore / scores.length;
 }
 
 /**
