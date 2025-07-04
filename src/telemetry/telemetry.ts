@@ -18,7 +18,7 @@ export const DEVICE_ID_TIMEOUT = 3000;
 
 export class Telemetry {
     private isBufferingEvents: boolean = true;
-    /** Resolves when the device ID is retrieved or timeout occurs */
+    /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
     private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
