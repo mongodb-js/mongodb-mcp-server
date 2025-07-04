@@ -20,7 +20,7 @@ describe("Telemetry", () => {
         expect(telemetry.getCommonProperties().device_id).toBe(undefined);
         expect(telemetry["isBufferingEvents"]).toBe(true);
 
-        await telemetry.dataPromise;
+        await telemetry.setupPromise;
 
         expect(telemetry.getCommonProperties().device_id).toBe(actualHashedId);
         expect(telemetry["isBufferingEvents"]).toBe(false);

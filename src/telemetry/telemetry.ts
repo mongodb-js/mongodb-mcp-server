@@ -19,7 +19,7 @@ export const DEVICE_ID_TIMEOUT = 3000;
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the device ID is retrieved or timeout occurs */
-    public dataPromise: Promise<[string, boolean]> | undefined;
+    public setupPromise: Promise<[string, boolean]> | undefined;
     private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
     private getRawMachineId: () => Promise<string>;
@@ -49,7 +49,7 @@ export class Telemetry {
     ): Telemetry {
         const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, getRawMachineId });
 
-        void instance.start();
+        void instance.setup();
         return instance;
     }
 
@@ -76,11 +76,11 @@ export class Telemetry {
         return exists.includes(true);
     }
 
-    private async start(): Promise<void> {
+    private async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             return;
         }
-        this.dataPromise = Promise.all([
+        this.setupPromise = Promise.all([
             getDeviceId({
                 getMachineId: () => this.getRawMachineId(),
                 onError: (reason, error) => {
@@ -101,7 +101,7 @@ export class Telemetry {
             this.isContainerEnv(),
         ]);
 
-        const [deviceId, containerEnv] = await this.dataPromise;
+        const [deviceId, containerEnv] = await this.setupPromise;
 
         this.commonProperties.device_id = deviceId;
         this.commonProperties.is_container_env = containerEnv;

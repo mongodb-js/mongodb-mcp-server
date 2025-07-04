@@ -138,7 +138,7 @@ describe("Telemetry", () => {
             it("should send events successfully", async () => {
                 const testEvent = createTestEvent();
 
-                await telemetry.dataPromise;
+                await telemetry.setupPromise;
 
                 await telemetry.emitEvents([testEvent]);
 
@@ -154,7 +154,7 @@ describe("Telemetry", () => {
 
                 const testEvent = createTestEvent();
 
-                await telemetry.dataPromise;
+                await telemetry.setupPromise;
 
                 await telemetry.emitEvents([testEvent]);
 
@@ -179,7 +179,7 @@ describe("Telemetry", () => {
                 // Set up mock to return cached events
                 mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
 
-                await telemetry.dataPromise;
+                await telemetry.setupPromise;
 
                 await telemetry.emitEvents([newEvent]);
 
@@ -191,7 +191,7 @@ describe("Telemetry", () => {
             });
 
             it("should correctly add common properties to events", async () => {
-                await telemetry.dataPromise;
+                await telemetry.setupPromise;
 
                 const commonProps = telemetry.getCommonProperties();
 
@@ -227,7 +227,7 @@ describe("Telemetry", () => {
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    await telemetry.dataPromise;
+                    await telemetry.setupPromise;
 
                     expect(telemetry["isBufferingEvents"]).toBe(false);
                     expect(telemetry.getCommonProperties().device_id).toBe(hashedMachineId);
@@ -243,7 +243,7 @@ describe("Telemetry", () => {
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    await telemetry.dataPromise;
+                    await telemetry.setupPromise;
 
                     expect(telemetry["isBufferingEvents"]).toBe(false);
                     expect(telemetry.getCommonProperties().device_id).toBe("unknown");
@@ -271,7 +271,7 @@ describe("Telemetry", () => {
 
                     jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
 
-                    await telemetry.dataPromise;
+                    await telemetry.setupPromise;
 
                     expect(telemetry.getCommonProperties().device_id).toBe("unknown");
                     expect(telemetry["isBufferingEvents"]).toBe(false);
