@@ -1,157 +1,129 @@
-import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
-import { findResponse } from "../../src/tools/mongodb/read/find.js";
-import { MockedTools } from "./sdk/test-tools.js";
-import { collectionSchemaResponse } from "../../src/tools/mongodb/metadata/collectionSchema.js";
-import { getSimplifiedSchema } from "mongodb-schema";
 
-const documents = [
-    {
-        title: "book1",
-        author: "author1",
-        date_of_publish: "01.01.1990",
-    },
-    {
-        title: "book2",
-        author: "author1",
-        date_of_publish: "01.01.1992",
-    },
-    {
-        title: "book3",
-        author: "author2",
-        date_of_publish: "01.01.1990",
-    },
-];
-
-function callsFindNoFilter(prompt: string): AccuracyTestConfig {
+function callsFindNoFilter(prompt: string, database = "mflix", collection = "movies"): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "collection-schema": async () =>
-                collectionSchemaResponse("db1", "coll1", await getSimplifiedSchema(documents)),
-            find: () => findResponse("coll1", documents),
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
+                    database,
+                    collection,
                 },
             },
         ],
     };
 }
 
-function callsFindWithFilter(prompt: string): AccuracyTestConfig {
+function callsFindWithFilter(prompt: string, filter: Record<string, unknown>): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "collection-schema": async () =>
-                collectionSchemaResponse("db1", "coll1", await getSimplifiedSchema(documents)),
-            find: () =>
-                findResponse(
-                    "coll1",
-                    documents.filter((doc) => doc.author === "author1")
-                ),
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
-                    filter: { author: "author1" },
+                    database: "mflix",
+                    collection: "movies",
+                    filter: filter,
                 },
             },
         ],
     };
 }
 
-function callsFindWithProjection(prompt: string): AccuracyTestConfig {
+function callsFindWithProjection(prompt: string, projection: Record<string, number>): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "collection-schema": async () =>
-                collectionSchemaResponse("db1", "coll1", await getSimplifiedSchema(documents)),
-            find: () => findResponse("coll1", documents),
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
-                    projection: { title: 1 },
+                    database: "mflix",
+                    collection: "movies",
+                    projection,
                 },
             },
         ],
     };
 }
 
-function callsFindWithProjectionAndFilters(prompt: string): AccuracyTestConfig {
+function callsFindWithProjectionAndFilters(
+    prompt: string,
+    filter: Record<string, unknown>,
+    projection: Record<string, number>
+): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "collection-schema": async () =>
-                collectionSchemaResponse("db1", "coll1", await getSimplifiedSchema(documents)),
-            find: () =>
-                findResponse(
-                    "coll1",
-                    documents.filter((doc) => doc.date_of_publish === "01.01.1992")
-                ),
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
-                    filter: { date_of_publish: "01.01.1992" },
-                    projection: { title: 1 },
+                    database: "mflix",
+                    collection: "movies",
+                    filter,
+                    projection,
                 },
             },
         ],
     };
 }
 
-function callsFindWithSortAndLimit(prompt: string): AccuracyTestConfig {
+function callsFindWithFilterSortAndLimit(
+    prompt: string,
+    filter: Record<string, unknown>,
+    sort: Record<string, number>,
+    limit: number
+): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "collection-schema": async () =>
-                collectionSchemaResponse("db1", "coll1", await getSimplifiedSchema(documents)),
-            find: () => findResponse("coll1", [documents[0], documents[1]]),
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
-                    sort: { date_of_publish: 1 },
-                    limit: 2,
+                    database: "mflix",
+                    collection: "movies",
+                    filter,
+                    sort,
+                    limit,
                 },
             },
         ],
     };
 }
 
-describeAccuracyTests("find", getAvailableModels(), [
-    callsFindNoFilter("List all the documents in 'db1.coll1' namespace"),
-    callsFindNoFilter("Find all the documents from collection coll1 in database db1"),
-    callsFindWithFilter("Find all the books published by author name 'author1' in db1.coll1 namespace"),
-    callsFindWithFilter("Find all the documents in coll1 collection and db1 database where author is 'author1'"),
-    callsFindWithProjection("Give me all the title of the books available in 'db1.coll1' namespace"),
-    callsFindWithProjection("Give me all the title of the books published in  available in 'db1.coll1' namespace"),
-    callsFindWithProjectionAndFilters(
-        "Find all the book titles from 'db1.coll1' namespace where date_of_publish is '01.01.1992'"
-    ),
-    callsFindWithSortAndLimit("List first two books sorted by the field date_of_publish in namespace db1.coll1"),
-]);
+describeAccuracyTests(getAvailableModels(), {
+    ...describeSuite("should only call find tool", [
+        callsFindNoFilter("List all the movies in 'mflix.movies' namespace."),
+        callsFindNoFilter("List all the documents in 'comics.books' namespace.", "comics", "books"),
+        callsFindWithFilter("Find all the movies in 'mflix.movies' namespace with runtime less than 100.", {
+            runtime: { $lt: 100 },
+        }),
+        callsFindWithFilter("Find all movies in 'mflix.movies' collection where director is 'Christina Collins'", {
+            director: "Christina Collins",
+        }),
+        callsFindWithProjection("Give me all the movie titles available in 'mflix.movies' namespace", { title: 1 }),
+        callsFindWithProjectionAndFilters(
+            "Use 'mflix.movies' namespace to answer who were casted in the movie 'Certain Fish'",
+            { title: "Certain Fish" },
+            { cast: 1 }
+        ),
+        callsFindWithFilterSortAndLimit(
+            "From the mflix.movies namespace, give me first 2 movies of Horror genre sorted ascending by their runtime",
+            { genres: "Horror" },
+            { runtime: 1 },
+            2
+        ),
+    ]),
+});

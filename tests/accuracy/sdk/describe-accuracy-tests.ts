@@ -69,7 +69,7 @@ export function describeAccuracyTests(
                     toolCalls
                 );
                 console.debug(testConfig.prompt);
-                console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
+                // console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
                 // console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
                 console.debug(
                     "Tool calling accuracy: %s, Parameter Accuracy: %s",

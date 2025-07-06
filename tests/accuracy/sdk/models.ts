@@ -67,9 +67,9 @@ export class OllamaModel implements Model {
 }
 
 const ALL_TESTABLE_MODELS = [
-    new GeminiModel("gemini-2.0-flash"),
+    // new GeminiModel("gemini-2.0-flash"),
     // new OpenAIModel("gpt-4o"),
-    // new AzureOpenAIModel("gpt-4o"),
+    new AzureOpenAIModel("gpt-4o"),
     // new OllamaModel("qwen3:1.7b"),
 ];
 
