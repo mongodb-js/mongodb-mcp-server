@@ -17,14 +17,14 @@ export type MockedTools = Record<string, ToolResultGeneratorFn>;
 export class AccuracyTestingClient {
     private mockedTools: MockedTools = {};
     private recordedToolCalls: ToolCall[] = [];
-    private constructor(private readonly client: Awaited<ReturnType<typeof createMCPClient>>) {}
+    private constructor(private readonly vercelMCPClient: Awaited<ReturnType<typeof createMCPClient>>) {}
 
     async close() {
-        await this.client?.close();
+        await this.vercelMCPClient?.close();
     }
 
     async vercelTools() {
-        const vercelTools = (await this.client?.tools()) ?? {};
+        const vercelTools = (await this.vercelMCPClient?.tools()) ?? {};
         const rewrappedVercelTools: typeof vercelTools = {};
         for (const [toolName, tool] of Object.entries(vercelTools)) {
             rewrappedVercelTools[toolName] = createVercelTool({
@@ -35,12 +35,24 @@ export class AccuracyTestingClient {
                         toolName: toolName,
                         parameters: args,
                     });
-                    const toolResultGeneratorFn = this.mockedTools[toolName];
-                    if (toolResultGeneratorFn) {
-                        return await toolResultGeneratorFn(args);
-                    }
+                    try {
+                        const toolResultGeneratorFn = this.mockedTools[toolName];
+                        if (toolResultGeneratorFn) {
+                            return await toolResultGeneratorFn(args);
+                        }
 
-                    return tool.execute(args, options);
+                        return await tool.execute(args, options);
+                    } catch (error) {
+                        // There are cases when LLM calls the tools incorrectly
+                        // and the schema definition check fails. Normally a
+                        // tool calling agent will handle the error case but
+                        // because we are wrapping the tool definition ourselves
+                        // we have to handle this ourselves as well.
+                        return {
+                            isError: true,
+                            content: JSON.stringify(error),
+                        };
+                    }
                 },
             });
         }

@@ -1,4 +1,4 @@
-import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 import { deleteManyResponse } from "../../src/tools/mongodb/delete/deleteMany.js";
@@ -7,17 +7,13 @@ function callsDeleteManyWithEmptyFilters(prompt: string): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "delete-many": function listDatabases() {
-                return deleteManyResponse("coll1", 10);
-            },
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "delete-many",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
+                    database: "mflix",
+                    collection: "movies",
                 },
             },
         ],
@@ -28,26 +24,26 @@ function callsDeleteManyWithFilters(prompt: string): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "delete-many": function listDatabases() {
-                return deleteManyResponse("coll1", 10);
-            },
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "delete-many",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
-                    filters: { provider: "BongoDB" },
+                    database: "mflix",
+                    collection: "movies",
+                    filter: { runtime: { $lt: 100 } },
                 },
             },
         ],
     };
 }
 
-describeAccuracyTests("delete-many", getAvailableModels(), [
-    callsDeleteManyWithEmptyFilters("Delete all the documents from 'db1.coll1' namespace"),
-    callsDeleteManyWithEmptyFilters("Purge the collection 'coll1' in database 'db1'"),
-    callsDeleteManyWithFilters("Remove all the documents from namespace 'db1.coll1' where provider is 'BongoDB'"),
-]);
+describeAccuracyTests(getAvailableModels(), {
+    ...describeSuite("should call 'delete-many' tool", [
+        callsDeleteManyWithEmptyFilters("Delete all the documents from 'mflix.movies' namespace"),
+        callsDeleteManyWithEmptyFilters("Purge the collection 'movies' in database 'mflix'"),
+        callsDeleteManyWithFilters(
+            "Remove all the documents from namespace 'mflix.movies' where runtime is less than 100"
+        ),
+    ]),
+});
