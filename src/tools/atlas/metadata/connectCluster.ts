@@ -5,6 +5,7 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../common/atlas/generatePassword.js";
 import logger, { LogId } from "../../../logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
+import { error } from "console";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 
@@ -115,6 +116,12 @@ export class ConnectClusterTool extends AtlasToolBase {
     private async connectToCluster(connectionString: string): Promise<void> {
         let lastError: Error | undefined = undefined;
 
+        logger.debug(
+            LogId.atlasConnectAttempt,
+            "atlas-connect-cluster",
+            `attempting to connect to cluster: ${this.session.connectedAtlasCluster?.clusterName}`
+        );
+
         for (let i = 0; i < 600; i++) {
             // try for 5 minutes
             try {
@@ -158,6 +165,12 @@ export class ConnectClusterTool extends AtlasToolBase {
             this.session.connectedAtlasCluster = undefined;
             throw lastError;
         }
+
+        logger.debug(
+            LogId.atlasConnectSuccessed,
+            "atlas-connect-cluster",
+            `connected to cluster: ${this.session.connectedAtlasCluster?.clusterName}`
+        );
     }
 
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
