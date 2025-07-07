@@ -197,6 +197,7 @@ export function validateAutoConnectBehavior(
 }
 
 export function prepareTestData(integration: MongoDBIntegrationTest) {
+    const NON_TEST_DBS = ["admin", "config", "local"];
     const testData: {
         db: string;
         collection: string;
@@ -213,11 +214,22 @@ export function prepareTestData(integration: MongoDBIntegrationTest) {
         }
     });
 
-    return async function populateTestData() {
-        const client = integration.mongoClient();
-        for (const { db, collection, data } of testData) {
-            await client.db(db).dropCollection(collection);
-            await client.db(db).collection(collection).insertMany(data);
-        }
+    return {
+        async populateTestData(this: void) {
+            const client = integration.mongoClient();
+            for (const { db, collection, data } of testData) {
+                await client.db(db).collection(collection).insertMany(data);
+            }
+        },
+        async cleanupTestDatabases(this: void, integration: MongoDBIntegrationTest) {
+            const client = integration.mongoClient();
+            const admin = client.db().admin();
+            const databases = await admin.listDatabases();
+            await Promise.all(
+                databases.databases
+                    .filter(({ name }) => !NON_TEST_DBS.includes(name))
+                    .map(({ name }) => client.db(name).dropDatabase())
+            );
+        },
     };
 }
