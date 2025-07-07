@@ -178,7 +178,23 @@ describeWithAtlas("clusters", (integration) => {
                 })) as CallToolResult;
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
-                expect(response.content[0]?.text).toContain(`Connected to cluster "${clusterName}"`);
+                expect(response.content[0]?.type).toEqual("text");
+                expect(response.content[0]?.text).toContain(`Connecting to cluster "${clusterName}"...`);
+
+                for (let i = 0; i < 600; i++) {
+                    const response = (await integration.mcpClient().callTool({
+                        name: "atlas-connect-cluster",
+                        arguments: { projectId, clusterName },
+                    })) as CallToolResult;
+                    expect(response.content).toBeArray();
+                    expect(response.content).toHaveLength(1);
+                    expect(response.content[0]?.type).toEqual("text");
+                    const c = response.content[0] as { text: string };
+                    if (c.text.includes("Cluster is already connected.")) {
+                        break; // success
+                    }
+                    await sleep(500);
+                }
             });
         });
     });
