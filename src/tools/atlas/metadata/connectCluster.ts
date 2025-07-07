@@ -5,7 +5,6 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../common/atlas/generatePassword.js";
 import logger, { LogId } from "../../../logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
-import { error } from "console";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 
