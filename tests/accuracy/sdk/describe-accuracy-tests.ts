@@ -33,7 +33,7 @@ export function describeAccuracyTests(
 
     eachModel(`$modelName`, function (model) {
         const mdbIntegration = setupMongoDBIntegrationTest();
-        const populateTestData = prepareTestData(mdbIntegration);
+        const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
         let testMCPClient: AccuracyTestingClient;
         let agent: Agent;
@@ -44,6 +44,7 @@ export function describeAccuracyTests(
         });
 
         beforeEach(async () => {
+            await cleanupTestDatabases(mdbIntegration);
             await populateTestData();
             testMCPClient.resetForTests();
         });
