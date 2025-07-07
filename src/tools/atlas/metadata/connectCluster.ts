@@ -21,12 +21,18 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName: z.string().describe("Atlas cluster name"),
     };
 
-    private async queryConnection(projectId: string, clusterName: string) : Promise<"connected" | "disconnected" | "connecting" | "connected-to-other-cluster"> {
+    private async queryConnection(
+        projectId: string,
+        clusterName: string
+    ): Promise<"connected" | "disconnected" | "connecting" | "connected-to-other-cluster"> {
         if (!this.session.connectedAtlasCluster) {
             return "disconnected";
         }
 
-        if (this.session.connectedAtlasCluster.projectId !== projectId || this.session.connectedAtlasCluster.clusterName !== clusterName) {
+        if (
+            this.session.connectedAtlasCluster.projectId !== projectId ||
+            this.session.connectedAtlasCluster.clusterName !== clusterName
+        ) {
             return "connected-to-other-cluster";
         }
 
@@ -40,7 +46,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         return "connected";
     }
 
-    private async prepareClusterConnection(projectId: string, clusterName: string) : Promise<string> {
+    private async prepareClusterConnection(projectId: string, clusterName: string): Promise<string> {
         await this.session.disconnect();
 
         const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
@@ -109,7 +115,8 @@ export class ConnectClusterTool extends AtlasToolBase {
     private async connectToCluster(connectionString: string): Promise<void> {
         let lastError: Error | undefined = undefined;
 
-        for (let i = 0; i < 600; i++) { // try for 5 minutes
+        for (let i = 0; i < 600; i++) {
+            // try for 5 minutes
             try {
                 await this.session.connectToMongoDB(connectionString, this.config.connectOptions);
                 lastError = undefined;
@@ -128,29 +135,31 @@ export class ConnectClusterTool extends AtlasToolBase {
                 await sleep(500); // wait for 500ms before retrying
             }
         }
-    
+
         if (lastError) {
-            void this.session.apiClient.deleteDatabaseUser({
-                params: {
-                    path: {
-                        groupId: this.session.connectedAtlasCluster?.projectId || "",
-                        username: this.session.connectedAtlasCluster?.username || "",
-                        databaseName: "admin",
+            void this.session.apiClient
+                .deleteDatabaseUser({
+                    params: {
+                        path: {
+                            groupId: this.session.connectedAtlasCluster?.projectId || "",
+                            username: this.session.connectedAtlasCluster?.username || "",
+                            databaseName: "admin",
+                        },
                     },
-                },
-            }).catch((err: unknown) => {
-                const error = err instanceof Error ? err : new Error(String(err));
-                logger.debug(
-                    LogId.atlasConnectFailure,
-                    "atlas-connect-cluster",
-                    `error deleting database user: ${error.message}`
-                );
-            });
+                })
+                .catch((err: unknown) => {
+                    const error = err instanceof Error ? err : new Error(String(err));
+                    logger.debug(
+                        LogId.atlasConnectFailure,
+                        "atlas-connect-cluster",
+                        `error deleting database user: ${error.message}`
+                    );
+                });
             this.session.connectedAtlasCluster = undefined;
             throw lastError;
         }
     }
-    
+
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         try {
             const state = await this.queryConnection(projectId, clusterName);
