@@ -11,3 +11,4 @@ state.json
 
 tests/tmp
 coverage
+.accuracy-snapshots
