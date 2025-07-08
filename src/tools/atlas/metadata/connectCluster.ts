@@ -108,7 +108,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         return cn.toString();
     }
 
-    private async connectToCluster(connectionString: string): Promise<void> {
+    private async connectToCluster(connectionString: string, tryCount: number): Promise<void> {
         let lastError: Error | undefined = undefined;
 
         logger.debug(
@@ -117,11 +117,15 @@ export class ConnectClusterTool extends AtlasToolBase {
             `attempting to connect to cluster: ${this.session.connectedAtlasCluster?.clusterName}`
         );
 
-        for (let i = 0; i < 600; i++) {
-            // try for 5 minutes
+        for (let i = 0; i < tryCount; i++) {
             try {
-                await this.session.connectToMongoDB(connectionString, this.config.connectOptions);
                 lastError = undefined;
+
+                if (!this.session.connectedAtlasCluster) {
+                    throw new Error("Cluster connection aborted");
+                }
+
+                await this.session.connectToMongoDB(connectionString, this.config.connectOptions);
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
@@ -171,6 +175,19 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        const connectingResult = {
+            content: [
+                {
+                    type: "text" as const,
+                    text: `Attempting to connect to cluster "${clusterName}"...`,
+                },
+                {
+                    type: "text" as const,
+                    text: `Warning: Provisioning a user and connecting to the cluster may take more time, please check again in a few seconds.`,
+                },
+            ],
+        };
+
         try {
             const state = await this.queryConnection(projectId, clusterName);
             switch (state) {
@@ -184,14 +201,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                         ],
                     };
                 case "connecting":
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: "Cluster is connecting...",
-                            },
-                        ],
-                    };
+                    return connectingResult;
                 case "connected-to-other-cluster":
                 case "disconnected":
                 default:
@@ -210,30 +220,40 @@ export class ConnectClusterTool extends AtlasToolBase {
 
         await this.session.disconnect();
         const connectionString = await this.prepareClusterConnection(projectId, clusterName);
-        process.nextTick(async () => {
-            try {
-                await this.connectToCluster(connectionString);
-            } catch (err: unknown) {
-                const error = err instanceof Error ? err : new Error(String(err));
-                logger.debug(
-                    LogId.atlasConnectFailure,
-                    "atlas-connect-cluster",
-                    `error connecting to cluster: ${error.message}`
-                );
-            }
-        });
 
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Attempting to connect to cluster "${clusterName}"...`,
-                },
-                {
-                    type: "text",
-                    text: `Warning: Check again in a few seconds.`,
-                },
-            ],
-        };
+        try {
+            await this.connectToCluster(connectionString, 60);
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Connected to cluster "${clusterName}".`,
+                    },
+                ],
+            };
+        } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            logger.debug(
+                LogId.atlasConnectFailure,
+                "atlas-connect-cluster",
+                `error connecting to cluster: ${error.message}`
+            );
+
+            process.nextTick(async () => {
+                try {
+                    await this.connectToCluster(connectionString, 600);
+                } catch (err: unknown) {
+                    const error = err instanceof Error ? err : new Error(String(err));
+                    logger.debug(
+                        LogId.atlasConnectFailure,
+                        "atlas-connect-cluster",
+                        `error connecting to cluster: ${error.message}`
+                    );
+                }
+            });
+
+            return connectingResult;
+        }
     }
 }
