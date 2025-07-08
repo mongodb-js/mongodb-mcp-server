@@ -4,15 +4,22 @@ const ExpectedToolCallSchema = z.object({
     toolName: z.string(),
     parameters: z.record(z.string(), z.unknown()),
 });
+export type ExpectedToolCall = z.infer<typeof ExpectedToolCallSchema>;
 
 const ActualToolCallSchema = ExpectedToolCallSchema.extend({ toolCallId: z.string() });
-
-export type ExpectedToolCall = z.infer<typeof ExpectedToolCallSchema>;
 export type ActualToolCall = z.infer<typeof ActualToolCallSchema>;
+
+export const AccuracyRunStatus = {
+    Done: "done",
+    InProgress: "in-progress",
+} as const;
 
 export const AccuracySnapshotEntrySchema = z.object({
     // Git and meta information for snapshot entries
     accuracyRunId: z.string(),
+    accuracyRunStatus: z
+        .enum([AccuracyRunStatus.Done, AccuracyRunStatus.InProgress])
+        .default(AccuracyRunStatus.InProgress),
     createdOn: z.number(),
     commitSHA: z.string(),
     // Accuracy info
@@ -59,6 +66,8 @@ export interface AccuracySnapshotStorage {
     ): Promise<void>;
 
     getLatestSnapshotsForCommit(commit: string): Promise<AccuracySnapshotEntry[]>;
+
+    accuracyRunFinished(): Promise<void>;
 
     close(): Promise<void>;
 }
