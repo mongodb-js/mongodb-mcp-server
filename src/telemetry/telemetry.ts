@@ -7,7 +7,7 @@ import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
-import fs from "fs/promises";
+import { detectContainerEnv } from "../common/container.js";
 
 type EventResult = {
     success: boolean;
@@ -53,29 +53,6 @@ export class Telemetry {
         return instance;
     }
 
-    private async isContainerEnv(): Promise<boolean> {
-        if (process.platform !== "linux") {
-            return false; // we only support linux containers for now
-        }
-
-        if (process.env.container) {
-            return true;
-        }
-
-        const exists = await Promise.all(
-            ["/.dockerenv", "/run/.containerenv", "/var/run/.containerenv"].map(async (file) => {
-                try {
-                    await fs.access(file);
-                    return true;
-                } catch {
-                    return false;
-                }
-            })
-        );
-
-        return exists.includes(true);
-    }
-
     private async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             return;
@@ -98,7 +75,7 @@ export class Telemetry {
                 },
                 abortSignal: this.deviceIdAbortController.signal,
             }),
-            this.isContainerEnv(),
+            detectContainerEnv(),
         ]);
 
         const [deviceId, containerEnv] = await this.setupPromise;
