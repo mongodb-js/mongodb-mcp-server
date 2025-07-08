@@ -1,10 +1,10 @@
 import { TestableModels } from "./models.js";
-import { ExpectedToolCall, parameterMatchingAccuracyScorer, toolCallingAccuracyScorer } from "./accuracy-scorers.js";
+import { calculateToolCallingAccuracy } from "./accuracy-scorers.js";
 import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
 import { AccuracyTestingClient, MockedTools } from "./accuracy-testing-client.js";
 import { getAccuracySnapshotStorage } from "./accuracy-snapshot-storage/get-snapshot-storage.js";
-import { AccuracySnapshotStorage } from "./accuracy-snapshot-storage/snapshot-storage.js";
+import { AccuracySnapshotStorage, ExpectedToolCall } from "./accuracy-snapshot-storage/snapshot-storage.js";
 
 export interface AccuracyTestConfig {
     systemPrompt?: string;
@@ -33,7 +33,7 @@ export function describeAccuracyTests(
     const eachModel = describe.each(models);
     const eachSuite = describe.each(Object.keys(accuracyTestConfigs));
 
-    eachModel(`$modelName`, function (model) {
+    eachModel(`$displayName`, function (model) {
         const mdbIntegration = setupMongoDBIntegrationTest();
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
@@ -72,20 +72,18 @@ export function describeAccuracyTests(
                 const result = await agent.prompt(promptForModel, model, toolsForModel);
                 const timeAfterPrompt = Date.now();
                 const toolCalls = testMCPClient.getToolCalls();
-                const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
-                const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(
-                    testConfig.expectedToolCalls,
-                    toolCalls
-                );
+                const toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, toolCalls);
 
                 const responseTime = timeAfterPrompt - timeBeforePrompt;
                 await accuracySnapshotStorage.createSnapshotEntry({
+                    provider: model.provider,
                     requestedModel: model.modelName,
                     test: suiteName,
                     prompt: testConfig.prompt,
                     llmResponseTime: responseTime,
-                    toolCallingAccuracy,
-                    parameterAccuracy: parameterMatchingAccuracy,
+                    toolCallingAccuracy: toolCallingAccuracy,
+                    actualToolCalls: toolCalls,
+                    expectedToolCalls: testConfig.expectedToolCalls,
                     ...result,
                 });
             });
