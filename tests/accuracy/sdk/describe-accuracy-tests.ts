@@ -1,8 +1,10 @@
 import { TestableModels } from "./models.js";
 import { ExpectedToolCall, parameterMatchingAccuracyScorer, toolCallingAccuracyScorer } from "./accuracy-scorers.js";
-import { Agent, getVercelToolCallingAgent } from "./agent.js";
+import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
 import { AccuracyTestingClient, MockedTools } from "./accuracy-testing-client.js";
+import { getAccuracySnapshotStorage } from "./accuracy-snapshot-storage/get-snapshot-storage.js";
+import { AccuracySnapshotStorage } from "./accuracy-snapshot-storage/snapshot-storage.js";
 
 export interface AccuracyTestConfig {
     systemPrompt?: string;
@@ -35,10 +37,12 @@ export function describeAccuracyTests(
         const mdbIntegration = setupMongoDBIntegrationTest();
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
+        let accuracySnapshotStorage: AccuracySnapshotStorage;
         let testMCPClient: AccuracyTestingClient;
-        let agent: Agent;
+        let agent: VercelAgent;
 
         beforeAll(async () => {
+            accuracySnapshotStorage = await getAccuracySnapshotStorage();
             testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString());
             agent = getVercelToolCallingAgent();
         });
@@ -50,6 +54,7 @@ export function describeAccuracyTests(
         });
 
         afterAll(async () => {
+            await accuracySnapshotStorage.close();
             await testMCPClient.close();
         });
 
@@ -62,21 +67,27 @@ export function describeAccuracyTests(
                 const promptForModel = testConfig.injectConnectedAssumption
                     ? [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ")
                     : testConfig.prompt;
-                const conversation = await agent.prompt(promptForModel, model, toolsForModel);
+
+                const timeBeforePrompt = Date.now();
+                const result = await agent.prompt(promptForModel, model, toolsForModel);
+                const timeAfterPrompt = Date.now();
                 const toolCalls = testMCPClient.getToolCalls();
                 const toolCallingAccuracy = toolCallingAccuracyScorer(testConfig.expectedToolCalls, toolCalls);
                 const parameterMatchingAccuracy = parameterMatchingAccuracyScorer(
                     testConfig.expectedToolCalls,
                     toolCalls
                 );
-                console.debug(testConfig.prompt);
-                // console.debug(`Conversation`, JSON.stringify(conversation, null, 2));
-                // console.debug(`Tool calls`, JSON.stringify(toolCalls, null, 2));
-                console.debug(
-                    "Tool calling accuracy: %s, Parameter Accuracy: %s",
+
+                const responseTime = timeAfterPrompt - timeBeforePrompt;
+                await accuracySnapshotStorage.createSnapshotEntry({
+                    requestedModel: model.modelName,
+                    test: suiteName,
+                    prompt: testConfig.prompt,
+                    llmResponseTime: responseTime,
                     toolCallingAccuracy,
-                    parameterMatchingAccuracy
-                );
+                    parameterAccuracy: parameterMatchingAccuracy,
+                    ...result,
+                });
             });
         });
     });

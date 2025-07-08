@@ -1,4 +1,4 @@
-import { generateText, Tool, Schema, LanguageModelV1 } from "ai";
+import { generateText, LanguageModelV1, experimental_createMCPClient } from "ai";
 import { Model } from "./models.js";
 
 const systemPrompt = [
@@ -10,15 +10,32 @@ const systemPrompt = [
     'If you do not know the answer or the request cannot be fulfilled, you MUST reply with "I don\'t know"',
 ];
 
-export interface Agent<M = unknown, T = unknown, R = unknown> {
-    prompt(prompt: string, model: M, tools: T): Promise<R>;
+// Some necessary types from Vercel SDK
+export type VercelMCPClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
+export type VercelMCPClientTools = Awaited<ReturnType<VercelMCPClient["tools"]>>;
+export type VercelAgent = ReturnType<typeof getVercelToolCallingAgent>;
+
+// Generic interface for Agent, in case we need to switch to some other agent
+// development SDK
+export interface AgentPromptResult {
+    respondingModel: string;
+    tokensUsage?: {
+        promptTokens?: number;
+        completionTokens?: number;
+        totalTokens?: number;
+    };
+    text: string;
+    messages: Record<string, unknown>[];
+}
+export interface Agent<Model = unknown, Tools = unknown, Result = unknown> {
+    prompt(prompt: string, model: Model, tools: Tools): Promise<Result>;
 }
 
 export function getVercelToolCallingAgent(
     requestedSystemPrompt?: string
-): Agent<Model<LanguageModelV1>, Record<string, Tool<Schema<unknown>>>, { text: string; messages: unknown[] }> {
+): Agent<Model<LanguageModelV1>, VercelMCPClientTools, AgentPromptResult> {
     return {
-        async prompt(prompt: string, model: Model<LanguageModelV1>, tools: Record<string, Tool<Schema<unknown>>>) {
+        async prompt(prompt: string, model: Model<LanguageModelV1>, tools: VercelMCPClientTools) {
             const result = await generateText({
                 model: model.getModel(),
                 system: [...systemPrompt, requestedSystemPrompt].join("\n"),
@@ -29,6 +46,8 @@ export function getVercelToolCallingAgent(
             return {
                 text: result.text,
                 messages: result.response.messages,
+                respondingModel: result.response.modelId,
+                tokensUsage: result.usage,
             };
         },
     };

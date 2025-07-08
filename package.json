@@ -31,7 +31,7 @@
     "generate": "./scripts/generate.sh",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --testPathIgnorePatterns=/tests/accuracy/",
     "test:accuracy": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern tests/accuracy",
-    "test:accuracy-file": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test:accuracy-file": "MDB_ACCURACY_RUN_ID=$(npx uuid v4) node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "license": "Apache-2.0",
   "devDependencies": {
