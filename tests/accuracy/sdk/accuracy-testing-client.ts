@@ -5,7 +5,7 @@ import { experimental_createMCPClient as createMCPClient, tool as createVercelTo
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-import { ExpectedToolCall } from "./accuracy-snapshot-storage/snapshot-storage.js";
+import { ActualToolCall } from "./accuracy-snapshot-storage/snapshot-storage.js";
 
 const __dirname = fileURLToPath(import.meta.url);
 const distPath = path.join(__dirname, "..", "..", "..", "..", "dist");
@@ -16,7 +16,7 @@ export type MockedTools = Record<string, ToolResultGeneratorFn>;
 
 export class AccuracyTestingClient {
     private mockedTools: MockedTools = {};
-    private recordedToolCalls: ExpectedToolCall[] = [];
+    private recordedToolCalls: ActualToolCall[] = [];
     private constructor(private readonly vercelMCPClient: Awaited<ReturnType<typeof createMCPClient>>) {}
 
     async close() {
