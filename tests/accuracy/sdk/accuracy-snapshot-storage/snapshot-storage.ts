@@ -11,14 +11,17 @@ export type ActualToolCall = z.infer<typeof ActualToolCallSchema>;
 
 export const AccuracyRunStatus = {
     Done: "done",
+    Failed: "failed",
     InProgress: "in-progress",
 } as const;
+
+export type AccuracyRunStatuses = (typeof AccuracyRunStatus)[keyof typeof AccuracyRunStatus];
 
 export const AccuracySnapshotEntrySchema = z.object({
     // Git and meta information for snapshot entries
     accuracyRunId: z.string(),
     accuracyRunStatus: z
-        .enum([AccuracyRunStatus.Done, AccuracyRunStatus.InProgress])
+        .enum([AccuracyRunStatus.Done, AccuracyRunStatus.Failed, AccuracyRunStatus.InProgress])
         .default(AccuracyRunStatus.InProgress),
     createdOn: z.number(),
     commitSHA: z.string(),
@@ -67,7 +70,7 @@ export interface AccuracySnapshotStorage {
 
     getLatestSnapshotsForCommit(commit: string): Promise<AccuracySnapshotEntry[]>;
 
-    accuracyRunFinished(): Promise<void>;
+    updateAccuracyRunStatus(status: AccuracyRunStatuses): Promise<void>;
 
     close(): Promise<void>;
 }

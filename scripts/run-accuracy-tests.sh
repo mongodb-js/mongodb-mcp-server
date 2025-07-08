@@ -22,7 +22,10 @@ node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern "
 
 # Each test run submits an accuracy snapshot entry for each prompt with the
 # accuracyRunStatus: "in-progress". When all the tests are done and jest exits
-# with an exit code of 0, we can safely mark accuracy run as finished.
+# with an exit code of 0, we can safely mark accuracy run as finished otherwise
+# failed.
 if [ $? -eq 0 ]; then
-  npx tsx scripts/mark-accuracy-run-finished.ts
+  MDB_ACCURACY_RUN_STATUS="done" npx tsx scripts/mark-accuracy-run-finished.ts 
+else
+  MDB_ACCURACY_RUN_STATUS="failed" npx tsx scripts/mark-accuracy-run-finished.ts
 fi
