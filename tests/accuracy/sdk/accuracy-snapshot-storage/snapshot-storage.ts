@@ -43,9 +43,7 @@ export interface AccuracySnapshotStorage {
         >
     ): Promise<void>;
 
-    getLastRunIdForCommit(commit: string): Promise<string | undefined>;
-
-    getSnapshotEntriesForRunId(accuracyRunId: string): Promise<AccuracySnapshotEntry[]>;
+    getLatestSnapshotsForCommit(commit: string): Promise<AccuracySnapshotEntry[]>;
 
     close(): Promise<void>;
 }
