@@ -1,5 +1,10 @@
 import { Collection, MongoClient } from "mongodb";
-import { AccuracySnapshotEntry, AccuracySnapshotEntrySchema, AccuracySnapshotStorage } from "./snapshot-storage.js";
+import {
+    AccuracyRunStatus,
+    AccuracySnapshotEntry,
+    AccuracySnapshotEntrySchema,
+    AccuracySnapshotStorage,
+} from "./snapshot-storage.js";
 
 export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
     private readonly client: MongoClient;
@@ -46,6 +51,7 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
             ...snapshotEntry,
             commitSHA: this.commitSHA,
             accuracyRunId: this.accuracyRunId,
+            accuracyRunStatus: AccuracyRunStatus.InProgress,
             createdOn: Date.now(),
         };
         await this.snapshotCollection.insertOne(snapshotWithMeta);
@@ -68,6 +74,13 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
     private async getSnapshotEntriesForRunId(accuracyRunId: string): Promise<AccuracySnapshotEntry[]> {
         const snapshotEntries = await this.snapshotCollection.find({ accuracyRunId }).toArray();
         return AccuracySnapshotEntrySchema.array().parse(snapshotEntries);
+    }
+
+    async accuracyRunFinished(): Promise<void> {
+        await this.snapshotCollection.updateMany(
+            { accuracyRunId: this.accuracyRunId },
+            { $set: { accuracyRunStatus: AccuracyRunStatus.Done } }
+        );
     }
 
     static getStorage(commitSHA: string, accuracyRunId: string): MongoDBSnapshotStorage {
