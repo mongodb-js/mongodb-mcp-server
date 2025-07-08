@@ -179,7 +179,7 @@ describeWithAtlas("clusters", (integration) => {
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
                 expect(response.content[0]?.type).toEqual("text");
-                expect(response.content[0]?.text).toContain(`Connecting to cluster "${clusterName}"...`);
+                expect(response.content[0]?.text).toContain(`Attempting to connect to cluster "${clusterName}"...`);
 
                 for (let i = 0; i < 600; i++) {
                     const response = (await integration.mcpClient().callTool({

@@ -223,7 +223,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Connecting to cluster "${clusterName}"...`,
+                    text: `Attempting to connect to cluster "${clusterName}"...`,
                 },
             ],
         };
