@@ -49,7 +49,12 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
         await this.snapshotCollection.insertOne(snapshotWithMeta);
     }
 
-    async getLastRunIdForCommit(commit: string): Promise<string | undefined> {
+    async getLatestSnapshotsForCommit(commit: string): Promise<AccuracySnapshotEntry[]> {
+        const latestRunId = await this.getLastRunIdForCommit(commit);
+        return latestRunId ? this.getSnapshotEntriesForRunId(latestRunId) : [];
+    }
+
+    private async getLastRunIdForCommit(commit: string): Promise<string | undefined> {
         const document = await this.snapshotCollection.findOne(
             { commit: commit },
             { sort: { createdOn: -1 }, projection: { accuracyRunId: 1 } }
@@ -58,7 +63,7 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
         return document?.accuracyRunId ? `${document?.accuracyRunId}` : undefined;
     }
 
-    async getSnapshotEntriesForRunId(accuracyRunId: string): Promise<AccuracySnapshotEntry[]> {
+    private async getSnapshotEntriesForRunId(accuracyRunId: string): Promise<AccuracySnapshotEntry[]> {
         const snapshotEntries = await this.snapshotCollection.find({ accuracyRunId }).toArray();
         return AccuracySnapshotEntrySchema.array().parse(snapshotEntries);
     }
