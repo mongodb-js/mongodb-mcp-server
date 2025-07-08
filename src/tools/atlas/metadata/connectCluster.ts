@@ -105,9 +105,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         cn.username = username;
         cn.password = password;
         cn.searchParams.set("authSource", "admin");
-        const connectionString = cn.toString();
-
-        return connectionString;
+        return cn.toString();
     }
 
     private async connectToCluster(connectionString: string): Promise<void> {
@@ -141,24 +139,26 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         if (lastError) {
-            void this.session.apiClient
-                .deleteDatabaseUser({
-                    params: {
-                        path: {
-                            groupId: this.session.connectedAtlasCluster?.projectId || "",
-                            username: this.session.connectedAtlasCluster?.username || "",
-                            databaseName: "admin",
+            if (this.session.connectedAtlasCluster?.projectId && this.session.connectedAtlasCluster?.username) {
+                void this.session.apiClient
+                    .deleteDatabaseUser({
+                        params: {
+                            path: {
+                                groupId: this.session.connectedAtlasCluster.projectId,
+                                username: this.session.connectedAtlasCluster.username,
+                                databaseName: "admin",
+                            },
                         },
-                    },
-                })
-                .catch((err: unknown) => {
-                    const error = err instanceof Error ? err : new Error(String(err));
-                    logger.debug(
-                        LogId.atlasConnectFailure,
-                        "atlas-connect-cluster",
-                        `error deleting database user: ${error.message}`
-                    );
-                });
+                    })
+                    .catch((err: unknown) => {
+                        const error = err instanceof Error ? err : new Error(String(err));
+                        logger.debug(
+                            LogId.atlasConnectFailure,
+                            "atlas-connect-cluster",
+                            `error deleting database user: ${error.message}`
+                        );
+                    });
+            }
             this.session.connectedAtlasCluster = undefined;
             throw lastError;
         }
