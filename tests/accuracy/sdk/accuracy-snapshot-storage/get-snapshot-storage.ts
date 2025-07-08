@@ -1,4 +1,5 @@
 import { getCommitSHA } from "../git-info.js";
+import { DiskSnapshotStorage } from "./disk-snapshot-storage.js";
 import { MongoDBSnapshotStorage } from "./mdb-snapshot-storage.js";
 import { AccuracySnapshotStorage } from "./snapshot-storage.js";
 
@@ -15,5 +16,8 @@ export async function getAccuracySnapshotStorage(): Promise<AccuracySnapshotStor
         throw new Error("Cannot create AccuracySnapshotStorage without a commitSHA.");
     }
 
-    return MongoDBSnapshotStorage.getStorage(commitSHA, accuracyRunId);
+    return (
+        MongoDBSnapshotStorage.getStorage(commitSHA, accuracyRunId) ??
+        (await DiskSnapshotStorage.getStorage(commitSHA, accuracyRunId))
+    );
 }
