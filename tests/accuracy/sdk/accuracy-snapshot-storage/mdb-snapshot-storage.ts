@@ -28,11 +28,13 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
     async createSnapshotEntry(
         snapshotEntry: Pick<
             AccuracySnapshotEntry,
+            | "provider"
             | "requestedModel"
             | "test"
             | "prompt"
             | "toolCallingAccuracy"
-            | "parameterAccuracy"
+            | "expectedToolCalls"
+            | "actualToolCalls"
             | "llmResponseTime"
             | "tokensUsage"
             | "respondingModel"
