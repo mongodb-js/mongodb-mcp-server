@@ -1,12 +1,11 @@
 import z from "zod";
 
 const ExpectedToolCallSchema = z.object({
-    toolCallId: z.string(),
     toolName: z.string(),
     parameters: z.record(z.string(), z.unknown()),
 });
 
-const ActualToolCallSchema = ExpectedToolCallSchema.omit({ toolCallId: undefined });
+const ActualToolCallSchema = ExpectedToolCallSchema.extend({ toolCallId: z.string() });
 
 export type ExpectedToolCall = z.infer<typeof ExpectedToolCallSchema>;
 export type ActualToolCall = z.infer<typeof ActualToolCallSchema>;
