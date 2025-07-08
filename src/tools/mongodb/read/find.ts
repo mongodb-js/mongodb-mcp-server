@@ -22,23 +22,6 @@ export const FindArgs = {
         .describe("A document, describing the sort order, matching the syntax of the sort argument of cursor.sort()"),
 };
 
-export function findResponse(collection: string, documents: unknown[]): CallToolResult {
-    return {
-        content: [
-            {
-                text: `Found ${documents.length} documents in the collection "${collection}":`,
-                type: "text",
-            },
-            ...documents.map<{ type: "text"; text: string }>((doc) => {
-                return {
-                    text: EJSON.stringify(doc),
-                    type: "text",
-                };
-            }),
-        ],
-    };
-}
-
 export class FindTool extends MongoDBToolBase {
     public name = "find";
     protected description = "Run a find query against a MongoDB collection";
@@ -67,6 +50,21 @@ export class FindTool extends MongoDBToolBase {
 
         const documents = await provider.find(database, collection, filter, { projection, limit, sort }).toArray();
 
-        return findResponse(collection, documents);
+        const content: Array<{ text: string; type: "text" }> = [
+            {
+                text: `Found ${documents.length} documents in the collection "${collection}":`,
+                type: "text",
+            },
+            ...documents.map((doc) => {
+                return {
+                    text: EJSON.stringify(doc),
+                    type: "text",
+                } as { text: string; type: "text" };
+            }),
+        ];
+
+        return {
+            content,
+        };
     }
 }
