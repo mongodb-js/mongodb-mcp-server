@@ -1,7 +1,7 @@
 import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
-import { ExpectedToolCall } from "./sdk/accuracy-scorers.js";
+import { ExpectedToolCall } from "./sdk/accuracy-snapshot-storage/snapshot-storage.js";
 
 function callsCreateCollection(prompt: string, database: string, collection: string): AccuracyTestConfig {
     return {

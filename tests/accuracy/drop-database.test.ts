@@ -1,7 +1,7 @@
 import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
-import { ExpectedToolCall } from "./sdk/accuracy-scorers.js";
+import { ExpectedToolCall } from "./sdk/accuracy-snapshot-storage/snapshot-storage.js";
 
 function onlyCallsDropDatabase(prompt: string): AccuracyTestConfig {
     return {
