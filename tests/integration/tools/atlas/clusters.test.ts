@@ -188,7 +188,7 @@ describeWithAtlas("clusters", (integration) => {
                     arguments: { projectId, clusterName },
                 })) as CallToolResult;
                 expect(response.content).toBeArray();
-                expect(response.content).toHaveLength(1);
+                expect(response.content).toHaveLength(2);
                 expect(response.content[0]?.type).toEqual("text");
                 expect(response.content[0]?.text).toContain(`Attempting to connect to cluster "${clusterName}"...`);
 
