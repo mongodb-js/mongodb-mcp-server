@@ -1,6 +1,7 @@
 import { Collection, MongoClient } from "mongodb";
 import {
     AccuracyRunStatus,
+    AccuracyRunStatuses,
     AccuracySnapshotEntry,
     AccuracySnapshotEntrySchema,
     AccuracySnapshotStorage,
@@ -76,10 +77,10 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
         return AccuracySnapshotEntrySchema.array().parse(snapshotEntries);
     }
 
-    async accuracyRunFinished(): Promise<void> {
+    async updateAccuracyRunStatus(status: AccuracyRunStatuses) {
         await this.snapshotCollection.updateMany(
             { accuracyRunId: this.accuracyRunId },
-            { $set: { accuracyRunStatus: AccuracyRunStatus.Done } }
+            { $set: { accuracyRunStatus: status } }
         );
     }
 

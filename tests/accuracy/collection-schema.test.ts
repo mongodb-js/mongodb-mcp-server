@@ -1,34 +1,12 @@
 import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
-import { collectionSchemaResponse } from "../../src/tools/mongodb/metadata/collectionSchema.js";
-import { getSimplifiedSchema } from "mongodb-schema";
 
 function callsCollectionSchema(prompt: string): AccuracyTestConfig {
     return {
         injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {
-            "collection-schema": async function collectionSchema() {
-                return collectionSchemaResponse(
-                    "db1",
-                    "coll1",
-                    await getSimplifiedSchema([
-                        {
-                            name: "Sample name1",
-                            dob: "28.11.2001",
-                            location: "NY",
-                        },
-                        {
-                            name: "Sample name1",
-                            dob: "28.11.2001",
-                            location: "NY",
-                            title: "Dr.",
-                        },
-                    ])
-                );
-            },
-        },
+        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "collection-schema",

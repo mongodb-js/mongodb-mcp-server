@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import { fileURLToPath } from "url";
 import {
     AccuracyRunStatus,
+    AccuracyRunStatuses,
     AccuracySnapshotEntry,
     AccuracySnapshotEntrySchema,
     AccuracySnapshotStorage,
@@ -57,13 +58,13 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
         return latestRunId ? snapshot.filter((entry) => entry.accuracyRunId === latestRunId) : [];
     }
 
-    async accuracyRunFinished(): Promise<void> {
+    async updateAccuracyRunStatus(status: AccuracyRunStatuses) {
         const snapshot = await this.readSnapshot();
         const updatedSnapshot = snapshot.map((entry) => {
             if (entry.accuracyRunId === this.accuracyRunId) {
                 return {
                     ...entry,
-                    accuracyRunStatus: AccuracyRunStatus.Done,
+                    accuracyRunStatus: status,
                 };
             }
 
