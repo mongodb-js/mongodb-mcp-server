@@ -6,12 +6,20 @@ import { ollama } from "ollama-ai-provider";
 
 export interface Model<P extends LanguageModelV1 = LanguageModelV1> {
     readonly modelName: string;
+    readonly provider: string;
+    readonly displayName: string;
     isAvailable(): boolean;
     getModel(): P;
 }
 
 export class OpenAIModel implements Model {
+    readonly provider = "OpenAI";
+
     constructor(readonly modelName: string) {}
+
+    get displayName(): string {
+        return `${this.provider} - ${this.modelName}`;
+    }
 
     isAvailable(): boolean {
         return !!process.env.MDB_OPEN_AI_API_KEY;
@@ -25,7 +33,13 @@ export class OpenAIModel implements Model {
 }
 
 export class AzureOpenAIModel implements Model {
+    readonly provider = "Azure";
+
     constructor(readonly modelName: string) {}
+
+    get displayName(): string {
+        return `${this.provider} - ${this.modelName}`;
+    }
 
     isAvailable(): boolean {
         return !!process.env.MDB_AZURE_OPEN_AI_API_KEY && !!process.env.MDB_AZURE_OPEN_AI_API_URL;
@@ -41,7 +55,13 @@ export class AzureOpenAIModel implements Model {
 }
 
 export class GeminiModel implements Model {
+    readonly provider = "Google";
+
     constructor(readonly modelName: string) {}
+
+    get displayName(): string {
+        return `${this.provider} - ${this.modelName}`;
+    }
 
     isAvailable(): boolean {
         return !!process.env.MDB_GEMINI_API_KEY;
@@ -55,7 +75,13 @@ export class GeminiModel implements Model {
 }
 
 export class OllamaModel implements Model {
+    readonly provider = "Ollama";
+
     constructor(readonly modelName: string) {}
+
+    get displayName(): string {
+        return `${this.provider} - ${this.modelName}`;
+    }
 
     isAvailable(): boolean {
         return true;
@@ -66,12 +92,7 @@ export class OllamaModel implements Model {
     }
 }
 
-const ALL_TESTABLE_MODELS = [
-    // new GeminiModel("gemini-2.0-flash"),
-    // new OpenAIModel("gpt-4o"),
-    new AzureOpenAIModel("gpt-4o"),
-    // new OllamaModel("qwen3:1.7b"),
-];
+const ALL_TESTABLE_MODELS = [new AzureOpenAIModel("gpt-4o")];
 
 export type TestableModels = ReturnType<typeof getAvailableModels>;
 

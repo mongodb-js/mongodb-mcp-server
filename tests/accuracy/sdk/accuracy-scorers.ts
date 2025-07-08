@@ -1,133 +1,60 @@
-export type ToolCall = {
-    toolCallId: string;
-    toolName: string;
-    parameters: unknown;
-};
-export type ExpectedToolCall = Omit<ToolCall, "toolCallId">;
+import diff from "microdiff";
+import { ExpectedToolCall, ActualToolCall } from "./accuracy-snapshot-storage/snapshot-storage.js";
 
-export function toolCallingAccuracyScorer(expectedToolCalls: ExpectedToolCall[], actualToolCalls: ToolCall[]): number {
-    if (actualToolCalls.length < expectedToolCalls.length) {
-        return 0;
-    }
-
-    const possibleScore = actualToolCalls.length > expectedToolCalls.length ? 0.75 : 1;
-    const checkedToolCallIds = new Set<string>();
-    for (const expectedToolCall of expectedToolCalls) {
-        const matchingActualToolCall = actualToolCalls.find(
-            (actualToolCall) =>
-                actualToolCall.toolName === expectedToolCall.toolName &&
-                !checkedToolCallIds.has(actualToolCall.toolCallId)
-        );
-
-        if (!matchingActualToolCall) {
-            return 0;
-        }
-
-        checkedToolCallIds.add(matchingActualToolCall.toolCallId);
-    }
-
-    return possibleScore;
-}
-
-export function parameterMatchingAccuracyScorer(
+export function calculateToolCallingAccuracy(
     expectedToolCalls: ExpectedToolCall[],
-    actualToolCalls: ToolCall[]
+    actualToolCalls: ActualToolCall[]
 ): number {
     if (expectedToolCalls.length === 0) {
+        return actualToolCalls.length === 0 ? 1 : 0.75;
+    }
+
+    const maxAccuracy = actualToolCalls.length > expectedToolCalls.length ? 0.75 : 1;
+
+    const individualAccuracies: number[] = [];
+    const checkedActualToolCallIndexes = new Set<number>();
+
+    for (const expectedCall of expectedToolCalls) {
+        const candidates = actualToolCalls
+            .map((call, index) => ({ call, index }))
+            .filter(
+                ({ call, index }) => !checkedActualToolCallIndexes.has(index) && call.toolName === expectedCall.toolName
+            )
+            .map(({ call, index }) => ({
+                call,
+                index,
+                score: compareParams(expectedCall.parameters, call.parameters),
+            }))
+            .filter(({ score }) => score >= 0.75)
+            .sort((a, b) => b.score - a.score);
+
+        const bestMatch = candidates[0];
+        if (!bestMatch) {
+            individualAccuracies.push(0);
+        } else {
+            checkedActualToolCallIndexes.add(bestMatch.index);
+            const individualAccuracy = Math.min(bestMatch.score, maxAccuracy);
+            individualAccuracies.push(individualAccuracy);
+        }
+    }
+
+    return Math.min(...individualAccuracies);
+}
+
+function compareParams(expected: Record<string, unknown>, actual: Record<string, unknown>): number {
+    const differences = diff(expected, actual);
+
+    if (differences.length === 0) {
         return 1;
     }
 
-    const usedActualIndexes = new Set<number>();
-    const scores: number[] = [];
+    const hasOnlyAdditions = differences.every((d) => d.type === "CREATE");
+    const hasRemovals = differences.some((d) => d.type === "REMOVE");
+    const hasChanges = differences.some((d) => d.type === "CHANGE");
 
-    for (const expectedCall of expectedToolCalls) {
-        // Find all unmatched actual tool calls with the same tool name
-        const candidates = actualToolCalls
-            .map((call, index) => ({ call, index }))
-            .filter(({ call, index }) => !usedActualIndexes.has(index) && call.toolName === expectedCall.toolName);
-
-        if (candidates.length === 0) {
-            scores.push(0);
-            continue;
-        }
-
-        // Pick the candidate with the best parameter match
-        let bestScore = -1;
-        let bestIndex = -1;
-        for (const { call, index } of candidates) {
-            const score = compareParams(expectedCall.parameters, call.parameters);
-            if (score > bestScore) {
-                bestScore = score;
-                bestIndex = index;
-            }
-        }
-
-        usedActualIndexes.add(bestIndex);
-        scores.push(bestScore);
+    if (hasOnlyAdditions && !hasRemovals && !hasChanges) {
+        return 0.75;
     }
 
-    const totalScore = scores.reduce((sum, score) => sum + score, 0);
-    return totalScore / scores.length;
-}
-
-/**
- * Recursively compares expected and actual parameters and returns a score.
- * - 1: Perfect match.
- * - 0.75: All expected parameters are present and match, but there are extra actual parameters.
- * - 0: Missing parameters or mismatched values.
- */
-function compareParams(expected: unknown, actual: unknown): number {
-    if (expected === null || expected === undefined) {
-        return actual === null || actual === undefined ? 1 : 0;
-    }
-    if (actual === null || actual === undefined) {
-        return 0;
-    }
-
-    if (Array.isArray(expected)) {
-        if (!Array.isArray(actual) || actual.length < expected.length) {
-            return 0;
-        }
-        let minScore = 1;
-        for (let i = 0; i < expected.length; i++) {
-            minScore = Math.min(minScore, compareParams(expected[i], actual[i]));
-        }
-        if (minScore === 0) {
-            return 0;
-        }
-        if (actual.length > expected.length) {
-            minScore = Math.min(minScore, 0.75);
-        }
-        return minScore;
-    }
-
-    if (typeof expected === "object") {
-        if (typeof actual !== "object" || Array.isArray(actual)) {
-            return 0;
-        }
-        const expectedKeys = Object.keys(expected as Record<string, unknown>);
-        const actualKeys = Object.keys(actual as Record<string, unknown>);
-
-        let minScore = 1;
-        for (const key of expectedKeys) {
-            if (!Object.prototype.hasOwnProperty.call(actual, key)) {
-                return 0;
-            }
-            minScore = Math.min(
-                minScore,
-                compareParams((expected as Record<string, unknown>)[key], (actual as Record<string, unknown>)[key])
-            );
-        }
-
-        if (minScore === 0) {
-            return 0;
-        }
-
-        if (actualKeys.length > expectedKeys.length) {
-            minScore = Math.min(minScore, 0.75);
-        }
-        return minScore;
-    }
-
-    return expected == actual ? 1 : 0;
+    return 0;
 }
