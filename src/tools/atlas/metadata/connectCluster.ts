@@ -47,8 +47,6 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     private async prepareClusterConnection(projectId: string, clusterName: string): Promise<string> {
-        await this.session.disconnect();
-
         const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
 
         if (!cluster.connectionString) {
@@ -194,6 +192,11 @@ export class ConnectClusterTool extends AtlasToolBase {
                             },
                         ],
                     };
+                case "connected-to-other-cluster":
+                case "disconnected":
+                default:
+                    // fall through to create new connection
+                    break;
             }
         } catch (err: unknown) {
             const error = err instanceof Error ? err : new Error(String(err));
@@ -205,6 +208,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             // fall through to create new connection
         }
 
+        await this.session.disconnect();
         const connectionString = await this.prepareClusterConnection(projectId, clusterName);
         process.nextTick(async () => {
             try {
