@@ -5,9 +5,7 @@
     "seasons": 8,
     "episodes": 62,
     "platform": "Amazon Prime",
-    "genres": [
-      "Comedy"
-    ],
+    "genres": ["Comedy"],
     "cast": [
       "Roger Gomez",
       "Sandra Williams",
@@ -25,14 +23,8 @@
     "seasons": 4,
     "episodes": 108,
     "platform": "Hulu",
-    "genres": [
-      "Thriller"
-    ],
-    "cast": [
-      "Joseph Holmes",
-      "Patrick Smith",
-      "Charles Delacruz"
-    ],
+    "genres": ["Thriller"],
+    "cast": ["Joseph Holmes", "Patrick Smith", "Charles Delacruz"],
     "start_year": 2001,
     "end_year": null
   },
@@ -42,10 +34,7 @@
     "seasons": 6,
     "episodes": 49,
     "platform": "HBO",
-    "genres": [
-      "Comedy",
-      "Documentary"
-    ],
+    "genres": ["Comedy", "Documentary"],
     "cast": [
       "Jason Castillo",
       "Jessica Burke",
@@ -62,15 +51,8 @@
     "seasons": 5,
     "episodes": 23,
     "platform": "Amazon Prime",
-    "genres": [
-      "Comedy",
-      "Thriller"
-    ],
-    "cast": [
-      "Mark Allen",
-      "Anthony Snyder",
-      "Kimberly Jones"
-    ],
+    "genres": ["Comedy", "Thriller"],
+    "cast": ["Mark Allen", "Anthony Snyder", "Kimberly Jones"],
     "start_year": 2002,
     "end_year": null
   },
@@ -80,16 +62,8 @@
     "seasons": 1,
     "episodes": 12,
     "platform": "Amazon Prime",
-    "genres": [
-      "Crime",
-      "Documentary"
-    ],
-    "cast": [
-      "Matthew Green",
-      "Kelly Wright",
-      "Tonya Sullivan",
-      "Daniel Brown"
-    ],
+    "genres": ["Crime", "Documentary"],
+    "cast": ["Matthew Green", "Kelly Wright", "Tonya Sullivan", "Daniel Brown"],
     "start_year": 2009,
     "end_year": 2020
   },
@@ -99,14 +73,8 @@
     "seasons": 10,
     "episodes": 76,
     "platform": "Amazon Prime",
-    "genres": [
-      "Drama"
-    ],
-    "cast": [
-      "Stacey Shaw",
-      "Zachary Steele",
-      "Laurie Martinez"
-    ],
+    "genres": ["Drama"],
+    "cast": ["Stacey Shaw", "Zachary Steele", "Laurie Martinez"],
     "start_year": 2011,
     "end_year": 2020
   },
@@ -116,15 +84,8 @@
     "seasons": 5,
     "episodes": 73,
     "platform": "HBO",
-    "genres": [
-      "Thriller"
-    ],
-    "cast": [
-      "Diane Boyd",
-      "Anna Rubio",
-      "Cheryl Fisher",
-      "Tyler Villa"
-    ],
+    "genres": ["Thriller"],
+    "cast": ["Diane Boyd", "Anna Rubio", "Cheryl Fisher", "Tyler Villa"],
     "start_year": 2008,
     "end_year": 2020
   },
@@ -134,9 +95,7 @@
     "seasons": 2,
     "episodes": 114,
     "platform": "Amazon Prime",
-    "genres": [
-      "Fantasy"
-    ],
+    "genres": ["Fantasy"],
     "cast": [
       "Kathleen Marshall",
       "Kimberly Quinn",
@@ -154,9 +113,7 @@
     "seasons": 3,
     "episodes": 55,
     "platform": "Disney+",
-    "genres": [
-      "Drama"
-    ],
+    "genres": ["Drama"],
     "cast": [
       "Barbara Clark",
       "Carolyn Scott",
@@ -173,16 +130,8 @@
     "seasons": 4,
     "episodes": 61,
     "platform": "Amazon Prime",
-    "genres": [
-      "Comedy",
-      "Fantasy"
-    ],
-    "cast": [
-      "Adam Lin",
-      "Evan Smith",
-      "Christine Howard",
-      "Ruben Hopkins"
-    ],
+    "genres": ["Comedy", "Fantasy"],
+    "cast": ["Adam Lin", "Evan Smith", "Christine Howard", "Ruben Hopkins"],
     "start_year": 2006,
     "end_year": 2023
   },
@@ -192,9 +141,7 @@
     "seasons": 1,
     "episodes": 90,
     "platform": "HBO",
-    "genres": [
-      "Comedy"
-    ],
+    "genres": ["Comedy"],
     "cast": [
       "Eric Ryan",
       "Ashley Ball",
@@ -211,10 +158,7 @@
     "seasons": 10,
     "episodes": 69,
     "platform": "Hulu",
-    "genres": [
-      "Documentary",
-      "Fantasy"
-    ],
+    "genres": ["Documentary", "Fantasy"],
     "cast": [
       "Mrs. Olivia Booth",
       "William Murphy",
@@ -232,14 +176,8 @@
     "seasons": 3,
     "episodes": 89,
     "platform": "Disney+",
-    "genres": [
-      "Crime"
-    ],
-    "cast": [
-      "Elizabeth Lambert",
-      "Corey Hughes",
-      "Melissa Stephens"
-    ],
+    "genres": ["Crime"],
+    "cast": ["Elizabeth Lambert", "Corey Hughes", "Melissa Stephens"],
     "start_year": 2006,
     "end_year": null
   },
@@ -249,15 +187,8 @@
     "seasons": 9,
     "episodes": 73,
     "platform": "Disney+",
-    "genres": [
-      "Documentary",
-      "Drama"
-    ],
-    "cast": [
-      "Shane Richardson",
-      "Lisa Cooper",
-      "Samantha Perkins"
-    ],
+    "genres": ["Documentary", "Drama"],
+    "cast": ["Shane Richardson", "Lisa Cooper", "Samantha Perkins"],
     "start_year": 2008,
     "end_year": null
   },
@@ -267,14 +198,8 @@
     "seasons": 8,
     "episodes": 40,
     "platform": "Netflix",
-    "genres": [
-      "Crime"
-    ],
-    "cast": [
-      "Patricia Barrett",
-      "Scott Gonzalez",
-      "Michaela Johnson"
-    ],
+    "genres": ["Crime"],
+    "cast": ["Patricia Barrett", "Scott Gonzalez", "Michaela Johnson"],
     "start_year": 2006,
     "end_year": null
   },
@@ -284,14 +209,8 @@
     "seasons": 8,
     "episodes": 61,
     "platform": "Hulu",
-    "genres": [
-      "Drama"
-    ],
-    "cast": [
-      "Christie Waters",
-      "Casey Allen",
-      "Nicole Frank"
-    ],
+    "genres": ["Drama"],
+    "cast": ["Christie Waters", "Casey Allen", "Nicole Frank"],
     "start_year": 2001,
     "end_year": 2005
   },
@@ -301,9 +220,7 @@
     "seasons": 10,
     "episodes": 89,
     "platform": "Hulu",
-    "genres": [
-      "Drama"
-    ],
+    "genres": ["Drama"],
     "cast": [
       "Pedro Butler",
       "Christian Hall",
@@ -321,9 +238,7 @@
     "seasons": 5,
     "episodes": 11,
     "platform": "Hulu",
-    "genres": [
-      "Drama"
-    ],
+    "genres": ["Drama"],
     "cast": [
       "Deborah Garcia",
       "Michelle Barajas",
@@ -339,10 +254,7 @@
     "seasons": 1,
     "episodes": 29,
     "platform": "Amazon Prime",
-    "genres": [
-      "Fantasy",
-      "Documentary"
-    ],
+    "genres": ["Fantasy", "Documentary"],
     "cast": [
       "Grace Rodriguez",
       "Alison Greene",
@@ -358,9 +270,7 @@
     "seasons": 9,
     "episodes": 111,
     "platform": "Disney+",
-    "genres": [
-      "Documentary"
-    ],
+    "genres": ["Documentary"],
     "cast": [
       "Emily Irwin",
       "Olivia Gibson",
@@ -376,10 +286,7 @@
     "seasons": 8,
     "episodes": 108,
     "platform": "Hulu",
-    "genres": [
-      "Drama",
-      "Crime"
-    ],
+    "genres": ["Drama", "Crime"],
     "cast": [
       "Karen Phillips",
       "Kelly Marsh",
@@ -395,10 +302,7 @@
     "seasons": 6,
     "episodes": 66,
     "platform": "Amazon Prime",
-    "genres": [
-      "Crime",
-      "Documentary"
-    ],
+    "genres": ["Crime", "Documentary"],
     "cast": [
       "Bradley Chavez",
       "Catherine Horn",
@@ -414,15 +318,8 @@
     "seasons": 9,
     "episodes": 22,
     "platform": "Hulu",
-    "genres": [
-      "Drama"
-    ],
-    "cast": [
-      "Eric Lee",
-      "Patrick Estrada",
-      "Kelsey Brown",
-      "Jeffrey Lewis"
-    ],
+    "genres": ["Drama"],
+    "cast": ["Eric Lee", "Patrick Estrada", "Kelsey Brown", "Jeffrey Lewis"],
     "start_year": 2001,
     "end_year": null
   },
@@ -432,9 +329,7 @@
     "seasons": 5,
     "episodes": 35,
     "platform": "Hulu",
-    "genres": [
-      "Crime"
-    ],
+    "genres": ["Crime"],
     "cast": [
       "Chad Torres",
       "Mark Williams",
@@ -451,10 +346,7 @@
     "seasons": 2,
     "episodes": 94,
     "platform": "Netflix",
-    "genres": [
-      "Thriller",
-      "Fantasy"
-    ],
+    "genres": ["Thriller", "Fantasy"],
     "cast": [
       "Catherine Davila",
       "Jessica James",
@@ -471,10 +363,7 @@
     "seasons": 2,
     "episodes": 87,
     "platform": "Hulu",
-    "genres": [
-      "Drama",
-      "Fantasy"
-    ],
+    "genres": ["Drama", "Fantasy"],
     "cast": [
       "Tiffany Brown",
       "Christina Morales",
@@ -491,14 +380,8 @@
     "seasons": 5,
     "episodes": 56,
     "platform": "Netflix",
-    "genres": [
-      "Comedy"
-    ],
-    "cast": [
-      "James Durham",
-      "Jessica Myers",
-      "Rachel King"
-    ],
+    "genres": ["Comedy"],
+    "cast": ["James Durham", "Jessica Myers", "Rachel King"],
     "start_year": 2005,
     "end_year": null
   },
@@ -508,10 +391,7 @@
     "seasons": 4,
     "episodes": 99,
     "platform": "Disney+",
-    "genres": [
-      "Crime",
-      "Fantasy"
-    ],
+    "genres": ["Crime", "Fantasy"],
     "cast": [
       "Robert Foster",
       "Jill Barton",
@@ -527,10 +407,7 @@
     "seasons": 9,
     "episodes": 24,
     "platform": "Amazon Prime",
-    "genres": [
-      "Drama",
-      "Crime"
-    ],
+    "genres": ["Drama", "Crime"],
     "cast": [
       "Carl Johnson",
       "Douglas Beck",
@@ -548,15 +425,8 @@
     "seasons": 10,
     "episodes": 117,
     "platform": "HBO",
-    "genres": [
-      "Crime",
-      "Fantasy"
-    ],
-    "cast": [
-      "Carol Miller",
-      "Jennifer Bass",
-      "Melanie Leblanc"
-    ],
+    "genres": ["Crime", "Fantasy"],
+    "cast": ["Carol Miller", "Jennifer Bass", "Melanie Leblanc"],
     "start_year": 2002,
     "end_year": null
   },
@@ -566,10 +436,7 @@
     "seasons": 1,
     "episodes": 58,
     "platform": "Hulu",
-    "genres": [
-      "Crime",
-      "Drama"
-    ],
+    "genres": ["Crime", "Drama"],
     "cast": [
       "James Warren",
       "Kelly Carter",
@@ -586,9 +453,7 @@
     "seasons": 6,
     "episodes": 71,
     "platform": "Netflix",
-    "genres": [
-      "Documentary"
-    ],
+    "genres": ["Documentary"],
     "cast": [
       "Sarah Brown",
       "Patrick Beck",
@@ -604,14 +469,8 @@
     "seasons": 4,
     "episodes": 16,
     "platform": "Hulu",
-    "genres": [
-      "Fantasy"
-    ],
-    "cast": [
-      "Gabrielle Meyer",
-      "Madison Matthews",
-      "Taylor Martinez"
-    ],
+    "genres": ["Fantasy"],
+    "cast": ["Gabrielle Meyer", "Madison Matthews", "Taylor Martinez"],
     "start_year": 2010,
     "end_year": null
   },
@@ -621,14 +480,8 @@
     "seasons": 1,
     "episodes": 79,
     "platform": "Hulu",
-    "genres": [
-      "Fantasy"
-    ],
-    "cast": [
-      "Michael Lewis",
-      "Cassandra Hicks",
-      "Sydney Garcia"
-    ],
+    "genres": ["Fantasy"],
+    "cast": ["Michael Lewis", "Cassandra Hicks", "Sydney Garcia"],
     "start_year": 2015,
     "end_year": 2023
   },
@@ -638,16 +491,8 @@
     "seasons": 7,
     "episodes": 82,
     "platform": "Hulu",
-    "genres": [
-      "Crime",
-      "Fantasy"
-    ],
-    "cast": [
-      "Keith Brown",
-      "Annette Johnson",
-      "Joseph Carroll",
-      "Derek Lewis"
-    ],
+    "genres": ["Crime", "Fantasy"],
+    "cast": ["Keith Brown", "Annette Johnson", "Joseph Carroll", "Derek Lewis"],
     "start_year": 2006,
     "end_year": 2008
   },
@@ -657,10 +502,7 @@
     "seasons": 2,
     "episodes": 52,
     "platform": "Amazon Prime",
-    "genres": [
-      "Fantasy",
-      "Drama"
-    ],
+    "genres": ["Fantasy", "Drama"],
     "cast": [
       "Garrett Mcgrath",
       "Craig Jackson",
@@ -676,16 +518,8 @@
     "seasons": 1,
     "episodes": 113,
     "platform": "Netflix",
-    "genres": [
-      "Thriller",
-      "Comedy"
-    ],
-    "cast": [
-      "Matthew Hill",
-      "Andrew White",
-      "Grant Young",
-      "John Mathews"
-    ],
+    "genres": ["Thriller", "Comedy"],
+    "cast": ["Matthew Hill", "Andrew White", "Grant Young", "John Mathews"],
     "start_year": 2015,
     "end_year": 2020
   },
@@ -695,9 +529,7 @@
     "seasons": 3,
     "episodes": 40,
     "platform": "Netflix",
-    "genres": [
-      "Comedy"
-    ],
+    "genres": ["Comedy"],
     "cast": [
       "Matthew Gordon",
       "Mark Allen",
@@ -715,10 +547,7 @@
     "seasons": 10,
     "episodes": 106,
     "platform": "HBO",
-    "genres": [
-      "Fantasy",
-      "Drama"
-    ],
+    "genres": ["Fantasy", "Drama"],
     "cast": [
       "Elizabeth Taylor",
       "Melissa Mullins",
@@ -735,15 +564,8 @@
     "seasons": 3,
     "episodes": 88,
     "platform": "HBO",
-    "genres": [
-      "Thriller",
-      "Drama"
-    ],
-    "cast": [
-      "Amy Aguilar",
-      "James Williams",
-      "Kevin Kirby"
-    ],
+    "genres": ["Thriller", "Drama"],
+    "cast": ["Amy Aguilar", "James Williams", "Kevin Kirby"],
     "start_year": 2010,
     "end_year": 2025
   }
