@@ -58,13 +58,13 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
     }
 
     async getLatestSnapshotsForCommit(commit: string): Promise<AccuracySnapshotEntry[]> {
-        const latestRunId = await this.getLastRunIdForCommit(commit);
+        const latestRunId = await this.getLatestAccuracyRunForCommit(commit);
         return latestRunId ? this.getSnapshotEntriesForRunId(latestRunId) : [];
     }
 
-    private async getLastRunIdForCommit(commit: string): Promise<string | undefined> {
+    private async getLatestAccuracyRunForCommit(commit: string): Promise<string | undefined> {
         const document = await this.snapshotCollection.findOne(
-            { commit: commit },
+            { commit: commit, accuracyRunStatus: AccuracyRunStatus.Done },
             { sort: { createdOn: -1 }, projection: { accuracyRunId: 1 } }
         );
 
@@ -83,12 +83,16 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
         );
     }
 
-    static getStorage(commitSHA: string, accuracyRunId: string): MongoDBSnapshotStorage {
+    async close(): Promise<void> {
+        await this.client.close();
+    }
+
+    static getStorage(commitSHA: string, accuracyRunId: string): MongoDBSnapshotStorage | null {
         const mongodbUrl = process.env.MDB_ACCURACY_MDB_URL;
         const database = process.env.MDB_ACCURACY_MDB_DB;
         const collection = process.env.MDB_ACCURACY_MDB_COLLECTION;
         if (!mongodbUrl || !database || !collection) {
-            throw new Error("Cannot create MongoDBAccuracySnapshot storage without relevant configuration provided");
+            return null;
         }
 
         return new MongoDBSnapshotStorage({
@@ -98,9 +102,5 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
             commitSHA,
             accuracyRunId,
         });
-    }
-
-    async close(): Promise<void> {
-        await this.client.close();
     }
 }
