@@ -129,6 +129,5 @@ function compareParams(expected: unknown, actual: unknown): number {
         return minScore;
     }
 
-    // eslint-disable-next-line eqeqeq
     return expected == actual ? 1 : 0;
 }

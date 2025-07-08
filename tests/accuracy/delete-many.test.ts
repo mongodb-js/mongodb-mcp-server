@@ -1,7 +1,6 @@
 import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
-import { deleteManyResponse } from "../../src/tools/mongodb/delete/deleteMany.js";
 
 function callsDeleteManyWithEmptyFilters(prompt: string): AccuracyTestConfig {
     return {
