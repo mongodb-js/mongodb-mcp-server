@@ -1,6 +1,7 @@
 import { Session } from "../../../../src/session.js";
 import { expectDefined } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
+import { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 function sleep(ms: number) {
@@ -33,7 +34,12 @@ async function deleteAndWaitCluster(session: Session, projectId: string, cluster
     }
 }
 
-async function waitClusterState(session: Session, projectId: string, clusterName: string, state: string) {
+async function waitCluster(
+    session: Session,
+    projectId: string,
+    clusterName: string,
+    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>
+) {
     while (true) {
         const cluster = await session.apiClient.getCluster({
             params: {
@@ -43,7 +49,7 @@ async function waitClusterState(session: Session, projectId: string, clusterName
                 },
             },
         });
-        if (cluster?.stateName === state) {
+        if (await check(cluster)) {
             return;
         }
         await sleep(1000);
@@ -142,7 +148,12 @@ describeWithAtlas("clusters", (integration) => {
         describe("atlas-connect-cluster", () => {
             beforeAll(async () => {
                 const projectId = getProjectId();
-                await waitClusterState(integration.mcpServer().session, projectId, clusterName, "IDLE");
+                await waitCluster(integration.mcpServer().session, projectId, clusterName, (cluster) => {
+                    return (
+                        cluster.stateName === "IDLE" &&
+                        (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !== undefined
+                    );
+                });
                 await integration.mcpServer().session.apiClient.createProjectIpAccessList({
                     params: {
                         path: {
