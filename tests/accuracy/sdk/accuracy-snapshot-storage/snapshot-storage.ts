@@ -53,6 +53,8 @@ export interface AccuracySnapshotStorage {
     createSnapshotEntry(
         snapshotEntry: Pick<
             AccuracySnapshotEntry,
+            | "accuracyRunId"
+            | "commitSHA"
             | "provider"
             | "requestedModel"
             | "test"
@@ -68,9 +70,11 @@ export interface AccuracySnapshotStorage {
         >
     ): Promise<void>;
 
-    getLatestSnapshotsForCommit(commit: string): Promise<AccuracySnapshotEntry[]>;
+    getLatestSnapshotForCommit(commit: string): Promise<AccuracySnapshotEntry[]>;
 
-    updateAccuracyRunStatus(status: AccuracyRunStatuses): Promise<void>;
+    getSnapshotForAccuracyRun(accuracyRunId: string): Promise<AccuracySnapshotEntry[]>;
+
+    updateAccuracyRunStatus(accuracyRunId: string, status: AccuracyRunStatuses): Promise<void>;
 
     close(): Promise<void>;
 }

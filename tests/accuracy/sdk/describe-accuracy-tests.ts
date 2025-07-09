@@ -5,6 +5,7 @@ import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/
 import { AccuracyTestingClient, MockedTools } from "./accuracy-testing-client.js";
 import { getAccuracySnapshotStorage } from "./accuracy-snapshot-storage/get-snapshot-storage.js";
 import { AccuracySnapshotStorage, ExpectedToolCall } from "./accuracy-snapshot-storage/snapshot-storage.js";
+import { getCommitSHA } from "./git-info.js";
 
 export interface AccuracyTestConfig {
     systemPrompt?: string;
@@ -26,8 +27,12 @@ export function describeAccuracyTests(
         [suiteName: string]: AccuracyTestConfig[];
     }
 ) {
+    if (!process.env.MDB_ACCURACY_RUN_ID) {
+        throw new Error("MDB_ACCURACY_RUN_ID env variable is required for accuracy test runs!");
+    }
+
     if (!models.length) {
-        throw new Error("No models available to test!");
+        throw new Error("No models available to test. Ensure that the API keys are properly setup!");
     }
 
     const eachModel = describe.each(models);
@@ -37,11 +42,19 @@ export function describeAccuracyTests(
         const mdbIntegration = setupMongoDBIntegrationTest();
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
+        const accuracyRunId: string = `${process.env.MDB_ACCURACY_RUN_ID}`;
+        let commitSHA: string;
         let accuracySnapshotStorage: AccuracySnapshotStorage;
         let testMCPClient: AccuracyTestingClient;
         let agent: VercelAgent;
 
         beforeAll(async () => {
+            const retrievedCommitSHA = await getCommitSHA();
+            if (!retrievedCommitSHA) {
+                throw new Error("Could not derive commitSHA, exiting accuracy tests!");
+            }
+
+            commitSHA = retrievedCommitSHA;
             accuracySnapshotStorage = await getAccuracySnapshotStorage();
             testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString());
             agent = getVercelToolCallingAgent();
@@ -76,6 +89,8 @@ export function describeAccuracyTests(
 
                 const responseTime = timeAfterPrompt - timeBeforePrompt;
                 await accuracySnapshotStorage.createSnapshotEntry({
+                    accuracyRunId,
+                    commitSHA,
                     provider: model.provider,
                     requestedModel: model.modelName,
                     test: suiteName,

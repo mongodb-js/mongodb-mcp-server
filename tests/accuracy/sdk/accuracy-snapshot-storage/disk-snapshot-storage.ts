@@ -14,14 +14,11 @@ const snapshotsDir = path.resolve(rootDir, ".accuracy-snapshots");
 export const snapshotFilePath = path.resolve(snapshotsDir, "snapshots.json");
 
 export class DiskSnapshotStorage implements AccuracySnapshotStorage {
-    private constructor(
-        private readonly accuracyRunId: string,
-        private readonly commitSHA: string
-    ) {}
-
     async createSnapshotEntry(
         snapshotEntry: Pick<
             AccuracySnapshotEntry,
+            | "accuracyRunId"
+            | "commitSHA"
             | "provider"
             | "requestedModel"
             | "test"
@@ -38,8 +35,6 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
     ): Promise<void> {
         const snapshotWithMeta: AccuracySnapshotEntry = {
             ...snapshotEntry,
-            commitSHA: this.commitSHA,
-            accuracyRunId: this.accuracyRunId,
             accuracyRunStatus: AccuracyRunStatus.InProgress,
             createdOn: Date.now(),
         };
@@ -47,7 +42,7 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
         await this.appendAccuracySnapshot(snapshotWithMeta);
     }
 
-    async getLatestSnapshotsForCommit(commit: string): Promise<AccuracySnapshotEntry[]> {
+    async getLatestSnapshotForCommit(commit: string): Promise<AccuracySnapshotEntry[]> {
         const snapshot = await this.readSnapshot();
         const entries = snapshot
             .filter((entry) => {
@@ -58,10 +53,15 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
         return latestRunId ? snapshot.filter((entry) => entry.accuracyRunId === latestRunId) : [];
     }
 
-    async updateAccuracyRunStatus(status: AccuracyRunStatuses) {
+    async getSnapshotForAccuracyRun(accuracyRunId: string): Promise<AccuracySnapshotEntry[]> {
+        const snapshot = await this.readSnapshot();
+        return snapshot.filter((entry) => entry.accuracyRunId === accuracyRunId);
+    }
+
+    async updateAccuracyRunStatus(accuracyRunId: string, status: AccuracyRunStatuses) {
         const snapshot = await this.readSnapshot();
         const updatedSnapshot = snapshot.map((entry) => {
-            if (entry.accuracyRunId === this.accuracyRunId) {
+            if (entry.accuracyRunId === accuracyRunId) {
                 return {
                     ...entry,
                     accuracyRunStatus: status,
@@ -116,8 +116,8 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
-    static async getStorage(commitSHA: string, accuracyRunId: string) {
+    static async getStorage() {
         await fs.mkdir(snapshotsDir, { recursive: true });
-        return new DiskSnapshotStorage(commitSHA, accuracyRunId);
+        return new DiskSnapshotStorage();
     }
 }
