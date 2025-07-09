@@ -168,9 +168,10 @@ Without options:
       "args": [
         "run",
         "--rm",
+        "-e",
+        "MDB_MCP_READ_ONLY=true",
         "-i",
         "mongodb/mongodb-mcp-server:latest",
-        "--readOnly"
       ]
     }
   }
@@ -211,11 +212,12 @@ With Atlas API credentials:
         "--rm",
         "-i",
         "-e",
+        "MDB_MCP_READ_ONLY=true",
+        "-e",
         "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id",
         "-e",
         "MDB_MCP_API_CLIENT_SECRET=your-atlas-service-accounts-client-secret",
         "mongodb/mongodb-mcp-server:latest",
-        "--readOnly"
       ]
     }
   }
