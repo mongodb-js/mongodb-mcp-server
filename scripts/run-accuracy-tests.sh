@@ -18,18 +18,30 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # npm run test:accuracy -- tests/accuracy/some-test.test.ts
 TEST_PATH_PATTERN="${1:-tests/accuracy}"
 shift || true
-node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern "$TEST_PATH_PATTERN" "$@"
+node --experimental-vm-modules node_modules/jest/bin/jest.js --bail --testPathPattern "$TEST_PATH_PATTERN" "$@"
 
-# Each test run submits an accuracy snapshot entry for each prompt with the
-# accuracyRunStatus: "in-progress". When all the tests are done and jest exits
-# with an exit code of 0, we can safely mark accuracy run as finished otherwise
-# failed.
+# Preserving the exit code from test run to correctly notify in the CI
+# environments when the tests fail.
 JEST_EXIT_CODE=$?
+
+# Each test run submits an accuracy snapshot entry with the accuracyRunStatus:
+# "in-progress". When all the tests are done and jest exits with an exit code of
+# 0, we can safely mark accuracy run as finished otherwise failed.
+
+# This "outside-the-tests-status-update" is arising out of the fact that each
+# test suite stores their own accuracy run data in the storage and this setup
+# might lead to data inconsistency when the tests fail. To overcome that each
+# accuracy snapshot entry has a status which by default is "in-progress" and is
+# updated when the tests either pass (all our accuracy tests are supposed to
+# pass unless some errors occurs during the test runs), or fail.
+
+# This is necessary when comparing one accuracy run with another as we wouldn't
+# want to compare against an incomplete run.
 if [ $JEST_EXIT_CODE -eq 0 ]; then
   MDB_ACCURACY_RUN_STATUS="done" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'done'"
 else
   MDB_ACCURACY_RUN_STATUS="failed" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'failed'"
 fi
 
-# Preserve the original Jest exit code for CI
+
 exit $JEST_EXIT_CODE
