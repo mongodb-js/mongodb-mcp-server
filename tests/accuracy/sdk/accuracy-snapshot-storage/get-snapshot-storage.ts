@@ -16,8 +16,5 @@ export async function getAccuracySnapshotStorage(): Promise<AccuracySnapshotStor
         throw new Error("Cannot create AccuracySnapshotStorage without a commitSHA.");
     }
 
-    return (
-        MongoDBSnapshotStorage.getStorage(commitSHA, accuracyRunId) ??
-        (await DiskSnapshotStorage.getStorage(commitSHA, accuracyRunId))
-    );
+    return MongoDBSnapshotStorage.getStorage() ?? (await DiskSnapshotStorage.getStorage());
 }

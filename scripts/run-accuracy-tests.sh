@@ -24,8 +24,12 @@ node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern "
 # accuracyRunStatus: "in-progress". When all the tests are done and jest exits
 # with an exit code of 0, we can safely mark accuracy run as finished otherwise
 # failed.
-if [ $? -eq 0 ]; then
-  MDB_ACCURACY_RUN_STATUS="done" npx tsx scripts/mark-accuracy-run-finished.ts 
+JEST_EXIT_CODE=$?
+if [ $JEST_EXIT_CODE -eq 0 ]; then
+  MDB_ACCURACY_RUN_STATUS="done" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'done'"
 else
-  MDB_ACCURACY_RUN_STATUS="failed" npx tsx scripts/mark-accuracy-run-finished.ts
+  MDB_ACCURACY_RUN_STATUS="failed" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'failed'"
 fi
+
+# Preserve the original Jest exit code for CI
+exit $JEST_EXIT_CODE
