@@ -4,7 +4,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 
 export class InsertManyTool extends MongoDBToolBase {
-    protected name = "insert-many";
+    public name = "insert-many";
     protected description = "Insert an array of documents into a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
@@ -14,7 +14,7 @@ export class InsertManyTool extends MongoDBToolBase {
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()"
             ),
     };
-    protected operationType: OperationType = "create";
+    public operationType: OperationType = "create";
 
     protected async execute({
         database,

@@ -3,11 +3,11 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 
 export class CollectionStorageSizeTool extends MongoDBToolBase {
-    protected name = "collection-storage-size";
+    public name = "collection-storage-size";
     protected description = "Gets the size of the collection";
     protected argsShape = DbOperationArgs;
 
-    protected operationType: OperationType = "metadata";
+    public operationType: OperationType = "metadata";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

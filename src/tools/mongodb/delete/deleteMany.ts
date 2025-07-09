@@ -5,7 +5,7 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export class DeleteManyTool extends MongoDBToolBase {
-    protected name = "delete-many";
+    public name = "delete-many";
     protected description = "Removes all documents that match the filter from a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
@@ -16,7 +16,7 @@ export class DeleteManyTool extends MongoDBToolBase {
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
             ),
     };
-    protected operationType: OperationType = "delete";
+    public operationType: OperationType = "delete";
 
     protected async execute({
         database,

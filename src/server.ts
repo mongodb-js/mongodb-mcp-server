@@ -23,7 +23,7 @@ export interface ServerOptions {
 
 export class Server {
     public readonly session: Session;
-    private readonly mcpServer: McpServer;
+    public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly tools: ToolBase[] = [];
@@ -145,7 +145,7 @@ export class Server {
     private registerTools() {
         for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
             const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
-            if (tool.register(this.mcpServer)) {
+            if (tool.register(this)) {
                 this.tools.push(tool);
             }
         }

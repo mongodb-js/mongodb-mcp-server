@@ -268,7 +268,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `connectionString` | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
 | `logPath`          | Folder to store logs.                                                                                                                                         |
 | `disabledTools`    | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
-| `readOnly`         | When set to true, only allows read and metadata operation types, disabling create/update/delete operations.                                                   |
+| `readOnly`         | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                                   |
 | `indexCheck`       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
 | `telemetry`        | When set to disabled, disables telemetry collection.                                                                                                          |
 
@@ -301,10 +301,11 @@ Operation types:
 - `delete` - Tools that delete resources, such as delete document, drop collection, etc.
 - `read` - Tools that read resources, such as find, aggregate, list clusters, etc.
 - `metadata` - Tools that read metadata, such as list databases, list collections, collection schema, etc.
+- `connect` - Tools that allow you to connect or switch the connection to a MongoDB instance. If this is disabled, you will need to provide a connection string through the config when starting the server.
 
 #### Read-Only Mode
 
-The `readOnly` configuration option allows you to restrict the MCP server to only use tools with "read" and "metadata" operation types. When enabled, all tools that have "create", "update" or "delete" operation types will not be registered with the server.
+The `readOnly` configuration option allows you to restrict the MCP server to only use tools with "read", "connect", and "metadata" operation types. When enabled, all tools that have "create", "update" or "delete" operation types will not be registered with the server.
 
 This is useful for scenarios where you want to provide access to MongoDB data for analysis without allowing any modifications to the data or infrastructure.
 

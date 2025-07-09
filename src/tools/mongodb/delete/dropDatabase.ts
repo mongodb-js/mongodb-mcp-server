@@ -3,12 +3,12 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 
 export class DropDatabaseTool extends MongoDBToolBase {
-    protected name = "drop-database";
+    public name = "drop-database";
     protected description = "Removes the specified database, deleting the associated data files";
     protected argsShape = {
         database: DbOperationArgs.database,
     };
-    protected operationType: OperationType = "delete";
+    public operationType: OperationType = "delete";
 
     protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

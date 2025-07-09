@@ -5,9 +5,9 @@ import { z } from "zod";
 import { ToolArgs } from "../../tool.js";
 
 export class ListProjectsTool extends AtlasToolBase {
-    protected name = "atlas-list-projects";
+    public name = "atlas-list-projects";
     protected description = "List MongoDB Atlas projects";
-    protected operationType: OperationType = "read";
+    public operationType: OperationType = "read";
     protected argsShape = {
         orgId: z.string().describe("Atlas organization ID to filter projects").optional(),
     };

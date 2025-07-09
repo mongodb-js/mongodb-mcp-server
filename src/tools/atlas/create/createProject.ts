@@ -5,9 +5,9 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { Group } from "../../../common/atlas/openapi.js";
 
 export class CreateProjectTool extends AtlasToolBase {
-    protected name = "atlas-create-project";
+    public name = "atlas-create-project";
     protected description = "Create a MongoDB Atlas project";
-    protected operationType: OperationType = "create";
+    public operationType: OperationType = "create";
     protected argsShape = {
         projectName: z.string().optional().describe("Name for the new project"),
         organizationId: z.string().optional().describe("Organization ID for the new project"),

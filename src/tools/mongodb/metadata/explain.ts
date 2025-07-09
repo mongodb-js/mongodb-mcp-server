@@ -8,7 +8,7 @@ import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
 export class ExplainTool extends MongoDBToolBase {
-    protected name = "explain";
+    public name = "explain";
     protected description =
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
@@ -34,7 +34,7 @@ export class ExplainTool extends MongoDBToolBase {
             .describe("The method and its arguments to run"),
     };
 
-    protected operationType: OperationType = "metadata";
+    public operationType: OperationType = "metadata";
 
     static readonly defaultVerbosity = ExplainVerbosity.queryPlanner;
 

@@ -1,5 +1,5 @@
 import { Session } from "../../../../src/session.js";
-import { expectDefined } from "../../helpers.js";
+import { expectDefined, getResponseElements } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
 import { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -190,6 +190,23 @@ describeWithAtlas("clusters", (integration) => {
                 expect(response.content).toBeArray();
                 expect(response.content).toHaveLength(1);
                 expect(response.content[0]?.text).toContain(`Connected to cluster "${clusterName}"`);
+            });
+
+            describe("when not connected", () => {
+                it("prompts for atlas-connect-cluster when querying mongodb", async () => {
+                    const response = await integration.mcpClient().callTool({
+                        name: "find",
+                        arguments: { database: "some-db", collection: "some-collection" },
+                    });
+                    const elements = getResponseElements(response.content);
+                    expect(elements).toHaveLength(2);
+                    expect(elements[0]?.text).toContain(
+                        "You need to connect to a MongoDB instance before you can access its data."
+                    );
+                    expect(elements[1]?.text).toContain(
+                        "Please use one of the following tools: atlas-connect-cluster, connect to connect to a MongoDB instance."
+                    );
+                });
             });
         });
     });

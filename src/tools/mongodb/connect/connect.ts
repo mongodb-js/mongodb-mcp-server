@@ -2,11 +2,11 @@ import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import assert from "assert";
 import { UserConfig } from "../../../config.js";
 import { Telemetry } from "../../../telemetry/telemetry.js";
 import { Session } from "../../../session.js";
+import { Server } from "../../../server.js";
 
 const disconnectedSchema = z
     .object({
@@ -33,7 +33,7 @@ const connectedDescription =
 const disconnectedDescription = "Connect to a MongoDB instance";
 
 export class ConnectTool extends MongoDBToolBase {
-    protected name: typeof connectedName | typeof disconnectedName = disconnectedName;
+    public name: typeof connectedName | typeof disconnectedName = disconnectedName;
     protected description: typeof connectedDescription | typeof disconnectedDescription = disconnectedDescription;
 
     // Here the default is empty just to trigger registration, but we're going to override it with the correct
@@ -42,7 +42,7 @@ export class ConnectTool extends MongoDBToolBase {
         connectionString: z.string().optional(),
     };
 
-    protected operationType: OperationType = "connect";
+    public operationType: OperationType = "connect";
 
     constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
         super(session, config, telemetry);
@@ -72,7 +72,7 @@ export class ConnectTool extends MongoDBToolBase {
         };
     }
 
-    public register(server: McpServer): boolean {
+    public register(server: Server): boolean {
         if (super.register(server)) {
             this.updateMetadata();
             return true;

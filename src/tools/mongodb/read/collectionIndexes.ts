@@ -3,10 +3,10 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 
 export class CollectionIndexesTool extends MongoDBToolBase {
-    protected name = "collection-indexes";
+    public name = "collection-indexes";
     protected description = "Describe the indexes for a collection";
     protected argsShape = DbOperationArgs;
-    protected operationType: OperationType = "read";
+    public operationType: OperationType = "read";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

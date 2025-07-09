@@ -6,9 +6,9 @@ import { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/opena
 import { generateSecurePassword } from "../../../common/atlas/generatePassword.js";
 
 export class CreateDBUserTool extends AtlasToolBase {
-    protected name = "atlas-create-db-user";
+    public name = "atlas-create-db-user";
     protected description = "Create an MongoDB Atlas database user";
-    protected operationType: OperationType = "create";
+    public operationType: OperationType = "create";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID"),
         username: z.string().describe("Username for the new user"),

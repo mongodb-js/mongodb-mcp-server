@@ -11,9 +11,9 @@ import {
 import { formatCluster, formatFlexCluster } from "../../../common/atlas/cluster.js";
 
 export class ListClustersTool extends AtlasToolBase {
-    protected name = "atlas-list-clusters";
+    public name = "atlas-list-clusters";
     protected description = "List MongoDB Atlas clusters";
-    protected operationType: OperationType = "read";
+    public operationType: OperationType = "read";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID to filter clusters").optional(),
     };

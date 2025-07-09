@@ -5,7 +5,7 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { IndexDirection } from "mongodb";
 
 export class CreateIndexTool extends MongoDBToolBase {
-    protected name = "create-index";
+    public name = "create-index";
     protected description = "Create an index for a collection";
     protected argsShape = {
         ...DbOperationArgs,
@@ -13,7 +13,7 @@ export class CreateIndexTool extends MongoDBToolBase {
         name: z.string().optional().describe("The name of the index"),
     };
 
-    protected operationType: OperationType = "create";
+    public operationType: OperationType = "create";
 
     protected async execute({
         database,

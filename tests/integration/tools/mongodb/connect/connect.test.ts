@@ -1,9 +1,15 @@
 import { describeWithMongoDB } from "../mongodbHelpers.js";
-import { getResponseContent, validateThrowsForInvalidArguments, validateToolMetadata } from "../../../helpers.js";
+import {
+    getResponseContent,
+    getResponseElements,
+    validateThrowsForInvalidArguments,
+    validateToolMetadata,
+} from "../../../helpers.js";
 import { config } from "../../../../../src/config.js";
+import { defaultTestConfig, setupIntegrationTest } from "../../../helpers.js";
 
 describeWithMongoDB(
-    "switchConnection tool",
+    "SwitchConnection tool",
     (integration) => {
         beforeEach(() => {
             integration.mcpServer().userConfig.connectionString = integration.connectionString();
@@ -77,6 +83,7 @@ describeWithMongoDB(
         connectionString: mdbIntegration.connectionString(),
     })
 );
+
 describeWithMongoDB(
     "Connect tool",
     (integration) => {
@@ -126,3 +133,26 @@ describeWithMongoDB(
     },
     () => config
 );
+
+describe("Connect tool when disabled", () => {
+    const integration = setupIntegrationTest(() => ({
+        ...defaultTestConfig,
+        disabledTools: ["connect"],
+    }));
+
+    it("is not suggested when querying MongoDB disconnected", async () => {
+        const response = await integration.mcpClient().callTool({
+            name: "find",
+            arguments: { database: "some-db", collection: "some-collection" },
+        });
+
+        const elements = getResponseElements(response);
+        expect(elements).toHaveLength(2);
+        expect(elements[0]?.text).toContain(
+            "You need to connect to a MongoDB instance before you can access its data."
+        );
+        expect(elements[1]?.text).toContain(
+            "There are no tools available to connect. Please update the configuration to include a connection string and restart the server."
+        );
+    });
+});

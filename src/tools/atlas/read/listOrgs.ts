@@ -3,9 +3,9 @@ import { AtlasToolBase } from "../atlasTool.js";
 import { OperationType } from "../../tool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
-    protected name = "atlas-list-orgs";
+    public name = "atlas-list-orgs";
     protected description = "List MongoDB Atlas organizations";
-    protected operationType: OperationType = "read";
+    public operationType: OperationType = "read";
     protected argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {

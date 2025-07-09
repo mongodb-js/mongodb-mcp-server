@@ -10,13 +10,13 @@ export const AggregateArgs = {
 };
 
 export class AggregateTool extends MongoDBToolBase {
-    protected name = "aggregate";
+    public name = "aggregate";
     protected description = "Run an aggregation against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
         ...AggregateArgs,
     };
-    protected operationType: OperationType = "read";
+    public operationType: OperationType = "read";
 
     protected async execute({
         database,

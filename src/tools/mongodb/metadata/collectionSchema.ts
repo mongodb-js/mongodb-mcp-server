@@ -4,11 +4,11 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { getSimplifiedSchema } from "mongodb-schema";
 
 export class CollectionSchemaTool extends MongoDBToolBase {
-    protected name = "collection-schema";
+    public name = "collection-schema";
     protected description = "Describe the schema for a collection";
     protected argsShape = DbOperationArgs;
 
-    protected operationType: OperationType = "metadata";
+    public operationType: OperationType = "metadata";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

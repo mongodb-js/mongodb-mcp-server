@@ -5,7 +5,7 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
-    protected name = "update-many";
+    public name = "update-many";
     protected description = "Updates all documents that match the specified filter for a collection";
     protected argsShape = {
         ...DbOperationArgs,
@@ -23,7 +23,7 @@ export class UpdateManyTool extends MongoDBToolBase {
             .optional()
             .describe("Controls whether to insert a new document if no documents match the filter"),
     };
-    protected operationType: OperationType = "update";
+    public operationType: OperationType = "update";
 
     protected async execute({
         database,

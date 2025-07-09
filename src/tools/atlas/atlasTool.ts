@@ -6,7 +6,7 @@ import { z } from "zod";
 import { ApiClientError } from "../../common/atlas/apiClientError.js";
 
 export abstract class AtlasToolBase extends ToolBase {
-    protected category: ToolCategory = "atlas";
+    public category: ToolCategory = "atlas";
 
     protected verifyAllowed(): boolean {
         if (!this.config.apiClientId || !this.config.apiClientSecret) {
@@ -29,7 +29,7 @@ export abstract class AtlasToolBase extends ToolBase {
                             type: "text",
                             text: `Unable to authenticate with MongoDB Atlas, API error: ${error.message}
 
-Hint: Your API credentials may be invalid, expired or lack permissions. 
+Hint: Your API credentials may be invalid, expired or lack permissions.
 Please check your Atlas API credentials and ensure they have the appropriate permissions.
 For more information on setting up API keys, visit: https://www.mongodb.com/docs/atlas/configure-api-access/`,
                         },
@@ -44,7 +44,7 @@ For more information on setting up API keys, visit: https://www.mongodb.com/docs
                         {
                             type: "text",
                             text: `Received a Forbidden API Error: ${error.message}
-                            
+
 You don't have sufficient permissions to perform this action in MongoDB Atlas
 Please ensure your API key has the necessary roles assigned.
 For more information on Atlas API access roles, visit: https://www.mongodb.com/docs/atlas/api/service-accounts-overview/`,

@@ -4,9 +4,9 @@ import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 
 export class ListAlertsTool extends AtlasToolBase {
-    protected name = "atlas-list-alerts";
+    public name = "atlas-list-alerts";
     protected description = "List MongoDB Atlas alerts";
-    protected operationType: OperationType = "read";
+    public operationType: OperationType = "read";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID to list alerts for"),
     };

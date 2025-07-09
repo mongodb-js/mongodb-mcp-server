@@ -23,13 +23,13 @@ export const FindArgs = {
 };
 
 export class FindTool extends MongoDBToolBase {
-    protected name = "find";
+    public name = "find";
     protected description = "Run a find query against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
         ...FindArgs,
     };
-    protected operationType: OperationType = "read";
+    public operationType: OperationType = "read";
 
     protected async execute({
         database,

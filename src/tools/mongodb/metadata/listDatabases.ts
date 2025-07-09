@@ -4,10 +4,10 @@ import * as bson from "bson";
 import { OperationType } from "../../tool.js";
 
 export class ListDatabasesTool extends MongoDBToolBase {
-    protected name = "list-databases";
+    public name = "list-databases";
     protected description = "List all databases for a MongoDB connection";
     protected argsShape = {};
-    protected operationType: OperationType = "metadata";
+    public operationType: OperationType = "metadata";
 
     protected async execute(): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
