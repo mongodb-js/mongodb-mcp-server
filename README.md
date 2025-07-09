@@ -42,7 +42,7 @@ node -v
 
 ### Quick Start
 
-> **Note:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
+> **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
 Most MCP clients require a configuration file to be created or modified to add the MCP server.
 
@@ -66,7 +66,8 @@ You can pass your connection string via args, make sure to use a valid username 
         "-y",
         "mongodb-mcp-server",
         "--connectionString",
-        "mongodb://localhost:27017/myDatabase"
+        "mongodb://localhost:27017/myDatabase",
+        "--readOnly"
       ]
     }
   }
@@ -90,7 +91,8 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
         "--apiClientId",
         "your-atlas-service-accounts-client-id",
         "--apiClientSecret",
-        "your-atlas-service-accounts-client-secret"
+        "your-atlas-service-accounts-client-secret",
+        "--readOnly"
       ]
     }
   }
@@ -102,7 +104,7 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
 Start Server using npx command:
 
 ```shell
- npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret"
+ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
 ```
 
 - For a complete list of arguments see [Configuration Options](#configuration-options)
@@ -111,7 +113,7 @@ Start Server using npx command:
 #### Option 4: Standalone Service using environment variables
 
 ```shell
- npx -y mongodb-mcp-server
+ npx -y mongodb-mcp-server --readOnly
 ```
 
 You can use environment variables in the config file or set them and run the server via npx.
@@ -131,7 +133,7 @@ You may provide either a MongoDB connection string OR Atlas API credentials:
 
 ```shell
 docker run --rm -i \
-  mongodb/mongodb-mcp-server:latest
+  mongodb/mongodb-mcp-server:latest --readOnly
 ```
 
 ##### Option B: With MongoDB connection string
@@ -139,7 +141,7 @@ docker run --rm -i \
 ```shell
 docker run --rm -i \
   -e MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" \
-  mongodb/mongodb-mcp-server:latest
+  mongodb/mongodb-mcp-server:latest --readOnly
 ```
 
 ##### Option C: With Atlas API credentials
@@ -148,7 +150,7 @@ docker run --rm -i \
 docker run --rm -i \
   -e MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id" \
   -e MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret" \
-  mongodb/mongodb-mcp-server:latest
+  mongodb/mongodb-mcp-server:latest --readOnly
 ```
 
 ##### Docker in MCP Configuration File
@@ -160,7 +162,13 @@ Without options:
   "mcpServers": {
     "MongoDB": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "mongodb/mongodb-mcp-server:latest"]
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "mongodb/mongodb-mcp-server:latest",
+        "--readOnly"
+      ]
     }
   }
 }
@@ -179,7 +187,8 @@ With connection string:
         "-i",
         "-e",
         "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
-        "mongodb/mongodb-mcp-server:latest"
+        "mongodb/mongodb-mcp-server:latest",
+        "--readOnly"
       ]
     }
   }
@@ -201,7 +210,8 @@ With Atlas API credentials:
         "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id",
         "-e",
         "MDB_MCP_API_CLIENT_SECRET=your-atlas-service-accounts-client-secret",
-        "mongodb/mongodb-mcp-server:latest"
+        "mongodb/mongodb-mcp-server:latest",
+        "--readOnly"
       ]
     }
   }
@@ -462,7 +472,8 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
         "-y",
         "mongodb-mcp-server",
         "--connectionString",
-        "mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+        "mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
+        "--readOnly"
       ]
     }
   }
@@ -482,7 +493,8 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
         "--apiClientId",
         "your-atlas-service-accounts-client-id",
         "--apiClientSecret",
-        "your-atlas-service-accounts-client-secret"
+        "your-atlas-service-accounts-client-secret",
+        "--readOnly"
       ]
     }
   }
