@@ -143,8 +143,8 @@ docker run --rm -i \
 ```shell
 docker run --rm -i \
   -e MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" \
-  -e MDB_MCP_READ_ONLY="true" \ 
-  mongodb/mongodb-mcp-server:latest 
+  -e MDB_MCP_READ_ONLY="true" \
+  mongodb/mongodb-mcp-server:latest
 ```
 
 ##### Option C: With Atlas API credentials
@@ -192,7 +192,7 @@ With connection string:
         "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
         "-e",
         "MDB_MCP_READ_ONLY=true",
-        "mongodb/mongodb-mcp-server:latest",
+        "mongodb/mongodb-mcp-server:latest"
       ]
     }
   }
