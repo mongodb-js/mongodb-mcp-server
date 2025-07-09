@@ -42,7 +42,7 @@ node -v
 
 ### Quick Start
 
-> **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
+**Note:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
 
 Most MCP clients require a configuration file to be created or modified to add the MCP server.
 
@@ -52,6 +52,8 @@ Note: The configuration file syntax can be different across clients. Please refe
 - **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
 - **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
 - **Cursor**: https://docs.cursor.com/context/model-context-protocol
+
+> **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
 #### Option 1: Connection String args
 
