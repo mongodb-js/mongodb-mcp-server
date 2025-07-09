@@ -153,7 +153,7 @@ docker run --rm -i \
 docker run --rm -i \
   -e MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id" \
   -e MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret" \
-  -e MDB_MCP_READ_ONLY="true" \ 
+  -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
 
