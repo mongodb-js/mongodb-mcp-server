@@ -30,7 +30,6 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
             | "commitSHA"
             | "provider"
             | "requestedModel"
-            | "test"
             | "prompt"
             | "toolCallingAccuracy"
             | "expectedToolCalls"

@@ -11,4 +11,5 @@ state.json
 
 tests/tmp
 coverage
-.accuracy-snapshots
+# Generated assets by accuracy runs
+.accuracy
