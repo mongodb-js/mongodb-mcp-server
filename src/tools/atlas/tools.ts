@@ -8,7 +8,7 @@ import { ListDBUsersTool } from "./read/listDBUsers.js";
 import { CreateDBUserTool } from "./create/createDBUser.js";
 import { CreateProjectTool } from "./create/createProject.js";
 import { ListOrganizationsTool } from "./read/listOrgs.js";
-import { ConnectClusterTool } from "./metadata/connectCluster.js";
+import { ConnectClusterTool } from "./connect/connectCluster.js";
 import { ListAlertsTool } from "./read/listAlerts.js";
 
 export const AtlasTools = [

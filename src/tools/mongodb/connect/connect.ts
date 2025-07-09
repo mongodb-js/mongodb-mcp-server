@@ -42,7 +42,7 @@ export class ConnectTool extends MongoDBToolBase {
         connectionString: z.string().optional(),
     };
 
-    protected operationType: OperationType = "metadata";
+    protected operationType: OperationType = "connect";
 
     constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
         super(session, config, telemetry);
@@ -72,10 +72,13 @@ export class ConnectTool extends MongoDBToolBase {
         };
     }
 
-    public register(server: McpServer): void {
-        super.register(server);
+    public register(server: McpServer): boolean {
+        if (super.register(server)) {
+            this.updateMetadata();
+            return true;
+        }
 
-        this.updateMetadata();
+        return false;
     }
 
     private updateMetadata(): void {

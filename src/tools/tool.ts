@@ -9,7 +9,7 @@ import { UserConfig } from "../config.js";
 
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
 
-export type OperationType = "metadata" | "read" | "create" | "delete" | "update";
+export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 export type ToolCategory = "mongodb" | "atlas";
 export type TelemetryToolMetadata = {
     projectId?: string;
@@ -36,6 +36,7 @@ export abstract class ToolBase {
         switch (this.operationType) {
             case "read":
             case "metadata":
+            case "connect":
                 annotations.readOnlyHint = true;
                 annotations.destructiveHint = false;
                 break;
@@ -63,9 +64,9 @@ export abstract class ToolBase {
         protected readonly telemetry: Telemetry
     ) {}
 
-    public register(server: McpServer): void {
+    public register(server: McpServer): boolean {
         if (!this.verifyAllowed()) {
-            return;
+            return false;
         }
 
         const callback: ToolCallback<typeof this.argsShape> = async (...args) => {
@@ -120,6 +121,8 @@ export abstract class ToolBase {
 
             server.sendToolListChanged();
         };
+
+        return true;
     }
 
     protected update?: (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }) => void;

@@ -12,6 +12,7 @@ import { type ServerCommand } from "./telemetry/types.js";
 import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import { detectContainerEnv } from "./common/container.js";
+import { ToolBase } from "./tools/tool.js";
 
 export interface ServerOptions {
     session: Session;
@@ -25,6 +26,7 @@ export class Server {
     private readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
+    public readonly tools: ToolBase[] = [];
     private readonly startTime: number;
 
     constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
@@ -141,8 +143,11 @@ export class Server {
     }
 
     private registerTools() {
-        for (const tool of [...AtlasTools, ...MongoDbTools]) {
-            new tool(this.session, this.userConfig, this.telemetry).register(this.mcpServer);
+        for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
+            const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
+            if (tool.register(this.mcpServer)) {
+                this.tools.push(tool);
+            }
         }
     }
 

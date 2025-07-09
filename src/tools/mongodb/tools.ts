@@ -1,4 +1,4 @@
-import { ConnectTool } from "./metadata/connect.js";
+import { ConnectTool } from "./connect/connect.js";
 import { ListCollectionsTool } from "./metadata/listCollections.js";
 import { CollectionIndexesTool } from "./read/collectionIndexes.js";
 import { ListDatabasesTool } from "./metadata/listDatabases.js";
