@@ -12,10 +12,8 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export const name = "atlas-connect-cluster";
-
 export class ConnectClusterTool extends AtlasToolBase {
-    public name = name;
+    public name = "atlas-connect-cluster";
     protected description = "Connect to MongoDB Atlas cluster";
     public operationType: OperationType = "connect";
     protected argsShape = {
