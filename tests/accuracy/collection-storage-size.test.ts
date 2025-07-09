@@ -1,20 +1,10 @@
-import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
-import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
-import { ExpectedToolCall } from "./sdk/accuracy-snapshot-storage/snapshot-storage.js";
 
-function callsCollectionStorageSize(prompt: string, expectedToolCalls: ExpectedToolCall[]): AccuracyTestConfig {
-    return {
-        injectConnectedAssumption: true,
-        prompt: prompt,
-        mockedTools: {},
-        expectedToolCalls: expectedToolCalls,
-    };
-}
-
-describeAccuracyTests(getAvailableModels(), {
-    ...describeSuite("should only call 'collection-storage-size' tool", [
-        callsCollectionStorageSize("What is the size of 'mflix.movies' namespace", [
+describeAccuracyTests(getAvailableModels(), [
+    {
+        prompt: "What is the size of 'mflix.movies' namespace",
+        expectedToolCalls: [
             {
                 toolName: "collection-storage-size",
                 parameters: {
@@ -22,10 +12,11 @@ describeAccuracyTests(getAvailableModels(), {
                     collection: "movies",
                 },
             },
-        ]),
-    ]),
-    ...describeSuite("should call 'collection-storage-size' tool after another tool/s", [
-        callsCollectionStorageSize("How much size is each collection in comics database", [
+        ],
+    },
+    {
+        prompt: "How much size is each collection in comics database",
+        expectedToolCalls: [
             {
                 toolName: "list-collections",
                 parameters: {
@@ -46,6 +37,6 @@ describeAccuracyTests(getAvailableModels(), {
                     collection: "characters",
                 },
             },
-        ]),
-    ]),
-});
+        ],
+    },
+]);

@@ -10,14 +10,13 @@ const systemPrompt = [
     'If you do not know the answer or the request cannot be fulfilled, you MUST reply with "I don\'t know"',
 ];
 
-// Some necessary types from Vercel SDK
+// These types are not exported by Vercel SDK so we derive them here to be
+// re-used again.
 export type VercelMCPClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
 export type VercelMCPClientTools = Awaited<ReturnType<VercelMCPClient["tools"]>>;
 export type VercelAgent = ReturnType<typeof getVercelToolCallingAgent>;
 
-// Generic interface for Agent, in case we need to switch to some other agent
-// development SDK
-export interface AgentPromptResult {
+export interface VercelAgentPromptResult {
     respondingModel: string;
     tokensUsage?: {
         promptTokens?: number;
@@ -27,18 +26,21 @@ export interface AgentPromptResult {
     text: string;
     messages: Record<string, unknown>[];
 }
+
+// Generic interface for Agent, in case we need to switch to some other agent
+// development SDK
 export interface Agent<Model = unknown, Tools = unknown, Result = unknown> {
     prompt(prompt: string, model: Model, tools: Tools): Promise<Result>;
 }
 
 export function getVercelToolCallingAgent(
     requestedSystemPrompt?: string
-): Agent<Model<LanguageModelV1>, VercelMCPClientTools, AgentPromptResult> {
+): Agent<Model<LanguageModelV1>, VercelMCPClientTools, VercelAgentPromptResult> {
     return {
         async prompt(prompt: string, model: Model<LanguageModelV1>, tools: VercelMCPClientTools) {
             const result = await generateText({
                 model: model.getModel(),
-                system: [...systemPrompt, requestedSystemPrompt].join("\n"),
+                system: [...systemPrompt, requestedSystemPrompt].filter(Boolean).join("\n"),
                 prompt,
                 tools,
                 maxSteps: 100,

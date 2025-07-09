@@ -1,5 +1,5 @@
 import { TestableModels } from "./models.js";
-import { calculateToolCallingAccuracy } from "./accuracy-scorers.js";
+import { calculateToolCallingAccuracy } from "./accuracy-scorer.js";
 import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
 import { AccuracyTestingClient, MockedTools } from "./accuracy-testing-client.js";
@@ -8,25 +8,39 @@ import { AccuracySnapshotStorage, ExpectedToolCall } from "./accuracy-snapshot-s
 import { getCommitSHA } from "./git-info.js";
 
 export interface AccuracyTestConfig {
-    systemPrompt?: string;
-    injectConnectedAssumption?: boolean;
+    /** The prompt to be provided to LLM for evaluation. */
     prompt: string;
+
+    /**
+     * A list of tools and their parameters that we expect LLM to call based on
+     * how vague or detailed the prompt is. Ideally this should be a list of
+     * bare minimum and critical tool calls that are required to solve the
+     * problem mentioned in the prompt but because, for even a slightly vague
+     * prompt, LLM might decide to do additional confirmation by calling other
+     * tools, its fine to include those other tool calls as well to get a
+     * perfect 1 on the tool calling accuracy score. */
     expectedToolCalls: ExpectedToolCall[];
-    mockedTools: MockedTools;
+
+    /**
+     * The additional system prompt to be appended to already injected system
+     * prompt. */
+    systemPrompt?: string;
+
+    /**
+     * A small hint appended to the actual prompt in test, which is supposed to
+     * hint LLM to assume that the MCP server is already connected so that it
+     * does not call the connect tool.
+     * By default it is assumed to be true */
+    injectConnectedAssumption?: boolean;
+
+    /**
+     * A map of tool names to their mocked implementation. When the mocked
+     * implementations are available, the testing client will prefer those over
+     * actual MCP tool calls. */
+    mockedTools?: MockedTools;
 }
 
-export function describeSuite(suiteName: string, testConfigs: AccuracyTestConfig[]) {
-    return {
-        [suiteName]: testConfigs,
-    };
-}
-
-export function describeAccuracyTests(
-    models: TestableModels,
-    accuracyTestConfigs: {
-        [suiteName: string]: AccuracyTestConfig[];
-    }
-) {
+export function describeAccuracyTests(models: TestableModels, accuracyTestConfigs: AccuracyTestConfig[]) {
     if (!process.env.MDB_ACCURACY_RUN_ID) {
         throw new Error("MDB_ACCURACY_RUN_ID env variable is required for accuracy test runs!");
     }
@@ -36,13 +50,12 @@ export function describeAccuracyTests(
     }
 
     const eachModel = describe.each(models);
-    const eachSuite = describe.each(Object.keys(accuracyTestConfigs));
 
     eachModel(`$displayName`, function (model) {
+        const accuracyRunId = `${process.env.MDB_ACCURACY_RUN_ID}`;
         const mdbIntegration = setupMongoDBIntegrationTest();
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
-        const accuracyRunId: string = `${process.env.MDB_ACCURACY_RUN_ID}`;
         let commitSHA: string;
         let accuracySnapshotStorage: AccuracySnapshotStorage;
         let testMCPClient: AccuracyTestingClient;
@@ -53,8 +66,8 @@ export function describeAccuracyTests(
             if (!retrievedCommitSHA) {
                 throw new Error("Could not derive commitSHA, exiting accuracy tests!");
             }
-
             commitSHA = retrievedCommitSHA;
+
             accuracySnapshotStorage = await getAccuracySnapshotStorage();
             testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString());
             agent = getVercelToolCallingAgent();
@@ -67,40 +80,39 @@ export function describeAccuracyTests(
         });
 
         afterAll(async () => {
-            await accuracySnapshotStorage.close();
-            await testMCPClient.close();
+            await accuracySnapshotStorage?.close();
+            await testMCPClient?.close();
         });
 
-        eachSuite("%s", function (suiteName) {
-            const eachTest = it.each(accuracyTestConfigs[suiteName] ?? []);
+        const eachTest = it.each(accuracyTestConfigs);
 
-            eachTest("$prompt", async function (testConfig) {
-                testMCPClient.mockTools(testConfig.mockedTools);
-                const toolsForModel = await testMCPClient.vercelTools();
-                const promptForModel = testConfig.injectConnectedAssumption
-                    ? [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ")
-                    : testConfig.prompt;
+        eachTest("$prompt", async function (testConfig) {
+            testMCPClient.mockTools(testConfig.mockedTools ?? {});
+            const toolsForModel = await testMCPClient.vercelTools();
+            const promptForModel =
+                testConfig.injectConnectedAssumption === false
+                    ? testConfig.prompt
+                    : [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ");
 
-                const timeBeforePrompt = Date.now();
-                const result = await agent.prompt(promptForModel, model, toolsForModel);
-                const timeAfterPrompt = Date.now();
-                const toolCalls = testMCPClient.getToolCalls();
-                const toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, toolCalls);
+            const timeBeforePrompt = Date.now();
+            const result = await agent.prompt(promptForModel, model, toolsForModel);
+            const timeAfterPrompt = Date.now();
 
-                const responseTime = timeAfterPrompt - timeBeforePrompt;
-                await accuracySnapshotStorage.createSnapshotEntry({
-                    accuracyRunId,
-                    commitSHA,
-                    provider: model.provider,
-                    requestedModel: model.modelName,
-                    test: suiteName,
-                    prompt: testConfig.prompt,
-                    llmResponseTime: responseTime,
-                    toolCallingAccuracy: toolCallingAccuracy,
-                    actualToolCalls: toolCalls,
-                    expectedToolCalls: testConfig.expectedToolCalls,
-                    ...result,
-                });
+            const llmToolCalls = testMCPClient.getLLMToolCalls();
+            const toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
+
+            const responseTime = timeAfterPrompt - timeBeforePrompt;
+            await accuracySnapshotStorage.createSnapshotEntry({
+                accuracyRunId,
+                commitSHA,
+                provider: model.provider,
+                requestedModel: model.modelName,
+                prompt: testConfig.prompt,
+                llmResponseTime: responseTime,
+                toolCallingAccuracy: toolCallingAccuracy,
+                actualToolCalls: llmToolCalls,
+                expectedToolCalls: testConfig.expectedToolCalls,
+                ...result,
             });
         });
     });

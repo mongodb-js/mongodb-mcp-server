@@ -1,12 +1,10 @@
-import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsExplain(prompt: string, method: Record<string, unknown>): AccuracyTestConfig {
     return {
-        injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "explain",
@@ -53,20 +51,14 @@ const callsExplainWithCount = (prompt: string) =>
  * because we are using Zod.union, when we probably should've used
  * Zod.discriminatedUnion
  */
-describeAccuracyTests(getAvailableModels(), {
-    ...describeSuite("should call 'explain' tool for a find query", [
-        callsExplainWithFind(
-            `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
-        ),
-    ]),
-    ...describeSuite("should call 'explain' tool for an aggregation", [
-        callsExplainWithAggregate(
-            `Will aggregating documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
-        ),
-    ]),
-    ...describeSuite("should call 'explain' tool for count", [
-        callsExplainWithCount(
-            `Will counting documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
-        ),
-    ]),
-});
+describeAccuracyTests(getAvailableModels(), [
+    callsExplainWithFind(
+        `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
+    ),
+    callsExplainWithAggregate(
+        `Will aggregating documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
+    ),
+    callsExplainWithCount(
+        `Will counting documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
+    ),
+]);

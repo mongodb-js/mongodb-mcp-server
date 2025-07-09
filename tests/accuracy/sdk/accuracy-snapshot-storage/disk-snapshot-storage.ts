@@ -1,6 +1,4 @@
-import path from "path";
 import fs from "fs/promises";
-import { fileURLToPath } from "url";
 import {
     AccuracyRunStatus,
     AccuracyRunStatuses,
@@ -8,10 +6,7 @@ import {
     AccuracySnapshotEntrySchema,
     AccuracySnapshotStorage,
 } from "./snapshot-storage.js";
-const __dirname = fileURLToPath(import.meta.url);
-const rootDir = path.resolve(__dirname, "..", "..", "..", "..", "..");
-const snapshotsDir = path.resolve(rootDir, ".accuracy-snapshots");
-export const snapshotFilePath = path.resolve(snapshotsDir, "snapshots.json");
+import { GENERATED_ASSETS_DIR, LOCAL_SNAPSHOTS_FILE } from "../constants.js";
 
 export class DiskSnapshotStorage implements AccuracySnapshotStorage {
     async createSnapshotEntry(
@@ -21,7 +16,6 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
             | "commitSHA"
             | "provider"
             | "requestedModel"
-            | "test"
             | "prompt"
             | "toolCallingAccuracy"
             | "expectedToolCalls"
@@ -95,14 +89,14 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
     }
 
     private async writeSnapshot(snapshot: AccuracySnapshotEntry[]): Promise<void> {
-        const tmp = `${snapshotFilePath}~${Date.now()}`;
+        const tmp = `${LOCAL_SNAPSHOTS_FILE}~${Date.now()}`;
         await fs.writeFile(tmp, JSON.stringify(snapshot, null, 2));
-        await fs.rename(tmp, snapshotFilePath);
+        await fs.rename(tmp, LOCAL_SNAPSHOTS_FILE);
     }
 
     private async readSnapshot(): Promise<AccuracySnapshotEntry[]> {
         try {
-            const raw = await fs.readFile(snapshotFilePath, "utf8");
+            const raw = await fs.readFile(LOCAL_SNAPSHOTS_FILE, "utf8");
             return AccuracySnapshotEntrySchema.array().parse(JSON.parse(raw));
         } catch (e: unknown) {
             if ((e as { code: string }).code === "ENOENT") {
@@ -117,7 +111,7 @@ export class DiskSnapshotStorage implements AccuracySnapshotStorage {
     }
 
     static async getStorage() {
-        await fs.mkdir(snapshotsDir, { recursive: true });
+        await fs.mkdir(GENERATED_ASSETS_DIR, { recursive: true });
         return new DiskSnapshotStorage();
     }
 }

@@ -1,12 +1,10 @@
-import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsListCollections(prompt: string): AccuracyTestConfig {
     return {
-        injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "list-collections",
@@ -50,13 +48,9 @@ function callsListDatabasesAndListCollections(prompt: string): AccuracyTestConfi
     };
 }
 
-describeAccuracyTests(getAvailableModels(), {
-    ...describeSuite("should only call list-collections tool", [
-        callsListCollections("How many collections do I have in database mflix?"),
-        callsListCollections("List all the collections in my MongoDB database mflix."),
-        callsListCollections("Is there a shows collection in my MongoDB database mflix?"),
-    ]),
-    ...describeSuite("should call list-databases and list-collections tool", [
-        callsListDatabasesAndListCollections("List all the collections that I have in total on my cluster?"),
-    ]),
-});
+describeAccuracyTests(getAvailableModels(), [
+    callsListCollections("How many collections do I have in database mflix?"),
+    callsListCollections("List all the collections in my MongoDB database mflix."),
+    callsListCollections("Is there a shows collection in my MongoDB database mflix?"),
+    callsListDatabasesAndListCollections("List all the collections that I have in total on my cluster?"),
+]);

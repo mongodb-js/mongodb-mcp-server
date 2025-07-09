@@ -1,12 +1,10 @@
-import { describeAccuracyTests, describeSuite } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
 import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsFindNoFilter(prompt: string, database = "mflix", collection = "movies"): AccuracyTestConfig {
     return {
-        injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
@@ -21,9 +19,7 @@ function callsFindNoFilter(prompt: string, database = "mflix", collection = "mov
 
 function callsFindWithFilter(prompt: string, filter: Record<string, unknown>): AccuracyTestConfig {
     return {
-        injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
@@ -39,9 +35,7 @@ function callsFindWithFilter(prompt: string, filter: Record<string, unknown>): A
 
 function callsFindWithProjection(prompt: string, projection: Record<string, number>): AccuracyTestConfig {
     return {
-        injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
@@ -61,9 +55,7 @@ function callsFindWithProjectionAndFilters(
     projection: Record<string, number>
 ): AccuracyTestConfig {
     return {
-        injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
@@ -85,9 +77,7 @@ function callsFindWithFilterSortAndLimit(
     limit: number
 ): AccuracyTestConfig {
     return {
-        injectConnectedAssumption: true,
         prompt: prompt,
-        mockedTools: {},
         expectedToolCalls: [
             {
                 toolName: "find",
@@ -103,27 +93,25 @@ function callsFindWithFilterSortAndLimit(
     };
 }
 
-describeAccuracyTests(getAvailableModels(), {
-    ...describeSuite("should only call find tool", [
-        callsFindNoFilter("List all the movies in 'mflix.movies' namespace."),
-        callsFindNoFilter("List all the documents in 'comics.books' namespace.", "comics", "books"),
-        callsFindWithFilter("Find all the movies in 'mflix.movies' namespace with runtime less than 100.", {
-            runtime: { $lt: 100 },
-        }),
-        callsFindWithFilter("Find all movies in 'mflix.movies' collection where director is 'Christina Collins'", {
-            director: "Christina Collins",
-        }),
-        callsFindWithProjection("Give me all the movie titles available in 'mflix.movies' namespace", { title: 1 }),
-        callsFindWithProjectionAndFilters(
-            "Use 'mflix.movies' namespace to answer who were casted in the movie 'Certain Fish'",
-            { title: "Certain Fish" },
-            { cast: 1 }
-        ),
-        callsFindWithFilterSortAndLimit(
-            "From the mflix.movies namespace, give me first 2 movies of Horror genre sorted ascending by their runtime",
-            { genres: "Horror" },
-            { runtime: 1 },
-            2
-        ),
-    ]),
-});
+describeAccuracyTests(getAvailableModels(), [
+    callsFindNoFilter("List all the movies in 'mflix.movies' namespace."),
+    callsFindNoFilter("List all the documents in 'comics.books' namespace.", "comics", "books"),
+    callsFindWithFilter("Find all the movies in 'mflix.movies' namespace with runtime less than 100.", {
+        runtime: { $lt: 100 },
+    }),
+    callsFindWithFilter("Find all movies in 'mflix.movies' collection where director is 'Christina Collins'", {
+        director: "Christina Collins",
+    }),
+    callsFindWithProjection("Give me all the movie titles available in 'mflix.movies' namespace", { title: 1 }),
+    callsFindWithProjectionAndFilters(
+        "Use 'mflix.movies' namespace to answer who were casted in the movie 'Certain Fish'",
+        { title: "Certain Fish" },
+        { cast: 1 }
+    ),
+    callsFindWithFilterSortAndLimit(
+        "From the mflix.movies namespace, give me first 2 movies of Horror genre sorted ascending by their runtime",
+        { genres: "Horror" },
+        { runtime: 1 },
+        2
+    ),
+]);
