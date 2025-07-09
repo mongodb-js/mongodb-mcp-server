@@ -14,11 +14,10 @@ export interface Model<P extends LanguageModelV1 = LanguageModelV1> {
 
 export class OpenAIModel implements Model {
     readonly provider = "OpenAI";
+    readonly displayName: string;
 
-    constructor(readonly modelName: string) {}
-
-    get displayName(): string {
-        return `${this.provider} - ${this.modelName}`;
+    constructor(readonly modelName: string) {
+        this.displayName = `${this.provider} - ${modelName}`;
     }
 
     isAvailable(): boolean {
@@ -34,11 +33,10 @@ export class OpenAIModel implements Model {
 
 export class AzureOpenAIModel implements Model {
     readonly provider = "Azure";
+    readonly displayName: string;
 
-    constructor(readonly modelName: string) {}
-
-    get displayName(): string {
-        return `${this.provider} - ${this.modelName}`;
+    constructor(readonly modelName: string) {
+        this.displayName = `${this.provider} - ${modelName}`;
     }
 
     isAvailable(): boolean {
@@ -56,11 +54,10 @@ export class AzureOpenAIModel implements Model {
 
 export class GeminiModel implements Model {
     readonly provider = "Google";
+    readonly displayName: string;
 
-    constructor(readonly modelName: string) {}
-
-    get displayName(): string {
-        return `${this.provider} - ${this.modelName}`;
+    constructor(readonly modelName: string) {
+        this.displayName = `${this.provider} - ${modelName}`;
     }
 
     isAvailable(): boolean {
@@ -76,11 +73,10 @@ export class GeminiModel implements Model {
 
 export class OllamaModel implements Model {
     readonly provider = "Ollama";
+    readonly displayName: string;
 
-    constructor(readonly modelName: string) {}
-
-    get displayName(): string {
-        return `${this.provider} - ${this.modelName}`;
+    constructor(readonly modelName: string) {
+        this.displayName = `${this.provider} - ${modelName}`;
     }
 
     isAvailable(): boolean {
