@@ -31,16 +31,30 @@
                 background: #f8f9fa;
                 padding: 20px;
                 border-radius: 6px;
-                margin-bottom: 30px;
+                margin-bottom: 20px;
                 border-left: 4px solid #00684a;
+            }
+            .header-info:nth-child(3) {
+                border-left-color: #007bff;
+            }
+            .header-info:nth-child(4) {
+                border-left-color: #28a745;
             }
             .header-info h2 {
                 margin-top: 0;
+                margin-bottom: 15px;
                 color: #00684a;
+                font-size: 1.2em;
+            }
+            .header-info:nth-child(3) h2 {
+                color: #007bff;
+            }
+            .header-info:nth-child(4) h2 {
+                color: #28a745;
             }
             .info-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 15px;
                 margin-top: 15px;
             }
@@ -158,22 +172,22 @@
             .accuracy-perfect {
                 background-color: #d4edda;
                 color: #155724;
-                padding: 4px 8px;
-                border-radius: 4px;
+                padding: 2px 6px;
+                border-radius: 3px;
                 font-weight: bold;
             }
             .accuracy-good {
                 background-color: #fff3cd;
                 color: #856404;
-                padding: 4px 8px;
-                border-radius: 4px;
+                padding: 2px 6px;
+                border-radius: 3px;
                 font-weight: bold;
             }
             .accuracy-poor {
                 background-color: #f8d7da;
                 color: #721c24;
-                padding: 4px 8px;
-                border-radius: 4px;
+                padding: 2px 6px;
+                border-radius: 3px;
                 font-weight: bold;
             }
             .tool-call {
@@ -214,6 +228,29 @@
                 width: 8%;
                 min-width: 80px;
                 text-align: center;
+            }
+            .baseline-accuracy-cell {
+                width: 8%;
+                min-width: 80px;
+                text-align: center;
+            }
+            .accuracy-comparison {
+                background: #e9ecef;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            .accuracy-improved {
+                background: #d4edda;
+                color: #155724;
+            }
+            .accuracy-regressed {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            .accuracy-same {
+                background: #e2e3e5;
+                color: #495057;
             }
             .response-time-cell {
                 width: 10%;
@@ -264,28 +301,30 @@
         <div class="container">
             <h1>📊 MongoDB MCP Server - Accuracy Test Summary</h1>
             <div class="header-info">
-                <h2>Run Information & Summary</h2>
+                <h2>📊 Current Run Information</h2>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Accuracy Run ID</div>
                         <div class="info-value">{{accuracyRunId}}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Accuracy Run Status</div>
-                        <div class="info-value status-{{runStatus}}">{{runStatusUpper}}</div>
-                    </div>
-                    <div class="info-item">
                         <div class="info-label">Commit SHA</div>
                         <div class="info-value">{{commitSHA}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Run Created On</div>
+                        <div class="info-value">{{createdOn}}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Report Generated On</div>
                         <div class="info-value">{{reportGeneratedOn}}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Snapshots Captured On</div>
-                        <div class="info-value">{{createdOn}}</div>
-                    </div>
+                </div>
+            </div>
+
+            <div class="header-info">
+                <h2>📈 Test Results Summary</h2>
+                <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Total Prompts Evaluated</div>
                         <div class="info-value">{{totalTests}}</div>
@@ -298,6 +337,36 @@
                         <div class="info-label">Evals with 0% Accuracy</div>
                         <div class="info-value">{{testsWithZeroAccuracy}}</div>
                     </div>
+                    <div class="info-item">
+                        <div class="info-label">Average Accuracy</div>
+                        <div class="info-value">{{averageAccuracy}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-info">
+                <h2>🔄 Baseline Comparison</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Baseline Accuracy Run ID</div>
+                        <div class="info-value">{{baselineAccuracyRunId}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Baseline Commit SHA</div>
+                        <div class="info-value">{{baselineCommitSHA}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Baseline Run Created On</div>
+                        <div class="info-value">{{baselineCreatedOn}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Evals Improved vs Baseline</div>
+                        <div class="info-value">{{evalsImproved}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Evals Regressed vs Baseline</div>
+                        <div class="info-value">{{evalsRegressed}}</div>
+                    </div>
                 </div>
             </div>
             <table>
@@ -308,6 +377,7 @@
                         <th>Expected Tool Calls</th>
                         <th>LLM Tool Calls</th>
                         <th>Accuracy</th>
+                        <th>Baseline Accuracy</th>
                         <th>LLM Response Time (ms)</th>
                         <th>Total Tokens Used</th>
                     </tr>

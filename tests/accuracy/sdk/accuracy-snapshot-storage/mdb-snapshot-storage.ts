@@ -61,7 +61,7 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
 
     private async getLatestAccuracyRunForCommit(commit: string): Promise<string | undefined> {
         const document = await this.snapshotCollection.findOne(
-            { commit: commit, accuracyRunStatus: AccuracyRunStatus.Done },
+            { commitSHA: commit, accuracyRunStatus: AccuracyRunStatus.Done },
             { sort: { createdOn: -1 }, projection: { accuracyRunId: 1 } }
         );
 
