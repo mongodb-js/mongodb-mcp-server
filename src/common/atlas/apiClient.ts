@@ -95,6 +95,12 @@ export class ApiClient {
         await this.getAccessToken();
     }
 
+    public async close(): Promise<void> {
+        if (this.accessToken) {
+            await this.accessToken.revokeAll();
+        }
+    }
+
     public async getIpInfo(): Promise<{
         currentIpv4Address: string;
     }> {

@@ -101,9 +101,9 @@ export class Server {
     }
 
     async close(): Promise<void> {
+        await this.mcpServer.close();
         await this.telemetry.close();
         await this.session.close();
-        await this.mcpServer.close();
     }
 
     /**

@@ -93,6 +93,7 @@ export class Session extends EventEmitter<{
 
     async close(): Promise<void> {
         await this.disconnect();
+        await this.apiClient.close();
         this.emit("close");
     }
 
