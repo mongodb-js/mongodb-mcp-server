@@ -142,8 +142,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 this.session.connectedAtlasCluster.projectId != projectId ||
                 this.session.connectedAtlasCluster.clusterName != clusterName
             ) {
-                lastError = new Error("Cluster connection aborted");
-                break;
+                throw new Error("Cluster connection aborted");
             }
 
             try {
@@ -167,7 +166,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         if (lastError) {
-            if (this.session.connectedAtlasCluster?.projectId && this.session.connectedAtlasCluster?.username) {
+            if (this.session.connectedAtlasCluster?.projectId == projectId && this.session.connectedAtlasCluster?.clusterName == clusterName && this.session.connectedAtlasCluster?.username) {
                 void this.session.apiClient
                     .deleteDatabaseUser({
                         params: {
