@@ -40,7 +40,7 @@ export abstract class MongoDBToolBase extends ToolBase {
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
         }
 
-        return this.session.serviceProvider!;
+        return this.session.serviceProvider;
     }
 
     protected handleError(
