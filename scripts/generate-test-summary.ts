@@ -7,6 +7,15 @@ import type {
     LLMToolCall,
 } from "../tests/accuracy/sdk/accuracy-snapshot-storage/snapshot-storage.js";
 
+interface BaselineComparison {
+    baselineAccuracy?: number;
+    comparisonResult?: "improved" | "regressed" | "same";
+}
+
+interface SnapshotEntryWithBaseline extends AccuracySnapshotEntry {
+    baseline?: BaselineComparison;
+}
+
 function populateTemplate(template: string, data: Record<string, string>): string {
     return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => data[key] ?? "");
 }
@@ -47,10 +56,90 @@ function formatMessages(messages: Array<Record<string, unknown>>): string {
     return messages.map((msg) => JSON.stringify(msg, null, 2)).join("\n\n");
 }
 
-async function generateHtmlReport(snapshotEntries: AccuracySnapshotEntry[], accuracyRunId: string): Promise<string> {
+function formatBaselineAccuracy(snapshot: SnapshotEntryWithBaseline): string {
+    if (!snapshot.baseline || snapshot.baseline.baselineAccuracy === undefined) {
+        return '<span class="accuracy-comparison">N/A</span>';
+    }
+
+    const baselineAccuracyText = formatAccuracy(snapshot.baseline.baselineAccuracy);
+    let comparisonClass = "accuracy-comparison";
+    let comparisonIcon = "";
+
+    if (snapshot.baseline.comparisonResult) {
+        switch (snapshot.baseline.comparisonResult) {
+            case "improved":
+                comparisonClass += " accuracy-improved";
+                comparisonIcon = " ↗";
+                break;
+            case "regressed":
+                comparisonClass += " accuracy-regressed";
+                comparisonIcon = " ↘";
+                break;
+            case "same":
+                comparisonClass += " accuracy-same";
+                comparisonIcon = " →";
+                break;
+        }
+    }
+
+    return `<span class="${comparisonClass}">${baselineAccuracyText}${comparisonIcon}</span>`;
+}
+
+function compareSnapshotEntries(
+    currentSnapshotEntries: AccuracySnapshotEntry[],
+    baselineSnapshotEntries: AccuracySnapshotEntry[]
+): SnapshotEntryWithBaseline[] {
+    const baselineMap = new Map<string, AccuracySnapshotEntry>();
+    baselineSnapshotEntries.forEach((entry) => {
+        const key = `${entry.provider}|${entry.requestedModel}|${entry.prompt}`;
+        baselineMap.set(key, entry);
+    });
+
+    return currentSnapshotEntries.map((entry) => {
+        const key = `${entry.provider}|${entry.requestedModel}|${entry.prompt}`;
+        const baselineEntry = baselineMap.get(key);
+
+        if (!baselineEntry) {
+            return entry;
+        }
+
+        let comparisonResult: "improved" | "regressed" | "same";
+        if (entry.toolCallingAccuracy > baselineEntry.toolCallingAccuracy) {
+            comparisonResult = "improved";
+        } else if (entry.toolCallingAccuracy < baselineEntry.toolCallingAccuracy) {
+            comparisonResult = "regressed";
+        } else {
+            comparisonResult = "same";
+        }
+
+        return {
+            ...entry,
+            baseline: {
+                baselineAccuracy: baselineEntry.toolCallingAccuracy,
+                comparisonResult,
+            },
+        };
+    });
+}
+
+async function generateHtmlReport(
+    snapshotEntries: SnapshotEntryWithBaseline[],
+    accuracyRunId: string,
+    baselineInfo?: {
+        commitSHA: string;
+        accuracyRunId: string;
+        createdOn: string;
+    }
+): Promise<string> {
     const totalPrompts = snapshotEntries.length;
     const modelsCount = new Set(snapshotEntries.map((s) => `${s.provider} ${s.requestedModel}`)).size;
     const testsWithZeroAccuracy = snapshotEntries.filter((snapshotEntry) => snapshotEntry.toolCallingAccuracy === 0);
+
+    const totalAccuracy = snapshotEntries.reduce((sum, entry) => sum + entry.toolCallingAccuracy, 0);
+    const averageAccuracy = totalPrompts > 0 ? totalAccuracy / totalPrompts : 0;
+
+    const evalsImproved = snapshotEntries.filter((s) => s.baseline?.comparisonResult === "improved").length;
+    const evalsRegressed = snapshotEntries.filter((s) => s.baseline?.comparisonResult === "regressed").length;
 
     const firstSnapshotEntry = snapshotEntries[0];
     const runStatus = firstSnapshotEntry?.accuracyRunStatus || "unknown";
@@ -76,11 +165,12 @@ async function generateHtmlReport(snapshotEntries: AccuracySnapshotEntry[], accu
                             ${formatAccuracy(snapshotEntry.toolCallingAccuracy)}
                         </span>
                     </td>
+                    <td class="baseline-accuracy-cell">${formatBaselineAccuracy(snapshotEntry)}</td>
                     <td class="response-time-cell">${snapshotEntry.llmResponseTime.toFixed(2)}</td>
                     <td class="tokens-cell">${formatTokenUsage(snapshotEntry.tokensUsage || {})}</td>
                 </tr>
                 <tr class="details-row" id="details-${index}">
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="details-content">
                             <div class="conversation-section">
                                 <h4>🤖 LLM Response</h4>
@@ -97,9 +187,7 @@ async function generateHtmlReport(snapshotEntries: AccuracySnapshotEntry[], accu
         )
         .join("");
 
-    // Read template file
     const template = await readFile(HTML_TESTS_SUMMARY_TEMPLATE, "utf8");
-    // Fill template
     return populateTemplate(template, {
         accuracyRunId,
         runStatus,
@@ -110,6 +198,12 @@ async function generateHtmlReport(snapshotEntries: AccuracySnapshotEntry[], accu
         totalTests: String(totalPrompts),
         modelsCount: String(modelsCount),
         testsWithZeroAccuracy: String(testsWithZeroAccuracy.length),
+        averageAccuracy: formatAccuracy(averageAccuracy),
+        baselineCommitSHA: baselineInfo?.commitSHA || "N/A",
+        baselineAccuracyRunId: baselineInfo?.accuracyRunId || "N/A",
+        baselineCreatedOn: baselineInfo?.createdOn || "N/A",
+        evalsImproved: String(evalsImproved),
+        evalsRegressed: String(evalsRegressed),
         tableRows,
     });
 }
@@ -117,36 +211,74 @@ async function generateHtmlReport(snapshotEntries: AccuracySnapshotEntry[], accu
 async function generateTestSummary(): Promise<void> {
     try {
         const accuracyRunId = process.env.MDB_ACCURACY_RUN_ID;
+        const baselineCommitSHA = process.env.MDB_ACCURACY_BASELINE_COMMIT;
+
         if (!accuracyRunId) {
             throw new Error("Cannot generate test summary, accuracy run id is unknown");
         }
         console.log(`\n📊 Generating test summary for accuracy run: ${accuracyRunId}\n`);
 
         const storage = await getAccuracySnapshotStorage();
-        const snapshot = await storage.getSnapshotForAccuracyRun(accuracyRunId);
-        await storage.close();
+        const currentSnapshot = await storage.getSnapshotForAccuracyRun(accuracyRunId);
 
-        if (snapshot.length === 0) {
-            console.log("No snapshots found for the current run.");
+        if (currentSnapshot.length === 0) {
+            console.log("No snapshot entries found for the current run.");
+            await storage.close();
             return;
         }
 
-        const htmlReport = await generateHtmlReport(snapshot, accuracyRunId);
+        let snapshotWithBaseline: SnapshotEntryWithBaseline[] = currentSnapshot;
+        let baselineInfo: { commitSHA: string; accuracyRunId: string; createdOn: string } | undefined;
+
+        if (baselineCommitSHA) {
+            console.log(`🔍 Fetching baseline snapshot entries for commit: ${baselineCommitSHA}`);
+            const baselineSnapshot = await storage.getLatestSnapshotForCommit(baselineCommitSHA);
+
+            if (baselineSnapshot.length > 0) {
+                console.log(`✅ Found ${baselineSnapshot.length} baseline snapshot entries.`);
+                snapshotWithBaseline = compareSnapshotEntries(currentSnapshot, baselineSnapshot);
+
+                const firstBaselineSnapshot = baselineSnapshot[0];
+                if (firstBaselineSnapshot) {
+                    baselineInfo = {
+                        commitSHA: firstBaselineSnapshot.commitSHA,
+                        accuracyRunId: firstBaselineSnapshot.accuracyRunId,
+                        createdOn: firstBaselineSnapshot.createdOn
+                            ? new Date(firstBaselineSnapshot.createdOn).toLocaleString()
+                            : "unknown",
+                    };
+                }
+            } else {
+                console.log(`⚠️  No baseline snapshots found for commit: ${baselineCommitSHA}`);
+            }
+        }
+
+        const htmlReport = await generateHtmlReport(snapshotWithBaseline, accuracyRunId, baselineInfo);
+        await storage.close();
 
         const reportPath = HTML_TESTS_SUMMARY_FILE;
         await writeFile(reportPath, htmlReport, "utf8");
 
         console.log(`✅ HTML report generated: ${reportPath}`);
 
-        const totalPrompts = snapshot.length;
-        const modelsCount = new Set(snapshot.map((s) => `${s.provider} ${s.requestedModel}`)).size;
-        const testsWithZeroAccuracy = snapshot.filter((snapshotEntry) => snapshotEntry.toolCallingAccuracy === 0);
+        const totalPrompts = snapshotWithBaseline.length;
+        const modelsCount = new Set(snapshotWithBaseline.map((s) => `${s.provider} ${s.requestedModel}`)).size;
+        const testsWithZeroAccuracy = snapshotWithBaseline.filter(
+            (snapshotEntry) => snapshotEntry.toolCallingAccuracy === 0
+        );
+        const evalsImproved = snapshotWithBaseline.filter((s) => s.baseline?.comparisonResult === "improved").length;
+        const evalsRegressed = snapshotWithBaseline.filter((s) => s.baseline?.comparisonResult === "regressed").length;
 
         console.log(`\n📈 Summary:`);
         console.log(`   Total prompts evaluated: ${totalPrompts}`);
         console.log(`   Models tested: ${modelsCount}`);
         console.log(`   Evals with 0% accuracy: ${testsWithZeroAccuracy.length}`);
-        console.log(`   Report saved to: ${reportPath}\n`);
+
+        if (baselineCommitSHA) {
+            console.log(`   Baseline commit: ${baselineCommitSHA}`);
+            console.log(`   Evals improved vs baseline: ${evalsImproved}`);
+            console.log(`   Evals regressed vs baseline: ${evalsRegressed}`);
+        }
     } catch (error) {
         console.error("Error generating test summary:", error);
         process.exit(1);
