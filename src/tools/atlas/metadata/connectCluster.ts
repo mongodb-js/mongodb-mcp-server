@@ -118,12 +118,13 @@ export class ConnectClusterTool extends AtlasToolBase {
         );
 
         for (let i = 0; i < tryCount; i++) {
+            if (!this.session.connectedAtlasCluster) {
+                lastError = new Error("Cluster connection aborted");
+                break;
+            }
+
             try {
                 lastError = undefined;
-
-                if (!this.session.connectedAtlasCluster) {
-                    throw new Error("Cluster connection aborted");
-                }
 
                 await this.session.connectToMongoDB(connectionString, this.config.connectOptions);
                 break;
@@ -222,6 +223,8 @@ export class ConnectClusterTool extends AtlasToolBase {
         const connectionString = await this.prepareClusterConnection(projectId, clusterName);
 
         try {
+            // First, try to connect to the cluster within the current tool call.
+            // We give it 60 attempts with 500 ms delay between each, so ~30 seconds
             await this.connectToCluster(connectionString, 60);
 
             return {
@@ -240,17 +243,19 @@ export class ConnectClusterTool extends AtlasToolBase {
                 `error connecting to cluster: ${error.message}`
             );
 
-            process.nextTick(async () => {
-                try {
-                    await this.connectToCluster(connectionString, 600);
-                } catch (err: unknown) {
-                    const error = err instanceof Error ? err : new Error(String(err));
-                    logger.debug(
-                        LogId.atlasConnectFailure,
-                        "atlas-connect-cluster",
-                        `error connecting to cluster: ${error.message}`
-                    );
-                }
+            // We couldn't connect in ~30 seconds, likely because user creation is taking longer  
+            // Retry the connection with longer timeout (~5 minutes), while also returning a response
+            // to the client. Many clients will have a 1 minute timeout for tool calls, so we want to
+            // return well before that.
+            //
+            // Once we add support for streamable http, we'd want to use progress notifications here.
+            void this.connectToCluster(connectionString, 600).catch((err) => {
+                const error = err instanceof Error ? err : new Error(String(err));
+                logger.debug(
+                    LogId.atlasConnectFailure,
+                    "atlas-connect-cluster",
+                    `error connecting to cluster: ${error.message}`
+                );
             });
 
             return connectingResult;
