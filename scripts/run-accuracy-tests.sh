@@ -18,7 +18,7 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # npm run test:accuracy -- tests/accuracy/some-test.test.ts
 TEST_PATH_PATTERN="${1:-tests/accuracy}"
 shift || true
-node --experimental-vm-modules node_modules/jest/bin/jest.js --bail --testPathPattern "$TEST_PATH_PATTERN" "$@"
+node --experimental-vm-modules node_modules/jest/bin/jest.js --bail --testPathPatterns "$TEST_PATH_PATTERN" "$@"
 
 # Preserving the exit code from test run to correctly notify in the CI
 # environments when the tests fail.
