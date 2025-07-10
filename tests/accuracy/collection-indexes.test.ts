@@ -7,10 +7,15 @@ function callsCollectionIndexes(prompt: string): AccuracyTestConfig {
         prompt: prompt,
         expectedToolCalls: [
             {
-                toolName: "collection-indexes",
+                toolName: "mongodb-ddl",
                 parameters: {
-                    database: "mflix",
-                    collection: "movies",
+                    command: {
+                        name: "collection-indexes",
+                        parameters: {
+                            database: "mflix",
+                            collection: "movies",
+                        },
+                    },
                 },
             },
         ],

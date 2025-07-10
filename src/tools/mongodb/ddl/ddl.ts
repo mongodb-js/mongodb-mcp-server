@@ -10,34 +10,40 @@ export class MongoDBDDLTool extends MongoDBToolBase {
     protected description =
         "List databases, collections, indexes and describe the schema of a collection in a MongoDB database";
     protected argsShape = {
-        command: z.discriminatedUnion("name", [
-            z
-                .object({
-                    name: z.literal("list-databases"),
-                    parameters: z.object({}),
-                })
-                .describe("List all databases for a MongoDB connection"),
-            z
-                .object({
-                    name: z.literal("list-collections"),
-                    parameters: z.object({
-                        database: DbOperationArgs.database,
-                    }),
-                })
-                .describe("List all collections for a given database"),
-            z
-                .object({
-                    name: z.literal("collection-indexes"),
-                    parameters: z.object(DbOperationArgs),
-                })
-                .describe("Describe the indexes for a collection"),
-            z
-                .object({
-                    name: z.literal("collection-schema"),
-                    parameters: z.object(DbOperationArgs),
-                })
-                .describe("Describe the schema for a collection"),
-        ]),
+        command: z
+            .discriminatedUnion("name", [
+                z
+                    .object({
+                        name: z.literal("list-databases"),
+                        parameters: z.object({}),
+                    })
+                    .describe(
+                        "The shape of 'list-databases' command to list all the databases for a MongoDB connection."
+                    ),
+                z
+                    .object({
+                        name: z.literal("list-collections"),
+                        parameters: z.object({
+                            database: DbOperationArgs.database,
+                        }),
+                    })
+                    .describe(
+                        "The shape of 'list-collections' command to list all the collections for a given database."
+                    ),
+                z
+                    .object({
+                        name: z.literal("collection-indexes"),
+                        parameters: z.object(DbOperationArgs),
+                    })
+                    .describe("The shape of 'collection-indexes' command to describe the indexes for a collection."),
+                z
+                    .object({
+                        name: z.literal("collection-schema"),
+                        parameters: z.object(DbOperationArgs),
+                    })
+                    .describe("The shape of 'collection-schema' command to describe the schema for a collection."),
+            ])
+            .describe("The command to be provided to the tool."),
     };
     protected operationType: OperationType = "read";
 

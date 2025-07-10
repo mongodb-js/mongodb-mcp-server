@@ -7,10 +7,15 @@ function callsCollectionSchema(prompt: string): AccuracyTestConfig {
         prompt: prompt,
         expectedToolCalls: [
             {
-                toolName: "collection-schema",
+                toolName: "mongodb-ddl",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
+                    command: {
+                        name: "collection-schema",
+                        parameters: {
+                            database: "db1",
+                            collection: "coll1",
+                        },
+                    },
                 },
             },
         ],
