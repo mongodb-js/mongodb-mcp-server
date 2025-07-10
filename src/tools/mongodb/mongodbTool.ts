@@ -22,23 +22,23 @@ export abstract class MongoDBToolBase extends ToolBase {
                 );
             }
 
-            if (this.config.connectionString) {
-                try {
-                    await this.connectToMongoDB(this.config.connectionString);
-                } catch (error) {
-                    logger.error(
-                        LogId.mongodbConnectFailure,
-                        "mongodbTool",
-                        `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`
-                    );
-                    throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
-                }
+            if (!this.config.connectionString) {
+                throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
             }
 
-            throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
+            try {
+                await this.connectToMongoDB(this.config.connectionString);
+            } catch (error) {
+                logger.error(
+                    LogId.mongodbConnectFailure,
+                    "mongodbTool",
+                    `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`
+                );
+                throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
+            }
         }
 
-        return this.session.serviceProvider;
+        return this.session.serviceProvider!;
     }
 
     protected handleError(
