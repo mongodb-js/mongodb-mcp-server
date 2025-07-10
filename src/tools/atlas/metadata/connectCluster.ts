@@ -122,11 +122,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         return cn.toString();
     }
 
-    private async connectToCluster(
-        projectId: string,
-        clusterName: string,
-        connectionString: string
-    ): Promise<void> {
+    private async connectToCluster(projectId: string, clusterName: string, connectionString: string): Promise<void> {
         let lastError: Error | undefined = undefined;
 
         logger.debug(
@@ -166,7 +162,11 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         if (lastError) {
-            if (this.session.connectedAtlasCluster?.projectId == projectId && this.session.connectedAtlasCluster?.clusterName == clusterName && this.session.connectedAtlasCluster?.username) {
+            if (
+                this.session.connectedAtlasCluster?.projectId == projectId &&
+                this.session.connectedAtlasCluster?.clusterName == clusterName &&
+                this.session.connectedAtlasCluster?.username
+            ) {
                 void this.session.apiClient
                     .deleteDatabaseUser({
                         params: {
@@ -218,7 +218,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 default:
                     await this.session.disconnect();
                     const connectionString = await this.prepareClusterConnection(projectId, clusterName);
-                    
+
                     // try to connect for about 5 minutes asynchronously
                     void this.connectToCluster(projectId, clusterName, connectionString).catch((err: unknown) => {
                         const error = err instanceof Error ? err : new Error(String(err));
