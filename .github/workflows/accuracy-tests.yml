@@ -1,0 +1,44 @@
+name: Accuracy Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  run-accuracy-tests:
+    name: Run Accuracy Tests
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.label.name == 'accuracy-tests')
+    env:
+      MDB_OPEN_AI_API_KEY: ${{ secrets.MDB_OPEN_AI_API_KEY }}
+      MDB_GEMINI_API_KEY: ${{ secrets.MDB_GEMINI_API_KEY }}
+      MDB_AZURE_OPEN_AI_API_KEY: ${{ secrets.MDB_AZURE_OPEN_AI_API_KEY }}
+      MDB_AZURE_OPEN_AI_API_URL: ${{ secrets.MDB_AZURE_OPEN_AI_API_URL }}
+      MDB_ACCURACY_MDB_URL: ${{ secrets.MDB_ACCURACY_MDB_URL }}
+      MDB_ACCURACY_MDB_DB: ${{ secrets.MDB_ACCURACY_MDB_DB }}
+      MDB_ACCURACY_MDB_COLLECTION: ${{ secrets.MDB_ACCURACY_MDB_COLLECTION }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run accuracy tests
+        run: ./scripts/run-accuracy-tests.sh
+      - name: Upload accuracy test summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accuracy-test-summary
+          path: .accuracy/tests-summary.html
+      - name: Comment summary on PR
+        if: github.event_name == 'pull_request' && github.event.label.name == 'accuracy-tests'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: .accuracy/tests-summary.html 
