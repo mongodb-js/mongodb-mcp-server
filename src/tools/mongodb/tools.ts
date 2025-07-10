@@ -1,9 +1,5 @@
 import { ConnectTool } from "./connect/connect.js";
-import { ListCollectionsTool } from "./metadata/listCollections.js";
-import { CollectionIndexesTool } from "./read/collectionIndexes.js";
-import { ListDatabasesTool } from "./metadata/listDatabases.js";
 import { CreateIndexTool } from "./create/createIndex.js";
-import { CollectionSchemaTool } from "./metadata/collectionSchema.js";
 import { FindTool } from "./read/find.js";
 import { InsertManyTool } from "./create/insertMany.js";
 import { DeleteManyTool } from "./delete/deleteMany.js";
@@ -18,14 +14,12 @@ import { DropCollectionTool } from "./delete/dropCollection.js";
 import { ExplainTool } from "./metadata/explain.js";
 import { CreateCollectionTool } from "./create/createCollection.js";
 import { LogsTool } from "./metadata/logs.js";
+import { MongoDBDDLTool } from "./ddl/ddl.js";
 
 export const MongoDbTools = [
     ConnectTool,
-    ListCollectionsTool,
-    ListDatabasesTool,
-    CollectionIndexesTool,
+    MongoDBDDLTool,
     CreateIndexTool,
-    CollectionSchemaTool,
     FindTool,
     InsertManyTool,
     DeleteManyTool,
