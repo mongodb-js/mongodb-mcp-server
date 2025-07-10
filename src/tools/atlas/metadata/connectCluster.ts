@@ -244,6 +244,10 @@ export class ConnectClusterTool extends AtlasToolBase {
                     type: "text" as const,
                     text: `Warning: Provisioning a user and connecting to the cluster may take more time, please check again in a few seconds.`,
                 },
+                {
+                    type: "text" as const,
+                    text: `Warning: Make sure your IP address is whitelisted in the Atlas cluster settings.`,
+                },
             ],
         };
     }
