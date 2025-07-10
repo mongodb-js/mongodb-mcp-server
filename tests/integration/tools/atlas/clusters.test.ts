@@ -183,7 +183,7 @@ describeWithAtlas("clusters", (integration) => {
             it("connects to cluster", async () => {
                 const projectId = getProjectId();
 
-                for (let i = 0; i < 600; i++) {
+                for (let i = 0; i < 10; i++) {
                     const response = (await integration.mcpClient().callTool({
                         name: "atlas-connect-cluster",
                         arguments: { projectId, clusterName },
