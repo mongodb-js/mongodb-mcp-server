@@ -243,7 +243,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 `error connecting to cluster: ${error.message}`
             );
 
-            // We couldn't connect in ~30 seconds, likely because user creation is taking longer  
+            // We couldn't connect in ~30 seconds, likely because user creation is taking longer.
             // Retry the connection with longer timeout (~5 minutes), while also returning a response
             // to the client. Many clients will have a 1 minute timeout for tool calls, so we want to
             // return well before that.
