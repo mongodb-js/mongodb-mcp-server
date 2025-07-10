@@ -268,7 +268,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `connectionString` | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
 | `logPath`          | Folder to store logs.                                                                                                                                         |
 | `disabledTools`    | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
-| `readOnly`         | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                                   |
+| `readOnly`         | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
 | `indexCheck`       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
 | `telemetry`        | When set to disabled, disables telemetry collection.                                                                                                          |
 
@@ -346,7 +346,6 @@ To use the Atlas API tools, you'll need to create a service account in MongoDB A
 > **ℹ️ Note:** For a detailed breakdown of the minimum required permissions for each Atlas operation, see the [Atlas API Permissions](#atlas-api-permissions) section below.
 
 1. **Create a Service Account:**
-
    - Log in to MongoDB Atlas at [cloud.mongodb.com](https://cloud.mongodb.com)
    - Navigate to Access Manager > Organization Access
    - Click Add New > Applications > Service Accounts
@@ -358,12 +357,10 @@ To use the Atlas API tools, you'll need to create a service account in MongoDB A
 To learn more about Service Accounts, check the [MongoDB Atlas documentation](https://www.mongodb.com/docs/atlas/api/service-accounts-overview/).
 
 2. **Save Client Credentials:**
-
    - After creation, you'll be shown the Client ID and Client Secret
    - **Important:** Copy and save the Client Secret immediately as it won't be displayed again
 
 3. **Add Access List Entry:**
-
    - Add your IP address to the API access list
 
 4. **Configure the MCP Server:**

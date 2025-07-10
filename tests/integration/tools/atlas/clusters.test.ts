@@ -204,7 +204,7 @@ describeWithAtlas("clusters", (integration) => {
                         "You need to connect to a MongoDB instance before you can access its data."
                     );
                     expect(elements[1]?.text).toContain(
-                        'Please use one of the following tools: "atlas-connect-cluster", "connect" to connect to a MongoDB instance.'
+                        'Please use one of the following tools: "atlas-connect-cluster", "connect" to connect to a MongoDB instance'
                     );
                 });
             });
