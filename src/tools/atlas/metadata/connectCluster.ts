@@ -246,7 +246,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 },
                 {
                     type: "text" as const,
-                    text: `Warning: Make sure your IP address is whitelisted in the Atlas cluster settings.`,
+                    text: `Warning: Make sure your IP address was enabled in the allow list setting of the Atlas cluster.`,
                 },
             ],
         };
