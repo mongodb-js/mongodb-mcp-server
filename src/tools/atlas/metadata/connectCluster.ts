@@ -108,7 +108,12 @@ export class ConnectClusterTool extends AtlasToolBase {
         return cn.toString();
     }
 
-    private async connectToCluster(connectionString: string, tryCount: number): Promise<void> {
+    private async connectToCluster(
+        projectId: string,
+        clusterName: string,
+        connectionString: string,
+        tryCount: number
+    ): Promise<void> {
         let lastError: Error | undefined = undefined;
 
         logger.debug(
@@ -118,7 +123,11 @@ export class ConnectClusterTool extends AtlasToolBase {
         );
 
         for (let i = 0; i < tryCount; i++) {
-            if (!this.session.connectedAtlasCluster) {
+            if (
+                !this.session.connectedAtlasCluster ||
+                this.session.connectedAtlasCluster.projectId != projectId ||
+                this.session.connectedAtlasCluster.clusterName != clusterName
+            ) {
                 lastError = new Error("Cluster connection aborted");
                 break;
             }
@@ -225,7 +234,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         try {
             // First, try to connect to the cluster within the current tool call.
             // We give it 60 attempts with 500 ms delay between each, so ~30 seconds
-            await this.connectToCluster(connectionString, 60);
+            await this.connectToCluster(projectId, clusterName, connectionString, 60);
 
             return {
                 content: [
@@ -249,7 +258,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             // return well before that.
             //
             // Once we add support for streamable http, we'd want to use progress notifications here.
-            void this.connectToCluster(connectionString, 600).catch((err) => {
+            void this.connectToCluster(projectId, clusterName, connectionString, 600).catch((err) => {
                 const error = err instanceof Error ? err : new Error(String(err));
                 logger.debug(
                     LogId.atlasConnectFailure,
