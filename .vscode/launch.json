@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "Launch Tests",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["test", "--", "tests/integration/tools/atlas/clusters.test.ts"],
+      "runtimeArgs": ["test"],
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env"
     },
