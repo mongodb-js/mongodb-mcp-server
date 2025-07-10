@@ -14,7 +14,7 @@ function sleep(ms: number): Promise<void> {
 
 export class ConnectClusterTool extends AtlasToolBase {
     protected name = "atlas-connect-cluster";
-    protected description = "Connect to / Inspect connection of MongoDB Atlas cluster";
+    protected description = "Connect to MongoDB Atlas cluster";
     protected operationType: OperationType = "metadata";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID"),
