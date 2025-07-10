@@ -1,5 +1,5 @@
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF?logo=data:image/svg%2bxml;base64,PHN2ZyBmaWxsPSIjRkZGRkZGIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciICB2aWV3Qm94PSIwIDAgNDggNDgiIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiPjxwYXRoIGQ9Ik00NC45OTkgMTAuODd2MjYuMjFjMCAxLjAzLS41OSAxLjk3LTEuNTEgMi40Mi0yLjY4IDEuMjktOCAzLjg1LTguMzUgNC4wMS0uMTMuMDctLjM4LjItLjY3LjMxLjM1LS42LjUzLTEuMy41My0yLjAyVjYuMmMwLS43NS0uMi0xLjQ1LS41Ni0yLjA2LjA5LjA0LjE3LjA4LjI0LjExLjIuMSA1Ljk4IDIuODYgOC44IDQuMkM0NC40MDkgOC45IDQ0Ljk5OSA5Ljg0IDQ0Ljk5OSAxMC44N3pNNy40OTkgMjYuMDNjMS42IDEuNDYgMy40MyAzLjEzIDUuMzQgNC44NmwtNC42IDMuNWMtLjc3LjU3LTEuNzguNS0yLjU2LS4wNS0uNS0uMzYtMS44OS0xLjY1LTEuODktMS42NS0xLjAxLS44MS0xLjA2LTIuMzItLjExLTMuMTlDMy42NzkgMjkuNSA1LjE3OSAyOC4xMyA3LjQ5OSAyNi4wM3pNMzEuOTk5IDYuMnYxMC4xMWwtNy42MyA1LjgtNi44NS01LjIxYzQuOTgtNC41MyAxMC4wMS05LjExIDEyLjY1LTExLjUyQzMwLjg2OSA0Ljc0IDMxLjk5OSA1LjI1IDMxLjk5OSA2LjJ6TTMyIDQxLjc5OFYzMS42OUw4LjI0IDEzLjYxYy0uNzctLjU3LTEuNzgtLjUtMi41Ni4wNS0uNS4zNi0xLjg5IDEuNjUtMS44OSAxLjY1LTEuMDEuODEtMS4wNiAyLjMyLS4xMSAzLjE5IDAgMCAyMC4xNDUgMTguMzM4IDI2LjQ4NSAyNC4xMTZDMzAuODcxIDQzLjI2IDMyIDQyLjc1MyAzMiA0MS43OTh6Ii8+PC9zdmc+)](https://insiders.vscode.dev/redirect/mcp/install?name=mongodb&inputs=%5B%7B%22id%22%3A%22connection_string%22%2C%22type%22%3A%22promptString%22%2C%22description%22%3A%22MongoDB%20connection%20string%22%7D%5D&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mongodb-mcp-server%22%5D%2C%22env%22%3A%7B%22MDB_MCP_CONNECTION_STRING%22%3A%22%24%7Binput%3Aconnection_string%7D%22%7D%7D)
-[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-1e1e1e?logo=data:image/svg%2bxml;base64,PHN2ZyBoZWlnaHQ9IjFlbSIgc3R5bGU9ImZsZXg6bm9uZTtsaW5lLWhlaWdodDoxIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIxZW0iCiAgICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgPHRpdGxlPkN1cnNvcjwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMTEuOTI1IDI0bDEwLjQyNS02LTEwLjQyNS02TDEuNSAxOGwxMC40MjUgNnoiCiAgICAgICAgZmlsbD0idXJsKCNsb2JlLWljb25zLWN1cnNvcnVuZGVmaW5lZC1maWxsLTApIj48L3BhdGg+CiAgICA8cGF0aCBkPSJNMjIuMzUgMThWNkwxMS45MjUgMHYxMmwxMC40MjUgNnoiIGZpbGw9InVybCgjbG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0xKSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTExLjkyNSAwTDEuNSA2djEybDEwLjQyNS02VjB6IiBmaWxsPSJ1cmwoI2xvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMikiPjwvcGF0aD4KICAgIDxwYXRoIGQ9Ik0yMi4zNSA2TDExLjkyNSAyNFYxMkwyMi4zNSA2eiIgZmlsbD0iIzU1NSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTIyLjM1IDZsLTEwLjQyNSA2TDEuNSA2aDIwLjg1eiIgZmlsbD0iI2ZmZiI+PC9wYXRoPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0ibG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0wIgogICAgICAgICAgICB4MT0iMTEuOTI1IiB4Mj0iMTEuOTI1IiB5MT0iMTIiIHkyPSIyNCI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE2IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4zOSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9Ii42NTgiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjgiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMSIKICAgICAgICAgICAgeDE9IjIyLjM1IiB4Mj0iMTEuOTI1IiB5MT0iNi4wMzciIHkyPSIxMi4xNSI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE4MiIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIuMzEiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNzE1IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9IjAiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMiIKICAgICAgICAgICAgeDE9IjExLjkyNSIgeDI9IjEuNSIgeTE9IjAiIHkyPSIxOCI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjYiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNjY3IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4yMiI+PC9zdG9wPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8L2RlZnM+Cjwvc3ZnPgo=)](https://cursor.com/install-mcp?name=MongoDB&config=eyJjb21tYW5kIjoibnB4IC15IG1vbmdvZGItbWNwLXNlcnZlciJ9)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF?logo=data:image/svg%2bxml;base64,PHN2ZyBmaWxsPSIjRkZGRkZGIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciICB2aWV3Qm94PSIwIDAgNDggNDgiIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiPjxwYXRoIGQ9Ik00NC45OTkgMTAuODd2MjYuMjFjMCAxLjAzLS41OSAxLjk3LTEuNTEgMi40Mi0yLjY4IDEuMjktOCAzLjg1LTguMzUgNC4wMS0uMTMuMDctLjM4LjItLjY3LjMxLjM1LS42LjUzLTEuMy41My0yLjAyVjYuMmMwLS43NS0uMi0xLjQ1LS41Ni0yLjA2LjA5LjA0LjE3LjA4LjI0LjExLjIuMSA1Ljk4IDIuODYgOC44IDQuMkM0NC40MDkgOC45IDQ0Ljk5OSA5Ljg0IDQ0Ljk5OSAxMC44N3pNNy40OTkgMjYuMDNjMS42IDEuNDYgMy40MyAzLjEzIDUuMzQgNC44NmwtNC42IDMuNWMtLjc3LjU3LTEuNzguNS0yLjU2LS4wNS0uNS0uMzYtMS44OS0xLjY1LTEuODktMS42NS0xLjAxLS44MS0xLjA2LTIuMzItLjExLTMuMTlDMy42NzkgMjkuNSA1LjE3OSAyOC4xMyA3LjQ5OSAyNi4wM3pNMzEuOTk5IDYuMnYxMC4xMWwtNy42MyA1LjgtNi44NS01LjIxYzQuOTgtNC41MyAxMC4wMS05LjExIDEyLjY1LTExLjUyQzMwLjg2OSA0Ljc0IDMxLjk5OSA1LjI1IDMxLjk5OSA2LjJ6TTMyIDQxLjc5OFYzMS42OUw4LjI0IDEzLjYxYy0uNzctLjU3LTEuNzgtLjUtMi41Ni4wNS0uNS4zNi0xLjg5IDEuNjUtMS44OSAxLjY1LTEuMDEuODEtMS4wNiAyLjMyLS4xMSAzLjE5IDAgMCAyMC4xNDUgMTguMzM4IDI2LjQ4NSAyNC4xMTZDMzAuODcxIDQzLjI2IDMyIDQyLjc1MyAzMiA0MS43OTh6Ii8+PC9zdmc+)](https://insiders.vscode.dev/redirect/mcp/install?name=mongodb&inputs=%5B%7B%22id%22%3A%22connection_string%22%2C%22type%22%3A%22promptString%22%2C%22description%22%3A%22MongoDB%20connection%20string%22%7D%5D&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mongodb-mcp-server%22%2C%22--readOnly%22%5D%2C%22env%22%3A%7B%22MDB_MCP_CONNECTION_STRING%22%3A%22%24%7Binput%3Aconnection_string%7D%22%7D%7D)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-1e1e1e?logo=data:image/svg%2bxml;base64,PHN2ZyBoZWlnaHQ9IjFlbSIgc3R5bGU9ImZsZXg6bm9uZTtsaW5lLWhlaWdodDoxIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIxZW0iCiAgICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgPHRpdGxlPkN1cnNvcjwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMTEuOTI1IDI0bDEwLjQyNS02LTEwLjQyNS02TDEuNSAxOGwxMC40MjUgNnoiCiAgICAgICAgZmlsbD0idXJsKCNsb2JlLWljb25zLWN1cnNvcnVuZGVmaW5lZC1maWxsLTApIj48L3BhdGg+CiAgICA8cGF0aCBkPSJNMjIuMzUgMThWNkwxMS45MjUgMHYxMmwxMC40MjUgNnoiIGZpbGw9InVybCgjbG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0xKSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTExLjkyNSAwTDEuNSA2djEybDEwLjQyNS02VjB6IiBmaWxsPSJ1cmwoI2xvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMikiPjwvcGF0aD4KICAgIDxwYXRoIGQ9Ik0yMi4zNSA2TDExLjkyNSAyNFYxMkwyMi4zNSA2eiIgZmlsbD0iIzU1NSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTIyLjM1IDZsLTEwLjQyNSA2TDEuNSA2aDIwLjg1eiIgZmlsbD0iI2ZmZiI+PC9wYXRoPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0ibG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0wIgogICAgICAgICAgICB4MT0iMTEuOTI1IiB4Mj0iMTEuOTI1IiB5MT0iMTIiIHkyPSIyNCI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE2IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4zOSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9Ii42NTgiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjgiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMSIKICAgICAgICAgICAgeDE9IjIyLjM1IiB4Mj0iMTEuOTI1IiB5MT0iNi4wMzciIHkyPSIxMi4xNSI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE4MiIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIuMzEiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNzE1IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9IjAiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMiIKICAgICAgICAgICAgeDE9IjExLjkyNSIgeDI9IjEuNSIgeTE9IjAiIHkyPSIxOCI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjYiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNjY3IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4yMiI+PC9zdG9wPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8L2RlZnM+Cjwvc3ZnPgo=)](cursor://anysphere.cursor-deeplink/mcp/install?name=MongoDB&config=eyJjb21tYW5kIjoibnB4IC15IG1vbmdvZGItbWNwLXNlcnZlciAtLXJlYWRPbmx5In0%3D)
 [![View on Smithery](https://smithery.ai/badge/@mongodb-js/mongodb-mcp-server)](https://smithery.ai/server/@mongodb-js/mongodb-mcp-server)
 
 # MongoDB MCP Server
@@ -42,7 +42,7 @@ node -v
 
 ### Quick Start
 
-> **Note:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
+**Note:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
 
 Most MCP clients require a configuration file to be created or modified to add the MCP server.
 
@@ -52,6 +52,8 @@ Note: The configuration file syntax can be different across clients. Please refe
 - **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
 - **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
 - **Cursor**: https://docs.cursor.com/context/model-context-protocol
+
+> **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
 #### Option 1: Connection String args
 
@@ -66,7 +68,8 @@ You can pass your connection string via args, make sure to use a valid username 
         "-y",
         "mongodb-mcp-server",
         "--connectionString",
-        "mongodb://localhost:27017/myDatabase"
+        "mongodb://localhost:27017/myDatabase",
+        "--readOnly"
       ]
     }
   }
@@ -90,7 +93,8 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
         "--apiClientId",
         "your-atlas-service-accounts-client-id",
         "--apiClientSecret",
-        "your-atlas-service-accounts-client-secret"
+        "your-atlas-service-accounts-client-secret",
+        "--readOnly"
       ]
     }
   }
@@ -102,7 +106,7 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
 Start Server using npx command:
 
 ```shell
- npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret"
+ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
 ```
 
 - For a complete list of arguments see [Configuration Options](#configuration-options)
@@ -111,7 +115,7 @@ Start Server using npx command:
 #### Option 4: Standalone Service using environment variables
 
 ```shell
- npx -y mongodb-mcp-server
+ npx -y mongodb-mcp-server --readOnly
 ```
 
 You can use environment variables in the config file or set them and run the server via npx.
@@ -139,6 +143,7 @@ docker run --rm -i \
 ```shell
 docker run --rm -i \
   -e MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" \
+  -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
 
@@ -148,6 +153,7 @@ docker run --rm -i \
 docker run --rm -i \
   -e MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id" \
   -e MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret" \
+  -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
 
@@ -160,7 +166,14 @@ Without options:
   "mcpServers": {
     "MongoDB": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "mongodb/mongodb-mcp-server:latest"]
+      "args": [
+        "run",
+        "--rm",
+        "-e",
+        "MDB_MCP_READ_ONLY=true",
+        "-i",
+        "mongodb/mongodb-mcp-server:latest"
+      ]
     }
   }
 }
@@ -179,6 +192,8 @@ With connection string:
         "-i",
         "-e",
         "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
+        "-e",
+        "MDB_MCP_READ_ONLY=true",
         "mongodb/mongodb-mcp-server:latest"
       ]
     }
@@ -197,6 +212,8 @@ With Atlas API credentials:
         "run",
         "--rm",
         "-i",
+        "-e",
+        "MDB_MCP_READ_ONLY=true",
         "-e",
         "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id",
         "-e",
@@ -460,7 +477,8 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
         "-y",
         "mongodb-mcp-server",
         "--connectionString",
-        "mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+        "mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
+        "--readOnly"
       ]
     }
   }
@@ -480,7 +498,8 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
         "--apiClientId",
         "your-atlas-service-accounts-client-id",
         "--apiClientSecret",
-        "your-atlas-service-accounts-client-secret"
+        "your-atlas-service-accounts-client-secret",
+        "--readOnly"
       ]
     }
   }
