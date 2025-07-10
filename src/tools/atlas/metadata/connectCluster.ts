@@ -201,7 +201,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         for (let i = 0; i < 60; i++) {
             const state = await this.queryConnection(projectId, clusterName);
             switch (state) {
-                case "connected":
+                case "connected": {
                     return {
                         content: [
                             {
@@ -210,12 +210,14 @@ export class ConnectClusterTool extends AtlasToolBase {
                             },
                         ],
                     };
-                case "connecting":
+                }
+                case "connecting": {
                     break;
+                }
                 case "connected-to-other-cluster":
                 case "disconnected":
                 case "unknown":
-                default:
+                default: {
                     await this.session.disconnect();
                     const connectionString = await this.prepareClusterConnection(projectId, clusterName);
 
@@ -229,6 +231,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                         );
                     });
                     break;
+                }
             }
 
             await sleep(500);
