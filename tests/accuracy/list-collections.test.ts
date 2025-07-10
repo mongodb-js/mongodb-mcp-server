@@ -7,8 +7,13 @@ function callsListCollections(prompt: string): AccuracyTestConfig {
         prompt: prompt,
         expectedToolCalls: [
             {
-                toolName: "list-collections",
-                parameters: { database: "mflix" },
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-collections",
+                        parameters: { database: "mflix" },
+                    },
+                },
             },
         ],
     };
@@ -21,28 +26,58 @@ function callsListDatabasesAndListCollections(prompt: string): AccuracyTestConfi
         mockedTools: {},
         expectedToolCalls: [
             {
-                toolName: "list-databases",
-                parameters: {},
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-databases",
+                        parameters: {},
+                    },
+                },
             },
             {
-                toolName: "list-collections",
-                parameters: { database: "admin" },
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-collections",
+                        parameters: { database: "admin" },
+                    },
+                },
             },
             {
-                toolName: "list-collections",
-                parameters: { database: "comics" },
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-collections",
+                        parameters: { database: "comics" },
+                    },
+                },
             },
             {
-                toolName: "list-collections",
-                parameters: { database: "config" },
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-collections",
+                        parameters: { database: "config" },
+                    },
+                },
             },
             {
-                toolName: "list-collections",
-                parameters: { database: "local" },
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-collections",
+                        parameters: { database: "local" },
+                    },
+                },
             },
             {
-                toolName: "list-collections",
-                parameters: { database: "mflix" },
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-collections",
+                        parameters: { database: "mflix" },
+                    },
+                },
             },
         ],
     };
