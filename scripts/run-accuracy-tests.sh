@@ -39,6 +39,7 @@ JEST_EXIT_CODE=$?
 # want to compare against an incomplete run.
 if [ $JEST_EXIT_CODE -eq 0 ]; then
   MDB_ACCURACY_RUN_STATUS="done" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'done'"
+  npx tsx scripts/generate-test-summary.ts || echo "Warning: Failed to generate test summary HTML report"
 else
   MDB_ACCURACY_RUN_STATUS="failed" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'failed'"
 fi
