@@ -7,8 +7,13 @@ function callsListDatabases(prompt: string): AccuracyTestConfig {
         prompt: prompt,
         expectedToolCalls: [
             {
-                toolName: "list-databases",
-                parameters: {},
+                toolName: "mongodb-ddl",
+                parameters: {
+                    command: {
+                        name: "list-databases",
+                        parameters: {},
+                    },
+                },
             },
         ],
     };
