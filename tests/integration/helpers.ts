@@ -84,7 +84,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
     });
 
     afterEach(async () => {
-        if (mcpServer && !mcpServer.session.connectedAtlasCluster) {
+        if (mcpServer) {
             await mcpServer.session.disconnect();
         }
     });
