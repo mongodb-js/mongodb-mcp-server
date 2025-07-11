@@ -16,7 +16,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.label.name == 'accuracy-tests')
     env:
-      MDB_OPEN_AI_API_KEY: ${{ secrets.MDB_OPEN_AI_API_KEY }}
+      MDB_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_OPEN_AI_API_KEY }}
       MDB_GEMINI_API_KEY: ${{ secrets.MDB_GEMINI_API_KEY }}
       MDB_AZURE_OPEN_AI_API_KEY: ${{ secrets.MDB_AZURE_OPEN_AI_API_KEY }}
       MDB_AZURE_OPEN_AI_API_URL: ${{ secrets.MDB_AZURE_OPEN_AI_API_URL }}
