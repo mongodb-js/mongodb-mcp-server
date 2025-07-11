@@ -10,17 +10,9 @@ import {
 export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
     private readonly client: MongoClient;
     private readonly snapshotCollection: Collection;
-    private constructor({
-        mongodbUrl,
-        database,
-        collection,
-    }: {
-        mongodbUrl: string;
-        database: string;
-        collection: string;
-    }) {
+    private constructor(mongodbUrl: string) {
         this.client = new MongoClient(mongodbUrl);
-        this.snapshotCollection = this.client.db(database).collection(collection);
+        this.snapshotCollection = this.client.db("mongodb-mcp-server").collection("accuracy-tests");
     }
 
     async createSnapshotEntry(
@@ -81,16 +73,10 @@ export class MongoDBSnapshotStorage implements AccuracySnapshotStorage {
 
     static getStorage(): MongoDBSnapshotStorage | null {
         const mongodbUrl = process.env.MDB_ACCURACY_MDB_URL;
-        const database = process.env.MDB_ACCURACY_MDB_DB;
-        const collection = process.env.MDB_ACCURACY_MDB_COLLECTION;
-        if (!mongodbUrl || !database || !collection) {
+        if (!mongodbUrl) {
             return null;
         }
 
-        return new MongoDBSnapshotStorage({
-            mongodbUrl,
-            database,
-            collection,
-        });
+        return new MongoDBSnapshotStorage(mongodbUrl);
     }
 }
