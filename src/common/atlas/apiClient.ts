@@ -4,7 +4,7 @@ import { AccessToken, ClientCredentials } from "simple-oauth2";
 import { ApiClientError } from "./apiClientError.js";
 import { paths, operations } from "./openapi.js";
 import { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
-import { packageInfo } from "../../helpers/packageInfo.js";
+import { packageInfo } from "../packageInfo.js";
 import logger, { LogId } from "../logger.js";
 
 const ATLAS_API_VERSION = "2025-03-12";

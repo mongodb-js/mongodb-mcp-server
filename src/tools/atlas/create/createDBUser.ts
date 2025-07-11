@@ -3,7 +3,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
-import { generateSecurePassword } from "../../../common/atlas/generatePassword.js";
+import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 
 export class CreateDBUserTool extends AtlasToolBase {
     public name = "atlas-create-db-user";

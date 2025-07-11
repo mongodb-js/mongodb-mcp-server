@@ -7,7 +7,7 @@ import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
-import { detectContainerEnv } from "../common/container.js";
+import { detectContainerEnv } from "../helpers/container.js";
 
 type EventResult = {
     success: boolean;

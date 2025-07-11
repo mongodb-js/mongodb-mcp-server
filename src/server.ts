@@ -11,7 +11,7 @@ import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import { detectContainerEnv } from "./common/container.js";
+import { detectContainerEnv } from "./helpers/container.js";
 import { ToolBase } from "./tools/tool.js";
 
 export interface ServerOptions {

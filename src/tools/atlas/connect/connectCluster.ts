@@ -2,7 +2,7 @@ import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
-import { generateSecurePassword } from "../../../common/atlas/generatePassword.js";
+import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import logger, { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 

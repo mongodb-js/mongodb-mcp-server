@@ -5,7 +5,7 @@ import logger, { LogId } from "./logger.js";
 import EventEmitter from "events";
 import { ConnectOptions } from "./config.js";
 import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
-import { packageInfo } from "../helpers/packageInfo.js";
+import { packageInfo } from "./packageInfo.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
