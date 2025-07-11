@@ -183,13 +183,27 @@ describeWithAtlas("clusters", (integration) => {
             it("connects to cluster", async () => {
                 const projectId = getProjectId();
 
-                const response = (await integration.mcpClient().callTool({
-                    name: "atlas-connect-cluster",
-                    arguments: { projectId, clusterName },
-                })) as CallToolResult;
-                expect(response.content).toBeArray();
-                expect(response.content).toHaveLength(1);
-                expect(response.content[0]?.text).toContain(`Connected to cluster "${clusterName}"`);
+                for (let i = 0; i < 10; i++) {
+                    const response = (await integration.mcpClient().callTool({
+                        name: "atlas-connect-cluster",
+                        arguments: { projectId, clusterName },
+                    })) as CallToolResult;
+                    expect(response.content).toBeArray();
+                    expect(response.content.length).toBeGreaterThanOrEqual(1);
+                    expect(response.content[0]?.type).toEqual("text");
+                    const c = response.content[0] as { text: string };
+                    if (
+                        c.text.includes("Cluster is already connected.") ||
+                        c.text.includes(`Connected to cluster "${clusterName}"`)
+                    ) {
+                        break; // success
+                    } else {
+                        expect(response.content[0]?.text).toContain(
+                            `Attempting to connect to cluster "${clusterName}"...`
+                        );
+                    }
+                    await sleep(500);
+                }
             });
 
             describe("when not connected", () => {

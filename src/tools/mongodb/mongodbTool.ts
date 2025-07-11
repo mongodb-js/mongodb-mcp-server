@@ -16,16 +16,25 @@ export abstract class MongoDBToolBase extends ToolBase {
     public category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
-        if (!this.session.serviceProvider && this.config.connectionString) {
-            try {
-                await this.connectToMongoDB(this.config.connectionString);
-            } catch (error) {
-                logger.error(
-                    LogId.mongodbConnectFailure,
-                    "mongodbTool",
-                    `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`
+        if (!this.session.serviceProvider) {
+            if (this.session.connectedAtlasCluster) {
+                throw new MongoDBError(
+                    ErrorCodes.NotConnectedToMongoDB,
+                    `Attempting to connect to Atlas cluster "${this.session.connectedAtlasCluster.clusterName}", try again in a few seconds.`
                 );
-                throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
+            }
+
+            if (this.config.connectionString) {
+                try {
+                    await this.connectToMongoDB(this.config.connectionString);
+                } catch (error) {
+                    logger.error(
+                        LogId.mongodbConnectFailure,
+                        "mongodbTool",
+                        `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`
+                    );
+                    throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
+                }
             }
         }
 

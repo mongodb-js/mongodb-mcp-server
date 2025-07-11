@@ -46,7 +46,7 @@ export class ConnectTool extends MongoDBToolBase {
 
     constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
         super(session, config, telemetry);
-        session.on("close", () => {
+        session.on("disconnect", () => {
             this.updateMetadata();
         });
     }

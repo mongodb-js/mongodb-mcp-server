@@ -5,6 +5,7 @@ import { ApiClientError } from "./apiClientError.js";
 import { paths, operations } from "./openapi.js";
 import { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../../helpers/packageInfo.js";
+import logger, { LogId } from "../../logger.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 
@@ -34,9 +35,7 @@ export class ApiClient {
 
     private getAccessToken = async () => {
         if (this.oauth2Client && (!this.accessToken || this.accessToken.expired())) {
-            this.accessToken = await this.oauth2Client.getToken({
-                agent: this.options.userAgent,
-            });
+            this.accessToken = await this.oauth2Client.getToken({});
         }
         return this.accessToken?.token.access_token as string | undefined;
     };
@@ -49,7 +48,9 @@ export class ApiClient {
 
             try {
                 const accessToken = await this.getAccessToken();
-                request.headers.set("Authorization", `Bearer ${accessToken}`);
+                if (accessToken) {
+                    request.headers.set("Authorization", `Bearer ${accessToken}`);
+                }
                 return request;
             } catch {
                 // ignore not availble tokens, API will return 401
@@ -81,6 +82,12 @@ export class ApiClient {
                 auth: {
                     tokenHost: this.options.baseUrl,
                     tokenPath: "/api/oauth/token",
+                    revokePath: "/api/oauth/revoke",
+                },
+                http: {
+                    headers: {
+                        "User-Agent": this.options.userAgent,
+                    },
                 },
             });
             this.client.use(this.authMiddleware);
@@ -88,11 +95,23 @@ export class ApiClient {
     }
 
     public hasCredentials(): boolean {
-        return !!(this.oauth2Client && this.accessToken);
+        return !!this.oauth2Client;
     }
 
     public async validateAccessToken(): Promise<void> {
         await this.getAccessToken();
+    }
+
+    public async close(): Promise<void> {
+        if (this.accessToken) {
+            try {
+                await this.accessToken.revoke("access_token");
+            } catch (error: unknown) {
+                const err = error instanceof Error ? error : new Error(String(error));
+                logger.error(LogId.atlasApiRevokeFailure, "apiClient", `Failed to revoke access token: ${err.message}`);
+            }
+            this.accessToken = undefined;
+        }
     }
 
     public async getIpInfo(): Promise<{
