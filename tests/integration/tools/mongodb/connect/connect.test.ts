@@ -5,7 +5,7 @@ import {
     validateThrowsForInvalidArguments,
     validateToolMetadata,
 } from "../../../helpers.js";
-import { config } from "../../../../../src/config.js";
+import { config } from "../../../../../src/common/config.js";
 import { defaultTestConfig, setupIntegrationTest } from "../../../helpers.js";
 
 describeWithMongoDB(

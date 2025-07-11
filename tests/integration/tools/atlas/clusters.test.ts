@@ -1,4 +1,4 @@
-import { Session } from "../../../../src/session.js";
+import { Session } from "../../../../src/common/session.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
 import { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";

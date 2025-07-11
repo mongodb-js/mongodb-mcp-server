@@ -2,8 +2,8 @@ import { z } from "zod";
 import { ToolArgs, ToolBase, ToolCategory, TelemetryToolMetadata } from "../tool.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorCodes, MongoDBError } from "../../errors.js";
-import logger, { LogId } from "../../logger.js";
+import { ErrorCodes, MongoDBError } from "../../common/errors.js";
+import logger, { LogId } from "../../common/logger.js";
 import { Server } from "../../server.js";
 
 export const DbOperationArgs = {

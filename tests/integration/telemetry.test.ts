@@ -1,7 +1,7 @@
 import { createHmac } from "crypto";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
-import { Session } from "../../src/session.js";
-import { config } from "../../src/config.js";
+import { Session } from "../../src/common/session.js";
+import { config } from "../../src/common/config.js";
 import nodeMachineId from "node-machine-id";
 
 describe("Telemetry", () => {

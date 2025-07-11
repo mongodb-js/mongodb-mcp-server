@@ -1,6 +1,6 @@
 import { Document } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { ErrorCodes, MongoDBError } from "../errors.js";
+import { ErrorCodes, MongoDBError } from "../common/errors.js";
 
 /**
  * Check if the query plan uses an index

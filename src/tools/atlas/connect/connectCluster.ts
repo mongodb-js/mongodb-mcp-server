@@ -3,7 +3,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../common/atlas/generatePassword.js";
-import logger, { LogId } from "../../../logger.js";
+import logger, { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours

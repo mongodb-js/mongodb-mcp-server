@@ -1,12 +1,12 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { Server } from "../../src/server.js";
-import { UserConfig } from "../../src/config.js";
+import { UserConfig } from "../../src/common/config.js";
 import { McpError } from "@modelcontextprotocol/sdk/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Session } from "../../src/session.js";
+import { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
-import { config } from "../../src/config.js";
+import { config } from "../../src/common/config.js";
 import { jest } from "@jest/globals";
 
 interface ParameterInfo {

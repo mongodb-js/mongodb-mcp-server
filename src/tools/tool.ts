@@ -1,11 +1,11 @@
 import { z, type ZodRawShape, type ZodNever, AnyZodObject } from "zod";
 import type { RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import { Session } from "../session.js";
-import logger, { LogId } from "../logger.js";
+import { Session } from "../common/session.js";
+import logger, { LogId } from "../common/logger.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { type ToolEvent } from "../telemetry/types.js";
-import { UserConfig } from "../config.js";
+import { UserConfig } from "../common/config.js";
 import { Server } from "../server.js";
 
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;

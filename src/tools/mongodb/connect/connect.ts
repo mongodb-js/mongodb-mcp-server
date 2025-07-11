@@ -3,9 +3,9 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import assert from "assert";
-import { UserConfig } from "../../../config.js";
+import { UserConfig } from "../../../common/config.js";
 import { Telemetry } from "../../../telemetry/telemetry.js";
-import { Session } from "../../../session.js";
+import { Session } from "../../../common/session.js";
 import { Server } from "../../../server.js";
 
 const disconnectedSchema = z

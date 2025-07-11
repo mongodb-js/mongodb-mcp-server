@@ -1,11 +1,11 @@
 import { ApiClient } from "../../src/common/atlas/apiClient.js";
-import { Session } from "../../src/session.js";
+import { Session } from "../../src/common/session.js";
 import { DEVICE_ID_TIMEOUT, Telemetry } from "../../src/telemetry/telemetry.js";
 import { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
-import { config } from "../../src/config.js";
+import { config } from "../../src/common/config.js";
 import { jest } from "@jest/globals";
-import logger, { LogId } from "../../src/logger.js";
+import logger, { LogId } from "../../src/common/logger.js";
 import { createHmac } from "crypto";
 
 // Mock the ApiClient to avoid real API calls

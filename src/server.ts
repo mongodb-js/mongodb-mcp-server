@@ -1,12 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Session } from "./session.js";
+import { Session } from "./common/session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
-import logger, { setStdioPreset, setContainerPreset, LogId } from "./logger.js";
+import logger, { setStdioPreset, setContainerPreset, LogId } from "./common/logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
-import { UserConfig } from "./config.js";
+import { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";

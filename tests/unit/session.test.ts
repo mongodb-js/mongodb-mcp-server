@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { Session } from "../../src/session.js";
-import { config } from "../../src/config.js";
+import { Session } from "../../src/common/session.js";
+import { config } from "../../src/common/config.js";
 
 jest.mock("@mongosh/service-provider-node-driver");
 const MockNodeDriverServiceProvider = NodeDriverServiceProvider as jest.MockedClass<typeof NodeDriverServiceProvider>;

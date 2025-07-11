@@ -1,6 +1,6 @@
 import { ClusterDescription20240805, FlexClusterDescription20241113 } from "./openapi.js";
 import { ApiClient } from "./apiClient.js";
-import logger, { LogId } from "../../logger.js";
+import logger, { LogId } from "../logger.js";
 
 export interface Cluster {
     name?: string;
