@@ -1,14 +1,14 @@
 import { readFile, writeFile } from "fs/promises";
-import { getAccuracyResultStorage } from "../tests/accuracy/sdk/accuracy-result-storage/get-accuracy-result-storage.js";
+import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracy-result-storage/get-accuracy-result-storage.js";
 import {
     AccuracyResult,
     AccuracyRunStatuses,
     ExpectedToolCall,
     LLMToolCall,
     ModelResponse,
-} from "../tests/accuracy/sdk/accuracy-result-storage/result-storage.js";
-import { getCommitSHA } from "../tests/accuracy/sdk/git-info.js";
-import { HTML_TESTS_SUMMARY_FILE, HTML_TESTS_SUMMARY_TEMPLATE } from "../tests/accuracy/sdk/constants.js";
+} from "../../tests/accuracy/sdk/accuracy-result-storage/result-storage.js";
+import { getCommitSHA } from "../../tests/accuracy/sdk/git-info.js";
+import { HTML_TESTS_SUMMARY_FILE, HTML_TESTS_SUMMARY_TEMPLATE } from "../../tests/accuracy/sdk/constants.js";
 
 type ComparableAccuracyResult = Omit<AccuracyResult, "promptResults"> & {
     promptAndModelResponses: PromptAndModelResponse[];
