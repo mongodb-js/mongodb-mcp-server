@@ -1,5 +1,5 @@
 import { LanguageModelV1 } from "ai";
-import { createGoogleGenerativeAI } from "@himanshusinghs/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAzure } from "@ai-sdk/azure";
 import { createOpenAI } from "@ai-sdk/openai";
 import { ollama } from "ollama-ai-provider";
