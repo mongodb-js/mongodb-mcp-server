@@ -2,8 +2,12 @@ name: Accuracy Tests
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
   pull_request:
-    types: [labeled]
+    types:
+      - labeled
 
 jobs:
   run-accuracy-tests:
@@ -41,6 +45,6 @@ jobs:
           path: .accuracy/tests-summary.html
       - name: Comment summary on PR
         if: github.event_name == 'pull_request' && github.event.label.name == 'accuracy-tests'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@d2ad0de260ae8b0235ce059e63f2949ba9e05943 # v2
         with:
           path: .accuracy/tests-summary.html
