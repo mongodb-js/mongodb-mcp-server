@@ -1,5 +1,5 @@
 import { calculateToolCallingAccuracy } from "../accuracy/sdk/accuracy-scorer.js";
-import { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracy-snapshot-storage/snapshot-storage.js";
+import { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracy-result-storage/result-storage.js";
 
 describe("calculateToolCallingAccuracy", () => {
     describe("edge cases", () => {

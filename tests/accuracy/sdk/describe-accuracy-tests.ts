@@ -3,8 +3,8 @@ import { calculateToolCallingAccuracy } from "./accuracy-scorer.js";
 import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
 import { AccuracyTestingClient, MockedTools } from "./accuracy-testing-client.js";
-import { getAccuracySnapshotStorage } from "./accuracy-snapshot-storage/get-snapshot-storage.js";
-import { AccuracySnapshotStorage, ExpectedToolCall } from "./accuracy-snapshot-storage/snapshot-storage.js";
+import { AccuracyResultStorage, ExpectedToolCall } from "./accuracy-result-storage/result-storage.js";
+import { getAccuracyResultStorage } from "./accuracy-result-storage/get-accuracy-result-storage.js";
 import { getCommitSHA } from "./git-info.js";
 
 export interface AccuracyTestConfig {
@@ -57,7 +57,7 @@ export function describeAccuracyTests(models: TestableModels, accuracyTestConfig
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
         let commitSHA: string;
-        let accuracySnapshotStorage: AccuracySnapshotStorage;
+        let accuracyResultStorage: AccuracyResultStorage;
         let testMCPClient: AccuracyTestingClient;
         let agent: VercelAgent;
 
@@ -68,7 +68,7 @@ export function describeAccuracyTests(models: TestableModels, accuracyTestConfig
             }
             commitSHA = retrievedCommitSHA;
 
-            accuracySnapshotStorage = await getAccuracySnapshotStorage();
+            accuracyResultStorage = getAccuracyResultStorage();
             testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString());
             agent = getVercelToolCallingAgent();
         });
@@ -80,7 +80,7 @@ export function describeAccuracyTests(models: TestableModels, accuracyTestConfig
         });
 
         afterAll(async () => {
-            await accuracySnapshotStorage?.close();
+            await accuracyResultStorage?.close();
             await testMCPClient?.close();
         });
 
@@ -102,17 +102,17 @@ export function describeAccuracyTests(models: TestableModels, accuracyTestConfig
             const toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
 
             const responseTime = timeAfterPrompt - timeBeforePrompt;
-            await accuracySnapshotStorage.createSnapshotEntry({
-                accuracyRunId,
-                commitSHA,
+            await accuracyResultStorage.saveModelResponseForPrompt(commitSHA, accuracyRunId, testConfig.prompt, {
                 provider: model.provider,
                 requestedModel: model.modelName,
-                prompt: testConfig.prompt,
+                respondingModel: result.respondingModel,
                 llmResponseTime: responseTime,
                 toolCallingAccuracy: toolCallingAccuracy,
-                actualToolCalls: llmToolCalls,
                 expectedToolCalls: testConfig.expectedToolCalls,
-                ...result,
+                llmToolCalls: llmToolCalls,
+                tokensUsed: result.tokensUsage,
+                text: result.text,
+                messages: result.messages,
             });
         });
     });

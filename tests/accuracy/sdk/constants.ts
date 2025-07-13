@@ -15,7 +15,9 @@ export const TEST_DATA_DUMPS_DIR = path.join(__dirname, "test-data-dumps");
 
 export const GENERATED_ASSETS_DIR = path.join(ROOT_DIR, ".accuracy");
 
-export const LOCAL_SNAPSHOTS_FILE = path.join(GENERATED_ASSETS_DIR, "snapshots.json");
+export const ACCURACY_RESULTS_DIR = path.join(GENERATED_ASSETS_DIR, "results");
+
+export const LATEST_ACCURACY_RUN_NAME = "latest-run";
 
 export const HTML_TESTS_SUMMARY_FILE = path.join(GENERATED_ASSETS_DIR, "tests-summary.html");
 
