@@ -8,7 +8,7 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # export MDB_AZURE_OPEN_AI_API_KEY=""
 # export MDB_AZURE_OPEN_AI_API_URL=""
 
-# For providing a mongodb based storage to store accuracy snapshots
+# For providing a mongodb based storage to store accuracy result
 # export MDB_ACCURACY_MDB_URL=""
 
 # By default we run all the tests under tests/accuracy folder unless a path is
@@ -16,31 +16,30 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # npm run test:accuracy -- tests/accuracy/some-test.test.ts
 TEST_PATH_PATTERN="${1:-tests/accuracy}"
 shift || true
+echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID' and TEST_PATH_PATTERN '$TEST_PATH_PATTERN'"
 node --experimental-vm-modules node_modules/jest/bin/jest.js --bail --testPathPatterns "$TEST_PATH_PATTERN" "$@"
 
 # Preserving the exit code from test run to correctly notify in the CI
 # environments when the tests fail.
 JEST_EXIT_CODE=$?
 
-# Each test run submits an accuracy snapshot entry with the accuracyRunStatus:
+# Each test run submits an accuracy result with the accuracyRunStatus:
 # "in-progress". When all the tests are done and jest exits with an exit code of
 # 0, we can safely mark accuracy run as finished otherwise failed.
 
 # This "outside-the-tests-status-update" is arising out of the fact that each
 # test suite stores their own accuracy run data in the storage and this setup
 # might lead to data inconsistency when the tests fail. To overcome that each
-# accuracy snapshot entry has a status which by default is "in-progress" and is
+# accuracy result entry has a status which by default is "in-progress" and is
 # updated when the tests either pass (all our accuracy tests are supposed to
 # pass unless some errors occurs during the test runs), or fail.
 
 # This is necessary when comparing one accuracy run with another as we wouldn't
 # want to compare against an incomplete run.
-if [ $JEST_EXIT_CODE -eq 0 ]; then
-  MDB_ACCURACY_RUN_STATUS="done" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'done'"
-  npx tsx scripts/generate-test-summary.ts || echo "Warning: Failed to generate test summary HTML report"
-else
-  MDB_ACCURACY_RUN_STATUS="failed" npx tsx scripts/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to 'failed'"
-fi
+export MDB_ACCURACY_RUN_STATUS=$([ $JEST_EXIT_CODE -eq 0 ] && echo "done" || echo "failed")
+npx tsx scripts/accuracy/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to '$MDB_ACCURACY_RUN_STATUS'"
 
+# This is optional but we do it anyways to generate a readable summary of report.
+npx tsx scripts/generate-test-summary.ts || echo "Warning: Failed to generate test summary HTML report"
 
 exit $JEST_EXIT_CODE

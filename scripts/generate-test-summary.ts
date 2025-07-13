@@ -1,23 +1,45 @@
 import { readFile, writeFile } from "fs/promises";
-import { getAccuracySnapshotStorage } from "../tests/accuracy/sdk/accuracy-snapshot-storage/get-snapshot-storage.js";
-import { HTML_TESTS_SUMMARY_FILE, HTML_TESTS_SUMMARY_TEMPLATE } from "../tests/accuracy/sdk/constants.js";
-import type {
-    AccuracySnapshotEntry,
+import { getAccuracyResultStorage } from "../tests/accuracy/sdk/accuracy-result-storage/get-accuracy-result-storage.js";
+import {
+    AccuracyResult,
+    AccuracyRunStatuses,
     ExpectedToolCall,
     LLMToolCall,
-} from "../tests/accuracy/sdk/accuracy-snapshot-storage/snapshot-storage.js";
+    ModelResponse,
+} from "../tests/accuracy/sdk/accuracy-result-storage/result-storage.js";
+import { getCommitSHA } from "../tests/accuracy/sdk/git-info.js";
+import { HTML_TESTS_SUMMARY_FILE, HTML_TESTS_SUMMARY_TEMPLATE } from "../tests/accuracy/sdk/constants.js";
 
-interface BaselineComparison {
-    baselineAccuracy?: number;
-    comparisonResult?: "improved" | "regressed" | "same";
+type ComparableAccuracyResult = Omit<AccuracyResult, "promptResults"> & {
+    promptAndModelResponses: PromptAndModelResponse[];
+};
+
+interface PromptAndModelResponse extends ModelResponse {
+    prompt: string;
+    baselineToolAccuracy?: number;
 }
 
-interface SnapshotEntryWithBaseline extends AccuracySnapshotEntry {
-    baseline?: BaselineComparison;
+interface BaselineRunInfo {
+    commitSHA: string;
+    accuracyRunId: string;
+    accuracyRunStatus: AccuracyRunStatuses;
+    createdOn: string;
 }
 
 function populateTemplate(template: string, data: Record<string, string>): string {
     return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => data[key] ?? "");
+}
+
+function formatRunStatus(status: AccuracyRunStatuses) {
+    let statusClass = "chip run-status";
+    if (status === "done") {
+        statusClass += " perfect";
+    } else if (status === "in-progress") {
+        statusClass += " poor";
+    } else if (status === "failed") {
+        statusClass += " poor";
+    }
+    return `<span class="${statusClass}">${status}</span>`;
 }
 
 function formatAccuracy(accuracy: number): string {
@@ -25,9 +47,9 @@ function formatAccuracy(accuracy: number): string {
 }
 
 function getAccuracyClass(accuracy: number): string {
-    if (accuracy === 1) return "accuracy-perfect";
-    if (accuracy >= 0.75) return "accuracy-good";
-    return "accuracy-poor";
+    if (accuracy === 1) return "chip perfect";
+    if (accuracy >= 0.75) return "chip good";
+    return "chip poor";
 }
 
 function formatToolCallsWithTooltip(toolCalls: ExpectedToolCall[] | LLMToolCall[]): string {
@@ -44,9 +66,9 @@ function formatTokenUsage(tokensUsage: {
     completionTokens?: number;
     totalTokens?: number;
 }): string {
-    const total = tokensUsage.totalTokens || 0;
-    const prompt = tokensUsage.promptTokens || 0;
-    const completion = tokensUsage.completionTokens || 0;
+    const total = tokensUsage.totalTokens || "-";
+    const prompt = tokensUsage.promptTokens || "-";
+    const completion = tokensUsage.completionTokens || "-";
 
     const tooltip = `Prompt: ${prompt}\nCompletion: ${completion}\nTotal: ${total}`;
     return `<span class="tokens-usage" title="${tooltip}">${total}</span>`;
@@ -56,232 +78,194 @@ function formatMessages(messages: Array<Record<string, unknown>>): string {
     return messages.map((msg) => JSON.stringify(msg, null, 2)).join("\n\n");
 }
 
-function formatBaselineAccuracy(snapshot: SnapshotEntryWithBaseline): string {
-    if (!snapshot.baseline || snapshot.baseline.baselineAccuracy === undefined) {
-        return '<span class="accuracy-comparison">N/A</span>';
-    }
-
-    const baselineAccuracyText = formatAccuracy(snapshot.baseline.baselineAccuracy);
-    let comparisonClass = "accuracy-comparison";
+function formatCurrentAccuracy(response: PromptAndModelResponse): string {
+    const currentAccuracyText = formatAccuracy(response.toolCallingAccuracy);
+    const comparisonClass = getAccuracyClass(response.toolCallingAccuracy);
     let comparisonIcon = "";
 
-    if (snapshot.baseline.comparisonResult) {
-        switch (snapshot.baseline.comparisonResult) {
-            case "improved":
-                comparisonClass += " accuracy-improved";
-                comparisonIcon = " ↗";
-                break;
-            case "regressed":
-                comparisonClass += " accuracy-regressed";
-                comparisonIcon = " ↘";
-                break;
-            case "same":
-                comparisonClass += " accuracy-same";
-                comparisonIcon = " →";
-                break;
+    if (typeof response.baselineToolAccuracy === "number") {
+        if (response.toolCallingAccuracy > response.baselineToolAccuracy) {
+            comparisonIcon = " ↗";
+        } else if (response.toolCallingAccuracy < response.baselineToolAccuracy) {
+            comparisonIcon = " ↘";
+        } else {
+            comparisonIcon = " →";
         }
     }
 
-    return `<span class="${comparisonClass}">${baselineAccuracyText}${comparisonIcon}</span>`;
+    return `<span class="${comparisonClass}">${currentAccuracyText}${comparisonIcon}</span>`;
 }
 
-function compareSnapshotEntries(
-    currentSnapshotEntries: AccuracySnapshotEntry[],
-    baselineSnapshotEntries: AccuracySnapshotEntry[]
-): SnapshotEntryWithBaseline[] {
-    const baselineMap = new Map<string, AccuracySnapshotEntry>();
-    baselineSnapshotEntries.forEach((entry) => {
-        const key = `${entry.provider}|${entry.requestedModel}|${entry.prompt}`;
-        baselineMap.set(key, entry);
-    });
+function formatBaselineAccuracy(response: PromptAndModelResponse): string {
+    if (response.baselineToolAccuracy === null || response.baselineToolAccuracy === undefined) {
+        return '<span class="accuracy-comparison">N/A</span>';
+    }
+    return `<span class="accuracy-comparison">${formatAccuracy(response.baselineToolAccuracy)}</span>`;
+}
 
-    return currentSnapshotEntries.map((entry) => {
-        const key = `${entry.provider}|${entry.requestedModel}|${entry.prompt}`;
-        const baselineEntry = baselineMap.get(key);
-
-        if (!baselineEntry) {
-            return entry;
-        }
-
-        let comparisonResult: "improved" | "regressed" | "same";
-        if (entry.toolCallingAccuracy > baselineEntry.toolCallingAccuracy) {
-            comparisonResult = "improved";
-        } else if (entry.toolCallingAccuracy < baselineEntry.toolCallingAccuracy) {
-            comparisonResult = "regressed";
-        } else {
-            comparisonResult = "same";
-        }
-
-        return {
-            ...entry,
-            baseline: {
-                baselineAccuracy: baselineEntry.toolCallingAccuracy,
-                comparisonResult,
-            },
-        };
-    });
+function getTestSummary(comparableResult: ComparableAccuracyResult) {
+    const responses = comparableResult.promptAndModelResponses;
+    return {
+        totalPrompts: new Set(responses.map((r) => r.prompt)).size,
+        totalModels: new Set(responses.map((r) => `${r.provider} ${r.requestedModel}`)).size,
+        testsWithZeroAccuracy: responses.filter((r) => r.toolCallingAccuracy === 0),
+        testsWith75Accuracy: responses.filter((r) => r.toolCallingAccuracy === 0.75),
+        testsWith100Accuracy: responses.filter((r) => r.toolCallingAccuracy === 100),
+        averageAccuracy:
+            responses.length > 0 ? responses.reduce((sum, r) => sum + r.toolCallingAccuracy, 0) / responses.length : 0,
+        evalsImproved: responses.filter(
+            (r) => typeof r.baselineToolAccuracy === "number" && r.toolCallingAccuracy > r.baselineToolAccuracy
+        ).length,
+        evalsRegressed: responses.filter(
+            (r) => typeof r.baselineToolAccuracy === "number" && r.toolCallingAccuracy < r.baselineToolAccuracy
+        ).length,
+        reportGeneratedOn: new Date().toLocaleString(),
+        resultCreatedOn: new Date(comparableResult.createdOn).toLocaleString(),
+    };
 }
 
 async function generateHtmlReport(
-    snapshotEntries: SnapshotEntryWithBaseline[],
-    accuracyRunId: string,
-    baselineInfo?: {
-        commitSHA: string;
-        accuracyRunId: string;
-        createdOn: string;
-    }
+    comparableResult: ComparableAccuracyResult,
+    testSummary: ReturnType<typeof getTestSummary>,
+    baselineInfo: BaselineRunInfo | null
 ): Promise<string> {
-    const totalPrompts = snapshotEntries.length;
-    const modelsCount = new Set(snapshotEntries.map((s) => `${s.provider} ${s.requestedModel}`)).size;
-    const testsWithZeroAccuracy = snapshotEntries.filter((snapshotEntry) => snapshotEntry.toolCallingAccuracy === 0);
-
-    const totalAccuracy = snapshotEntries.reduce((sum, entry) => sum + entry.toolCallingAccuracy, 0);
-    const averageAccuracy = totalPrompts > 0 ? totalAccuracy / totalPrompts : 0;
-
-    const evalsImproved = snapshotEntries.filter((s) => s.baseline?.comparisonResult === "improved").length;
-    const evalsRegressed = snapshotEntries.filter((s) => s.baseline?.comparisonResult === "regressed").length;
-
-    const firstSnapshotEntry = snapshotEntries[0];
-    const runStatus = firstSnapshotEntry?.accuracyRunStatus || "unknown";
-    const commitSHA = firstSnapshotEntry?.commitSHA || "unknown";
-    const createdOn = firstSnapshotEntry?.createdOn
-        ? new Date(firstSnapshotEntry.createdOn).toLocaleString()
-        : "unknown";
-    const reportGeneratedOn = new Date().toLocaleString();
-
-    const tableRows = snapshotEntries
+    const responses = comparableResult.promptAndModelResponses;
+    const tableRows = responses
         .map(
-            (snapshotEntry, index) => `
-                <tr class="test-row" onclick="toggleDetails(${index})">
-                    <td class="prompt-cell">
-                        <span class="expand-indicator" id="indicator-${index}">▶</span>
-                        ${snapshotEntry.prompt}
-                    </td>
-                    <td class="model-cell">${snapshotEntry.provider} - ${snapshotEntry.requestedModel}</td>
-                    <td class="tool-calls-cell">${formatToolCallsWithTooltip(snapshotEntry.expectedToolCalls)}</td>
-                    <td class="tool-calls-cell">${formatToolCallsWithTooltip(snapshotEntry.actualToolCalls)}</td>
-                    <td class="accuracy-cell">
-                        <span class="${getAccuracyClass(snapshotEntry.toolCallingAccuracy)}">
-                            ${formatAccuracy(snapshotEntry.toolCallingAccuracy)}
-                        </span>
-                    </td>
-                    <td class="baseline-accuracy-cell">${formatBaselineAccuracy(snapshotEntry)}</td>
-                    <td class="response-time-cell">${snapshotEntry.llmResponseTime.toFixed(2)}</td>
-                    <td class="tokens-cell">${formatTokenUsage(snapshotEntry.tokensUsage || {})}</td>
-                </tr>
-                <tr class="details-row" id="details-${index}">
-                    <td colspan="8">
-                        <div class="details-content">
-                            <div class="conversation-section">
-                                <h4>🤖 LLM Response</h4>
-                                <div class="conversation-content">${snapshotEntry.text}</div>
-                            </div>
-                            <div class="conversation-section">
-                                <h4>💬 Conversation Messages</h4>
-                                <div class="conversation-content">${formatMessages(snapshotEntry.messages)}</div>
-                            </div>
+            (response, index) => `
+            <tr class="test-row" onclick="toggleDetails(${index})">
+                <td class="prompt-cell">
+                    <span class="expand-indicator" id="indicator-${index}">▶</span>
+                    ${response.prompt}
+                </td>
+                <td class="model-cell">${response.provider} - ${response.requestedModel}</td>
+                <td class="tool-calls-cell">${formatToolCallsWithTooltip(response.expectedToolCalls)}</td>
+                <td class="tool-calls-cell">${formatToolCallsWithTooltip(response.llmToolCalls)}</td>
+                <td class="accuracy-cell">${formatCurrentAccuracy(response)}</td>
+                <td class="baseline-accuracy-cell">${formatBaselineAccuracy(response)}</td>
+                <td class="response-time-cell">${response.llmResponseTime.toFixed(2)}</td>
+                <td class="tokens-cell">${formatTokenUsage(response.tokensUsed || {})}</td>
+            </tr>
+            <tr class="details-row" id="details-${index}">
+                <td colspan="8">
+                    <div class="details-content">
+                        <div class="conversation-section">
+                            <h4>🤖 LLM Response</h4>
+                            <div class="conversation-content">${response.text || "N/A"}</div>
                         </div>
-                    </td>
-                </tr>
-            `
+                        <div class="conversation-section">
+                            <h4>💬 Conversation Messages</h4>
+                            <div class="conversation-content">${formatMessages(response.messages || [])}</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `
         )
         .join("");
 
     const template = await readFile(HTML_TESTS_SUMMARY_TEMPLATE, "utf8");
     return populateTemplate(template, {
-        accuracyRunId,
-        runStatus,
-        runStatusUpper: runStatus.toUpperCase(),
-        commitSHA,
-        reportGeneratedOn,
-        createdOn,
-        totalTests: String(totalPrompts),
-        modelsCount: String(modelsCount),
-        testsWithZeroAccuracy: String(testsWithZeroAccuracy.length),
-        averageAccuracy: formatAccuracy(averageAccuracy),
-        baselineCommitSHA: baselineInfo?.commitSHA || "N/A",
-        baselineAccuracyRunId: baselineInfo?.accuracyRunId || "N/A",
-        baselineCreatedOn: baselineInfo?.createdOn || "N/A",
-        evalsImproved: String(evalsImproved),
-        evalsRegressed: String(evalsRegressed),
+        commitSHA: comparableResult.commitSHA,
+        accuracyRunId: comparableResult.runId,
+        accuracyRunStatus: formatRunStatus(comparableResult.runStatus),
+        reportGeneratedOn: testSummary.reportGeneratedOn,
+        createdOn: testSummary.resultCreatedOn,
+        totalTests: String(testSummary.totalPrompts),
+        modelsCount: String(testSummary.totalModels),
+        testsWithZeroAccuracy: String(testSummary.testsWithZeroAccuracy.length),
+        averageAccuracy: formatAccuracy(testSummary.averageAccuracy),
+        baselineCommitSHA: baselineInfo?.commitSHA || "-",
+        baselineAccuracyRunId: baselineInfo?.accuracyRunId || "-",
+        baselineAccuracyRunStatus: baselineInfo?.accuracyRunStatus
+            ? formatRunStatus(baselineInfo?.accuracyRunStatus)
+            : "-",
+        baselineCreatedOn: baselineInfo?.createdOn || "-",
+        evalsImproved: baselineInfo ? String(testSummary.evalsImproved) : "-",
+        evalsRegressed: baselineInfo ? String(testSummary.evalsRegressed) : "-",
         tableRows,
     });
 }
 
-async function generateTestSummary(): Promise<void> {
+async function generateTestSummary() {
+    const storage = getAccuracyResultStorage();
     try {
+        const baselineCommit = process.env.MDB_ACCURACY_BASELINE_COMMIT;
+        const accuracyRunCommit = await getCommitSHA();
         const accuracyRunId = process.env.MDB_ACCURACY_RUN_ID;
-        const baselineCommitSHA = process.env.MDB_ACCURACY_BASELINE_COMMIT;
 
-        if (!accuracyRunId) {
-            throw new Error("Cannot generate test summary, accuracy run id is unknown");
-        }
-        console.log(`\n📊 Generating test summary for accuracy run: ${accuracyRunId}\n`);
-
-        const storage = await getAccuracySnapshotStorage();
-        const currentSnapshot = await storage.getSnapshotForAccuracyRun(accuracyRunId);
-
-        if (currentSnapshot.length === 0) {
-            console.log("No snapshot entries found for the current run.");
-            await storage.close();
-            return;
+        if (!accuracyRunCommit) {
+            throw new Error("Cannot generate summary without accuracyRunCommit");
         }
 
-        let snapshotWithBaseline: SnapshotEntryWithBaseline[] = currentSnapshot;
-        let baselineInfo: { commitSHA: string; accuracyRunId: string; createdOn: string } | undefined;
+        const accuracyRunResult = await storage.getAccuracyResult(accuracyRunCommit, accuracyRunId);
+        if (!accuracyRunResult) {
+            throw new Error(
+                `No accuracy run result found for commitSHA - ${accuracyRunCommit}, runId - ${accuracyRunId}`
+            );
+        }
 
-        if (baselineCommitSHA) {
-            console.log(`🔍 Fetching baseline snapshot entries for commit: ${baselineCommitSHA}`);
-            const baselineSnapshot = await storage.getLatestSnapshotForCommit(baselineCommitSHA);
+        const baselineAccuracyRunResult = baselineCommit ? await storage.getAccuracyResult(baselineCommit) : null;
+        const baselineInfo: BaselineRunInfo | null =
+            baselineCommit && baselineAccuracyRunResult
+                ? {
+                      commitSHA: baselineCommit,
+                      accuracyRunId: baselineAccuracyRunResult.runId,
+                      accuracyRunStatus: baselineAccuracyRunResult.runStatus,
+                      createdOn: new Date(baselineAccuracyRunResult.createdOn).toLocaleString(),
+                  }
+                : null;
 
-            if (baselineSnapshot.length > 0) {
-                console.log(`✅ Found ${baselineSnapshot.length} baseline snapshot entries.`);
-                snapshotWithBaseline = compareSnapshotEntries(currentSnapshot, baselineSnapshot);
+        const comparableAccuracyResult: ComparableAccuracyResult = {
+            ...accuracyRunResult,
+            promptAndModelResponses: accuracyRunResult.promptResults.flatMap<PromptAndModelResponse>(
+                (currentPromptResult) => {
+                    const baselinePromptResult = baselineAccuracyRunResult?.promptResults.find((baselineResult) => {
+                        return baselineResult.prompt === currentPromptResult.prompt;
+                    });
 
-                const firstBaselineSnapshot = baselineSnapshot[0];
-                if (firstBaselineSnapshot) {
-                    baselineInfo = {
-                        commitSHA: firstBaselineSnapshot.commitSHA,
-                        accuracyRunId: firstBaselineSnapshot.accuracyRunId,
-                        createdOn: firstBaselineSnapshot.createdOn
-                            ? new Date(firstBaselineSnapshot.createdOn).toLocaleString()
-                            : "unknown",
-                    };
+                    return currentPromptResult.modelResponses.map<PromptAndModelResponse>((currentModelResponse) => {
+                        const baselineModelResponse = baselinePromptResult?.modelResponses.find(
+                            (baselineModelResponse) => {
+                                return (
+                                    baselineModelResponse.provider === currentModelResponse.provider &&
+                                    baselineModelResponse.requestedModel === currentModelResponse.requestedModel
+                                );
+                            }
+                        );
+                        return {
+                            ...currentModelResponse,
+                            prompt: currentPromptResult.prompt,
+                            baselineToolAccuracy: baselineModelResponse?.toolCallingAccuracy,
+                        };
+                    });
                 }
-            } else {
-                console.log(`⚠️  No baseline snapshots found for commit: ${baselineCommitSHA}`);
-            }
-        }
+            ),
+        };
 
-        const htmlReport = await generateHtmlReport(snapshotWithBaseline, accuracyRunId, baselineInfo);
-        await storage.close();
+        console.log(`\n📊 Generating test summary for accuracy run: ${accuracyRunId}\n`);
+        const testSummary = getTestSummary(comparableAccuracyResult);
+        const htmlReport = await generateHtmlReport(comparableAccuracyResult, testSummary, baselineInfo);
 
-        const reportPath = HTML_TESTS_SUMMARY_FILE;
-        await writeFile(reportPath, htmlReport, "utf8");
+        await writeFile(HTML_TESTS_SUMMARY_FILE, htmlReport, "utf8");
 
-        console.log(`✅ HTML report generated: ${reportPath}`);
-
-        const totalPrompts = snapshotWithBaseline.length;
-        const modelsCount = new Set(snapshotWithBaseline.map((s) => `${s.provider} ${s.requestedModel}`)).size;
-        const testsWithZeroAccuracy = snapshotWithBaseline.filter(
-            (snapshotEntry) => snapshotEntry.toolCallingAccuracy === 0
-        );
-        const evalsImproved = snapshotWithBaseline.filter((s) => s.baseline?.comparisonResult === "improved").length;
-        const evalsRegressed = snapshotWithBaseline.filter((s) => s.baseline?.comparisonResult === "regressed").length;
+        console.log(`✅ HTML report generated: ${HTML_TESTS_SUMMARY_FILE}`);
 
         console.log(`\n📈 Summary:`);
-        console.log(`   Total prompts evaluated: ${totalPrompts}`);
-        console.log(`   Models tested: ${modelsCount}`);
-        console.log(`   Evals with 0% accuracy: ${testsWithZeroAccuracy.length}`);
+        console.log(`   Total prompts evaluated: ${testSummary.totalPrompts}`);
+        console.log(`   Models tested: ${testSummary.totalModels}`);
+        console.log(`   Evals with 0% accuracy: ${testSummary.testsWithZeroAccuracy.length}`);
 
-        if (baselineCommitSHA) {
-            console.log(`   Baseline commit: ${baselineCommitSHA}`);
-            console.log(`   Evals improved vs baseline: ${evalsImproved}`);
-            console.log(`   Evals regressed vs baseline: ${evalsRegressed}`);
+        if (baselineCommit) {
+            console.log(`   Baseline commit: ${baselineCommit}`);
+            console.log(`   Evals improved vs baseline: ${testSummary.evalsImproved}`);
+            console.log(`   Evals regressed vs baseline: ${testSummary.evalsRegressed}`);
         }
     } catch (error) {
         console.error("Error generating test summary:", error);
         process.exit(1);
+    } finally {
+        await storage.close();
     }
 }
 

@@ -4,7 +4,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";
-import { LLMToolCall } from "./accuracy-snapshot-storage/snapshot-storage.js";
+import { LLMToolCall } from "./accuracy-result-storage/result-storage.js";
 
 type ToolResultGeneratorFn = (...parameters: unknown[]) => CallToolResult | Promise<CallToolResult>;
 export type MockedTools = Record<string, ToolResultGeneratorFn>;

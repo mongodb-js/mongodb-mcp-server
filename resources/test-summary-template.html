@@ -167,28 +167,28 @@
                 font-family: "Monaco", "Menlo", monospace;
                 font-size: 12px;
                 max-height: 400px;
+                max-width: 1300px;
                 overflow-y: auto;
             }
-            .accuracy-perfect {
+            .run-status {
+                text-transform: capitalize;
+            }
+            .chip {
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            .perfect {
                 background-color: #d4edda;
                 color: #155724;
-                padding: 2px 6px;
-                border-radius: 3px;
-                font-weight: bold;
             }
-            .accuracy-good {
+            .good {
                 background-color: #fff3cd;
                 color: #856404;
-                padding: 2px 6px;
-                border-radius: 3px;
-                font-weight: bold;
             }
-            .accuracy-poor {
+            .poor {
                 background-color: #f8d7da;
                 color: #721c24;
-                padding: 2px 6px;
-                border-radius: 3px;
-                font-weight: bold;
             }
             .tool-call {
                 background: #e9ecef;
@@ -304,12 +304,16 @@
                 <h2>📊 Current Run Information</h2>
                 <div class="info-grid">
                     <div class="info-item">
+                        <div class="info-label">Commit SHA</div>
+                        <div class="info-value">{{commitSHA}}</div>
+                    </div>
+                    <div class="info-item">
                         <div class="info-label">Accuracy Run ID</div>
                         <div class="info-value">{{accuracyRunId}}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Commit SHA</div>
-                        <div class="info-value">{{commitSHA}}</div>
+                        <div class="info-label">Accuracy Run Status</div>
+                        <div class="info-value">{{accuracyRunStatus}}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Run Created On</div>
@@ -348,12 +352,16 @@
                 <h2>🔄 Baseline Comparison</h2>
                 <div class="info-grid">
                     <div class="info-item">
+                        <div class="info-label">Baseline Commit SHA</div>
+                        <div class="info-value">{{baselineCommitSHA}}</div>
+                    </div>
+                    <div class="info-item">
                         <div class="info-label">Baseline Accuracy Run ID</div>
                         <div class="info-value">{{baselineAccuracyRunId}}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Baseline Commit SHA</div>
-                        <div class="info-value">{{baselineCommitSHA}}</div>
+                        <div class="info-label">Baseline Accuracy Run Status</div>
+                        <div class="info-value">{{baselineAccuracyRunStatus}}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Baseline Run Created On</div>
