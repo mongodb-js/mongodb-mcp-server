@@ -1,18 +1,21 @@
-import { getAccuracySnapshotStorage } from "../tests/accuracy/sdk/accuracy-snapshot-storage/get-snapshot-storage.js";
-import { AccuracyRunStatus } from "../tests/accuracy/sdk/accuracy-snapshot-storage/snapshot-storage.js";
+import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracy-result-storage/get-accuracy-result-storage.js";
+import { AccuracyRunStatus } from "../../tests/accuracy/sdk/accuracy-result-storage/result-storage.js";
+import { getCommitSHA } from "../../tests/accuracy/sdk/git-info.js";
 
 const envAccuracyRunId = process.env.MDB_ACCURACY_RUN_ID;
 const envAccuracyRunStatus = process.env.MDB_ACCURACY_RUN_STATUS;
+const commitSHA = await getCommitSHA();
 
 if (
     !envAccuracyRunId ||
+    !commitSHA ||
     (envAccuracyRunStatus !== AccuracyRunStatus.Done && envAccuracyRunStatus !== AccuracyRunStatus.Failed)
 ) {
     process.exit(1);
 }
 
 console.time(`Marked accuracy run id - ${envAccuracyRunId} as ${envAccuracyRunStatus} in`);
-const storage = await getAccuracySnapshotStorage();
-await storage.updateAccuracyRunStatus(envAccuracyRunId, envAccuracyRunStatus);
+const storage = getAccuracyResultStorage();
+await storage.updateRunStatus(commitSHA, envAccuracyRunId, envAccuracyRunStatus);
 await storage.close();
 console.timeEnd(`Marked accuracy run id - ${envAccuracyRunId} as ${envAccuracyRunStatus} in`);
