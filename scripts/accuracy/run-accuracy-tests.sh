@@ -40,6 +40,6 @@ export MDB_ACCURACY_RUN_STATUS=$([ $JEST_EXIT_CODE -eq 0 ] && echo "done" || ech
 npx tsx scripts/accuracy/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to '$MDB_ACCURACY_RUN_STATUS'"
 
 # This is optional but we do it anyways to generate a readable summary of report.
-npx tsx scripts/generate-test-summary.ts || echo "Warning: Failed to generate test summary HTML report"
+npx tsx scripts/accuracy/generate-test-summary.ts || echo "Warning: Failed to generate test summary HTML report"
 
 exit $JEST_EXIT_CODE
