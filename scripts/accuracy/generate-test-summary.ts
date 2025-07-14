@@ -9,7 +9,11 @@ import {
     ModelResponse,
 } from "../../tests/accuracy/sdk/accuracy-result-storage/result-storage.js";
 import { getCommitSHA } from "../../tests/accuracy/sdk/git-info.js";
-import { HTML_TESTS_SUMMARY_FILE, HTML_TESTS_SUMMARY_TEMPLATE } from "../../tests/accuracy/sdk/constants.js";
+import {
+    HTML_TEST_SUMMARY_FILE,
+    HTML_TESTS_SUMMARY_TEMPLATE,
+    MARKDOWN_TEST_BRIEF_FILE,
+} from "../../tests/accuracy/sdk/constants.js";
 
 type ComparableAccuracyResult = Omit<AccuracyResult, "promptResults"> & {
     promptAndModelResponses: PromptAndModelResponse[];
@@ -109,15 +113,15 @@ function getTestSummary(comparableResult: ComparableAccuracyResult) {
     return {
         totalPrompts: new Set(responses.map((r) => r.prompt)).size,
         totalModels: new Set(responses.map((r) => `${r.provider} ${r.requestedModel}`)).size,
-        testsWithZeroAccuracy: responses.filter((r) => r.toolCallingAccuracy === 0),
-        testsWith75Accuracy: responses.filter((r) => r.toolCallingAccuracy === 0.75),
-        testsWith100Accuracy: responses.filter((r) => r.toolCallingAccuracy === 100),
+        responsesWithZeroAccuracy: responses.filter((r) => r.toolCallingAccuracy === 0),
+        responsesWith75Accuracy: responses.filter((r) => r.toolCallingAccuracy === 0.75),
+        responsesWith100Accuracy: responses.filter((r) => r.toolCallingAccuracy === 1),
         averageAccuracy:
             responses.length > 0 ? responses.reduce((sum, r) => sum + r.toolCallingAccuracy, 0) / responses.length : 0,
-        evalsImproved: responses.filter(
+        responsesImproved: responses.filter(
             (r) => typeof r.baselineToolAccuracy === "number" && r.toolCallingAccuracy > r.baselineToolAccuracy
         ).length,
-        evalsRegressed: responses.filter(
+        responsesRegressed: responses.filter(
             (r) => typeof r.baselineToolAccuracy === "number" && r.toolCallingAccuracy < r.baselineToolAccuracy
         ).length,
         reportGeneratedOn: new Date().toLocaleString(),
@@ -172,9 +176,9 @@ async function generateHtmlReport(
         accuracyRunStatus: formatRunStatus(comparableResult.runStatus),
         reportGeneratedOn: testSummary.reportGeneratedOn,
         createdOn: testSummary.resultCreatedOn,
-        totalTests: String(testSummary.totalPrompts),
-        modelsCount: String(testSummary.totalModels),
-        testsWithZeroAccuracy: String(testSummary.testsWithZeroAccuracy.length),
+        totalPrompts: String(testSummary.totalPrompts),
+        totalModels: String(testSummary.totalModels),
+        responsesWithZeroAccuracy: String(testSummary.responsesWithZeroAccuracy.length),
         averageAccuracy: formatAccuracy(testSummary.averageAccuracy),
         baselineCommitSHA: baselineInfo?.commitSHA || "-",
         baselineAccuracyRunId: baselineInfo?.accuracyRunId || "-",
@@ -182,10 +186,62 @@ async function generateHtmlReport(
             ? formatRunStatus(baselineInfo?.accuracyRunStatus)
             : "-",
         baselineCreatedOn: baselineInfo?.createdOn || "-",
-        evalsImproved: baselineInfo ? String(testSummary.evalsImproved) : "-",
-        evalsRegressed: baselineInfo ? String(testSummary.evalsRegressed) : "-",
+        responsesImproved: baselineInfo ? String(testSummary.responsesImproved) : "-",
+        responsesRegressed: baselineInfo ? String(testSummary.responsesRegressed) : "-",
         tableRows,
     });
+}
+
+function generateMarkdownBrief(
+    comparableResult: ComparableAccuracyResult,
+    testSummary: ReturnType<typeof getTestSummary>,
+    baselineInfo: BaselineRunInfo | null
+): string {
+    const markdownTexts = [
+        "# 📊 Accuracy Test Results",
+        "## 📈 Summary",
+        "| Metric | Value |",
+        "|--------|-------|",
+        `| **Commit SHA** | \`${comparableResult.commitSHA}\` |`,
+        `| **Run ID** | \`${comparableResult.runId}\` |`,
+        `| **Status** | ${comparableResult.runStatus} |`,
+        `| **Total Prompts Evaluated** | ${testSummary.totalPrompts} |`,
+        `| **Models Tested** | ${testSummary.totalModels} |`,
+        `| **Average Accuracy** | ${formatAccuracy(testSummary.averageAccuracy)} |`,
+        `| **Responses with 0% Accuracy** | ${testSummary.responsesWithZeroAccuracy.length} |`,
+        `| **Responses with 75% Accuracy** | ${testSummary.responsesWith75Accuracy.length} |`,
+        `| **Responses with 100% Accuracy** | ${testSummary.responsesWith100Accuracy.length} |`,
+        "",
+    ];
+
+    if (baselineInfo) {
+        markdownTexts.push(
+            ...[
+                "## 📊 Baseline Comparison",
+                "|--------|-------|",
+                `| **Baseline Commit** | \`${baselineInfo.commitSHA}\` |`,
+                `| **Baseline Run ID** | \`${baselineInfo.accuracyRunId}\` |`,
+                `| **Baseline Run Status** | \`${baselineInfo.accuracyRunStatus}\` |`,
+                `| **Responses Improved** | ${testSummary.responsesImproved} |`,
+                `| **Responses Regressed** | ${testSummary.responsesRegressed} |`,
+                "",
+            ]
+        );
+    }
+
+    const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID } = process.env;
+    const githubRunUrl =
+        GITHUB_SERVER_URL && GITHUB_REPOSITORY && GITHUB_RUN_ID
+            ? `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}`
+            : null;
+
+    const reportLinkText = githubRunUrl
+        ? `📎 **[Download Full HTML Report](${githubRunUrl})** - Look for the \`accuracy-test-summary\` artifact for detailed results.`
+        : `📎 **Full HTML Report**: \`${HTML_TEST_SUMMARY_FILE}\``;
+
+    markdownTexts.push(...["---", reportLinkText, "", `*Report generated on: ${testSummary.reportGeneratedOn}*`]);
+
+    return markdownTexts.join("\n");
 }
 
 async function generateTestSummary() {
@@ -244,25 +300,29 @@ async function generateTestSummary() {
             ),
         };
 
+        // Ensure that our writable path actually exist.
+        await mkdir(path.dirname(HTML_TEST_SUMMARY_FILE), { recursive: true });
+
         console.log(`\n📊 Generating test summary for accuracy run: ${accuracyRunId}\n`);
         const testSummary = getTestSummary(comparableAccuracyResult);
+
         const htmlReport = await generateHtmlReport(comparableAccuracyResult, testSummary, baselineInfo);
+        await writeFile(HTML_TEST_SUMMARY_FILE, htmlReport, "utf8");
+        console.log(`✅ HTML report generated: ${HTML_TEST_SUMMARY_FILE}`);
 
-        // Ensure that our writable path actually exist.
-        await mkdir(path.dirname(HTML_TESTS_SUMMARY_FILE), { recursive: true });
-        await writeFile(HTML_TESTS_SUMMARY_FILE, htmlReport, "utf8");
-
-        console.log(`✅ HTML report generated: ${HTML_TESTS_SUMMARY_FILE}`);
+        const markdownBrief = generateMarkdownBrief(comparableAccuracyResult, testSummary, baselineInfo);
+        await writeFile(MARKDOWN_TEST_BRIEF_FILE, markdownBrief, "utf8");
+        console.log(`✅ Markdown brief generated: ${MARKDOWN_TEST_BRIEF_FILE}`);
 
         console.log(`\n📈 Summary:`);
         console.log(`   Total prompts evaluated: ${testSummary.totalPrompts}`);
         console.log(`   Models tested: ${testSummary.totalModels}`);
-        console.log(`   Evals with 0% accuracy: ${testSummary.testsWithZeroAccuracy.length}`);
+        console.log(`   Responses with 0% accuracy: ${testSummary.responsesWithZeroAccuracy.length}`);
 
         if (baselineCommit) {
             console.log(`   Baseline commit: ${baselineCommit}`);
-            console.log(`   Evals improved vs baseline: ${testSummary.evalsImproved}`);
-            console.log(`   Evals regressed vs baseline: ${testSummary.evalsRegressed}`);
+            console.log(`   Responses improved vs baseline: ${testSummary.responsesImproved}`);
+            console.log(`   Responses regressed vs baseline: ${testSummary.responsesRegressed}`);
         }
     } catch (error) {
         console.error("Error generating test summary:", error);
