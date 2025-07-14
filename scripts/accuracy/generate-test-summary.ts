@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "fs/promises";
+import path from "path";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracy-result-storage/get-accuracy-result-storage.js";
 import {
     AccuracyResult,
@@ -247,6 +248,8 @@ async function generateTestSummary() {
         const testSummary = getTestSummary(comparableAccuracyResult);
         const htmlReport = await generateHtmlReport(comparableAccuracyResult, testSummary, baselineInfo);
 
+        // Ensure that our writable path actually exist.
+        await mkdir(path.dirname(HTML_TESTS_SUMMARY_FILE), { recursive: true });
         await writeFile(HTML_TESTS_SUMMARY_FILE, htmlReport, "utf8");
 
         console.log(`✅ HTML report generated: ${HTML_TESTS_SUMMARY_FILE}`);
