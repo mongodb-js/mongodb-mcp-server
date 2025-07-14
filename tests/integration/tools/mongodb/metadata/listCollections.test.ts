@@ -8,6 +8,7 @@ import {
     databaseInvalidArgs,
     databaseParameters,
 } from "../../../helpers.js";
+import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("listCollections tool", (integration) => {
     validateToolMetadata(
@@ -55,10 +56,9 @@ describeWithMongoDB("listCollections tool", (integration) => {
             });
             const items2 = getResponseElements(response2.content);
             expect(items2).toHaveLength(2);
-            expect(items2.map((item) => item.text)).toIncludeSameMembers([
-                'Name: "collection-1"',
-                'Name: "collection-2"',
-            ]);
+            expect(items2.map((item) => item.text)).toEqual(
+                expect.arrayContaining(['Name: "collection-1"', 'Name: "collection-2"'])
+            );
         });
     });
 

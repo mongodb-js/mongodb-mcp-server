@@ -1,10 +1,10 @@
-import { jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../src/common/session.js";
 import { config } from "../../src/common/config.js";
 
-jest.mock("@mongosh/service-provider-node-driver");
-const MockNodeDriverServiceProvider = NodeDriverServiceProvider as jest.MockedClass<typeof NodeDriverServiceProvider>;
+vi.mock("@mongosh/service-provider-node-driver");
+const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
 
 describe("Session", () => {
     let session: Session;
@@ -14,9 +14,7 @@ describe("Session", () => {
             apiBaseUrl: "https://api.test.com",
         });
 
-        MockNodeDriverServiceProvider.connect = jest.fn(() =>
-            Promise.resolve({} as unknown as NodeDriverServiceProvider)
-        );
+        MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
     });
 
     describe("connectToMongoDB", () => {
@@ -48,10 +46,7 @@ describe("Session", () => {
                 await session.connectToMongoDB(testCase.connectionString, config.connectOptions);
                 expect(session.serviceProvider).toBeDefined();
 
-                // eslint-disable-next-line @typescript-eslint/unbound-method
-                const connectMock = MockNodeDriverServiceProvider.connect as jest.Mock<
-                    typeof NodeDriverServiceProvider.connect
-                >;
+                const connectMock = MockNodeDriverServiceProvider.connect;
                 expect(connectMock).toHaveBeenCalledOnce();
                 const connectionString = connectMock.mock.calls[0]?.[0];
                 if (testCase.expectAppName) {

@@ -1,6 +1,7 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject } from "./atlasHelpers.js";
 import { expectDefined } from "../../helpers.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 function generateRandomIp() {
     const randomIp: number[] = [192];
@@ -65,7 +66,7 @@ describeWithAtlas("ip access lists", (integration) => {
                         currentIpAddress: true,
                     },
                 })) as CallToolResult;
-                expect(response.content).toBeArray();
+                expect(response.content).toBeInstanceOf(Array);
                 expect(response.content).toHaveLength(1);
                 expect(response.content[0]?.text).toContain("IP/CIDR ranges added to access list");
             });
@@ -87,7 +88,7 @@ describeWithAtlas("ip access lists", (integration) => {
                 const response = (await integration
                     .mcpClient()
                     .callTool({ name: "atlas-inspect-access-list", arguments: { projectId } })) as CallToolResult;
-                expect(response.content).toBeArray();
+                expect(response.content).toBeInstanceOf(Array);
                 expect(response.content).toHaveLength(1);
                 for (const value of values) {
                     expect(response.content[0]?.text).toContain(value);

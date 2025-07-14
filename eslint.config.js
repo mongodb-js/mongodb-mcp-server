@@ -48,7 +48,7 @@ export default defineConfig([
         "coverage",
         "global.d.ts",
         "eslint.config.js",
-        "jest.config.cjs",
+        "vitest.config.ts",
         "src/types/*.d.ts",
     ]),
     eslintPluginPrettierRecommended,

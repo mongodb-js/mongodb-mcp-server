@@ -4,6 +4,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
 } from "../../../helpers.js";
+import { expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
@@ -20,7 +21,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
     validateThrowsForInvalidArguments(integration, "aggregate", [
         {},
         { database: "test", collection: "foo" },
-        { database: test, pipeline: [] },
+        { database: "test", pipeline: [] },
         { database: "test", collection: "foo", pipeline: {} },
         { database: "test", collection: [], pipeline: [] },
         { database: 123, collection: "foo", pipeline: [] },

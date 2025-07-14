@@ -6,6 +6,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
 } from "../../../helpers.js";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("count tool", (integration) => {
     validateToolMetadata(

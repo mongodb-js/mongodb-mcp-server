@@ -1,5 +1,6 @@
 import { defaultTestConfig, getResponseContent } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describe("IndexCheck integration tests", () => {
     describe("with indexCheck enabled", () => {

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["jest", "jest-extended"]
+    "types": ["vitest", "vitest/globals"]
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }
