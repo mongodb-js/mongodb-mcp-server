@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs/promises";
+import { lock } from "proper-lockfile";
 import { ACCURACY_RESULTS_DIR, LATEST_ACCURACY_RUN_NAME } from "../constants.js";
 import {
     AccuracyResult,
@@ -25,7 +26,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
             const raw = await fs.readFile(filePath, "utf8");
             return JSON.parse(raw) as AccuracyResult;
         } catch (error) {
-            if ((error as { code: string }).code === "ENOENT") {
+            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
                 return null;
             }
             throw error;
@@ -33,19 +34,35 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
     }
 
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
-        await this.atomicWriteResult(commitSHA, runId, async () => {
+        const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
+        const release = await lock(resultFilePath, { retries: 10 });
+        try {
             const accuracyResult = await this.getAccuracyResult(commitSHA, runId);
             if (!accuracyResult) {
-                throw new Error(
-                    `Cannot update run status to ${status} for commit - ${commitSHA}, runId - ${runId}. Results not found!`
-                );
+                throw new Error("Results not found!");
             }
 
-            return {
-                ...accuracyResult,
-                runStatus: status,
-            };
-        });
+            await fs.writeFile(
+                resultFilePath,
+                JSON.stringify(
+                    {
+                        ...accuracyResult,
+                        runStatus: status,
+                    },
+                    null,
+                    2
+                ),
+                { encoding: "utf8" }
+            );
+        } catch (error) {
+            console.warn(
+                `Could not update run status to ${status} for commit - ${commitSHA}, runId - ${runId}.`,
+                error
+            );
+            throw error;
+        } finally {
+            await release();
+        }
 
         // This bit is important to mark the current run as the latest run for a
         // commit so that we can use that during baseline comparison.
@@ -63,10 +80,11 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         prompt: string,
         modelResponse: ModelResponse
     ): Promise<void> {
-        await this.atomicWriteResult(commitSHA, runId, async () => {
-            const accuracyResult = await this.getAccuracyResult(commitSHA, runId);
-            if (!accuracyResult) {
-                return {
+        const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
+        const { fileCreatedWithInitialData } = await this.ensureAccuracyResultFile(
+            resultFilePath,
+            JSON.stringify(
+                {
                     runId,
                     runStatus: AccuracyRunStatus.InProgress,
                     createdOn: Date.now(),
@@ -77,22 +95,43 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
                             modelResponses: [modelResponse],
                         },
                     ],
-                };
+                },
+                null,
+                2
+            )
+        );
+
+        if (fileCreatedWithInitialData) {
+            return;
+        }
+
+        const releaseLock = await lock(resultFilePath, { retries: 10 });
+        try {
+            const accuracyResult = await this.getAccuracyResult(commitSHA, runId);
+            if (!accuracyResult) {
+                throw new Error("Expected at-least initial accuracy result to be present");
             }
 
             const existingPromptIdx = accuracyResult.promptResults.findIndex((result) => result.prompt === prompt);
             const promptResult = accuracyResult.promptResults[existingPromptIdx];
             if (!promptResult) {
-                return {
-                    ...accuracyResult,
-                    promptResults: [
-                        ...accuracyResult.promptResults,
+                return await fs.writeFile(
+                    resultFilePath,
+                    JSON.stringify(
                         {
-                            prompt,
-                            modelResponses: [modelResponse],
+                            ...accuracyResult,
+                            promptResults: [
+                                ...accuracyResult.promptResults,
+                                {
+                                    prompt,
+                                    modelResponses: [modelResponse],
+                                },
+                            ],
                         },
-                    ],
-                };
+                        null,
+                        2
+                    )
+                );
             }
 
             accuracyResult.promptResults.splice(existingPromptIdx, 1, {
@@ -100,41 +139,38 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
                 modelResponses: [...promptResult.modelResponses, modelResponse],
             });
 
-            return accuracyResult;
-        });
+            return await fs.writeFile(resultFilePath, JSON.stringify(accuracyResult, null, 2));
+        } catch (error) {
+            console.warn(`Could not save model response for commit - ${commitSHA}, runId - ${runId}.`, error);
+            throw error;
+        } finally {
+            await releaseLock?.();
+        }
     }
 
     close(): Promise<void> {
         return Promise.resolve();
     }
 
-    private async atomicWriteResult(
-        commitSHA: string,
-        runId: string,
-        generateResult: () => Promise<AccuracyResult>
-    ): Promise<void> {
-        for (let attempt = 0; attempt < 10; attempt++) {
-            // This should happen outside the try catch to let the result
-            // generation error bubble up.
-            const result = await generateResult();
-            const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
-            try {
-                const tmp = `${resultFilePath}~${Date.now()}`;
-                await fs.writeFile(tmp, JSON.stringify(result, null, 2));
-                await fs.rename(tmp, resultFilePath);
-                return;
-            } catch (error) {
-                if ((error as { code: string }).code === "ENOENT") {
-                    const baseDir = path.dirname(resultFilePath);
-                    await fs.mkdir(baseDir, { recursive: true });
-                }
-
-                if (attempt < 10) {
-                    await this.waitFor(100 + Math.random() * 200);
-                } else {
-                    throw error;
-                }
+    private async ensureAccuracyResultFile(
+        filePath: string,
+        initialData: string
+    ): Promise<{
+        fileCreatedWithInitialData: boolean;
+    }> {
+        try {
+            await fs.mkdir(path.dirname(filePath), { recursive: true });
+            await fs.writeFile(filePath, initialData, { flag: "wx" });
+            return {
+                fileCreatedWithInitialData: true,
+            };
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+                return {
+                    fileCreatedWithInitialData: false,
+                };
             }
+            throw error;
         }
     }
 
