@@ -17,7 +17,7 @@ try {
         apiClientSecret: config.apiClientSecret,
     });
 
-    const transport = config.transport === "stdio" ? createStdioTransport() : createHttpTransport();
+    const transport = config.transport === "stdio" ? createStdioTransport() : await createHttpTransport();
 
     const telemetry = Telemetry.create(session, config);
 
