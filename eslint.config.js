@@ -20,10 +20,18 @@ export default defineConfig([
         languageOptions: {
             globals: {
                 ...globals.node,
-                ...vitestPlugin.environments.globals.globals,
             },
         },
-        rules: { ...vitest.configs.recommended.rules },
+        rules: {
+            ...vitestPlugin.configs.recommended.rules,
+            "vitest/valid-title": "off",
+            "vitest/expect-expect": [
+                "error",
+                {
+                    assertFunctionNames: ["expect", "expectDefined", "verifyMockCalls"],
+                },
+            ],
+        },
     },
     tseslint.configs.recommendedTypeChecked,
     {

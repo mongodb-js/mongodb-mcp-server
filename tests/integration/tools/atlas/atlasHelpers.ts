@@ -20,8 +20,10 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction) {
     };
 
     if (!process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length) {
+        // eslint-disable-next-line vitest/valid-describe-callback
         return describe.skip("atlas", testDefinition);
     }
+    // eslint-disable-next-line vitest/no-identical-title, vitest/valid-describe-callback
     return describe("atlas", testDefinition);
 }
 
