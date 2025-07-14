@@ -104,6 +104,95 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
         );
     }
 
+    async saveModelResponseForPromptAtomic({
+        commitSHA,
+        runId,
+        prompt,
+        expectedToolCalls,
+        modelResponse,
+    }: {
+        commitSHA: string;
+        runId: string;
+        prompt: string;
+        expectedToolCalls: ExpectedToolCall[];
+        modelResponse: ModelResponse;
+    }): Promise<void> {
+        const savedModelResponse: ModelResponse = { ...modelResponse };
+        for (const field of OMITTED_MODEL_RESPONSE_FIELDS) {
+            delete savedModelResponse[field];
+        }
+
+        await this.resultCollection.updateOne(
+            { commitSHA, runId },
+            [
+                {
+                    $set: {
+                        runStatus: {
+                            $ifNull: ["$runStatus", AccuracyRunStatus.InProgress],
+                        },
+                        createdOn: {
+                            $ifNull: ["$createdOn", Date.now()],
+                        },
+                        commitSHA: commitSHA,
+                        runId: runId,
+                        promptResults: {
+                            $let: {
+                                vars: {
+                                    existingPrompts: { $ifNull: ["$promptResults", []] },
+                                    promptExists: {
+                                        $in: [
+                                            prompt,
+                                            {
+                                                $ifNull: [
+                                                    { $map: { input: "$promptResults", as: "pr", in: "$$pr.prompt" } },
+                                                    [],
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                },
+                                in: {
+                                    $map: {
+                                        input: {
+                                            $cond: {
+                                                if: "$$promptExists",
+                                                then: "$$existingPrompts",
+                                                else: {
+                                                    $concatArrays: [
+                                                        "$$existingPrompts",
+                                                        [{ prompt, expectedToolCalls, modelResponses: [] }],
+                                                    ],
+                                                },
+                                            },
+                                        },
+                                        as: "promptResult",
+                                        in: {
+                                            $cond: {
+                                                if: { $eq: ["$$promptResult.prompt", prompt] },
+                                                then: {
+                                                    prompt: "$$promptResult.prompt",
+                                                    expectedToolCalls: "$$promptResult.expectedToolCalls",
+                                                    modelResponses: {
+                                                        $concatArrays: [
+                                                            "$$promptResult.modelResponses",
+                                                            [savedModelResponse],
+                                                        ],
+                                                    },
+                                                },
+                                                else: "$$promptResult",
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            ],
+            { upsert: true }
+        );
+    }
+
     async close(): Promise<void> {
         await this.client.close();
     }
