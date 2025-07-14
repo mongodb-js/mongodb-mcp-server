@@ -43,6 +43,10 @@ export interface PromptResult {
      * The actual prompt that was provided to LLM as test */
     prompt: string;
     /**
+     * A list of tools, along with their parameters, that are expected to be
+     * called by the LLM in test. */
+    expectedToolCalls: ExpectedToolCall[];
+    /**
      * The responses from the LLMs tested, when provided with the prompt. */
     modelResponses: ModelResponse[];
 }
@@ -65,10 +69,6 @@ export interface ModelResponse {
      * were called by LLM when responding to the provided prompts. To know more
      * about how this number is generated, check - toolCallingAccuracy.ts */
     toolCallingAccuracy: number;
-    /**
-     * A list of tools, along with their parameters, that are expected to be
-     * called by the LLM in test. */
-    expectedToolCalls: ExpectedToolCall[];
     /**
      * A list of tools, along with their parameters, that were actually called
      * by the LLM in test. */
@@ -106,11 +106,12 @@ export interface AccuracyResultStorage {
     /**
      * Attempts to atomically insert the model response for the prompt in the
      * stored accuracy result. */
-    saveModelResponseForPrompt(
-        commitSHA: string,
-        runId: string,
-        prompt: string,
-        modelResponse: ModelResponse
-    ): Promise<void>;
+    saveModelResponseForPrompt(data: {
+        commitSHA: string;
+        runId: string;
+        prompt: string;
+        expectedToolCalls: ExpectedToolCall[];
+        modelResponse: ModelResponse;
+    }): Promise<void>;
     close(): Promise<void>;
 }

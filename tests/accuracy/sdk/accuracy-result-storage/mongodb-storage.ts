@@ -4,6 +4,7 @@ import {
     AccuracyResultStorage,
     AccuracyRunStatus,
     AccuracyRunStatuses,
+    ExpectedToolCall,
     ModelResponse,
 } from "./result-storage.js";
 
@@ -48,12 +49,19 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
         );
     }
 
-    async saveModelResponseForPrompt(
-        commitSHA: string,
-        runId: string,
-        prompt: string,
-        modelResponse: ModelResponse
-    ): Promise<void> {
+    async saveModelResponseForPrompt({
+        commitSHA,
+        runId,
+        prompt,
+        expectedToolCalls,
+        modelResponse,
+    }: {
+        commitSHA: string;
+        runId: string;
+        prompt: string;
+        expectedToolCalls: ExpectedToolCall[];
+        modelResponse: ModelResponse;
+    }): Promise<void> {
         const savedModelResponse: ModelResponse = { ...modelResponse };
         for (const field of this.omittedModelResponseFields) {
             delete savedModelResponse[field];
@@ -81,7 +89,7 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
             },
             {
                 $push: {
-                    promptResults: { prompt, modelResponses: [] },
+                    promptResults: { prompt, expectedToolCalls, modelResponses: [] },
                 },
             }
         );

@@ -7,6 +7,7 @@ import {
     AccuracyResultStorage,
     AccuracyRunStatus,
     AccuracyRunStatuses,
+    ExpectedToolCall,
     ModelResponse,
 } from "./result-storage.js";
 
@@ -74,31 +75,36 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         }
     }
 
-    async saveModelResponseForPrompt(
-        commitSHA: string,
-        runId: string,
-        prompt: string,
-        modelResponse: ModelResponse
-    ): Promise<void> {
+    async saveModelResponseForPrompt({
+        commitSHA,
+        runId,
+        prompt,
+        expectedToolCalls,
+        modelResponse,
+    }: {
+        commitSHA: string;
+        runId: string;
+        prompt: string;
+        expectedToolCalls: ExpectedToolCall[];
+        modelResponse: ModelResponse;
+    }): Promise<void> {
+        const initialData: AccuracyResult = {
+            runId,
+            runStatus: AccuracyRunStatus.InProgress,
+            createdOn: Date.now(),
+            commitSHA,
+            promptResults: [
+                {
+                    prompt,
+                    expectedToolCalls,
+                    modelResponses: [modelResponse],
+                },
+            ],
+        };
         const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
         const { fileCreatedWithInitialData } = await this.ensureAccuracyResultFile(
             resultFilePath,
-            JSON.stringify(
-                {
-                    runId,
-                    runStatus: AccuracyRunStatus.InProgress,
-                    createdOn: Date.now(),
-                    commitSHA,
-                    promptResults: [
-                        {
-                            prompt,
-                            modelResponses: [modelResponse],
-                        },
-                    ],
-                },
-                null,
-                2
-            )
+            JSON.stringify(initialData, null, 2)
         );
 
         if (fileCreatedWithInitialData) {
@@ -124,6 +130,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
                                 ...accuracyResult.promptResults,
                                 {
                                     prompt,
+                                    expectedToolCalls,
                                     modelResponses: [modelResponse],
                                 },
                             ],
@@ -136,6 +143,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
 
             accuracyResult.promptResults.splice(existingPromptIdx, 1, {
                 prompt: promptResult.prompt,
+                expectedToolCalls: promptResult.expectedToolCalls,
                 modelResponses: [...promptResult.modelResponses, modelResponse],
             });
 
