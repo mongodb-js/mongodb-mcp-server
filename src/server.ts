@@ -3,7 +3,7 @@ import { Session } from "./common/session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
-import logger, { LogId } from "./common/logger.js";
+import logger, { LogId, LoggerBase, McpLogger, DiskLogger, ConsoleLogger } from "./common/logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
@@ -67,6 +67,18 @@ export class Server {
             return existingHandler(request, extra);
         });
 
+        const loggers: LoggerBase[] = [];
+        if (this.userConfig.loggers.includes("mcp")) {
+            loggers.push(new McpLogger(this.mcpServer));
+        }
+        if (this.userConfig.loggers.includes("disk")) {
+            loggers.push(await DiskLogger.fromPath(this.userConfig.logPath));
+        }
+        if (this.userConfig.loggers.includes("stderr")) {
+            loggers.push(new ConsoleLogger());
+        }
+        logger.setLoggers(...loggers);
+        
         this.mcpServer.server.oninitialized = () => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
             this.session.sessionId = new ObjectId().toString();
@@ -187,6 +199,21 @@ export class Server {
 
         if (this.userConfig.httpPort < 1 || this.userConfig.httpPort > 65535) {
             throw new Error(`Invalid httpPort: ${this.userConfig.httpPort}`);
+        }
+
+        if (this.userConfig.loggers.length === 0) {
+            throw new Error("No loggers found in config");
+        }
+
+        const loggerTypes = new Set(this.userConfig.loggers);
+        if (loggerTypes.size !== this.userConfig.loggers.length) {
+            throw new Error("Duplicate loggers found in config");
+        }
+
+        for (const loggerType of this.userConfig.loggers) {
+            if (loggerType !== "mcp" && loggerType !== "disk" && loggerType !== "stderr") {
+                throw new Error(`Invalid logger: ${loggerType}`);
+            }
         }
 
         if (this.userConfig.connectionString) {

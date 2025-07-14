@@ -12,6 +12,7 @@ export const LogId = {
     serverCloseRequested: mongoLogId(1_000_003),
     serverClosed: mongoLogId(1_000_004),
     serverCloseFailure: mongoLogId(1_000_005),
+    serverDuplicateLoggers: mongoLogId(1_000_006),
 
     atlasCheckCredentials: mongoLogId(1_001_001),
     atlasDeleteDatabaseUserFailure: mongoLogId(1_001_002),

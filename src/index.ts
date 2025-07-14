@@ -26,18 +26,6 @@ try {
         version: packageInfo.version,
     });
 
-    let loggers: LoggerBase[] = [];
-    if (config.loggers.includes("mcp")) {
-        loggers.push(new McpLogger(mcpServer));
-    }
-    if (config.loggers.includes("disk")) {
-        loggers.push(await DiskLogger.fromPath(config.logPath));
-    }
-    if (config.loggers.includes("stderr")) {
-        loggers.push(new ConsoleLogger());
-    }
-    logger.setLoggers(...loggers);
-
     const server = new Server({
         mcpServer,
         session,
