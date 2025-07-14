@@ -8,7 +8,7 @@ import { Server } from "./server.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { createStdioTransport } from "./transports/stdio.js";
-import { createHttpTransport } from "./transports/streamableHttpTransport.js";
+import { createHttpTransport } from "./transports/streamableHttp.js";
 
 try {
     const session = new Session({
