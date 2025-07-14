@@ -30,7 +30,7 @@
     "reformat": "prettier --write .",
     "generate": "./scripts/generate.sh",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --testPathIgnorePatterns=/tests/accuracy/",
-    "pre:test:accuracy": "npm run build:compile",
+    "pretest:accuracy": "npm run build:compile",
     "test:accuracy": "sh ./scripts/accuracy/run-accuracy-tests.sh"
   },
   "license": "Apache-2.0",

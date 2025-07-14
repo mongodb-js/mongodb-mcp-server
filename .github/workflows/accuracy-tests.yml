@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run accuracy tests
-        run: ./scripts/run-accuracy-tests.sh
+        run: npm run test:accuracy
       - name: Upload accuracy test summary
         if: always()
         uses: actions/upload-artifact@v4
