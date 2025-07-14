@@ -3,7 +3,6 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
-import { config } from "../../../src/common/config.js";
 import { z } from "zod";
 describe("streamableHttpTransport", () => {
     let transport: StreamableHTTPServerTransport;
@@ -20,7 +19,7 @@ describe("streamableHttpTransport", () => {
                 description: "Say hello",
                 inputSchema: { name: z.string() },
             },
-            async ({ name }) => ({
+            ({ name }) => ({
                 content: [{ type: "text", text: `Hello, ${name}!` }],
             })
         );
@@ -44,12 +43,23 @@ describe("streamableHttpTransport", () => {
 
         it("handles requests and sends responses", async () => {
             client.onmessage = (message: JSONRPCMessage) => {
+                const messageResult = message as
+                    | {
+                          result?: {
+                              tools: {
+                                  name: string;
+                                  description: string;
+                              }[];
+                          };
+                      }
+                    | undefined;
+
                 expect(message.jsonrpc).toBe("2.0");
-                expect(message.result).toBeDefined();
-                expect(message.result.tools).toBeDefined();
-                expect(message.result.tools.length).toBe(1);
-                expect(message.result.tools[0].name).toBe("hello");
-                expect(message.result.tools[0].description).toBe("Say hello");
+                expect(messageResult).toBeDefined();
+                expect(messageResult?.result?.tools).toBeDefined();
+                expect(messageResult?.result?.tools.length).toBe(1);
+                expect(messageResult?.result?.tools[0]?.name).toBe("hello");
+                expect(messageResult?.result?.tools[0]?.description).toBe("Say hello");
             };
 
             await client.send({
