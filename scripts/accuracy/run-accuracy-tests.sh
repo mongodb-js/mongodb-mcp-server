@@ -14,8 +14,12 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # By default we run all the tests under tests/accuracy folder unless a path is
 # specified in the command line. Such as:
 # npm run test:accuracy -- tests/accuracy/some-test.test.ts
-TEST_PATH_PATTERN="${1:-tests/accuracy}"
-shift || true
+if [ $# -gt 0 ]; then
+    TEST_PATH_PATTERN="$1"
+    shift
+else
+    TEST_PATH_PATTERN="tests/accuracy"
+fi
 echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID' and TEST_PATH_PATTERN '$TEST_PATH_PATTERN'"
 node --experimental-vm-modules node_modules/jest/bin/jest.js --bail --testPathPatterns "$TEST_PATH_PATTERN" "$@"
 
