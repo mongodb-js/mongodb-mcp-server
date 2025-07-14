@@ -331,15 +331,15 @@
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Total Prompts Evaluated</div>
-                        <div class="info-value">{{totalTests}}</div>
+                        <div class="info-value">{{totalPrompts}}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Models Tested</div>
-                        <div class="info-value">{{modelsCount}}</div>
+                        <div class="info-value">{{totalModels}}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Evals with 0% Accuracy</div>
-                        <div class="info-value">{{testsWithZeroAccuracy}}</div>
+                        <div class="info-label">Responses with 0% Accuracy</div>
+                        <div class="info-value">{{responsesWithZeroAccuracy}}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Average Accuracy</div>
@@ -368,12 +368,12 @@
                         <div class="info-value">{{baselineCreatedOn}}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Evals Improved vs Baseline</div>
-                        <div class="info-value">{{evalsImproved}}</div>
+                        <div class="info-label">Responses Improved vs Baseline</div>
+                        <div class="info-value">{{responsesImproved}}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Evals Regressed vs Baseline</div>
-                        <div class="info-value">{{evalsRegressed}}</div>
+                        <div class="info-label">Responses Regressed vs Baseline</div>
+                        <div class="info-value">{{responsesRegressed}}</div>
                     </div>
                 </div>
             </div>
