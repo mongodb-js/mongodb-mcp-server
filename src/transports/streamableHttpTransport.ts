@@ -4,9 +4,10 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { config } from "../common/config.js";
 import logger, { LogId } from "../common/logger.js";
 
+const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
+
 export function createHttpTransport(): StreamableHTTPServerTransport {
     const app = express();
-    app.use(express.json());
     app.enable("trust proxy"); // needed for reverse proxy support
     app.use(express.urlencoded({ extended: true }));
     app.use(express.json());
@@ -24,7 +25,13 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
                 "streamableHttpTransport",
                 `Error handling request: ${error instanceof Error ? error.message : String(error)}`
             );
-            res.sendStatus(400);
+            res.status(400).json({
+                jsonrpc: "2.0",
+                error: {
+                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                },
+            });
         }
     });
 
@@ -37,7 +44,13 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
                 "streamableHttpTransport",
                 `Error handling request: ${error instanceof Error ? error.message : String(error)}`
             );
-            res.sendStatus(400);
+            res.status(400).json({
+                jsonrpc: "2.0",
+                error: {
+                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                },
+            });
         }
     });
 
@@ -50,7 +63,13 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
                 "streamableHttpTransport",
                 `Error handling request: ${error instanceof Error ? error.message : String(error)}`
             );
-            res.sendStatus(400);
+            res.status(400).json({
+                jsonrpc: "2.0",
+                error: {
+                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                },
+            });
         }
     });
 
