@@ -304,7 +304,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `apiClientId`      | <not set>  | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
 | `apiClientSecret`  | <not set>  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
 | `connectionString` | <not set>  | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
-| `logPath`          | see note*  | Folder to store logs.                                                                                                                                         |
+| `logPath`          | see note\* | Folder to store logs.                                                                                                                                         |
 | `disabledTools`    | <not set>  | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
 | `readOnly`         | false      | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
 | `indexCheck`       | false      | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |

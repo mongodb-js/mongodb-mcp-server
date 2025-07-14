@@ -12,14 +12,18 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
     app.use(express.json());
 
     const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined
+        sessionIdGenerator: undefined,
     });
 
     app.post("/mcp", async (req: express.Request, res: express.Response) => {
         try {
             await transport.handleRequest(req, res, req.body);
         } catch (error) {
-            logger.error(LogId.streamableHttpTransportRequestFailure, "streamableHttpTransport", `Error handling request: ${error}`);
+            logger.error(
+                LogId.streamableHttpTransportRequestFailure,
+                "streamableHttpTransport",
+                `Error handling request: ${error}`
+            );
             res.sendStatus(400);
         }
     });
@@ -28,7 +32,11 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
         try {
             await transport.handleRequest(req, res, req.body);
         } catch (error) {
-            logger.error(LogId.streamableHttpTransportRequestFailure, "streamableHttpTransport", `Error handling request: ${error}`);
+            logger.error(
+                LogId.streamableHttpTransportRequestFailure,
+                "streamableHttpTransport",
+                `Error handling request: ${error}`
+            );
             res.sendStatus(400);
         }
     });
@@ -37,13 +45,21 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
         try {
             await transport.handleRequest(req, res, req.body);
         } catch (error) {
-            logger.error(LogId.streamableHttpTransportRequestFailure, "streamableHttpTransport", `Error handling request: ${error}`);
+            logger.error(
+                LogId.streamableHttpTransportRequestFailure,
+                "streamableHttpTransport",
+                `Error handling request: ${error}`
+            );
             res.sendStatus(400);
         }
     });
 
     const server = app.listen(config.httpPort, config.httpHost, () => {
-        logger.info(LogId.streamableHttpTransportStarted, "streamableHttpTransport", `Server started on http://${config.httpHost}:${config.httpPort}`);
+        logger.info(
+            LogId.streamableHttpTransportStarted,
+            "streamableHttpTransport",
+            `Server started on http://${config.httpHost}:${config.httpPort}`
+        );
     });
 
     transport.onclose = async () => {
@@ -60,9 +76,13 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
             });
             logger.info(LogId.streamableHttpTransportCloseSuccess, "streamableHttpTransport", `Server closed`);
         } catch (error: unknown) {
-            logger.error(LogId.streamableHttpTransportCloseFailure, "streamableHttpTransport", `Error closing server: ${error instanceof Error ? error.message : String(error)}`);
-        };
-    }
+            logger.error(
+                LogId.streamableHttpTransportCloseFailure,
+                "streamableHttpTransport",
+                `Error closing server: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+    };
 
     return transport;
 }

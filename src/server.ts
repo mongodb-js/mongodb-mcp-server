@@ -78,7 +78,7 @@ export class Server {
             loggers.push(new ConsoleLogger());
         }
         logger.setLoggers(...loggers);
-        
+
         this.mcpServer.server.oninitialized = () => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
             this.session.sessionId = new ObjectId().toString();
