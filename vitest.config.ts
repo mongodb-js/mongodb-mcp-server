@@ -7,6 +7,7 @@ export default defineConfig({
         include: ["**/*.test.ts"],
         coverage: {
             exclude: ["node_modules", "tests", "dist"],
+            reporter: ["lcov"],
         },
     },
 });
