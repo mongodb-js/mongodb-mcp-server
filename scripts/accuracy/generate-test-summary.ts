@@ -37,15 +37,13 @@ function populateTemplate(template: string, data: Record<string, string>): strin
 }
 
 function formatRunStatus(status: AccuracyRunStatuses) {
-    let statusClass = "chip run-status";
+    const statusClasses = ["chip", "run-status"];
     if (status === "done") {
-        statusClass += " perfect";
-    } else if (status === "in-progress") {
-        statusClass += " poor";
-    } else if (status === "failed") {
-        statusClass += " poor";
+        statusClasses.push("perfect");
+    } else if (status === "in-progress" || status === "failed") {
+        statusClasses.push("poor");
     }
-    return `<span class="${statusClass}">${status}</span>`;
+    return `<span class="${statusClasses.join(" ")}">${status}</span>`;
 }
 
 function formatAccuracy(accuracy: number): string {
@@ -76,7 +74,7 @@ function formatTokenUsage(tokensUsage: {
     const prompt = tokensUsage.promptTokens || "-";
     const completion = tokensUsage.completionTokens || "-";
 
-    const tooltip = `Prompt: ${prompt}\nCompletion: ${completion}\nTotal: ${total}`;
+    const tooltip = [`Prompt: ${prompt}`, `Completion: ${completion}`, `Total: ${total}`].join("\n");
     return `<span class="tokens-usage" title="${tooltip}">${total}</span>`;
 }
 
