@@ -33,7 +33,7 @@ JEST_EXIT_CODE=$?
 # "in-progress". When all the tests are done and jest exits with an exit code of
 # 0, we can safely mark accuracy run as finished otherwise failed.
 
-# This "outside-the-tests-status-update" is arising out of the fact that each
+# This "outside-the-test-status-update" is arising out of the fact that each
 # test suite stores their own accuracy run data in the storage and this setup
 # might lead to data inconsistency when the tests fail. To overcome that each
 # accuracy result entry has a status which by default is "in-progress" and is
