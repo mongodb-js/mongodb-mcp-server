@@ -13,11 +13,13 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
 
     constructor(
         connectionString: string,
+        database: string,
+        collection: string,
         // Omitting these as they might contain large chunk of texts
         private readonly omittedModelResponseFields: (keyof ModelResponse)[] = ["messages", "text"]
     ) {
         this.client = new MongoClient(connectionString);
-        this.resultCollection = this.client.db("mongodb-mcp-server").collection<AccuracyResult>("accuracy-results");
+        this.resultCollection = this.client.db(database).collection<AccuracyResult>(collection);
     }
 
     async getAccuracyResult(commitSHA: string, runId?: string): Promise<AccuracyResult | null> {
