@@ -22,7 +22,7 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
             logger.error(
                 LogId.streamableHttpTransportRequestFailure,
                 "streamableHttpTransport",
-                `Error handling request: ${error}`
+                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
             );
             res.sendStatus(400);
         }
@@ -35,7 +35,7 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
             logger.error(
                 LogId.streamableHttpTransportRequestFailure,
                 "streamableHttpTransport",
-                `Error handling request: ${error}`
+                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
             );
             res.sendStatus(400);
         }
@@ -48,7 +48,7 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
             logger.error(
                 LogId.streamableHttpTransportRequestFailure,
                 "streamableHttpTransport",
-                `Error handling request: ${error}`
+                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
             );
             res.sendStatus(400);
         }
@@ -62,26 +62,19 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
         );
     });
 
-    transport.onclose = async () => {
-        try {
-            logger.info(LogId.streamableHttpTransportCloseRequested, "streamableHttpTransport", `Closing server`);
-            await new Promise<void>((resolve, reject) => {
-                server.close((err?: Error) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
+    transport.onclose = () => {
+        logger.info(LogId.streamableHttpTransportCloseRequested, "streamableHttpTransport", `Closing server`);
+        server.close((err?: Error) => {
+            if (err) {
+                logger.error(
+                    LogId.streamableHttpTransportCloseFailure,
+                    "streamableHttpTransport",
+                    `Error closing server: ${err.message}`
+                );
+                return;
+            }
             logger.info(LogId.streamableHttpTransportCloseSuccess, "streamableHttpTransport", `Server closed`);
-        } catch (error: unknown) {
-            logger.error(
-                LogId.streamableHttpTransportCloseFailure,
-                "streamableHttpTransport",
-                `Error closing server: ${error instanceof Error ? error.message : String(error)}`
-            );
-        }
+        });
     };
 
     return transport;

@@ -189,12 +189,14 @@ export class Server {
     }
 
     private async validateConfig(): Promise<void> {
-        if (this.userConfig.transport !== "http" && this.userConfig.transport !== "stdio") {
-            throw new Error(`Invalid transport: ${this.userConfig.transport}`);
+        const transport = this.userConfig.transport as string;
+        if (transport !== "http" && transport !== "stdio") {
+            throw new Error(`Invalid transport: ${transport}`);
         }
 
-        if (this.userConfig.telemetry !== "enabled" && this.userConfig.telemetry !== "disabled") {
-            throw new Error(`Invalid telemetry: ${this.userConfig.telemetry}`);
+        const telemetry = this.userConfig.telemetry as string;
+        if (telemetry !== "enabled" && telemetry !== "disabled") {
+            throw new Error(`Invalid telemetry: ${telemetry}`);
         }
 
         if (this.userConfig.httpPort < 1 || this.userConfig.httpPort > 65535) {
@@ -210,7 +212,7 @@ export class Server {
             throw new Error("Duplicate loggers found in config");
         }
 
-        for (const loggerType of this.userConfig.loggers) {
+        for (const loggerType of this.userConfig.loggers as string[]) {
             if (loggerType !== "mcp" && loggerType !== "disk" && loggerType !== "stderr") {
                 throw new Error(`Invalid logger: ${loggerType}`);
             }

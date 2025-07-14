@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import logger, { LogId, LoggerBase, McpLogger, DiskLogger, ConsoleLogger } from "./common/logger.js";
+import logger, { LogId } from "./common/logger.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { config } from "./common/config.js";
 import { Session } from "./common/session.js";
