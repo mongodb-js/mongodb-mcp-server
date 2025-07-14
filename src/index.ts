@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
-import logger, { LogId } from "./common/logger.js";
+import logger, { LogId, LoggerBase, McpLogger, DiskLogger, ConsoleLogger } from "./common/logger.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { config } from "./common/config.js";
 import { Session } from "./common/session.js";
 import { Server } from "./server.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { Telemetry } from "./telemetry/telemetry.js";
-import { createEJsonTransport } from "./helpers/EJsonTransport.js";
+import { createStdioTransport } from "./transports/stdioTransport.js";
+import { createHttpTransport } from "./transports/streamableHttpTransport.js";
 
 try {
     const session = new Session({
@@ -15,12 +16,27 @@ try {
         apiClientId: config.apiClientId,
         apiClientSecret: config.apiClientSecret,
     });
+
+    const transport = config.transport === "stdio" ? createStdioTransport() : createHttpTransport();
+
+    const telemetry = Telemetry.create(session, config);
+
     const mcpServer = new McpServer({
         name: packageInfo.mcpServerName,
         version: packageInfo.version,
     });
 
-    const telemetry = Telemetry.create(session, config);
+    let loggers: LoggerBase[] = [];
+    if (config.loggers.includes("mcp")) {
+        loggers.push(new McpLogger(mcpServer));
+    }
+    if (config.loggers.includes("disk")) {
+        loggers.push(await DiskLogger.fromPath(config.logPath));
+    }
+    if (config.loggers.includes("stderr")) {
+        loggers.push(new ConsoleLogger());
+    }
+    logger.setLoggers(...loggers);
 
     const server = new Server({
         mcpServer,
@@ -28,8 +44,6 @@ try {
         telemetry,
         userConfig: config,
     });
-
-    const transport = createEJsonTransport();
 
     const shutdown = () => {
         logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
@@ -48,6 +62,7 @@ try {
     };
 
     process.once("SIGINT", shutdown);
+    process.once("SIGABRT", shutdown);
     process.once("SIGTERM", shutdown);
     process.once("SIGQUIT", shutdown);
 

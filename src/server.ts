@@ -3,7 +3,7 @@ import { Session } from "./common/session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
-import logger, { setStdioPreset, setContainerPreset, LogId } from "./common/logger.js";
+import logger, { LogId } from "./common/logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
@@ -11,7 +11,6 @@ import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import { detectContainerEnv } from "./helpers/container.js";
 import { ToolBase } from "./tools/tool.js";
 
 export interface ServerOptions {
@@ -38,6 +37,8 @@ export class Server {
     }
 
     async connect(transport: Transport): Promise<void> {
+        await this.validateConfig();
+
         this.mcpServer.server.registerCapabilities({ logging: {} });
 
         this.registerTools();
@@ -66,16 +67,6 @@ export class Server {
             return existingHandler(request, extra);
         });
 
-        const containerEnv = await detectContainerEnv();
-
-        if (containerEnv) {
-            setContainerPreset(this.mcpServer);
-        } else {
-            await setStdioPreset(this.mcpServer, this.userConfig.logPath);
-        }
-
-        await this.mcpServer.connect(transport);
-
         this.mcpServer.server.oninitialized = () => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
             this.session.sessionId = new ObjectId().toString();
@@ -99,7 +90,7 @@ export class Server {
             this.emitServerEvent("stop", Date.now() - closeTime, error);
         };
 
-        await this.validateConfig();
+        await this.mcpServer.connect(transport);
     }
 
     async close(): Promise<void> {
@@ -186,6 +177,18 @@ export class Server {
     }
 
     private async validateConfig(): Promise<void> {
+        if (this.userConfig.transport !== "http" && this.userConfig.transport !== "stdio") {
+            throw new Error(`Invalid transport: ${this.userConfig.transport}`);
+        }
+
+        if (this.userConfig.telemetry !== "enabled" && this.userConfig.telemetry !== "disabled") {
+            throw new Error(`Invalid telemetry: ${this.userConfig.telemetry}`);
+        }
+
+        if (this.userConfig.httpPort < 1 || this.userConfig.httpPort > 65535) {
+            throw new Error(`Invalid httpPort: ${this.userConfig.httpPort}`);
+        }
+
         if (this.userConfig.connectionString) {
             try {
                 await this.session.connectToMongoDB(this.userConfig.connectionString, this.userConfig.connectOptions);

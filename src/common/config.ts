@@ -17,13 +17,17 @@ export interface UserConfig {
     apiBaseUrl: string;
     apiClientId?: string;
     apiClientSecret?: string;
-    telemetry?: "enabled" | "disabled";
+    telemetry: "enabled" | "disabled";
     logPath: string;
     connectionString?: string;
     connectOptions: ConnectOptions;
     disabledTools: Array<string>;
     readOnly?: boolean;
     indexCheck?: boolean;
+    transport: "stdio" | "http";
+    httpPort: number;
+    httpHost: string;
+    loggers: Array<"stderr" | "disk" | "mcp">;
 }
 
 const defaults: UserConfig = {
@@ -39,6 +43,10 @@ const defaults: UserConfig = {
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    transport: "stdio",
+    httpPort: 3000,
+    httpHost: "127.0.0.1",
+    loggers: ["disk", "mcp"],
 };
 
 export const config = {

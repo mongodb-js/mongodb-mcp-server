@@ -225,6 +225,27 @@ With Atlas API credentials:
 }
 ```
 
+#### Option 6: Running as an HTTP Server
+
+You can run the MongoDB MCP Server as an HTTP server instead of the default stdio transport. This is useful if you want to interact with the server over HTTP, for example from a web client or to expose the server on a specific port.
+
+To start the server with HTTP transport, use the `--transport http` option:
+
+```shell
+npx -y mongodb-mcp-server --transport http
+```
+
+By default, the server will listen on `http://127.0.0.1:3000`. You can customize the host and port using the `--httpHost` and `--httpPort` options:
+
+```shell
+npx -y mongodb-mcp-server --transport http --httpHost=0.0.0.0 --httpPort=8080
+```
+
+- `--httpHost` (default: 127.0.0.1): The host to bind the HTTP server.
+- `--httpPort` (default: 3000): The port number for the HTTP server.
+
+> **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
+
 ## 🛠️ Supported Tools
 
 ### Tool List
@@ -278,16 +299,20 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 
 ### Configuration Options
 
-| Option             | Description                                                                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apiClientId`      | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
-| `apiClientSecret`  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
-| `connectionString` | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
-| `logPath`          | Folder to store logs.                                                                                                                                         |
-| `disabledTools`    | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
-| `readOnly`         | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
-| `indexCheck`       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
-| `telemetry`        | When set to disabled, disables telemetry collection.                                                                                                          |
+| Option             | Default    | Description                                                                                                                                                   |
+| ------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiClientId`      | <not set>  | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
+| `apiClientSecret`  | <not set>  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
+| `connectionString` | <not set>  | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
+| `logPath`          | see note*  | Folder to store logs.                                                                                                                                         |
+| `disabledTools`    | <not set>  | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
+| `readOnly`         | false      | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
+| `indexCheck`       | false      | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
+| `telemetry`        | enabled    | When set to disabled, disables telemetry collection.                                                                                                          |
+| `transport`        | stdio      | Either 'stdio' or 'http'.                                                                                                                                     |
+| `httpPort`         | 3000       | Port number.                                                                                                                                                  |
+| `httpHost`         | 127.0.0.1  | Host to bind the http server.                                                                                                                                 |
+| `logger`           | disk,mcp   | Comma separated values, possible values are `mcp`, `disk` and `stderr`.                                                                                       |
 
 #### Log Path
 

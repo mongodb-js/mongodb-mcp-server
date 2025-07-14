@@ -4,6 +4,7 @@ RUN addgroup -S mcp && adduser -S mcp -G mcp
 RUN npm install -g mongodb-mcp-server@${VERSION}
 USER mcp
 WORKDIR /home/mcp
+ENV MDB_MCP_LOGGERS=stderr,mcp
 ENTRYPOINT ["mongodb-mcp-server"]
 LABEL maintainer="MongoDB Inc <info@mongodb.com>"
 LABEL description="MongoDB MCP Server"

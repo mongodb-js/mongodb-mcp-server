@@ -39,7 +39,7 @@ export class EJsonReadBuffer {
 //
 // This function creates a StdioServerTransport and replaces the internal readBuffer with EJsonReadBuffer
 // that uses EJson.parse instead.
-export function createEJsonTransport(): StdioServerTransport {
+export function createStdioTransport(): StdioServerTransport {
     const server = new StdioServerTransport();
     server["_readBuffer"] = new EJsonReadBuffer();
 
