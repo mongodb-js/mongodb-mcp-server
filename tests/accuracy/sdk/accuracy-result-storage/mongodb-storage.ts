@@ -8,17 +8,14 @@ import {
     ModelResponse,
 } from "./result-storage.js";
 
+// Omitting these as they might contain large chunk of texts
+const OMITTED_MODEL_RESPONSE_FIELDS: (keyof ModelResponse)[] = ["messages", "text"];
+
 export class MongoDBBasedResultStorage implements AccuracyResultStorage {
     private client: MongoClient;
     private resultCollection: Collection<AccuracyResult>;
 
-    constructor(
-        connectionString: string,
-        database: string,
-        collection: string,
-        // Omitting these as they might contain large chunk of texts
-        private readonly omittedModelResponseFields: (keyof ModelResponse)[] = ["messages", "text"]
-    ) {
+    constructor(connectionString: string, database: string, collection: string) {
         this.client = new MongoClient(connectionString);
         this.resultCollection = this.client.db(database).collection<AccuracyResult>(collection);
     }
@@ -63,7 +60,7 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
         modelResponse: ModelResponse;
     }): Promise<void> {
         const savedModelResponse: ModelResponse = { ...modelResponse };
-        for (const field of this.omittedModelResponseFields) {
+        for (const field of OMITTED_MODEL_RESPONSE_FIELDS) {
             delete savedModelResponse[field];
         }
 
