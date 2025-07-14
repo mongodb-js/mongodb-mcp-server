@@ -19,6 +19,8 @@ export const ACCURACY_RESULTS_DIR = path.join(GENERATED_ASSETS_DIR, "results");
 
 export const LATEST_ACCURACY_RUN_NAME = "latest-run";
 
-export const HTML_TESTS_SUMMARY_FILE = path.join(GENERATED_ASSETS_DIR, "test-summary.html");
+export const HTML_TEST_SUMMARY_FILE = path.join(GENERATED_ASSETS_DIR, "test-summary.html");
+
+export const MARKDOWN_TEST_BRIEF_FILE = path.join(GENERATED_ASSETS_DIR, "test-brief.md");
 
 export const HTML_TESTS_SUMMARY_TEMPLATE = path.join(RESOURCES_DIR, "test-summary-template.html");
