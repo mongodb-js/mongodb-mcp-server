@@ -23,7 +23,7 @@ jobs:
       MDB_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_OPEN_AI_API_KEY }}
       MDB_GEMINI_API_KEY: ${{ secrets.ACCURACY_GEMINI_API_KEY }}
       MDB_AZURE_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_AZURE_OPEN_AI_API_KEY }}
-      MDB_AZURE_OPEN_AI_API_URL: ${{ secrets.ACCURACY_AZURE_OPEN_AI_API_URL }}
+      MDB_AZURE_OPEN_AI_API_URL: ${{ vars.ACCURACY_AZURE_OPEN_AI_API_URL }}
       MDB_ACCURACY_MDB_URL: ${{ secrets.ACCURACY_MDB_CONNECTION_STRING }}
       MDB_ACCURACY_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || '' }}
     steps:
