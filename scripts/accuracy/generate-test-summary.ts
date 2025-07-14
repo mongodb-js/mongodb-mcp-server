@@ -21,6 +21,7 @@ type ComparableAccuracyResult = Omit<AccuracyResult, "promptResults"> & {
 
 interface PromptAndModelResponse extends ModelResponse {
     prompt: string;
+    expectedToolCalls: ExpectedToolCall[];
     baselineToolAccuracy?: number;
 }
 
@@ -293,6 +294,7 @@ async function generateTestSummary() {
                         return {
                             ...currentModelResponse,
                             prompt: currentPromptResult.prompt,
+                            expectedToolCalls: currentPromptResult.expectedToolCalls,
                             baselineToolAccuracy: baselineModelResponse?.toolCallingAccuracy,
                         };
                     });

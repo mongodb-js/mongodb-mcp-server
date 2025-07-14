@@ -102,17 +102,22 @@ export function describeAccuracyTests(models: TestableModels, accuracyTestConfig
             const toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
 
             const responseTime = timeAfterPrompt - timeBeforePrompt;
-            await accuracyResultStorage.saveModelResponseForPrompt(commitSHA, accuracyRunId, testConfig.prompt, {
-                provider: model.provider,
-                requestedModel: model.modelName,
-                respondingModel: result.respondingModel,
-                llmResponseTime: responseTime,
-                toolCallingAccuracy: toolCallingAccuracy,
+            await accuracyResultStorage.saveModelResponseForPrompt({
+                commitSHA,
+                runId: accuracyRunId,
+                prompt: testConfig.prompt,
                 expectedToolCalls: testConfig.expectedToolCalls,
-                llmToolCalls: llmToolCalls,
-                tokensUsed: result.tokensUsage,
-                text: result.text,
-                messages: result.messages,
+                modelResponse: {
+                    provider: model.provider,
+                    requestedModel: model.modelName,
+                    respondingModel: result.respondingModel,
+                    llmResponseTime: responseTime,
+                    toolCallingAccuracy: toolCallingAccuracy,
+                    llmToolCalls: llmToolCalls,
+                    tokensUsed: result.tokensUsage,
+                    text: result.text,
+                    messages: result.messages,
+                },
             });
         });
     });
