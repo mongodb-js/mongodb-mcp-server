@@ -10,6 +10,8 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 
 # For providing a mongodb based storage to store accuracy result
 # export MDB_ACCURACY_MDB_URL=""
+# export MDB_ACCURACY_MDB_DB=""
+# export MDB_ACCURACY_MDB_COLLECTION=""
 
 # By default we run all the tests under tests/accuracy folder unless a path is
 # specified in the command line. Such as:
