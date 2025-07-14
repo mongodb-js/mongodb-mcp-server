@@ -3,7 +3,7 @@ import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
-import jestPlugin from "eslint-plugin-jest";
+import vitestPlugin from "eslint-plugin-vitest";
 
 const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
 
@@ -15,14 +15,15 @@ export default defineConfig([
     {
         files: testFiles,
         plugins: {
-            jest: jestPlugin,
+            vitest: vitestPlugin,
         },
         languageOptions: {
             globals: {
                 ...globals.node,
-                ...jestPlugin.environments.globals.globals,
+                ...vitestPlugin.environments.globals.globals,
             },
         },
+        rules: { ...vitest.configs.recommended.rules },
     },
     tseslint.configs.recommendedTypeChecked,
     {

@@ -106,7 +106,7 @@ describe("Telemetry", () => {
         vi.clearAllMocks();
 
         // Setup mocked API client
-        mockApiClient = new MockApiClient({ baseUrl: "" }) as unknown as typeof mockApiClient;
+        mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }));
 
         mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
         mockApiClient.hasCredentials = vi.fn().mockReturnValue(true);
