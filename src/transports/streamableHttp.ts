@@ -29,7 +29,8 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
                 jsonrpc: "2.0",
                 error: {
                     code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                    message: `failed to handle request`,
+                    data: error instanceof Error ? error.message : String(error),
                 },
             });
         }
@@ -48,7 +49,8 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
                 jsonrpc: "2.0",
                 error: {
                     code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                    message: `failed to handle request`,
+                    data: error instanceof Error ? error.message : String(error),
                 },
             });
         }
@@ -67,7 +69,8 @@ export function createHttpTransport(): StreamableHTTPServerTransport {
                 jsonrpc: "2.0",
                 error: {
                     code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                    message: `failed to handle request`,
+                    data: error instanceof Error ? error.message : String(error),
                 },
             });
         }

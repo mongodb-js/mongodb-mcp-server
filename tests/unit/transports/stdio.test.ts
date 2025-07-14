@@ -1,5 +1,5 @@
 import { Decimal128, MaxKey, MinKey, ObjectId, Timestamp, UUID } from "bson";
-import { createStdioTransport, EJsonReadBuffer } from "../../src/transports/stdioTransport.js";
+import { createStdioTransport, EJsonReadBuffer } from "../../../src/transports/stdio.js";
 import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
