@@ -7,7 +7,8 @@ import { Session } from "./common/session.js";
 import { Server } from "./server.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { Telemetry } from "./telemetry/telemetry.js";
-import { createEJsonTransport } from "./helpers/EJsonTransport.js";
+import { createStdioTransport } from "./transports/stdio.js";
+import { createHttpTransport } from "./transports/streamableHttp.js";
 
 try {
     const session = new Session({
@@ -15,12 +16,15 @@ try {
         apiClientId: config.apiClientId,
         apiClientSecret: config.apiClientSecret,
     });
+
+    const transport = config.transport === "stdio" ? createStdioTransport() : createHttpTransport();
+
+    const telemetry = Telemetry.create(session, config);
+
     const mcpServer = new McpServer({
         name: packageInfo.mcpServerName,
         version: packageInfo.version,
     });
-
-    const telemetry = Telemetry.create(session, config);
 
     const server = new Server({
         mcpServer,
@@ -28,8 +32,6 @@ try {
         telemetry,
         userConfig: config,
     });
-
-    const transport = createEJsonTransport();
 
     const shutdown = () => {
         logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
@@ -48,6 +50,7 @@ try {
     };
 
     process.once("SIGINT", shutdown);
+    process.once("SIGABRT", shutdown);
     process.once("SIGTERM", shutdown);
     process.once("SIGQUIT", shutdown);
 

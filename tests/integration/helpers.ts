@@ -25,6 +25,7 @@ export interface IntegrationTest {
 export const defaultTestConfig: UserConfig = {
     ...config,
     telemetry: "disabled",
+    loggers: ["stderr"],
 };
 
 export function setupIntegrationTest(getUserConfig: () => UserConfig): IntegrationTest {

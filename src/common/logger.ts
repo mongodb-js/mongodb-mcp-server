@@ -12,6 +12,7 @@ export const LogId = {
     serverCloseRequested: mongoLogId(1_000_003),
     serverClosed: mongoLogId(1_000_004),
     serverCloseFailure: mongoLogId(1_000_005),
+    serverDuplicateLoggers: mongoLogId(1_000_006),
 
     atlasCheckCredentials: mongoLogId(1_001_001),
     atlasDeleteDatabaseUserFailure: mongoLogId(1_001_002),
@@ -37,9 +38,16 @@ export const LogId = {
     mongodbDisconnectFailure: mongoLogId(1_004_002),
 
     toolUpdateFailure: mongoLogId(1_005_001),
+
+    streamableHttpTransportStarted: mongoLogId(1_006_001),
+    streamableHttpTransportSessionInitialized: mongoLogId(1_006_002),
+    streamableHttpTransportRequestFailure: mongoLogId(1_006_003),
+    streamableHttpTransportCloseRequested: mongoLogId(1_006_004),
+    streamableHttpTransportCloseSuccess: mongoLogId(1_006_005),
+    streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
 } as const;
 
-abstract class LoggerBase {
+export abstract class LoggerBase {
     abstract log(level: LogLevel, id: MongoLogId, context: string, message: string): void;
 
     info(id: MongoLogId, context: string, message: string): void {
@@ -74,14 +82,14 @@ abstract class LoggerBase {
     }
 }
 
-class ConsoleLogger extends LoggerBase {
+export class ConsoleLogger extends LoggerBase {
     log(level: LogLevel, id: MongoLogId, context: string, message: string): void {
         message = redact(message);
-        console.error(`[${level.toUpperCase()}] ${id.__value} - ${context}: ${message}`);
+        console.error(`[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid})`);
     }
 }
 
-class DiskLogger extends LoggerBase {
+export class DiskLogger extends LoggerBase {
     private constructor(private logWriter: MongoLogWriter) {
         super();
     }
@@ -133,7 +141,7 @@ class DiskLogger extends LoggerBase {
     }
 }
 
-class McpLogger extends LoggerBase {
+export class McpLogger extends LoggerBase {
     constructor(private server: McpServer) {
         super();
     }
@@ -152,18 +160,12 @@ class McpLogger extends LoggerBase {
 }
 
 class CompositeLogger extends LoggerBase {
-    private loggers: LoggerBase[];
+    private loggers: LoggerBase[] = [];
 
     constructor(...loggers: LoggerBase[]) {
         super();
 
-        if (loggers.length === 0) {
-            // default to ConsoleLogger
-            this.loggers = [new ConsoleLogger()];
-            return;
-        }
-
-        this.loggers = [...loggers];
+        this.setLoggers(...loggers);
     }
 
     setLoggers(...loggers: LoggerBase[]): void {
@@ -180,19 +182,5 @@ class CompositeLogger extends LoggerBase {
     }
 }
 
-const logger = new CompositeLogger();
+const logger = new CompositeLogger(new ConsoleLogger());
 export default logger;
-
-export async function setStdioPreset(server: McpServer, logPath: string): Promise<void> {
-    const diskLogger = await DiskLogger.fromPath(logPath);
-    const mcpLogger = new McpLogger(server);
-
-    logger.setLoggers(mcpLogger, diskLogger);
-}
-
-export function setContainerPreset(server: McpServer): void {
-    const mcpLogger = new McpLogger(server);
-    const consoleLogger = new ConsoleLogger();
-
-    logger.setLoggers(mcpLogger, consoleLogger);
-}
