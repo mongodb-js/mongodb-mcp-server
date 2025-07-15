@@ -39,6 +39,10 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
             // 409 Conflict: entry already exists, ignore
             return;
         }
-        logger.debug(LogId.atlasIpAccessListAddFailure, "accessListUtils", `Error adding IP access list: ${err}`);
+        logger.debug(
+            LogId.atlasIpAccessListAddFailure,
+            "accessListUtils",
+            `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`
+        );
     }
 }
