@@ -49,4 +49,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.label.name == 'accuracy-tests'
         uses: marocchino/sticky-pull-request-comment@d2ad0de260ae8b0235ce059e63f2949ba9e05943 # v2
         with:
+          # Hides the previous comment and add a comment at the end
+          hide_and_recreate: true
+          hide_classify: "OUTDATED"
           path: .accuracy/test-brief.md
