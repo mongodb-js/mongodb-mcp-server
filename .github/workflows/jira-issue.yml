@@ -1,0 +1,34 @@
+---
+name: Create JIRA ticket for new issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+jobs:
+  jira_task:
+    name: Create Jira issue
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+      - name: Create JIRA ticket
+        uses: mongodb/apix-action/create-jira@v8
+        id: create
+        with:
+          token: ${{ secrets.JIRA_API_TOKEN }}
+          project-key: MCP
+          summary: "HELP: GitHub Issue n. ${{ github.event.issue.number }}"
+          issuetype: Story
+          description: "This ticket tracks the following GitHub issue: ${{ github.event.issue.html_url }}."
+          components: MCP
+      - name: Add comment
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Thanks for opening this issue. The ticket [${{ steps.create.outputs.issue-key }}](https://jira.mongodb.org/browse/${{ steps.create.outputs.issue-key }}) was created for internal tracking.
