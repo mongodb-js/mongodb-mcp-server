@@ -117,7 +117,9 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
                                                         { $eq: ["$$promptResult.prompt", prompt] },
                                                         {
                                                             prompt: "$$promptResult.prompt",
-                                                            expectedToolCalls,
+                                                            expectedToolCalls: {
+                                                                $literal: expectedToolCalls,
+                                                            },
                                                             modelResponses: {
                                                                 $concatArrays: [
                                                                     "$$promptResult.modelResponses",
