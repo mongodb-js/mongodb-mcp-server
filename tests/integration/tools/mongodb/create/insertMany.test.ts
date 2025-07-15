@@ -7,8 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
 } from "../../../helpers.js";
-import { expect } from "vitest";
-import { it } from "vitest";
+import { expect, it } from "vitest";
 
 describeWithMongoDB("insertMany tool", (integration) => {
     validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [

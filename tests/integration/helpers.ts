@@ -60,7 +60,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         // Mock hasValidAccessToken for tests
         if (userConfig.apiClientId && userConfig.apiClientSecret) {
-            const mockFn = vi.fn().mockResolvedValue(undefined);
+            const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
 
@@ -208,7 +208,7 @@ export function validateToolMetadata(
         validateToolAnnotations(tool, name, description);
         const toolParameters = getParameters(tool);
         expect(toolParameters).toHaveLength(parameters.length);
-        expect(toolParameters).toEqual(expect.arrayContaining(parameters));
+        expect(toolParameters).toIncludeSameMembers(parameters);
     });
 }
 
