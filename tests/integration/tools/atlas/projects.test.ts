@@ -2,6 +2,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ObjectId } from "mongodb";
 import { parseTable, describeWithAtlas } from "./atlasHelpers.js";
 import { expectDefined } from "../../helpers.js";
+import { afterAll, describe, expect, it } from "vitest";
 
 const randomId = new ObjectId().toString();
 
@@ -41,7 +42,7 @@ describeWithAtlas("projects", (integration) => {
                 name: "atlas-create-project",
                 arguments: { projectName: projName },
             })) as CallToolResult;
-            expect(response.content).toBeArray();
+            expect(response.content).toBeInstanceOf(Array);
             expect(response.content).toHaveLength(1);
             expect(response.content[0]?.text).toContain(projName);
         });
@@ -60,11 +61,11 @@ describeWithAtlas("projects", (integration) => {
             const response = (await integration
                 .mcpClient()
                 .callTool({ name: "atlas-list-projects", arguments: {} })) as CallToolResult;
-            expect(response.content).toBeArray();
+            expect(response.content).toBeInstanceOf(Array);
             expect(response.content).toHaveLength(1);
             expect(response.content[0]?.text).toContain(projName);
             const data = parseTable(response.content[0]?.text as string);
-            expect(data).toBeArray();
+            expect(data).toBeInstanceOf(Array);
             expect(data.length).toBeGreaterThan(0);
             let found = false;
             for (const project of data) {

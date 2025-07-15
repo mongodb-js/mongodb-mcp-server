@@ -1,6 +1,7 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { expectDefined } from "../../helpers.js";
 import { parseTable, describeWithAtlas } from "./atlasHelpers.js";
+import { describe, expect, it } from "vitest";
 
 describeWithAtlas("orgs", (integration) => {
     describe("atlas-list-orgs", () => {
@@ -14,7 +15,7 @@ describeWithAtlas("orgs", (integration) => {
             const response = (await integration
                 .mcpClient()
                 .callTool({ name: "atlas-list-orgs", arguments: {} })) as CallToolResult;
-            expect(response.content).toBeArray();
+            expect(response.content).toBeInstanceOf(Array);
             expect(response.content).toHaveLength(1);
             const data = parseTable(response.content[0]?.text as string);
             expect(data).toHaveLength(1);

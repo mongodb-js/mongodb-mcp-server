@@ -8,6 +8,7 @@ import {
     expectDefined,
 } from "../../../helpers.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import { expect, it } from "vitest";
 
 describeWithMongoDB("collectionIndexes tool", (integration) => {
     validateToolMetadata(

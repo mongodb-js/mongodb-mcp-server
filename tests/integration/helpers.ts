@@ -7,7 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { config } from "../../src/common/config.js";
-import { jest } from "@jest/globals";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 interface ParameterInfo {
     name: string;
@@ -60,8 +60,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         // Mock hasValidAccessToken for tests
         if (userConfig.apiClientId && userConfig.apiClientSecret) {
-            const mockFn = jest.fn<() => Promise<boolean>>().mockResolvedValue(true);
-            // @ts-expect-error accessing private property for testing
+            const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
 
@@ -132,7 +131,7 @@ export function getResponseElements(content: unknown | { content: unknown }): { 
         content = (content as { content: unknown }).content;
     }
 
-    expect(content).toBeArray();
+    expect(content).toBeInstanceOf(Array);
 
     const response = content as { type: string; text: string }[];
     for (const item of response) {
@@ -209,7 +208,7 @@ export function validateToolMetadata(
         validateToolAnnotations(tool, name, description);
         const toolParameters = getParameters(tool);
         expect(toolParameters).toHaveLength(parameters.length);
-        expect(toolParameters).toIncludeAllMembers(parameters);
+        expect(toolParameters).toIncludeSameMembers(parameters);
     });
 }
 

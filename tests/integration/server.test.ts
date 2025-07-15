@@ -1,5 +1,6 @@
 import { defaultTestConfig, expectDefined, setupIntegrationTest } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { describe, expect, it } from "vitest";
 
 describe("Server integration test", () => {
     describeWithMongoDB(

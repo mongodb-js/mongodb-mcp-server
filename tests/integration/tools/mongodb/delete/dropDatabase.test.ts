@@ -1,4 +1,5 @@
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import { expect, it } from "vitest";
 
 import {
     getResponseContent,

@@ -3,6 +3,7 @@ import { expectDefined, getResponseElements } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
 import { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -94,7 +95,8 @@ describeWithAtlas("clusters", (integration) => {
                         region: "US_EAST_1",
                     },
                 })) as CallToolResult;
-                expect(response.content).toBeArray();
+                expect(response.content).toBeInstanceOf(Array);
+                expect(response.content).toHaveLength(2);
                 expect(response.content[0]?.text).toContain("has been created");
 
                 // Check that the current IP is present in the access list
@@ -125,7 +127,7 @@ describeWithAtlas("clusters", (integration) => {
                     name: "atlas-inspect-cluster",
                     arguments: { projectId, clusterName: clusterName },
                 })) as CallToolResult;
-                expect(response.content).toBeArray();
+                expect(response.content).toBeInstanceOf(Array);
                 expect(response.content).toHaveLength(1);
                 expect(response.content[0]?.text).toContain(`${clusterName} | `);
             });
@@ -147,7 +149,7 @@ describeWithAtlas("clusters", (integration) => {
                 const response = (await integration
                     .mcpClient()
                     .callTool({ name: "atlas-list-clusters", arguments: { projectId } })) as CallToolResult;
-                expect(response.content).toBeArray();
+                expect(response.content).toBeInstanceOf(Array);
                 expect(response.content).toHaveLength(2);
                 expect(response.content[1]?.text).toContain(`${clusterName} | `);
             });
@@ -196,7 +198,7 @@ describeWithAtlas("clusters", (integration) => {
                         name: "atlas-connect-cluster",
                         arguments: { projectId, clusterName },
                     })) as CallToolResult;
-                    expect(response.content).toBeArray();
+                    expect(response.content).toBeInstanceOf(Array);
                     expect(response.content.length).toBeGreaterThanOrEqual(1);
                     expect(response.content[0]?.type).toEqual("text");
                     const c = response.content[0] as { text: string };

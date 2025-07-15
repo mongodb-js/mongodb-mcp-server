@@ -2,8 +2,7 @@
   "extends": "./tsconfig.build.json",
   "compilerOptions": {
     "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "types": ["jest", "jest-extended"]
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

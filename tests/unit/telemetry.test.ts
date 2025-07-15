@@ -4,24 +4,32 @@ import { DEVICE_ID_TIMEOUT, Telemetry } from "../../src/telemetry/telemetry.js";
 import { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { config } from "../../src/common/config.js";
-import { jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
 import logger, { LogId } from "../../src/common/logger.js";
 import { createHmac } from "crypto";
+import type { MockedFunction } from "vitest";
 
 // Mock the ApiClient to avoid real API calls
-jest.mock("../../src/common/atlas/apiClient.js");
-const MockApiClient = ApiClient as jest.MockedClass<typeof ApiClient>;
+vi.mock("../../src/common/atlas/apiClient.js");
+const MockApiClient = vi.mocked(ApiClient);
 
 // Mock EventCache to control and verify caching behavior
-jest.mock("../../src/telemetry/eventCache.js");
-const MockEventCache = EventCache as jest.MockedClass<typeof EventCache>;
+vi.mock("../../src/telemetry/eventCache.js");
+const MockEventCache = vi.mocked(EventCache);
 
 describe("Telemetry", () => {
     const machineId = "test-machine-id";
     const hashedMachineId = createHmac("sha256", machineId.toUpperCase()).update("atlascli").digest("hex");
 
-    let mockApiClient: jest.Mocked<ApiClient>;
-    let mockEventCache: jest.Mocked<EventCache>;
+    let mockApiClient: {
+        sendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
+        hasCredentials: MockedFunction<() => boolean>;
+    };
+    let mockEventCache: {
+        getEvents: MockedFunction<() => BaseEvent[]>;
+        clearEvents: MockedFunction<() => Promise<void>>;
+        appendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
+    };
     let session: Session;
     let telemetry: Telemetry;
 
@@ -95,38 +103,32 @@ describe("Telemetry", () => {
 
     beforeEach(() => {
         // Reset mocks before each test
-        jest.clearAllMocks();
+        vi.clearAllMocks();
 
         // Setup mocked API client
-        mockApiClient = new MockApiClient({ baseUrl: "" }) as jest.Mocked<ApiClient>;
-        //@ts-expect-error This is a workaround
-        mockApiClient.sendEvents = jest.fn<() => undefined>().mockResolvedValue(undefined);
-        mockApiClient.hasCredentials = jest.fn<() => boolean>().mockReturnValue(true);
+        mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }));
+
+        mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
+        mockApiClient.hasCredentials = vi.fn().mockReturnValue(true);
 
         // Setup mocked EventCache
-        mockEventCache = new MockEventCache() as jest.Mocked<EventCache>;
-        //@ts-expect-error This is a workaround
-        mockEventCache.getEvents = jest.fn().mockReturnValue([]);
-        //@ts-expect-error This is a workaround
-        mockEventCache.clearEvents = jest.fn().mockResolvedValue(undefined);
-        //@ts-expect-error This is a workaround
-        mockEventCache.appendEvents = jest.fn().mockResolvedValue(undefined);
-        //@ts-expect-error This is a workaround
-        MockEventCache.getInstance = jest.fn().mockReturnValue(mockEventCache);
+        mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;
+        mockEventCache.getEvents = vi.fn().mockReturnValue([]);
+        mockEventCache.clearEvents = vi.fn().mockResolvedValue(undefined);
+        mockEventCache.appendEvents = vi.fn().mockResolvedValue(undefined);
+        MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
         // Create a simplified session with our mocked API client
         session = {
-            apiClient: mockApiClient,
+            apiClient: mockApiClient as unknown as ApiClient,
             sessionId: "test-session-id",
             agentRunner: { name: "test-agent", version: "1.0.0" } as const,
-            //@ts-expect-error This is a workaround
-            close: jest.fn().mockResolvedValue(undefined),
-            //@ts-expect-error This is a workaround
-            setAgentRunner: jest.fn().mockResolvedValue(undefined),
+            close: vi.fn().mockResolvedValue(undefined),
+            setAgentRunner: vi.fn().mockResolvedValue(undefined),
         } as unknown as Session;
 
         telemetry = Telemetry.create(session, config, {
-            eventCache: mockEventCache,
+            eventCache: mockEventCache as unknown as EventCache,
             getRawMachineId: () => Promise.resolve(machineId),
         });
 
@@ -210,13 +212,13 @@ describe("Telemetry", () => {
 
             describe("machine ID resolution", () => {
                 beforeEach(() => {
-                    jest.clearAllMocks();
-                    jest.useFakeTimers();
+                    vi.clearAllMocks();
+                    vi.useFakeTimers();
                 });
 
                 afterEach(() => {
-                    jest.clearAllMocks();
-                    jest.useRealTimers();
+                    vi.clearAllMocks();
+                    vi.useRealTimers();
                 });
 
                 it("should successfully resolve the machine ID", async () => {
@@ -234,7 +236,7 @@ describe("Telemetry", () => {
                 });
 
                 it("should handle machine ID resolution failure", async () => {
-                    const loggerSpy = jest.spyOn(logger, "debug");
+                    const loggerSpy = vi.spyOn(logger, "debug");
 
                     telemetry = Telemetry.create(session, config, {
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
@@ -256,20 +258,20 @@ describe("Telemetry", () => {
                 });
 
                 it("should timeout if machine ID resolution takes too long", async () => {
-                    const loggerSpy = jest.spyOn(logger, "debug");
+                    const loggerSpy = vi.spyOn(logger, "debug");
 
                     telemetry = Telemetry.create(session, config, { getRawMachineId: () => new Promise(() => {}) });
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    jest.advanceTimersByTime(DEVICE_ID_TIMEOUT / 2);
+                    vi.advanceTimersByTime(DEVICE_ID_TIMEOUT / 2);
 
                     // Make sure the timeout doesn't happen prematurely.
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
-                    jest.advanceTimersByTime(DEVICE_ID_TIMEOUT);
+                    vi.advanceTimersByTime(DEVICE_ID_TIMEOUT);
 
                     await telemetry.setupPromise;
 

@@ -7,6 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
 } from "../../../helpers.js";
+import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("createCollection tool", (integration) => {
     validateToolMetadata(

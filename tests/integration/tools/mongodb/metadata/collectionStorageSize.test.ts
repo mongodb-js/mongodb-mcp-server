@@ -9,6 +9,7 @@ import {
     expectDefined,
 } from "../../../helpers.js";
 import * as crypto from "crypto";
+import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("collectionStorageSize tool", (integration) => {
     validateToolMetadata(

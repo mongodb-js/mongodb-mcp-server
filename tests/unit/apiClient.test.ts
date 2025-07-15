@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../../src/common/atlas/apiClient.js";
 import { CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 
@@ -36,11 +36,11 @@ describe("ApiClient", () => {
         });
 
         // @ts-expect-error accessing private property for testing
-        apiClient.getAccessToken = jest.fn().mockResolvedValue("mockToken");
+        apiClient.getAccessToken = vi.fn().mockResolvedValue("mockToken");
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe("constructor", () => {
@@ -60,7 +60,7 @@ describe("ApiClient", () => {
                 totalCount: 2,
             };
 
-            const mockGet = jest.fn().mockImplementation(() => ({
+            const mockGet = vi.fn().mockImplementation(() => ({
                 data: mockProjects,
                 error: null,
                 response: new Response(),
@@ -81,7 +81,7 @@ describe("ApiClient", () => {
                 detail: "Something went wrong",
             };
 
-            const mockGet = jest.fn().mockImplementation(() => ({
+            const mockGet = vi.fn().mockImplementation(() => ({
                 data: null,
                 error: mockError,
                 response: new Response(),
@@ -96,7 +96,7 @@ describe("ApiClient", () => {
 
     describe("sendEvents", () => {
         it("should send events to authenticated endpoint when token is available and valid", async () => {
-            const mockFetch = jest.spyOn(global, "fetch");
+            const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             await apiClient.sendEvents(mockEvents);
@@ -115,11 +115,11 @@ describe("ApiClient", () => {
         });
 
         it("should fall back to unauthenticated endpoint when token is not available via exception", async () => {
-            const mockFetch = jest.spyOn(global, "fetch");
+            const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = jest.fn().mockRejectedValue(new Error("No access token available"));
+            apiClient.getAccessToken = vi.fn().mockRejectedValue(new Error("No access token available"));
 
             await apiClient.sendEvents(mockEvents);
 
@@ -136,11 +136,11 @@ describe("ApiClient", () => {
         });
 
         it("should fall back to unauthenticated endpoint when token is undefined", async () => {
-            const mockFetch = jest.spyOn(global, "fetch");
+            const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = jest.fn().mockReturnValueOnce(undefined);
+            apiClient.getAccessToken = vi.fn().mockReturnValueOnce(undefined);
 
             await apiClient.sendEvents(mockEvents);
 
@@ -157,7 +157,7 @@ describe("ApiClient", () => {
         });
 
         it("should fall back to unauthenticated endpoint on 401 error", async () => {
-            const mockFetch = jest.spyOn(global, "fetch");
+            const mockFetch = vi.spyOn(global, "fetch");
             mockFetch
                 .mockResolvedValueOnce(new Response(null, { status: 401 }))
                 .mockResolvedValueOnce(new Response(null, { status: 200 }));
@@ -178,14 +178,14 @@ describe("ApiClient", () => {
         });
 
         it("should throw error when both authenticated and unauthenticated requests fail", async () => {
-            const mockFetch = jest.spyOn(global, "fetch");
+            const mockFetch = vi.spyOn(global, "fetch");
             mockFetch
                 .mockResolvedValueOnce(new Response(null, { status: 401 }))
                 .mockResolvedValueOnce(new Response(null, { status: 500 }));
 
             const mockToken = "test-token";
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = jest.fn().mockResolvedValue(mockToken);
+            apiClient.getAccessToken = vi.fn().mockResolvedValue(mockToken);
 
             await expect(apiClient.sendEvents(mockEvents)).rejects.toThrow();
         });

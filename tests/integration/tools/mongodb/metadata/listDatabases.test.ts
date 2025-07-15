@@ -1,5 +1,6 @@
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { getResponseElements, getParameters, expectDefined } from "../../../helpers.js";
+import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("listDatabases tool", (integration) => {
     const defaultDatabases = ["admin", "config", "local"];
@@ -20,7 +21,7 @@ describeWithMongoDB("listDatabases tool", (integration) => {
             const response = await integration.mcpClient().callTool({ name: "list-databases", arguments: {} });
             const dbNames = getDbNames(response.content);
 
-            expect(defaultDatabases).toIncludeAllMembers(dbNames);
+            expect(defaultDatabases).toStrictEqual(dbNames);
         });
     });
 
@@ -47,7 +48,7 @@ describeWithMongoDB("listDatabases tool", (integration) => {
                 validate: (content) => {
                     const dbNames = getDbNames(content);
 
-                    expect(defaultDatabases).toIncludeAllMembers(dbNames);
+                    expect(defaultDatabases).toStrictEqual(dbNames);
                 },
             };
         },
