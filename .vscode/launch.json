@@ -18,7 +18,7 @@
       "request": "launch",
       "name": "Launch Program",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/dist/cjs/index.js",
+      "program": "${workspaceFolder}/dist/esm/index.js",
       "preLaunchTask": "tsc: build - tsconfig.build.json",
       "outFiles": ["${workspaceFolder}/dist/**/*.js"]
     }

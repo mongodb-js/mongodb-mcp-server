@@ -22,7 +22,7 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
   },
   "bin": {
-    "mongodb-mcp-server": "dist/cjs/index.js"
+    "mongodb-mcp-server": "dist/esm/index.js"
   },
   "publishConfig": {
     "access": "public"
@@ -34,9 +34,9 @@
     "build:esm": "tsc --project tsconfig.esm.json",
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build:package-json": "tsx scripts/write-package-json.ts",
-    "build:chmod": "chmod +x dist/cjs/index.js",
+    "build:chmod": "chmod +x dist/esm/index.js",
     "build": "npm run build:clean && npm run build:esm && npm run build:cjs && npm run build:package-json && npm run build:chmod",
-    "inspect": "npm run build && mcp-inspector -- dist/cjs/index.js",
+    "inspect": "npm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "npm run build && npm run check:types && npm run check:lint && npm run check:format",
     "check:lint": "eslint .",
