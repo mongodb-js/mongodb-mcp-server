@@ -55,7 +55,7 @@ describeWithMongoDB("createCollection tool", (integration) => {
             expect(content).toEqual(`Collection "collection2" created in database "${integration.randomDbName()}".`);
             collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(2);
-            expect(collections.map((c) => c.name)).toEqual(expect.arrayContaining(["collection1", "collection2"]));
+            expect(collections.map((c) => c.name)).toIncludeSameMembers(["collection1", "collection2"]);
         });
 
         it("does nothing if collection already exists", async () => {

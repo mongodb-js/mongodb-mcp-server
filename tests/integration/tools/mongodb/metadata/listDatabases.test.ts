@@ -35,7 +35,7 @@ describeWithMongoDB("listDatabases tool", (integration) => {
 
             const response = await integration.mcpClient().callTool({ name: "list-databases", arguments: {} });
             const dbNames = getDbNames(response.content);
-            expect(dbNames).toEqual(expect.arrayContaining([...defaultDatabases, "foo", "baz"]));
+            expect(dbNames).toIncludeSameMembers([...defaultDatabases, "foo", "baz"]);
         });
     });
 
