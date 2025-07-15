@@ -2,7 +2,7 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import { ApiClient, ApiClientCredentials } from "./atlas/apiClient.js";
 import { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import logger, { LogId } from "./logger.js";
-import EventEmitter from "events";
+import { EventEmitter } from "events";
 import { ConnectOptions } from "./config.js";
 import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import { packageInfo } from "./packageInfo.js";
