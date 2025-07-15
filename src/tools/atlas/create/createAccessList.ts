@@ -2,9 +2,7 @@ import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
-import { makeCurrentIpAccessListEntry } from "../../../common/atlas/accessListUtils.js";
-
-const DEFAULT_COMMENT = "Added by Atlas MCP";
+import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../../common/atlas/accessListUtils.js";
 
 export class CreateAccessListTool extends AtlasToolBase {
     public name = "atlas-create-access-list";
@@ -18,7 +16,11 @@ export class CreateAccessListTool extends AtlasToolBase {
             .optional(),
         cidrBlocks: z.array(z.string().cidr()).describe("CIDR blocks to allow access from").optional(),
         currentIpAddress: z.boolean().describe("Add the current IP address").default(false),
-        comment: z.string().describe("Comment for the access list entries").default(DEFAULT_COMMENT).optional(),
+        comment: z
+            .string()
+            .describe("Comment for the access list entries")
+            .default(DEFAULT_ACCESS_LIST_COMMENT)
+            .optional(),
     };
 
     protected async execute({
@@ -35,14 +37,14 @@ export class CreateAccessListTool extends AtlasToolBase {
         const ipInputs = (ipAddresses || []).map((ipAddress) => ({
             groupId: projectId,
             ipAddress,
-            comment: comment || DEFAULT_COMMENT,
+            comment: comment || DEFAULT_ACCESS_LIST_COMMENT,
         }));
 
         if (currentIpAddress) {
             const input = await makeCurrentIpAccessListEntry(
                 this.session.apiClient,
                 projectId,
-                comment || DEFAULT_COMMENT
+                comment || DEFAULT_ACCESS_LIST_COMMENT
             );
             ipInputs.push(input);
         }
@@ -50,7 +52,7 @@ export class CreateAccessListTool extends AtlasToolBase {
         const cidrInputs = (cidrBlocks || []).map((cidrBlock) => ({
             groupId: projectId,
             cidrBlock,
-            comment: comment || DEFAULT_COMMENT,
+            comment: comment || DEFAULT_ACCESS_LIST_COMMENT,
         }));
 
         const inputs = [...ipInputs, ...cidrInputs];

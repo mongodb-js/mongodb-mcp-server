@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { ApiClient } from "../../src/common/atlas/apiClient.js";
-import { ensureCurrentIpInAccessList } from "../../src/common/atlas/accessListUtils.js";
+import { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "../../src/common/atlas/accessListUtils.js";
 import { ApiClientError } from "../../src/common/atlas/apiClientError.js";
 
 describe("accessListUtils", () => {
@@ -13,9 +13,7 @@ describe("accessListUtils", () => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
-            body: [
-                { groupId: "projectId", ipAddress: "127.0.0.1", comment: "Added by MCP pre-run access list helper" },
-            ],
+            body: [{ groupId: "projectId", ipAddress: "127.0.0.1", comment: DEFAULT_ACCESS_LIST_COMMENT }],
         });
     });
 
@@ -35,9 +33,7 @@ describe("accessListUtils", () => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
-            body: [
-                { groupId: "projectId", ipAddress: "127.0.0.1", comment: "Added by MCP pre-run access list helper" },
-            ],
+            body: [{ groupId: "projectId", ipAddress: "127.0.0.1", comment: DEFAULT_ACCESS_LIST_COMMENT }],
         });
     });
 });

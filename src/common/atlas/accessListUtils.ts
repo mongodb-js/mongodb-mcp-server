@@ -2,10 +2,12 @@ import { ApiClient } from "./apiClient.js";
 import logger, { LogId } from "../logger.js";
 import { ApiClientError } from "./apiClientError.js";
 
+export const DEFAULT_ACCESS_LIST_COMMENT = "Added by MongoDB MCP Server to enable tool access";
+
 export async function makeCurrentIpAccessListEntry(
     apiClient: ApiClient,
     projectId: string,
-    comment: string = "Added by Atlas MCP"
+    comment: string = DEFAULT_ACCESS_LIST_COMMENT
 ) {
     const { currentIpv4Address } = await apiClient.getIpInfo();
     return {
@@ -23,7 +25,7 @@ export async function makeCurrentIpAccessListEntry(
  */
 export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectId: string): Promise<void> {
     // Get the current public IP
-    const entry = await makeCurrentIpAccessListEntry(apiClient, projectId, "Added by MCP pre-run access list helper");
+    const entry = await makeCurrentIpAccessListEntry(apiClient, projectId, DEFAULT_ACCESS_LIST_COMMENT);
     try {
         await apiClient.createProjectIpAccessList({
             params: { path: { groupId: projectId } },
@@ -36,7 +38,12 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
         );
     } catch (err) {
         if (err instanceof ApiClientError && err.response?.status === 409) {
-            // 409 Conflict: entry already exists, ignore
+            // 409 Conflict: entry already exists, log info
+            logger.debug(
+                LogId.atlasIpAccessListAdded,
+                "accessListUtils",
+                `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`
+            );
             return;
         }
         logger.debug(
