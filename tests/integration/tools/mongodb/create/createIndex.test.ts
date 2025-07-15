@@ -8,6 +8,7 @@ import {
     expectDefined,
 } from "../../../helpers.js";
 import { IndexDirection } from "mongodb";
+import { expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool", (integration) => {
     validateToolMetadata(integration, "create-index", "Create an index for a collection", [

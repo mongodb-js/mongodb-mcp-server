@@ -4,6 +4,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseContent,
 } from "../../../helpers.js";
+import { beforeEach, describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("updateMany tool", (integration) => {

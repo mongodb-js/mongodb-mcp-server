@@ -7,6 +7,7 @@ import {
 } from "../../../helpers.js";
 import { config } from "../../../../../src/common/config.js";
 import { defaultTestConfig, setupIntegrationTest } from "../../../helpers.js";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB(
     "SwitchConnection tool",

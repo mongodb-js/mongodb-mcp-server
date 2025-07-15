@@ -1,11 +1,1 @@
-{
-  "jestrunner.jestCommand": "npm test --",
-  "jestrunner.debugOptions": {
-    "runtimeExecutable": "node",
-    "runtimeArgs": [
-      "--experimental-vm-modules",
-      "node_modules/jest/bin/jest.js",
-      "--coverage"
-    ]
-  }
-}
+{}

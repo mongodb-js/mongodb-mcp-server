@@ -8,6 +8,7 @@ import {
     databaseInvalidArgs,
     databaseParameters,
 } from "../../../helpers.js";
+import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("listCollections tool", (integration) => {
     validateToolMetadata(

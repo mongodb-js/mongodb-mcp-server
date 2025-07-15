@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import { MongoClient, ObjectId } from "mongodb";
 import { getResponseContent, IntegrationTest, setupIntegrationTest, defaultTestConfig } from "../../helpers.js";
 import { UserConfig } from "../../../../src/common/config.js";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -8,6 +8,7 @@ import {
 } from "../../../helpers.js";
 import * as crypto from "crypto";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("dbStats tool", (integration) => {
     validateToolMetadata(

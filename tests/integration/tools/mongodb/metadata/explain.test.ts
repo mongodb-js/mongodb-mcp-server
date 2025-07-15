@@ -5,6 +5,7 @@ import {
     getResponseElements,
 } from "../../../helpers.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("explain tool", (integration) => {
     validateToolMetadata(

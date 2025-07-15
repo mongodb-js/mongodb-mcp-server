@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { validateToolMetadata, validateThrowsForInvalidArguments, getResponseElements } from "../../../helpers.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 

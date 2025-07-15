@@ -1,6 +1,7 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { expectDefined } from "../../helpers.js";
 import { parseTable, describeWithAtlas, withProject } from "./atlasHelpers.js";
+import { describe, expect, it } from "vitest";
 
 describeWithAtlas("alerts", (integration) => {
     describe("atlas-list-alerts", () => {
@@ -20,11 +21,11 @@ describeWithAtlas("alerts", (integration) => {
                     arguments: { projectId: getProjectId() },
                 })) as CallToolResult;
 
-                expect(response.content).toBeArray();
+                expect(response.content).toBeInstanceOf(Array);
                 expect(response.content).toHaveLength(1);
 
                 const data = parseTable(response.content[0]?.text as string);
-                expect(data).toBeArray();
+                expect(data).toBeInstanceOf(Array);
 
                 // Since we can't guarantee alerts will exist, we just verify the table structure
                 if (data.length > 0) {

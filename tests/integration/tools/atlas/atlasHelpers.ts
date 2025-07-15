@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { Group } from "../../../../src/common/atlas/openapi.js";
 import { ApiClient } from "../../../../src/common/atlas/apiClient.js";
 import { setupIntegrationTest, IntegrationTest, defaultTestConfig } from "../../helpers.js";
+import { afterAll, beforeAll, describe } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -19,8 +20,10 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction) {
     };
 
     if (!process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length) {
+        // eslint-disable-next-line vitest/valid-describe-callback
         return describe.skip("atlas", testDefinition);
     }
+    // eslint-disable-next-line vitest/no-identical-title, vitest/valid-describe-callback
     return describe("atlas", testDefinition);
 }
 

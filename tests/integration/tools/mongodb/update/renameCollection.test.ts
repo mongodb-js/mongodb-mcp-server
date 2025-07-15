@@ -4,6 +4,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
 } from "../../../helpers.js";
+import { describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("renameCollection tool", (integration) => {
