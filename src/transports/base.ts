@@ -30,5 +30,5 @@ export abstract class Runner {
 
     abstract run(): Promise<void>;
 
-    abstract close(): Promise<number>;
+    abstract close(): Promise<void>;
 }

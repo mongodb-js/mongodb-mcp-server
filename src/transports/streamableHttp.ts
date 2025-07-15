@@ -36,25 +36,14 @@ export class StreamableHttpRunner extends Runner {
 
                 await server.connect(transport);
 
-                res.on("close", async () => {
-                    try {
-                        await transport.close();
-                    } catch (error: unknown) {
-                        logger.error(
-                            LogId.streamableHttpTransportCloseFailure,
-                            "streamableHttpTransport",
-                            `Error closing transport: ${error instanceof Error ? error.message : String(error)}`
-                        );
-                    }
-                    try {
-                        await server.close();
-                    } catch (error: unknown) {
+                res.on("close", () => {
+                    Promise.all([transport.close(), server.close()]).catch((error: unknown) => {
                         logger.error(
                             LogId.streamableHttpTransportCloseFailure,
                             "streamableHttpTransport",
                             `Error closing server: ${error instanceof Error ? error.message : String(error)}`
                         );
-                    }
+                    });
                 });
 
                 try {
@@ -77,31 +66,25 @@ export class StreamableHttpRunner extends Runner {
             })
         );
 
-        app.get(
-            "/mcp",
-            promiseHandler(async (req: express.Request, res: express.Response) => {
-                res.status(405).json({
-                    jsonrpc: "2.0",
-                    error: {
-                        code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
-                        message: `method not allowed`,
-                    },
-                });
-            })
-        );
+        app.get("/mcp", (req: express.Request, res: express.Response) => {
+            res.status(405).json({
+                jsonrpc: "2.0",
+                error: {
+                    code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
+                    message: `method not allowed`,
+                },
+            });
+        });
 
-        app.delete(
-            "/mcp",
-            promiseHandler(async (req: express.Request, res: express.Response) => {
-                res.status(405).json({
-                    jsonrpc: "2.0",
-                    error: {
-                        code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
-                        message: `method not allowed`,
-                    },
-                });
-            })
-        );
+        app.delete("/mcp", (req: express.Request, res: express.Response) => {
+            res.status(405).json({
+                jsonrpc: "2.0",
+                error: {
+                    code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
+                    message: `method not allowed`,
+                },
+            });
+        });
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
             const result = app.listen(config.httpPort, config.httpHost, (err?: Error) => {
@@ -120,14 +103,15 @@ export class StreamableHttpRunner extends Runner {
         );
     }
 
-    async close(): Promise<number> {
-        try {
-            await this.httpServer?.close();
-            return 0;
-        } catch (error: unknown) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${err.message}`);
-            return 1;
-        }
+    async close(): Promise<void> {
+        await new Promise<void>((resolve, reject) => {
+            this.httpServer?.close((err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve();
+            });
+        });
     }
 }

@@ -1,15 +1,12 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 
-describe("streamableHttpTransport", () => {
+describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
 
-    beforeAll(async () => {
+    beforeAll(() => {
         runner = new StreamableHttpRunner();
         void runner.run();
     });

@@ -8,16 +8,18 @@ import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 async function main() {
     const runner = config.transport === "stdio" ? new StdioRunner() : new StreamableHttpRunner();
 
-    const shutdown = async () => {
+    const shutdown = () => {
         logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
 
-        try {
-            const exitCode = await runner.close();
-            process.exit(exitCode);
-        } catch (error: unknown) {
-            logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
-            process.exit(1);
-        }
+        runner
+            .close()
+            .then(() => {
+                process.exit(0);
+            })
+            .catch((error: unknown) => {
+                logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
+                process.exit(1);
+            });
     };
 
     process.once("SIGINT", shutdown);

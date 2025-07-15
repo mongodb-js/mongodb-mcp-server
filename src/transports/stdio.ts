@@ -65,17 +65,7 @@ export class StdioRunner extends Runner {
         }
     }
 
-    async close(): Promise<number> {
-        logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
-
-        try {
-            await this.server?.close();
-            logger.info(LogId.serverClosed, "server", `Server closed successfully`);
-            return 0;
-        } catch (error: unknown) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${err.message}`);
-            return 1;
-        }
+    async close(): Promise<void> {
+        await this.server?.close();
     }
 }
