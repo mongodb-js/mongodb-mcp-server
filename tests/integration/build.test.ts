@@ -1,6 +1,6 @@
 import { createRequire } from "module";
 import path from "path";
-import { fileURLToPath, pathToFileURL } from "url";
+import { fileURLToPath } from "url";
 import { describe, it, expect } from "vitest";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,10 +18,7 @@ describe("Build Test", () => {
     });
 
     it("should successfully import ESM module", async () => {
-        const esmPath = path.resolve(__dirname, "../../dist/lib.js");
-        const esmFileURL = pathToFileURL(esmPath).href;
-
-        const esmModule = (await import(esmFileURL)) as Record<string, unknown>;
+        const esmModule = (await import("../../dist/lib.js")) as Record<string, unknown>;
 
         expect(esmModule).toBeDefined();
         expect(typeof esmModule).toBe("object");
@@ -34,9 +31,7 @@ describe("Build Test", () => {
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
         // Import ESM module
-        const esmPath = path.resolve(__dirname, "../../dist/lib.js");
-        const esmFileURL = pathToFileURL(esmPath).href;
-        const esmModule = (await import(esmFileURL)) as Record<string, unknown>;
+        const esmModule = (await import("../../dist/lib.js")) as Record<string, unknown>;
 
         // Compare exports
         const cjsKeys = Object.keys(cjsModule).sort();
