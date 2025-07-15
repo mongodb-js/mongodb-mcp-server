@@ -33,6 +33,7 @@ async function main() {
         logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
         try {
             await transportRunner.close();
+            logger.error(LogId.serverClosed, "server", "Server closed");
         } catch (error: unknown) {
             logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
         } finally {
