@@ -213,12 +213,12 @@ export class ConnectClusterTool extends AtlasToolBase {
                         ],
                     };
                 }
-                case "connecting": {
+                case "connecting":
+                case "unknown": {
                     break;
                 }
                 case "connected-to-other-cluster":
                 case "disconnected":
-                case "unknown":
                 default: {
                     await this.session.disconnect();
                     const connectionString = await this.prepareClusterConnection(projectId, clusterName);
