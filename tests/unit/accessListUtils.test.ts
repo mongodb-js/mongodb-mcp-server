@@ -10,6 +10,7 @@ describe("accessListUtils", () => {
             createProjectIpAccessList: vi.fn().mockResolvedValue(undefined as never),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
             body: [
@@ -31,6 +32,7 @@ describe("accessListUtils", () => {
                 ),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
             body: [
