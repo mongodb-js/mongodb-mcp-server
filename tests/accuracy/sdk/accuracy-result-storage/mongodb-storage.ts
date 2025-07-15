@@ -5,9 +5,7 @@ import {
     AccuracyRunStatus,
     AccuracyRunStatuses,
     ExpectedToolCall,
-    LLMToolCall,
     ModelResponse,
-    PromptResult,
 } from "./result-storage.js";
 
 // Omitting these as they might contain large chunk of texts
