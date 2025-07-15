@@ -31,7 +31,7 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
         });
         logger.debug(
             LogId.atlasIpAccessListAdded,
-            "atlas-connect-cluster",
+            "accessListUtils",
             `IP access list created: ${JSON.stringify(entry)}`
         );
     } catch (err) {
@@ -39,6 +39,6 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
             // 409 Conflict: entry already exists, ignore
             return;
         }
-        throw err;
+        logger.debug(LogId.atlasIpAccessListAddFailure, "accessListUtils", `Error adding IP access list: ${err}`);
     }
 }
