@@ -1,7 +1,7 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject } from "./atlasHelpers.js";
 import { expectDefined } from "../../helpers.js";
-import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/ensureAccessList.js";
+import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/accessListUtils.js";
 
 function generateRandomIp() {
     const randomIp: number[] = [192];

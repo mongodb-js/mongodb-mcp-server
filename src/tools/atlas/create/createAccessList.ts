@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
+import { makeCurrentIpAccessListEntry } from "../../../common/atlas/accessListUtils.js";
 
 const DEFAULT_COMMENT = "Added by Atlas MCP";
 
@@ -38,12 +39,11 @@ export class CreateAccessListTool extends AtlasToolBase {
         }));
 
         if (currentIpAddress) {
-            const currentIp = await this.session.apiClient.getIpInfo();
-            const input = {
-                groupId: projectId,
-                ipAddress: currentIp.currentIpv4Address,
-                comment: comment || DEFAULT_COMMENT,
-            };
+            const input = await makeCurrentIpAccessListEntry(
+                this.session.apiClient,
+                projectId,
+                comment || DEFAULT_COMMENT
+            );
             ipInputs.push(input);
         }
 

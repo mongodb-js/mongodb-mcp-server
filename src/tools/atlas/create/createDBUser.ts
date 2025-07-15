@@ -4,7 +4,7 @@ import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
-import { ensureCurrentIpInAccessList } from "../../../common/atlas/ensureAccessList.js";
+import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 
 export class CreateDBUserTool extends AtlasToolBase {
     public name = "atlas-create-db-user";
