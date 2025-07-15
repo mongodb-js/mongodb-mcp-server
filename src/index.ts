@@ -28,7 +28,7 @@ async function main() {
     process.once("SIGQUIT", shutdown);
 
     try {
-        await transportRunner.run();
+        await transportRunner.start();
     } catch (error: unknown) {
         logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
         try {

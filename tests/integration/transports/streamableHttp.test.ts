@@ -8,7 +8,7 @@ describe("StreamableHttpRunner", () => {
 
     beforeAll(() => {
         runner = new StreamableHttpRunner();
-        void runner.run();
+        void runner.start();
     });
 
     afterAll(async () => {

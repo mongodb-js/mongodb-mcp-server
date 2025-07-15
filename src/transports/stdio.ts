@@ -52,7 +52,7 @@ export function createStdioTransport(): StdioServerTransport {
 export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
-    async run() {
+    async start() {
         try {
             this.server = this.setupServer();
 

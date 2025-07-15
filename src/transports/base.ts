@@ -28,7 +28,7 @@ export abstract class TransportRunnerBase {
         });
     }
 
-    abstract run(): Promise<void>;
+    abstract start(): Promise<void>;
 
     abstract close(): Promise<void>;
 }

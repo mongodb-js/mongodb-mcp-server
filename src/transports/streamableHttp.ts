@@ -19,7 +19,7 @@ function promiseHandler(
 export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
 
-    async run() {
+    async start() {
         const app = express();
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.urlencoded({ extended: true }));
