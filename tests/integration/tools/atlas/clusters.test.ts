@@ -91,7 +91,7 @@ describeWithAtlas("clusters", (integration) => {
                     name: "atlas-create-free-cluster",
                     arguments: {
                         projectId,
-                        name: clusterName + "-iptest",
+                        name: clusterName,
                         region: "US_EAST_1",
                     },
                 })) as CallToolResult;
