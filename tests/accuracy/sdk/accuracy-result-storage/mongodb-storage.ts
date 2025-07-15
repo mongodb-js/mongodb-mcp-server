@@ -5,19 +5,38 @@ import {
     AccuracyRunStatus,
     AccuracyRunStatuses,
     ExpectedToolCall,
+    LLMToolCall,
     ModelResponse,
+    PromptResult,
 } from "./result-storage.js";
 
 // Omitting these as they might contain large chunk of texts
 const OMITTED_MODEL_RESPONSE_FIELDS: (keyof ModelResponse)[] = ["messages", "text"];
 
+// The LLMToolCalls and ExpectedToolCalls are expected to have mongodb operators
+// nested in the objects. This interferes with the update operation that we do
+// on the accuracy result document to save the model responses which is why we
+// serialize them before saving and deserialize them on fetch.
+type SavedAccuracyResult = Omit<AccuracyResult, "promptResults"> & {
+    promptResults: SavedPromptResult[];
+};
+
+type SavedPromptResult = Omit<PromptResult, "expectedToolCalls" | "modelResponses"> & {
+    expectedToolCalls: string;
+    modelResponses: SavedModelResponse[];
+};
+
+type SavedModelResponse = Omit<ModelResponse, "llmToolCalls"> & {
+    llmToolCalls: string;
+};
+
 export class MongoDBBasedResultStorage implements AccuracyResultStorage {
     private client: MongoClient;
-    private resultCollection: Collection<AccuracyResult>;
+    private resultCollection: Collection<SavedAccuracyResult>;
 
     constructor(connectionString: string, database: string, collection: string) {
         this.client = new MongoClient(connectionString);
-        this.resultCollection = this.client.db(database).collection<AccuracyResult>(collection);
+        this.resultCollection = this.client.db(database).collection<SavedAccuracyResult>(collection);
     }
 
     async getAccuracyResult(commitSHA: string, runId?: string): Promise<AccuracyResult | null> {
@@ -28,11 +47,14 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
               // for commit is when you want the last successful run of that
               // particular commit.
               { commitSHA, runStatus: AccuracyRunStatus.Done };
-        return await this.resultCollection.findOne(filters, {
+
+        const result = await this.resultCollection.findOne(filters, {
             sort: {
                 createdOn: -1,
             },
         });
+
+        return result ? this.deserializeSavedResult(result) : result;
     }
 
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
@@ -59,67 +81,14 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
         expectedToolCalls: ExpectedToolCall[];
         modelResponse: ModelResponse;
     }): Promise<void> {
-        const savedModelResponse: ModelResponse = { ...modelResponse };
+        const expectedToolCallsToSave = JSON.stringify(expectedToolCalls);
+        const modelResponseToSave: SavedModelResponse = {
+            ...modelResponse,
+            llmToolCalls: JSON.stringify(modelResponse.llmToolCalls),
+        };
+
         for (const field of OMITTED_MODEL_RESPONSE_FIELDS) {
-            delete savedModelResponse[field];
-        }
-
-        await this.resultCollection.updateOne(
-            { commitSHA, runId },
-            {
-                $setOnInsert: {
-                    runStatus: AccuracyRunStatus.InProgress,
-                    createdOn: Date.now(),
-                    commitSHA,
-                    runId,
-                    promptResults: [],
-                },
-            },
-            { upsert: true }
-        );
-
-        await this.resultCollection.updateOne(
-            {
-                commitSHA,
-                runId,
-                "promptResults.prompt": { $ne: prompt },
-            },
-            {
-                $push: {
-                    promptResults: { prompt, expectedToolCalls, modelResponses: [] },
-                },
-            }
-        );
-
-        await this.resultCollection.updateOne(
-            { commitSHA, runId },
-            {
-                $push: {
-                    "promptResults.$[promptElement].modelResponses": savedModelResponse,
-                },
-            },
-            {
-                arrayFilters: [{ "promptElement.prompt": prompt }],
-            }
-        );
-    }
-
-    async saveModelResponseForPromptAtomic({
-        commitSHA,
-        runId,
-        prompt,
-        expectedToolCalls,
-        modelResponse,
-    }: {
-        commitSHA: string;
-        runId: string;
-        prompt: string;
-        expectedToolCalls: ExpectedToolCall[];
-        modelResponse: ModelResponse;
-    }): Promise<void> {
-        const savedModelResponse: ModelResponse = { ...modelResponse };
-        for (const field of OMITTED_MODEL_RESPONSE_FIELDS) {
-            delete savedModelResponse[field];
+            delete modelResponseToSave[field];
         }
 
         await this.resultCollection.updateOne(
@@ -127,62 +96,62 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
             [
                 {
                     $set: {
-                        runStatus: {
-                            $ifNull: ["$runStatus", AccuracyRunStatus.InProgress],
+                        runStatus: { $ifNull: ["$runStatus", AccuracyRunStatus.InProgress] },
+                        createdOn: { $ifNull: ["$createdOn", Date.now()] },
+                        commitSHA: { $ifNull: ["$commitSHA", commitSHA] },
+                        runId: { $ifNull: ["$runId", runId] },
+                        promptResults: {
+                            $ifNull: ["$promptResults", []],
                         },
-                        createdOn: {
-                            $ifNull: ["$createdOn", Date.now()],
-                        },
-                        commitSHA: commitSHA,
-                        runId: runId,
+                    },
+                },
+                {
+                    $set: {
                         promptResults: {
                             $let: {
                                 vars: {
-                                    existingPrompts: { $ifNull: ["$promptResults", []] },
-                                    promptExists: {
-                                        $in: [
-                                            prompt,
-                                            {
-                                                $ifNull: [
-                                                    { $map: { input: "$promptResults", as: "pr", in: "$$pr.prompt" } },
-                                                    [],
-                                                ],
-                                            },
-                                        ],
+                                    existingPromptIndex: {
+                                        $indexOfArray: ["$promptResults.prompt", prompt],
                                     },
                                 },
                                 in: {
-                                    $map: {
-                                        input: {
-                                            $cond: {
-                                                if: "$$promptExists",
-                                                then: "$$existingPrompts",
-                                                else: {
-                                                    $concatArrays: [
-                                                        "$$existingPrompts",
-                                                        [{ prompt, expectedToolCalls, modelResponses: [] }],
+                                    $cond: [
+                                        { $eq: ["$$existingPromptIndex", -1] },
+                                        {
+                                            $concatArrays: [
+                                                "$promptResults",
+                                                [
+                                                    {
+                                                        prompt,
+                                                        expectedToolCalls: expectedToolCallsToSave,
+                                                        modelResponses: [modelResponseToSave],
+                                                    },
+                                                ],
+                                            ],
+                                        },
+                                        {
+                                            $map: {
+                                                input: "$promptResults",
+                                                as: "promptResult",
+                                                in: {
+                                                    $cond: [
+                                                        { $eq: ["$$promptResult.prompt", prompt] },
+                                                        {
+                                                            prompt: "$$promptResult.prompt",
+                                                            expectedToolCalls: expectedToolCallsToSave,
+                                                            modelResponses: {
+                                                                $concatArrays: [
+                                                                    "$$promptResult.modelResponses",
+                                                                    [modelResponseToSave],
+                                                                ],
+                                                            },
+                                                        },
+                                                        "$$promptResult",
                                                     ],
                                                 },
                                             },
                                         },
-                                        as: "promptResult",
-                                        in: {
-                                            $cond: {
-                                                if: { $eq: ["$$promptResult.prompt", prompt] },
-                                                then: {
-                                                    prompt: "$$promptResult.prompt",
-                                                    expectedToolCalls: "$$promptResult.expectedToolCalls",
-                                                    modelResponses: {
-                                                        $concatArrays: [
-                                                            "$$promptResult.modelResponses",
-                                                            [savedModelResponse],
-                                                        ],
-                                                    },
-                                                },
-                                                else: "$$promptResult",
-                                            },
-                                        },
-                                    },
+                                    ],
                                 },
                             },
                         },
@@ -191,6 +160,24 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
             ],
             { upsert: true }
         );
+    }
+
+    private deserializeSavedResult(result: SavedAccuracyResult): AccuracyResult {
+        return {
+            ...result,
+            promptResults: result.promptResults.map<PromptResult>((result) => {
+                return {
+                    ...result,
+                    expectedToolCalls: JSON.parse(result.expectedToolCalls) as ExpectedToolCall[],
+                    modelResponses: result.modelResponses.map<ModelResponse>((response) => {
+                        return {
+                            ...response,
+                            llmToolCalls: JSON.parse(response.llmToolCalls) as LLMToolCall[],
+                        };
+                    }),
+                };
+            }),
+        };
     }
 
     async close(): Promise<void> {
