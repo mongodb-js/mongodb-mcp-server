@@ -29,7 +29,7 @@
     "check:types": "tsc --noEmit --project tsconfig.json",
     "reformat": "prettier --write .",
     "generate": "./scripts/generate.sh",
-    "test": "vitest --coverage"
+    "test": "vitest --run --coverage"
   },
   "license": "Apache-2.0",
   "devDependencies": {

@@ -1,84 +1,92 @@
 import express from "express";
 import http from "http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-
+import { TransportRunnerBase } from "./base.js";
 import { config } from "../common/config.js";
 import logger, { LogId } from "../common/logger.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
+const JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED = -32601;
 
-export async function createHttpTransport(): Promise<StreamableHTTPServerTransport> {
-    const app = express();
-    app.enable("trust proxy"); // needed for reverse proxy support
-    app.use(express.urlencoded({ extended: true }));
-    app.use(express.json());
+function promiseHandler(
+    fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
+) {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        fn(req, res, next).catch(next);
+    };
+}
 
-    const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-    });
+export class StreamableHttpRunner extends TransportRunnerBase {
+    private httpServer: http.Server | undefined;
 
-    app.post("/mcp", async (req: express.Request, res: express.Response) => {
-        try {
-            await transport.handleRequest(req, res, req.body);
-        } catch (error) {
-            logger.error(
-                LogId.streamableHttpTransportRequestFailure,
-                "streamableHttpTransport",
-                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
-            );
-            res.status(400).json({
+    async start() {
+        const app = express();
+        app.enable("trust proxy"); // needed for reverse proxy support
+        app.use(express.urlencoded({ extended: true }));
+        app.use(express.json());
+
+        app.post(
+            "/mcp",
+            promiseHandler(async (req: express.Request, res: express.Response) => {
+                const transport = new StreamableHTTPServerTransport({
+                    sessionIdGenerator: undefined,
+                });
+
+                const server = this.setupServer();
+
+                await server.connect(transport);
+
+                res.on("close", () => {
+                    Promise.all([transport.close(), server.close()]).catch((error: unknown) => {
+                        logger.error(
+                            LogId.streamableHttpTransportCloseFailure,
+                            "streamableHttpTransport",
+                            `Error closing server: ${error instanceof Error ? error.message : String(error)}`
+                        );
+                    });
+                });
+
+                try {
+                    await transport.handleRequest(req, res, req.body);
+                } catch (error) {
+                    logger.error(
+                        LogId.streamableHttpTransportRequestFailure,
+                        "streamableHttpTransport",
+                        `Error handling request: ${error instanceof Error ? error.message : String(error)}`
+                    );
+                    res.status(400).json({
+                        jsonrpc: "2.0",
+                        error: {
+                            code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                            message: `failed to handle request`,
+                            data: error instanceof Error ? error.message : String(error),
+                        },
+                    });
+                }
+            })
+        );
+
+        app.get("/mcp", (req: express.Request, res: express.Response) => {
+            res.status(405).json({
                 jsonrpc: "2.0",
                 error: {
-                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: `failed to handle request`,
-                    data: error instanceof Error ? error.message : String(error),
+                    code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
+                    message: `method not allowed`,
                 },
             });
-        }
-    });
+        });
 
-    app.get("/mcp", async (req: express.Request, res: express.Response) => {
-        try {
-            await transport.handleRequest(req, res, req.body);
-        } catch (error) {
-            logger.error(
-                LogId.streamableHttpTransportRequestFailure,
-                "streamableHttpTransport",
-                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
-            );
-            res.status(400).json({
+        app.delete("/mcp", (req: express.Request, res: express.Response) => {
+            res.status(405).json({
                 jsonrpc: "2.0",
                 error: {
-                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: `failed to handle request`,
-                    data: error instanceof Error ? error.message : String(error),
+                    code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
+                    message: `method not allowed`,
                 },
             });
-        }
-    });
+        });
 
-    app.delete("/mcp", async (req: express.Request, res: express.Response) => {
-        try {
-            await transport.handleRequest(req, res, req.body);
-        } catch (error) {
-            logger.error(
-                LogId.streamableHttpTransportRequestFailure,
-                "streamableHttpTransport",
-                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
-            );
-            res.status(400).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: `failed to handle request`,
-                    data: error instanceof Error ? error.message : String(error),
-                },
-            });
-        }
-    });
-
-    try {
-        const server = await new Promise<http.Server>((resolve, reject) => {
+        this.httpServer = await new Promise<http.Server>((resolve, reject) => {
             const result = app.listen(config.httpPort, config.httpHost, (err?: Error) => {
                 if (err) {
                     reject(err);
@@ -93,31 +101,17 @@ export async function createHttpTransport(): Promise<StreamableHTTPServerTranspo
             "streamableHttpTransport",
             `Server started on http://${config.httpHost}:${config.httpPort}`
         );
+    }
 
-        transport.onclose = () => {
-            logger.info(LogId.streamableHttpTransportCloseRequested, "streamableHttpTransport", `Closing server`);
-            server.close((err?: Error) => {
+    async close(): Promise<void> {
+        await new Promise<void>((resolve, reject) => {
+            this.httpServer?.close((err) => {
                 if (err) {
-                    logger.error(
-                        LogId.streamableHttpTransportCloseFailure,
-                        "streamableHttpTransport",
-                        `Error closing server: ${err.message}`
-                    );
+                    reject(err);
                     return;
                 }
-                logger.info(LogId.streamableHttpTransportCloseSuccess, "streamableHttpTransport", `Server closed`);
+                resolve();
             });
-        };
-
-        return transport;
-    } catch (error: unknown) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger.info(
-            LogId.streamableHttpTransportStartFailure,
-            "streamableHttpTransport",
-            `Error starting server: ${err.message}`
-        );
-
-        throw err;
+        });
     }
 }

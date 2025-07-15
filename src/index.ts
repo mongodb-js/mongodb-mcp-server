@@ -1,50 +1,23 @@
 #!/usr/bin/env node
 
 import logger, { LogId } from "./common/logger.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { config } from "./common/config.js";
-import { Session } from "./common/session.js";
-import { Server } from "./server.js";
-import { packageInfo } from "./common/packageInfo.js";
-import { Telemetry } from "./telemetry/telemetry.js";
-import { createStdioTransport } from "./transports/stdio.js";
-import { createHttpTransport } from "./transports/streamableHttp.js";
+import { StdioRunner } from "./transports/stdio.js";
+import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 
-try {
-    const session = new Session({
-        apiBaseUrl: config.apiBaseUrl,
-        apiClientId: config.apiClientId,
-        apiClientSecret: config.apiClientSecret,
-    });
-
-    const transport = config.transport === "stdio" ? createStdioTransport() : await createHttpTransport();
-
-    const telemetry = Telemetry.create(session, config);
-
-    const mcpServer = new McpServer({
-        name: packageInfo.mcpServerName,
-        version: packageInfo.version,
-    });
-
-    const server = new Server({
-        mcpServer,
-        session,
-        telemetry,
-        userConfig: config,
-    });
+async function main() {
+    const transportRunner = config.transport === "stdio" ? new StdioRunner() : new StreamableHttpRunner();
 
     const shutdown = () => {
         logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
 
-        server
+        transportRunner
             .close()
             .then(() => {
-                logger.info(LogId.serverClosed, "server", `Server closed successfully`);
                 process.exit(0);
             })
-            .catch((err: unknown) => {
-                const error = err instanceof Error ? err : new Error(String(err));
-                logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error.message}`);
+            .catch((error: unknown) => {
+                logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
                 process.exit(1);
             });
     };
@@ -54,8 +27,22 @@ try {
     process.once("SIGTERM", shutdown);
     process.once("SIGQUIT", shutdown);
 
-    await server.connect(transport);
-} catch (error: unknown) {
+    try {
+        await transportRunner.start();
+    } catch (error: unknown) {
+        logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
+        try {
+            await transportRunner.close();
+            logger.error(LogId.serverClosed, "server", "Server closed");
+        } catch (error: unknown) {
+            logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
+        } finally {
+            process.exit(1);
+        }
+    }
+}
+
+main().catch((error: unknown) => {
     logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
     process.exit(1);
-}
+});

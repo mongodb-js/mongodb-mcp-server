@@ -6,7 +6,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { Readable } from "stream";
 import { ReadBuffer } from "@modelcontextprotocol/sdk/shared/stdio.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-
 describe("stdioTransport", () => {
     let transport: StdioServerTransport;
     beforeEach(async () => {
