@@ -12,7 +12,23 @@ import {
 } from "./result-storage.js";
 
 export class DiskBasedResultStorage implements AccuracyResultStorage {
-    async getAccuracyResult(commitSHA: string, runId?: string): Promise<AccuracyResult | null> {
+    /**
+     *
+     * @param commitSHA The commit for which accuracy result needs to be
+     * fetched.
+     * @param runId An optional runId to get the result for. If the runId is not
+     * provided then the result of the latest run are fetched.
+     * @param preferExclusiveRead An optional flag, which when set to false,
+     * will not lock the result file before reading otherwise the default
+     * behavior is to lock the result file before reading. This should always be
+     * set to false when the calling context already holds the lock on the
+     * result file.
+     */
+    async getAccuracyResult(
+        commitSHA: string,
+        runId?: string,
+        preferExclusiveRead?: boolean
+    ): Promise<AccuracyResult | null> {
         const filePath = runId
             ? // If we have both commit and runId then we get the path for
               // specific file. Common case when saving prompt responses during an
@@ -23,6 +39,10 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
               // marked as successful.
               this.getAccuracyResultFilePath(commitSHA, LATEST_ACCURACY_RUN_NAME);
 
+        let releaseLock: (() => Promise<void>) | undefined;
+        if (preferExclusiveRead !== false) {
+            releaseLock = await lock(filePath);
+        }
         try {
             const raw = await fs.readFile(filePath, "utf8");
             return JSON.parse(raw) as AccuracyResult;
@@ -31,14 +51,17 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
                 return null;
             }
             throw error;
+        } finally {
+            await releaseLock?.();
         }
     }
 
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
         const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
-        const release = await lock(resultFilePath, { retries: 10 });
+        let releaseLock: (() => Promise<void>) | undefined;
         try {
-            const accuracyResult = await this.getAccuracyResult(commitSHA, runId);
+            releaseLock = await lock(resultFilePath, { retries: 10 });
+            const accuracyResult = await this.getAccuracyResult(commitSHA, runId, false);
             if (!accuracyResult) {
                 throw new Error("Results not found!");
             }
@@ -62,7 +85,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
             );
             throw error;
         } finally {
-            await release();
+            await releaseLock?.();
         }
 
         // This bit is important to mark the current run as the latest run for a
@@ -111,9 +134,10 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
             return;
         }
 
-        const releaseLock = await lock(resultFilePath, { retries: 10 });
+        let releaseLock: (() => Promise<void>) | undefined;
         try {
-            const accuracyResult = await this.getAccuracyResult(commitSHA, runId);
+            releaseLock = await lock(resultFilePath, { retries: 10 });
+            const accuracyResult = await this.getAccuracyResult(commitSHA, runId, false);
             if (!accuracyResult) {
                 throw new Error("Expected at-least initial accuracy result to be present");
             }
