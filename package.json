@@ -6,12 +6,12 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/esm/index.d.ts",
-        "default": "./dist/esm/index.js"
+        "types": "./dist/lib.d.ts",
+        "default": "./dist/lib.js"
       },
       "require": {
-        "types": "./dist/cjs/index.d.ts",
-        "default": "./dist/cjs/index.js"
+        "types": "./dist/cjs/lib.d.ts",
+        "default": "./dist/cjs/lib.js"
       }
     }
   },
@@ -22,7 +22,7 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
   },
   "bin": {
-    "mongodb-mcp-server": "dist/cjs/index.js"
+    "mongodb-mcp-server": "dist/index.js"
   },
   "publishConfig": {
     "access": "public"
@@ -33,10 +33,10 @@
     "build:update-package-info": "tsx scripts/update-package-info.ts",
     "build:esm": "tsc --project tsconfig.esm.json",
     "build:cjs": "tsc --project tsconfig.cjs.json",
-    "build:package-json": "echo '{\"type\":\"module\"}' > dist/esm/package.json && echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
-    "build:chmod": "chmod +x dist/cjs/index.js",
+    "build:package-json": "echo '{\"type\":\"module\"}' > dist/package.json && echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
+    "build:chmod": "chmod +x dist/index.js",
     "build": "npm run build:clean && npm run build:update-package-info && npm run build:esm && npm run build:cjs && npm run build:package-json && npm run build:chmod",
-    "inspect": "npm run build && mcp-inspector -- dist/cjs/index.js",
+    "inspect": "npm run build && mcp-inspector -- dist/index.js",
     "prettier": "prettier",
     "check": "npm run build && npm run check:types && npm run check:lint && npm run check:format",
     "check:lint": "eslint .",
