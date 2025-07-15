@@ -57,19 +57,6 @@ export class ConnectClusterTool extends AtlasToolBase {
                 "atlas-connect-cluster",
                 `error querying cluster: ${error.message}`
             );
-
-            // sometimes the error can be "error querying cluster: bad auth : Authentication failed."
-            // which just means it's still propagating permissions to the cluster
-            // in that case, we want to classify this as connecting.
-            if (error.message.includes("Authentication failed")) {
-                logger.debug(
-                    LogId.atlasConnectFailure,
-                    "atlas-connect-cluster",
-                    `assuming connecting to cluster: ${this.session.connectedAtlasCluster?.clusterName}`
-                );
-                return "connecting";
-            }
-
             return "unknown";
         }
     }
