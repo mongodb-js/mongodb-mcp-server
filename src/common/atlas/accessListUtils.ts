@@ -24,7 +24,6 @@ export async function makeCurrentIpAccessListEntry(
  * @param projectId The Atlas project ID
  */
 export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectId: string): Promise<void> {
-    // Get the current public IP
     const entry = await makeCurrentIpAccessListEntry(apiClient, projectId, DEFAULT_ACCESS_LIST_COMMENT);
     try {
         await apiClient.createProjectIpAccessList({
