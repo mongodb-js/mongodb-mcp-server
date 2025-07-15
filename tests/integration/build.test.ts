@@ -8,10 +8,12 @@ const currentDir = import.meta.dirname;
 // Get project root (go up from tests/integration to project root)
 const projectRoot = path.resolve(currentDir, "../..");
 
+const esmPath = path.resolve(projectRoot, "dist/esm/lib.js");
+const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
+
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {
         const require = createRequire(__filename);
-        const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
 
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
@@ -20,7 +22,7 @@ describe("Build Test", () => {
     });
 
     it("should successfully import ESM module", async () => {
-        const esmModule = (await import("../../dist/esm/lib.js")) as Record<string, unknown>;
+        const esmModule = (await import(esmPath)) as Record<string, unknown>;
 
         expect(esmModule).toBeDefined();
         expect(typeof esmModule).toBe("object");
@@ -29,11 +31,10 @@ describe("Build Test", () => {
     it("should have matching exports between CommonJS and ESM modules", async () => {
         // Import CommonJS module
         const require = createRequire(__filename);
-        const cjsPath = path.resolve(__dirname, "../../dist/cjs/lib.js");
         const cjsModule = require(cjsPath) as Record<string, unknown>;
 
         // Import ESM module
-        const esmModule = (await import("../../dist/esm/lib.js")) as Record<string, unknown>;
+        const esmModule = (await import(esmPath)) as Record<string, unknown>;
 
         // Compare exports
         const cjsKeys = Object.keys(cjsModule).sort();
