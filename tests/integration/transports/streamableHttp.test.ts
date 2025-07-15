@@ -6,9 +6,9 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         runner = new StreamableHttpRunner();
-        void runner.start();
+        await runner.start();
     });
 
     afterAll(async () => {
