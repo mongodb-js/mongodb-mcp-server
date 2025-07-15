@@ -62,8 +62,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.15.0",
     "@mongodb-js/device-id": "^0.3.1",
-    "@mongodb-js/devtools-connect": "^3.7.2",
-    "@mongosh/service-provider-node-driver": "^3.6.0",
+    "@mongodb-js/devtools-connect": "^3.9.2",
+    "@mongosh/service-provider-node-driver": "^3.10.2",
     "bson": "^6.10.4",
     "lru-cache": "^11.1.0",
     "mongodb": "^6.17.0",
@@ -76,6 +76,9 @@
     "simple-oauth2": "^5.1.0",
     "yargs-parser": "^22.0.0",
     "zod": "^3.25.76"
+  },
+  "overrides": {
+    "@mongodb-js/oidc-plugin": "1.1.8"
   },
   "engines": {
     "node": ">=20.19.0"
