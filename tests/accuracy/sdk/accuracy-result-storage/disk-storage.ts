@@ -83,6 +83,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         if (status === AccuracyRunStatus.Done) {
             const latestResultFilePath = this.getLatestResultFilePath(commitSHA);
             await this.withFileLock(latestResultFilePath, async () => {
+                await fs.unlink(latestResultFilePath);
                 await fs.link(resultFilePath, latestResultFilePath);
             });
         }
