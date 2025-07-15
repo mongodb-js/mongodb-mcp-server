@@ -12,23 +12,7 @@ import {
 } from "./result-storage.js";
 
 export class DiskBasedResultStorage implements AccuracyResultStorage {
-    /**
-     *
-     * @param commitSHA The commit for which accuracy result needs to be
-     * fetched.
-     * @param runId An optional runId to get the result for. If the runId is not
-     * provided then the result of the latest run are fetched.
-     * @param preferExclusiveRead An optional flag, which when set to false,
-     * will not lock the result file before reading otherwise the default
-     * behavior is to lock the result file before reading. This should always be
-     * set to false when the calling context already holds the lock on the
-     * result file.
-     */
-    async getAccuracyResult(
-        commitSHA: string,
-        runId?: string,
-        preferExclusiveRead?: boolean
-    ): Promise<AccuracyResult | null> {
+    async getAccuracyResult(commitSHA: string, runId?: string): Promise<AccuracyResult | null> {
         const filePath = runId
             ? // If we have both commit and runId then we get the path for
               // specific file. Common case when saving prompt responses during an
@@ -39,27 +23,13 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
               // marked as successful.
               this.getAccuracyResultFilePath(commitSHA, LATEST_ACCURACY_RUN_NAME);
 
-        let releaseLock: (() => Promise<void>) | undefined;
-        if (preferExclusiveRead !== false) {
-            releaseLock = await lock(filePath);
-        }
-        try {
-            const raw = await fs.readFile(filePath, "utf8");
-            return JSON.parse(raw) as AccuracyResult;
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-                return null;
-            }
-            throw error;
-        } finally {
-            await releaseLock?.();
-        }
+        return this.withFileLock<AccuracyResult | null>(filePath, () => this.getAccuracyResultWithoutLock(filePath));
     }
 
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
         const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
         await this.withFileLock(resultFilePath, async () => {
-            const accuracyResult = await this.getAccuracyResult(commitSHA, runId, false);
+            const accuracyResult = await this.getAccuracyResultWithoutLock(resultFilePath);
             if (!accuracyResult) {
                 throw new Error("Results not found!");
             }
@@ -126,7 +96,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         }
 
         await this.withFileLock(resultFilePath, async () => {
-            let accuracyResult = await this.getAccuracyResult(commitSHA, runId, false);
+            let accuracyResult = await this.getAccuracyResultWithoutLock(resultFilePath);
             if (!accuracyResult) {
                 throw new Error("Expected at-least initial accuracy result to be present");
             }
@@ -161,6 +131,18 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         return Promise.resolve();
     }
 
+    private async getAccuracyResultWithoutLock(filePath: string): Promise<AccuracyResult | null> {
+        try {
+            const raw = await fs.readFile(filePath, "utf8");
+            return JSON.parse(raw) as AccuracyResult;
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+                return null;
+            }
+            throw error;
+        }
+    }
+
     private async ensureAccuracyResultFile(
         filePath: string,
         initialData: string
@@ -183,11 +165,11 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         }
     }
 
-    private async withFileLock(filePath: string, callback: () => Promise<void>): Promise<void> {
+    private async withFileLock<R>(filePath: string, callback: () => Promise<R>): Promise<R> {
         let releaseLock: (() => Promise<void>) | undefined;
         try {
             releaseLock = await lock(filePath, { retries: 10 });
-            await callback();
+            return await callback();
         } catch (error) {
             console.warn(`Could not acquire lock for file - ${filePath}.`, error);
             throw error;
