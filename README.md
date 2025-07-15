@@ -324,7 +324,7 @@ The `loggers` configuration option controls where logs are sent. You can specify
 
 **Default:** `disk,mcp` (logs are written to disk and sent to the MCP client).
 
-You can combine multiple loggers, e.g. `--loggers disk,stderr` or `export MDB_MCP_LOGGERS="mcp,stderr"`.
+You can combine multiple loggers, e.g. `--loggers disk stderr` or `export MDB_MCP_LOGGERS="mcp,stderr"`.
 
 ##### Example: Set logger via environment variable
 
@@ -335,7 +335,7 @@ export MDB_MCP_LOGGERS="disk,stderr"
 ##### Example: Set logger via command-line argument
 
 ```shell
-npx -y mongodb-mcp-server --loggers mcp,stderr
+npx -y mongodb-mcp-server --loggers mcp stderr
 ```
 
 ##### Log File Location
