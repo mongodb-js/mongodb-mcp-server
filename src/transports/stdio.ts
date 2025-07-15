@@ -1,3 +1,6 @@
+import logger, { LogId } from "../common/logger.js";
+import { Server } from "../server.js";
+import { Runner } from "./base.js";
 import { JSONRPCMessage, JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { EJSON } from "bson";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -44,4 +47,35 @@ export function createStdioTransport(): StdioServerTransport {
     server["_readBuffer"] = new EJsonReadBuffer();
 
     return server;
+}
+
+export class StdioRunner extends Runner {
+    private server: Server | undefined;
+
+    async run() {
+        try {
+            this.server = this.setupServer();
+
+            const transport = createStdioTransport();
+
+            await this.server.connect(transport);
+        } catch (error: unknown) {
+            logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
+            process.exit(1);
+        }
+    }
+
+    async close(): Promise<number> {
+        logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
+
+        try {
+            await this.server?.close();
+            logger.info(LogId.serverClosed, "server", `Server closed successfully`);
+            return 0;
+        } catch (error: unknown) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${err.message}`);
+            return 1;
+        }
+    }
 }
