@@ -2,8 +2,7 @@
   "extends": "./tsconfig.build.json",
   "compilerOptions": {
     "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "types": ["vitest", "vitest/globals"]
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }
