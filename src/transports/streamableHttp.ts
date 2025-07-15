@@ -1,7 +1,7 @@
 import express from "express";
 import http from "http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { Runner } from "./base.js";
+import { TransportRunnerBase } from "./base.js";
 import { config } from "../common/config.js";
 import logger, { LogId } from "../common/logger.js";
 
@@ -16,7 +16,7 @@ function promiseHandler(
     };
 }
 
-export class StreamableHttpRunner extends Runner {
+export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
 
     async run() {

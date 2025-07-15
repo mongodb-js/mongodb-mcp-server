@@ -1,6 +1,6 @@
 import logger, { LogId } from "../common/logger.js";
 import { Server } from "../server.js";
-import { Runner } from "./base.js";
+import { TransportRunnerBase } from "./base.js";
 import { JSONRPCMessage, JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { EJSON } from "bson";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -49,7 +49,7 @@ export function createStdioTransport(): StdioServerTransport {
     return server;
 }
 
-export class StdioRunner extends Runner {
+export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
     async run() {

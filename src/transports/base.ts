@@ -5,7 +5,7 @@ import { Session } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-export abstract class Runner {
+export abstract class TransportRunnerBase {
     protected setupServer(): Server {
         const session = new Session({
             apiBaseUrl: config.apiBaseUrl,

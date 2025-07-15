@@ -6,12 +6,12 @@ import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 
 async function main() {
-    const runner = config.transport === "stdio" ? new StdioRunner() : new StreamableHttpRunner();
+    const transportRunner = config.transport === "stdio" ? new StdioRunner() : new StreamableHttpRunner();
 
     const shutdown = () => {
         logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
 
-        runner
+        transportRunner
             .close()
             .then(() => {
                 process.exit(0);
@@ -28,11 +28,11 @@ async function main() {
     process.once("SIGQUIT", shutdown);
 
     try {
-        await runner.run();
+        await transportRunner.run();
     } catch (error: unknown) {
         logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
         try {
-            await runner.close();
+            await transportRunner.close();
         } catch (error: unknown) {
             logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
         } finally {
