@@ -16,6 +16,7 @@
     }
   },
   "main": "./dist/cjs/lib.js",
+  "types": "./dist/cjs/lib.d.ts",
   "author": "MongoDB <info@mongodb.com>",
   "homepage": "https://github.com/mongodb-js/mongodb-mcp-server",
   "repository": {
