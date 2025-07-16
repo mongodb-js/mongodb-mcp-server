@@ -16,18 +16,12 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # By default we run all the tests under tests/accuracy folder unless a path is
 # specified in the command line. Such as:
 # npm run test:accuracy -- tests/accuracy/some-test.test.ts
-if [ $# -gt 0 ]; then
-    TEST_PATH_PATTERN="$1"
-    shift
-else
-    TEST_PATH_PATTERN="tests/accuracy"
-fi
-echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID' and TEST_PATH_PATTERN '$TEST_PATH_PATTERN'"
-node --experimental-vm-modules node_modules/jest/bin/jest.js --bail --testPathPatterns "$TEST_PATH_PATTERN" "$@"
+echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID'"
+vitest --config vitest.config.ts --project=accuracy --coverage=false --run --testTimeout=3600000 "$@"
 
 # Preserving the exit code from test run to correctly notify in the CI
 # environments when the tests fail.
-JEST_EXIT_CODE=$?
+TEST_EXIT_CODE=$?
 
 # Each test run submits an accuracy result with the accuracyRunStatus:
 # "in-progress". When all the tests are done and jest exits with an exit code of
@@ -42,10 +36,10 @@ JEST_EXIT_CODE=$?
 
 # This is necessary when comparing one accuracy run with another as we wouldn't
 # want to compare against an incomplete run.
-export MDB_ACCURACY_RUN_STATUS=$([ $JEST_EXIT_CODE -eq 0 ] && echo "done" || echo "failed")
+export MDB_ACCURACY_RUN_STATUS=$([ $TEST_EXIT_CODE -eq 0 ] && echo "done" || echo "failed")
 npx tsx scripts/accuracy/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to '$MDB_ACCURACY_RUN_STATUS'"
 
 # This is optional but we do it anyways to generate a readable summary of report.
 npx tsx scripts/accuracy/generate-test-summary.ts || echo "Warning: Failed to generate test summary HTML report"
 
-exit $JEST_EXIT_CODE
+exit $TEST_EXIT_CODE
