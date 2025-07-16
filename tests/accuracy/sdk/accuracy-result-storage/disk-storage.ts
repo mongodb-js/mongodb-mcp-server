@@ -52,6 +52,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         // commit so that we can use that during baseline comparison.
         if (status === AccuracyRunStatus.Done) {
             const latestResultFilePath = this.getLatestResultFilePath(commitSHA);
+            await this.ensureFileWithInitialData(latestResultFilePath, JSON.stringify({}));
             await this.withFileLock(latestResultFilePath, async () => {
                 await fs.unlink(latestResultFilePath);
                 await fs.link(resultFilePath, latestResultFilePath);
@@ -86,7 +87,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
             ],
         };
         const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
-        const { fileCreatedWithInitialData } = await this.ensureAccuracyResultFile(
+        const { fileCreatedWithInitialData } = await this.ensureFileWithInitialData(
             resultFilePath,
             JSON.stringify(initialData, null, 2)
         );
@@ -143,7 +144,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         }
     }
 
-    private async ensureAccuracyResultFile(
+    private async ensureFileWithInitialData(
         filePath: string,
         initialData: string
     ): Promise<{
