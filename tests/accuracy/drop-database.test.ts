@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 import { ExpectedToolCall } from "./sdk/accuracy-result-storage/result-storage.js";
 
@@ -24,7 +23,7 @@ function callsDropDatabase(prompt: string, expectedToolCalls: ExpectedToolCall[]
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     onlyCallsDropDatabase("Remove mflix database from my cluster."),
     onlyCallsDropDatabase("Drop database named mflix."),
     callsDropDatabase("If there is a mflix database in my cluster then drop it.", [

@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsRenameCollection(prompt: string): AccuracyTestConfig {
@@ -35,7 +34,7 @@ function callsRenameCollectionWithDropTarget(prompt: string): AccuracyTestConfig
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsRenameCollection("Rename my 'mflix.movies' namespace to 'mflix.new_movies'"),
     callsRenameCollectionWithDropTarget(
         "Rename my 'mflix.movies' namespace to 'mflix.new_movies' while removing the old namespace."

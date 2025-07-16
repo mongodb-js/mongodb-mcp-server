@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsCollectionIndexes(prompt: string): AccuracyTestConfig {
@@ -17,7 +16,7 @@ function callsCollectionIndexes(prompt: string): AccuracyTestConfig {
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsCollectionIndexes("How many indexes do I have in 'mflix.movies' namespace?"),
     callsCollectionIndexes("List all the indexes in movies collection in mflix database"),
     callsCollectionIndexes(

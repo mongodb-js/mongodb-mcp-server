@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 import { ExpectedToolCall } from "./sdk/accuracy-result-storage/result-storage.js";
 
@@ -25,7 +24,7 @@ function callsDropCollection(prompt: string, expectedToolCalls: ExpectedToolCall
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     onlyCallsDropCollection("Remove mflix.movies namespace from my cluster."),
     onlyCallsDropCollection("Drop movies collection from mflix database."),
     callsDropCollection("Remove books collection from which ever database contains it.", [

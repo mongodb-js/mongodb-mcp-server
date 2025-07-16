@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsCreateIndex(prompt: string, indexKeys: Record<string, unknown>): AccuracyTestConfig {
@@ -18,7 +17,7 @@ function callsCreateIndex(prompt: string, indexKeys: Record<string, unknown>): A
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsCreateIndex(
         "Create an index that covers the following query on 'mflix.movies' namespace - { \"release_year\": 1992 }",
         {

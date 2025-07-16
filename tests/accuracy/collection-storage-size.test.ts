@@ -1,7 +1,6 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     {
         prompt: "What is the size of 'mflix.movies' namespace",
         expectedToolCalls: [

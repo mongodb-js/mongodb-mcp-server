@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 import { ExpectedToolCall } from "./sdk/accuracy-result-storage/result-storage.js";
 
@@ -27,7 +26,7 @@ function callsCreateCollectionWithListCollections(prompt: string, expectedToolCa
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsCreateCollection("Create a new namespace 'mflix.documentaries'", "mflix", "documentaries"),
     callsCreateCollection("Create a new collection villains in comics database", "comics", "villains"),
     callsCreateCollectionWithListCollections(

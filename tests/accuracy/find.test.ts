@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsFindNoFilter(prompt: string, database = "mflix", collection = "movies"): AccuracyTestConfig {
@@ -93,7 +92,7 @@ function callsFindWithFilterSortAndLimit(
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsFindNoFilter("List all the movies in 'mflix.movies' namespace."),
     callsFindNoFilter("List all the documents in 'comics.books' namespace.", "comics", "books"),
     callsFindWithFilter("Find all the movies in 'mflix.movies' namespace with runtime less than 100.", {

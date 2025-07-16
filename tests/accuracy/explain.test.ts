@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsExplain(prompt: string, method: Record<string, unknown>): AccuracyTestConfig {
@@ -51,7 +50,7 @@ const callsExplainWithCount = (prompt: string) =>
  * because we are using Zod.union, when we probably should've used
  * Zod.discriminatedUnion
  */
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsExplainWithFind(
         `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
     ),

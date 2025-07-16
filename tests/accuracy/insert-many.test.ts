@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsInsertMany(prompt: string): AccuracyTestConfig {
@@ -47,7 +46,7 @@ function callsEmptyInsertMany(prompt: string) {
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsInsertMany(
         [
             "In my namespace 'mflix.movies', insert 3 documents each with the following fields:",
