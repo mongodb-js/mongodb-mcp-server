@@ -155,5 +155,6 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 resolve();
             });
         });
+        await this.sessionStore.closeAllSessions();
     }
 }

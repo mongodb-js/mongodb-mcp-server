@@ -14,6 +14,7 @@ async function main() {
         transportRunner
             .close()
             .then(() => {
+                logger.info(LogId.serverClosed, "server", `Server closed`);
                 process.exit(0);
             })
             .catch((error: unknown) => {
@@ -22,10 +23,10 @@ async function main() {
             });
     };
 
-    process.once("SIGINT", shutdown);
-    process.once("SIGABRT", shutdown);
-    process.once("SIGTERM", shutdown);
-    process.once("SIGQUIT", shutdown);
+    process.on("SIGINT", shutdown);
+    process.on("SIGABRT", shutdown);
+    process.on("SIGTERM", shutdown);
+    process.on("SIGQUIT", shutdown);
 
     try {
         await transportRunner.start();
