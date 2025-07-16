@@ -22,6 +22,7 @@ export default defineConfig({
         },
         projects: [
             {
+                extends: true,
                 test: {
                     name: "unit-and-integration",
                     include: ["**/*.test.ts"],
@@ -29,6 +30,7 @@ export default defineConfig({
                 },
             },
             {
+                extends: true,
                 test: {
                     name: "accuracy",
                     include: ["**/accuracy/*.test.ts"],
