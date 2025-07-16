@@ -4,12 +4,12 @@ import { createAzure } from "@ai-sdk/azure";
 import { createOpenAI } from "@ai-sdk/openai";
 import { ollama } from "ollama-ai-provider";
 
-export interface Model<P extends LanguageModelV1 = LanguageModelV1> {
+export interface Model<VercelModel extends LanguageModelV1 = LanguageModelV1> {
     readonly modelName: string;
     readonly provider: string;
     readonly displayName: string;
     isAvailable(): boolean;
-    getModel(): P;
+    getModel(): VercelModel;
 }
 
 export class OpenAIModel implements Model {
@@ -88,10 +88,8 @@ export class OllamaModel implements Model {
     }
 }
 
-const ALL_TESTABLE_MODELS = [new AzureOpenAIModel("gpt-4o")];
+const ALL_TESTABLE_MODELS: Model[] = [new AzureOpenAIModel("gpt-4o")];
 
-export type TestableModels = ReturnType<typeof getAvailableModels>;
-
-export function getAvailableModels() {
+export function getAvailableModels(): Model[] {
     return ALL_TESTABLE_MODELS.filter((model) => model.isAvailable());
 }

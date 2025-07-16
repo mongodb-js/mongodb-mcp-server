@@ -1,5 +1,5 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from "vitest";
-import { TestableModels } from "./models.js";
+import { getAvailableModels } from "./models.js";
 import { calculateToolCallingAccuracy } from "./accuracy-scorer.js";
 import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
@@ -41,11 +41,12 @@ export interface AccuracyTestConfig {
     mockedTools?: MockedTools;
 }
 
-export function describeAccuracyTests(models: TestableModels, accuracyTestConfigs: AccuracyTestConfig[]) {
+export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[]) {
     if (!process.env.MDB_ACCURACY_RUN_ID) {
         throw new Error("MDB_ACCURACY_RUN_ID env variable is required for accuracy test runs!");
     }
 
+    const models = getAvailableModels();
     if (!models.length) {
         throw new Error("No models available to test. Ensure that the API keys are properly setup!");
     }

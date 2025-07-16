@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 import { ExpectedToolCall } from "./sdk/accuracy-result-storage/result-storage.js";
 
@@ -10,7 +9,7 @@ function callsLogsTool(prompt: string, toolCall: ExpectedToolCall): AccuracyTest
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsLogsTool("Were there any startup warnings for my MongoDB server?", {
         toolName: "mongodb-logs",
         parameters: {

@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { getAvailableModels } from "./sdk/models.js";
 import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
 
 function callsListCollections(prompt: string): AccuracyTestConfig {
@@ -48,7 +47,7 @@ function callsListDatabasesAndListCollections(prompt: string): AccuracyTestConfi
     };
 }
 
-describeAccuracyTests(getAvailableModels(), [
+describeAccuracyTests([
     callsListCollections("How many collections do I have in database mflix?"),
     callsListCollections("List all the collections in my MongoDB database mflix."),
     callsListCollections("Is there a shows collection in my MongoDB database mflix?"),
