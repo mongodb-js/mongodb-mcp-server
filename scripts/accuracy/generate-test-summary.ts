@@ -1,14 +1,14 @@
 import path from "path";
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracy-result-storage/get-accuracy-result-storage.js";
+import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracy-result-storage/getAccuracyResultStorage.js";
 import {
     AccuracyResult,
     AccuracyRunStatuses,
     ExpectedToolCall,
     LLMToolCall,
     ModelResponse,
-} from "../../tests/accuracy/sdk/accuracy-result-storage/result-storage.js";
-import { getCommitSHA } from "../../tests/accuracy/sdk/git-info.js";
+} from "../../tests/accuracy/sdk/accuracy-result-storage/resultStorage.js";
+import { getCommitSHA } from "../../tests/accuracy/sdk/gitInfo.js";
 import {
     HTML_TEST_SUMMARY_FILE,
     HTML_TESTS_SUMMARY_TEMPLATE,

@@ -5,8 +5,3 @@ export async function getCommitSHA(): Promise<string | undefined> {
     const lastCommit = commitLogs.latest;
     return lastCommit?.hash;
 }
-
-export async function getMergeBase(targetBranch: string, workBranchOrCommit: string): Promise<string> {
-    const result = await simpleGit().raw(["merge-base", targetBranch, workBranchOrCommit]);
-    return result.trim();
-}

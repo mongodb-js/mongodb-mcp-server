@@ -1,12 +1,12 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from "vitest";
 import { getAvailableModels } from "./models.js";
-import { calculateToolCallingAccuracy } from "./accuracy-scorer.js";
+import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
 import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
-import { AccuracyTestingClient, MockedTools } from "./accuracy-testing-client.js";
-import { AccuracyResultStorage, ExpectedToolCall } from "./accuracy-result-storage/result-storage.js";
-import { getAccuracyResultStorage } from "./accuracy-result-storage/get-accuracy-result-storage.js";
-import { getCommitSHA } from "./git-info.js";
+import { AccuracyTestingClient, MockedTools } from "./accuracyTestingClient.js";
+import { AccuracyResultStorage, ExpectedToolCall } from "./accuracyResultStorage/resultStorage.js";
+import { getAccuracyResultStorage } from "./accuracyResultStorage/getAccuracyResultStorage.js";
+import { getCommitSHA } from "./gitInfo.js";
 
 export interface AccuracyTestConfig {
     /** The prompt to be provided to LLM for evaluation. */

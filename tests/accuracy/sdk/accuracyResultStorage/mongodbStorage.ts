@@ -6,7 +6,7 @@ import {
     AccuracyRunStatuses,
     ExpectedToolCall,
     ModelResponse,
-} from "./result-storage.js";
+} from "./resultStorage.js";
 
 // Omitting these as they might contain large chunk of texts
 const OMITTED_MODEL_RESPONSE_FIELDS: (keyof ModelResponse)[] = ["messages", "text"];
