@@ -146,15 +146,17 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     }
 
     async close(): Promise<void> {
-        await new Promise<void>((resolve, reject) => {
-            this.httpServer?.close((err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve();
-            });
-        });
-        await this.sessionStore.closeAllSessions();
+        await Promise.all([
+            this.sessionStore.closeAllSessions(),
+            new Promise<void>((resolve, reject) => {
+                this.httpServer?.close((err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve();
+                });
+            }),
+        ]);
     }
 }
