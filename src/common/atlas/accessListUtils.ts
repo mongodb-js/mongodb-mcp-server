@@ -45,7 +45,7 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
             );
             return;
         }
-        logger.debug(
+        logger.warning(
             LogId.atlasIpAccessListAddFailure,
             "accessListUtils",
             `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`
