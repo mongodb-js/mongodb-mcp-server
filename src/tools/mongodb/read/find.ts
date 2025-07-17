@@ -8,18 +8,23 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const FindArgs = {
     filter: z
-        .record(z.string(), z.unknown())
+        .object({})
+        .passthrough()
         .optional()
         .describe("The query filter, matching the syntax of the query argument of db.collection.find()"),
     projection: z
-        .record(z.string(), z.unknown())
+        .object({})
+        .passthrough()
         .optional()
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
     limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
     sort: z
-        .record(z.string(), z.custom<SortDirection>())
+        .object({})
+        .catchall(z.custom<SortDirection>())
         .optional()
-        .describe("A document, describing the sort order, matching the syntax of the sort argument of cursor.sort()"),
+        .describe(
+            "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort(). The keys of the object are the fields to sort on, while the values are the sort directions (1 for ascending, -1 for descending)."
+        ),
 };
 
 export class FindTool extends MongoDBToolBase {
