@@ -5,7 +5,7 @@ import logger, { LogId } from "../common/logger.js";
 import { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
-import nodeMachineId from "node-machine-id";
+import * as nodeMachineId from "node-machine-id";
 import { getDeviceId } from "@mongodb-js/device-id";
 import { detectContainerEnv } from "../helpers/container.js";
 
