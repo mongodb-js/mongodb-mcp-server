@@ -31,7 +31,7 @@
     "generate": "./scripts/generate.sh",
     "test": "vitest --project unit-and-integration --coverage",
     "pretest:accuracy": "npm run build:compile",
-    "test:accuracy": "sh ./scripts/accuracy/run-accuracy-tests.sh"
+    "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh"
   },
   "license": "Apache-2.0",
   "devDependencies": {
