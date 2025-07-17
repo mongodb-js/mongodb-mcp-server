@@ -28,7 +28,10 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 
 ## Prerequisites
 
-- Node.js (v20.19.0 or later)
+- Node.js
+  - At least 20.19.0
+  - When using v22 then at least v22.12.0
+  - Otherwise any version 23+
 
 ```shell
 node -v
@@ -374,10 +377,12 @@ To use the Atlas API tools, you'll need to create a service account in MongoDB A
 To learn more about Service Accounts, check the [MongoDB Atlas documentation](https://www.mongodb.com/docs/atlas/api/service-accounts-overview/).
 
 2. **Save Client Credentials:**
+
    - After creation, you'll be shown the Client ID and Client Secret
    - **Important:** Copy and save the Client Secret immediately as it won't be displayed again
 
 3. **Add Access List Entry:**
+
    - Add your IP address to the API access list
 
 4. **Configure the MCP Server:**
