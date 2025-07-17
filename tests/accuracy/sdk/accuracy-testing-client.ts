@@ -5,6 +5,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";
 import { LLMToolCall } from "./accuracy-result-storage/result-storage.js";
+import { VercelMCPClient, VercelMCPClientTools } from "./agent.js";
 
 type ToolResultGeneratorFn = (...parameters: unknown[]) => CallToolResult | Promise<CallToolResult>;
 export type MockedTools = Record<string, ToolResultGeneratorFn>;
@@ -22,15 +23,15 @@ export class AccuracyTestingClient {
     private mockedTools: MockedTools = {};
     private llmToolCalls: LLMToolCall[] = [];
 
-    private constructor(private readonly vercelMCPClient: Awaited<ReturnType<typeof createMCPClient>>) {}
+    private constructor(private readonly vercelMCPClient: VercelMCPClient) {}
 
-    async close() {
+    async close(): Promise<void> {
         await this.vercelMCPClient?.close();
     }
 
-    async vercelTools() {
+    async vercelTools(): Promise<VercelMCPClientTools> {
         const vercelTools = (await this.vercelMCPClient?.tools()) ?? {};
-        const rewrappedVercelTools: typeof vercelTools = {};
+        const rewrappedVercelTools: VercelMCPClientTools = {};
         for (const [toolName, tool] of Object.entries(vercelTools)) {
             rewrappedVercelTools[toolName] = createVercelTool({
                 ...tool,
@@ -65,20 +66,20 @@ export class AccuracyTestingClient {
         return rewrappedVercelTools;
     }
 
-    getLLMToolCalls() {
+    getLLMToolCalls(): LLMToolCall[] {
         return this.llmToolCalls;
     }
 
-    mockTools(mockedTools: MockedTools) {
+    mockTools(mockedTools: MockedTools): void {
         this.mockedTools = mockedTools;
     }
 
-    resetForTests() {
+    resetForTests(): void {
         this.mockTools({});
         this.llmToolCalls = [];
     }
 
-    static async initializeClient(mdbConnectionString: string) {
+    static async initializeClient(mdbConnectionString: string): Promise<AccuracyTestingClient> {
         const clientTransport = new StdioClientTransport({
             command: process.execPath,
             args: [MCP_SERVER_CLI_SCRIPT, "--connectionString", mdbConnectionString],
