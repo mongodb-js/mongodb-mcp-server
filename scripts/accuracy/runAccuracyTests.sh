@@ -37,9 +37,9 @@ TEST_EXIT_CODE=$?
 # This is necessary when comparing one accuracy run with another as we wouldn't
 # want to compare against an incomplete run.
 export MDB_ACCURACY_RUN_STATUS=$([ $TEST_EXIT_CODE -eq 0 ] && echo "done" || echo "failed")
-npx tsx scripts/accuracy/update-accuracy-run-status.ts || echo "Warning: Failed to update accuracy run status to '$MDB_ACCURACY_RUN_STATUS'"
+npx tsx scripts/accuracy/updateAccuracyRunStatus.ts || echo "Warning: Failed to update accuracy run status to '$MDB_ACCURACY_RUN_STATUS'"
 
 # This is optional but we do it anyways to generate a readable summary of report.
-npx tsx scripts/accuracy/generate-test-summary.ts || echo "Warning: Failed to generate test summary HTML report"
+npx tsx scripts/accuracy/generateTestSummary.ts || echo "Warning: Failed to generate test summary HTML report"
 
 exit $TEST_EXIT_CODE
