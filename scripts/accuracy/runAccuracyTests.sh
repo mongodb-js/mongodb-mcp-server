@@ -1,4 +1,5 @@
 #!/bin/sh
+source ~/.accuracy
 # Variables necessary for the accuracy test runs
 export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 

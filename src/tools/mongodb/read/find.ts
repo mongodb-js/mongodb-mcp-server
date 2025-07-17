@@ -1,25 +1,59 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
-import { SortDirection } from "mongodb";
 import { EJSON } from "bson";
+import { SortDirection } from "mongodb";
+import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+
+import { ToolArgs, OperationType } from "../../tool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+
+export function keyValueListToDocument<V = unknown>(
+    keyValueList: { key: string; value: V }[] | undefined
+): Record<string, V> | undefined {
+    return keyValueList ? Object.fromEntries(keyValueList.map(({ key, value }) => [key, value])) : undefined;
+}
 
 export const FindArgs = {
     filter: z
-        .record(z.string(), z.unknown())
+        .array(
+            z.object({
+                key: z.string().describe("The name of the field or a MongoDB operator"),
+                value: z
+                    .unknown()
+                    .refine((val) => val !== undefined, { message: "Value cannot be undefined." })
+                    .describe("The filter expression for the key"),
+            })
+        )
         .optional()
-        .describe("The query filter, matching the syntax of the query argument of db.collection.find()"),
+        .describe(
+            "Array of key-value pairs to filter documents. Each object has 'key' (field name or MongoDB operator) and 'value' (filter criteria)."
+        ),
     projection: z
-        .record(z.string(), z.unknown())
+        .array(
+            z.object({
+                key: z.string().describe("The name of the field to be projected."),
+                value: z
+                    .unknown()
+                    .refine((val) => val !== undefined, { message: "Value cannot be undefined." })
+                    .describe("The projection expression for the projected field."),
+            })
+        )
         .optional()
-        .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
+        .describe(
+            "Array of key-value pairs to specify which fields to project (key) and how to project them(value). Each object has 'key' (field name) and 'value' (project expression). "
+        ),
     limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
     sort: z
-        .record(z.string(), z.custom<SortDirection>())
+        .array(
+            z.object({
+                key: z.string().describe("The name of the field to apply the sort on."),
+                value: z.custom<SortDirection>().describe("The sort order applied to the field being sorted."),
+            })
+        )
         .optional()
-        .describe("A document, describing the sort order, matching the syntax of the sort argument of cursor.sort()"),
+        .describe(
+            "Array of key-value pairs to specify sort order. Each object has 'key' (field name) and 'value' (sort order)."
+        ),
 };
 
 export class FindTool extends MongoDBToolBase {
@@ -41,14 +75,29 @@ export class FindTool extends MongoDBToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
-        // Check if find operation uses an index if enabled
+        const mongoFilter = keyValueListToDocument(filter);
+        const mongoProjection = keyValueListToDocument(projection);
+        const mongoSort = keyValueListToDocument(sort);
+
         if (this.config.indexCheck) {
             await checkIndexUsage(provider, database, collection, "find", async () => {
-                return provider.find(database, collection, filter, { projection, limit, sort }).explain("queryPlanner");
+                return provider
+                    .find(database, collection, mongoFilter, {
+                        projection: mongoProjection,
+                        limit,
+                        sort: mongoSort,
+                    })
+                    .explain("queryPlanner");
             });
         }
 
-        const documents = await provider.find(database, collection, filter, { projection, limit, sort }).toArray();
+        const documents = await provider
+            .find(database, collection, mongoFilter, {
+                projection: mongoProjection,
+                limit,
+                sort: mongoSort,
+            })
+            .toArray();
 
         const content: Array<{ text: string; type: "text" }> = [
             {

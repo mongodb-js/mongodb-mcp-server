@@ -4,7 +4,7 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { z } from "zod";
 import { ExplainVerbosity, Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
-import { FindArgs } from "../read/find.js";
+import { FindArgs, keyValueListToDocument } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
 export class ExplainTool extends MongoDBToolBase {
@@ -68,9 +68,12 @@ export class ExplainTool extends MongoDBToolBase {
                 break;
             }
             case "find": {
-                const { filter, ...rest } = method.arguments;
+                const { filter, sort, projection, ...rest } = method.arguments;
+                const mongoFilter = keyValueListToDocument(filter);
+                const mongoProjection = keyValueListToDocument(projection);
+                const mongoSort = keyValueListToDocument(sort);
                 result = await provider
-                    .find(database, collection, filter as Document, { ...rest })
+                    .find(database, collection, mongoFilter, { projection: mongoProjection, sort: mongoSort, ...rest })
                     .explain(ExplainTool.defaultVerbosity);
                 break;
             }

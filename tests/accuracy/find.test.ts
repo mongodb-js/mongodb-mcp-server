@@ -33,9 +33,12 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    filter: {
-                        runtime: { $lt: 100 },
-                    },
+                    filter: [
+                        {
+                            key: "runtime",
+                            value: { $lt: 100 },
+                        },
+                    ],
                 },
             },
         ],
@@ -48,9 +51,12 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    filter: {
-                        director: "Christina Collins",
-                    },
+                    filter: [
+                        {
+                            key: "director",
+                            value: "Christina Collins",
+                        },
+                    ],
                 },
             },
         ],
@@ -63,7 +69,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    projection: { title: 1 },
+                    projection: [{ key: "title", value: 1 }],
                 },
             },
         ],
@@ -76,8 +82,8 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    filter: { title: "Certain Fish" },
-                    projection: { cast: 1 },
+                    filter: [{ key: "title", value: "Certain Fish" }],
+                    projection: [{ key: "cast", value: 1 }],
                 },
             },
         ],
@@ -90,8 +96,8 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    filter: { title: "Certain Fish" },
-                    sort: { runtime: 1 },
+                    filter: [{ key: "title", value: "Certain Fish" }],
+                    sort: [{ key: "runtime", value: 1 }],
                     limit: 2,
                 },
             },
