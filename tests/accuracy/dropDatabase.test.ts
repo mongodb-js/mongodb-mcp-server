@@ -1,10 +1,8 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
-import { ExpectedToolCall } from "./sdk/accuracyResultStorage/resultStorage.js";
 
-function onlyCallsDropDatabase(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "Remove mflix database from my cluster.",
         expectedToolCalls: [
             {
                 toolName: "drop-database",
@@ -13,29 +11,31 @@ function onlyCallsDropDatabase(prompt: string): AccuracyTestConfig {
                 },
             },
         ],
-    };
-}
-
-function callsDropDatabase(prompt: string, expectedToolCalls: ExpectedToolCall[]): AccuracyTestConfig {
-    return {
-        prompt: prompt,
-        expectedToolCalls,
-    };
-}
-
-describeAccuracyTests([
-    onlyCallsDropDatabase("Remove mflix database from my cluster."),
-    onlyCallsDropDatabase("Drop database named mflix."),
-    callsDropDatabase("If there is a mflix database in my cluster then drop it.", [
-        {
-            toolName: "list-databases",
-            parameters: {},
-        },
-        {
-            toolName: "drop-database",
-            parameters: {
-                database: "mflix",
+    },
+    {
+        prompt: "Drop database named mflix.",
+        expectedToolCalls: [
+            {
+                toolName: "drop-database",
+                parameters: {
+                    database: "mflix",
+                },
             },
-        },
-    ]),
+        ],
+    },
+    {
+        prompt: "If there is a mflix database in my cluster then drop it.",
+        expectedToolCalls: [
+            {
+                toolName: "list-databases",
+                parameters: {},
+            },
+            {
+                toolName: "drop-database",
+                parameters: {
+                    database: "mflix",
+                },
+            },
+        ],
+    },
 ]);

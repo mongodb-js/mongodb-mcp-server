@@ -1,49 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
-
-function callsExplain(prompt: string, method: Record<string, unknown>): AccuracyTestConfig {
-    return {
-        prompt: prompt,
-        expectedToolCalls: [
-            {
-                toolName: "explain",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    method: [method],
-                },
-            },
-        ],
-    };
-}
-
-const callsExplainWithFind = (prompt: string) =>
-    callsExplain(prompt, {
-        name: "find",
-        arguments: {
-            filter: { release_year: 2020 },
-        },
-    });
-
-const callsExplainWithAggregate = (prompt: string) =>
-    callsExplain(prompt, {
-        name: "aggregate",
-        arguments: {
-            pipeline: [
-                {
-                    $match: { release_year: 2020 },
-                },
-            ],
-        },
-    });
-
-const callsExplainWithCount = (prompt: string) =>
-    callsExplain(prompt, {
-        name: "count",
-        arguments: {
-            query: { release_year: 2020 },
-        },
-    });
 
 /**
  * None of these tests score a parameter match on any of the models, likely
@@ -51,13 +6,68 @@ const callsExplainWithCount = (prompt: string) =>
  * Zod.discriminatedUnion
  */
 describeAccuracyTests([
-    callsExplainWithFind(
-        `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
-    ),
-    callsExplainWithAggregate(
-        `Will aggregating documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
-    ),
-    callsExplainWithCount(
-        `Will counting documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`
-    ),
+    {
+        prompt: `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`,
+        expectedToolCalls: [
+            {
+                toolName: "explain",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    method: [
+                        {
+                            name: "find",
+                            arguments: {
+                                filter: { release_year: 2020 },
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`,
+        expectedToolCalls: [
+            {
+                toolName: "explain",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    method: [
+                        {
+                            name: "aggregate",
+                            arguments: {
+                                pipeline: [
+                                    {
+                                        $match: { release_year: 2020 },
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`,
+        expectedToolCalls: [
+            {
+                toolName: "explain",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    method: [
+                        {
+                            name: "count",
+                            arguments: {
+                                query: { release_year: 2020 },
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
+    },
 ]);

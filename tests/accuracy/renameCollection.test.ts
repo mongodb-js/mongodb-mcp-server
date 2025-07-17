@@ -1,9 +1,8 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
-function callsRenameCollection(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "Rename my 'mflix.movies' namespace to 'mflix.new_movies'",
         expectedToolCalls: [
             {
                 toolName: "rename-collection",
@@ -14,12 +13,9 @@ function callsRenameCollection(prompt: string): AccuracyTestConfig {
                 },
             },
         ],
-    };
-}
-
-function callsRenameCollectionWithDropTarget(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+    },
+    {
+        prompt: "Rename my 'mflix.movies' namespace to 'mflix.new_movies' while removing the old namespace.",
         expectedToolCalls: [
             {
                 toolName: "rename-collection",
@@ -31,12 +27,5 @@ function callsRenameCollectionWithDropTarget(prompt: string): AccuracyTestConfig
                 },
             },
         ],
-    };
-}
-
-describeAccuracyTests([
-    callsRenameCollection("Rename my 'mflix.movies' namespace to 'mflix.new_movies'"),
-    callsRenameCollectionWithDropTarget(
-        "Rename my 'mflix.movies' namespace to 'mflix.new_movies' while removing the old namespace."
-    ),
+    },
 ]);

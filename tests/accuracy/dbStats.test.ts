@@ -1,18 +1,15 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
-function callsListDatabases(prompt: string, database = "mflix"): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "What is the size occupied by database mflix?",
         expectedToolCalls: [
             {
                 toolName: "db-stats",
                 parameters: {
-                    database,
+                    database: "mflix",
                 },
             },
         ],
-    };
-}
-
-describeAccuracyTests([callsListDatabases("What is the size occupied by database mflix?")]);
+    },
+]);
