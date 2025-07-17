@@ -1,9 +1,12 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
-function callsInsertMany(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: [
+            "In my namespace 'mflix.movies', insert 3 documents each with the following fields:",
+            "- id: an incremental number starting from 1",
+            "- name: a string of format 'name<id>'",
+        ].join("\n"),
         expectedToolCalls: [
             {
                 toolName: "insert-many",
@@ -27,12 +30,9 @@ function callsInsertMany(prompt: string): AccuracyTestConfig {
                 },
             },
         ],
-    };
-}
-
-function callsEmptyInsertMany(prompt: string) {
-    return {
-        prompt: prompt,
+    },
+    {
+        prompt: "Add three empty documents in collection 'movies' inside database 'mflix'",
         expectedToolCalls: [
             {
                 toolName: "insert-many",
@@ -43,16 +43,5 @@ function callsEmptyInsertMany(prompt: string) {
                 },
             },
         ],
-    };
-}
-
-describeAccuracyTests([
-    callsInsertMany(
-        [
-            "In my namespace 'mflix.movies', insert 3 documents each with the following fields:",
-            "- id: an incremental number starting from 1",
-            "- name: a string of format 'name<id>'",
-        ].join("\n")
-    ),
-    callsEmptyInsertMany("Add three empty documents in collection 'movies' inside database 'mflix'"),
+    },
 ]);

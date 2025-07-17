@@ -1,9 +1,8 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
-function callsCollectionSchema(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "Is there a title field in 'db1.coll1' namespace?",
         expectedToolCalls: [
             {
                 toolName: "collection-schema",
@@ -13,10 +12,17 @@ function callsCollectionSchema(prompt: string): AccuracyTestConfig {
                 },
             },
         ],
-    };
-}
-
-describeAccuracyTests([
-    callsCollectionSchema("Is there a title field in 'db1.coll1' namespace?"),
-    callsCollectionSchema("What is the type of value stored in title field in coll1 collection in db1 database?"),
+    },
+    {
+        prompt: "What is the type of value stored in title field in coll1 collection in db1 database?",
+        expectedToolCalls: [
+            {
+                toolName: "collection-schema",
+                parameters: {
+                    database: "db1",
+                    collection: "coll1",
+                },
+            },
+        ],
+    },
 ]);

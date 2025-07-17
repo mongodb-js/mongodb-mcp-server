@@ -10,17 +10,27 @@ function callsLogsTool(prompt: string, toolCall: ExpectedToolCall): AccuracyTest
 }
 
 describeAccuracyTests([
-    callsLogsTool("Were there any startup warnings for my MongoDB server?", {
-        toolName: "mongodb-logs",
-        parameters: {
-            type: "startupWarnings",
-        },
-    }),
-    callsLogsTool("Retrieve first 10 logs for my MongoDB server?", {
-        toolName: "mongodb-logs",
-        parameters: {
-            type: "global",
-            limit: 10,
-        },
-    }),
+    {
+        prompt: "Were there any startup warnings for my MongoDB server?",
+        expectedToolCalls: [
+            {
+                toolName: "mongodb-logs",
+                parameters: {
+                    type: "startupWarnings",
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Retrieve first 10 logs for my MongoDB server?",
+        expectedToolCalls: [
+            {
+                toolName: "mongodb-logs",
+                parameters: {
+                    type: "global",
+                    limit: 10,
+                },
+            },
+        ],
+    },
 ]);

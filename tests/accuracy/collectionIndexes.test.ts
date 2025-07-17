@@ -1,9 +1,8 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
-function callsCollectionIndexes(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "How many indexes do I have in 'mflix.movies' namespace?",
         expectedToolCalls: [
             {
                 toolName: "collection-indexes",
@@ -13,13 +12,29 @@ function callsCollectionIndexes(prompt: string): AccuracyTestConfig {
                 },
             },
         ],
-    };
-}
-
-describeAccuracyTests([
-    callsCollectionIndexes("How many indexes do I have in 'mflix.movies' namespace?"),
-    callsCollectionIndexes("List all the indexes in movies collection in mflix database"),
-    callsCollectionIndexes(
-        `Is the following query: ${JSON.stringify({ runtime: { $lt: 100 } })} on the namespace 'mflix.movies' indexed?`
-    ),
+    },
+    {
+        prompt: "List all the indexes in movies collection in mflix database",
+        expectedToolCalls: [
+            {
+                toolName: "collection-indexes",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Is the following query: ${JSON.stringify({ runtime: { $lt: 100 } })} on the namespace 'mflix.movies' indexed?`,
+        expectedToolCalls: [
+            {
+                toolName: "collection-indexes",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                },
+            },
+        ],
+    },
 ]);

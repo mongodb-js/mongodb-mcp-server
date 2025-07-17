@@ -1,10 +1,8 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
-import { ExpectedToolCall } from "./sdk/accuracyResultStorage/resultStorage.js";
 
-function onlyCallsDropCollection(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "Remove mflix.movies namespace from my cluster.",
         expectedToolCalls: [
             {
                 toolName: "drop-collection",
@@ -14,60 +12,63 @@ function onlyCallsDropCollection(prompt: string): AccuracyTestConfig {
                 },
             },
         ],
-    };
-}
-
-function callsDropCollection(prompt: string, expectedToolCalls: ExpectedToolCall[]): AccuracyTestConfig {
-    return {
-        prompt: prompt,
-        expectedToolCalls,
-    };
-}
-
-describeAccuracyTests([
-    onlyCallsDropCollection("Remove mflix.movies namespace from my cluster."),
-    onlyCallsDropCollection("Drop movies collection from mflix database."),
-    callsDropCollection("Remove books collection from which ever database contains it.", [
-        {
-            toolName: "list-databases",
-            parameters: {},
-        },
-        {
-            toolName: "list-collections",
-            parameters: {
-                database: "admin",
+    },
+    {
+        prompt: "Drop movies collection from mflix database.",
+        expectedToolCalls: [
+            {
+                toolName: "drop-collection",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                },
             },
-        },
-        {
-            toolName: "list-collections",
-            parameters: {
-                database: "comics",
+        ],
+    },
+    {
+        prompt: "Remove books collection from which ever database contains it.",
+        expectedToolCalls: [
+            {
+                toolName: "list-databases",
+                parameters: {},
             },
-        },
-        {
-            toolName: "list-collections",
-            parameters: {
-                database: "config",
+            {
+                toolName: "list-collections",
+                parameters: {
+                    database: "admin",
+                },
             },
-        },
-        {
-            toolName: "list-collections",
-            parameters: {
-                database: "local",
+            {
+                toolName: "list-collections",
+                parameters: {
+                    database: "comics",
+                },
             },
-        },
-        {
-            toolName: "list-collections",
-            parameters: {
-                database: "mflix",
+            {
+                toolName: "list-collections",
+                parameters: {
+                    database: "config",
+                },
             },
-        },
-        {
-            toolName: "drop-collection",
-            parameters: {
-                database: "comics",
-                collection: "books",
+            {
+                toolName: "list-collections",
+                parameters: {
+                    database: "local",
+                },
             },
-        },
-    ]),
+            {
+                toolName: "list-collections",
+                parameters: {
+                    database: "mflix",
+                },
+            },
+            {
+                toolName: "drop-collection",
+                parameters: {
+                    database: "comics",
+                    collection: "books",
+                },
+            },
+        ],
+    },
 ]);

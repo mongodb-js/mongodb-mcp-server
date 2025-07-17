@@ -1,20 +1,31 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
-function callsListDatabases(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "How many databases do I have?",
         expectedToolCalls: [
             {
                 toolName: "list-databases",
                 parameters: {},
             },
         ],
-    };
-}
-
-describeAccuracyTests([
-    callsListDatabases("How many databases do I have?"),
-    callsListDatabases("List all the databases that I have in my clusters"),
-    callsListDatabases("Is there a mflix database in my cluster?"),
+    },
+    {
+        prompt: "List all the databases that I have in my clusters",
+        expectedToolCalls: [
+            {
+                toolName: "list-databases",
+                parameters: {},
+            },
+        ],
+    },
+    {
+        prompt: "Is there a mflix database in my cluster?",
+        expectedToolCalls: [
+            {
+                toolName: "list-databases",
+                parameters: {},
+            },
+        ],
+    },
 ]);

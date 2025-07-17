@@ -1,23 +1,35 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
-function callsListCollections(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
+describeAccuracyTests([
+    {
+        prompt: "How many collections do I have in database mflix?",
         expectedToolCalls: [
             {
                 toolName: "list-collections",
                 parameters: { database: "mflix" },
             },
         ],
-    };
-}
-
-function callsListDatabasesAndListCollections(prompt: string): AccuracyTestConfig {
-    return {
-        injectConnectedAssumption: true,
-        prompt: prompt,
-        mockedTools: {},
+    },
+    {
+        prompt: "List all the collections in my MongoDB database mflix.",
+        expectedToolCalls: [
+            {
+                toolName: "list-collections",
+                parameters: { database: "mflix" },
+            },
+        ],
+    },
+    {
+        prompt: "Is there a shows collection in my MongoDB database mflix?",
+        expectedToolCalls: [
+            {
+                toolName: "list-collections",
+                parameters: { database: "mflix" },
+            },
+        ],
+    },
+    {
+        prompt: "List all the collections that I have in total on my cluster?",
         expectedToolCalls: [
             {
                 toolName: "list-databases",
@@ -44,12 +56,5 @@ function callsListDatabasesAndListCollections(prompt: string): AccuracyTestConfi
                 parameters: { database: "mflix" },
             },
         ],
-    };
-}
-
-describeAccuracyTests([
-    callsListCollections("How many collections do I have in database mflix?"),
-    callsListCollections("List all the collections in my MongoDB database mflix."),
-    callsListCollections("Is there a shows collection in my MongoDB database mflix?"),
-    callsListDatabasesAndListCollections("List all the collections that I have in total on my cluster?"),
+    },
 ]);
