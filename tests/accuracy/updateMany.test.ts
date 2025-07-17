@@ -1,53 +1,39 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
-
-function callsUpdateManyWithEmptyFilters(prompt: string): AccuracyTestConfig {
-    return {
-        prompt: prompt,
-        expectedToolCalls: [
-            {
-                toolName: "update-many",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    update: {
-                        $set: {
-                            new_field: 1,
-                        },
-                    },
-                },
-            },
-        ],
-    };
-}
-
-function callsUpdateManyWithFilters(prompt: string, filter: Record<string, unknown>): AccuracyTestConfig {
-    return {
-        prompt: prompt,
-        expectedToolCalls: [
-            {
-                toolName: "update-many",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    filter,
-                    update: {
-                        $set: {
-                            new_field: 1,
-                        },
-                    },
-                },
-            },
-        ],
-    };
-}
 
 describeAccuracyTests([
-    callsUpdateManyWithEmptyFilters(
-        "Update all the documents in 'mflix.movies' namespace with a new field 'new_field' set to 1"
-    ),
-    callsUpdateManyWithFilters(
-        "Update all the documents in 'mflix.movies' namespace, where runtime is less than 100, with a new field 'new_field' set to 1",
-        { runtime: { $lt: 100 } }
-    ),
+    {
+        prompt: "Update all the documents in 'mflix.movies' namespace with a new field 'new_field' set to 1",
+        expectedToolCalls: [
+            {
+                toolName: "update-many",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    update: {
+                        $set: {
+                            new_field: 1,
+                        },
+                    },
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Update all the documents in 'mflix.movies' namespace, where runtime is less than 100, with a new field 'new_field' set to 1",
+        expectedToolCalls: [
+            {
+                toolName: "update-many",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    filter: { runtime: { $lt: 100 } },
+                    update: {
+                        $set: {
+                            new_field: 1,
+                        },
+                    },
+                },
+            },
+        ],
+    },
 ]);
