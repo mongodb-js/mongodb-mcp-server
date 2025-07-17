@@ -83,7 +83,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "Use 'mflix.movies' namespace to answer who were casted in the movie 'Certain Fish'",
+        prompt: "From the mflix.movies namespace, give me first 2 movies of Horror genre sorted ascending by their runtime",
         expectedToolCalls: [
             {
                 toolName: "find",
