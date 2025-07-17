@@ -97,16 +97,12 @@ export function calculateToolCallingAccuracy(
 
 function compareParams(expected: Record<string, unknown>, actual: Record<string, unknown>): number {
     const differences = diff(expected, actual);
-
     if (differences.length === 0) {
         return 1;
     }
 
     const hasOnlyAdditions = differences.every((d) => d.type === "CREATE");
-    const hasRemovals = differences.some((d) => d.type === "REMOVE");
-    const hasChanges = differences.some((d) => d.type === "CHANGE");
-
-    if (hasOnlyAdditions && !hasRemovals && !hasChanges) {
+    if (hasOnlyAdditions) {
         return 0.75;
     }
 
