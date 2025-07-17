@@ -9,7 +9,7 @@ import {
     AccuracyRunStatuses,
     ExpectedToolCall,
     ModelResponse,
-} from "./result-storage.js";
+} from "./resultStorage.js";
 
 export class DiskBasedResultStorage implements AccuracyResultStorage {
     async getAccuracyResult(commitSHA: string, runId?: string): Promise<AccuracyResult | null> {

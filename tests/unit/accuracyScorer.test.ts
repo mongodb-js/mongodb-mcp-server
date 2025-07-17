@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { calculateToolCallingAccuracy } from "../accuracy/sdk/accuracy-scorer.js";
-import { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracy-result-storage/result-storage.js";
+import { calculateToolCallingAccuracy } from "../accuracy/sdk/accuracyScorer.js";
+import { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracyResultStorage/resultStorage.js";
 
 describe("calculateToolCallingAccuracy", () => {
     describe("edge cases", () => {

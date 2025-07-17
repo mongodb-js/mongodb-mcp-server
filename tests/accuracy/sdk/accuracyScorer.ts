@@ -1,5 +1,5 @@
 import diff from "microdiff";
-import { ExpectedToolCall, LLMToolCall } from "./accuracy-result-storage/result-storage.js";
+import { ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 
 /**
  * Tool calling accuracy is a single number calculated based on two dimensions.

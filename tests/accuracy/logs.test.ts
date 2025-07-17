@@ -1,6 +1,6 @@
-import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
-import { ExpectedToolCall } from "./sdk/accuracy-result-storage/result-storage.js";
+import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
+import { ExpectedToolCall } from "./sdk/accuracyResultStorage/resultStorage.js";
 
 function callsLogsTool(prompt: string, toolCall: ExpectedToolCall): AccuracyTestConfig {
     return {

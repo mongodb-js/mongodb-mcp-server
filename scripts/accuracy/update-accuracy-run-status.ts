@@ -1,6 +1,6 @@
-import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracy-result-storage/get-accuracy-result-storage.js";
-import { AccuracyRunStatus } from "../../tests/accuracy/sdk/accuracy-result-storage/result-storage.js";
-import { getCommitSHA } from "../../tests/accuracy/sdk/git-info.js";
+import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracy-result-storage/getAccuracyResultStorage.js";
+import { AccuracyRunStatus } from "../../tests/accuracy/sdk/accuracy-result-storage/resultStorage.js";
+import { getCommitSHA } from "../../tests/accuracy/sdk/gitInfo.js";
 
 const envAccuracyRunId = process.env.MDB_ACCURACY_RUN_ID;
 const envAccuracyRunStatus = process.env.MDB_ACCURACY_RUN_STATUS;

@@ -1,5 +1,5 @@
-import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
-import { AccuracyTestConfig } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
 
 function callsListDatabases(prompt: string): AccuracyTestConfig {
     return {

@@ -1,4 +1,4 @@
-import { describeAccuracyTests } from "./sdk/describe-accuracy-tests.js";
+import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 
 describeAccuracyTests([
     {
