@@ -6,7 +6,8 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const CountArgs = {
     query: z
-        .record(z.string(), z.unknown())
+        .object({})
+        .passthrough()
         .optional()
         .describe(
             "A filter/query parameter. Allows users to filter the documents to count. Matches the syntax of the filter argument of db.collection.count()."
