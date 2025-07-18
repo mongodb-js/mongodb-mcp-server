@@ -1,5 +1,6 @@
 import diff from "microdiff";
 import { ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
+import { PARAMETER_SCORER_SYMBOL, ParametersWithScorer } from "./parameterScorer.js";
 
 /**
  * Tool calling accuracy is a single number calculated based on two dimensions.
@@ -103,7 +104,16 @@ function compareParams(expected: Record<string, unknown>, actual: Record<string,
 
     const hasOnlyAdditions = differences.every((d) => d.type === "CREATE");
     if (hasOnlyAdditions) {
-        return 0.75;
+        const expectedWithScorer = expected as ParametersWithScorer;
+        const customScorer = expectedWithScorer[PARAMETER_SCORER_SYMBOL];
+
+        // Most of our tools don't expect additional parameters to be passed so
+        // any additional parameter by default will be graded as 0.
+        if (!customScorer) {
+            return 0;
+        }
+
+        return customScorer(differences);
     }
 
     return 0;

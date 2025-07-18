@@ -2,25 +2,25 @@ import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 
 describeAccuracyTests([
     {
-        prompt: "Is there a title field in 'db1.coll1' namespace?",
+        prompt: "Is there a title field in 'mflix.movies' namespace?",
         expectedToolCalls: [
             {
                 toolName: "collection-schema",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
+                    database: "mflix",
+                    collection: "movies",
                 },
             },
         ],
     },
     {
-        prompt: "What is the type of value stored in title field in coll1 collection in db1 database?",
+        prompt: "What is the type of value stored in title field in movies collection in mflix database?",
         expectedToolCalls: [
             {
                 toolName: "collection-schema",
                 parameters: {
-                    database: "db1",
-                    collection: "coll1",
+                    database: "mflix",
+                    collection: "movies",
                 },
             },
         ],

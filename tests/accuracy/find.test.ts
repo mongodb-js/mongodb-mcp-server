@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { withParameterScorer, ParameterScorers } from "./sdk/parameterScorer.js";
 
 describeAccuracyTests([
     {
@@ -6,10 +7,13 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "find",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                    },
+                    ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
@@ -18,10 +22,13 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "find",
-                parameters: {
-                    database: "comics",
-                    collection: "books",
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "comics",
+                        collection: "books",
+                    },
+                    ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
@@ -30,28 +37,34 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "find",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    filter: {
-                        runtime: { $lt: 100 },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: {
+                            runtime: { $lt: 100 },
+                        },
                     },
-                },
+                    ParameterScorers.noAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
     {
-        prompt: "Find all the movies in 'mflix.movies' namespace with runtime less than 100.",
+        prompt: "Find all movies in 'mflix.movies' collection where director is 'Christina Collins'",
         expectedToolCalls: [
             {
                 toolName: "find",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    filter: {
-                        director: "Christina Collins",
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: {
+                            director: "Christina Collins",
+                        },
                     },
-                },
+                    ParameterScorers.noAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
@@ -60,11 +73,14 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "find",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    projection: { title: 1 },
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                        projection: { title: 1 },
+                    },
+                    ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
@@ -73,12 +89,15 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "find",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    filter: { title: "Certain Fish" },
-                    projection: { cast: 1 },
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: { title: "Certain Fish" },
+                        projection: { cast: 1 },
+                    },
+                    ParameterScorers.noAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
@@ -87,13 +106,16 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "find",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    filter: { title: "Certain Fish" },
-                    sort: { runtime: 1 },
-                    limit: 2,
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: { genres: "Horror" },
+                        sort: { runtime: 1 },
+                        limit: 2,
+                    },
+                    ParameterScorers.noAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },

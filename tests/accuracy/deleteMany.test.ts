@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
 
 describeAccuracyTests([
     {
@@ -6,10 +7,13 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "delete-many",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                    },
+                    ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
@@ -18,10 +22,13 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "delete-many",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                    },
+                    ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },
@@ -30,10 +37,14 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "delete-many",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: { runtime: { $lt: 100 } },
+                    },
+                    ParameterScorers.noAdditionsAllowedForPaths(["filter"])
+                ),
             },
         ],
     },

@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
 
 describeAccuracyTests([
     {
@@ -6,10 +7,13 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "count",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                    },
+                    ParameterScorers.emptyAdditionsAllowedForPaths(["query"])
+                ),
             },
         ],
     },
@@ -18,10 +22,13 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "count",
-                parameters: {
-                    database: "comics",
-                    collection: "characters",
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "comics",
+                        collection: "characters",
+                    },
+                    ParameterScorers.emptyAdditionsAllowedForPaths(["query"])
+                ),
             },
         ],
     },
@@ -30,11 +37,14 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "count",
-                parameters: {
-                    database: "mflix",
-                    collection: "movies",
-                    query: { runtime: { $lt: 100 } },
-                },
+                parameters: withParameterScorer(
+                    {
+                        database: "mflix",
+                        collection: "movies",
+                        query: { runtime: { $lt: 100 } },
+                    },
+                    ParameterScorers.noAdditionsAllowedForPaths(["query"])
+                ),
             },
         ],
     },
