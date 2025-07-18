@@ -69,6 +69,7 @@ export type CommonProperties = {
     is_container_env?: boolean;
     mcp_client_version?: string;
     mcp_client_name?: string;
+    transport?: "stdio" | "http";
     config_atlas_auth?: TelemetryBoolSet;
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
