@@ -230,10 +230,7 @@ describe("calculateToolCallingAccuracy", () => {
                     parameters: {
                         database: "mflix",
                         collection: "movies",
-                        pipeline: [
-                            { $match: { genre: "Horror" } },
-                            Matcher.composite(Matcher.undefined, Matcher.anyValue),
-                        ],
+                        pipeline: [{ $match: { genre: "Horror" } }, Matcher.anyOf(Matcher.undefined, Matcher.anyValue)],
                     },
                 },
             ];
@@ -261,10 +258,7 @@ describe("calculateToolCallingAccuracy", () => {
                     parameters: {
                         database: "mflix",
                         collection: "movies",
-                        pipeline: [
-                            { $match: { genre: "Horror" } },
-                            Matcher.composite(Matcher.undefined, Matcher.anyValue),
-                        ],
+                        pipeline: [{ $match: { genre: "Horror" } }, Matcher.anyOf(Matcher.undefined, Matcher.anyValue)],
                     },
                 },
             ];

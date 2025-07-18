@@ -75,7 +75,7 @@ export function calculateToolCallingAccuracy(
             .map(({ call, index }) => ({
                 call,
                 index,
-                score: Matcher.unknown(expectedCall.parameters).match(call.parameters),
+                score: Matcher.value(expectedCall.parameters).match(call.parameters),
             }))
             .filter(({ score }) => score >= 0.75)
             .sort((a, b) => b.score - a.score || a.index - b.index);

@@ -68,7 +68,7 @@ describeAccuracyTests([
                     collection: "movies",
                     projection: {
                         title: 1,
-                        _id: Matcher.composite(
+                        _id: Matcher.anyOf(
                             Matcher.undefined,
                             Matcher.number((value) => value === 0)
                         ),
@@ -89,7 +89,7 @@ describeAccuracyTests([
                     filter: { title: "Certain Fish" },
                     projection: {
                         cast: 1,
-                        _id: Matcher.composite(Matcher.undefined, Matcher.number()),
+                        _id: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                     },
                     limit: Matcher.number((value) => value > 0),
                 },

@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -18,7 +19,7 @@ describeAccuracyTests([
             {
                 toolName: "mongodb-logs",
                 parameters: {
-                    type: "global",
+                    type: Matcher.anyOf(Matcher.undefined, Matcher.value("global")),
                     limit: 10,
                 },
             },

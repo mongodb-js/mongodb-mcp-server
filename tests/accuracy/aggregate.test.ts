@@ -13,9 +13,9 @@ describeAccuracyTests([
                     pipeline: [
                         { $group: { _id: "$release_year", count: { $sum: 1 } } },
                         // For the sake of accuracy, we allow any sort order
-                        Matcher.composite(
+                        Matcher.anyOf(
                             Matcher.undefined,
-                            Matcher.unknown({
+                            Matcher.value({
                                 $sort: Matcher.anyValue,
                             })
                         ),

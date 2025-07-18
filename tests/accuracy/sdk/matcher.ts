@@ -16,7 +16,7 @@ export abstract class Matcher {
         return new NumberMatcher(additionalFilter);
     }
 
-    public static composite(...matchers: Matcher[]): Matcher {
+    public static anyOf(...matchers: Matcher[]): Matcher {
         return new CompositeMatcher(matchers);
     }
 
@@ -32,12 +32,12 @@ export abstract class Matcher {
         return new StringMatcher();
     }
 
-    public static unknown(expected: unknown): Matcher {
+    public static value(expected: unknown): Matcher {
         if (typeof expected === "object" && expected !== null && MATCHER_SYMBOL in expected) {
             return expected as Matcher;
         }
 
-        return new UnknownMatcher(expected);
+        return new ValueMatcher(expected);
     }
 }
 
@@ -114,7 +114,7 @@ class StringMatcher extends Matcher {
     }
 }
 
-class UnknownMatcher extends Matcher {
+class ValueMatcher extends Matcher {
     constructor(private expected: unknown) {
         super();
     }
@@ -145,7 +145,7 @@ class UnknownMatcher extends Matcher {
             }
 
             for (let i = 0; i < this.expected.length; i++) {
-                currentScore = Math.min(currentScore, Matcher.unknown(this.expected[i]).match(actual[i]));
+                currentScore = Math.min(currentScore, Matcher.value(this.expected[i]).match(actual[i]));
                 if (currentScore === 0) {
                     // If we already found a mismatch, we can stop early
                     return 0;
@@ -174,7 +174,7 @@ class UnknownMatcher extends Matcher {
             for (const key of expectedKeys) {
                 currentScore = Math.min(
                     currentScore,
-                    Matcher.unknown((this.expected as Record<string, unknown>)[key]).match(
+                    Matcher.value((this.expected as Record<string, unknown>)[key]).match(
                         (actual as Record<string, unknown>)[key]
                     )
                 );
@@ -184,6 +184,8 @@ class UnknownMatcher extends Matcher {
                     return 0;
                 }
             }
+        } else {
+            return 0;
         }
 
         return currentScore;

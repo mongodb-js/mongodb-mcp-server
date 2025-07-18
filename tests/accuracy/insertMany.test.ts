@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -16,15 +17,15 @@ describeAccuracyTests([
                     documents: [
                         {
                             id: 1,
-                            title: "name1",
+                            name: "name1",
                         },
                         {
                             id: 2,
-                            title: "name2",
+                            name: "name2",
                         },
                         {
                             id: 3,
-                            title: "name3",
+                            name: "name3",
                         },
                     ],
                 },
@@ -39,7 +40,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    documents: [{}, {}, {}],
+                    documents: [{ _id: Matcher.anyValue }, { _id: Matcher.anyValue }, { _id: Matcher.anyValue }],
                 },
             },
         ],

@@ -10,7 +10,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    name: Matcher.composite(Matcher.undefined, Matcher.string()),
+                    name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                     keys: {
                         release_year: 1,
                     },
@@ -26,7 +26,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    name: Matcher.composite(Matcher.undefined, Matcher.string()),
+                    name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                     keys: {
                         title: "text",
                     },
