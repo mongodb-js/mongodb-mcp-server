@@ -8,8 +8,10 @@ import {
     ModelResponse,
 } from "./resultStorage.js";
 
-// Omitting these as they might contain large chunk of texts
-const OMITTED_MODEL_RESPONSE_FIELDS: (keyof ModelResponse)[] = ["messages", "text"];
+// We could decide to omit some fields from the model response to reduce the size of the stored results. Since
+// so far, the responses are not too big, we do not omit any fields, but if we decide to do so in the future,
+// we could add `"messages"` and `"text"` to this list.
+const OMITTED_MODEL_RESPONSE_FIELDS: (keyof ModelResponse)[] = [];
 
 export class MongoDBBasedResultStorage implements AccuracyResultStorage {
     private client: MongoClient;
