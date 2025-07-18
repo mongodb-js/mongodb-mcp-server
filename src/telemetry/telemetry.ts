@@ -116,6 +116,7 @@ export class Telemetry {
     public getCommonProperties(): CommonProperties {
         return {
             ...this.commonProperties,
+            transport: this.userConfig.transport,
             mcp_client_version: this.session.agentRunner?.version,
             mcp_client_name: this.session.agentRunner?.name,
             session_id: this.session.sessionId,

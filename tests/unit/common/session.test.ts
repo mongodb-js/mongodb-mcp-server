@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { Session } from "../../src/common/session.js";
-import { config } from "../../src/common/config.js";
+import { Session } from "../../../src/common/session.js";
+import { config } from "../../../src/common/config.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
