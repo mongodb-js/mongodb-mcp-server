@@ -6,7 +6,7 @@ import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 
 async function main() {
-    const transportRunner = config.transport === "stdio" ? new StdioRunner() : new StreamableHttpRunner();
+    const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
 
     const shutdown = () => {
         logger.info(LogId.serverCloseRequested, "server", `Server close requested`);

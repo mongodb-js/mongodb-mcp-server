@@ -4,6 +4,7 @@ import { TransportRunnerBase } from "./base.js";
 import { JSONRPCMessage, JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { EJSON } from "bson";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { UserConfig } from "../common/config.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
 // but it uses EJSON.parse instead of JSON.parse to handle BSON types
@@ -52,9 +53,13 @@ export function createStdioTransport(): StdioServerTransport {
 export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
+    constructor(private userConfig: UserConfig) {
+        super();
+    }
+
     async start() {
         try {
-            this.server = this.setupServer();
+            this.server = this.setupServer(this.userConfig);
 
             const transport = createStdioTransport();
 

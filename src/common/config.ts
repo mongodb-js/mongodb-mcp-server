@@ -28,6 +28,8 @@ export interface UserConfig {
     httpPort: number;
     httpHost: string;
     loggers: Array<"stderr" | "disk" | "mcp">;
+    idleTimeoutMs: number;
+    notificationTimeoutMs: number;
 }
 
 const defaults: UserConfig = {
@@ -47,6 +49,8 @@ const defaults: UserConfig = {
     httpPort: 3000,
     httpHost: "127.0.0.1",
     loggers: ["disk", "mcp"],
+    idleTimeoutMs: 600000, // 10 minutes
+    notificationTimeoutMs: 540000, // 9 minutes
 };
 
 export const config = {

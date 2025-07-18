@@ -18,8 +18,8 @@
       "request": "launch",
       "name": "Launch Program",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/dist/index.js",
-      "args": ["--transport", "http", "--loggers", "stderr", "mcp"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
       "preLaunchTask": "tsc: build - tsconfig.build.json",
       "outFiles": ["${workspaceFolder}/dist/**/*.js"]
     }

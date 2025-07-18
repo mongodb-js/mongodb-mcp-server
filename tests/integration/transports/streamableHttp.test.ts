@@ -14,7 +14,7 @@ describe("StreamableHttpRunner", () => {
         oldLoggers = config.loggers;
         config.telemetry = "disabled";
         config.loggers = ["stderr"];
-        runner = new StreamableHttpRunner();
+        runner = new StreamableHttpRunner(config);
         await runner.start();
     });
 
