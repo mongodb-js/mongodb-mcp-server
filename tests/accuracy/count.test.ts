@@ -1,5 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -7,13 +7,11 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "count",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                    },
-                    ParameterScorers.emptyAdditionsAllowedForPaths(["query"])
-                ),
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    query: Matcher.emptyObjectOrUndefined,
+                },
             },
         ],
     },
@@ -22,13 +20,11 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "count",
-                parameters: withParameterScorer(
-                    {
-                        database: "comics",
-                        collection: "characters",
-                    },
-                    ParameterScorers.emptyAdditionsAllowedForPaths(["query"])
-                ),
+                parameters: {
+                    database: "comics",
+                    collection: "characters",
+                    query: Matcher.emptyObjectOrUndefined,
+                },
             },
         ],
     },
@@ -37,14 +33,11 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "count",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        query: { runtime: { $lt: 100 } },
-                    },
-                    ParameterScorers.noAdditionsAllowedForPaths(["query"])
-                ),
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    query: { runtime: { $lt: 100 } },
+                },
             },
         ],
     },

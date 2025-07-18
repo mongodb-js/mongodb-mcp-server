@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateToolCallingAccuracy } from "../accuracy/sdk/accuracyScorer.js";
 import { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracyResultStorage/resultStorage.js";
-import { withParameterScorer, ParameterScorers } from "../accuracy/sdk/parameterScorer.js";
+import { Matcher } from "../accuracy/sdk/matcher.js";
 
 describe("calculateToolCallingAccuracy", () => {
     describe("edge cases", () => {
@@ -90,60 +90,92 @@ describe("calculateToolCallingAccuracy", () => {
             expect(result).toBe(0);
         });
 
-        it("should return 0.75 when expected has no filter but actual has empty filter", () => {
+        it("should return 1 when expected has no filter but actual has empty filter", () => {
             const expected: ExpectedToolCall[] = [
                 {
                     toolName: "find",
-                    parameters: withParameterScorer(
-                        { database: "mflix", collection: "movies" },
-                        ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
-                    ),
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: Matcher.emptyObjectOrUndefined,
+                    },
                 },
             ];
             const actual: LLMToolCall[] = [
                 {
                     toolCallId: "1",
                     toolName: "find",
-                    parameters: { database: "mflix", collection: "movies", filter: {} },
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: {},
+                    },
                 },
             ];
             const result = calculateToolCallingAccuracy(expected, actual);
-            expect(result).toBe(0.75);
+            expect(result).toBe(1);
+        });
+
+        it("should return 1 when expected has no filter and actual has no filter", () => {
+            const expected: ExpectedToolCall[] = [
+                {
+                    toolName: "find",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: Matcher.emptyObjectOrUndefined,
+                    },
+                },
+            ];
+            const actual: LLMToolCall[] = [
+                {
+                    toolCallId: "1",
+                    toolName: "find",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                    },
+                },
+            ];
+            const result = calculateToolCallingAccuracy(expected, actual);
+            expect(result).toBe(1);
         });
 
         it("should return 0 when expected has no filter but actual has non-empty filter", () => {
             const expected: ExpectedToolCall[] = [
                 {
                     toolName: "find",
-                    parameters: withParameterScorer(
-                        { database: "mflix", collection: "movies" },
-                        ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
-                    ),
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: Matcher.emptyObjectOrUndefined,
+                    },
                 },
             ];
             const actual: LLMToolCall[] = [
                 {
                     toolCallId: "1",
                     toolName: "find",
-                    parameters: { database: "mflix", collection: "movies", filter: { genre: "Horror" } },
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: { genre: "Horror" },
+                    },
                 },
             ];
             const result = calculateToolCallingAccuracy(expected, actual);
             expect(result).toBe(0);
         });
 
-        it("should return 0 when using noAdditionsAllowedForPaths and filter is modified", () => {
+        it("should return 0 when there are additional nested fields", () => {
             const expected: ExpectedToolCall[] = [
                 {
                     toolName: "find",
-                    parameters: withParameterScorer(
-                        {
-                            database: "mflix",
-                            collection: "movies",
-                            filter: { runtime: { $lt: 100 } },
-                        },
-                        ParameterScorers.noAdditionsAllowedForPaths(["filter"])
-                    ),
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: { runtime: { $lt: 100 } },
+                    },
                 },
             ];
             const actual: LLMToolCall[] = [
@@ -161,18 +193,17 @@ describe("calculateToolCallingAccuracy", () => {
             expect(result).toBe(0);
         });
 
-        it("should return 0.75 when using noAdditionsAllowedForPaths and non-critical parameters are added", () => {
+        it("should return 1 when ignored additional fields are provided", () => {
             const expected: ExpectedToolCall[] = [
                 {
                     toolName: "find",
-                    parameters: withParameterScorer(
-                        {
-                            database: "mflix",
-                            collection: "movies",
-                            filter: { runtime: { $lt: 100 } },
-                        },
-                        ParameterScorers.noAdditionsAllowedForPaths(["filter"])
-                    ),
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        filter: { runtime: { $lt: 100 } },
+                        limit: Matcher.number(),
+                        sort: Matcher.anyValue,
+                    },
                 },
             ];
             const actual: LLMToolCall[] = [
@@ -189,7 +220,69 @@ describe("calculateToolCallingAccuracy", () => {
                 },
             ];
             const result = calculateToolCallingAccuracy(expected, actual);
-            expect(result).toBe(0.75);
+            expect(result).toBe(1);
+        });
+
+        it("should return 1 for array where additional elements are allowed", () => {
+            const expected: ExpectedToolCall[] = [
+                {
+                    toolName: "aggregate",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        pipeline: [
+                            { $match: { genre: "Horror" } },
+                            Matcher.composite(Matcher.undefined, Matcher.anyValue),
+                        ],
+                    },
+                },
+            ];
+
+            const actual: LLMToolCall[] = [
+                {
+                    toolCallId: "1",
+                    toolName: "aggregate",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        pipeline: [{ $match: { genre: "Horror" } }, { $sort: { title: 1 } }],
+                    },
+                },
+            ];
+
+            const result = calculateToolCallingAccuracy(expected, actual);
+            expect(result).toBe(1);
+        });
+
+        it("should return 1 for array where additional elements are allowed but not provided", () => {
+            const expected: ExpectedToolCall[] = [
+                {
+                    toolName: "aggregate",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        pipeline: [
+                            { $match: { genre: "Horror" } },
+                            Matcher.composite(Matcher.undefined, Matcher.anyValue),
+                        ],
+                    },
+                },
+            ];
+
+            const actual: LLMToolCall[] = [
+                {
+                    toolCallId: "1",
+                    toolName: "aggregate",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        pipeline: [{ $match: { genre: "Horror" } }],
+                    },
+                },
+            ];
+
+            const result = calculateToolCallingAccuracy(expected, actual);
+            expect(result).toBe(1);
         });
     });
 

@@ -1,5 +1,4 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
 
 /**
  * None of these tests score a parameter match on any of the models, likely
@@ -12,22 +11,18 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "explain",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        method: [
-                            {
-                                name: "find",
-                                arguments: {
-                                    filter: { release_year: 2020 },
-                                },
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    method: [
+                        {
+                            name: "find",
+                            arguments: {
+                                filter: { release_year: 2020 },
                             },
-                        ],
-                    },
-                    // Any addition to method itself will essentially change the explain output
-                    ParameterScorers.noAdditionsAllowedForPaths(["method"])
-                ),
+                        },
+                    ],
+                },
             },
         ],
     },
@@ -36,25 +31,22 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "explain",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        method: [
-                            {
-                                name: "aggregate",
-                                arguments: {
-                                    pipeline: [
-                                        {
-                                            $match: { release_year: 2020 },
-                                        },
-                                    ],
-                                },
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    method: [
+                        {
+                            name: "aggregate",
+                            arguments: {
+                                pipeline: [
+                                    {
+                                        $match: { release_year: 2020 },
+                                    },
+                                ],
                             },
-                        ],
-                    },
-                    ParameterScorers.noAdditionsAllowedForPaths(["method"])
-                ),
+                        },
+                    ],
+                },
             },
         ],
     },
@@ -63,21 +55,18 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "explain",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        method: [
-                            {
-                                name: "count",
-                                arguments: {
-                                    query: { release_year: 2020 },
-                                },
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    method: [
+                        {
+                            name: "count",
+                            arguments: {
+                                query: { release_year: 2020 },
                             },
-                        ],
-                    },
-                    ParameterScorers.noAdditionsAllowedForPaths(["method"])
-                ),
+                        },
+                    ],
+                },
             },
         ],
     },

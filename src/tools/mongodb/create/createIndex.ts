@@ -9,7 +9,7 @@ export class CreateIndexTool extends MongoDBToolBase {
     protected description = "Create an index for a collection";
     protected argsShape = {
         ...DbOperationArgs,
-        keys: z.record(z.string(), z.custom<IndexDirection>()).describe("The index definition"),
+        keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
         name: z.string().optional().describe("The name of the index"),
     };
 

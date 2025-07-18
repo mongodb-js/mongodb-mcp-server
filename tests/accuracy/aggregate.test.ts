@@ -1,5 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -7,15 +7,20 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "aggregate",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        pipeline: [{ $group: { _id: "$release_year", count: { $sum: 1 } } }],
-                    },
-                    // There should not be a $match at all hence the custom matcher
-                    ParameterScorers.noAdditionsAllowedForPaths(["pipeline.0.$match"])
-                ),
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    pipeline: [
+                        { $group: { _id: "$release_year", count: { $sum: 1 } } },
+                        // For the sake of accuracy, we allow any sort order
+                        Matcher.composite(
+                            Matcher.undefined,
+                            Matcher.unknown({
+                                $sort: Matcher.anyValue,
+                            })
+                        ),
+                    ],
+                },
             },
         ],
     },

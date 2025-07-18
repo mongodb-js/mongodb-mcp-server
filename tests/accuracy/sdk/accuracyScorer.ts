@@ -1,6 +1,5 @@
-import diff from "microdiff";
 import { ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
-import { PARAMETER_SCORER_SYMBOL, ParametersWithScorer } from "./parameterScorer.js";
+import { Matcher } from "./matcher.js";
 
 /**
  * Tool calling accuracy is a single number calculated based on two dimensions.
@@ -64,9 +63,7 @@ export function calculateToolCallingAccuracy(
         return actualToolCalls.length === 0 ? 1 : 0.75;
     }
 
-    const maxAccuracy = actualToolCalls.length > expectedToolCalls.length ? 0.75 : 1;
-
-    const individualAccuracies: number[] = [];
+    let currentScore = actualToolCalls.length > expectedToolCalls.length ? 0.75 : 1;
     const checkedActualToolCallIndexes = new Set<number>();
 
     for (const expectedCall of expectedToolCalls) {
@@ -78,43 +75,19 @@ export function calculateToolCallingAccuracy(
             .map(({ call, index }) => ({
                 call,
                 index,
-                score: compareParams(expectedCall.parameters, call.parameters),
+                score: Matcher.unknown(expectedCall.parameters).match(call.parameters),
             }))
             .filter(({ score }) => score >= 0.75)
             .sort((a, b) => b.score - a.score || a.index - b.index);
 
         const bestMatch = candidates[0];
-        if (!bestMatch) {
-            individualAccuracies.push(0);
-        } else {
-            checkedActualToolCallIndexes.add(bestMatch.index);
-            const individualAccuracy = Math.min(bestMatch.score, maxAccuracy);
-            individualAccuracies.push(individualAccuracy);
-        }
-    }
-
-    return Math.min(...individualAccuracies);
-}
-
-function compareParams(expected: Record<string, unknown>, actual: Record<string, unknown>): number {
-    const differences = diff(expected, actual);
-    if (differences.length === 0) {
-        return 1;
-    }
-
-    const hasOnlyAdditions = differences.every((d) => d.type === "CREATE");
-    if (hasOnlyAdditions) {
-        const expectedWithScorer = expected as ParametersWithScorer;
-        const customScorer = expectedWithScorer[PARAMETER_SCORER_SYMBOL];
-
-        // Most of our tools don't expect additional parameters to be passed so
-        // any additional parameter by default will be graded as 0.
-        if (!customScorer) {
-            return 0;
+        if (!bestMatch || bestMatch.score === 0) {
+            return 0; // No matching tool call found, return 0
         }
 
-        return customScorer(differences);
+        checkedActualToolCallIndexes.add(bestMatch.index);
+        currentScore = Math.min(currentScore, bestMatch.score);
     }
 
-    return 0;
+    return currentScore;
 }

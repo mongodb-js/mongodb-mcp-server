@@ -1,5 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -7,18 +7,16 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "update-many",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        update: {
-                            $set: {
-                                new_field: 1,
-                            },
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    update: {
+                        $set: {
+                            new_field: 1,
                         },
                     },
-                    ParameterScorers.noAdditionsAllowedForPaths(["update"])
-                ),
+                    upsert: Matcher.composite(Matcher.undefined, Matcher.boolean()),
+                },
             },
         ],
     },
@@ -27,19 +25,17 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "update-many",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        filter: { runtime: { $lt: 100 } },
-                        update: {
-                            $set: {
-                                new_field: 1,
-                            },
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    filter: { runtime: { $lt: 100 } },
+                    update: {
+                        $set: {
+                            new_field: 1,
                         },
                     },
-                    ParameterScorers.noAdditionsAllowedForPaths(["filter", "update"])
-                ),
+                    upsert: Matcher.composite(Matcher.undefined, Matcher.boolean()),
+                },
             },
         ],
     },

@@ -1,5 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -7,13 +7,11 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "delete-many",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                    },
-                    ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
-                ),
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    filter: Matcher.emptyObjectOrUndefined,
+                },
             },
         ],
     },
@@ -22,13 +20,11 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "delete-many",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                    },
-                    ParameterScorers.emptyAdditionsAllowedForPaths(["filter"])
-                ),
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    filter: Matcher.emptyObjectOrUndefined,
+                },
             },
         ],
     },
@@ -37,14 +33,11 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "delete-many",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        filter: { runtime: { $lt: 100 } },
-                    },
-                    ParameterScorers.noAdditionsAllowedForPaths(["filter"])
-                ),
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    filter: { runtime: { $lt: 100 } },
+                },
             },
         ],
     },

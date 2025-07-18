@@ -1,5 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import { ParameterScorers, withParameterScorer } from "./sdk/parameterScorer.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -7,16 +7,14 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "create-index",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        keys: {
-                            release_year: 1,
-                        },
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    name: Matcher.composite(Matcher.undefined, Matcher.string()),
+                    keys: {
+                        release_year: 1,
                     },
-                    ParameterScorers.noAdditionsAllowedForPaths(["keys"])
-                ),
+                },
             },
         ],
     },
@@ -25,16 +23,14 @@ describeAccuracyTests([
         expectedToolCalls: [
             {
                 toolName: "create-index",
-                parameters: withParameterScorer(
-                    {
-                        database: "mflix",
-                        collection: "movies",
-                        keys: {
-                            title: "text",
-                        },
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    name: Matcher.composite(Matcher.undefined, Matcher.string()),
+                    keys: {
+                        title: "text",
                     },
-                    ParameterScorers.noAdditionsAllowedForPaths(["keys"])
-                ),
+                },
             },
         ],
     },
