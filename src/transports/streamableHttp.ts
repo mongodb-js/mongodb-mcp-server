@@ -3,7 +3,7 @@ import http from "http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { TransportRunnerBase } from "./base.js";
-import { config } from "../common/config.js";
+import { UserConfig } from "../common/config.js";
 import logger, { LogId } from "../common/logger.js";
 import { randomUUID } from "crypto";
 import { SessionStore } from "../common/sessionStore.js";
@@ -38,7 +38,12 @@ function promiseHandler(
 
 export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
-    private sessionStore: SessionStore = new SessionStore();
+    private sessionStore: SessionStore;
+
+    constructor(private userConfig: UserConfig) {
+        super();
+        this.sessionStore = new SessionStore(this.userConfig.idleTimeoutMs, this.userConfig.notificationTimeoutMs);
+    }
 
     async start() {
         const app = express();
@@ -101,11 +106,11 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     return;
                 }
 
-                const server = this.setupServer();
+                const server = this.setupServer(this.userConfig);
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: () => randomUUID().toString(),
                     onsessioninitialized: (sessionId) => {
-                        this.sessionStore.setSession(sessionId, transport);
+                        this.sessionStore.setSession(sessionId, transport, server.mcpServer);
                     },
                     onsessionclosed: async (sessionId) => {
                         try {
@@ -140,7 +145,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.delete("/mcp", promiseHandler(handleRequest));
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
-            const result = app.listen(config.httpPort, config.httpHost, (err?: Error) => {
+            const result = app.listen(this.userConfig.httpPort, this.userConfig.httpHost, (err?: Error) => {
                 if (err) {
                     reject(err);
                     return;
@@ -152,7 +157,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         logger.info(
             LogId.streamableHttpTransportStarted,
             "streamableHttpTransport",
-            `Server started on http://${config.httpHost}:${config.httpPort}`
+            `Server started on http://${this.userConfig.httpHost}:${this.userConfig.httpPort}`
         );
     }
 
