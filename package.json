@@ -51,7 +51,6 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.1",
     "globals": "^16.3.0",
-    "microdiff": "^1.5.0",
     "mongodb-runner": "^5.9.2",
     "ollama-ai-provider": "^1.2.0",
     "openapi-types": "^12.1.3",
