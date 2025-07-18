@@ -4,6 +4,7 @@ import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
+import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 
 export class CreateDBUserTool extends AtlasToolBase {
     public name = "atlas-create-db-user";
@@ -44,6 +45,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         roles,
         clusters,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();

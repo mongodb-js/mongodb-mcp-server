@@ -3,6 +3,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
+import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {
     public name = "atlas-create-free-cluster";
@@ -37,6 +38,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             terminationProtectionEnabled: false,
         } as unknown as ClusterDescription20240805;
 
+        await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
         await this.session.apiClient.createCluster({
             params: {
                 path: {

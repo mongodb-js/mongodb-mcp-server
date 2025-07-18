@@ -5,6 +5,7 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import logger, { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
+import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 
@@ -198,6 +199,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
         for (let i = 0; i < 60; i++) {
             const state = await this.queryConnection(projectId, clusterName);
             switch (state) {

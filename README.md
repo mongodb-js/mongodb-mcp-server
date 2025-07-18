@@ -28,7 +28,10 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 
 ## Prerequisites
 
-- Node.js (v20.19.0 or later)
+- Node.js
+  - At least 20.19.0
+  - When using v22 then at least v22.12.0
+  - Otherwise any version 23+
 
 ```shell
 node -v

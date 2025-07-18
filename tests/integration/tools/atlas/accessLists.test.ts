@@ -2,6 +2,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject } from "./atlasHelpers.js";
 import { expectDefined } from "../../helpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/accessListUtils.js";
 
 function generateRandomIp() {
     const randomIp: number[] = [192];
@@ -93,6 +94,24 @@ describeWithAtlas("ip access lists", (integration) => {
                 for (const value of values) {
                     expect(response.content[0]?.text).toContain(value);
                 }
+            });
+        });
+
+        describe("ensureCurrentIpInAccessList helper", () => {
+            it("should add the current IP to the access list and be idempotent", async () => {
+                const apiClient = integration.mcpServer().session.apiClient;
+                const projectId = getProjectId();
+                const ipInfo = await apiClient.getIpInfo();
+                // First call should add the IP
+                await expect(ensureCurrentIpInAccessList(apiClient, projectId)).resolves.not.toThrow();
+                // Second call should be a no-op (idempotent)
+                await expect(ensureCurrentIpInAccessList(apiClient, projectId)).resolves.not.toThrow();
+                // Check that the IP is present in the access list
+                const accessList = await apiClient.listProjectIpAccessLists({
+                    params: { path: { groupId: projectId } },
+                });
+                const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);
+                expect(found).toBe(true);
             });
         });
     });

@@ -79,6 +79,18 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).toContain("with password: `");
             });
+
+            it("should add current IP to access list when creating a database user", async () => {
+                const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                const ipInfo = await session.apiClient.getIpInfo();
+                await createUserWithMCP();
+                const accessList = await session.apiClient.listProjectIpAccessLists({
+                    params: { path: { groupId: projectId } },
+                });
+                const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);
+                expect(found).toBe(true);
+            });
         });
         describe("atlas-list-db-users", () => {
             it("should have correct metadata", async () => {

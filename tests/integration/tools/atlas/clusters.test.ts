@@ -82,8 +82,10 @@ describeWithAtlas("clusters", (integration) => {
                 expect(createFreeCluster.inputSchema.properties).toHaveProperty("region");
             });
 
-            it("should create a free cluster", async () => {
+            it("should create a free cluster and add current IP to access list", async () => {
                 const projectId = getProjectId();
+                const session = integration.mcpServer().session;
+                const ipInfo = await session.apiClient.getIpInfo();
 
                 const response = (await integration.mcpClient().callTool({
                     name: "atlas-create-free-cluster",
@@ -96,6 +98,13 @@ describeWithAtlas("clusters", (integration) => {
                 expect(response.content).toBeInstanceOf(Array);
                 expect(response.content).toHaveLength(2);
                 expect(response.content[0]?.text).toContain("has been created");
+
+                // Check that the current IP is present in the access list
+                const accessList = await session.apiClient.listProjectIpAccessLists({
+                    params: { path: { groupId: projectId } },
+                });
+                const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);
+                expect(found).toBe(true);
             });
         });
 
