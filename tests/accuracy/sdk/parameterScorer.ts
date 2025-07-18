@@ -41,7 +41,7 @@ export const ParameterScorers = {
             const hasNonEmptyAdditions = additions.some((diff) => {
                 const diffPaths = pathComponentsToFullPaths(diff.path);
                 const considerablePathHasAdditions = diffPaths.some((diffPath) => paths.includes(diffPath));
-                const valueAtPath = diff.value;
+                const valueAtPath = diff.value as unknown;
                 return (
                     considerablePathHasAdditions &&
                     !(
