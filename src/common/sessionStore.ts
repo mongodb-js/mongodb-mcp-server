@@ -2,7 +2,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import logger, { LogId } from "./logger.js";
 
 export class SessionStore {
-    private sessions: { [sessionId: string]: StreamableHTTPServerTransport | undefined } = {};
+    private sessions: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
     getSession(sessionId: string): StreamableHTTPServerTransport | undefined {
         return this.sessions[sessionId];
