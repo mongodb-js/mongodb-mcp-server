@@ -17,7 +17,7 @@ export default defineConfig({
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
         coverage: {
-            exclude: ["node_modules", "tests", "dist"],
+            exclude: ["node_modules", "tests", "dist", "vitest.config.ts", "scripts"],
             reporter: ["lcov"],
         },
         projects: [
