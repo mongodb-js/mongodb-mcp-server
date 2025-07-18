@@ -40,7 +40,7 @@ startCommand:
     # A function that produces the CLI command to start the MCP on stdio.
     |-
     (config) => {
-      const args = ['dist/index.js'];
+      const args = ['dist/esm/index.js'];
       if (config) {
         if (config.atlasClientId) {
           args.push('--apiClientId');
