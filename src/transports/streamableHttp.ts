@@ -10,8 +10,9 @@ import { SessionStore } from "../common/sessionStore.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
-const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32002;
-const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32003;
+const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
+const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
+const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
 function promiseHandler(
     fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
@@ -45,13 +46,23 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.use(express.json());
 
         const handleRequest = async (req: express.Request, res: express.Response) => {
-            const sessionId = req.headers["mcp-session-id"] as string;
+            const sessionId = req.headers["mcp-session-id"];
             if (!sessionId) {
                 res.status(400).json({
                     jsonrpc: "2.0",
                     error: {
                         code: JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
                         message: `session id is required`,
+                    },
+                });
+                return;
+            }
+            if (typeof sessionId !== "string") {
+                res.status(400).json({
+                    jsonrpc: "2.0",
+                    error: {
+                        code: JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
+                        message: `session id is invalid`,
                     },
                 });
                 return;
@@ -73,7 +84,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.post(
             "/mcp",
             promiseHandler(async (req: express.Request, res: express.Response) => {
-                const sessionId = req.headers["mcp-session-id"] as string;
+                const sessionId = req.headers["mcp-session-id"];
                 if (sessionId) {
                     await handleRequest(req, res);
                     return;
