@@ -16,6 +16,7 @@
   },
   "type": "module",
   "scripts": {
+    "start": "node dist/index.js --transport http",
     "prepare": "npm run build",
     "build:clean": "rm -rf dist",
     "build:compile": "tsc --project tsconfig.build.json",

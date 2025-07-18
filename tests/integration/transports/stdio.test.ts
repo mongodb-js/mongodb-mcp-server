@@ -1,70 +1,40 @@
-import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 describe("StdioRunner", () => {
     describe("client connects successfully", () => {
-        let client: StdioClientTransport;
+        let client: Client;
+        let transport: StdioClientTransport;
         beforeAll(async () => {
-            client = new StdioClientTransport({
+            transport = new StdioClientTransport({
                 command: "node",
                 args: ["dist/index.js"],
                 env: {
                     MDB_MCP_TRANSPORT: "stdio",
                 },
             });
-            await client.start();
+            client = new Client({
+                name: "test",
+                version: "0.0.0",
+            });
+            await client.connect(transport);
         });
 
         afterAll(async () => {
             await client.close();
+            await transport.close();
         });
 
         it("handles requests and sends responses", async () => {
-            let fixedResolve: ((value: JSONRPCMessage) => void) | undefined = undefined;
-            const messagePromise = new Promise<JSONRPCMessage>((resolve) => {
-                fixedResolve = resolve;
-            });
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+            expect(response.tools).toBeDefined();
+            expect(response.tools).toHaveLength(20);
 
-            client.onmessage = (message: JSONRPCMessage) => {
-                fixedResolve?.(message);
-            };
-
-            await client.send({
-                jsonrpc: "2.0",
-                id: 1,
-                method: "tools/list",
-                params: {
-                    _meta: {
-                        progressToken: 1,
-                    },
-                },
-            });
-
-            const message = (await messagePromise) as {
-                jsonrpc: string;
-                id: number;
-                result: {
-                    tools: {
-                        name: string;
-                        description: string;
-                    }[];
-                };
-                error?: {
-                    code: number;
-                    message: string;
-                };
-            };
-
-            expect(message.jsonrpc).toBe("2.0");
-            expect(message.id).toBe(1);
-            expect(message.result).toBeDefined();
-            expect(message.result?.tools).toBeDefined();
-            expect(message.result?.tools.length).toBeGreaterThan(0);
-            const tools = message.result?.tools;
-            tools.sort((a, b) => a.name.localeCompare(b.name));
-            expect(tools[0]?.name).toBe("aggregate");
-            expect(tools[0]?.description).toBe("Run an aggregation against a MongoDB collection");
+            const sortedTools = response.tools.sort((a, b) => a.name.localeCompare(b.name));
+            expect(sortedTools[0]?.name).toBe("aggregate");
+            expect(sortedTools[0]?.description).toBe("Run an aggregation against a MongoDB collection");
         });
     });
 });

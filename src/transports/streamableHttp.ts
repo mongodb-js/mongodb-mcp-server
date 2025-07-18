@@ -1,90 +1,143 @@
 import express from "express";
 import http from "http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { TransportRunnerBase } from "./base.js";
 import { config } from "../common/config.js";
 import logger, { LogId } from "../common/logger.js";
+import { randomUUID } from "crypto";
+import { SessionStore } from "../common/sessionStore.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
-const JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED = -32601;
+const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
+const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
+const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
+const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
 function promiseHandler(
     fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
 ) {
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        fn(req, res, next).catch(next);
+        fn(req, res, next).catch((error) => {
+            logger.error(
+                LogId.streamableHttpTransportRequestFailure,
+                "streamableHttpTransport",
+                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
+            );
+            res.status(400).json({
+                jsonrpc: "2.0",
+                error: {
+                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                    message: `failed to handle request`,
+                    data: error instanceof Error ? error.message : String(error),
+                },
+            });
+        });
     };
 }
 
 export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
+    private sessionStore: SessionStore = new SessionStore();
 
     async start() {
         const app = express();
         app.enable("trust proxy"); // needed for reverse proxy support
-        app.use(express.urlencoded({ extended: true }));
         app.use(express.json());
+
+        const handleRequest = async (req: express.Request, res: express.Response) => {
+            const sessionId = req.headers["mcp-session-id"];
+            if (!sessionId) {
+                res.status(400).json({
+                    jsonrpc: "2.0",
+                    error: {
+                        code: JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
+                        message: `session id is required`,
+                    },
+                });
+                return;
+            }
+            if (typeof sessionId !== "string") {
+                res.status(400).json({
+                    jsonrpc: "2.0",
+                    error: {
+                        code: JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
+                        message: `session id is invalid`,
+                    },
+                });
+                return;
+            }
+            const transport = this.sessionStore.getSession(sessionId);
+            if (!transport) {
+                res.status(404).json({
+                    jsonrpc: "2.0",
+                    error: {
+                        code: JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
+                        message: `session not found`,
+                    },
+                });
+                return;
+            }
+            await transport.handleRequest(req, res, req.body);
+        };
 
         app.post(
             "/mcp",
             promiseHandler(async (req: express.Request, res: express.Response) => {
-                const transport = new StreamableHTTPServerTransport({
-                    sessionIdGenerator: undefined,
-                });
+                const sessionId = req.headers["mcp-session-id"];
+                if (sessionId) {
+                    await handleRequest(req, res);
+                    return;
+                }
+
+                if (!isInitializeRequest(req.body)) {
+                    res.status(400).json({
+                        jsonrpc: "2.0",
+                        error: {
+                            code: JSON_RPC_ERROR_CODE_INVALID_REQUEST,
+                            message: `invalid request`,
+                        },
+                    });
+                    return;
+                }
 
                 const server = this.setupServer();
+                const transport = new StreamableHTTPServerTransport({
+                    sessionIdGenerator: () => randomUUID().toString(),
+                    onsessioninitialized: (sessionId) => {
+                        this.sessionStore.setSession(sessionId, transport);
+                    },
+                    onsessionclosed: async (sessionId) => {
+                        try {
+                            await this.sessionStore.closeSession(sessionId, false);
+                        } catch (error) {
+                            logger.error(
+                                LogId.streamableHttpTransportSessionCloseFailure,
+                                "streamableHttpTransport",
+                                `Error closing session: ${error instanceof Error ? error.message : String(error)}`
+                            );
+                        }
+                    },
+                });
 
-                await server.connect(transport);
-
-                res.on("close", () => {
-                    Promise.all([transport.close(), server.close()]).catch((error: unknown) => {
+                transport.onclose = () => {
+                    server.close().catch((error) => {
                         logger.error(
                             LogId.streamableHttpTransportCloseFailure,
                             "streamableHttpTransport",
                             `Error closing server: ${error instanceof Error ? error.message : String(error)}`
                         );
                     });
-                });
+                };
 
-                try {
-                    await transport.handleRequest(req, res, req.body);
-                } catch (error) {
-                    logger.error(
-                        LogId.streamableHttpTransportRequestFailure,
-                        "streamableHttpTransport",
-                        `Error handling request: ${error instanceof Error ? error.message : String(error)}`
-                    );
-                    res.status(400).json({
-                        jsonrpc: "2.0",
-                        error: {
-                            code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                            message: `failed to handle request`,
-                            data: error instanceof Error ? error.message : String(error),
-                        },
-                    });
-                }
+                await server.connect(transport);
+
+                await transport.handleRequest(req, res, req.body);
             })
         );
 
-        app.get("/mcp", (req: express.Request, res: express.Response) => {
-            res.status(405).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
-                    message: `method not allowed`,
-                },
-            });
-        });
-
-        app.delete("/mcp", (req: express.Request, res: express.Response) => {
-            res.status(405).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: JSON_RPC_ERROR_CODE_METHOD_NOT_ALLOWED,
-                    message: `method not allowed`,
-                },
-            });
-        });
+        app.get("/mcp", promiseHandler(handleRequest));
+        app.delete("/mcp", promiseHandler(handleRequest));
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
             const result = app.listen(config.httpPort, config.httpHost, (err?: Error) => {
@@ -104,14 +157,17 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     }
 
     async close(): Promise<void> {
-        await new Promise<void>((resolve, reject) => {
-            this.httpServer?.close((err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve();
-            });
-        });
+        await Promise.all([
+            this.sessionStore.closeAllSessions(),
+            new Promise<void>((resolve, reject) => {
+                this.httpServer?.close((err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve();
+                });
+            }),
+        ]);
     }
 }

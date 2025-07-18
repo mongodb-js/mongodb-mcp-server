@@ -299,20 +299,20 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 
 ### Configuration Options
 
-| Option             | Default    | Description                                                                                                                                                   |
-| ------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apiClientId`      | <not set>  | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
-| `apiClientSecret`  | <not set>  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
-| `connectionString` | <not set>  | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
-| `loggers`          | disk,mcp   | Comma separated values, possible values are `mcp`, `disk` and `stderr`. See [Logger Options](#logger-options) for details.                                    |
-| `logPath`          | see note\* | Folder to store logs.                                                                                                                                         |
-| `disabledTools`    | <not set>  | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
-| `readOnly`         | false      | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
-| `indexCheck`       | false      | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
-| `telemetry`        | enabled    | When set to disabled, disables telemetry collection.                                                                                                          |
-| `transport`        | stdio      | Either 'stdio' or 'http'.                                                                                                                                     |
-| `httpPort`         | 3000       | Port number.                                                                                                                                                  |
-| `httpHost`         | 127.0.0.1  | Host to bind the http server.                                                                                                                                 |
+| CLI Option         | Environment Variable        | Default    | Description                                                                                                                                                   |
+| ------------------ | --------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiClientId`      | `MDB_MCP_API_CLIENT_ID`     | <not set>  | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
+| `apiClientSecret`  | `MDB_MCP_API_CLIENT_SECRET` | <not set>  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
+| `connectionString` | `MDB_MCP_CONNECTION_STRING` | <not set>  | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
+| `loggers`          | `MDB_MCP_LOGGERS`           | disk,mcp   | Comma separated values, possible values are `mcp`, `disk` and `stderr`. See [Logger Options](#logger-options) for details.                                    |
+| `logPath`          | `MDB_MCP_LOG_PATH`          | see note\* | Folder to store logs.                                                                                                                                         |
+| `disabledTools`    | `MDB_MCP_DISABLED_TOOLS`    | <not set>  | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
+| `readOnly`         | `MDB_MCP_READ_ONLY`         | false      | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
+| `indexCheck`       | `MDB_MCP_INDEX_CHECK`       | false      | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
+| `telemetry`        | `MDB_MCP_TELEMETRY`         | enabled    | When set to disabled, disables telemetry collection.                                                                                                          |
+| `transport`        | `MDB_MCP_TRANSPORT`         | stdio      | Either 'stdio' or 'http'.                                                                                                                                     |
+| `httpPort`         | `MDB_MCP_HTTP_PORT`         | 3000       | Port number.                                                                                                                                                  |
+| `httpHost`         | `MDB_MCP_HTTP_HOST`         | 127.0.0.1  | Host to bind the http server.                                                                                                                                 |
 
 #### Logger Options
 
