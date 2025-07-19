@@ -2,14 +2,54 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import logger, { LogId, McpLogger } from "./logger.js";
 
+class TimeoutManager {
+    private timeoutId: NodeJS.Timeout | undefined;
+    public onerror?: (error: unknown) => void;
+
+    constructor(
+        private readonly callback: () => Promise<void> | void,
+        private readonly timeoutMS: number
+    ) {
+        if (timeoutMS <= 0) {
+            throw new Error("timeoutMS must be greater than 0");
+        }
+        this.reset();
+    }
+
+    clear() {
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = undefined;
+        }
+    }
+
+    private async runCallback() {
+        if (this.callback) {
+            try {
+                await this.callback();
+            } catch (error: unknown) {
+                this.onerror?.(error);
+            }
+        }
+    }
+
+    reset() {
+        this.clear();
+        this.timeoutId = setTimeout(() => {
+            void this.runCallback().finally(() => {
+                this.timeoutId = undefined;
+            });
+        }, this.timeoutMS);
+    }
+}
+
 export class SessionStore {
     private sessions: {
         [sessionId: string]: {
             mcpServer: McpServer;
             transport: StreamableHTTPServerTransport;
-            abortController: AbortController;
-            abortTimeoutId: NodeJS.Timeout;
-            notificationTimeoutId: NodeJS.Timeout;
+            abortTimeout: TimeoutManager;
+            notificationTimeout: TimeoutManager;
         };
     } = {};
 
@@ -39,21 +79,9 @@ export class SessionStore {
             return;
         }
 
-        if (session.abortTimeoutId) {
-            clearTimeout(session.abortTimeoutId);
-        }
-        const abortTimeoutId = setTimeout(() => {
-            session.abortController.abort();
-        }, this.idleTimeoutMS);
-        session.abortTimeoutId = abortTimeoutId;
+        session.abortTimeout.reset();
 
-        if (session.notificationTimeoutId) {
-            clearTimeout(session.notificationTimeoutId);
-        }
-        const notificationTimeoutId = setTimeout(() => {
-            this.sendNotification(sessionId);
-        }, this.notificationTimeoutMS);
-        session.notificationTimeoutId = notificationTimeoutId;
+        session.notificationTimeout.reset();
     }
 
     private sendNotification(sessionId: string): void {
@@ -73,33 +101,31 @@ export class SessionStore {
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
-        const abortController = new AbortController();
-        const abortTimeoutId = setTimeout(() => {
-            abortController.abort();
-        }, this.idleTimeoutMS);
-        const notificationTimeoutId = setTimeout(() => {
-            this.sendNotification(sessionId);
-        }, this.notificationTimeoutMS);
-        this.sessions[sessionId] = { mcpServer, transport, abortController, abortTimeoutId, notificationTimeoutId };
-        abortController.signal.onabort = async () => {
+        const abortTimeout = new TimeoutManager(async () => {
+            const logger = new McpLogger(mcpServer);
+            logger.info(
+                LogId.streamableHttpTransportSessionCloseNotification,
+                "sessionStore",
+                "Session closed due to inactivity"
+            );
+
             await this.closeSession(sessionId);
-        };
+        }, this.idleTimeoutMS);
+        const notificationTimeout = new TimeoutManager(
+            () => this.sendNotification(sessionId),
+            this.notificationTimeoutMS
+        );
+        this.sessions[sessionId] = { mcpServer, transport, abortTimeout, notificationTimeout };
     }
 
     async closeSession(sessionId: string, closeTransport: boolean = true): Promise<void> {
         if (!this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} not found`);
         }
-        clearTimeout(this.sessions[sessionId].abortTimeoutId);
-        clearTimeout(this.sessions[sessionId].notificationTimeoutId);
+        this.sessions[sessionId].abortTimeout.clear();
+        this.sessions[sessionId].notificationTimeout.clear();
         if (closeTransport) {
             try {
-                const logger = new McpLogger(this.sessions[sessionId].mcpServer);
-                logger.info(
-                    LogId.streamableHttpTransportSessionCloseNotification,
-                    "sessionStore",
-                    "Session closed, please reconnect"
-                );
                 await this.sessions[sessionId].transport.close();
             } catch (error) {
                 logger.error(
@@ -113,7 +139,6 @@ export class SessionStore {
     }
 
     async closeAllSessions(): Promise<void> {
-        await Promise.all(Object.values(this.sessions).map((session) => session.abortController.abort()));
-        this.sessions = {};
+        await Promise.all(Object.keys(this.sessions).map((sessionId) => this.closeSession(sessionId)));
     }
 }
