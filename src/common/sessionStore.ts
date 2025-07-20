@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import logger, { LogId, McpLogger } from "./logger.js";
 
 class TimeoutManager {
-    private timeoutId: NodeJS.Timeout | undefined;
+    private timeoutId?: NodeJS.Timeout;
     public onerror?: (error: unknown) => void;
 
     constructor(
