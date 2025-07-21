@@ -1,4 +1,4 @@
-import { config } from "../common/config.js";
+import { UserConfig } from "../common/config.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";
@@ -6,14 +6,14 @@ import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export abstract class TransportRunnerBase {
-    protected setupServer(): Server {
+    protected setupServer(userConfig: UserConfig): Server {
         const session = new Session({
-            apiBaseUrl: config.apiBaseUrl,
-            apiClientId: config.apiClientId,
-            apiClientSecret: config.apiClientSecret,
+            apiBaseUrl: userConfig.apiBaseUrl,
+            apiClientId: userConfig.apiClientId,
+            apiClientSecret: userConfig.apiClientSecret,
         });
 
-        const telemetry = Telemetry.create(session, config);
+        const telemetry = Telemetry.create(session, userConfig);
 
         const mcpServer = new McpServer({
             name: packageInfo.mcpServerName,
@@ -24,7 +24,7 @@ export abstract class TransportRunnerBase {
             mcpServer,
             session,
             telemetry,
-            userConfig: config,
+            userConfig,
         });
     }
 

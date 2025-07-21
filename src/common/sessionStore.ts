@@ -1,31 +1,92 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import logger, { LogId } from "./logger.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import logger, { LogId, McpLogger } from "./logger.js";
+import { TimeoutManager } from "./timeoutManager.js";
 
 export class SessionStore {
-    private sessions: { [sessionId: string]: StreamableHTTPServerTransport } = {};
+    private sessions: {
+        [sessionId: string]: {
+            mcpServer: McpServer;
+            transport: StreamableHTTPServerTransport;
+            abortTimeout: TimeoutManager;
+            notificationTimeout: TimeoutManager;
+        };
+    } = {};
 
-    getSession(sessionId: string): StreamableHTTPServerTransport | undefined {
-        return this.sessions[sessionId];
+    constructor(
+        private readonly idleTimeoutMS: number,
+        private readonly notificationTimeoutMS: number
+    ) {
+        if (idleTimeoutMS <= 0) {
+            throw new Error("idleTimeoutMS must be greater than 0");
+        }
+        if (notificationTimeoutMS <= 0) {
+            throw new Error("notificationTimeoutMS must be greater than 0");
+        }
+        if (idleTimeoutMS <= notificationTimeoutMS) {
+            throw new Error("idleTimeoutMS must be greater than notificationTimeoutMS");
+        }
     }
 
-    setSession(sessionId: string, transport: StreamableHTTPServerTransport): void {
+    getSession(sessionId: string): StreamableHTTPServerTransport | undefined {
+        this.resetTimeout(sessionId);
+        return this.sessions[sessionId]?.transport;
+    }
+
+    private resetTimeout(sessionId: string): void {
+        const session = this.sessions[sessionId];
+        if (!session) {
+            return;
+        }
+
+        session.abortTimeout.reset();
+
+        session.notificationTimeout.reset();
+    }
+
+    private sendNotification(sessionId: string): void {
+        const session = this.sessions[sessionId];
+        if (!session) {
+            return;
+        }
+        const logger = new McpLogger(session.mcpServer);
+        logger.info(
+            LogId.streamableHttpTransportSessionCloseNotification,
+            "sessionStore",
+            "Session is about to be closed due to inactivity"
+        );
+    }
+
+    setSession(sessionId: string, transport: StreamableHTTPServerTransport, mcpServer: McpServer): void {
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
-        this.sessions[sessionId] = transport;
+        const abortTimeout = new TimeoutManager(async () => {
+            const logger = new McpLogger(mcpServer);
+            logger.info(
+                LogId.streamableHttpTransportSessionCloseNotification,
+                "sessionStore",
+                "Session closed due to inactivity"
+            );
+
+            await this.closeSession(sessionId);
+        }, this.idleTimeoutMS);
+        const notificationTimeout = new TimeoutManager(
+            () => this.sendNotification(sessionId),
+            this.notificationTimeoutMS
+        );
+        this.sessions[sessionId] = { mcpServer, transport, abortTimeout, notificationTimeout };
     }
 
     async closeSession(sessionId: string, closeTransport: boolean = true): Promise<void> {
         if (!this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} not found`);
         }
+        this.sessions[sessionId].abortTimeout.clear();
+        this.sessions[sessionId].notificationTimeout.clear();
         if (closeTransport) {
-            const transport = this.sessions[sessionId];
-            if (!transport) {
-                throw new Error(`Session ${sessionId} not found`);
-            }
             try {
-                await transport.close();
+                await this.sessions[sessionId].transport.close();
             } catch (error) {
                 logger.error(
                     LogId.streamableHttpTransportSessionCloseFailure,
@@ -38,11 +99,6 @@ export class SessionStore {
     }
 
     async closeAllSessions(): Promise<void> {
-        await Promise.all(
-            Object.values(this.sessions)
-                .filter((transport) => transport !== undefined)
-                .map((transport) => transport.close())
-        );
-        this.sessions = {};
+        await Promise.all(Object.keys(this.sessions).map((sessionId) => this.closeSession(sessionId)));
     }
 }
