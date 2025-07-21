@@ -1,15 +1,15 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import logger, { LogId, LoggerBase, McpLogger } from "./logger.js";
-import { TimeoutManager } from "./timeoutManager.js";
+import { ManagedTimeout, setManagedTimeout } from "./managedTimeout.js";
 
 export class SessionStore {
     private sessions: {
         [sessionId: string]: {
             logger: LoggerBase;
             transport: StreamableHTTPServerTransport;
-            abortTimeout: TimeoutManager;
-            notificationTimeout: TimeoutManager;
+            abortTimeout: ManagedTimeout;
+            notificationTimeout: ManagedTimeout;
         };
     } = {};
 
@@ -39,9 +39,9 @@ export class SessionStore {
             return;
         }
 
-        session.abortTimeout.reset();
+        session.abortTimeout.restart();
 
-        session.notificationTimeout.reset();
+        session.notificationTimeout.restart();
     }
 
     private sendNotification(sessionId: string): void {
@@ -66,7 +66,7 @@ export class SessionStore {
         if (session) {
             throw new Error(`Session ${sessionId} already exists`);
         }
-        const abortTimeout = new TimeoutManager(async () => {
+        const abortTimeout = setManagedTimeout(async () => {
             if (this.sessions[sessionId]) {
                 this.sessions[sessionId].logger.info(
                     LogId.streamableHttpTransportSessionCloseNotification,
@@ -77,7 +77,7 @@ export class SessionStore {
                 await this.closeSession(sessionId);
             }
         }, this.idleTimeoutMS);
-        const notificationTimeout = new TimeoutManager(
+        const notificationTimeout = setManagedTimeout(
             () => this.sendNotification(sessionId),
             this.notificationTimeoutMS
         );
@@ -89,8 +89,8 @@ export class SessionStore {
         if (!session) {
             throw new Error(`Session ${sessionId} not found`);
         }
-        session.abortTimeout.clear();
-        session.notificationTimeout.clear();
+        session.abortTimeout.cancel();
+        session.notificationTimeout.cancel();
         if (closeTransport) {
             try {
                 await session.transport.close();
