@@ -44,8 +44,9 @@ export const LogId = {
     streamableHttpTransportStarted: mongoLogId(1_006_001),
     streamableHttpTransportSessionCloseFailure: mongoLogId(1_006_002),
     streamableHttpTransportSessionCloseNotification: mongoLogId(1_006_003),
-    streamableHttpTransportRequestFailure: mongoLogId(1_006_004),
-    streamableHttpTransportCloseFailure: mongoLogId(1_006_005),
+    streamableHttpTransportSessionCloseNotificationFailure: mongoLogId(1_006_004),
+    streamableHttpTransportRequestFailure: mongoLogId(1_006_005),
+    streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
 } as const;
 
 export abstract class LoggerBase {

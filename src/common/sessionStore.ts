@@ -1,15 +1,15 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import logger, { LogId, McpLogger } from "./logger.js";
-import { TimeoutManager } from "./timeoutManager.js";
+import logger, { LogId, LoggerBase, McpLogger } from "./logger.js";
+import { ManagedTimeout, setManagedTimeout } from "./managedTimeout.js";
 
 export class SessionStore {
     private sessions: {
         [sessionId: string]: {
-            mcpServer: McpServer;
+            logger: LoggerBase;
             transport: StreamableHTTPServerTransport;
-            abortTimeout: TimeoutManager;
-            notificationTimeout: TimeoutManager;
+            abortTimeout: ManagedTimeout;
+            notificationTimeout: ManagedTimeout;
         };
     } = {};
 
@@ -39,18 +39,22 @@ export class SessionStore {
             return;
         }
 
-        session.abortTimeout.reset();
+        session.abortTimeout.restart();
 
-        session.notificationTimeout.reset();
+        session.notificationTimeout.restart();
     }
 
     private sendNotification(sessionId: string): void {
         const session = this.sessions[sessionId];
         if (!session) {
+            logger.warning(
+                LogId.streamableHttpTransportSessionCloseNotificationFailure,
+                "sessionStore",
+                `session ${sessionId} not found, no notification delivered`
+            );
             return;
         }
-        const logger = new McpLogger(session.mcpServer);
-        logger.info(
+        session.logger.info(
             LogId.streamableHttpTransportSessionCloseNotification,
             "sessionStore",
             "Session is about to be closed due to inactivity"
@@ -58,35 +62,38 @@ export class SessionStore {
     }
 
     setSession(sessionId: string, transport: StreamableHTTPServerTransport, mcpServer: McpServer): void {
-        if (this.sessions[sessionId]) {
+        const session = this.sessions[sessionId];
+        if (session) {
             throw new Error(`Session ${sessionId} already exists`);
         }
-        const abortTimeout = new TimeoutManager(async () => {
-            const logger = new McpLogger(mcpServer);
-            logger.info(
-                LogId.streamableHttpTransportSessionCloseNotification,
-                "sessionStore",
-                "Session closed due to inactivity"
-            );
+        const abortTimeout = setManagedTimeout(async () => {
+            if (this.sessions[sessionId]) {
+                this.sessions[sessionId].logger.info(
+                    LogId.streamableHttpTransportSessionCloseNotification,
+                    "sessionStore",
+                    "Session closed due to inactivity"
+                );
 
-            await this.closeSession(sessionId);
+                await this.closeSession(sessionId);
+            }
         }, this.idleTimeoutMS);
-        const notificationTimeout = new TimeoutManager(
+        const notificationTimeout = setManagedTimeout(
             () => this.sendNotification(sessionId),
             this.notificationTimeoutMS
         );
-        this.sessions[sessionId] = { mcpServer, transport, abortTimeout, notificationTimeout };
+        this.sessions[sessionId] = { logger: new McpLogger(mcpServer), transport, abortTimeout, notificationTimeout };
     }
 
     async closeSession(sessionId: string, closeTransport: boolean = true): Promise<void> {
-        if (!this.sessions[sessionId]) {
+        const session = this.sessions[sessionId];
+        if (!session) {
             throw new Error(`Session ${sessionId} not found`);
         }
-        this.sessions[sessionId].abortTimeout.clear();
-        this.sessions[sessionId].notificationTimeout.clear();
+        session.abortTimeout.cancel();
+        session.notificationTimeout.cancel();
         if (closeTransport) {
             try {
-                await this.sessions[sessionId].transport.close();
+                await session.transport.close();
             } catch (error) {
                 logger.error(
                     LogId.streamableHttpTransportSessionCloseFailure,
