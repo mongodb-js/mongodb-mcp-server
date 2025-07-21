@@ -1,47 +1,7 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import logger, { LogId, McpLogger } from "./logger.js";
-
-class TimeoutManager {
-    private timeoutId?: NodeJS.Timeout;
-    public onerror?: (error: unknown) => void;
-
-    constructor(
-        private readonly callback: () => Promise<void> | void,
-        private readonly timeoutMS: number
-    ) {
-        if (timeoutMS <= 0) {
-            throw new Error("timeoutMS must be greater than 0");
-        }
-        this.reset();
-    }
-
-    clear() {
-        if (this.timeoutId) {
-            clearTimeout(this.timeoutId);
-            this.timeoutId = undefined;
-        }
-    }
-
-    private async runCallback() {
-        if (this.callback) {
-            try {
-                await this.callback();
-            } catch (error: unknown) {
-                this.onerror?.(error);
-            }
-        }
-    }
-
-    reset() {
-        this.clear();
-        this.timeoutId = setTimeout(() => {
-            void this.runCallback().finally(() => {
-                this.timeoutId = undefined;
-            });
-        }, this.timeoutMS);
-    }
-}
+import { TimeoutManager } from "./timeoutManager.js";
 
 export class SessionStore {
     private sessions: {
