@@ -18,7 +18,7 @@ jobs:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         with:
           config: ${{ vars.PERMISSIONS_CONFIG }}
-      
+
       - name: Create JIRA ticket
         uses: mongodb/apix-action/create-jira@v8
         id: create
@@ -29,12 +29,12 @@ jobs:
           project-key: MCP
           summary: "HELP: GitHub Issue n. ${{ github.event.issue.number }}"
           issuetype: Task
-      
+
       - name: Show result
         run: |
           echo "JIRA action result: ${{ steps.create.outputs.issue-key || 'FAILED' }}"
           echo "Exit code: ${{ steps.create.outcome }}"
-      
+
       - name: Add comment
         if: steps.create.outputs.issue-key
         uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
@@ -42,7 +42,7 @@ jobs:
           issue-number: ${{ github.event.issue.number }}
           body: |
             Thanks for opening this issue. The ticket [${{ steps.create.outputs.issue-key }}](https://jira.mongodb.org/browse/${{ steps.create.outputs.issue-key }}) was created for internal tracking.
-      
+
       - name: Remove create-jira label
         if: github.event.action == 'labeled' && github.event.label.name == 'create-jira'
         uses: actions/github-script@v7
