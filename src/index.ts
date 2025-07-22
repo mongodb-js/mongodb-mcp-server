@@ -36,9 +36,7 @@ async function main() {
         } catch (error: unknown) {
             logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
         }
-        finally {
-            throw error;
-        }
+        throw error;
     }
 }
 
