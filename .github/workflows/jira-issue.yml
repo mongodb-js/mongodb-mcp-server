@@ -28,7 +28,7 @@ jobs:
           api-base: https://jira.mongodb.org
           project-key: MCP
           summary: "HELP: GitHub Issue n. ${{ github.event.issue.number }}"
-          issuetype: Task
+          issuetype: Bug
 
       - name: Show result
         run: |
