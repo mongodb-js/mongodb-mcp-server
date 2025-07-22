@@ -232,9 +232,7 @@ With Atlas API credentials:
 
 > **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.**
 
-The server supports Streamable HTTP transport for remote connections.
-
-**Required Security Measures:**
+**Suggested Security Measures Examples:**
 
 - Implement authentication (e.g., API gateway, reverse proxy)
 - Use HTTPS/TLS encryption
