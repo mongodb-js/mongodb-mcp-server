@@ -31,8 +31,14 @@ async function main() {
     try {
         await transportRunner.start();
     } catch (error: unknown) {
-        await transportRunner.close();
-        throw error;
+        try {
+            await transportRunner.close();
+        } catch (error: unknown) {
+            logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
+        }
+        finally {
+            throw error;
+        }
     }
 }
 
