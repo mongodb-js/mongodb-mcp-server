@@ -6,6 +6,8 @@
 
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
+> **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.** See [Configuration](#configuration) for details.
+
 ## 📚 Table of Contents
 
 - [🚀 Getting Started](#getting-started)
@@ -411,6 +413,23 @@ You can disable telemetry using:
 - **Environment variable**: `export MDB_MCP_TELEMETRY=disabled`
 - **Command-line argument**: `--telemetry disabled`
 - **DO_NOT_TRACK environment variable**: `export DO_NOT_TRACK=1`
+
+#### Streamable HTTP Transport
+
+The server supports Streamable HTTP transport for remote connections. **⚠️ Security Warning:** HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.
+
+**Required Security Measures:**
+- Implement authentication (e.g., API gateway, reverse proxy)
+- Use HTTPS/TLS encryption
+- Deploy behind a firewall or in private networks
+- Implement rate limiting
+- Never expose directly to the internet
+
+**Configuration:**
+- **Environment variables**: `export MDB_MCP_TRANSPORT=http`
+- **Command-line argument**: `--transport http`
+
+For more details, see [MCP Security Best Practices](https://modelcontextprotocol.io/docs/concepts/transports#security-considerations).
 
 ### Atlas API Access
 
