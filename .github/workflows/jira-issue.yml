@@ -36,7 +36,6 @@ jobs:
           echo "Exit code: ${{ steps.create.outcome }}"
 
       - name: Add comment
-        if: steps.create.outputs.issue-key
         uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
         with:
           issue-number: ${{ github.event.issue.number }}
