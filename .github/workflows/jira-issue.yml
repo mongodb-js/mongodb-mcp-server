@@ -33,7 +33,6 @@ jobs:
       - name: Show result
         run: |
           echo "JIRA action result: ${{ steps.create.outputs.issue-key || 'FAILED' }}"
-          echo "Exit code: ${{ steps.create.outcome }}"
 
       - name: Add comment
         uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
