@@ -6,8 +6,6 @@
 
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
-> **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.** See [Configuration](#configuration) for details.
-
 ## 📚 Table of Contents
 
 - [🚀 Getting Started](#getting-started)
@@ -416,7 +414,9 @@ You can disable telemetry using:
 
 #### Streamable HTTP Transport
 
-The server supports Streamable HTTP transport for remote connections. **⚠️ Security Warning:** HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.
+> **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.**
+
+The server supports Streamable HTTP transport for remote connections.
 
 **Required Security Measures:**
 
