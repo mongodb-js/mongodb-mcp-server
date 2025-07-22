@@ -50,7 +50,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
 
-        const handleRequest = async (req: express.Request, res: express.Response) => {
+        const handleSessionRequest = async (req: express.Request, res: express.Response) => {
             const sessionId = req.headers["mcp-session-id"];
             if (!sessionId) {
                 res.status(400).json({
@@ -91,7 +91,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             promiseHandler(async (req: express.Request, res: express.Response) => {
                 const sessionId = req.headers["mcp-session-id"];
                 if (sessionId) {
-                    await handleRequest(req, res);
+                    await handleSessionRequest(req, res);
                     return;
                 }
 
@@ -141,8 +141,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             })
         );
 
-        app.get("/mcp", promiseHandler(handleRequest));
-        app.delete("/mcp", promiseHandler(handleRequest));
+        app.get("/mcp", promiseHandler(handleSessionRequest));
+        app.delete("/mcp", promiseHandler(handleSessionRequest));
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
             const result = app.listen(this.userConfig.httpPort, this.userConfig.httpHost, (err?: Error) => {
