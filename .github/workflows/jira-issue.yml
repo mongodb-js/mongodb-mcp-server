@@ -32,7 +32,6 @@ jobs:
           extra-data: |
             {
               "fields": {
-                # Assigned teams custom field. IDs includes the two owning teams.
                 "customfield_12751": [
                   {
                     "id": "22223"
