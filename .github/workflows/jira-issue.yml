@@ -42,7 +42,6 @@ jobs:
                 ]
               }
             }
-          debug: true
       - name: Show result
         run: |
           echo "JIRA action result: ${{ steps.create.outputs.issue-key || 'FAILED' }}"
