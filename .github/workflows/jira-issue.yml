@@ -20,7 +20,7 @@ jobs:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - name: Create JIRA ticket
-        uses: mongodb/apix-action/create-jira@v8
+        uses: mongodb/apix-action/create-jira@v9
         id: create
         continue-on-error: true
         with:
@@ -42,6 +42,7 @@ jobs:
                 ]
               }
             }
+          debug: true
       - name: Show result
         run: |
           echo "JIRA action result: ${{ steps.create.outputs.issue-key || 'FAILED' }}"
