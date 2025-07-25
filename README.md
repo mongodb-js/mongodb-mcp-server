@@ -109,7 +109,7 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
 Start Server using npx command:
 
 ```shell
- npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
+ npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
 ```
 
 - For a complete list of arguments see [Configuration Options](#configuration-options)
@@ -118,7 +118,7 @@ Start Server using npx command:
 #### Option 4: Standalone Service using environment variables
 
 ```shell
- npx -y mongodb-mcp-server --readOnly
+ npx -y mongodb-mcp-server@latest --readOnly
 ```
 
 You can use environment variables in the config file or set them and run the server via npx.
@@ -247,13 +247,13 @@ You can run the MongoDB MCP Server as an HTTP server instead of the default stdi
 To start the server with HTTP transport, use the `--transport http` option:
 
 ```shell
-npx -y mongodb-mcp-server --transport http
+npx -y mongodb-mcp-server@latest --transport http
 ```
 
 By default, the server will listen on `http://127.0.0.1:3000`. You can customize the host and port using the `--httpHost` and `--httpPort` options:
 
 ```shell
-npx -y mongodb-mcp-server --transport http --httpHost=0.0.0.0 --httpPort=8080
+npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=8080
 ```
 
 - `--httpHost` (default: 127.0.0.1): The host to bind the HTTP server.
@@ -352,7 +352,7 @@ export MDB_MCP_LOGGERS="disk,stderr"
 ##### Example: Set logger via command-line argument
 
 ```shell
-npx -y mongodb-mcp-server --loggers mcp stderr
+npx -y mongodb-mcp-server@latest --loggers mcp stderr
 ```
 
 ##### Log File Location
@@ -529,7 +529,7 @@ export MDB_MCP_LOG_PATH="/path/to/logs"
 Pass configuration options as command-line arguments when starting the server:
 
 ```shell
-npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs --readOnly --indexCheck
+npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs --readOnly --indexCheck
 ```
 
 #### MCP configuration file examples
