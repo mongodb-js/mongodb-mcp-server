@@ -230,10 +230,11 @@ describe("Telemetry", () => {
                     expect(telemetry.getCommonProperties().device_id).toBe("test-device-id");
                 });
 
-                it("should handle device ID resolution failure", async () => {
-                    // The deviceId utility is already mocked to return "test-device-id"
-                    // We can't easily test the failure case without complex mocking
-                    // So we'll just verify that the deviceId is set correctly
+                it("should handle device ID resolution failure gracefully", async () => {
+                    // Mock the deviceId utility to return "unknown" for this test
+                    const { getDeviceIdForConnection } = await import("../../src/helpers/deviceId.js");
+                    vi.mocked(getDeviceIdForConnection).mockResolvedValueOnce("unknown");
+
                     telemetry = Telemetry.create(session, config);
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
@@ -242,7 +243,25 @@ describe("Telemetry", () => {
                     await telemetry.setupPromise;
 
                     expect(telemetry["isBufferingEvents"]).toBe(false);
-                    expect(telemetry.getCommonProperties().device_id).toBe("test-device-id");
+                    // Should use "unknown" as fallback when device ID resolution fails
+                    expect(telemetry.getCommonProperties().device_id).toBe("unknown");
+                });
+
+                it("should handle device ID timeout gracefully", async () => {
+                    // Mock the deviceId utility to return "unknown" for this test
+                    const { getDeviceIdForConnection } = await import("../../src/helpers/deviceId.js");
+                    vi.mocked(getDeviceIdForConnection).mockResolvedValueOnce("unknown");
+
+                    telemetry = Telemetry.create(session, config);
+
+                    expect(telemetry["isBufferingEvents"]).toBe(true);
+                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
+
+                    await telemetry.setupPromise;
+
+                    expect(telemetry["isBufferingEvents"]).toBe(false);
+                    // Should use "unknown" as fallback when device ID times out
+                    expect(telemetry.getCommonProperties().device_id).toBe("unknown");
                 });
             });
         });
