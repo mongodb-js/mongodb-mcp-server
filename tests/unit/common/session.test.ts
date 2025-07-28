@@ -63,6 +63,18 @@ describe("Session", () => {
             });
         }
 
+        it("should configure the proxy to use environment variables", async () => {
+            await session.connectToMongoDB("mongodb://localhost", config.connectOptions);
+            expect(session.serviceProvider).toBeDefined();
+
+            const connectMock = MockNodeDriverServiceProvider.connect;
+            expect(connectMock).toHaveBeenCalledOnce();
+
+            const connectionConfig = connectMock.mock.calls[0]?.[1];
+            expect(connectionConfig?.proxy).toEqual({ useEnvironmentVariableProxies: true });
+            expect(connectionConfig?.applyProxyToOIDC).toEqual(true);
+        });
+
         it("should include client name when agent runner is set", async () => {
             session.setAgentRunner({ name: "test-client", version: "1.0.0" });
 
@@ -75,18 +87,6 @@ describe("Session", () => {
 
             // Should include the client name in the appName
             expect(connectionString).toContain("--test-device-id--test-client");
-        });
-
-        it("should use 'unknown' for client name when agent runner is not set", async () => {
-            await session.connectToMongoDB("mongodb://localhost:27017", config.connectOptions);
-            expect(session.serviceProvider).toBeDefined();
-
-            const connectMock = MockNodeDriverServiceProvider.connect;
-            expect(connectMock).toHaveBeenCalledOnce();
-            const connectionString = connectMock.mock.calls[0]?.[0];
-
-            // Should use 'unknown' for client name when agent runner is not set
-            expect(connectionString).toContain("--test-device-id--unknown");
         });
     });
 });

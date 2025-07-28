@@ -22,6 +22,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
     - [Environment Variables](#environment-variables)
     - [Command-Line Arguments](#command-line-arguments)
     - [MCP Client Configuration](#mcp-configuration-file-examples)
+    - [Proxy Support](#proxy-support)
 - [🤝 Contributing](#contributing)
 
 <a name="getting-started"></a>
@@ -573,6 +574,13 @@ npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-clie
   }
 }
 ```
+
+### Proxy Support
+
+The MCP Server will detect typical PROXY environment variables and use them for
+connecting to the Atlas API, your MongoDB Cluster, or any other external calls
+to third-party services like OID Providers. The behaviour is the same as what
+`mongosh` does, so the same settings will work in the MCP Server.
 
 ## 🤝Contributing
 
