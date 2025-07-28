@@ -577,7 +577,7 @@ npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-clie
 
 ### Proxy Support
 
-The MCP Server will detect typical PROXY environment variables and use them for 
+The MCP Server will detect typical PROXY environment variables and use them for
 connecting to the Atlas API, your MongoDB Cluster, or any other external calls
 to third-party services like OID Providers. The behaviour is the same as what
 `mongosh` does, so the same settings will work in the MCP Server.
