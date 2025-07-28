@@ -6,6 +6,8 @@ import { paths, operations } from "./openapi.js";
 import { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
 import logger, { LogId } from "../logger.js";
+import { createFetch, useOrCreateAgent } from "@mongodb-js/devtools-proxy-support";
+import HTTPS from "https";
 
 const ATLAS_API_VERSION = "2025-03-12";
 
@@ -29,11 +31,25 @@ export class ApiClient {
             clientSecret: string;
         };
     };
+
+    private static customFetch = createFetch({
+        useEnvironmentVariableProxies: true,
+    }) as unknown as typeof fetch;
+
+    private static customAgent = useOrCreateAgent({
+        useEnvironmentVariableProxies: true,
+    });
+
     private client: Client<paths>;
     private oauth2Client?: ClientCredentials;
     private accessToken?: AccessToken;
 
+    private ensureAgentIsInitialized = async () => {
+        await ApiClient.customAgent?.initialize?.();
+    };
+
     private getAccessToken = async () => {
+        //        await this.ensureAgentIsInitialized();
         if (this.oauth2Client && (!this.accessToken || this.accessToken.expired())) {
             this.accessToken = await this.oauth2Client.getToken({});
         }
@@ -72,6 +88,7 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
+            fetch: ApiClient.customFetch,
         });
         if (this.options.credentials?.clientId && this.options.credentials?.clientSecret) {
             this.oauth2Client = new ClientCredentials({
@@ -88,6 +105,7 @@ export class ApiClient {
                     headers: {
                         "User-Agent": this.options.userAgent,
                     },
+                    agent: ApiClient.customAgent,
                 },
             });
             this.client.use(this.authMiddleware);
