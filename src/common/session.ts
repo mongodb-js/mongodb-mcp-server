@@ -113,6 +113,8 @@ export class Session extends EventEmitter<{
                 w: connectOptions.writeConcern,
             },
             timeoutMS: connectOptions.timeoutMS,
+            proxy: { useEnvironmentVariableProxies: true },
+            applyProxyToOIDC: true,
         });
     }
 }

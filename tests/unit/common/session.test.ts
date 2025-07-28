@@ -56,5 +56,17 @@ describe("Session", () => {
                 }
             });
         }
+
+        it("should configure the proxy to use environment variables", async () => {
+            await session.connectToMongoDB("mongodb://localhost", config.connectOptions);
+            expect(session.serviceProvider).toBeDefined();
+
+            const connectMock = MockNodeDriverServiceProvider.connect;
+            expect(connectMock).toHaveBeenCalledOnce();
+
+            const connectionConfig = connectMock.mock.calls[0]?.[1];
+            expect(connectionConfig?.proxy).toEqual({ useEnvironmentVariableProxies: true });
+            expect(connectionConfig?.applyProxyToOIDC).toEqual(true);
+        });
     });
 });
