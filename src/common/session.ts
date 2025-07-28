@@ -98,10 +98,15 @@ export class Session extends EventEmitter<{
     }
 
     async connectToMongoDB(connectionString: string, connectOptions: ConnectOptions): Promise<void> {
-        connectionString = setAppNameParamIfMissing({
+        // Use the extended appName format with deviceId and clientName
+        connectionString = await setAppNameParamIfMissing({
             connectionString,
-            defaultAppName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+            components: {
+                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                clientName: this.agentRunner?.name || "unknown",
+            },
         });
+
         this.serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
             productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
             productName: "MongoDB MCP",

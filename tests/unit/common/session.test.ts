@@ -4,6 +4,10 @@ import { Session } from "../../../src/common/session.js";
 import { config } from "../../../src/common/config.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
+vi.mock("../../../src/helpers/deviceId.js", () => ({
+    getDeviceIdForConnection: vi.fn().mockResolvedValue("test-device-id"),
+}));
+
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
 
 describe("Session", () => {
@@ -50,11 +54,39 @@ describe("Session", () => {
                 expect(connectMock).toHaveBeenCalledOnce();
                 const connectionString = connectMock.mock.calls[0]?.[0];
                 if (testCase.expectAppName) {
-                    expect(connectionString).toContain("appName=MongoDB+MCP+Server");
+                    // Check for the extended appName format: appName--deviceId--clientName
+                    expect(connectionString).toContain("appName=MongoDB+MCP+Server+");
+                    expect(connectionString).toContain("--test-device-id--");
                 } else {
                     expect(connectionString).not.toContain("appName=MongoDB+MCP+Server");
                 }
             });
         }
+
+        it("should include client name when agent runner is set", async () => {
+            session.setAgentRunner({ name: "test-client", version: "1.0.0" });
+
+            await session.connectToMongoDB("mongodb://localhost:27017", config.connectOptions);
+            expect(session.serviceProvider).toBeDefined();
+
+            const connectMock = MockNodeDriverServiceProvider.connect;
+            expect(connectMock).toHaveBeenCalledOnce();
+            const connectionString = connectMock.mock.calls[0]?.[0];
+
+            // Should include the client name in the appName
+            expect(connectionString).toContain("--test-device-id--test-client");
+        });
+
+        it("should use 'unknown' for client name when agent runner is not set", async () => {
+            await session.connectToMongoDB("mongodb://localhost:27017", config.connectOptions);
+            expect(session.serviceProvider).toBeDefined();
+
+            const connectMock = MockNodeDriverServiceProvider.connect;
+            expect(connectMock).toHaveBeenCalledOnce();
+            const connectionString = connectMock.mock.calls[0]?.[0];
+
+            // Should use 'unknown' for client name when agent runner is not set
+            expect(connectionString).toContain("--test-device-id--unknown");
+        });
     });
 });
