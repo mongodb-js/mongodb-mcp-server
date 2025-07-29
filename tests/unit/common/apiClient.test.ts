@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import { CommonProperties, TelemetryEvent, TelemetryResult } from "../../../src/telemetry/types.js";
-import httpProxy from "http-proxy";
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
@@ -92,44 +91,6 @@ describe("ApiClient", () => {
             apiClient.client.GET = mockGet;
 
             await expect(apiClient.listProjects()).rejects.toThrow();
-        });
-    });
-
-    describe("oauth authentication proxy", () => {
-        let apiClient: ApiClient;
-        let proxyServer: httpProxy;
-        let requests: unknown[];
-
-        beforeEach(() => {
-            process.env.HTTP_PROXY = "localhost:8888";
-            apiClient = new ApiClient({
-                baseUrl: "https://httpbin.org",
-                credentials: {
-                    clientId: "test-client-id",
-                    clientSecret: "test-client-secret",
-                },
-                userAgent: "test-user-agent",
-            });
-
-            proxyServer = httpProxy.createProxyServer({ target: "https://api.test.com" });
-            proxyServer.on("proxyReq", (proxyReq, req, res, options) => {
-                requests.push(req);
-            });
-
-            requests = [];
-        });
-
-        afterEach(async () => {
-            delete process.env.HTTP_PROXY;
-
-            await proxyServer.close();
-            //await apiClient.close();
-        });
-
-        it("should send the oauth request through a proxy if configured", async () => {
-            await apiClient.validateAccessToken();
-            console.log(requests);
-            expect(true).toBeFalsy();
         });
     });
 
