@@ -12,7 +12,9 @@ import type { Duplex } from "stream";
 
 function parseHTTPAuthHeader(header: string | undefined): [string, string] {
     if (!header?.startsWith("Basic ")) return ["", ""];
-    const [username = "", pw = ""] = Buffer.from(header.split(" ")[1], "base64").toString().split(":");
+    const [username = "", pw = ""] = Buffer.from(header.split(" ")[1] ?? "", "base64")
+        .toString()
+        .split(":");
     return [username, pw];
 }
 
