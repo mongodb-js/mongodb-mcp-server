@@ -81,12 +81,13 @@ export class HTTPServerProxyTestSetup {
                 return;
             }
             httpGet(
-                req.url!,
+                req.url ?? "<invalid>",
                 {
                     createConnection: () => {
-                        const { socket1, socket2 } = new DuplexPair();
-                        this.httpServer.emit("connection", socket2);
-                        return socket1;
+                        const sockets = new DuplexPair();
+                        this.httpServer.emit("connection", sockets.socket2);
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                        return sockets.socket1;
                     },
                 },
                 (proxyRes) => proxyRes.pipe(res)
@@ -102,7 +103,7 @@ export class HTTPServerProxyTestSetup {
         await Promise.all(
             [this.httpServer, this.httpsServer, this.httpProxyServer, this.httpsProxyServer].map(async (server) => {
                 await promisify(server.listen.bind(server, 0))();
-                server.on("connection", (conn) => this.connections.push(conn));
+                server.on("connection", (conn: Duplex) => this.connections.push(conn));
             })
         );
     }

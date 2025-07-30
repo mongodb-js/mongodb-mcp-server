@@ -38,7 +38,8 @@ describe("ApiClient integration test", () => {
         async function ignoringResult(fn: () => Promise<unknown>): Promise<void> {
             try {
                 await fn();
-            } catch (error: unknown) {
+            } catch (_error: unknown) {
+                void _error;
                 // we are ignoring the error because we know that
                 // the type safe client will fail. It will fail
                 // because we are returning an empty 200, and it expects
