@@ -13,10 +13,13 @@ export interface SessionOptions {
     apiClientSecret?: string;
 }
 
-export class Session extends EventEmitter<{
+export type SessionEvents = {
+    connected: [];
     close: [];
     disconnect: [];
-}> {
+};
+
+export class Session extends EventEmitter<SessionEvents> {
     sessionId?: string;
     serviceProvider?: NodeDriverServiceProvider;
     apiClient: ApiClient;
@@ -116,5 +119,7 @@ export class Session extends EventEmitter<{
             proxy: { useEnvironmentVariableProxies: true },
             applyProxyToOIDC: true,
         });
+
+        this.emit("connected");
     }
 }
