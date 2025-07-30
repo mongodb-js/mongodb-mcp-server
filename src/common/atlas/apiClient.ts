@@ -7,6 +7,7 @@ import { packageInfo } from "../packageInfo.js";
 import logger, { LogId } from "../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import * as oauth from "oauth4webapi";
+import { Request } from "node-fetch";
 
 const ATLAS_API_VERSION = "2025-03-12";
 
@@ -36,7 +37,7 @@ export class ApiClient {
         };
     };
 
-    private static customFetch = createFetch({
+    private static customFetch: typeof fetch = createFetch({
         useEnvironmentVariableProxies: true,
     }) as unknown as typeof fetch;
 
@@ -53,7 +54,8 @@ export class ApiClient {
     private isAccessTokenValid(): boolean {
         return !!(
             this.accessToken &&
-            (this.accessToken.expires_at == undefined || this.accessToken.expires_at > Date.now() / 1000)
+            this.accessToken.expires_at != undefined &&
+            this.accessToken.expires_at > Date.now()
         );
     }
 
@@ -102,6 +104,7 @@ export class ApiClient {
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
             fetch: ApiClient.customFetch,
+            Request: Request,
         });
 
         if (this.options.credentials?.clientId && this.options.credentials?.clientSecret) {
@@ -128,7 +131,7 @@ export class ApiClient {
             const clientId = this.options.credentials.clientId;
 
             // We are using our own ClientAuth because ClientSecretBasic URL encodes wrongly
-            // the username and password (for example, encodes `_` which is wrong).
+            // the username and password (for example, encodes `_` to %5F, which is wrong).
             return {
                 client: { client_id: clientId },
                 clientAuth: (_as, client, _body, headers) => {
@@ -165,7 +168,7 @@ export class ApiClient {
                 const result = await oauth.processClientCredentialsResponse(this.oauth2Issuer, client, response);
                 this.accessToken = {
                     access_token: result.access_token,
-                    expires_at: Date.now() / 1000 + (result.expires_in ?? 0),
+                    expires_at: Date.now() + (result.expires_in ?? 0) * 1000,
                 };
             } catch (error: unknown) {
                 const err = error instanceof Error ? error : new Error(String(error));
@@ -465,10 +468,18 @@ export class ApiClient {
     }
 
     async listOrganizations(options?: FetchOptions<operations["listOrganizations"]>) {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
+        console.log(">> listOrg1 ");
+        try {
+            const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
+        } catch (ex) {
+            console.error(ex);
+        }
+        console.log(">> listOrg2 ");
         if (error) {
+            console.log(">> listOrg3 ");
             throw ApiClientError.fromError(response, error);
         }
+        console.log(">> listOrg4 ");
         return data;
     }
 
