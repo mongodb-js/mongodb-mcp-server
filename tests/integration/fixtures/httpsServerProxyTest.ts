@@ -101,7 +101,7 @@ export class HTTPServerProxyTestSetup {
     async listen(): Promise<void> {
         await Promise.all(
             [this.httpServer, this.httpsServer, this.httpProxyServer, this.httpsProxyServer].map(async (server) => {
-                await promisify(server.listen.bind(server))(0);
+                await promisify(server.listen.bind(server, 0))();
                 server.on("connection", (conn) => this.connections.push(conn));
             })
         );
