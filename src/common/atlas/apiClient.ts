@@ -37,6 +37,10 @@ export class ApiClient {
         };
     };
 
+    // createFetch assumes that the first parameter of fetch is always a string
+    // with the URL. However, fetch can also receive a Request object. While
+    // the typechecking complains, createFetch does passthrough the parameters
+    // so it works fine.
     private static customFetch: typeof fetch = createFetch({
         useEnvironmentVariableProxies: true,
     }) as unknown as typeof fetch;
@@ -104,6 +108,9 @@ export class ApiClient {
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
             fetch: ApiClient.customFetch,
+            // NodeFetchRequest has more overloadings than the native Request
+            // so it complains here. However, the interfaces are actually compatible
+            // so it's not a real problem, just a type checking problem.
             Request: NodeFetchRequest as unknown as ClientOptions["Request"],
         });
 
