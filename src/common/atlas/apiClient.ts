@@ -1,5 +1,5 @@
 import createClient, { Client, Middleware } from "openapi-fetch";
-import type { FetchOptions } from "openapi-fetch";
+import type { ClientOptions, FetchOptions } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import { paths, operations } from "./openapi.js";
 import { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
@@ -7,7 +7,7 @@ import { packageInfo } from "../packageInfo.js";
 import logger, { LogId } from "../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import * as oauth from "oauth4webapi";
-import { Request } from "node-fetch";
+import { Request as NodeFetchRequest } from "node-fetch";
 
 const ATLAS_API_VERSION = "2025-03-12";
 
@@ -104,7 +104,7 @@ export class ApiClient {
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
             fetch: ApiClient.customFetch,
-            Request: Request,
+            Request: NodeFetchRequest as unknown as ClientOptions["Request"],
         });
 
         if (this.options.credentials?.clientId && this.options.credentials?.clientSecret) {
@@ -468,18 +468,10 @@ export class ApiClient {
     }
 
     async listOrganizations(options?: FetchOptions<operations["listOrganizations"]>) {
-        console.log(">> listOrg1 ");
-        try {
-            const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
-        } catch (ex) {
-            console.error(ex);
-        }
-        console.log(">> listOrg2 ");
+        const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
         if (error) {
-            console.log(">> listOrg3 ");
             throw ApiClientError.fromError(response, error);
         }
-        console.log(">> listOrg4 ");
         return data;
     }
 
