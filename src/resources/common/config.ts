@@ -16,21 +16,23 @@ export class ConfigResource extends ReactiveResource(
         events: [],
     }
 ) {
-    reduce(previous: UserConfig, eventName: undefined, event: undefined): UserConfig {
+    reduce(eventName: undefined, event: undefined): UserConfig {
+        void eventName;
         void event;
-        return previous;
+
+        return this.current;
     }
 
-    toOutput(state: UserConfig): string {
+    toOutput(): string {
         const result = {
-            telemetry: state.telemetry,
-            logPath: state.logPath,
-            connectionString: state.connectionString
+            telemetry: this.current.telemetry,
+            logPath: this.current.logPath,
+            connectionString: this.current.connectionString
                 ? "set; access to MongoDB tools are currently available to use"
                 : "not set; before using any MongoDB tool, you need to configure a connection string, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
-            connectOptions: state.connectOptions,
+            connectOptions: this.current.connectOptions,
             atlas:
-                state.apiClientId && state.apiClientSecret
+                this.current.apiClientId && this.current.apiClientSecret
                     ? "set; MongoDB Atlas tools are currently available to use"
                     : "not set; MongoDB Atlas tools are currently unavailable, to have access to MongoDB Atlas tools like creating clusters or connecting to clusters make sure to setup credentials, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
         };

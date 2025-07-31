@@ -1,6 +1,4 @@
 import { ReactiveResource } from "../resource.js";
-import { config } from "../../common/config.js";
-import type { UserConfig } from "../../common/config.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
@@ -19,32 +17,43 @@ export class DebugResource extends ReactiveResource(
         },
     },
     {
-        initial: { tag: "disconnected" },
-        events: ["connected", "disconnect", "close"],
+        initial: { tag: "disconnected" } as ConnectionStateDebuggingInformation,
+        events: ["connected", "disconnect", "close", "connection-error"],
     }
 ) {
     reduce(
-        previous: ConnectionStateDebuggingInformation,
-        eventName: "connected" | "disconnect" | "close",
-        event: undefined
+        eventName: "connected" | "disconnect" | "close" | "connection-error",
+        event: string | undefined
     ): ConnectionStateDebuggingInformation {
         void event;
 
         switch (eventName) {
             case "connected":
                 return { tag: "connected" };
+            case "connection-error":
+                return { tag: "errored", errorReason: event };
             case "disconnect":
-                return { tag: "disconnected" };
             case "close":
                 return { tag: "disconnected" };
         }
     }
 
-    toOutput(state: ConnectionStateDebuggingInformation): string {
-        const result = {
-            connectionStatus: state.tag,
-        };
+    toOutput(): string {
+        let result = "";
 
-        return JSON.stringify(result);
+        switch (this.current.tag) {
+            case "connected":
+                result += "The user is connected to the MongoDB cluster.";
+                break;
+            case "errored":
+                result += `The user is not connected to a MongoDB cluster because of an error.\n`;
+                result += `<error>${this.current.errorReason}</error>`;
+                break;
+            case "disconnected":
+                result += "The user is not connected to a MongoDB cluster.";
+                break;
+        }
+
+        return result;
     }
 }

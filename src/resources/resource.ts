@@ -23,19 +23,21 @@ export function ReactiveResource<V, KE extends readonly (keyof SessionEvents)[]>
 
     abstract class NewReactiveResource {
         private registeredResource?: RegisteredResource;
+        protected readonly session: Session;
+        protected readonly config: UserConfig;
 
         constructor(
             protected readonly server: Server,
-            protected readonly session: Session,
-            protected readonly config: UserConfig,
             protected readonly telemetry: Telemetry,
-            private current?: V
+            protected current: V
         ) {
             this.current = initial;
+            this.session = server.session;
+            this.config = server.userConfig;
 
             for (const event of events) {
                 this.session.on(event, (...args: SessionEvents[typeof event]) => {
-                    this.current = this.reduce(this.current, event, (args as unknown[])[0] as PayloadOf<typeof event>);
+                    this.reduceApply(event, (args as unknown[])[0] as PayloadOf<typeof event>);
                     this.triggerUpdate();
                 });
             }
@@ -53,7 +55,7 @@ export function ReactiveResource<V, KE extends readonly (keyof SessionEvents)[]>
         private resourceCallback: ReadResourceCallback = (uri) => ({
             contents: [
                 {
-                    text: this.toOutput(this.current),
+                    text: this.toOutput(),
                     mimeType: "application/json",
                     uri: uri.href,
                 },
@@ -65,8 +67,12 @@ export function ReactiveResource<V, KE extends readonly (keyof SessionEvents)[]>
             this.server.mcpServer.sendResourceListChanged();
         }
 
-        abstract reduce(previous: V | undefined, eventName: E, ...event: PayloadOf<E>[]): V;
-        abstract toOutput(state: V | undefined): string;
+        reduceApply(eventName: E, ...event: PayloadOf<E>[]): void {
+            this.current = this.reduce(eventName, ...event);
+        }
+
+        protected abstract reduce(eventName: E, ...event: PayloadOf<E>[]): V;
+        abstract toOutput(): string;
     }
 
     return NewReactiveResource;

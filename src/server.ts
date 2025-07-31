@@ -157,7 +157,7 @@ export class Server {
 
     private registerResources() {
         for (const resourceConstructor of Resources) {
-            const resource = new resourceConstructor(this, this.session, this.userConfig, this.telemetry);
+            const resource = new resourceConstructor(this, this.telemetry);
             resource.register();
         }
     }
