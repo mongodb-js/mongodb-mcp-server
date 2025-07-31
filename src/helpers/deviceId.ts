@@ -18,6 +18,9 @@ export const DEVICE_ID_TIMEOUT = 3000;
  * ```
  */
 export async function getDeviceIdForConnection(): Promise<string> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), DEVICE_ID_TIMEOUT);
+
     try {
         const deviceId = await getDeviceId({
             getMachineId: () => nodeMachineId.machineId(true),
@@ -34,10 +37,12 @@ export async function getDeviceIdForConnection(): Promise<string> {
                         break;
                 }
             },
-            abortSignal: abortSignal || controller.signal,
+            abortSignal: controller.signal,
         });
+        clearTimeout(timeoutId);
         return deviceId;
     } catch (error) {
+        clearTimeout(timeoutId);
         logger.debug(LogId.telemetryDeviceIdFailure, "deviceId", `Failed to get device ID: ${String(error)}`);
         return "unknown";
     }
