@@ -3,34 +3,33 @@ import { Session } from "../common/session.js";
 import { UserConfig } from "../common/config.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
-import { ReadResourceCallback, RegisteredResource, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
 type ResourceConfiguration = { name: string; uri: string; config: ResourceMetadata };
 
-export function ReactiveResource<V, KE extends readonly (keyof SessionEvents)[]>(
+export function ReactiveResource<Value, RelevantEvents extends readonly (keyof SessionEvents)[]>(
     { name, uri, config: resourceConfig }: ResourceConfiguration,
     {
         initial,
         events,
     }: {
-        initial: V;
-        events: KE;
+        initial: Value;
+        events: RelevantEvents;
     }
 ) {
-    type E = KE[number];
+    type SomeEvent = RelevantEvents[number];
 
     abstract class NewReactiveResource {
-        private registeredResource?: RegisteredResource;
         protected readonly session: Session;
         protected readonly config: UserConfig;
-        protected current: V;
+        protected current: Value;
 
         constructor(
             protected readonly server: Server,
             protected readonly telemetry: Telemetry,
-            current?: V
+            current?: Value
         ) {
             this.current = current ?? initial;
             this.session = server.session;
@@ -45,12 +44,7 @@ export function ReactiveResource<V, KE extends readonly (keyof SessionEvents)[]>
         }
 
         public register(): void {
-            this.registeredResource = this.server.mcpServer.registerResource(
-                name,
-                uri,
-                resourceConfig,
-                this.resourceCallback
-            );
+            this.server.mcpServer.registerResource(name, uri, resourceConfig, this.resourceCallback);
         }
 
         private resourceCallback: ReadResourceCallback = (uri) => ({
@@ -64,15 +58,14 @@ export function ReactiveResource<V, KE extends readonly (keyof SessionEvents)[]>
         });
 
         private triggerUpdate() {
-            this.registeredResource?.update({});
-            this.server.mcpServer.sendResourceListChanged();
+            void this.server.mcpServer.server.sendResourceUpdated({ uri });
         }
 
-        reduceApply(eventName: E, ...event: PayloadOf<E>[]): void {
+        reduceApply(eventName: SomeEvent, ...event: PayloadOf<SomeEvent>[]): void {
             this.current = this.reduce(eventName, ...event);
         }
 
-        protected abstract reduce(eventName: E, ...event: PayloadOf<E>[]): V;
+        protected abstract reduce(eventName: SomeEvent, ...event: PayloadOf<SomeEvent>[]): Value;
         abstract toOutput(): string;
     }
 
