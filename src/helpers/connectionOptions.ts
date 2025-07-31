@@ -30,17 +30,8 @@ export async function setAppNameParamIfMissing({
         return connectionStringUrl.toString();
     }
 
-    // Get deviceId if not provided
-    let deviceId = components.deviceId;
-    if (!deviceId) {
-        deviceId = await getDeviceIdForConnection();
-    }
-
-    // Get clientName if not provided
-    let clientName = components.clientName;
-    if (!clientName) {
-        clientName = "unknown";
-    }
+    const deviceId = components.deviceId || (await getDeviceIdForConnection());
+    const clientName = components.clientName || "unknown";
 
     // Build the extended appName format: appName--deviceId--clientName
     const extendedAppName = `${components.appName}--${deviceId}--${clientName}`;
