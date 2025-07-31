@@ -60,6 +60,7 @@ export class Telemetry {
     }
 
     public async close(): Promise<void> {
+        this.isBufferingEvents = false;
         await this.emitEvents(this.eventCache.getEvents());
     }
 
