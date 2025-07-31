@@ -38,7 +38,7 @@ export function ReactiveResource<Value, RelevantEvents extends readonly (keyof S
             for (const event of events) {
                 this.session.on(event, (...args: SessionEvents[typeof event]) => {
                     this.reduceApply(event, (args as unknown[])[0] as PayloadOf<typeof event>);
-                    this.triggerUpdate();
+                    void this.triggerUpdate();
                 });
             }
         }
@@ -57,8 +57,9 @@ export function ReactiveResource<Value, RelevantEvents extends readonly (keyof S
             ],
         });
 
-        private triggerUpdate() {
-            void this.server.mcpServer.server.sendResourceUpdated({ uri });
+        private async triggerUpdate() {
+            await this.server.mcpServer.server.sendResourceUpdated({ uri });
+            this.server.mcpServer.sendResourceListChanged();
         }
 
         reduceApply(eventName: SomeEvent, ...event: PayloadOf<SomeEvent>[]): void {
