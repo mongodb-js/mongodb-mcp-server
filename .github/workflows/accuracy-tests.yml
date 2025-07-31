@@ -16,9 +16,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && github.event.label.name == 'accuracy-tests')
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'accuracy-tests')
     env:
       MDB_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_OPEN_AI_API_KEY }}
       MDB_GEMINI_API_KEY: ${{ secrets.ACCURACY_GEMINI_API_KEY }}

@@ -1,11 +1,13 @@
 import createClient, { Client, Middleware } from "openapi-fetch";
-import type { FetchOptions } from "openapi-fetch";
-import { AccessToken, ClientCredentials } from "simple-oauth2";
+import type { ClientOptions, FetchOptions } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import { paths, operations } from "./openapi.js";
 import { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
 import logger, { LogId } from "../logger.js";
+import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import * as oauth from "oauth4webapi";
+import { Request as NodeFetchRequest } from "node-fetch";
 
 const ATLAS_API_VERSION = "2025-03-12";
 
@@ -20,6 +22,11 @@ export interface ApiClientOptions {
     userAgent?: string;
 }
 
+export interface AccessToken {
+    access_token: string;
+    expires_at?: number;
+}
+
 export class ApiClient {
     private options: {
         baseUrl: string;
@@ -29,15 +36,43 @@ export class ApiClient {
             clientSecret: string;
         };
     };
+
+    // createFetch assumes that the first parameter of fetch is always a string
+    // with the URL. However, fetch can also receive a Request object. While
+    // the typechecking complains, createFetch does passthrough the parameters
+    // so it works fine.
+    private static customFetch: typeof fetch = createFetch({
+        useEnvironmentVariableProxies: true,
+    }) as unknown as typeof fetch;
+
     private client: Client<paths>;
-    private oauth2Client?: ClientCredentials;
+
+    private oauth2Client?: oauth.Client;
+    private oauth2Issuer?: oauth.AuthorizationServer;
     private accessToken?: AccessToken;
 
+    public hasCredentials(): boolean {
+        return !!this.oauth2Client && !!this.oauth2Issuer;
+    }
+
+    private isAccessTokenValid(): boolean {
+        return !!(
+            this.accessToken &&
+            this.accessToken.expires_at != undefined &&
+            this.accessToken.expires_at > Date.now()
+        );
+    }
+
     private getAccessToken = async () => {
-        if (this.oauth2Client && (!this.accessToken || this.accessToken.expired())) {
-            this.accessToken = await this.oauth2Client.getToken({});
+        if (!this.hasCredentials()) {
+            return undefined;
         }
-        return this.accessToken?.token.access_token as string | undefined;
+
+        if (!this.isAccessTokenValid()) {
+            this.accessToken = await this.getNewAccessToken();
+        }
+
+        return this.accessToken?.access_token;
     };
 
     private authMiddleware: Middleware = {
@@ -72,30 +107,82 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
+            fetch: ApiClient.customFetch,
+            // NodeFetchRequest has more overloadings than the native Request
+            // so it complains here. However, the interfaces are actually compatible
+            // so it's not a real problem, just a type checking problem.
+            Request: NodeFetchRequest as unknown as ClientOptions["Request"],
         });
+
         if (this.options.credentials?.clientId && this.options.credentials?.clientSecret) {
-            this.oauth2Client = new ClientCredentials({
-                client: {
-                    id: this.options.credentials.clientId,
-                    secret: this.options.credentials.clientSecret,
-                },
-                auth: {
-                    tokenHost: this.options.baseUrl,
-                    tokenPath: "/api/oauth/token",
-                    revokePath: "/api/oauth/revoke",
-                },
-                http: {
-                    headers: {
-                        "User-Agent": this.options.userAgent,
-                    },
-                },
-            });
+            this.oauth2Issuer = {
+                issuer: this.options.baseUrl,
+                token_endpoint: new URL("/api/oauth/token", this.options.baseUrl).toString(),
+                revocation_endpoint: new URL("/api/oauth/revoke", this.options.baseUrl).toString(),
+                token_endpoint_auth_methods_supported: ["client_secret_basic"],
+                grant_types_supported: ["client_credentials"],
+            };
+
+            this.oauth2Client = {
+                client_id: this.options.credentials.clientId,
+                client_secret: this.options.credentials.clientSecret,
+            };
+
             this.client.use(this.authMiddleware);
         }
     }
 
-    public hasCredentials(): boolean {
-        return !!this.oauth2Client;
+    private getOauthClientAuth(): { client: oauth.Client | undefined; clientAuth: oauth.ClientAuth | undefined } {
+        if (this.options.credentials?.clientId && this.options.credentials.clientSecret) {
+            const clientSecret = this.options.credentials.clientSecret;
+            const clientId = this.options.credentials.clientId;
+
+            // We are using our own ClientAuth because ClientSecretBasic URL encodes wrongly
+            // the username and password (for example, encodes `_` to %5F, which is wrong).
+            return {
+                client: { client_id: clientId },
+                clientAuth: (_as, client, _body, headers) => {
+                    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+                    headers.set("Authorization", `Basic ${credentials}`);
+                },
+            };
+        }
+
+        return { client: undefined, clientAuth: undefined };
+    }
+
+    private async getNewAccessToken(): Promise<AccessToken | undefined> {
+        if (!this.hasCredentials() || !this.oauth2Issuer) {
+            return undefined;
+        }
+
+        const { client, clientAuth } = this.getOauthClientAuth();
+        if (client && clientAuth) {
+            try {
+                const response = await oauth.clientCredentialsGrantRequest(
+                    this.oauth2Issuer,
+                    client,
+                    clientAuth,
+                    new URLSearchParams(),
+                    {
+                        [oauth.customFetch]: ApiClient.customFetch,
+                        headers: {
+                            "User-Agent": this.options.userAgent,
+                        },
+                    }
+                );
+
+                const result = await oauth.processClientCredentialsResponse(this.oauth2Issuer, client, response);
+                this.accessToken = {
+                    access_token: result.access_token,
+                    expires_at: Date.now() + (result.expires_in ?? 0) * 1000,
+                };
+            } catch (error: unknown) {
+                const err = error instanceof Error ? error : new Error(String(error));
+                logger.error(LogId.atlasConnectFailure, "apiClient", `Failed to request access token: ${err.message}`);
+            }
+            return this.accessToken;
+        }
     }
 
     public async validateAccessToken(): Promise<void> {
@@ -103,15 +190,16 @@ export class ApiClient {
     }
 
     public async close(): Promise<void> {
-        if (this.accessToken) {
-            try {
-                await this.accessToken.revoke("access_token");
-            } catch (error: unknown) {
-                const err = error instanceof Error ? error : new Error(String(error));
-                logger.error(LogId.atlasApiRevokeFailure, "apiClient", `Failed to revoke access token: ${err.message}`);
+        const { client, clientAuth } = this.getOauthClientAuth();
+        try {
+            if (this.oauth2Issuer && this.accessToken && client && clientAuth) {
+                await oauth.revocationRequest(this.oauth2Issuer, client, clientAuth, this.accessToken.access_token);
             }
-            this.accessToken = undefined;
+        } catch (error: unknown) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error(LogId.atlasApiRevokeFailure, "apiClient", `Failed to revoke access token: ${err.message}`);
         }
+        this.accessToken = undefined;
     }
 
     public async getIpInfo(): Promise<{
