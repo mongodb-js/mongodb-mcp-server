@@ -34,7 +34,7 @@ export async function getDeviceIdForConnection(): Promise<string> {
                         break;
                 }
             },
-            abortSignal: new AbortController().signal,
+            abortSignal: abortSignal || controller.signal,
         });
         return deviceId;
     } catch (error) {
