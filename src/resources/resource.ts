@@ -29,9 +29,10 @@ export function ReactiveResource<V, KE extends readonly (keyof SessionEvents)[]>
 
         constructor(
             protected readonly server: Server,
-            protected readonly telemetry: Telemetry
+            protected readonly telemetry: Telemetry,
+            current?: V
         ) {
-            this.current = initial;
+            this.current = current ?? initial;
             this.session = server.session;
             this.config = server.userConfig;
 
