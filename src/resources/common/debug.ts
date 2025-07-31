@@ -1,0 +1,60 @@
+import { ReactiveResource } from "../resource.js";
+
+type ConnectionStateDebuggingInformation = {
+    readonly tag: "connected" | "connecting" | "disconnected" | "errored";
+    readonly connectionStringAuthType?: "scram" | "ldap" | "kerberos" | "oidc-auth-flow" | "oidc-device-flow" | "x.509";
+    readonly oidcLoginUrl?: string;
+    readonly oidcUserCode?: string;
+    readonly errorReason?: string;
+};
+
+export class DebugResource extends ReactiveResource(
+    {
+        name: "debug-mongodb-connectivity",
+        uri: "debug://mongodb-connectivity",
+        config: {
+            description: "Debugging information for connectivity issues.",
+        },
+    },
+    {
+        initial: { tag: "disconnected" } as ConnectionStateDebuggingInformation,
+        events: ["connect", "disconnect", "close", "connection-error"],
+    }
+) {
+    reduce(
+        eventName: "connect" | "disconnect" | "close" | "connection-error",
+        event: string | undefined
+    ): ConnectionStateDebuggingInformation {
+        void event;
+
+        switch (eventName) {
+            case "connect":
+                return { tag: "connected" };
+            case "connection-error":
+                return { tag: "errored", errorReason: event };
+            case "disconnect":
+            case "close":
+                return { tag: "disconnected" };
+        }
+    }
+
+    toOutput(): string {
+        let result = "";
+
+        switch (this.current.tag) {
+            case "connected":
+                result += "The user is connected to the MongoDB cluster.";
+                break;
+            case "errored":
+                result += `The user is not connected to a MongoDB cluster because of an error.\n`;
+                result += `<error>${this.current.errorReason}</error>`;
+                break;
+            case "connecting":
+            case "disconnected":
+                result += "The user is not connected to a MongoDB cluster.";
+                break;
+        }
+
+        return result;
+    }
+}

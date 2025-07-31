@@ -13,10 +13,14 @@ export interface SessionOptions {
     apiClientSecret?: string;
 }
 
-export class Session extends EventEmitter<{
+export type SessionEvents = {
+    connect: [];
     close: [];
     disconnect: [];
-}> {
+    "connection-error": [string];
+};
+
+export class Session extends EventEmitter<SessionEvents> {
     sessionId?: string;
     serviceProvider?: NodeDriverServiceProvider;
     apiClient: ApiClient;
@@ -107,6 +111,7 @@ export class Session extends EventEmitter<{
             },
         });
 
+<<<<<<< HEAD
         this.serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
             productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
             productName: "MongoDB MCP",
@@ -121,5 +126,31 @@ export class Session extends EventEmitter<{
             proxy: { useEnvironmentVariableProxies: true },
             applyProxyToOIDC: true,
         });
+=======
+        try {
+            this.serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
+                productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
+                productName: "MongoDB MCP",
+                readConcern: {
+                    level: connectOptions.readConcern,
+                },
+                readPreference: connectOptions.readPreference,
+                writeConcern: {
+                    w: connectOptions.writeConcern,
+                },
+                timeoutMS: connectOptions.timeoutMS,
+                proxy: { useEnvironmentVariableProxies: true },
+                applyProxyToOIDC: true,
+            });
+
+            await this.serviceProvider?.runCommand?.("admin", { hello: 1 });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : `${error as string}`;
+            this.emit("connection-error", message);
+            throw error;
+        }
+
+        this.emit("connect");
+>>>>>>> origin/main
     }
 }

@@ -3,6 +3,7 @@ import { Session } from "./common/session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
+import { Resources } from "./resources/resources.js";
 import logger, { LogId, LoggerBase, McpLogger, DiskLogger, ConsoleLogger } from "./common/logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
@@ -155,37 +156,10 @@ export class Server {
     }
 
     private registerResources() {
-        this.mcpServer.resource(
-            "config",
-            "config://config",
-            {
-                description:
-                    "Server configuration, supplied by the user either as environment variables or as startup arguments",
-            },
-            (uri) => {
-                const result = {
-                    telemetry: this.userConfig.telemetry,
-                    logPath: this.userConfig.logPath,
-                    connectionString: this.userConfig.connectionString
-                        ? "set; access to MongoDB tools are currently available to use"
-                        : "not set; before using any MongoDB tool, you need to configure a connection string, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
-                    connectOptions: this.userConfig.connectOptions,
-                    atlas:
-                        this.userConfig.apiClientId && this.userConfig.apiClientSecret
-                            ? "set; MongoDB Atlas tools are currently available to use"
-                            : "not set; MongoDB Atlas tools are currently unavailable, to have access to MongoDB Atlas tools like creating clusters or connecting to clusters make sure to setup credentials, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
-                };
-                return {
-                    contents: [
-                        {
-                            text: JSON.stringify(result),
-                            mimeType: "application/json",
-                            uri: uri.href,
-                        },
-                    ],
-                };
-            }
-        );
+        for (const resourceConstructor of Resources) {
+            const resource = new resourceConstructor(this, this.telemetry);
+            resource.register();
+        }
     }
 
     private async validateConfig(): Promise<void> {
