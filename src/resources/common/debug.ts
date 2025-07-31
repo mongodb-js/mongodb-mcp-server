@@ -49,6 +49,7 @@ export class DebugResource extends ReactiveResource(
                 result += `The user is not connected to a MongoDB cluster because of an error.\n`;
                 result += `<error>${this.current.errorReason}</error>`;
                 break;
+            case "connecting":
             case "disconnected":
                 result += "The user is not connected to a MongoDB cluster.";
                 break;

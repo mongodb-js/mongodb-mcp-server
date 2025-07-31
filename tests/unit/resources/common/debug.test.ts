@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
 import { Server } from "../../../../src/server.js";
@@ -6,11 +6,17 @@ import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { config } from "../../../../src/common/config.js";
 
 describe("debug resource", () => {
-    let session = new Session({} as any);
-    let server = new Server({ session } as any);
-    let telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });
+    // eslint-disable-next-line
+    const session = new Session({} as any);
+    // eslint-disable-next-line
+    const server = new Server({ session } as any);
+    const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });
 
-    let debugResource: DebugResource = new DebugResource(server, telemetry, { tag: "disconnected" });
+    let debugResource: DebugResource = new DebugResource(server, telemetry);
+
+    beforeEach(() => {
+        debugResource = new DebugResource(server, telemetry);
+    });
 
     it("should be connected when a connected event happens", () => {
         debugResource.reduceApply("connected", undefined);

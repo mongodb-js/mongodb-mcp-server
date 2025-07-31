@@ -125,7 +125,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
             await this.serviceProvider?.runCommand?.("admin", { hello: 1 });
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : `${error}`;
+            const message = error instanceof Error ? error.message : `${error as string}`;
             this.emit("connection-error", message);
             throw error;
         }
