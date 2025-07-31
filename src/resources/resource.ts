@@ -64,7 +64,7 @@ export function ReactiveResource<Value, RelevantEvents extends readonly (keyof S
                 this.server.mcpServer.sendResourceListChanged();
             } catch (error: unknown) {
                 logger.warning(
-                    LogId.serverClosed,
+                    LogId.resourceUpdateFailure,
                     "Could not send the latest resources to the client.",
                     error as string
                 );
