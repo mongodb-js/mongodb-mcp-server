@@ -14,7 +14,7 @@ export interface SessionOptions {
 }
 
 export type SessionEvents = {
-    connected: [];
+    connect: [];
     close: [];
     disconnect: [];
     "connection-error": [string];
@@ -130,6 +130,6 @@ export class Session extends EventEmitter<SessionEvents> {
             throw error;
         }
 
-        this.emit("connected");
+        this.emit("connect");
     }
 }

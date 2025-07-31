@@ -18,17 +18,17 @@ export class DebugResource extends ReactiveResource(
     },
     {
         initial: { tag: "disconnected" } as ConnectionStateDebuggingInformation,
-        events: ["connected", "disconnect", "close", "connection-error"],
+        events: ["connect", "disconnect", "close", "connection-error"],
     }
 ) {
     reduce(
-        eventName: "connected" | "disconnect" | "close" | "connection-error",
+        eventName: "connect" | "disconnect" | "close" | "connection-error",
         event: string | undefined
     ): ConnectionStateDebuggingInformation {
         void event;
 
         switch (eventName) {
-            case "connected":
+            case "connect":
                 return { tag: "connected" };
             case "connection-error":
                 return { tag: "errored", errorReason: event };

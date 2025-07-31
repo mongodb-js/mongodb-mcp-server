@@ -19,7 +19,7 @@ describe("debug resource", () => {
     });
 
     it("should be connected when a connected event happens", () => {
-        debugResource.reduceApply("connected", undefined);
+        debugResource.reduceApply("connect", undefined);
         const output = debugResource.toOutput();
 
         expect(output).toContain(`The user is connected to the MongoDB cluster.`);
