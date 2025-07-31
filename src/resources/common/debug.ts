@@ -10,8 +10,8 @@ type ConnectionStateDebuggingInformation = {
 
 export class DebugResource extends ReactiveResource(
     {
-        name: "debug",
-        uri: "config://debug",
+        name: "debug-mongodb-connectivity",
+        uri: "debug://mongodb-connectivity",
         config: {
             description: "Debugging information for connectivity issues.",
         },
