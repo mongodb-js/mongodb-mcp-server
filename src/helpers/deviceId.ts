@@ -18,6 +18,8 @@ export const DEVICE_ID_TIMEOUT = 3000;
  * ```
  */
 export async function getDeviceIdForConnection(): Promise<string> {
+    const controller = new AbortController();
+
     try {
         const deviceId = await getDeviceId({
             getMachineId: () => nodeMachineId.machineId(true),
@@ -34,7 +36,7 @@ export async function getDeviceIdForConnection(): Promise<string> {
                         break;
                 }
             },
-            abortSignal: new AbortController().signal,
+            abortSignal: controller.signal,
         });
         return deviceId;
     } catch (error) {
