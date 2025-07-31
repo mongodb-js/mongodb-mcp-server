@@ -122,6 +122,8 @@ export class Session extends EventEmitter<SessionEvents> {
                 proxy: { useEnvironmentVariableProxies: true },
                 applyProxyToOIDC: true,
             });
+
+            await this.serviceProvider?.runCommand?.("admin", { hello: 1 });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : `${error}`;
             this.emit("connection-error", message);
