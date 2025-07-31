@@ -111,22 +111,6 @@ export class Session extends EventEmitter<SessionEvents> {
             },
         });
 
-<<<<<<< HEAD
-        this.serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
-            productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
-            productName: "MongoDB MCP",
-            readConcern: {
-                level: connectOptions.readConcern,
-            },
-            readPreference: connectOptions.readPreference,
-            writeConcern: {
-                w: connectOptions.writeConcern,
-            },
-            timeoutMS: connectOptions.timeoutMS,
-            proxy: { useEnvironmentVariableProxies: true },
-            applyProxyToOIDC: true,
-        });
-=======
         try {
             this.serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
@@ -151,6 +135,5 @@ export class Session extends EventEmitter<SessionEvents> {
         }
 
         this.emit("connect");
->>>>>>> origin/main
     }
 }
