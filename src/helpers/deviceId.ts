@@ -5,20 +5,16 @@ import logger, { LogId } from "../common/logger.js";
 export const DEVICE_ID_TIMEOUT = 3000;
 
 /**
- * Sets the appName parameter with the extended format: appName--deviceId--clientName
- * Only sets the appName if it's not already present in the connection string
+ * Retrieves the device ID for telemetry purposes.
+ * The device ID is generated using the machine ID and additional logic to handle errors.
  *
- * @param connectionString - The connection string to modify
- * @param components - The components to build the appName from
- * @returns Promise that resolves to the modified connection string
+ * @returns Promise that resolves to the device ID string
+ * If an error occurs during retrieval, the function returns "unknown".
  *
  * @example
  * ```typescript
- * const result = await setExtendedAppNameParam({
- *   connectionString: "mongodb://localhost:27017",
- *   components: { appName: "MyApp", clientName: "Cursor" }
- * });
- * // Result: "mongodb://localhost:27017/?appName=MyApp--deviceId--Cursor"
+ * const deviceId = await getDeviceIdForConnection();
+ * console.log(deviceId); // Outputs the device ID or "unknown" in case of failure
  * ```
  */
 export async function getDeviceIdForConnection(): Promise<string> {
