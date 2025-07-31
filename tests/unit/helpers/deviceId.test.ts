@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/unbound-method */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { getDeviceIdForConnection } from "../../../src/helpers/deviceId.js";
+import { getDeviceIdForConnection, DEVICE_ID_TIMEOUT } from "../../../src/helpers/deviceId.js";
 import { getDeviceId } from "@mongodb-js/device-id";
 import nodeMachineId from "node-machine-id";
 import logger, { LogId } from "../../../src/common/logger.js";
@@ -103,6 +103,31 @@ describe("Device ID Helper", () => {
                 "deviceId",
                 "Device ID retrieval timed out"
             );
+        });
+
+        it("should handle timeout with timer advancement", async () => {
+            vi.useFakeTimers();
+
+            const mockMachineId = "machine-id";
+            MockNodeMachineId.machineId.mockResolvedValue(mockMachineId);
+            MockGetDeviceId.mockImplementation((options) => {
+                vi.advanceTimersByTime(DEVICE_ID_TIMEOUT / 2);
+                if (options.onError) {
+                    options.onError("timeout", new Error("Timeout"));
+                }
+                return Promise.resolve("device-id");
+            });
+
+            const result = await getDeviceIdForConnection();
+
+            expect(result).toBe("device-id");
+            expect(MockLogger.debug).toHaveBeenCalledWith(
+                LogId.telemetryDeviceIdTimeout,
+                "deviceId",
+                "Device ID retrieval timed out"
+            );
+
+            vi.useRealTimers();
         });
 
         it("should handle abort error callback without logging", async () => {
