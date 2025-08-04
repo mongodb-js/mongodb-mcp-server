@@ -218,7 +218,7 @@ export class McpLogger extends LoggerBase {
     }
 }
 
-class CompositeLogger extends LoggerBase {
+export class CompositeLogger extends LoggerBase {
     // This is not a real logger type - it should not be used anyway.
     protected type: LoggerType = "composite" as unknown as LoggerType;
 

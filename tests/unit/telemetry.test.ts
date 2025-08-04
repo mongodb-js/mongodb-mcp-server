@@ -250,11 +250,11 @@ describe("Telemetry", () => {
                     expect(telemetry["isBufferingEvents"]).toBe(false);
                     expect(telemetry.getCommonProperties().device_id).toBe("unknown");
 
-                    expect(loggerSpy).toHaveBeenCalledWith(
-                        LogId.telemetryDeviceIdFailure,
-                        "telemetry",
-                        "Error: Failed to get device ID"
-                    );
+                    expect(loggerSpy).toHaveBeenCalledWith({
+                        id: LogId.telemetryDeviceIdFailure,
+                        context: "telemetry",
+                        message: "Error: Failed to get device ID",
+                    });
                 });
 
                 it("should timeout if machine ID resolution takes too long", async () => {
@@ -277,11 +277,12 @@ describe("Telemetry", () => {
 
                     expect(telemetry.getCommonProperties().device_id).toBe("unknown");
                     expect(telemetry["isBufferingEvents"]).toBe(false);
-                    expect(loggerSpy).toHaveBeenCalledWith(
-                        LogId.telemetryDeviceIdTimeout,
-                        "telemetry",
-                        "Device ID retrieval timed out"
-                    );
+                    expect(loggerSpy).toHaveBeenCalledWith({
+                        id: LogId.telemetryDeviceIdTimeout,
+                        context: "telemetry",
+                        message: "Device ID retrieval timed out",
+                        noRedaction: true,
+                    });
                 });
             });
         });
