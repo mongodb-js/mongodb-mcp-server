@@ -5,6 +5,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import logger, { LogId } from "../../common/logger.js";
 import { Server } from "../../server.js";
+import { AnyConnectionState } from "../../common/connectionManager.js";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),
@@ -16,7 +17,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     public category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
-        if (!this.session.serviceProvider) {
+        if (!this.session.isConnectedToMongoDB()) {
             if (this.session.connectedAtlasCluster) {
                 throw new MongoDBError(
                     ErrorCodes.NotConnectedToMongoDB,
@@ -38,7 +39,7 @@ export abstract class MongoDBToolBase extends ToolBase {
             }
         }
 
-        if (!this.session.serviceProvider) {
+        if (!this.session.isConnectedToMongoDB()) {
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
         }
 
@@ -116,8 +117,8 @@ export abstract class MongoDBToolBase extends ToolBase {
         return super.handleError(error, args);
     }
 
-    protected connectToMongoDB(connectionString: string): Promise<void> {
-        return this.session.connectToMongoDB(connectionString, this.config.connectOptions);
+    protected connectToMongoDB(connectionString: string): Promise<AnyConnectionState> {
+        return this.session.connectToMongoDB({ connectionString, ...this.config.connectOptions });
     }
 
     protected resolveTelemetryMetadata(

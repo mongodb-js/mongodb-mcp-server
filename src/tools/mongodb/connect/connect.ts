@@ -7,6 +7,7 @@ import { UserConfig } from "../../../common/config.js";
 import { Telemetry } from "../../../telemetry/telemetry.js";
 import { Session } from "../../../common/session.js";
 import { Server } from "../../../server.js";
+import logger from "../../../common/logger.js";
 
 const disconnectedSchema = z
     .object({
@@ -46,6 +47,10 @@ export class ConnectTool extends MongoDBToolBase {
 
     constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
         super(session, config, telemetry);
+        session.on("connect", () => {
+            this.updateMetadata();
+        });
+
         session.on("disconnect", () => {
             this.updateMetadata();
         });
@@ -67,6 +72,7 @@ export class ConnectTool extends MongoDBToolBase {
 
         await this.connectToMongoDB(connectionString);
         this.updateMetadata();
+
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
         };
@@ -82,7 +88,7 @@ export class ConnectTool extends MongoDBToolBase {
     }
 
     private updateMetadata(): void {
-        if (this.config.connectionString || this.session.serviceProvider) {
+        if (this.session.isConnectedToMongoDB()) {
             this.update?.({
                 name: connectedName,
                 description: connectedDescription,

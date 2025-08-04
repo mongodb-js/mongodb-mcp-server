@@ -1,8 +1,16 @@
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, beforeEach, it, beforeAll, afterAll } from "vitest";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 
-describe("StdioRunner", () => {
+describeWithMongoDB("StdioRunner", (integration) => {
+    beforeEach(() => {
+        integration.mcpServer().userConfig.connectionString = integration.connectionString();
+        integration.mcpServer().session.connectionManager.changeState("connection-succeeded", {
+            tag: "connected",
+        });
+    });
+
     describe("client connects successfully", () => {
         let client: Client;
         let transport: StdioClientTransport;
@@ -12,6 +20,7 @@ describe("StdioRunner", () => {
                 args: ["dist/index.js"],
                 env: {
                     MDB_MCP_TRANSPORT: "stdio",
+                    MDB_MCP_CONNECTION_STRING: integration.connectionString(),
                 },
             });
             client = new Client({

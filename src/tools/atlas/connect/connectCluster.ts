@@ -27,7 +27,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName: string
     ): Promise<"connected" | "disconnected" | "connecting" | "connected-to-other-cluster" | "unknown"> {
         if (!this.session.connectedAtlasCluster) {
-            if (this.session.serviceProvider) {
+            if (this.session.isConnectedToMongoDB()) {
                 return "connected-to-other-cluster";
             }
             return "disconnected";
@@ -40,7 +40,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             return "connected-to-other-cluster";
         }
 
-        if (!this.session.serviceProvider) {
+        if (!this.session.isConnectedToMongoDB()) {
             return "connecting";
         }
 
@@ -145,7 +145,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             try {
                 lastError = undefined;
 
-                await this.session.connectToMongoDB(connectionString, this.config.connectOptions);
+                await this.session.connectToMongoDB({ connectionString, ...this.config.connectOptions });
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
