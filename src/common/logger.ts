@@ -60,20 +60,18 @@ interface LogPayload {
 export type LoggerType = "console" | "disk" | "mcp";
 
 export abstract class LoggerBase {
-    abstract log(level: LogLevel, payload: Omit<LogPayload, "noRedaction">): void;
-
-    abstract type: LoggerType | null;
-
-    private logCore(level: LogLevel, payload: LogPayload) {
-        // Default to not redacting mcp logs, redact everything else
+    public log(level: LogLevel, payload: LogPayload): void {
         const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : "mcp";
 
-        this.log(level, {
-            id: payload.id,
-            context: payload.context,
+        this.logCore(level, {
+            ...payload,
             message: this.redactIfNecessary(payload.message, noRedaction),
         });
     }
+
+    protected abstract type: LoggerType;
+
+    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
         if (typeof noRedaction === "boolean" && noRedaction) {
@@ -135,9 +133,9 @@ export abstract class LoggerBase {
 }
 
 export class ConsoleLogger extends LoggerBase {
-    type: LoggerType = "console";
+    protected type: LoggerType = "console";
 
-    log(level: LogLevel, payload: LogPayload): void {
+    protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
         console.error(`[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid})`);
     }
@@ -148,7 +146,7 @@ export class DiskLogger extends LoggerBase {
         super();
     }
 
-    type: LoggerType = "disk";
+    protected type: LoggerType = "disk";
 
     static async fromPath(logPath: string): Promise<DiskLogger> {
         await fs.mkdir(logPath, { recursive: true });
@@ -169,7 +167,7 @@ export class DiskLogger extends LoggerBase {
         return new DiskLogger(logWriter);
     }
 
-    log(level: LogLevel, payload: LogPayload): void {
+    protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
         const mongoDBLevel = this.mapToMongoDBLogLevel(level);
 
@@ -204,7 +202,7 @@ export class McpLogger extends LoggerBase {
 
     type: LoggerType = "mcp";
 
-    log(level: LogLevel, payload: LogPayload): void {
+    protected logCore(level: LogLevel, payload: LogPayload): void {
         // Only log if the server is connected
         if (!this.server?.isConnected()) {
             return;
@@ -218,7 +216,8 @@ export class McpLogger extends LoggerBase {
 }
 
 class CompositeLogger extends LoggerBase {
-    type: LoggerType | null = null;
+    // This is not a real logger type - it should not be used anyway.
+    protected type: LoggerType = "composite" as unknown as LoggerType;
 
     private loggers: LoggerBase[] = [];
 
@@ -235,10 +234,15 @@ class CompositeLogger extends LoggerBase {
         this.loggers = [...loggers];
     }
 
-    log(level: LogLevel, payload: LogPayload): void {
+    public log(level: LogLevel, payload: LogPayload): void {
+        // Override the public method to avoid the base logger redacting the message payload
         for (const logger of this.loggers) {
             logger.log(level, payload);
         }
+    }
+
+    protected logCore(): void {
+        throw new Error("logCore should never be invoked on CompositeLogger");
     }
 }
 
