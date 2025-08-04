@@ -60,8 +60,11 @@ interface LogPayload {
 export type LoggerType = "console" | "disk" | "mcp";
 
 export abstract class LoggerBase {
+    private defaultUnredactedLogger: LoggerType = "mcp";
+
     public log(level: LogLevel, payload: LogPayload): void {
-        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : "mcp";
+        // If no explicit value is supplied for unredacted loggers, default to "mcp"
+        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
 
         this.logCore(level, {
             ...payload,
