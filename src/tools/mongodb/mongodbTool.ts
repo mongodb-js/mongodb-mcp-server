@@ -28,11 +28,11 @@ export abstract class MongoDBToolBase extends ToolBase {
                 try {
                     await this.connectToMongoDB(this.config.connectionString);
                 } catch (error) {
-                    logger.error(
-                        LogId.mongodbConnectFailure,
-                        "mongodbTool",
-                        `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`
-                    );
+                    logger.error({
+                        id: LogId.mongodbConnectFailure,
+                        context: "mongodbTool",
+                        message: `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`,
+                    });
                     throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
                 }
             }

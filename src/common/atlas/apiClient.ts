@@ -179,7 +179,11 @@ export class ApiClient {
                 };
             } catch (error: unknown) {
                 const err = error instanceof Error ? error : new Error(String(error));
-                logger.error(LogId.atlasConnectFailure, "apiClient", `Failed to request access token: ${err.message}`);
+                logger.error({
+                    id: LogId.atlasConnectFailure,
+                    context: "apiClient",
+                    message: `Failed to request access token: ${err.message}`,
+                });
             }
             return this.accessToken;
         }
@@ -197,7 +201,11 @@ export class ApiClient {
             }
         } catch (error: unknown) {
             const err = error instanceof Error ? error : new Error(String(error));
-            logger.error(LogId.atlasApiRevokeFailure, "apiClient", `Failed to revoke access token: ${err.message}`);
+            logger.error({
+                id: LogId.atlasApiRevokeFailure,
+                context: "apiClient",
+                message: `Failed to revoke access token: ${err.message}`,
+            });
         }
         this.accessToken = undefined;
     }

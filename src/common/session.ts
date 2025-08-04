@@ -67,7 +67,11 @@ export class Session extends EventEmitter<SessionEvents> {
                 await this.serviceProvider.close(true);
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
-                logger.error(LogId.mongodbDisconnectFailure, "Error closing service provider:", error.message);
+                logger.error({
+                    id: LogId.mongodbDisconnectFailure,
+                    context: "session",
+                    message: `Error closing service provider: ${error.message}`,
+                });
             }
             this.serviceProvider = undefined;
         }
@@ -84,11 +88,11 @@ export class Session extends EventEmitter<SessionEvents> {
                 })
                 .catch((err: unknown) => {
                     const error = err instanceof Error ? err : new Error(String(err));
-                    logger.error(
-                        LogId.atlasDeleteDatabaseUserFailure,
-                        "atlas-connect-cluster",
-                        `Error deleting previous database user: ${error.message}`
-                    );
+                    logger.error({
+                        id: LogId.atlasDeleteDatabaseUserFailure,
+                        context: "session",
+                        message: `Error deleting previous database user: ${error.message}`,
+                    });
                 });
             this.connectedAtlasCluster = undefined;
         }

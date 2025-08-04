@@ -19,11 +19,11 @@ function withErrorHandling(
 ) {
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
         fn(req, res, next).catch((error) => {
-            logger.error(
-                LogId.streamableHttpTransportRequestFailure,
-                "streamableHttpTransport",
-                `Error handling request: ${error instanceof Error ? error.message : String(error)}`
-            );
+            logger.error({
+                id: LogId.streamableHttpTransportRequestFailure,
+                context: "streamableHttpTransport",
+                message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+            });
             res.status(400).json({
                 jsonrpc: "2.0",
                 error: {
@@ -116,22 +116,22 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                         try {
                             await this.sessionStore.closeSession(sessionId, false);
                         } catch (error) {
-                            logger.error(
-                                LogId.streamableHttpTransportSessionCloseFailure,
-                                "streamableHttpTransport",
-                                `Error closing session: ${error instanceof Error ? error.message : String(error)}`
-                            );
+                            logger.error({
+                                id: LogId.streamableHttpTransportSessionCloseFailure,
+                                context: "streamableHttpTransport",
+                                message: `Error closing session: ${error instanceof Error ? error.message : String(error)}`,
+                            });
                         }
                     },
                 });
 
                 transport.onclose = () => {
                     server.close().catch((error) => {
-                        logger.error(
-                            LogId.streamableHttpTransportCloseFailure,
-                            "streamableHttpTransport",
-                            `Error closing server: ${error instanceof Error ? error.message : String(error)}`
-                        );
+                        logger.error({
+                            id: LogId.streamableHttpTransportCloseFailure,
+                            context: "streamableHttpTransport",
+                            message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
+                        });
                     });
                 };
 
@@ -154,11 +154,12 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             });
         });
 
-        logger.info(
-            LogId.streamableHttpTransportStarted,
-            "streamableHttpTransport",
-            `Server started on http://${this.userConfig.httpHost}:${this.userConfig.httpPort}`
-        );
+        logger.info({
+            id: LogId.streamableHttpTransportStarted,
+            context: "streamableHttpTransport",
+            message: `Server started on http://${this.userConfig.httpHost}:${this.userConfig.httpPort}`,
+            noRedaction: true,
+        });
     }
 
     async close(): Promise<void> {

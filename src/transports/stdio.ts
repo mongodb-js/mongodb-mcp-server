@@ -65,7 +65,11 @@ export class StdioRunner extends TransportRunnerBase {
 
             await this.server.connect(transport);
         } catch (error: unknown) {
-            logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
+            logger.emergency({
+                id: LogId.serverStartFailure,
+                context: "server",
+                message: `Fatal error running server: ${error as string}`,
+            });
             process.exit(1);
         }
     }

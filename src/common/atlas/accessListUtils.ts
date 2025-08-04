@@ -30,25 +30,25 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
             params: { path: { groupId: projectId } },
             body: [entry],
         });
-        logger.debug(
-            LogId.atlasIpAccessListAdded,
-            "accessListUtils",
-            `IP access list created: ${JSON.stringify(entry)}`
-        );
+        logger.debug({
+            id: LogId.atlasIpAccessListAdded,
+            context: "accessListUtils",
+            message: `IP access list created: ${JSON.stringify(entry)}`,
+        });
     } catch (err) {
         if (err instanceof ApiClientError && err.response?.status === 409) {
             // 409 Conflict: entry already exists, log info
-            logger.debug(
-                LogId.atlasIpAccessListAdded,
-                "accessListUtils",
-                `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`
-            );
+            logger.debug({
+                id: LogId.atlasIpAccessListAdded,
+                context: "accessListUtils",
+                message: `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`,
+            });
             return;
         }
-        logger.warning(
-            LogId.atlasIpAccessListAddFailure,
-            "accessListUtils",
-            `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`
-        );
+        logger.warning({
+            id: LogId.atlasIpAccessListAddFailure,
+            context: "accessListUtils",
+            message: `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`,
+        });
     }
 }

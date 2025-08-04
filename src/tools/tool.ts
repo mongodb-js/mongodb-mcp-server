@@ -73,13 +73,22 @@ export abstract class ToolBase {
         const callback: ToolCallback<typeof this.argsShape> = async (...args) => {
             const startTime = Date.now();
             try {
-                logger.debug(LogId.toolExecute, "tool", `Executing tool ${this.name}`);
+                logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: `Executing tool ${this.name}`,
+                    noRedaction: true,
+                });
 
                 const result = await this.execute(...args);
                 await this.emitToolEvent(startTime, result, ...args).catch(() => {});
                 return result;
             } catch (error: unknown) {
-                logger.error(LogId.toolExecuteFailure, "tool", `Error executing ${this.name}: ${error as string}`);
+                logger.error({
+                    id: LogId.toolExecuteFailure,
+                    context: "tool",
+                    message: `Error executing ${this.name}: ${error as string}`,
+                });
                 const toolResult = await this.handleError(error, args[0] as ToolArgs<typeof this.argsShape>);
                 await this.emitToolEvent(startTime, toolResult, ...args).catch(() => {});
                 return toolResult;
@@ -98,7 +107,12 @@ export abstract class ToolBase {
             const existingTool = tools[this.name];
 
             if (!existingTool) {
-                logger.warning(LogId.toolUpdateFailure, "tool", `Tool ${this.name} not found in update`);
+                logger.warning({
+                    id: LogId.toolUpdateFailure,
+                    context: "tool",
+                    message: `Tool ${this.name} not found in update`,
+                    noRedaction: true,
+                });
                 return;
             }
 
@@ -145,11 +159,12 @@ export abstract class ToolBase {
         }
 
         if (errorClarification) {
-            logger.debug(
-                LogId.toolDisabled,
-                "tool",
-                `Prevented registration of ${this.name} because ${errorClarification} is disabled in the config`
-            );
+            logger.debug({
+                id: LogId.toolDisabled,
+                context: "tool",
+                message: `Prevented registration of ${this.name} because ${errorClarification} is disabled in the config`,
+                noRedaction: true,
+            });
 
             return false;
         }

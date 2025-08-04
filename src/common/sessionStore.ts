@@ -47,18 +47,18 @@ export class SessionStore {
     private sendNotification(sessionId: string): void {
         const session = this.sessions[sessionId];
         if (!session) {
-            logger.warning(
-                LogId.streamableHttpTransportSessionCloseNotificationFailure,
-                "sessionStore",
-                `session ${sessionId} not found, no notification delivered`
-            );
+            logger.warning({
+                id: LogId.streamableHttpTransportSessionCloseNotificationFailure,
+                context: "sessionStore",
+                message: `session ${sessionId} not found, no notification delivered`,
+            });
             return;
         }
-        session.logger.info(
-            LogId.streamableHttpTransportSessionCloseNotification,
-            "sessionStore",
-            "Session is about to be closed due to inactivity"
-        );
+        session.logger.info({
+            id: LogId.streamableHttpTransportSessionCloseNotification,
+            context: "sessionStore",
+            message: "Session is about to be closed due to inactivity",
+        });
     }
 
     setSession(sessionId: string, transport: StreamableHTTPServerTransport, mcpServer: McpServer): void {
@@ -68,11 +68,11 @@ export class SessionStore {
         }
         const abortTimeout = setManagedTimeout(async () => {
             if (this.sessions[sessionId]) {
-                this.sessions[sessionId].logger.info(
-                    LogId.streamableHttpTransportSessionCloseNotification,
-                    "sessionStore",
-                    "Session closed due to inactivity"
-                );
+                this.sessions[sessionId].logger.info({
+                    id: LogId.streamableHttpTransportSessionCloseNotification,
+                    context: "sessionStore",
+                    message: "Session closed due to inactivity",
+                });
 
                 await this.closeSession(sessionId);
             }
@@ -95,11 +95,11 @@ export class SessionStore {
             try {
                 await session.transport.close();
             } catch (error) {
-                logger.error(
-                    LogId.streamableHttpTransportSessionCloseFailure,
-                    "streamableHttpTransport",
-                    `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`
-                );
+                logger.error({
+                    id: LogId.streamableHttpTransportSessionCloseFailure,
+                    context: "streamableHttpTransport",
+                    message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                });
             }
         }
         delete this.sessions[sessionId];

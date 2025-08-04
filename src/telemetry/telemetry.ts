@@ -63,10 +63,19 @@ export class Telemetry {
                 onError: (reason, error) => {
                     switch (reason) {
                         case "resolutionError":
-                            logger.debug(LogId.telemetryDeviceIdFailure, "telemetry", String(error));
+                            logger.debug({
+                                id: LogId.telemetryDeviceIdFailure,
+                                context: "telemetry",
+                                message: String(error),
+                            });
                             break;
                         case "timeout":
-                            logger.debug(LogId.telemetryDeviceIdTimeout, "telemetry", "Device ID retrieval timed out");
+                            logger.debug({
+                                id: LogId.telemetryDeviceIdTimeout,
+                                context: "telemetry",
+                                message: "Device ID retrieval timed out",
+                                noRedaction: true,
+                            });
                             break;
                         case "abort":
                             // No need to log in the case of aborts
@@ -99,13 +108,23 @@ export class Telemetry {
     public async emitEvents(events: BaseEvent[]): Promise<void> {
         try {
             if (!this.isTelemetryEnabled()) {
-                logger.info(LogId.telemetryEmitFailure, "telemetry", `Telemetry is disabled.`);
+                logger.info({
+                    id: LogId.telemetryEmitFailure,
+                    context: "telemetry",
+                    message: "Telemetry is disabled.",
+                    noRedaction: true,
+                });
                 return;
             }
 
             await this.emit(events);
         } catch {
-            logger.debug(LogId.telemetryEmitFailure, "telemetry", `Error emitting telemetry events.`);
+            logger.debug({
+                id: LogId.telemetryEmitFailure,
+                context: "telemetry",
+                message: "Error emitting telemetry events.",
+                noRedaction: true,
+            });
         }
     }
 
@@ -155,28 +174,28 @@ export class Telemetry {
         const cachedEvents = this.eventCache.getEvents();
         const allEvents = [...cachedEvents, ...events];
 
-        logger.debug(
-            LogId.telemetryEmitStart,
-            "telemetry",
-            `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`
-        );
+        logger.debug({
+            id: LogId.telemetryEmitStart,
+            context: "telemetry",
+            message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
+        });
 
         const result = await this.sendEvents(this.session.apiClient, allEvents);
         if (result.success) {
             this.eventCache.clearEvents();
-            logger.debug(
-                LogId.telemetryEmitSuccess,
-                "telemetry",
-                `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`
-            );
+            logger.debug({
+                id: LogId.telemetryEmitSuccess,
+                context: "telemetry",
+                message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`,
+            });
             return;
         }
 
-        logger.debug(
-            LogId.telemetryEmitFailure,
-            "telemetry",
-            `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`
-        );
+        logger.debug({
+            id: LogId.telemetryEmitFailure,
+            context: "telemetry",
+            message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
+        });
         this.eventCache.appendEvents(events);
     }
 

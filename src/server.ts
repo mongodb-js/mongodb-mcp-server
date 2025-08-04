@@ -84,11 +84,11 @@ export class Server {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
             this.session.sessionId = new ObjectId().toString();
 
-            logger.info(
-                LogId.serverInitialized,
-                "server",
-                `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`
-            );
+            logger.info({
+                id: LogId.serverInitialized,
+                context: "server",
+                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`,
+            });
 
             this.emitServerEvent("start", Date.now() - this.startTime);
         };

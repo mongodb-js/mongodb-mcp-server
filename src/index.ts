@@ -9,16 +9,28 @@ async function main() {
     const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
 
     const shutdown = () => {
-        logger.info(LogId.serverCloseRequested, "server", `Server close requested`);
+        logger.info({
+            id: LogId.serverCloseRequested,
+            context: "server",
+            message: `Server close requested`,
+        });
 
         transportRunner
             .close()
             .then(() => {
-                logger.info(LogId.serverClosed, "server", `Server closed`);
+                logger.info({
+                    id: LogId.serverClosed,
+                    context: "server",
+                    message: `Server closed`,
+                });
                 process.exit(0);
             })
             .catch((error: unknown) => {
-                logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
+                logger.error({
+                    id: LogId.serverCloseFailure,
+                    context: "server",
+                    message: `Error closing server: ${error as string}`,
+                });
                 process.exit(1);
             });
     };
@@ -31,18 +43,34 @@ async function main() {
     try {
         await transportRunner.start();
     } catch (error: unknown) {
-        logger.info(LogId.serverCloseRequested, "server", "Closing server");
+        logger.info({
+            id: LogId.serverCloseRequested,
+            context: "server",
+            message: "Closing server",
+        });
         try {
             await transportRunner.close();
-            logger.info(LogId.serverClosed, "server", "Server closed");
+            logger.info({
+                id: LogId.serverClosed,
+                context: "server",
+                message: "Server closed",
+            });
         } catch (error: unknown) {
-            logger.error(LogId.serverCloseFailure, "server", `Error closing server: ${error as string}`);
+            logger.error({
+                id: LogId.serverCloseFailure,
+                context: "server",
+                message: `Error closing server: ${error as string}`,
+            });
         }
         throw error;
     }
 }
 
 main().catch((error: unknown) => {
-    logger.emergency(LogId.serverStartFailure, "server", `Fatal error running server: ${error as string}`);
+    logger.emergency({
+        id: LogId.serverStartFailure,
+        context: "server",
+        message: `Fatal error running server: ${error as string}`,
+    });
     process.exit(1);
 });

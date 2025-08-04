@@ -50,44 +50,95 @@ export const LogId = {
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
 } as const;
 
+interface LogPayload {
+    id: MongoLogId;
+    context: string;
+    message: string;
+    noRedaction?: boolean | LoggerType | LoggerType[];
+}
+
+export type LoggerType = "console" | "disk" | "mcp";
+
 export abstract class LoggerBase {
-    abstract log(level: LogLevel, id: MongoLogId, context: string, message: string): void;
+    abstract log(level: LogLevel, payload: Omit<LogPayload, "noRedaction">): void;
 
-    info(id: MongoLogId, context: string, message: string): void {
-        this.log("info", id, context, message);
+    abstract type: LoggerType | null;
+
+    private logCore(level: LogLevel, payload: LogPayload) {
+        // Default to not redacting mcp logs, redact everything else
+        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : "mcp";
+
+        this.log(level, {
+            id: payload.id,
+            context: payload.context,
+            message: this.redactIfNecessary(payload.message, noRedaction),
+        });
     }
 
-    error(id: MongoLogId, context: string, message: string): void {
-        this.log("error", id, context, message);
-    }
-    debug(id: MongoLogId, context: string, message: string): void {
-        this.log("debug", id, context, message);
+    private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
+        if (typeof noRedaction === "boolean" && noRedaction) {
+            // If the consumer has supplied noRedaction: true, we don't redact the log message
+            // regardless of the logger type
+            return message;
+        }
+
+        if (typeof noRedaction === "string" && noRedaction === this.type) {
+            // If the consumer has supplied noRedaction: logger-type, we skip redacting if
+            // our logger type is the same as what the consumer requested
+            return message;
+        }
+
+        if (
+            typeof noRedaction === "object" &&
+            Array.isArray(noRedaction) &&
+            this.type !== null &&
+            noRedaction.indexOf(this.type) !== -1
+        ) {
+            // If the consumer has supplied noRedaction: array, we skip redacting if our logger
+            // type is included in that array
+            return message;
+        }
+
+        return redact(message);
     }
 
-    notice(id: MongoLogId, context: string, message: string): void {
-        this.log("notice", id, context, message);
+    info(payload: LogPayload): void {
+        this.log("info", payload);
     }
 
-    warning(id: MongoLogId, context: string, message: string): void {
-        this.log("warning", id, context, message);
+    error(payload: LogPayload): void {
+        this.log("error", payload);
+    }
+    debug(payload: LogPayload): void {
+        this.log("debug", payload);
     }
 
-    critical(id: MongoLogId, context: string, message: string): void {
-        this.log("critical", id, context, message);
+    notice(payload: LogPayload): void {
+        this.log("notice", payload);
     }
 
-    alert(id: MongoLogId, context: string, message: string): void {
-        this.log("alert", id, context, message);
+    warning(payload: LogPayload): void {
+        this.log("warning", payload);
     }
 
-    emergency(id: MongoLogId, context: string, message: string): void {
-        this.log("emergency", id, context, message);
+    critical(payload: LogPayload): void {
+        this.log("critical", payload);
+    }
+
+    alert(payload: LogPayload): void {
+        this.log("alert", payload);
+    }
+
+    emergency(payload: LogPayload): void {
+        this.log("emergency", payload);
     }
 }
 
 export class ConsoleLogger extends LoggerBase {
-    log(level: LogLevel, id: MongoLogId, context: string, message: string): void {
-        message = redact(message);
+    type: LoggerType = "console";
+
+    log(level: LogLevel, payload: LogPayload): void {
+        const { id, context, message } = payload;
         console.error(`[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid})`);
     }
 }
@@ -96,6 +147,8 @@ export class DiskLogger extends LoggerBase {
     private constructor(private logWriter: MongoLogWriter) {
         super();
     }
+
+    type: LoggerType = "disk";
 
     static async fromPath(logPath: string): Promise<DiskLogger> {
         await fs.mkdir(logPath, { recursive: true });
@@ -116,8 +169,8 @@ export class DiskLogger extends LoggerBase {
         return new DiskLogger(logWriter);
     }
 
-    log(level: LogLevel, id: MongoLogId, context: string, message: string): void {
-        message = redact(message);
+    log(level: LogLevel, payload: LogPayload): void {
+        const { id, context, message } = payload;
         const mongoDBLevel = this.mapToMongoDBLogLevel(level);
 
         this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message);
@@ -149,7 +202,9 @@ export class McpLogger extends LoggerBase {
         super();
     }
 
-    log(level: LogLevel, _: MongoLogId, context: string, message: string): void {
+    type: LoggerType = "mcp";
+
+    log(level: LogLevel, payload: LogPayload): void {
         // Only log if the server is connected
         if (!this.server?.isConnected()) {
             return;
@@ -157,12 +212,14 @@ export class McpLogger extends LoggerBase {
 
         void this.server.server.sendLoggingMessage({
             level,
-            data: `[${context}]: ${message}`,
+            data: `[${payload.context}]: ${payload.message}`,
         });
     }
 }
 
 class CompositeLogger extends LoggerBase {
+    type: LoggerType | null = null;
+
     private loggers: LoggerBase[] = [];
 
     constructor(...loggers: LoggerBase[]) {
@@ -178,9 +235,9 @@ class CompositeLogger extends LoggerBase {
         this.loggers = [...loggers];
     }
 
-    log(level: LogLevel, id: MongoLogId, context: string, message: string): void {
+    log(level: LogLevel, payload: LogPayload): void {
         for (const logger of this.loggers) {
-            logger.log(level, id, context, message);
+            logger.log(level, payload);
         }
     }
 }

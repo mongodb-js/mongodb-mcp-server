@@ -79,11 +79,11 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
         const parsedResult = argsShape.safeParse(args[0]);
 
         if (!parsedResult.success) {
-            logger.debug(
-                LogId.telemetryMetadataError,
-                "tool",
-                `Error parsing tool arguments: ${parsedResult.error.message}`
-            );
+            logger.debug({
+                id: LogId.telemetryMetadataError,
+                context: "tool",
+                message: `Error parsing tool arguments: ${parsedResult.error.message}`,
+            });
             return toolMetadata;
         }
 

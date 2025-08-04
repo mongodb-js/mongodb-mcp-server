@@ -87,7 +87,11 @@ export async function inspectCluster(apiClient: ApiClient, projectId: string, cl
             return formatFlexCluster(cluster);
         } catch (flexError) {
             const err = flexError instanceof Error ? flexError : new Error(String(flexError));
-            logger.error(LogId.atlasInspectFailure, "inspect-cluster", `error inspecting cluster: ${err.message}`);
+            logger.error({
+                id: LogId.atlasInspectFailure,
+                context: "inspect-cluster",
+                message: `error inspecting cluster: ${err.message}`,
+            });
             throw error;
         }
     }

@@ -63,11 +63,11 @@ export function ReactiveResource<Value, RelevantEvents extends readonly (keyof S
                 await this.server.mcpServer.server.sendResourceUpdated({ uri });
                 this.server.mcpServer.sendResourceListChanged();
             } catch (error: unknown) {
-                logger.warning(
-                    LogId.resourceUpdateFailure,
-                    "Could not send the latest resources to the client.",
-                    error as string
-                );
+                logger.warning({
+                    id: LogId.resourceUpdateFailure,
+                    context: "resource",
+                    message: `Could not send the latest resources to the client: ${error as string}`,
+                });
             }
         }
 
