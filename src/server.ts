@@ -13,9 +13,11 @@ import { type ServerCommand } from "./telemetry/types.js";
 import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import { ToolBase } from "./tools/tool.js";
+import { SessionExportsManager } from "./common/sessionExportsManager.js";
 
 export interface ServerOptions {
     session: Session;
+    exportsManager: SessionExportsManager;
     userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
@@ -23,15 +25,17 @@ export interface ServerOptions {
 
 export class Server {
     public readonly session: Session;
+    public readonly exportsManager: SessionExportsManager;
     public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly tools: ToolBase[] = [];
     private readonly startTime: number;
 
-    constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
+    constructor({ session, exportsManager, mcpServer, userConfig, telemetry }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
+        this.exportsManager = exportsManager;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.userConfig = userConfig;
