@@ -10,8 +10,8 @@ describeWithMongoDB(
         beforeEach(async () => {
             const mongoClient = integration.mongoClient();
             await mongoClient
-                .db(integration.randomDbName())
-                .collection("foo")
+                .db("db")
+                .collection("coll")
                 .insertMany([
                     { name: "foo", longNumber: new Long(1234) },
                     { name: "bar", bigInt: new Long(123412341234) },
@@ -34,10 +34,10 @@ describeWithMongoDB(
             it("should return an error", async () => {
                 await integration.connectMcpClient();
                 const response = await integration.mcpClient().readResource({
-                    uri: "exported-data://foo.bar.json",
+                    uri: "exported-data://db.coll.json",
                 });
                 expect(response.isError).toEqual(true);
-                expect(response.contents[0]?.uri).toEqual("exported-data://foo.bar.json");
+                expect(response.contents[0]?.uri).toEqual("exported-data://db.coll.json");
                 expect(response.contents[0]?.text).toEqual(
                     "Error reading from exported-data://{exportName}: Requested export does not exist!"
                 );
@@ -49,7 +49,7 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { database: "db", collection: "coll" },
                 });
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
@@ -75,7 +75,7 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: { database: "db", collection: "coll" },
                 });
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
@@ -89,6 +89,31 @@ describeWithMongoDB(
                 expect(response.isError).toBeFalsy();
                 expect(response.contents[0]?.mimeType).toEqual("application/json");
                 expect(response.contents[0]?.text).toContain("foo");
+            });
+
+            it("should be able to autocomplete the resource", async () => {
+                await integration.connectMcpClient();
+                const exportResponse = await integration.mcpClient().callTool({
+                    name: "export",
+                    arguments: { database: "big", collection: "coll" },
+                });
+
+                const exportedResourceURI = (exportResponse as CallToolResult).content.find(
+                    (part) => part.type === "resource_link"
+                )?.uri;
+                expect(exportedResourceURI).toBeDefined();
+
+                const completeResponse = await integration.mcpClient().complete({
+                    ref: {
+                        type: "ref/resource",
+                        uri: "exported-data://{exportName}",
+                    },
+                    argument: {
+                        name: "exportName",
+                        value: "b",
+                    },
+                });
+                expect(completeResponse.completion.total).toEqual(1);
             });
         });
     },
