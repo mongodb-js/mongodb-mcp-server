@@ -4,7 +4,7 @@ import { ApiClientError } from "./apiClientError.js";
 import { paths, operations } from "./openapi.js";
 import { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
-import logger, { LogId } from "../logger.js";
+import { LoggerBase, LogId } from "../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import * as oauth from "oauth4webapi";
 import { Request as NodeFetchRequest } from "node-fetch";
@@ -28,7 +28,7 @@ export interface AccessToken {
 }
 
 export class ApiClient {
-    private options: {
+    private readonly options: {
         baseUrl: string;
         userAgent: string;
         credentials?: {
@@ -94,7 +94,10 @@ export class ApiClient {
         },
     };
 
-    constructor(options: ApiClientOptions) {
+    constructor(
+        options: ApiClientOptions,
+        public readonly logger: LoggerBase
+    ) {
         this.options = {
             ...options,
             userAgent:
@@ -180,7 +183,7 @@ export class ApiClient {
                 };
             } catch (error: unknown) {
                 const err = error instanceof Error ? error : new Error(String(error));
-                logger.error({
+                this.logger.error({
                     id: LogId.atlasConnectFailure,
                     context: "apiClient",
                     message: `Failed to request access token: ${err.message}`,
@@ -204,7 +207,7 @@ export class ApiClient {
             }
         } catch (error: unknown) {
             const err = error instanceof Error ? error : new Error(String(error));
-            logger.error({
+            this.logger.error({
                 id: LogId.atlasApiRevokeFailure,
                 context: "apiClient",
                 message: `Failed to revoke access token: ${err.message}`,

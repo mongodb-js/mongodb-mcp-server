@@ -3,7 +3,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
-import logger, { LogId } from "../../../common/logger.js";
+import { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 import { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
@@ -49,7 +49,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             case "connected":
                 return "connected";
             case "errored":
-                logger.debug({
+                this.session.logger.debug({
                     id: LogId.atlasConnectFailure,
                     context: "atlas-connect-cluster",
                     message: `error querying cluster: ${currentConectionState.errorReason}`,
@@ -127,7 +127,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     private async connectToCluster(connectionString: string, atlas: AtlasClusterConnectionInfo): Promise<void> {
         let lastError: Error | undefined = undefined;
 
-        logger.debug({
+        this.session.logger.debug({
             id: LogId.atlasConnectAttempt,
             context: "atlas-connect-cluster",
             message: `attempting to connect to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
@@ -146,7 +146,7 @@ export class ConnectClusterTool extends AtlasToolBase {
 
                 lastError = error;
 
-                logger.debug({
+                this.session.logger.debug({
                     id: LogId.atlasConnectFailure,
                     context: "atlas-connect-cluster",
                     message: `error connecting to cluster: ${error.message}`,
@@ -182,7 +182,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                     })
                     .catch((err: unknown) => {
                         const error = err instanceof Error ? err : new Error(String(err));
-                        logger.debug({
+                        this.session.logger.debug({
                             id: LogId.atlasConnectFailure,
                             context: "atlas-connect-cluster",
                             message: `error deleting database user: ${error.message}`,
@@ -192,7 +192,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             throw lastError;
         }
 
-        logger.debug({
+        this.session.logger.debug({
             id: LogId.atlasConnectSucceeded,
             context: "atlas-connect-cluster",
             message: `connected to cluster: ${this.session.connectedAtlasCluster?.clusterName}`,
@@ -228,7 +228,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                     // try to connect for about 5 minutes asynchronously
                     void this.connectToCluster(connectionString, atlas).catch((err: unknown) => {
                         const error = err instanceof Error ? err : new Error(String(err));
-                        logger.error({
+                        this.session.logger.error({
                             id: LogId.atlasConnectFailure,
                             context: "atlas-connect-cluster",
                             message: `error connecting to cluster: ${error.message}`,

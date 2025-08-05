@@ -2,7 +2,7 @@ import { z, type ZodRawShape, type ZodNever, AnyZodObject } from "zod";
 import type { RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { Session } from "../common/session.js";
-import logger, { LogId } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { type ToolEvent } from "../telemetry/types.js";
 import { UserConfig } from "../common/config.js";
@@ -73,7 +73,7 @@ export abstract class ToolBase {
         const callback: ToolCallback<typeof this.argsShape> = async (...args) => {
             const startTime = Date.now();
             try {
-                logger.debug({
+                this.session.logger.debug({
                     id: LogId.toolExecute,
                     context: "tool",
                     message: `Executing tool ${this.name}`,
@@ -84,7 +84,7 @@ export abstract class ToolBase {
                 await this.emitToolEvent(startTime, result, ...args).catch(() => {});
                 return result;
             } catch (error: unknown) {
-                logger.error({
+                this.session.logger.error({
                     id: LogId.toolExecuteFailure,
                     context: "tool",
                     message: `Error executing ${this.name}: ${error as string}`,
@@ -107,7 +107,7 @@ export abstract class ToolBase {
             const existingTool = tools[this.name];
 
             if (!existingTool) {
-                logger.warning({
+                this.session.logger.warning({
                     id: LogId.toolUpdateFailure,
                     context: "tool",
                     message: `Tool ${this.name} not found in update`,
@@ -159,7 +159,7 @@ export abstract class ToolBase {
         }
 
         if (errorClarification) {
-            logger.debug({
+            this.session.logger.debug({
                 id: LogId.toolDisabled,
                 context: "tool",
                 message: `Prevented registration of ${this.name} because ${errorClarification} is disabled in the config`,

@@ -1,7 +1,7 @@
 import { ToolBase, ToolCategory, TelemetryToolMetadata, ToolArgs } from "../tool.js";
 import { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import logger, { LogId } from "../../common/logger.js";
+import { LogId } from "../../common/logger.js";
 import { z } from "zod";
 import { ApiClientError } from "../../common/atlas/apiClientError.js";
 
@@ -79,7 +79,7 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
         const parsedResult = argsShape.safeParse(args[0]);
 
         if (!parsedResult.success) {
-            logger.debug({
+            this.session.logger.debug({
                 id: LogId.telemetryMetadataError,
                 context: "tool",
                 message: `Error parsing tool arguments: ${parsedResult.error.message}`,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import logger, { LogId } from "./common/logger.js";
+import { ConsoleLogger, LogId } from "./common/logger.js";
 import { config } from "./common/config.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
@@ -9,7 +9,7 @@ async function main() {
     const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
 
     const shutdown = () => {
-        logger.info({
+        transportRunner.logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Server close requested`,
@@ -18,7 +18,7 @@ async function main() {
         transportRunner
             .close()
             .then(() => {
-                logger.info({
+                transportRunner.logger.info({
                     id: LogId.serverClosed,
                     context: "server",
                     message: `Server closed`,
@@ -26,7 +26,7 @@ async function main() {
                 process.exit(0);
             })
             .catch((error: unknown) => {
-                logger.error({
+                transportRunner.logger.error({
                     id: LogId.serverCloseFailure,
                     context: "server",
                     message: `Error closing server: ${error as string}`,
@@ -43,20 +43,20 @@ async function main() {
     try {
         await transportRunner.start();
     } catch (error: unknown) {
-        logger.info({
+        transportRunner.logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: "Closing server",
         });
         try {
             await transportRunner.close();
-            logger.info({
+            transportRunner.logger.info({
                 id: LogId.serverClosed,
                 context: "server",
                 message: "Server closed",
             });
         } catch (error: unknown) {
-            logger.error({
+            transportRunner.logger.error({
                 id: LogId.serverCloseFailure,
                 context: "server",
                 message: `Error closing server: ${error as string}`,
@@ -67,6 +67,10 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
+    // At this point, we may be in a very broken state, so we can't rely on the logger
+    // being functional. Instead, create a brand new ConsoleLogger and log the error
+    // to the console.
+    const logger = new ConsoleLogger();
     logger.emergency({
         id: LogId.serverStartFailure,
         context: "server",

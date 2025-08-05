@@ -4,7 +4,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { TransportRunnerBase } from "./base.js";
 import { UserConfig } from "../common/config.js";
-import logger, { LogId } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 import { randomUUID } from "crypto";
 import { SessionStore } from "../common/sessionStore.js";
 
@@ -14,39 +14,22 @@ const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
-function withErrorHandling(
-    fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
-) {
-    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        fn(req, res, next).catch((error) => {
-            logger.error({
-                id: LogId.streamableHttpTransportRequestFailure,
-                context: "streamableHttpTransport",
-                message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
-            });
-            res.status(400).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: `failed to handle request`,
-                    data: error instanceof Error ? error.message : String(error),
-                },
-            });
-        });
-    };
-}
-
 export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
-    private sessionStore: SessionStore;
+    private sessionStore!: SessionStore;
 
-    constructor(private userConfig: UserConfig) {
-        super();
-        this.sessionStore = new SessionStore(this.userConfig.idleTimeoutMs, this.userConfig.notificationTimeoutMs);
+    constructor(userConfig: UserConfig) {
+        super(userConfig);
     }
 
-    async start() {
+    async start(): Promise<void> {
         const app = express();
+        this.sessionStore = new SessionStore(
+            this.userConfig.idleTimeoutMs,
+            this.userConfig.notificationTimeoutMs,
+            this.logger
+        );
+
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
 
@@ -88,7 +71,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         app.post(
             "/mcp",
-            withErrorHandling(async (req: express.Request, res: express.Response) => {
+            this.withErrorHandling(async (req: express.Request, res: express.Response) => {
                 const sessionId = req.headers["mcp-session-id"];
                 if (sessionId) {
                     await handleSessionRequest(req, res);
@@ -110,13 +93,15 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: () => randomUUID().toString(),
                     onsessioninitialized: (sessionId) => {
-                        this.sessionStore.setSession(sessionId, transport, server.mcpServer);
+                        server.session.logger.setAttribute("sessionId", sessionId);
+
+                        this.sessionStore.setSession(sessionId, transport, server.session.logger);
                     },
                     onsessionclosed: async (sessionId) => {
                         try {
                             await this.sessionStore.closeSession(sessionId, false);
                         } catch (error) {
-                            logger.error({
+                            this.logger.error({
                                 id: LogId.streamableHttpTransportSessionCloseFailure,
                                 context: "streamableHttpTransport",
                                 message: `Error closing session: ${error instanceof Error ? error.message : String(error)}`,
@@ -127,7 +112,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
                 transport.onclose = () => {
                     server.close().catch((error) => {
-                        logger.error({
+                        this.logger.error({
                             id: LogId.streamableHttpTransportCloseFailure,
                             context: "streamableHttpTransport",
                             message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
@@ -141,8 +126,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             })
         );
 
-        app.get("/mcp", withErrorHandling(handleSessionRequest));
-        app.delete("/mcp", withErrorHandling(handleSessionRequest));
+        app.get("/mcp", this.withErrorHandling(handleSessionRequest));
+        app.delete("/mcp", this.withErrorHandling(handleSessionRequest));
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
             const result = app.listen(this.userConfig.httpPort, this.userConfig.httpHost, (err?: Error) => {
@@ -154,7 +139,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             });
         });
 
-        logger.info({
+        this.logger.info({
             id: LogId.streamableHttpTransportStarted,
             context: "streamableHttpTransport",
             message: `Server started on http://${this.userConfig.httpHost}:${this.userConfig.httpPort}`,
@@ -175,5 +160,27 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 });
             }),
         ]);
+    }
+
+    private withErrorHandling(
+        fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
+    ) {
+        return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+            fn(req, res, next).catch((error) => {
+                this.logger.error({
+                    id: LogId.streamableHttpTransportRequestFailure,
+                    context: "streamableHttpTransport",
+                    message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
+                });
+                res.status(400).json({
+                    jsonrpc: "2.0",
+                    error: {
+                        code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                        message: `failed to handle request`,
+                        data: error instanceof Error ? error.message : String(error),
+                    },
+                });
+            });
+        };
     }
 }

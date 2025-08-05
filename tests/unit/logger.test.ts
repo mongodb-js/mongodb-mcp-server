@@ -1,6 +1,10 @@
 import { describe, beforeEach, afterEach, vi, MockInstance, it, expect } from "vitest";
-import { CompositeLogger, ConsoleLogger, LoggerType, LogId, McpLogger } from "../../src/common/logger.js";
+import { CompositeLogger, ConsoleLogger, DiskLogger, LoggerType, LogId, McpLogger } from "../../src/common/logger.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import os from "os";
+import * as path from "path";
+import * as fs from "fs/promises";
+import { once } from "events";
 
 describe("Logger", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
@@ -158,6 +162,145 @@ describe("Logger", () => {
 
                 expect(mcpLoggerSpy).toHaveBeenCalledOnce();
                 expectLogMessageRedaction(getLastMcpLogMessage(), true);
+            });
+        });
+    });
+
+    describe("disk logger", () => {
+        let logPath: string;
+        beforeEach(() => {
+            logPath = path.join(os.tmpdir(), `mcp-logs-test-${Math.random()}-${Date.now()}`);
+        });
+
+        const assertNoLogs: () => Promise<void> = async () => {
+            try {
+                const files = await fs.readdir(logPath);
+                expect(files.length).toBe(0);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (err: any) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                if (err?.code !== "ENOENT") {
+                    throw err;
+                }
+            }
+        };
+
+        it("buffers messages during initialization", async () => {
+            const diskLogger = new DiskLogger(logPath, (err) => {
+                expect.fail(`Disk logger should not fail to initialize: ${err}`);
+            });
+
+            diskLogger.info({ id: LogId.serverInitialized, context: "test", message: "Test message" });
+            await assertNoLogs();
+
+            await once(diskLogger, "initialized");
+
+            const files = await fs.readdir(logPath);
+            expect(files.length).toBe(1);
+            const logContent = await fs.readFile(path.join(logPath, files[0] as string), "utf-8");
+            expect(logContent).toContain("Test message");
+        });
+
+        it("includes attributes in the logs", async () => {
+            const diskLogger = new DiskLogger(logPath, (err) => {
+                expect.fail(`Disk logger should not fail to initialize: ${err}`);
+            });
+
+            diskLogger.info({
+                id: LogId.serverInitialized,
+                context: "test",
+                message: "Test message",
+                attributes: { foo: "bar" },
+            });
+            await assertNoLogs();
+
+            await once(diskLogger, "initialized");
+
+            const files = await fs.readdir(logPath);
+            expect(files.length).toBe(1);
+            const logContent = await fs.readFile(path.join(logPath, files[0] as string), "utf-8");
+            expect(logContent).toContain("Test message");
+            expect(logContent).toContain('"foo":"bar"');
+        });
+    });
+
+    describe("CompositeLogger", () => {
+        describe("with attributes", () => {
+            it("propagates attributes to child loggers", () => {
+                const compositeLogger = new CompositeLogger(consoleLogger, mcpLogger);
+                compositeLogger.setAttribute("foo", "bar");
+
+                compositeLogger.info({
+                    id: LogId.serverInitialized,
+                    context: "test",
+                    message: "Test message with attributes",
+                });
+
+                expect(consoleErrorSpy).toHaveBeenCalledOnce();
+                expect(getLastConsoleMessage()).toContain("foo=bar");
+
+                expect(mcpLoggerSpy).toHaveBeenCalledOnce();
+                // The MCP logger ignores attributes
+                expect(getLastMcpLogMessage()).not.toContain("foo=bar");
+            });
+
+            it("merges attributes with payload attributes", () => {
+                const compositeLogger = new CompositeLogger(consoleLogger, mcpLogger);
+                compositeLogger.setAttribute("foo", "bar");
+
+                compositeLogger.info({
+                    id: LogId.serverInitialized,
+                    context: "test",
+                    message: "Test message with attributes",
+                    attributes: { baz: "qux" },
+                });
+
+                expect(consoleErrorSpy).toHaveBeenCalledOnce();
+                expect(getLastConsoleMessage()).toContain("foo=bar");
+                expect(getLastConsoleMessage()).toContain("baz=qux");
+
+                expect(mcpLoggerSpy).toHaveBeenCalledOnce();
+                // The MCP logger ignores attributes
+                expect(getLastMcpLogMessage()).not.toContain("foo=bar");
+                expect(getLastMcpLogMessage()).not.toContain("baz=qux");
+            });
+
+            it("doesn't impact base logger's attributes", () => {
+                const childComposite = new CompositeLogger(consoleLogger);
+                const attributedComposite = new CompositeLogger(consoleLogger, childComposite);
+                attributedComposite.setAttribute("foo", "bar");
+
+                attributedComposite.info({
+                    id: LogId.serverInitialized,
+                    context: "test",
+                    message: "Test message with attributes",
+                });
+
+                // We include the console logger twice - once in the attributedComposite
+                // and another time in the childComposite, so we expect to have 2 console.error
+                // calls.
+                expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+                expect(getLastConsoleMessage()).toContain("foo=bar");
+
+                // The base logger should not have the attribute set
+                consoleLogger.debug({
+                    id: LogId.serverInitialized,
+                    context: "test",
+                    message: "Another message without attributes",
+                });
+
+                expect(consoleErrorSpy).toHaveBeenCalledTimes(3);
+                expect(getLastConsoleMessage()).not.toContain("foo=bar");
+
+                // The child composite should not have the attribute set
+                childComposite.error({
+                    id: LogId.serverInitialized,
+                    context: "test",
+                    message: "Another message without attributes",
+                });
+
+                expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
+                expect(getLastConsoleMessage()).not.toContain("foo=bar");
             });
         });
     });

@@ -1,7 +1,7 @@
 import { Session } from "../common/session.js";
 import { BaseEvent, CommonProperties } from "./types.js";
 import { UserConfig } from "../common/config.js";
-import logger, { LogId } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 import { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
@@ -63,14 +63,14 @@ export class Telemetry {
                 onError: (reason, error) => {
                     switch (reason) {
                         case "resolutionError":
-                            logger.debug({
+                            this.session.logger.debug({
                                 id: LogId.telemetryDeviceIdFailure,
                                 context: "telemetry",
                                 message: String(error),
                             });
                             break;
                         case "timeout":
-                            logger.debug({
+                            this.session.logger.debug({
                                 id: LogId.telemetryDeviceIdTimeout,
                                 context: "telemetry",
                                 message: "Device ID retrieval timed out",
@@ -108,7 +108,7 @@ export class Telemetry {
     public async emitEvents(events: BaseEvent[]): Promise<void> {
         try {
             if (!this.isTelemetryEnabled()) {
-                logger.info({
+                this.session.logger.info({
                     id: LogId.telemetryEmitFailure,
                     context: "telemetry",
                     message: "Telemetry is disabled.",
@@ -119,7 +119,7 @@ export class Telemetry {
 
             await this.emit(events);
         } catch {
-            logger.debug({
+            this.session.logger.debug({
                 id: LogId.telemetryEmitFailure,
                 context: "telemetry",
                 message: "Error emitting telemetry events.",
@@ -174,7 +174,7 @@ export class Telemetry {
         const cachedEvents = this.eventCache.getEvents();
         const allEvents = [...cachedEvents, ...events];
 
-        logger.debug({
+        this.session.logger.debug({
             id: LogId.telemetryEmitStart,
             context: "telemetry",
             message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
@@ -183,7 +183,7 @@ export class Telemetry {
         const result = await this.sendEvents(this.session.apiClient, allEvents);
         if (result.success) {
             this.eventCache.clearEvents();
-            logger.debug({
+            this.session.logger.debug({
                 id: LogId.telemetryEmitSuccess,
                 context: "telemetry",
                 message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`,
@@ -191,7 +191,7 @@ export class Telemetry {
             return;
         }
 
-        logger.debug({
+        this.session.logger.debug({
             id: LogId.telemetryEmitFailure,
             context: "telemetry",
             message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,

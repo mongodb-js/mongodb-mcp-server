@@ -1,6 +1,6 @@
 import { ApiClient, ApiClientCredentials } from "./atlas/apiClient.js";
 import { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import logger, { LogId } from "./logger.js";
+import { CompositeLogger, LogId } from "./logger.js";
 import EventEmitter from "events";
 import {
     AtlasClusterConnectionInfo,
@@ -16,6 +16,7 @@ export interface SessionOptions {
     apiClientId?: string;
     apiClientSecret?: string;
     connectionManager?: ConnectionManager;
+    logger: CompositeLogger;
 }
 
 export type SessionEvents = {
@@ -34,8 +35,12 @@ export class Session extends EventEmitter<SessionEvents> {
         version: string;
     };
 
-    constructor({ apiBaseUrl, apiClientId, apiClientSecret, connectionManager }: SessionOptions) {
+    public logger: CompositeLogger;
+
+    constructor({ apiBaseUrl, apiClientId, apiClientSecret, connectionManager, logger }: SessionOptions) {
         super();
+
+        this.logger = logger;
 
         const credentials: ApiClientCredentials | undefined =
             apiClientId && apiClientSecret
@@ -45,7 +50,7 @@ export class Session extends EventEmitter<SessionEvents> {
                   }
                 : undefined;
 
-        this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials });
+        this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
 
         this.connectionManager = connectionManager ?? new ConnectionManager();
         this.connectionManager.on("connection-succeeded", () => this.emit("connect"));
@@ -70,7 +75,7 @@ export class Session extends EventEmitter<SessionEvents> {
             await this.connectionManager.disconnect();
         } catch (err: unknown) {
             const error = err instanceof Error ? err : new Error(String(err));
-            logger.error({
+            this.logger.error({
                 id: LogId.mongodbDisconnectFailure,
                 context: "session",
                 message: `Error closing service provider: ${error.message}`,
@@ -90,7 +95,7 @@ export class Session extends EventEmitter<SessionEvents> {
                 })
                 .catch((err: unknown) => {
                     const error = err instanceof Error ? err : new Error(String(err));
-                    logger.error({
+                    this.logger.error({
                         id: LogId.atlasDeleteDatabaseUserFailure,
                         context: "session",
                         message: `Error deleting previous database user: ${error.message}`,

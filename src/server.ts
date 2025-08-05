@@ -4,7 +4,7 @@ import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
-import logger, { LogId, LoggerBase, McpLogger, DiskLogger, ConsoleLogger } from "./common/logger.js";
+import { LogId } from "./common/logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
@@ -71,23 +71,11 @@ export class Server {
             return existingHandler(request, extra);
         });
 
-        const loggers: LoggerBase[] = [];
-        if (this.userConfig.loggers.includes("mcp")) {
-            loggers.push(new McpLogger(this.mcpServer));
-        }
-        if (this.userConfig.loggers.includes("disk")) {
-            loggers.push(await DiskLogger.fromPath(this.userConfig.logPath));
-        }
-        if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger());
-        }
-        logger.setLoggers(...loggers);
-
         this.mcpServer.server.oninitialized = () => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
             this.session.sessionId = new ObjectId().toString();
 
-            logger.info({
+            this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
                 message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`,

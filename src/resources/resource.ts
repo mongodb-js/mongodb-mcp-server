@@ -4,7 +4,7 @@ import { UserConfig } from "../common/config.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
 import { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
-import logger, { LogId } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
@@ -63,7 +63,7 @@ export function ReactiveResource<Value, RelevantEvents extends readonly (keyof S
                 await this.server.mcpServer.server.sendResourceUpdated({ uri });
                 this.server.mcpServer.sendResourceListChanged();
             } catch (error: unknown) {
-                logger.warning({
+                this.session.logger.warning({
                     id: LogId.resourceUpdateFailure,
                     context: "resource",
                     message: `Could not send the latest resources to the client: ${error as string}`,

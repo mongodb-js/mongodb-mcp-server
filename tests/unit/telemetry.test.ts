@@ -5,7 +5,7 @@ import { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { config } from "../../src/common/config.js";
 import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
-import logger, { LogId } from "../../src/common/logger.js";
+import { LogId, NullLogger } from "../../src/common/logger.js";
 import { createHmac } from "crypto";
 import type { MockedFunction } from "vitest";
 
@@ -106,7 +106,7 @@ describe("Telemetry", () => {
         vi.clearAllMocks();
 
         // Setup mocked API client
-        mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }));
+        mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }, new NullLogger()));
 
         mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
         mockApiClient.hasCredentials = vi.fn().mockReturnValue(true);
@@ -125,6 +125,7 @@ describe("Telemetry", () => {
             agentRunner: { name: "test-agent", version: "1.0.0" } as const,
             close: vi.fn().mockResolvedValue(undefined),
             setAgentRunner: vi.fn().mockResolvedValue(undefined),
+            logger: new NullLogger(),
         } as unknown as Session;
 
         telemetry = Telemetry.create(session, config, {
@@ -236,7 +237,7 @@ describe("Telemetry", () => {
                 });
 
                 it("should handle machine ID resolution failure", async () => {
-                    const loggerSpy = vi.spyOn(logger, "debug");
+                    const loggerSpy = vi.spyOn(session.logger, "debug");
 
                     telemetry = Telemetry.create(session, config, {
                         getRawMachineId: () => Promise.reject(new Error("Failed to get device ID")),
@@ -258,7 +259,7 @@ describe("Telemetry", () => {
                 });
 
                 it("should timeout if machine ID resolution takes too long", async () => {
-                    const loggerSpy = vi.spyOn(logger, "debug");
+                    const loggerSpy = vi.spyOn(session.logger, "debug");
 
                     telemetry = Telemetry.create(session, config, { getRawMachineId: () => new Promise(() => {}) });
 

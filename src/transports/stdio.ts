@@ -1,4 +1,4 @@
-import logger, { LogId } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 import { Server } from "../server.js";
 import { TransportRunnerBase } from "./base.js";
 import { JSONRPCMessage, JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
@@ -53,11 +53,11 @@ export function createStdioTransport(): StdioServerTransport {
 export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
-    constructor(private userConfig: UserConfig) {
-        super();
+    constructor(userConfig: UserConfig) {
+        super(userConfig);
     }
 
-    async start() {
+    async start(): Promise<void> {
         try {
             this.server = this.setupServer(this.userConfig);
 
@@ -65,7 +65,7 @@ export class StdioRunner extends TransportRunnerBase {
 
             await this.server.connect(transport);
         } catch (error: unknown) {
-            logger.emergency({
+            this.logger.emergency({
                 id: LogId.serverStartFailure,
                 context: "server",
                 message: `Fatal error running server: ${error as string}`,

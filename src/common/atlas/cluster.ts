@@ -1,6 +1,6 @@
 import { ClusterDescription20240805, FlexClusterDescription20241113 } from "./openapi.js";
 import { ApiClient } from "./apiClient.js";
-import logger, { LogId } from "../logger.js";
+import { LogId } from "../logger.js";
 
 export interface Cluster {
     name?: string;
@@ -87,7 +87,7 @@ export async function inspectCluster(apiClient: ApiClient, projectId: string, cl
             return formatFlexCluster(cluster);
         } catch (flexError) {
             const err = flexError instanceof Error ? flexError : new Error(String(flexError));
-            logger.error({
+            apiClient.logger.error({
                 id: LogId.atlasInspectFailure,
                 context: "inspect-cluster",
                 message: `error inspecting cluster: ${err.message}`,
