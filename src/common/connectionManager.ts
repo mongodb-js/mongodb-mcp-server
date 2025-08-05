@@ -21,7 +21,7 @@ export interface ConnectionSettings extends ConnectOptions {
 
 type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
-type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
+export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
 
 export interface ConnectionState {
     tag: ConnectionTag;
@@ -114,7 +114,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
                 tag: "connected",
                 connectedAtlasCluster: settings.atlas,
                 serviceProvider,
-                connectionStringAuthType: this.inferConnectionTypeFromSettings(settings),
+                connectionStringAuthType: ConnectionManager.inferConnectionTypeFromSettings(settings),
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
@@ -154,7 +154,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         return newState;
     }
 
-    private inferConnectionTypeFromSettings(settings: ConnectionSettings): ConnectionStringAuthType {
+    static inferConnectionTypeFromSettings(settings: ConnectionSettings): ConnectionStringAuthType {
         const connString = new ConnectionString(settings.connectionString);
         const searchParams = connString.typedSearchParams<MongoClientOptions>();
 
