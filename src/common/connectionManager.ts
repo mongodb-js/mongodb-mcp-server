@@ -171,6 +171,9 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
                     return "ldap";
                 }
                 break;
+            // default should catch also null, but eslint complains
+            // about it.
+            case null:
             default:
                 return "scram";
         }

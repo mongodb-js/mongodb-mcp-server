@@ -7,7 +7,6 @@ import { UserConfig } from "../../../common/config.js";
 import { Telemetry } from "../../../telemetry/telemetry.js";
 import { Session } from "../../../common/session.js";
 import { Server } from "../../../server.js";
-import logger from "../../../common/logger.js";
 
 const disconnectedSchema = z
     .object({
