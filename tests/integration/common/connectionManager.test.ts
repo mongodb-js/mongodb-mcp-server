@@ -116,7 +116,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
     });
 
     describe("when disconnected", () => {
-        it("should be marked explictly as disconnected", () => {
+        it("should be marked explicitly as disconnected", () => {
             expect(connectionManager().currentConnectionState.tag).toEqual("disconnected");
         });
     });
