@@ -59,7 +59,6 @@ export type AnyConnectionState =
     | ConnectionStateErrored;
 
 export interface ConnectionManagerEvents {
-    "connection-requested": [AnyConnectionState];
     "connection-succeeded": [ConnectionStateConnected];
     "connection-timed-out": [ConnectionStateErrored];
     "connection-closed": [ConnectionStateDisconnected];
