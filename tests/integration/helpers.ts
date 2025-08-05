@@ -273,3 +273,7 @@ function validateToolAnnotations(tool: ToolInfo, name: string, description: stri
             expect(tool.annotations.destructiveHint).toBe(false);
     }
 }
+
+export function timeout(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}

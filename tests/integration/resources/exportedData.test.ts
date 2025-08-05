@@ -1,0 +1,102 @@
+import { Long } from "bson";
+import { describe, expect, it, beforeEach } from "vitest";
+import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import { defaultTestConfig, timeout } from "../helpers.js";
+import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+
+describeWithMongoDB(
+    "exported-data resource",
+    (integration) => {
+        beforeEach(async () => {
+            const mongoClient = integration.mongoClient();
+            await mongoClient
+                .db(integration.randomDbName())
+                .collection("foo")
+                .insertMany([
+                    { name: "foo", longNumber: new Long(1234) },
+                    { name: "bar", bigInt: new Long(123412341234) },
+                ]);
+        });
+
+        it("should be able to list resource template", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().listResourceTemplates();
+            expect(response.resourceTemplates).toEqual([
+                {
+                    name: "exported-data",
+                    uriTemplate: "exported-data://{exportName}",
+                    description: "Data files exported in the current session.",
+                },
+            ]);
+        });
+
+        describe("when requesting non-existent resource", () => {
+            it("should return an error", async () => {
+                await integration.connectMcpClient();
+                const response = await integration.mcpClient().readResource({
+                    uri: "exported-data://foo.bar.json",
+                });
+                expect(response.isError).toEqual(true);
+                expect(response.contents[0]?.uri).toEqual("exported-data://foo.bar.json");
+                expect(response.contents[0]?.text).toEqual(
+                    "Error reading from exported-data://{exportName}: Requested export does not exist!"
+                );
+            });
+        });
+
+        describe("when requesting an expired resource", () => {
+            it("should return an error", async () => {
+                await integration.connectMcpClient();
+                const exportResponse = await integration.mcpClient().callTool({
+                    name: "export",
+                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                });
+
+                const exportedResourceURI = (exportResponse as CallToolResult).content.find(
+                    (part) => part.type === "resource_link"
+                )?.uri;
+                expect(exportedResourceURI).toBeDefined();
+
+                // wait for export expired
+                await timeout(200);
+                const response = await integration.mcpClient().readResource({
+                    uri: exportedResourceURI as string,
+                });
+                expect(response.isError).toEqual(true);
+                expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
+                expect(response.contents[0]?.text).toEqual(
+                    "Error reading from exported-data://{exportName}: Export has expired"
+                );
+            });
+        });
+
+        describe("after requesting a fresh export", () => {
+            it("should be able to read the resource", async () => {
+                await integration.connectMcpClient();
+                const exportResponse = await integration.mcpClient().callTool({
+                    name: "export",
+                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                });
+
+                const exportedResourceURI = (exportResponse as CallToolResult).content.find(
+                    (part) => part.type === "resource_link"
+                )?.uri;
+                expect(exportedResourceURI).toBeDefined();
+
+                const response = await integration.mcpClient().readResource({
+                    uri: exportedResourceURI as string,
+                });
+                expect(response.isError).toBeFalsy();
+                expect(response.contents[0]?.mimeType).toEqual("application/json");
+                expect(response.contents[0]?.text).toContain("foo");
+            });
+        });
+    },
+    () => {
+        return {
+            ...defaultTestConfig,
+            exportTimeoutMs: 200,
+            exportCleanupIntervalMs: 100,
+        };
+    }
+);

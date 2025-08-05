@@ -1,12 +1,14 @@
 import path from "path";
 import fs from "fs/promises";
+import { Readable } from "stream";
+import { FindCursor, Long } from "mongodb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SessionExportsManager, SessionExportsManagerConfig } from "../../../src/common/sessionExportsManager.js";
+
 import { config } from "../../../src/common/config.js";
 import { Session } from "../../../src/common/session.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
-import { FindCursor, Long } from "mongodb";
-import { Readable } from "stream";
+import { timeout } from "../../integration/helpers.js";
 
 const dummySessionId = "1FOO";
 const dummyExportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
@@ -62,16 +64,12 @@ async function fileExists(filePath: string) {
     }
 }
 
-function timeout(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 describe("SessionExportsManager integration test", () => {
     let session: Session;
     let manager: SessionExportsManager;
 
     beforeEach(async () => {
-        manager?.close();
+        await manager?.close();
         await fs.rm(exportsManagerConfig.exportPath, { recursive: true, force: true });
         await fs.mkdir(exportsManagerConfig.exportPath, { recursive: true });
         session = new Session({ apiBaseUrl: "" });

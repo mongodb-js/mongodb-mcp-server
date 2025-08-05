@@ -41,8 +41,18 @@ export class SessionExportsManager {
         );
     }
 
-    public close() {
-        clearInterval(this.exportsCleanupInterval);
+    public async close() {
+        try {
+            clearInterval(this.exportsCleanupInterval);
+            const exportsDirectory = this.exportsDirectoryPath();
+            await fs.rm(exportsDirectory, { force: true, recursive: true });
+        } catch (error) {
+            logger.error(
+                LogId.exportCloseError,
+                "Error while closing SessionExportManager",
+                error instanceof Error ? error.message : String(error)
+            );
+        }
     }
 
     public exportNameToResourceURI(nameWithExtension: string): string {
@@ -209,8 +219,15 @@ export class SessionExportsManager {
     /**
      * Small utility to centrally determine if an export is expired or not */
     private async isExportFileExpired(exportFilePath: string): Promise<boolean> {
-        const stats = await fs.stat(exportFilePath);
-        return this.isExportExpired(stats.birthtimeMs);
+        try {
+            const stats = await fs.stat(exportFilePath);
+            return this.isExportExpired(stats.birthtimeMs);
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+                throw new Error("Requested export does not exist!");
+            }
+            throw error;
+        }
     }
 
     private isExportExpired(createdAt: number) {
