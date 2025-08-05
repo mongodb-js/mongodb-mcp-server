@@ -48,6 +48,10 @@ export default defineConfig([
         rules: {
             "@typescript-eslint/switch-exhaustiveness-check": "error",
             "@typescript-eslint/no-non-null-assertion": "error",
+            eqeqeq: "error",
+            "no-self-compare": "error",
+            "no-unassigned-vars": "error",
+            "@typescript-eslint/await-thenable": "error",
         },
     },
     globalIgnores([

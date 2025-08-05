@@ -58,7 +58,7 @@ export class ApiClient {
     private isAccessTokenValid(): boolean {
         return !!(
             this.accessToken &&
-            this.accessToken.expires_at != undefined &&
+            this.accessToken.expires_at !== undefined &&
             this.accessToken.expires_at > Date.now()
         );
     }
@@ -89,6 +89,7 @@ export class ApiClient {
                 return request;
             } catch {
                 // ignore not availble tokens, API will return 401
+                return undefined;
             }
         },
     };
@@ -183,6 +184,8 @@ export class ApiClient {
             }
             return this.accessToken;
         }
+
+        return undefined;
     }
 
     public async validateAccessToken(): Promise<void> {
