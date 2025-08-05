@@ -10,6 +10,7 @@ import { config } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConnectionManager } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
+import { SessionExportsManager } from "../../src/common/sessionExportsManager.js";
 
 interface ParameterInfo {
     name: string;
@@ -75,8 +76,11 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         const telemetry = Telemetry.create(session, userConfig);
 
+        const exportsManager = new SessionExportsManager(session, userConfig);
+
         mcpServer = new Server({
             session,
+            exportsManager,
             userConfig,
             telemetry,
             mcpServer: new McpServer({

@@ -41,7 +41,7 @@ export class ExportTool extends MongoDBToolBase {
             promoteValues: false,
             bsonRegExp: true,
         });
-        const exportName = `${database}.${collection}.json`;
+        const exportName = `${database}.${collection}.${Date.now()}.json`;
         if (!this.exportsManager) {
             throw new Error("Incorrect server configuration, export not possible!");
         }
