@@ -116,7 +116,7 @@ export class Session extends EventEmitter<SessionEvents> {
     }
 
     isConnectedToMongoDB(): boolean {
-        return this.connectionManager.currentConnectionState.tag == "connected";
+        return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
     get serviceProvider(): NodeDriverServiceProvider {
