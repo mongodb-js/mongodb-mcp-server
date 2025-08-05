@@ -24,6 +24,8 @@ export type SessionEvents = {
     close: [];
     disconnect: [];
     "connection-error": [string];
+    "export-expired": [string];
+    "export-available": [string];
 };
 
 export class Session extends EventEmitter<SessionEvents> {
