@@ -62,6 +62,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
             expect(collections).not.toBe([]);
         });
 
+        it("should notify that the connection was requested", () => {
+            expect(connectionManagerSpies["connection-requested"]).toHaveBeenCalledOnce();
+        });
+
         it("should notify that the connection was successful", () => {
             expect(connectionManagerSpies["connection-succeeded"]).toHaveBeenCalledOnce();
         });

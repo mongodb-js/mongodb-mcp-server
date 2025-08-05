@@ -59,6 +59,7 @@ export type AnyConnectionState =
     | ConnectionStateErrored;
 
 export interface ConnectionManagerEvents {
+    "connection-requested": [AnyConnectionState];
     "connection-succeeded": [ConnectionStateConnected];
     "connection-timed-out": [ConnectionStateErrored];
     "connection-closed": [ConnectionStateDisconnected];
@@ -74,6 +75,8 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
+        this.emit("connection-requested", this.state);
+
         if (this.state.tag == "connected" || this.state.tag == "connecting") {
             await this.disconnect();
         }
