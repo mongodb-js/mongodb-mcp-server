@@ -171,13 +171,12 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
                 if (searchParams.get("authSource") === "$external") {
                     return "ldap";
                 }
-                break;
+                return "scram";
             // default should catch also null, but eslint complains
             // about it.
             case null:
             default:
                 return "scram";
         }
-        return "scram";
     }
 }
