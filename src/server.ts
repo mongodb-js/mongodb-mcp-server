@@ -5,7 +5,6 @@ import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
 import { LogId } from "./common/logger.js";
-import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
@@ -77,7 +76,6 @@ export class Server {
 
         this.mcpServer.server.oninitialized = (): void => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
-            this.session.sessionId = new ObjectId().toString();
 
             this.session.logger.info({
                 id: LogId.serverInitialized,

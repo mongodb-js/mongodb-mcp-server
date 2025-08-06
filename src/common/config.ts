@@ -19,7 +19,7 @@ export interface UserConfig {
     apiClientSecret?: string;
     telemetry: "enabled" | "disabled";
     logPath: string;
-    exportPath: string;
+    exportsPath: string;
     exportTimeoutMs: number;
     exportCleanupIntervalMs: number;
     connectionString?: string;
@@ -38,7 +38,7 @@ export interface UserConfig {
 const defaults: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",
     logPath: getLogPath(),
-    exportPath: getExportPath(),
+    exportsPath: getExportsPath(),
     exportTimeoutMs: 300000, // 5 minutes
     exportCleanupIntervalMs: 120000, // 2 minutes
     connectOptions: {
@@ -76,7 +76,7 @@ function getLogPath(): string {
     return logPath;
 }
 
-function getExportPath(): string {
+function getExportsPath(): string {
     return path.join(getLocalDataPath(), "mongodb-mcp", "exports");
 }
 

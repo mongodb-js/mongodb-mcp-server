@@ -10,6 +10,7 @@ import {
 } from "./connectionManager.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
+import { ObjectId } from "bson";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -29,7 +30,7 @@ export type SessionEvents = {
 };
 
 export class Session extends EventEmitter<SessionEvents> {
-    sessionId?: string;
+    readonly sessionId = new ObjectId().toString();
     connectionManager: ConnectionManager;
     apiClient: ApiClient;
     agentRunner?: {

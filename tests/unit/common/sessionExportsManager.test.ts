@@ -11,28 +11,33 @@ import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { timeout } from "../../integration/helpers.js";
 import { EJSON, EJSONOptions } from "bson";
 
-const dummySessionId = "1FOO";
-const dummyExportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
-const dummySessionExportPath = path.join(dummyExportsPath, dummySessionId);
+const exportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
 const exportsManagerConfig: SessionExportsManagerConfig = {
-    exportPath: dummyExportsPath,
+    exportsPath,
     exportTimeoutMs: config.exportTimeoutMs,
     exportCleanupIntervalMs: config.exportCleanupIntervalMs,
 } as const;
-function getDummyExportName(timestamp: number) {
-    return `foo.bar.${timestamp}.json`;
-}
-function getDummyExportPath(timestamp: number) {
-    return path.join(dummySessionExportPath, getDummyExportName(timestamp));
+
+function getExportNameAndPath(sessionId: string, timestamp: number) {
+    const exportName = `foo.bar.${timestamp}.json`;
+    const sessionExportsPath = path.join(exportsPath, sessionId);
+    const exportPath = path.join(sessionExportsPath, exportName);
+    return {
+        sessionExportsPath,
+        exportName,
+        exportPath,
+        exportURI: `exported-data://${exportName}`,
+    };
 }
 
-async function createDummyExport(timestamp: number) {
+async function createDummyExport(sessionId: string, timestamp: number) {
     const content = "[]";
-    await fs.mkdir(dummySessionExportPath, { recursive: true });
-    await fs.writeFile(getDummyExportPath(timestamp), content);
+    const { exportName, exportPath, sessionExportsPath } = getExportNameAndPath(sessionId, timestamp);
+    await fs.mkdir(sessionExportsPath, { recursive: true });
+    await fs.writeFile(exportPath, content);
     return {
-        name: getDummyExportName(timestamp),
-        path: getDummyExportPath(timestamp),
+        exportName,
+        exportPath,
         content,
     };
 }
@@ -75,8 +80,8 @@ describe("SessionExportsManager integration test", () => {
 
     beforeEach(async () => {
         await manager?.close();
-        await fs.rm(exportsManagerConfig.exportPath, { recursive: true, force: true });
-        await fs.mkdir(exportsManagerConfig.exportPath, { recursive: true });
+        await fs.rm(exportsManagerConfig.exportsPath, { recursive: true, force: true });
+        await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
         session = new Session({ apiBaseUrl: "" });
         manager = new SessionExportsManager(session, exportsManagerConfig);
     });
@@ -92,25 +97,22 @@ describe("SessionExportsManager integration test", () => {
     });
 
     describe("#exportsDirectoryPath", () => {
-        it("should throw when session is not initialized", () => {
-            expect(() => manager.exportsDirectoryPath()).toThrow();
-        });
-
         it("should return a session path when session is initialized", () => {
-            session.sessionId = dummySessionId;
             manager = new SessionExportsManager(session, exportsManagerConfig);
-            expect(manager.exportsDirectoryPath()).toEqual(path.join(exportsManagerConfig.exportPath, dummySessionId));
+            expect(manager.exportsDirectoryPath()).toEqual(
+                path.join(exportsManagerConfig.exportsPath, session.sessionId)
+            );
         });
     });
 
     describe("#exportFilePath", () => {
         it("should throw when export name has no extension", () => {
-            expect(() => manager.exportFilePath(dummySessionExportPath, "name")).toThrow();
+            expect(() => manager.exportFilePath("session-path", "name")).toThrow();
         });
 
         it("should return path to provided export file", () => {
-            expect(manager.exportFilePath(dummySessionExportPath, "mflix.movies.json")).toEqual(
-                path.join(dummySessionExportPath, "mflix.movies.json")
+            expect(manager.exportFilePath("session-path", "mflix.movies.json")).toEqual(
+                path.join("session-path", "mflix.movies.json")
             );
         });
     });
@@ -121,15 +123,16 @@ describe("SessionExportsManager integration test", () => {
         });
 
         it("should return the resource content", async () => {
-            const { name, content } = await createDummyExport(Date.now());
-            session.sessionId = dummySessionId;
-            manager = new SessionExportsManager(session, exportsManagerConfig);
-            expect(await manager.readExport(name)).toEqual(content);
+            const { exportName, content } = await createDummyExport(session.sessionId, Date.now());
+            expect(await manager.readExport(exportName)).toEqual(content);
         });
     });
 
     describe("#createJSONExport", () => {
         let inputCursor: FindCursor;
+        let exportName: string;
+        let exportPath: string;
+        let exportURI: string;
         beforeEach(() => {
             void inputCursor?.close();
             inputCursor = createDummyFindCursor([
@@ -142,6 +145,7 @@ describe("SessionExportsManager integration test", () => {
                     longNumber: Long.fromNumber(123456),
                 },
             ]);
+            ({ exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now()));
         });
 
         describe("when cursor is empty", () => {
@@ -149,12 +153,9 @@ describe("SessionExportsManager integration test", () => {
                 inputCursor = createDummyFindCursor([]);
 
                 const emitSpy = vi.spyOn(session, "emit");
-                session.sessionId = dummySessionId;
-                manager = new SessionExportsManager(session, exportsManagerConfig);
-                const timestamp = Date.now();
                 await manager.createJSONExport({
                     input: inputCursor,
-                    exportName: getDummyExportName(timestamp),
+                    exportName,
                     jsonExportFormat: "relaxed",
                 });
 
@@ -163,19 +164,16 @@ describe("SessionExportsManager integration test", () => {
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
-                        name: getDummyExportName(timestamp),
-                        uri: `exported-data://${getDummyExportName(timestamp)}`,
+                        name: exportName,
+                        uri: exportURI,
                     })
                 );
 
                 // Emit event
-                expect(emitSpy).toHaveBeenCalledWith(
-                    "export-available",
-                    `exported-data://${getDummyExportName(timestamp)}`
-                );
+                expect(emitSpy).toHaveBeenCalledWith("export-available", exportURI);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(getDummyExportName(timestamp))) as unknown[];
+                const jsonData = JSON.parse(await manager.readExport(exportName)) as unknown[];
                 expect(jsonData).toEqual([]);
             });
         });
@@ -186,8 +184,6 @@ describe("SessionExportsManager integration test", () => {
         ])("$cond", ({ exportName }) => {
             it("should export relaxed json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(session, "emit");
-                session.sessionId = dummySessionId;
-                manager = new SessionExportsManager(session, exportsManagerConfig);
                 await manager.createJSONExport({
                     input: inputCursor,
                     exportName,
@@ -221,8 +217,6 @@ describe("SessionExportsManager integration test", () => {
         ])("$cond", ({ exportName }) => {
             it("should export canonical json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(session, "emit");
-                session.sessionId = dummySessionId;
-                manager = new SessionExportsManager(session, exportsManagerConfig);
                 await manager.createJSONExport({
                     input: inputCursor,
                     exportName,
@@ -257,8 +251,6 @@ describe("SessionExportsManager integration test", () => {
         describe("when transform stream throws an error", () => {
             it("should remove the partial export and never make it available", async () => {
                 const emitSpy = vi.spyOn(session, "emit");
-                session.sessionId = dummySessionId;
-                manager = new SessionExportsManager(session, exportsManagerConfig);
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
                 (manager as any).docToEJSONStream = function (ejsonOptions: EJSONOptions | undefined) {
                     let docsTransformed = 0;
@@ -285,9 +277,6 @@ describe("SessionExportsManager integration test", () => {
                     });
                 };
 
-                const timestamp = Date.now();
-                const exportName = getDummyExportName(timestamp);
-                const exportPath = getDummyExportPath(timestamp);
                 await expect(() =>
                     manager.createJSONExport({
                         input: inputCursor,
@@ -319,24 +308,8 @@ describe("SessionExportsManager integration test", () => {
             ]);
         });
 
-        it("should do nothing if session is not initialized", async () => {
-            const { path } = await createDummyExport(Date.now());
-            new SessionExportsManager(session, {
-                ...exportsManagerConfig,
-                exportTimeoutMs: 100,
-                exportCleanupIntervalMs: 50,
-            });
-
-            expect(await fileExists(path)).toEqual(true);
-            await timeout(200);
-            expect(await fileExists(path)).toEqual(true);
-        });
-
         it("should cleanup expired exports if session is initialized", async () => {
-            session.sessionId = dummySessionId;
-            const timestamp = Date.now();
-            const exportName = getDummyExportName(timestamp);
-            const exportPath = getDummyExportPath(timestamp);
+            const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
             const manager = new SessionExportsManager(session, {
                 ...exportsManagerConfig,
                 exportTimeoutMs: 100,
@@ -351,7 +324,7 @@ describe("SessionExportsManager integration test", () => {
             expect(manager.listAvailableExports()).toContainEqual(
                 expect.objectContaining({
                     name: exportName,
-                    uri: `exported-data://${exportName}`,
+                    uri: exportURI,
                 })
             );
             expect(await fileExists(exportPath)).toEqual(true);

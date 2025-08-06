@@ -23,7 +23,7 @@ export type Export = {
 
 export type SessionExportsManagerConfig = Pick<
     UserConfig,
-    "exportPath" | "exportTimeoutMs" | "exportCleanupIntervalMs"
+    "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs"
 >;
 
 const MAX_LOCK_RETRIES = 10;
@@ -63,13 +63,7 @@ export class SessionExportsManager {
     }
 
     public exportsDirectoryPath(): string {
-        // If the session is not connected, we can't cannot work with exports
-        // for that session.
-        if (!this.session.sessionId) {
-            throw new Error("Cannot retrieve exports directory, no active session. Try to reconnect to the MCP server");
-        }
-
-        return path.join(this.config.exportPath, this.session.sessionId);
+        return path.join(this.config.exportsPath, this.session.sessionId);
     }
 
     public exportFilePath(exportsDirectoryPath: string, exportNameWithExtension: string): string {
