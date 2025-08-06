@@ -129,7 +129,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             return this.state;
         }
 
-        if (this.state.tag == "connected" || this.state.tag == "connecting") {
+        if (this.state.tag === "connected" || this.state.tag === "connecting") {
             try {
                 await this.state.serviceProvider?.close(true);
             } finally {
@@ -168,7 +168,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             case "GSSAPI":
                 return "kerberos";
             case "PLAIN":
-                if (searchParams.get("authSource") == "$external") {
+                if (searchParams.get("authSource") === "$external") {
                     return "ldap";
                 }
                 break;
