@@ -143,12 +143,11 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             } finally {
                 this.changeState("connection-closed", {
                     tag: "disconnected",
-                    connectedAtlasCluster: this.state.connectedAtlasCluster,
                 });
             }
         }
 
-        return { tag: "disconnected", connectedAtlasCluster: this.state.connectedAtlasCluster };
+        return { tag: "disconnected" };
     }
 
     get currentConnectionState(): AnyConnectionState {

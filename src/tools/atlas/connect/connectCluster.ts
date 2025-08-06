@@ -135,14 +135,6 @@ export class ConnectClusterTool extends AtlasToolBase {
 
         // try to connect for about 5 minutes
         for (let i = 0; i < 600; i++) {
-            if (
-                !this.session.connectedAtlasCluster ||
-                this.session.connectedAtlasCluster.projectId !== atlas.projectId ||
-                this.session.connectedAtlasCluster.clusterName !== atlas.clusterName
-            ) {
-                throw new Error("Cluster connection aborted");
-            }
-
             try {
                 lastError = undefined;
 
@@ -160,6 +152,14 @@ export class ConnectClusterTool extends AtlasToolBase {
                 );
 
                 await sleep(500); // wait for 500ms before retrying
+            }
+
+            if (
+                !this.session.connectedAtlasCluster ||
+                this.session.connectedAtlasCluster.projectId !== atlas.projectId ||
+                this.session.connectedAtlasCluster.clusterName !== atlas.clusterName
+            ) {
+                throw new Error("Cluster connection aborted");
             }
         }
 
