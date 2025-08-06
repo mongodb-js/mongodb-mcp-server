@@ -5,7 +5,6 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import logger, { LogId } from "../../common/logger.js";
 import { Server } from "../../server.js";
-import { AnyConnectionState } from "../../common/connectionManager.js";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),

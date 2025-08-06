@@ -3,7 +3,7 @@ import { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import logger, { LogId } from "./logger.js";
 import EventEmitter from "events";
 import {
-    AnyConnectionState,
+    AtlasClusterConnectionInfo,
     ConnectionManager,
     ConnectionSettings,
     ConnectionStateConnected,
@@ -32,12 +32,6 @@ export class Session extends EventEmitter<SessionEvents> {
     agentRunner?: {
         name: string;
         version: string;
-    };
-    connectedAtlasCluster?: {
-        username: string;
-        projectId: string;
-        clusterName: string;
-        expiryDate: Date;
     };
 
     constructor({ apiBaseUrl, apiClientId, apiClientSecret, connectionManager }: SessionOptions) {
@@ -70,6 +64,10 @@ export class Session extends EventEmitter<SessionEvents> {
     }
 
     async disconnect(): Promise<void> {
+        const currentConnection = this.connectionManager.currentConnectionState;
+        const atlasCluster =
+            currentConnection.tag === "connected" ? currentConnection.connectedAtlasCluster : undefined;
+
         try {
             await this.connectionManager.disconnect();
         } catch (err: unknown) {
@@ -77,13 +75,13 @@ export class Session extends EventEmitter<SessionEvents> {
             logger.error(LogId.mongodbDisconnectFailure, "Error closing service provider:", error.message);
         }
 
-        if (this.connectedAtlasCluster?.username && this.connectedAtlasCluster?.projectId) {
+        if (atlasCluster?.username && atlasCluster?.projectId) {
             void this.apiClient
                 .deleteDatabaseUser({
                     params: {
                         path: {
-                            groupId: this.connectedAtlasCluster.projectId,
-                            username: this.connectedAtlasCluster.username,
+                            groupId: atlasCluster.projectId,
+                            username: atlasCluster.username,
                             databaseName: "admin",
                         },
                     },
@@ -96,7 +94,6 @@ export class Session extends EventEmitter<SessionEvents> {
                         `Error deleting previous database user: ${error.message}`
                     );
                 });
-            this.connectedAtlasCluster = undefined;
         }
     }
 
@@ -126,5 +123,14 @@ export class Session extends EventEmitter<SessionEvents> {
         }
 
         throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
+    }
+
+    get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined {
+        const connectionState = this.connectionManager.currentConnectionState;
+        if (connectionState.tag === "connected") {
+            return connectionState.connectedAtlasCluster;
+        }
+
+        return undefined;
     }
 }
