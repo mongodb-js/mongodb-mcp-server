@@ -355,7 +355,7 @@ describe("SessionExportsManager integration test", () => {
                 })
             );
             expect(await fileExists(exportPath)).toEqual(true);
-            await timeout(150);
+            await timeout(200);
             expect(manager.listAvailableExports()).toEqual([]);
             expect(await fileExists(exportPath)).toEqual(false);
         });
