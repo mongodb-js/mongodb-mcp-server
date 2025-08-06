@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs/promises";
-import { Readable } from "stream";
+import { Readable, Transform } from "stream";
 import { FindCursor, Long } from "mongodb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SessionExportsManager, SessionExportsManagerConfig } from "../../../src/common/sessionExportsManager.js";
@@ -9,6 +9,7 @@ import { config } from "../../../src/common/config.js";
 import { Session } from "../../../src/common/session.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { timeout } from "../../integration/helpers.js";
+import { EJSON, EJSONOptions } from "bson";
 
 const dummySessionId = "1FOO";
 const dummyExportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
@@ -18,16 +19,20 @@ const exportsManagerConfig: SessionExportsManagerConfig = {
     exportTimeoutMs: config.exportTimeoutMs,
     exportCleanupIntervalMs: config.exportCleanupIntervalMs,
 } as const;
-const dummyExportName = "foo.bar.json";
-const dummyExportPath = path.join(dummySessionExportPath, dummyExportName);
+function getDummyExportName(timestamp: number) {
+    return `foo.bar.${timestamp}.json`;
+}
+function getDummyExportPath(timestamp: number) {
+    return path.join(dummySessionExportPath, getDummyExportName(timestamp));
+}
 
-async function createDummyExport() {
+async function createDummyExport(timestamp: number) {
     const content = "[]";
     await fs.mkdir(dummySessionExportPath, { recursive: true });
-    await fs.writeFile(dummyExportPath, content);
+    await fs.writeFile(getDummyExportPath(timestamp), content);
     return {
-        name: dummyExportName,
-        path: dummyExportPath,
+        name: getDummyExportName(timestamp),
+        path: getDummyExportPath(timestamp),
         content,
     };
 }
@@ -76,54 +81,54 @@ describe("SessionExportsManager integration test", () => {
         manager = new SessionExportsManager(session, exportsManagerConfig);
     });
 
-    describe("#exportNameToResourceURI", function () {
-        it("should throw when export name has no extension", function () {
+    describe("#exportNameToResourceURI", () => {
+        it("should throw when export name has no extension", () => {
             expect(() => manager.exportNameToResourceURI("name")).toThrow();
         });
 
-        it("should return a resource URI", function () {
+        it("should return a resource URI", () => {
             expect(manager.exportNameToResourceURI("name.json")).toEqual("exported-data://name.json");
         });
     });
 
-    describe("#exportsDirectoryPath", function () {
-        it("should throw when session is not initialized", function () {
+    describe("#exportsDirectoryPath", () => {
+        it("should throw when session is not initialized", () => {
             expect(() => manager.exportsDirectoryPath()).toThrow();
         });
 
-        it("should return a session path when session is initialized", function () {
+        it("should return a session path when session is initialized", () => {
             session.sessionId = dummySessionId;
             manager = new SessionExportsManager(session, exportsManagerConfig);
             expect(manager.exportsDirectoryPath()).toEqual(path.join(exportsManagerConfig.exportPath, dummySessionId));
         });
     });
 
-    describe("#exportFilePath", function () {
-        it("should throw when export name has no extension", function () {
+    describe("#exportFilePath", () => {
+        it("should throw when export name has no extension", () => {
             expect(() => manager.exportFilePath(dummySessionExportPath, "name")).toThrow();
         });
 
-        it("should return path to provided export file", function () {
+        it("should return path to provided export file", () => {
             expect(manager.exportFilePath(dummySessionExportPath, "mflix.movies.json")).toEqual(
                 path.join(dummySessionExportPath, "mflix.movies.json")
             );
         });
     });
 
-    describe("#readExport", function () {
-        it("should throw when export name has no extension", async function () {
+    describe("#readExport", () => {
+        it("should throw when export name has no extension", async () => {
             await expect(() => manager.readExport("name")).rejects.toThrow();
         });
 
-        it("should return the resource content", async function () {
-            const { name, content } = await createDummyExport();
+        it("should return the resource content", async () => {
+            const { name, content } = await createDummyExport(Date.now());
             session.sessionId = dummySessionId;
             manager = new SessionExportsManager(session, exportsManagerConfig);
             expect(await manager.readExport(name)).toEqual(content);
         });
     });
 
-    describe("#createJSONExport", function () {
+    describe("#createJSONExport", () => {
         let inputCursor: FindCursor;
         beforeEach(() => {
             void inputCursor?.close();
@@ -139,12 +144,47 @@ describe("SessionExportsManager integration test", () => {
             ]);
         });
 
-        it.each([
-            { cond: "when exportName does not contain extension", exportName: "foo.bar" },
-            { cond: "when exportName contains extension", exportName: "foo.bar.json" },
-        ])(
-            "$cond, should export relaxed json, update available exports and emit export-available event",
-            async function ({ exportName }) {
+        describe("when cursor is empty", () => {
+            it("should create an empty export", async () => {
+                inputCursor = createDummyFindCursor([]);
+
+                const emitSpy = vi.spyOn(session, "emit");
+                session.sessionId = dummySessionId;
+                manager = new SessionExportsManager(session, exportsManagerConfig);
+                const timestamp = Date.now();
+                await manager.createJSONExport({
+                    input: inputCursor,
+                    exportName: getDummyExportName(timestamp),
+                    jsonExportFormat: "relaxed",
+                });
+
+                // Updates available export
+                const availableExports = manager.listAvailableExports();
+                expect(availableExports).toHaveLength(1);
+                expect(availableExports).toContainEqual(
+                    expect.objectContaining({
+                        name: getDummyExportName(timestamp),
+                        uri: `exported-data://${getDummyExportName(timestamp)}`,
+                    })
+                );
+
+                // Emit event
+                expect(emitSpy).toHaveBeenCalledWith(
+                    "export-available",
+                    `exported-data://${getDummyExportName(timestamp)}`
+                );
+
+                // Exports relaxed json
+                const jsonData = JSON.parse(await manager.readExport(getDummyExportName(timestamp))) as unknown[];
+                expect(jsonData).toEqual([]);
+            });
+        });
+
+        describe.each([
+            { cond: "when exportName does not contain extension", exportName: `foo.bar.${Date.now()}` },
+            { cond: "when exportName contains extension", exportName: `foo.bar.${Date.now()}.json` },
+        ])("$cond", ({ exportName }) => {
+            it("should export relaxed json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(session, "emit");
                 session.sessionId = dummySessionId;
                 manager = new SessionExportsManager(session, exportsManagerConfig);
@@ -154,32 +194,32 @@ describe("SessionExportsManager integration test", () => {
                     jsonExportFormat: "relaxed",
                 });
 
+                const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
                 const availableExports = manager.listAvailableExports();
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
-                        name: "foo.bar.json",
-                        uri: "exported-data://foo.bar.json",
+                        name: expectedExportName,
+                        uri: `exported-data://${expectedExportName}`,
                     })
                 );
 
                 // Emit event
-                expect(emitSpy).toHaveBeenCalledWith("export-available", "exported-data://foo.bar.json");
+                expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport("foo.bar.json")) as unknown[];
+                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "foo", longNumber: 12 }));
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "bar", longNumber: 123456 }));
-            }
-        );
+            });
+        });
 
-        it.each([
-            { cond: "when exportName does not contain extension", exportName: "foo.bar" },
-            { cond: "when exportName contains extension", exportName: "foo.bar.json" },
-        ])(
-            "$cond, should export canonical json, update available exports and emit export-available event",
-            async function ({ exportName }) {
+        describe.each([
+            { cond: "when exportName does not contain extension", exportName: `foo.bar.${Date.now()}` },
+            { cond: "when exportName contains extension", exportName: `foo.bar.${Date.now()}.json` },
+        ])("$cond", ({ exportName }) => {
+            it("should export canonical json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(session, "emit");
                 session.sessionId = dummySessionId;
                 manager = new SessionExportsManager(session, exportsManagerConfig);
@@ -189,32 +229,81 @@ describe("SessionExportsManager integration test", () => {
                     jsonExportFormat: "canonical",
                 });
 
+                const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
                 const availableExports = manager.listAvailableExports();
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
-                        name: "foo.bar.json",
-                        uri: "exported-data://foo.bar.json",
+                        name: expectedExportName,
+                        uri: `exported-data://${expectedExportName}`,
                     })
                 );
 
                 // Emit event
-                expect(emitSpy).toHaveBeenCalledWith("export-available", "exported-data://foo.bar.json");
+                expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport("foo.bar.json")) as unknown[];
+                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
                 expect(jsonData).toContainEqual(
                     expect.objectContaining({ name: "foo", longNumber: { $numberLong: "12" } })
                 );
                 expect(jsonData).toContainEqual(
                     expect.objectContaining({ name: "bar", longNumber: { $numberLong: "123456" } })
                 );
-            }
-        );
+            });
+        });
+
+        describe("when transform stream throws an error", () => {
+            it("should remove the partial export and never make it available", async () => {
+                const emitSpy = vi.spyOn(session, "emit");
+                session.sessionId = dummySessionId;
+                manager = new SessionExportsManager(session, exportsManagerConfig);
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+                (manager as any).docToEJSONStream = function (ejsonOptions: EJSONOptions | undefined) {
+                    let docsTransformed = 0;
+                    return new Transform({
+                        objectMode: true,
+                        transform: function (chunk: unknown, encoding, callback) {
+                            ++docsTransformed;
+                            try {
+                                if (docsTransformed === 1) {
+                                    throw new Error("Could not transform the chunk!");
+                                }
+                                const doc: string = EJSON.stringify(chunk, undefined, 2, ejsonOptions);
+                                const line = `${docsTransformed > 1 ? ",\n" : ""}${doc}`;
+
+                                callback(null, line);
+                            } catch (err: unknown) {
+                                callback(err as Error);
+                            }
+                        },
+                        final: function (callback) {
+                            this.push("]");
+                            callback(null);
+                        },
+                    });
+                };
+
+                const timestamp = Date.now();
+                const exportName = getDummyExportName(timestamp);
+                const exportPath = getDummyExportPath(timestamp);
+                await expect(() =>
+                    manager.createJSONExport({
+                        input: inputCursor,
+                        exportName,
+                        jsonExportFormat: "relaxed",
+                    })
+                ).rejects.toThrow("Could not transform the chunk!");
+
+                expect(emitSpy).not.toHaveBeenCalled();
+                expect(manager.listAvailableExports()).toEqual([]);
+                expect(await fileExists(exportPath)).toEqual(false);
+            });
+        });
     });
 
-    describe("#cleanupExpiredExports", function () {
+    describe("#cleanupExpiredExports", () => {
         let input: FindCursor;
         beforeEach(() => {
             void input?.close();
@@ -230,8 +319,8 @@ describe("SessionExportsManager integration test", () => {
             ]);
         });
 
-        it("should do nothing if session is not initialized", async function () {
-            const { path } = await createDummyExport();
+        it("should do nothing if session is not initialized", async () => {
+            const { path } = await createDummyExport(Date.now());
             new SessionExportsManager(session, {
                 ...exportsManagerConfig,
                 exportTimeoutMs: 100,
@@ -243,8 +332,11 @@ describe("SessionExportsManager integration test", () => {
             expect(await fileExists(path)).toEqual(true);
         });
 
-        it("should cleanup expired exports if session is initialized", async function () {
+        it("should cleanup expired exports if session is initialized", async () => {
             session.sessionId = dummySessionId;
+            const timestamp = Date.now();
+            const exportName = getDummyExportName(timestamp);
+            const exportPath = getDummyExportPath(timestamp);
             const manager = new SessionExportsManager(session, {
                 ...exportsManagerConfig,
                 exportTimeoutMs: 100,
@@ -252,20 +344,20 @@ describe("SessionExportsManager integration test", () => {
             });
             await manager.createJSONExport({
                 input,
-                exportName: dummyExportName,
+                exportName,
                 jsonExportFormat: "relaxed",
             });
 
             expect(manager.listAvailableExports()).toContainEqual(
                 expect.objectContaining({
-                    name: "foo.bar.json",
-                    uri: "exported-data://foo.bar.json",
+                    name: exportName,
+                    uri: `exported-data://${exportName}`,
                 })
             );
-            expect(await fileExists(dummyExportPath)).toEqual(true);
-            await timeout(200);
+            expect(await fileExists(exportPath)).toEqual(true);
+            await timeout(150);
             expect(manager.listAvailableExports()).toEqual([]);
-            expect(await fileExists(dummyExportPath)).toEqual(false);
+            expect(await fileExists(exportPath)).toEqual(false);
         });
     });
 });

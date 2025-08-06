@@ -118,28 +118,44 @@ export class SessionExportsManager {
         jsonExportFormat: JSONExportFormat;
     }): Promise<void> {
         try {
+            const exportNameWithExtension = this.withExtension(exportName, "json");
+            const inputStream = input.stream();
+            const ejsonDocStream = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
             await this.withExportsLock<void>(async (exportsDirectoryPath) => {
-                const exportNameWithExtension = this.withExtension(exportName, "json");
                 const exportFilePath = path.join(exportsDirectoryPath, exportNameWithExtension);
                 const outputStream = createWriteStream(exportFilePath);
                 outputStream.write("[");
+                let pipeSuccessful = false;
                 try {
-                    const inputStream = input.stream();
-                    const ejsonOptions = this.getEJSONOptionsForFormat(jsonExportFormat);
-                    await pipeline([inputStream, this.docToEJSONStream(ejsonOptions), outputStream]);
+                    await pipeline([inputStream, ejsonDocStream, outputStream]);
+                    pipeSuccessful = true;
+                } catch (pipelineError) {
+                    // If the pipeline errors out then we might end up with
+                    // partial and incorrect export so we remove it entirely.
+                    await fs.unlink(exportFilePath).catch((error) => {
+                        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+                            logger.error(
+                                LogId.exportCreationCleanupError,
+                                "Error when removing partial export",
+                                error instanceof Error ? error.message : String(error)
+                            );
+                        }
+                    });
+                    throw pipelineError;
                 } finally {
-                    outputStream.write("]\n");
-                    const resourceURI = this.exportNameToResourceURI(exportNameWithExtension);
-                    this.mutableExports = [
-                        ...this.mutableExports,
-                        {
-                            createdAt: (await fs.stat(exportFilePath)).birthtimeMs,
-                            name: exportNameWithExtension,
-                            uri: resourceURI,
-                        },
-                    ];
-                    this.session.emit("export-available", resourceURI);
                     void input.close();
+                    if (pipeSuccessful) {
+                        const resourceURI = this.exportNameToResourceURI(exportNameWithExtension);
+                        this.mutableExports = [
+                            ...this.mutableExports,
+                            {
+                                createdAt: (await fs.stat(exportFilePath)).birthtimeMs,
+                                name: exportNameWithExtension,
+                                uri: resourceURI,
+                            },
+                        ];
+                        this.session.emit("export-available", resourceURI);
+                    }
                 }
             });
         } catch (error) {

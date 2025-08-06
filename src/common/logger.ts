@@ -52,10 +52,11 @@ export const LogId = {
 
     exportCleanupError: mongoLogId(1_007_001),
     exportCreationError: mongoLogId(1_007_002),
-    exportReadError: mongoLogId(1_007_003),
-    exportCloseError: mongoLogId(1_007_004),
-    exportedDataListError: mongoLogId(1_007_005),
-    exportedDataAutoCompleteError: mongoLogId(1_007_006),
+    exportCreationCleanupError: mongoLogId(1_007_003),
+    exportReadError: mongoLogId(1_007_004),
+    exportCloseError: mongoLogId(1_007_005),
+    exportedDataListError: mongoLogId(1_007_006),
+    exportedDataAutoCompleteError: mongoLogId(1_007_007),
 } as const;
 
 interface LogPayload {
