@@ -64,9 +64,7 @@ export class Session extends EventEmitter<SessionEvents> {
     }
 
     async disconnect(): Promise<void> {
-        const currentConnection = this.connectionManager.currentConnectionState;
-        const atlasCluster =
-            currentConnection.tag === "connected" ? currentConnection.connectedAtlasCluster : undefined;
+        const atlasCluster = this.connectedAtlasCluster;
 
         try {
             await this.connectionManager.disconnect();
