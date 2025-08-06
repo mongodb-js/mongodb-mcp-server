@@ -6,6 +6,8 @@ import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import logger, { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
+import { setAppNameParamIfMissing } from "../../../helpers/connectionOptions.js";
+import { packageInfo } from "../../../common/packageInfo.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 
@@ -120,7 +122,15 @@ export class ConnectClusterTool extends AtlasToolBase {
         cn.username = username;
         cn.password = password;
         cn.searchParams.set("authSource", "admin");
-        return cn.toString();
+
+        const connectionStringWithAuth = cn.toString();
+        return await setAppNameParamIfMissing({
+            connectionString: connectionStringWithAuth,
+            components: {
+                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                clientName: this.session.agentRunner?.name || "unknown",
+            },
+        });
     }
 
     private async connectToCluster(projectId: string, clusterName: string, connectionString: string): Promise<void> {
