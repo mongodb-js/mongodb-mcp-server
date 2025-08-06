@@ -78,6 +78,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
             it("should notify that it was disconnected before connecting", () => {
                 expect(connectionManagerSpies["connection-closed"]).toHaveBeenCalled();
             });
+
+            it("should be marked explicitly as disconnected", () => {
+                expect(connectionManager().currentConnectionState.tag).toEqual("disconnected");
+            });
         });
 
         describe("when reconnects", () => {
@@ -94,6 +98,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             it("should notify that it was connected again", () => {
                 expect(connectionManagerSpies["connection-succeeded"]).toHaveBeenCalled();
+            });
+
+            it("should be marked explicitly as connected", () => {
+                expect(connectionManager().currentConnectionState.tag).toEqual("connected");
             });
         });
 
@@ -115,6 +123,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             it("should notify that it failed connecting", () => {
                 expect(connectionManagerSpies["connection-errored"]).toHaveBeenCalled();
+            });
+
+            it("should be marked explicitly as connected", () => {
+                expect(connectionManager().currentConnectionState.tag).toEqual("errored");
             });
         });
     });

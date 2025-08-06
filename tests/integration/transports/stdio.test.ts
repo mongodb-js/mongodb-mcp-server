@@ -4,13 +4,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 
 describeWithMongoDB("StdioRunner", (integration) => {
-    beforeEach(() => {
-        integration.mcpServer().userConfig.connectionString = integration.connectionString();
-        integration.mcpServer().session.connectionManager.changeState("connection-succeeded", {
-            tag: "connected",
-        });
-    });
-
     describe("client connects successfully", () => {
         let client: Client;
         let transport: StdioClientTransport;
