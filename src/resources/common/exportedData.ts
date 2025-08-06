@@ -18,7 +18,6 @@ export class ExportedData {
             void this.server.mcpServer.server.sendResourceUpdated({
                 uri,
             });
-            this.server.mcpServer.sendResourceListChanged();
         });
         this.server.session.on("export-expired", () => {
             this.server.mcpServer.sendResourceListChanged();
@@ -52,8 +51,11 @@ export class ExportedData {
             if (!sessionId) {
                 // Note that we don't throw error here because this is a
                 // non-critical path and safe to return the most harmless value.
-
-                // TODO: log warn here
+                logger.warning(
+                    LogId.exportedDataSessionUninitialized,
+                    "In ListResourcesCallback of exported-data resource",
+                    "Session not initialized"
+                );
                 return { resources: [] };
             }
 
@@ -84,8 +86,11 @@ export class ExportedData {
             if (!sessionId) {
                 // Note that we don't throw error here because this is a
                 // non-critical path and safe to return the most harmless value.
-
-                // TODO: log warn here
+                logger.warning(
+                    LogId.exportedDataSessionUninitialized,
+                    "In CompleteResourceTemplateCallback of exported-data resource",
+                    "Session not initialized"
+                );
                 return [];
             }
 

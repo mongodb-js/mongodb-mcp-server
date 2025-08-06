@@ -26,8 +26,10 @@ export type SessionExportsManagerConfig = Pick<
     "exportPath" | "exportTimeoutMs" | "exportCleanupIntervalMs"
 >;
 
+const MAX_LOCK_RETRIES = 10;
+
 export class SessionExportsManager {
-    private mutableExports: Export[] = [];
+    private availableExports: Export[] = [];
     private exportsCleanupInterval: NodeJS.Timeout;
     private exportsCleanupInProgress: boolean = false;
 
@@ -56,9 +58,7 @@ export class SessionExportsManager {
     }
 
     public exportNameToResourceURI(nameWithExtension: string): string {
-        if (!path.extname(nameWithExtension)) {
-            throw new Error("Provided export name has no extension");
-        }
+        this.validateExportName(nameWithExtension);
         return `exported-data://${nameWithExtension}`;
     }
 
@@ -73,9 +73,7 @@ export class SessionExportsManager {
     }
 
     public exportFilePath(exportsDirectoryPath: string, exportNameWithExtension: string): string {
-        if (!path.extname(exportNameWithExtension)) {
-            throw new Error("Provided export name has no extension");
-        }
+        this.validateExportName(exportNameWithExtension);
         return path.join(exportsDirectoryPath, exportNameWithExtension);
     }
 
@@ -84,13 +82,14 @@ export class SessionExportsManager {
         // by not acquiring a lock on read. That is because this we require this
         // interface to be fast and just accurate enough for MCP completions
         // API.
-        return this.mutableExports.filter(({ createdAt }) => {
+        return this.availableExports.filter(({ createdAt }) => {
             return !this.isExportExpired(createdAt);
         });
     }
 
     public async readExport(exportNameWithExtension: string): Promise<string> {
         try {
+            this.validateExportName(exportNameWithExtension);
             const exportsDirectoryPath = await this.ensureExportsDirectory();
             const exportFilePath = this.exportFilePath(exportsDirectoryPath, exportNameWithExtension);
             if (await this.isExportFileExpired(exportFilePath)) {
@@ -118,7 +117,9 @@ export class SessionExportsManager {
         jsonExportFormat: JSONExportFormat;
     }): Promise<void> {
         try {
-            const exportNameWithExtension = this.withExtension(exportName, "json");
+            const exportNameWithExtension = this.ensureExtension(exportName, "json");
+            this.validateExportName(exportNameWithExtension);
+
             const inputStream = input.stream();
             const ejsonDocStream = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
             await this.withExportsLock<void>(async (exportsDirectoryPath) => {
@@ -146,8 +147,8 @@ export class SessionExportsManager {
                     void input.close();
                     if (pipeSuccessful) {
                         const resourceURI = this.exportNameToResourceURI(exportNameWithExtension);
-                        this.mutableExports = [
-                            ...this.mutableExports,
+                        this.availableExports = [
+                            ...this.availableExports,
                             {
                                 createdAt: (await fs.stat(exportFilePath)).birthtimeMs,
                                 name: exportNameWithExtension,
@@ -216,7 +217,7 @@ export class SessionExportsManager {
                     const exportPath = this.exportFilePath(exportsDirectoryPath, exportName);
                     if (await this.isExportFileExpired(exportPath)) {
                         await fs.unlink(exportPath);
-                        this.mutableExports = this.mutableExports.filter(({ name }) => name !== exportName);
+                        this.availableExports = this.availableExports.filter(({ name }) => name !== exportName);
                         this.session.emit("export-expired", this.exportNameToResourceURI(exportName));
                     }
                 }
@@ -229,6 +230,19 @@ export class SessionExportsManager {
             );
         } finally {
             this.exportsCleanupInProgress = false;
+        }
+    }
+
+    /**
+     * Small utility to validate provided export name for path traversal or no
+     * extension */
+    private validateExportName(nameWithExtension: string): void {
+        if (!path.extname(nameWithExtension)) {
+            throw new Error("Provided export name has no extension");
+        }
+
+        if (nameWithExtension.includes("..") || nameWithExtension.includes("/") || nameWithExtension.includes("\\")) {
+            throw new Error("Invalid export name: path traversal hinted");
         }
     }
 
@@ -252,7 +266,7 @@ export class SessionExportsManager {
 
     /**
      * Ensures the path ends with the provided extension */
-    private withExtension(pathOrName: string, extension: string): string {
+    private ensureExtension(pathOrName: string, extension: string): string {
         const extWithDot = extension.startsWith(".") ? extension : `.${extension}`;
         if (path.extname(pathOrName) === extWithDot) {
             return pathOrName;
@@ -274,7 +288,7 @@ export class SessionExportsManager {
         let releaseLock: (() => Promise<void>) | undefined;
         const exportsDirectoryPath = await this.ensureExportsDirectory();
         try {
-            releaseLock = await lock(exportsDirectoryPath, { retries: 10 });
+            releaseLock = await lock(exportsDirectoryPath, { retries: MAX_LOCK_RETRIES });
             return await callback(exportsDirectoryPath);
         } finally {
             await releaseLock?.();
