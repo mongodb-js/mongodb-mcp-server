@@ -125,11 +125,6 @@ export class Session extends EventEmitter<SessionEvents> {
     }
 
     get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined {
-        const connectionState = this.connectionManager.currentConnectionState;
-        if (connectionState.tag === "connected") {
-            return connectionState.connectedAtlasCluster;
-        }
-
-        return undefined;
+        return this.connectionManager.currentConnectionState.connectedAtlasCluster;
     }
 }

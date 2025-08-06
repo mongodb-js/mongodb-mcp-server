@@ -26,12 +26,12 @@ export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConne
 export interface ConnectionState {
     tag: ConnectionTag;
     connectionStringAuthType?: ConnectionStringAuthType;
+    connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
 export interface ConnectionStateConnected extends ConnectionState {
     tag: "connected";
     serviceProvider: NodeDriverServiceProvider;
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
 export interface ConnectionStateConnecting extends ConnectionState {
@@ -104,7 +104,11 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
-            this.changeState("connection-errored", { tag: "errored", errorReason });
+            this.changeState("connection-errored", {
+                tag: "errored",
+                errorReason,
+                connectedAtlasCluster: settings.atlas,
+            });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
 
@@ -119,7 +123,11 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
-            this.changeState("connection-errored", { tag: "errored", errorReason });
+            this.changeState("connection-errored", {
+                tag: "errored",
+                errorReason,
+                connectedAtlasCluster: settings.atlas,
+            });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
         }
     }
