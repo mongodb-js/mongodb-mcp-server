@@ -147,7 +147,7 @@ export class ConsoleLogger extends LoggerBase {
     protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
         console.error(
-            `[${level.toUpperCase()}]${id.__value} - ${context}: ${message} (${process.pid}${this.serializeAttributes(payload.attributes)})`
+            `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid}${this.serializeAttributes(payload.attributes)})`
         );
     }
 
