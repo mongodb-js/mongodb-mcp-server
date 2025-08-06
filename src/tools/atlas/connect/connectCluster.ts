@@ -141,8 +141,8 @@ export class ConnectClusterTool extends AtlasToolBase {
         for (let i = 0; i < 600; i++) {
             if (
                 !this.session.connectedAtlasCluster ||
-                this.session.connectedAtlasCluster.projectId != atlas.projectId ||
-                this.session.connectedAtlasCluster.clusterName != atlas.clusterName
+                this.session.connectedAtlasCluster.projectId !== atlas.projectId ||
+                this.session.connectedAtlasCluster.clusterName !== atlas.clusterName
             ) {
                 throw new Error("Cluster connection aborted");
             }
@@ -169,8 +169,8 @@ export class ConnectClusterTool extends AtlasToolBase {
 
         if (lastError) {
             if (
-                this.session.connectedAtlasCluster?.projectId == atlas.projectId &&
-                this.session.connectedAtlasCluster?.clusterName == atlas.clusterName &&
+                this.session.connectedAtlasCluster?.projectId === atlas.projectId &&
+                this.session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
                 this.session.connectedAtlasCluster?.username
             ) {
                 void this.session.apiClient

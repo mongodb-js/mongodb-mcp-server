@@ -51,12 +51,12 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         });
 
     const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
-    const clusterInstanceType = instanceSize == "M0" ? "FREE" : "DEDICATED";
+    const clusterInstanceType = instanceSize === "M0" ? "FREE" : "DEDICATED";
 
     return {
         name: cluster.name,
         instanceType: clusterInstanceType,
-        instanceSize: clusterInstanceType == "DEDICATED" ? instanceSize : undefined,
+        instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionString: cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard,
