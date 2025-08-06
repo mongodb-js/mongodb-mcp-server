@@ -152,7 +152,7 @@ describe("SessionExportsManager integration test", () => {
             it("should create an empty export", async () => {
                 inputCursor = createDummyFindCursor([]);
 
-                const emitSpy = vi.spyOn(session, "emit");
+                const emitSpy = vi.spyOn(manager, "emit");
                 await manager.createJSONExport({
                     input: inputCursor,
                     exportName,
@@ -183,7 +183,7 @@ describe("SessionExportsManager integration test", () => {
             { cond: "when exportName contains extension", exportName: `foo.bar.${Date.now()}.json` },
         ])("$cond", ({ exportName }) => {
             it("should export relaxed json, update available exports and emit export-available event", async () => {
-                const emitSpy = vi.spyOn(session, "emit");
+                const emitSpy = vi.spyOn(manager, "emit");
                 await manager.createJSONExport({
                     input: inputCursor,
                     exportName,
@@ -216,7 +216,7 @@ describe("SessionExportsManager integration test", () => {
             { cond: "when exportName contains extension", exportName: `foo.bar.${Date.now()}.json` },
         ])("$cond", ({ exportName }) => {
             it("should export canonical json, update available exports and emit export-available event", async () => {
-                const emitSpy = vi.spyOn(session, "emit");
+                const emitSpy = vi.spyOn(manager, "emit");
                 await manager.createJSONExport({
                     input: inputCursor,
                     exportName,
@@ -250,7 +250,7 @@ describe("SessionExportsManager integration test", () => {
 
         describe("when transform stream throws an error", () => {
             it("should remove the partial export and never make it available", async () => {
-                const emitSpy = vi.spyOn(session, "emit");
+                const emitSpy = vi.spyOn(manager, "emit");
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
                 (manager as any).docToEJSONStream = function (ejsonOptions: EJSONOptions | undefined) {
                     let docsTransformed = 0;

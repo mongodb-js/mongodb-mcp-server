@@ -13,13 +13,13 @@ export class ExportedData {
     private readonly uri = "exported-data://{exportName}";
 
     constructor(private readonly server: Server) {
-        this.server.session.on("export-available", (uri) => {
+        this.server.exportsManager.on("export-available", (uri) => {
             this.server.mcpServer.sendResourceListChanged();
             void this.server.mcpServer.server.sendResourceUpdated({
                 uri,
             });
         });
-        this.server.session.on("export-expired", () => {
+        this.server.exportsManager.on("export-expired", () => {
             this.server.mcpServer.sendResourceListChanged();
         });
     }

@@ -1,6 +1,7 @@
 import z from "zod";
 import path from "path";
 import fs from "fs/promises";
+import EventEmitter from "events";
 import { createWriteStream } from "fs";
 import { lock } from "proper-lockfile";
 import { FindCursor } from "mongodb";
@@ -28,7 +29,12 @@ export type SessionExportsManagerConfig = Pick<
 
 const MAX_LOCK_RETRIES = 10;
 
-export class SessionExportsManager {
+type SessionExportsManagerEvents = {
+    "export-expired": [string];
+    "export-available": [string];
+};
+
+export class SessionExportsManager extends EventEmitter<SessionExportsManagerEvents> {
     private availableExports: Export[] = [];
     private exportsCleanupInterval: NodeJS.Timeout;
     private exportsCleanupInProgress: boolean = false;
@@ -37,6 +43,7 @@ export class SessionExportsManager {
         private readonly session: Session,
         private readonly config: SessionExportsManagerConfig
     ) {
+        super();
         this.exportsCleanupInterval = setInterval(
             () => void this.cleanupExpiredExports(),
             this.config.exportCleanupIntervalMs
@@ -149,7 +156,7 @@ export class SessionExportsManager {
                                 uri: resourceURI,
                             },
                         ];
-                        this.session.emit("export-available", resourceURI);
+                        this.emit("export-available", resourceURI);
                     }
                 }
             });
@@ -212,7 +219,7 @@ export class SessionExportsManager {
                     if (await this.isExportFileExpired(exportPath)) {
                         await fs.unlink(exportPath);
                         this.availableExports = this.availableExports.filter(({ name }) => name !== exportName);
-                        this.session.emit("export-expired", this.exportNameToResourceURI(exportName));
+                        this.emit("export-expired", this.exportNameToResourceURI(exportName));
                     }
                 }
             });
