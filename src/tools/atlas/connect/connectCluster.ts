@@ -219,9 +219,9 @@ export class ConnectClusterTool extends AtlasToolBase {
                     break;
                 }
                 case "connected-to-other-cluster":
+                    await this.session.disconnect();
                 case "disconnected":
                 default: {
-                    await this.session.disconnect();
                     const { connectionString, atlas } = await this.prepareClusterConnection(projectId, clusterName);
 
                     // try to connect for about 5 minutes asynchronously
