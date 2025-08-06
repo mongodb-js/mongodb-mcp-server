@@ -41,7 +41,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             return "connected-to-other-cluster";
         }
 
-        if (!this.session.isConnectedToMongoDB) {
+        if (this.session.connectionManager.currentConnectionState.tag !== "connected") {
             return "connecting";
         }
 
