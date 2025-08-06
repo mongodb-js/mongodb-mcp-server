@@ -38,12 +38,15 @@ export class Server {
     }
 
     async connect(transport: Transport): Promise<void> {
+        // Resources are now reactive, so we register them ASAP so they can listen to events like
+        // connection events.
+        this.registerResources();
         await this.validateConfig();
 
-        this.mcpServer.server.registerCapabilities({ logging: {} });
+        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { subscribe: true, listChanged: true } });
 
+        // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
-        this.registerResources();
 
         // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
@@ -194,7 +197,10 @@ export class Server {
 
         if (this.userConfig.connectionString) {
             try {
-                await this.session.connectToMongoDB(this.userConfig.connectionString, this.userConfig.connectOptions);
+                await this.session.connectToMongoDB({
+                    connectionString: this.userConfig.connectionString,
+                    ...this.userConfig.connectOptions,
+                });
             } catch (error) {
                 console.error(
                     "Failed to connect to MongoDB instance using the connection string from the config: ",

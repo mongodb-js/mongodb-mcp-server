@@ -43,7 +43,10 @@ describe("Session", () => {
 
         for (const testCase of testCases) {
             it(`should update connection string for ${testCase.name}`, async () => {
-                await session.connectToMongoDB(testCase.connectionString, config.connectOptions);
+                await session.connectToMongoDB({
+                    connectionString: testCase.connectionString,
+                    ...config.connectOptions,
+                });
                 expect(session.serviceProvider).toBeDefined();
 
                 const connectMock = MockNodeDriverServiceProvider.connect;
@@ -58,7 +61,7 @@ describe("Session", () => {
         }
 
         it("should configure the proxy to use environment variables", async () => {
-            await session.connectToMongoDB("mongodb://localhost", config.connectOptions);
+            await session.connectToMongoDB({ connectionString: "mongodb://localhost", ...config.connectOptions });
             expect(session.serviceProvider).toBeDefined();
 
             const connectMock = MockNodeDriverServiceProvider.connect;
