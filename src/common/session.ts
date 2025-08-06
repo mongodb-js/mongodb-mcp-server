@@ -100,6 +100,7 @@ export class Session extends EventEmitter<SessionEvents> {
     async close(): Promise<void> {
         await this.disconnect();
         await this.apiClient.close();
+        this.emit("close");
     }
 
     async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
