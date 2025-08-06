@@ -35,7 +35,6 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         const currentConectionState = this.session.connectionManager.currentConnectionState;
-
         switch (currentConectionState.tag) {
             case "connected":
                 if (
@@ -43,6 +42,8 @@ export class ConnectClusterTool extends AtlasToolBase {
                     this.session.connectedAtlasCluster.clusterName !== clusterName
                 ) {
                     return "connected-to-other-cluster";
+                } else {
+                    return "connected";
                 }
                 break;
             case "connecting":
@@ -220,6 +221,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 }
                 case "connected-to-other-cluster":
                     await this.session.disconnect();
+                // eslint-disable-next-line no-fallthrough
                 case "disconnected":
                 default: {
                     const { connectionString, atlas } = await this.prepareClusterConnection(projectId, clusterName);
