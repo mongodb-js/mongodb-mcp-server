@@ -65,7 +65,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     private async prepareClusterConnection(
         projectId: string,
         clusterName: string
-    ): Promise<[string, AtlasClusterConnectionInfo]> {
+    ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
         const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
 
         if (!cluster.connectionString) {
@@ -124,7 +124,8 @@ export class ConnectClusterTool extends AtlasToolBase {
         cn.username = username;
         cn.password = password;
         cn.searchParams.set("authSource", "admin");
-        return [cn.toString(), connectedAtlasCluster];
+
+        return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
     }
 
     private async connectToCluster(
@@ -229,7 +230,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 case "disconnected":
                 default: {
                     await this.session.disconnect();
-                    const [connectionString, atlas] = await this.prepareClusterConnection(projectId, clusterName);
+                    const { connectionString, atlas } = await this.prepareClusterConnection(projectId, clusterName);
 
                     // try to connect for about 5 minutes asynchronously
                     void this.connectToCluster(projectId, clusterName, connectionString, atlas).catch(
