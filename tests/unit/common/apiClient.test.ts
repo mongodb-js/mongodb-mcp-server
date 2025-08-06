@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import { CommonProperties, TelemetryEvent, TelemetryResult } from "../../../src/telemetry/types.js";
+import { NullLogger } from "../../../src/common/logger.js";
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
@@ -26,14 +27,17 @@ describe("ApiClient", () => {
     ];
 
     beforeEach(() => {
-        apiClient = new ApiClient({
-            baseUrl: "https://api.test.com",
-            credentials: {
-                clientId: "test-client-id",
-                clientSecret: "test-client-secret",
+        apiClient = new ApiClient(
+            {
+                baseUrl: "https://api.test.com",
+                credentials: {
+                    clientId: "test-client-id",
+                    clientSecret: "test-client-secret",
+                },
+                userAgent: "test-user-agent",
             },
-            userAgent: "test-user-agent",
-        });
+            new NullLogger()
+        );
 
         // @ts-expect-error accessing private property for testing
         apiClient.getAccessToken = vi.fn().mockResolvedValue("mockToken");
