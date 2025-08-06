@@ -13,13 +13,13 @@ export class ExportedData {
     private readonly uri = "exported-data://{exportName}";
 
     constructor(private readonly server: Server) {
-        this.server.exportsManager.on("export-available", (uri) => {
+        this.server.session.exportsManager.on("export-available", (uri) => {
             this.server.mcpServer.sendResourceListChanged();
             void this.server.mcpServer.server.sendResourceUpdated({
                 uri,
             });
         });
-        this.server.exportsManager.on("export-expired", () => {
+        this.server.session.exportsManager.on("export-expired", () => {
             this.server.mcpServer.sendResourceListChanged();
         });
     }
@@ -47,19 +47,7 @@ export class ExportedData {
 
     private listResourcesCallback: ListResourcesCallback = () => {
         try {
-            const sessionId = this.server.session.sessionId;
-            if (!sessionId) {
-                // Note that we don't throw error here because this is a
-                // non-critical path and safe to return the most harmless value.
-                logger.warning(
-                    LogId.exportedDataSessionUninitialized,
-                    "In ListResourcesCallback of exported-data resource",
-                    "Session not initialized"
-                );
-                return { resources: [] };
-            }
-
-            const sessionExports = this.server.exportsManager.listAvailableExports();
+            const sessionExports = this.server.session.exportsManager.listAvailableExports();
             return {
                 resources: sessionExports.map(({ name, uri }) => ({
                     name: name,
@@ -82,19 +70,7 @@ export class ExportedData {
 
     private autoCompleteExportName: CompleteResourceTemplateCallback = (value) => {
         try {
-            const sessionId = this.server.session.sessionId;
-            if (!sessionId) {
-                // Note that we don't throw error here because this is a
-                // non-critical path and safe to return the most harmless value.
-                logger.warning(
-                    LogId.exportedDataSessionUninitialized,
-                    "In CompleteResourceTemplateCallback of exported-data resource",
-                    "Session not initialized"
-                );
-                return [];
-            }
-
-            const sessionExports = this.server.exportsManager.listAvailableExports();
+            const sessionExports = this.server.session.exportsManager.listAvailableExports();
             return sessionExports.filter(({ name }) => name.startsWith(value)).map(({ name }) => name);
         } catch (error) {
             logger.error(
@@ -108,11 +84,6 @@ export class ExportedData {
 
     private readResourceCallback: ReadResourceTemplateCallback = async (uri, { exportName }) => {
         try {
-            const sessionId = this.server.session.sessionId;
-            if (!sessionId) {
-                throw new Error("Cannot retrieve exported data, session is not valid.");
-            }
-
             if (typeof exportName !== "string") {
                 throw new Error("Cannot retrieve exported data, exportName not provided.");
             }
@@ -120,8 +91,8 @@ export class ExportedData {
             return {
                 contents: [
                     {
-                        uri: this.server.exportsManager.exportNameToResourceURI(exportName),
-                        text: await this.server.exportsManager.readExport(exportName),
+                        uri: this.server.session.exportsManager.exportNameToResourceURI(exportName),
+                        text: await this.server.session.exportsManager.readExport(exportName),
                         mimeType: "application/json",
                     },
                 ],
@@ -132,7 +103,7 @@ export class ExportedData {
                     {
                         uri:
                             typeof exportName === "string"
-                                ? this.server.exportsManager.exportNameToResourceURI(exportName)
+                                ? this.server.session.exportsManager.exportNameToResourceURI(exportName)
                                 : this.uri,
                         text: `Error reading from ${this.uri}: ${error instanceof Error ? error.message : String(error)}`,
                     },

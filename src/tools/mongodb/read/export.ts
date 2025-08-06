@@ -42,14 +42,11 @@ export class ExportTool extends MongoDBToolBase {
             bsonRegExp: true,
         });
         const exportName = `${database}.${collection}.${Date.now()}.json`;
-        if (!this.exportsManager) {
-            throw new Error("Incorrect server configuration, export not possible!");
-        }
 
-        await this.exportsManager.createJSONExport({ input: findCursor, exportName, jsonExportFormat });
-        const exportedResourceURI = this.exportsManager.exportNameToResourceURI(exportName);
-        const exportedResourcePath = this.exportsManager.exportFilePath(
-            this.exportsManager.exportsDirectoryPath(),
+        await this.session.exportsManager.createJSONExport({ input: findCursor, exportName, jsonExportFormat });
+        const exportedResourceURI = this.session.exportsManager.exportNameToResourceURI(exportName);
+        const exportedResourcePath = this.session.exportsManager.exportFilePath(
+            this.session.exportsManager.exportsDirectoryPath(),
             exportName
         );
         const toolCallContent: CallToolResult["content"] = [

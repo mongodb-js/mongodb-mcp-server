@@ -11,6 +11,8 @@ import {
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import { ObjectId } from "bson";
+import { SessionExportsManager } from "./sessionExportsManager.js";
+import { config } from "./config.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -29,6 +31,7 @@ export type SessionEvents = {
 
 export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId = new ObjectId().toString();
+    readonly exportsManager = new SessionExportsManager(this, config);
     connectionManager: ConnectionManager;
     apiClient: ApiClient;
     agentRunner?: {
@@ -108,6 +111,7 @@ export class Session extends EventEmitter<SessionEvents> {
     async close(): Promise<void> {
         await this.disconnect();
         await this.apiClient.close();
+        await this.exportsManager.close();
         this.emit("close");
     }
 

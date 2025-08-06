@@ -5,7 +5,6 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "../../common/logger.js";
 import { Server } from "../../server.js";
-import { SessionExportsManager } from "../../common/sessionExportsManager.js";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),
@@ -14,7 +13,6 @@ export const DbOperationArgs = {
 
 export abstract class MongoDBToolBase extends ToolBase {
     private server?: Server;
-    public exportsManager?: SessionExportsManager;
     public category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
@@ -49,7 +47,6 @@ export abstract class MongoDBToolBase extends ToolBase {
 
     public register(server: Server): boolean {
         this.server = server;
-        this.exportsManager = server.exportsManager;
         return super.register(server);
     }
 
