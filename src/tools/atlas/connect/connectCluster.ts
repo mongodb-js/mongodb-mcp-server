@@ -23,10 +23,10 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName: z.string().describe("Atlas cluster name"),
     };
 
-    private async queryConnection(
+    private queryConnection(
         projectId: string,
         clusterName: string
-    ): Promise<"connected" | "disconnected" | "connecting" | "connected-to-other-cluster" | "unknown"> {
+    ): "connected" | "disconnected" | "connecting" | "connected-to-other-cluster" | "unknown" {
         if (!this.session.connectedAtlasCluster) {
             if (this.session.isConnectedToMongoDB) {
                 return "connected-to-other-cluster";
@@ -34,32 +34,29 @@ export class ConnectClusterTool extends AtlasToolBase {
             return "disconnected";
         }
 
-        if (
-            this.session.connectedAtlasCluster.projectId !== projectId ||
-            this.session.connectedAtlasCluster.clusterName !== clusterName
-        ) {
-            return "connected-to-other-cluster";
-        }
+        const currentConectionState = this.session.connectionManager.currentConnectionState;
 
-        if (this.session.connectionManager.currentConnectionState.tag !== "connected") {
-            return "connecting";
+        switch (currentConectionState.tag) {
+            case "connected":
+                if (
+                    this.session.connectedAtlasCluster.projectId !== projectId ||
+                    this.session.connectedAtlasCluster.clusterName !== clusterName
+                ) {
+                    return "connected-to-other-cluster";
+                }
+                break;
+            case "connecting":
+            case "disconnected": // we might still be calling Atlas APIs and not attempted yet to connect to MongoDB, but we are still "connecting"
+                return "connecting";
+            case "errored":
+                logger.debug(
+                    LogId.atlasConnectFailure,
+                    "atlas-connect-cluster",
+                    `error querying cluster: ${currentConectionState.errorReason}`
+                );
+                return "unknown";
         }
-
-        try {
-            await this.session.serviceProvider.runCommand("admin", {
-                ping: 1,
-            });
-
-            return "connected";
-        } catch (err: unknown) {
-            const error = err instanceof Error ? err : new Error(String(err));
-            logger.debug(
-                LogId.atlasConnectFailure,
-                "atlas-connect-cluster",
-                `error querying cluster: ${error.message}`
-            );
-            return "unknown";
-        }
+        return "unknown";
     }
 
     private async prepareClusterConnection(
@@ -205,7 +202,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
         for (let i = 0; i < 60; i++) {
-            const state = await this.queryConnection(projectId, clusterName);
+            const state = this.queryConnection(projectId, clusterName);
             switch (state) {
                 case "connected": {
                     return {
