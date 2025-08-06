@@ -1,4 +1,4 @@
-import { describe, expect, beforeEach, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";

@@ -12,10 +12,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 describeWithMongoDB(
     "SwitchConnection tool",
     (integration) => {
-        beforeEach(() => {
-            integration.mcpServer().userConfig.connectionString = integration.connectionString();
-            integration.mcpServer().session.connectionManager.changeState("connection-succeeded", {
-                tag: "connected",
+        beforeEach(async () => {
+            await integration.mcpServer().session.connectToMongoDB({
+                connectionString: integration.connectionString(),
+                ...config.connectOptions,
             });
         });
 

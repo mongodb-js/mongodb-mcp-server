@@ -52,7 +52,6 @@ export interface ConnectionStateErrored extends ConnectionState {
 }
 
 export type AnyConnectionState =
-    | ConnectionState
     | ConnectionStateConnected
     | ConnectionStateConnecting
     | ConnectionStateDisconnected
@@ -77,7 +76,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         this.emit("connection-requested", this.state);
 
-        if (this.state.tag == "connected" || this.state.tag == "connecting") {
+        if (this.state.tag === "connected" || this.state.tag === "connecting") {
             await this.disconnect();
         }
 
@@ -126,18 +125,13 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     }
 
     async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
-        if (this.state.tag == "disconnected") {
-            return this.state as ConnectionStateDisconnected;
-        }
-
-        if (this.state.tag == "errored") {
-            return this.state as ConnectionStateErrored;
+        if (this.state.tag === "disconnected" || this.state.tag === "errored") {
+            return this.state;
         }
 
         if (this.state.tag == "connected" || this.state.tag == "connecting") {
-            const state = this.state as ConnectionStateConnecting | ConnectionStateConnected;
             try {
-                await state.serviceProvider?.close(true);
+                await this.state.serviceProvider?.close(true);
             } finally {
                 this.changeState("connection-closed", { tag: "disconnected" });
             }
@@ -150,9 +144,14 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         return this.state;
     }
 
-    changeState<State extends AnyConnectionState>(event: keyof ConnectionManagerEvents, newState: State): State {
+    changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(
+        event: Event,
+        newState: State
+    ): State {
         this.state = newState;
-        this.emit(event, newState);
+        // TypeScript doesn't seem to be happy with the spread operator and generics
+        // eslint-disable-next-line
+        this.emit(event, ...([newState] as any));
         return newState;
     }
 
