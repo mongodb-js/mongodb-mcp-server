@@ -35,19 +35,19 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         const currentConectionState = this.session.connectionManager.currentConnectionState;
+        if (
+            this.session.connectedAtlasCluster.projectId !== projectId ||
+            this.session.connectedAtlasCluster.clusterName !== clusterName
+        ) {
+            return "connected-to-other-cluster";
+        }
+
         switch (currentConectionState.tag) {
-            case "connected":
-                if (
-                    this.session.connectedAtlasCluster.projectId !== projectId ||
-                    this.session.connectedAtlasCluster.clusterName !== clusterName
-                ) {
-                    return "connected-to-other-cluster";
-                } else {
-                    return "connected";
-                }
             case "connecting":
             case "disconnected": // we might still be calling Atlas APIs and not attempted yet to connect to MongoDB, but we are still "connecting"
                 return "connecting";
+            case "connected":
+                return "connected";
             case "errored":
                 logger.debug(
                     LogId.atlasConnectFailure,
@@ -218,10 +218,9 @@ export class ConnectClusterTool extends AtlasToolBase {
                     break;
                 }
                 case "connected-to-other-cluster":
-                    await this.session.disconnect();
-                // eslint-disable-next-line no-fallthrough
                 case "disconnected":
                 default: {
+                    await this.session.disconnect();
                     const { connectionString, atlas } = await this.prepareClusterConnection(projectId, clusterName);
 
                     // try to connect for about 5 minutes asynchronously
