@@ -230,6 +230,7 @@ function generateMarkdownBrief(
         markdownTexts.push(
             ...[
                 "## 📊 Baseline Comparison",
+                "| Metric | Value |",
                 "|--------|-------|",
                 `| **Baseline Commit** | \`${baselineInfo.commitSHA}\` |`,
                 `| **Baseline Run ID** | \`${baselineInfo.accuracyRunId}\` |`,
