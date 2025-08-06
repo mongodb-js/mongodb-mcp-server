@@ -121,7 +121,7 @@ describeWithMongoDB(
         return {
             ...defaultTestConfig,
             exportTimeoutMs: 200,
-            exportCleanupIntervalMs: 100,
+            exportCleanupIntervalMs: 300,
         };
     }
 );
