@@ -17,7 +17,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     public category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
-        if (!this.session.isConnectedToMongoDB()) {
+        if (!this.session.isConnectedToMongoDB) {
             if (this.session.connectedAtlasCluster) {
                 throw new MongoDBError(
                     ErrorCodes.NotConnectedToMongoDB,
@@ -39,7 +39,7 @@ export abstract class MongoDBToolBase extends ToolBase {
             }
         }
 
-        if (!this.session.isConnectedToMongoDB()) {
+        if (!this.session.isConnectedToMongoDB) {
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "Not connected to MongoDB");
         }
 
@@ -117,7 +117,7 @@ export abstract class MongoDBToolBase extends ToolBase {
         return super.handleError(error, args);
     }
 
-    protected connectToMongoDB(connectionString: string): Promise<AnyConnectionState> {
+    protected connectToMongoDB(connectionString: string): Promise<void> {
         return this.session.connectToMongoDB({ connectionString, ...this.config.connectOptions });
     }
 

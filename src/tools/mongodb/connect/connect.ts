@@ -87,7 +87,7 @@ export class ConnectTool extends MongoDBToolBase {
     }
 
     private updateMetadata(): void {
-        if (this.session.isConnectedToMongoDB()) {
+        if (this.session.isConnectedToMongoDB) {
             this.update?.({
                 name: connectedName,
                 description: connectedDescription,

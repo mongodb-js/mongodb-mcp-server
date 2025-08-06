@@ -105,9 +105,9 @@ export class Session extends EventEmitter<SessionEvents> {
         await this.apiClient.close();
     }
 
-    async connectToMongoDB(settings: ConnectionSettings): Promise<AnyConnectionState> {
+    async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
         try {
-            return await this.connectionManager.connect({ ...settings });
+            await this.connectionManager.connect({ ...settings });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : (error as string);
             this.emit("connection-error", message);
@@ -115,12 +115,12 @@ export class Session extends EventEmitter<SessionEvents> {
         }
     }
 
-    isConnectedToMongoDB(): boolean {
+    get isConnectedToMongoDB(): boolean {
         return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
     get serviceProvider(): NodeDriverServiceProvider {
-        if (this.isConnectedToMongoDB()) {
+        if (this.isConnectedToMongoDB) {
             const state = this.connectionManager.currentConnectionState as ConnectionStateConnected;
             return state.serviceProvider;
         }
