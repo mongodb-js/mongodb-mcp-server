@@ -45,7 +45,6 @@ export class ConnectClusterTool extends AtlasToolBase {
                 } else {
                     return "connected";
                 }
-                break;
             case "connecting":
             case "disconnected": // we might still be calling Atlas APIs and not attempted yet to connect to MongoDB, but we are still "connecting"
                 return "connecting";
@@ -57,7 +56,6 @@ export class ConnectClusterTool extends AtlasToolBase {
                 );
                 return "unknown";
         }
-        return "unknown";
     }
 
     private async prepareClusterConnection(
