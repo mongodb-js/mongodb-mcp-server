@@ -203,7 +203,7 @@ export function validateAutoConnectBehavior(
 
 export function prepareTestData(integration: MongoDBIntegrationTest): {
     populateTestData: (this: void) => Promise<void>;
-    cleanupTestDatabases: (this: void, integration: MongoDBIntegrationTest) => Promise<void>;
+    cleanupTestDatabases: (this: void) => Promise<void>;
 } {
     const NON_TEST_DBS = ["admin", "config", "local"];
     const testData: {
@@ -229,7 +229,7 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
                 await client.db(db).collection(collection).insertMany(data);
             }
         },
-        async cleanupTestDatabases(this: void, integration: MongoDBIntegrationTest): Promise<void> {
+        async cleanupTestDatabases(this: void): Promise<void> {
             const client = integration.mongoClient();
             const admin = client.db().admin();
             const databases = await admin.listDatabases();

@@ -1,16 +1,17 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from "vitest";
 import { getAvailableModels } from "./models.js";
 import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
-import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
+import { getVercelToolCallingAgent, PromptDefinition, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
 import { AccuracyTestingClient, MockedTools } from "./accuracyTestingClient.js";
 import { AccuracyResultStorage, ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import { getAccuracyResultStorage } from "./accuracyResultStorage/getAccuracyResultStorage.js";
 import { getCommitSHA } from "./gitInfo.js";
+import { MongoClient } from "mongodb";
 
 export interface AccuracyTestConfig {
     /** The prompt to be provided to LLM for evaluation. */
-    prompt: string;
+    prompt: PromptDefinition;
 
     /**
      * A list of tools and their parameters that we expect LLM to call based on
@@ -28,13 +29,6 @@ export interface AccuracyTestConfig {
     systemPrompt?: string;
 
     /**
-     * A small hint appended to the actual prompt in test, which is supposed to
-     * hint LLM to assume that the MCP server is already connected so that it
-     * does not call the connect tool.
-     * By default it is assumed to be true */
-    injectConnectedAssumption?: boolean;
-
-    /**
      * A map of tool names to their mocked implementation. When the mocked
      * implementations are available, the testing client will prefer those over
      * actual MCP tool calls. */
@@ -45,7 +39,11 @@ export interface AccuracyTestConfig {
      * is typically needed if we want to do extra validations for the tool calls beyond
      * what the baseline scorer will do.
      */
-    customScorer?: (baselineScore: number, actualToolCalls: LLMToolCall[]) => number;
+    customScorer?: (
+        baselineScore: number,
+        actualToolCalls: LLMToolCall[],
+        mdbClient: MongoClient
+    ) => Promise<number> | number;
 }
 
 export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[]): void {
@@ -61,6 +59,7 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
     const eachModel = describe.each(models);
 
     eachModel(`$displayName`, function (model) {
+        const configsWithDescriptions = getConfigsWithDescriptions(accuracyTestConfigs);
         const accuracyRunId = `${process.env.MDB_ACCURACY_RUN_ID}`;
         const mdbIntegration = setupMongoDBIntegrationTest();
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
@@ -83,7 +82,7 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
         });
 
         beforeEach(async () => {
-            await cleanupTestDatabases(mdbIntegration);
+            await cleanupTestDatabases();
             await populateTestData();
             testMCPClient.resetForTests();
         });
@@ -93,31 +92,31 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
             await testMCPClient?.close();
         });
 
-        const eachTest = it.each(accuracyTestConfigs);
+        const eachTest = it.each(configsWithDescriptions);
 
-        eachTest("$prompt", async function (testConfig) {
+        eachTest("$description", async function (testConfig) {
             testMCPClient.mockTools(testConfig.mockedTools ?? {});
             const toolsForModel = await testMCPClient.vercelTools();
-            const promptForModel =
-                testConfig.injectConnectedAssumption === false
-                    ? testConfig.prompt
-                    : [testConfig.prompt, "(Assume that you are already connected to a MongoDB cluster!)"].join(" ");
 
             const timeBeforePrompt = Date.now();
-            const result = await agent.prompt(promptForModel, model, toolsForModel);
+            const result = await agent.prompt(testConfig.prompt, model, toolsForModel);
             const timeAfterPrompt = Date.now();
 
             const llmToolCalls = testMCPClient.getLLMToolCalls();
             let toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
             if (testConfig.customScorer) {
-                toolCallingAccuracy = testConfig.customScorer(toolCallingAccuracy, llmToolCalls);
+                toolCallingAccuracy = await testConfig.customScorer(
+                    toolCallingAccuracy,
+                    llmToolCalls,
+                    mdbIntegration.mongoClient()
+                );
             }
 
             const responseTime = timeAfterPrompt - timeBeforePrompt;
             await accuracyResultStorage.saveModelResponseForPrompt({
                 commitSHA,
                 runId: accuracyRunId,
-                prompt: testConfig.prompt,
+                prompt: testConfig.description,
                 expectedToolCalls: testConfig.expectedToolCalls,
                 modelResponse: {
                     provider: model.provider,
@@ -132,5 +131,12 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
                 },
             });
         });
+    });
+}
+
+function getConfigsWithDescriptions(configs: AccuracyTestConfig[]): (AccuracyTestConfig & { description: string })[] {
+    return configs.map((c) => {
+        const description = typeof c.prompt === "string" ? c.prompt : c.prompt.join("\n---\n");
+        return { ...c, description };
     });
 }
