@@ -6,25 +6,28 @@ import {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../server.js";
 import { LogId } from "../../common/logger.js";
+import { Session } from "../../common/session.js";
 
 export class ExportedData {
     private readonly name = "exported-data";
     private readonly description = "Data files exported in the current session.";
     private readonly uri = "exported-data://{exportName}";
+    private server?: Server;
 
-    constructor(private readonly server: Server) {
-        this.server.session.exportsManager.on("export-available", (uri) => {
-            this.server.mcpServer.sendResourceListChanged();
-            void this.server.mcpServer.server.sendResourceUpdated({
+    constructor(private readonly session: Session) {
+        this.session.exportsManager.on("export-available", (uri) => {
+            this.server?.mcpServer.sendResourceListChanged();
+            void this.server?.mcpServer.server.sendResourceUpdated({
                 uri,
             });
         });
-        this.server.session.exportsManager.on("export-expired", () => {
-            this.server.mcpServer.sendResourceListChanged();
+        this.session.exportsManager.on("export-expired", () => {
+            this.server?.mcpServer.sendResourceListChanged();
         });
     }
 
-    public register(): void {
+    public register(server: Server): void {
+        this.server = server;
         this.server.mcpServer.registerResource(
             this.name,
             new ResourceTemplate(this.uri, {
@@ -48,7 +51,7 @@ export class ExportedData {
     private listResourcesCallback: ListResourcesCallback = () => {
         try {
             return {
-                resources: this.server.session.exportsManager.availableExports.map(({ exportName, exportURI }) => ({
+                resources: this.session.exportsManager.availableExports.map(({ exportName, exportURI }) => ({
                     name: exportName,
                     description: this.exportNameToDescription(exportName),
                     uri: exportURI,
@@ -56,7 +59,7 @@ export class ExportedData {
                 })),
             };
         } catch (error) {
-            this.server.session.logger.error({
+            this.session.logger.error({
                 id: LogId.exportedDataListError,
                 context: "Error when listing exported data resources",
                 message: error instanceof Error ? error.message : String(error),
@@ -69,11 +72,11 @@ export class ExportedData {
 
     private autoCompleteExportName: CompleteResourceTemplateCallback = (value) => {
         try {
-            return this.server.session.exportsManager.availableExports
+            return this.session.exportsManager.availableExports
                 .filter(({ exportName }) => exportName.startsWith(value))
                 .map(({ exportName }) => exportName);
         } catch (error) {
-            this.server.session.logger.error({
+            this.session.logger.error({
                 id: LogId.exportedDataAutoCompleteError,
                 context: "Error when autocompleting exported data",
                 message: error instanceof Error ? error.message : String(error),
@@ -88,7 +91,7 @@ export class ExportedData {
                 throw new Error("Cannot retrieve exported data, exportName not provided.");
             }
 
-            const content = await this.server.session.exportsManager.readExport(exportName);
+            const content = await this.session.exportsManager.readExport(exportName);
 
             return {
                 contents: [
@@ -112,7 +115,7 @@ export class ExportedData {
         }
     };
 
-    private exportNameToDescription(exportName: string) {
+    private exportNameToDescription(exportName: string): string {
         const match = exportName.match(/^(.+)\.(\d+)\.json$/);
         if (!match) return "Exported data for an unknown namespace.";
 

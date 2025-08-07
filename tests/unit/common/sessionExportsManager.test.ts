@@ -25,7 +25,15 @@ const exportsManagerConfig: SessionExportsManagerConfig = {
     exportCleanupIntervalMs: config.exportCleanupIntervalMs,
 } as const;
 
-function getExportNameAndPath(sessionId: string, timestamp: number) {
+function getExportNameAndPath(
+    sessionId: string,
+    timestamp: number
+): {
+    sessionExportsPath: string;
+    exportName: string;
+    exportPath: string;
+    exportURI: string;
+} {
     const exportName = `foo.bar.${timestamp}.json`;
     const sessionExportsPath = path.join(exportsPath, sessionId);
     const exportPath = path.join(sessionExportsPath, exportName);
@@ -44,7 +52,7 @@ function createDummyFindCursor(
     let index = 0;
     const readable = new Readable({
         objectMode: true,
-        async read() {
+        async read(): Promise<void> {
             if (index < dataArray.length) {
                 if (chunkPushTimeoutMs) {
                     await timeout(chunkPushTimeoutMs);
@@ -61,7 +69,7 @@ function createDummyFindCursor(
 
     let notifyClose: () => Promise<void>;
     const cursorCloseNotification = new Promise<void>((resolve) => {
-        notifyClose = async () => {
+        notifyClose = async (): Promise<void> => {
             await timeout(10);
             resolve();
         };
@@ -81,7 +89,7 @@ function createDummyFindCursor(
     };
 }
 
-async function fileExists(filePath: string) {
+async function fileExists(filePath: string): Promise<boolean> {
     try {
         await fs.access(filePath);
         return true;
@@ -288,11 +296,11 @@ describe("SessionExportsManager unit test", () => {
             it("should remove the partial export and never make it available", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-                (manager as any).docToEJSONStream = function (ejsonOptions: EJSONOptions | undefined) {
+                (manager as any).docToEJSONStream = function (ejsonOptions: EJSONOptions | undefined): Transform {
                     let docsTransformed = 0;
                     return new Transform({
                         objectMode: true,
-                        transform: function (chunk: unknown, encoding, callback) {
+                        transform: function (chunk: unknown, encoding, callback): void {
                             ++docsTransformed;
                             try {
                                 if (docsTransformed === 1) {
@@ -306,7 +314,7 @@ describe("SessionExportsManager unit test", () => {
                                 callback(err as Error);
                             }
                         },
-                        final: function (callback) {
+                        final: function (callback): void {
                             this.push("]");
                             callback(null);
                         },

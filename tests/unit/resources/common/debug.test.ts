@@ -1,21 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
-import { Server } from "../../../../src/server.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { config } from "../../../../src/common/config.js";
+import { CompositeLogger } from "../../../../src/common/logger.js";
 
 describe("debug resource", () => {
-    // eslint-disable-next-line
-    const session = new Session({} as any);
-    // eslint-disable-next-line
-    const server = new Server({ session } as any);
+    const session = new Session({ apiBaseUrl: "", logger: new CompositeLogger() });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });
 
-    let debugResource: DebugResource = new DebugResource(server, telemetry);
+    let debugResource: DebugResource = new DebugResource(session, config, telemetry);
 
     beforeEach(() => {
-        debugResource = new DebugResource(server, telemetry);
+        debugResource = new DebugResource(session, config, telemetry);
     });
 
     it("should be connected when a connected event happens", () => {

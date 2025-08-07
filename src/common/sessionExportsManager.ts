@@ -241,11 +241,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             : undefined;
     }
 
-    private docToEJSONStream(ejsonOptions: EJSONOptions | undefined) {
+    private docToEJSONStream(ejsonOptions: EJSONOptions | undefined): Transform {
         let docsTransformed = 0;
         return new Transform({
             objectMode: true,
-            transform: function (chunk: unknown, encoding, callback) {
+            transform: function (chunk: unknown, encoding, callback): void {
                 ++docsTransformed;
                 try {
                     const doc: string = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
@@ -256,7 +256,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                     callback(err as Error);
                 }
             },
-            final: function (callback) {
+            final: function (callback): void {
                 this.push("]");
                 callback(null);
             },
@@ -291,7 +291,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         }
     }
 
-    private async silentlyRemoveExport(exportPath: string) {
+    private async silentlyRemoveExport(exportPath: string): Promise<void> {
         try {
             await fs.unlink(exportPath);
         } catch (error) {
@@ -335,6 +335,6 @@ export function validateExportName(nameWithExtension: string): string {
     return decodedName;
 }
 
-export function isExportExpired(createdAt: number, exportTimeoutMs: number) {
+export function isExportExpired(createdAt: number, exportTimeoutMs: number): boolean {
     return Date.now() - createdAt > exportTimeoutMs;
 }
