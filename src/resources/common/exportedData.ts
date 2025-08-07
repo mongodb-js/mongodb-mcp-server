@@ -5,7 +5,7 @@ import {
     ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../server.js";
-import logger, { LogId } from "../../common/logger.js";
+import { LogId } from "../../common/logger.js";
 
 export class ExportedData {
     private readonly name = "exported-data";
@@ -57,11 +57,11 @@ export class ExportedData {
                 })),
             };
         } catch (error) {
-            logger.error(
-                LogId.exportedDataListError,
-                "Error when listing exported data resources",
-                error instanceof Error ? error.message : String(error)
-            );
+            this.server.session.logger.error({
+                id: LogId.exportedDataListError,
+                context: "Error when listing exported data resources",
+                message: error instanceof Error ? error.message : String(error),
+            });
             return {
                 resources: [],
             };
@@ -73,11 +73,11 @@ export class ExportedData {
             const sessionExports = this.server.session.exportsManager.listAvailableExports();
             return sessionExports.filter(({ name }) => name.startsWith(value)).map(({ name }) => name);
         } catch (error) {
-            logger.error(
-                LogId.exportedDataAutoCompleteError,
-                "Error when autocompleting exported data",
-                error instanceof Error ? error.message : String(error)
-            );
+            this.server.session.logger.error({
+                id: LogId.exportedDataAutoCompleteError,
+                context: "Error when autocompleting exported data",
+                message: error instanceof Error ? error.message : String(error),
+            });
             return [];
         }
     };

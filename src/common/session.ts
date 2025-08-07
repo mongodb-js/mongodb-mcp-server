@@ -63,7 +63,7 @@ export class Session extends EventEmitter<SessionEvents> {
                 : undefined;
 
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
-        this.exportsManager = new SessionExportsManager(this.sessionId, exportsManagerConfig ?? config);
+        this.exportsManager = new SessionExportsManager(this.sessionId, exportsManagerConfig ?? config, logger);
 
         this.connectionManager = connectionManager ?? new ConnectionManager();
         this.connectionManager.on("connection-succeeded", () => this.emit("connect"));

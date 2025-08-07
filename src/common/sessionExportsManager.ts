@@ -9,7 +9,7 @@ import { Transform } from "stream";
 import { pipeline } from "stream/promises";
 
 import { UserConfig } from "./config.js";
-import logger, { LogId } from "./logger.js";
+import { LoggerBase, LogId } from "./logger.js";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
@@ -38,8 +38,9 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
     private exportsDirectoryPath: string;
 
     constructor(
-        private readonly sessionId: string,
-        private readonly config: SessionExportsManagerConfig
+        readonly sessionId: string,
+        private readonly config: SessionExportsManagerConfig,
+        private readonly logger: LoggerBase
     ) {
         super();
         this.exportsDirectoryPath = path.join(this.config.exportsPath, sessionId);
@@ -54,11 +55,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             clearInterval(this.exportsCleanupInterval);
             await fs.rm(this.exportsDirectoryPath, { force: true, recursive: true });
         } catch (error) {
-            logger.error(
-                LogId.exportCloseError,
-                "Error while closing SessionExportManager",
-                error instanceof Error ? error.message : String(error)
-            );
+            this.logger.error({
+                id: LogId.exportCloseError,
+                context: "Error while closing SessionExportManager",
+                message: error instanceof Error ? error.message : String(error),
+            });
         }
     }
 
@@ -90,11 +91,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 content: await fs.readFile(exportPath, "utf8"),
             };
         } catch (error) {
-            logger.error(
-                LogId.exportReadError,
-                "Error when reading export",
-                error instanceof Error ? error.message : String(error)
-            );
+            this.logger.error({
+                id: LogId.exportReadError,
+                context: "Error when reading export",
+                message: error instanceof Error ? error.message : String(error),
+            });
             if ((error as NodeJS.ErrnoException).code === "ENOENT") {
                 throw new Error("Requested export does not exist!");
             }
@@ -137,11 +138,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 // partial and incorrect export so we remove it entirely.
                 await fs.unlink(exportFilePath).catch((error) => {
                     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-                        logger.error(
-                            LogId.exportCreationCleanupError,
-                            "Error when removing partial export",
-                            error instanceof Error ? error.message : String(error)
-                        );
+                        this.logger.error({
+                            id: LogId.exportCreationCleanupError,
+                            context: "Error when removing partial export",
+                            message: error instanceof Error ? error.message : String(error),
+                        });
                     }
                 });
                 throw pipelineError;
@@ -158,11 +159,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 }
             }
         } catch (error) {
-            logger.error(
-                LogId.exportCreationError,
-                "Error when generating JSON export",
-                error instanceof Error ? error.message : String(error)
-            );
+            this.logger.error({
+                id: LogId.exportCreationError,
+                context: "Error when generating JSON export",
+                message: error instanceof Error ? error.message : String(error),
+            });
             throw error;
         }
     }
@@ -218,11 +219,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 }
             }
         } catch (error) {
-            logger.error(
-                LogId.exportCleanupError,
-                "Error when cleaning up exports",
-                error instanceof Error ? error.message : String(error)
-            );
+            this.logger.error({
+                id: LogId.exportCleanupError,
+                context: "Error when cleaning up exports",
+                message: error instanceof Error ? error.message : String(error),
+            });
         } finally {
             this.exportsCleanupInProgress = false;
         }
@@ -236,11 +237,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             // does not exist then we can safely ignore that error anything else
             // we need to flag.
             if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-                logger.error(
-                    LogId.exportCleanupError,
-                    "Considerable error when removing export file",
-                    error instanceof Error ? error.message : String(error)
-                );
+                this.logger.error({
+                    id: LogId.exportCleanupError,
+                    context: "Considerable error when removing export file",
+                    message: error instanceof Error ? error.message : String(error),
+                });
             }
         }
     }

@@ -16,6 +16,7 @@ import { Session } from "../../../src/common/session.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { timeout } from "../../integration/helpers.js";
 import { EJSON, EJSONOptions } from "bson";
+import { CompositeLogger } from "../../../src/common/logger.js";
 
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
 const exportsManagerConfig: SessionExportsManagerConfig = {
@@ -76,7 +77,7 @@ describe("SessionExportsManager unit test", () => {
         await manager?.close();
         await fs.rm(exportsManagerConfig.exportsPath, { recursive: true, force: true });
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
-        session = new Session({ apiBaseUrl: "" });
+        session = new Session({ apiBaseUrl: "", logger: new CompositeLogger() });
         manager = session.exportsManager;
     });
 
@@ -282,11 +283,15 @@ describe("SessionExportsManager unit test", () => {
 
         it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
-            const manager = new SessionExportsManager(session.sessionId, {
-                ...exportsManagerConfig,
-                exportTimeoutMs: 100,
-                exportCleanupIntervalMs: 50,
-            });
+            const manager = new SessionExportsManager(
+                session.sessionId,
+                {
+                    ...exportsManagerConfig,
+                    exportTimeoutMs: 100,
+                    exportCleanupIntervalMs: 50,
+                },
+                new CompositeLogger()
+            );
             await manager.createJSONExport({
                 input,
                 exportName,
