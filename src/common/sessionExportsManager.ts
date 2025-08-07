@@ -188,7 +188,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             transform: function (chunk: unknown, encoding, callback) {
                 ++docsTransformed;
                 try {
-                    const doc: string = EJSON.stringify(chunk, undefined, 2, ejsonOptions);
+                    const doc: string = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
                     const line = `${docsTransformed > 1 ? ",\n" : ""}${doc}`;
 
                     callback(null, line);
