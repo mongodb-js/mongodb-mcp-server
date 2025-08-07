@@ -47,9 +47,8 @@ export class ExportedData {
 
     private listResourcesCallback: ListResourcesCallback = () => {
         try {
-            const sessionExports = this.server.session.exportsManager.listAvailableExports();
             return {
-                resources: sessionExports.map(({ name, uri }) => ({
+                resources: this.server.session.exportsManager.availableExports.map(({ name, uri }) => ({
                     name: name,
                     description: this.exportNameToDescription(name),
                     uri: uri,
@@ -70,8 +69,9 @@ export class ExportedData {
 
     private autoCompleteExportName: CompleteResourceTemplateCallback = (value) => {
         try {
-            const sessionExports = this.server.session.exportsManager.listAvailableExports();
-            return sessionExports.filter(({ name }) => name.startsWith(value)).map(({ name }) => name);
+            return this.server.session.exportsManager.availableExports
+                .filter(({ name }) => name.startsWith(value))
+                .map(({ name }) => name);
         } catch (error) {
             this.server.session.logger.error({
                 id: LogId.exportedDataAutoCompleteError,

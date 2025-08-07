@@ -7,7 +7,7 @@ import z from "zod";
 
 export class ExportTool extends MongoDBToolBase {
     public name = "export";
-    protected description = "Export a collection data or query results in the specified json format.";
+    protected description = "Export a collection data or query results in the specified EJSON format.";
     protected argsShape = {
         ...DbOperationArgs,
         ...FindArgs,
@@ -16,7 +16,7 @@ export class ExportTool extends MongoDBToolBase {
             .default("relaxed")
             .describe(
                 [
-                    "The format to be used when exporting collection data as JSON with default being relaxed.",
+                    "The format to be used when exporting collection data as EJSON with default being relaxed.",
                     "relaxed: A string format that emphasizes readability and interoperability at the expense of type preservation. That is, conversion from relaxed format to BSON can lose type information.",
                     "canonical: A string format that emphasizes type preservation at the expense of readability and interoperability. That is, conversion from canonical to BSON will generally preserve type information except in certain specific cases.",
                 ].join("\n")

@@ -32,7 +32,7 @@ type SessionExportsManagerEvents = {
 };
 
 export class SessionExportsManager extends EventEmitter<SessionExportsManagerEvents> {
-    private availableExports: Record<Export["name"], Export> = {};
+    private sessionExports: Record<Export["name"], Export> = {};
     private exportsCleanupInProgress: boolean = false;
     private exportsCleanupInterval: NodeJS.Timeout;
     private exportsDirectoryPath: string;
@@ -50,7 +50,13 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         );
     }
 
-    public async close() {
+    public get availableExports(): Export[] {
+        return Object.values(this.sessionExports).filter(
+            ({ createdAt }) => !isExportExpired(createdAt, this.config.exportTimeoutMs)
+        );
+    }
+
+    public async close(): Promise<void> {
         try {
             clearInterval(this.exportsCleanupInterval);
             await fs.rm(this.exportsDirectoryPath, { force: true, recursive: true });
@@ -63,19 +69,13 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         }
     }
 
-    public listAvailableExports(): Export[] {
-        return Object.values(this.availableExports).filter(
-            ({ createdAt }) => !isExportExpired(createdAt, this.config.exportTimeoutMs)
-        );
-    }
-
     public async readExport(exportName: string): Promise<{
         content: string;
         exportURI: string;
     }> {
         try {
             const exportNameWithExtension = validateExportName(exportName);
-            const exportHandle = this.availableExports[exportNameWithExtension];
+            const exportHandle = this.sessionExports[exportNameWithExtension];
             if (!exportHandle) {
                 throw new Error("Requested export has either expired or does not exist!");
             }
@@ -149,7 +149,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             } finally {
                 void input.close();
                 if (pipeSuccessful) {
-                    this.availableExports[exportNameWithExtension] = {
+                    this.sessionExports[exportNameWithExtension] = {
                         name: exportNameWithExtension,
                         createdAt: Date.now(),
                         path: exportFilePath,
@@ -209,11 +209,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         }
 
         this.exportsCleanupInProgress = true;
-        const exportsToBeConsidered = { ...this.availableExports };
+        const exportsForCleanup = { ...this.sessionExports };
         try {
-            for (const { path: exportPath, createdAt, uri, name } of Object.values(exportsToBeConsidered)) {
+            for (const { path: exportPath, createdAt, uri, name } of Object.values(exportsForCleanup)) {
                 if (isExportExpired(createdAt, this.config.exportTimeoutMs)) {
-                    delete this.availableExports[name];
+                    delete this.sessionExports[name];
                     await this.silentlyRemoveExport(exportPath);
                     this.emit("export-expired", uri);
                 }

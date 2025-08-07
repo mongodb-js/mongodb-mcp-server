@@ -133,7 +133,7 @@ describe("SessionExportsManager unit test", () => {
                 });
 
                 // Updates available export
-                const availableExports = manager.listAvailableExports();
+                const availableExports = manager.availableExports;
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
@@ -165,7 +165,7 @@ describe("SessionExportsManager unit test", () => {
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
-                const availableExports = manager.listAvailableExports();
+                const availableExports = manager.availableExports;
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
@@ -198,7 +198,7 @@ describe("SessionExportsManager unit test", () => {
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
-                const availableExports = manager.listAvailableExports();
+                const availableExports = manager.availableExports;
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
@@ -259,7 +259,7 @@ describe("SessionExportsManager unit test", () => {
                 ).rejects.toThrow("Could not transform the chunk!");
 
                 expect(emitSpy).not.toHaveBeenCalled();
-                expect(manager.listAvailableExports()).toEqual([]);
+                expect(manager.availableExports).toEqual([]);
                 expect(await fileExists(exportPath)).toEqual(false);
             });
         });
@@ -298,7 +298,7 @@ describe("SessionExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
 
-            expect(manager.listAvailableExports()).toContainEqual(
+            expect(manager.availableExports).toContainEqual(
                 expect.objectContaining({
                     name: exportName,
                     uri: exportURI,
@@ -306,7 +306,7 @@ describe("SessionExportsManager unit test", () => {
             );
             expect(await fileExists(exportPath)).toEqual(true);
             await timeout(200);
-            expect(manager.listAvailableExports()).toEqual([]);
+            expect(manager.availableExports).toEqual([]);
             expect(await fileExists(exportPath)).toEqual(false);
         });
     });
