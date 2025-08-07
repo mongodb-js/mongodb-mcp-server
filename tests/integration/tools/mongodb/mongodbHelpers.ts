@@ -243,6 +243,12 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
 }
 
 export function getDocsFromUntrustedContent(content: string): unknown[] {
-    const json = content.split("\n").slice(3, -3).join("\n");
+    const lines = content.split("\n");
+    const startIdx = lines.findIndex((line) => line.trim().startsWith("["));
+    const endIdx = lines.length - 1 - [...lines].reverse().findIndex((line) => line.trim().endsWith("]"));
+    if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+        throw new Error("Could not find JSON array in content");
+    }
+    const json = lines.slice(startIdx, endIdx + 1).join("\n");
     return JSON.parse(json) as unknown[];
 }

@@ -1,14 +1,28 @@
+import path from "path";
 import { AccuracyTestConfig, describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
+import * as fs from "fs";
+
+function getDocumentCounts(): Array<{ severity: number; tickets: number }> {
+    const ticketsPath = path.resolve(__dirname, "test-data-dumps", "support.tickets.json");
+
+    const ticketsData = JSON.parse(fs.readFileSync(ticketsPath, "utf-8")) as { severity: number }[];
+
+    const counts: Record<number, number> = {};
+
+    for (const ticket of ticketsData) {
+        counts[ticket.severity] = (counts[ticket.severity] || 0) + 1;
+    }
+
+    return Object.entries(counts)
+
+        .map(([severity, tickets]) => ({ severity: Number(severity), tickets }));
+}
 
 const describeAggregationWithUpdate = (): AccuracyTestConfig => {
     // This test is validating the model can execute an aggregation and also access the data
     // from the result and then use it to update another collection.
-    const documentCounts = [
-        { severity: 1, tickets: 3 },
-        { severity: 2, tickets: 4 },
-        { severity: 3, tickets: 3 },
-    ];
+    const documentCounts = getDocumentCounts();
 
     return {
         prompt: "Create an aggregation that groups the support tickets from the 'support.tickets' namespace by their severity. Then for each group update the 'statistics' collection in the 'support' database and increase the count of tickets filed for that severity level. If there's no document corresponding to the severity level, you should create it. The final state should look something similar to { severity: 2, tickets: 5 }.",
