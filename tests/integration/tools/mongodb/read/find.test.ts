@@ -34,7 +34,7 @@ describeWithMongoDB("find tool", (integration) => {
         {
             name: "sort",
             description:
-                "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort()",
+                "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort(). The keys of the object are the fields to sort on, while the values are the sort directions (1 for ascending, -1 for descending).",
             type: "object",
             required: false,
         },

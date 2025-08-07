@@ -17,13 +17,19 @@ export interface UserConfig {
     apiBaseUrl: string;
     apiClientId?: string;
     apiClientSecret?: string;
-    telemetry?: "enabled" | "disabled";
+    telemetry: "enabled" | "disabled";
     logPath: string;
     connectionString?: string;
     connectOptions: ConnectOptions;
     disabledTools: Array<string>;
     readOnly?: boolean;
     indexCheck?: boolean;
+    transport: "stdio" | "http";
+    httpPort: number;
+    httpHost: string;
+    loggers: Array<"stderr" | "disk" | "mcp">;
+    idleTimeoutMs: number;
+    notificationTimeoutMs: number;
 }
 
 const defaults: UserConfig = {
@@ -39,6 +45,12 @@ const defaults: UserConfig = {
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    transport: "stdio",
+    httpPort: 3000,
+    httpHost: "127.0.0.1",
+    loggers: ["disk", "mcp"],
+    idleTimeoutMs: 600000, // 10 minutes
+    notificationTimeoutMs: 540000, // 9 minutes
 };
 
 export const config = {
@@ -120,6 +132,6 @@ function SNAKE_CASE_toCamelCase(str: string): string {
 // Reads the cli args and parses them into a UserConfig object.
 function getCliConfig() {
     return argv(process.argv.slice(2), {
-        array: ["disabledTools"],
+        array: ["disabledTools", "loggers"],
     }) as unknown as Partial<UserConfig>;
 }

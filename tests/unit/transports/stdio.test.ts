@@ -1,16 +1,15 @@
 import { Decimal128, MaxKey, MinKey, ObjectId, Timestamp, UUID } from "bson";
-import { createEJsonTransport, EJsonReadBuffer } from "../../src/helpers/EJsonTransport.js";
+import { createStdioTransport, EJsonReadBuffer } from "../../../src/transports/stdio.js";
 import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { Readable } from "stream";
 import { ReadBuffer } from "@modelcontextprotocol/sdk/shared/stdio.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-
-describe("EJsonTransport", () => {
+describe("stdioTransport", () => {
     let transport: StdioServerTransport;
     beforeEach(async () => {
-        transport = createEJsonTransport();
+        transport = createStdioTransport();
         await transport.start();
     });
 

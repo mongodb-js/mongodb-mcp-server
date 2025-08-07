@@ -1,5 +1,5 @@
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF?logo=data:image/svg%2bxml;base64,PHN2ZyBmaWxsPSIjRkZGRkZGIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciICB2aWV3Qm94PSIwIDAgNDggNDgiIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiPjxwYXRoIGQ9Ik00NC45OTkgMTAuODd2MjYuMjFjMCAxLjAzLS41OSAxLjk3LTEuNTEgMi40Mi0yLjY4IDEuMjktOCAzLjg1LTguMzUgNC4wMS0uMTMuMDctLjM4LjItLjY3LjMxLjM1LS42LjUzLTEuMy41My0yLjAyVjYuMmMwLS43NS0uMi0xLjQ1LS41Ni0yLjA2LjA5LjA0LjE3LjA4LjI0LjExLjIuMSA1Ljk4IDIuODYgOC44IDQuMkM0NC40MDkgOC45IDQ0Ljk5OSA5Ljg0IDQ0Ljk5OSAxMC44N3pNNy40OTkgMjYuMDNjMS42IDEuNDYgMy40MyAzLjEzIDUuMzQgNC44NmwtNC42IDMuNWMtLjc3LjU3LTEuNzguNS0yLjU2LS4wNS0uNS0uMzYtMS44OS0xLjY1LTEuODktMS42NS0xLjAxLS44MS0xLjA2LTIuMzItLjExLTMuMTlDMy42NzkgMjkuNSA1LjE3OSAyOC4xMyA3LjQ5OSAyNi4wM3pNMzEuOTk5IDYuMnYxMC4xMWwtNy42MyA1LjgtNi44NS01LjIxYzQuOTgtNC41MyAxMC4wMS05LjExIDEyLjY1LTExLjUyQzMwLjg2OSA0Ljc0IDMxLjk5OSA1LjI1IDMxLjk5OSA2LjJ6TTMyIDQxLjc5OFYzMS42OUw4LjI0IDEzLjYxYy0uNzctLjU3LTEuNzgtLjUtMi41Ni4wNS0uNS4zNi0xLjg5IDEuNjUtMS44OSAxLjY1LTEuMDEuODEtMS4wNiAyLjMyLS4xMSAzLjE5IDAgMCAyMC4xNDUgMTguMzM4IDI2LjQ4NSAyNC4xMTZDMzAuODcxIDQzLjI2IDMyIDQyLjc1MyAzMiA0MS43OTh6Ii8+PC9zdmc+)](https://insiders.vscode.dev/redirect/mcp/install?name=mongodb&inputs=%5B%7B%22id%22%3A%22connection_string%22%2C%22type%22%3A%22promptString%22%2C%22description%22%3A%22MongoDB%20connection%20string%22%7D%5D&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mongodb-mcp-server%22%2C%22--readOnly%22%5D%2C%22env%22%3A%7B%22MDB_MCP_CONNECTION_STRING%22%3A%22%24%7Binput%3Aconnection_string%7D%22%7D%7D)
-[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-1e1e1e?logo=data:image/svg%2bxml;base64,PHN2ZyBoZWlnaHQ9IjFlbSIgc3R5bGU9ImZsZXg6bm9uZTtsaW5lLWhlaWdodDoxIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIxZW0iCiAgICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgPHRpdGxlPkN1cnNvcjwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMTEuOTI1IDI0bDEwLjQyNS02LTEwLjQyNS02TDEuNSAxOGwxMC40MjUgNnoiCiAgICAgICAgZmlsbD0idXJsKCNsb2JlLWljb25zLWN1cnNvcnVuZGVmaW5lZC1maWxsLTApIj48L3BhdGg+CiAgICA8cGF0aCBkPSJNMjIuMzUgMThWNkwxMS45MjUgMHYxMmwxMC40MjUgNnoiIGZpbGw9InVybCgjbG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0xKSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTExLjkyNSAwTDEuNSA2djEybDEwLjQyNS02VjB6IiBmaWxsPSJ1cmwoI2xvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMikiPjwvcGF0aD4KICAgIDxwYXRoIGQ9Ik0yMi4zNSA2TDExLjkyNSAyNFYxMkwyMi4zNSA2eiIgZmlsbD0iIzU1NSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTIyLjM1IDZsLTEwLjQyNSA2TDEuNSA2aDIwLjg1eiIgZmlsbD0iI2ZmZiI+PC9wYXRoPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0ibG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0wIgogICAgICAgICAgICB4MT0iMTEuOTI1IiB4Mj0iMTEuOTI1IiB5MT0iMTIiIHkyPSIyNCI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE2IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4zOSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9Ii42NTgiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjgiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMSIKICAgICAgICAgICAgeDE9IjIyLjM1IiB4Mj0iMTEuOTI1IiB5MT0iNi4wMzciIHkyPSIxMi4xNSI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE4MiIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIuMzEiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNzE1IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9IjAiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMiIKICAgICAgICAgICAgeDE9IjExLjkyNSIgeDI9IjEuNSIgeTE9IjAiIHkyPSIxOCI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjYiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNjY3IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4yMiI+PC9zdG9wPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8L2RlZnM+Cjwvc3ZnPgo=)](cursor://anysphere.cursor-deeplink/mcp/install?name=MongoDB&config=eyJjb21tYW5kIjoibnB4IC15IG1vbmdvZGItbWNwLXNlcnZlciAtLXJlYWRPbmx5In0%3D)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-1e1e1e?logo=data:image/svg%2bxml;base64,PHN2ZyBoZWlnaHQ9IjFlbSIgc3R5bGU9ImZsZXg6bm9uZTtsaW5lLWhlaWdodDoxIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIxZW0iCiAgICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgPHRpdGxlPkN1cnNvcjwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMTEuOTI1IDI0bDEwLjQyNS02LTEwLjQyNS02TDEuNSAxOGwxMC40MjUgNnoiCiAgICAgICAgZmlsbD0idXJsKCNsb2JlLWljb25zLWN1cnNvcnVuZGVmaW5lZC1maWxsLTApIj48L3BhdGg+CiAgICA8cGF0aCBkPSJNMjIuMzUgMThWNkwxMS45MjUgMHYxMmwxMC40MjUgNnoiIGZpbGw9InVybCgjbG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0xKSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTExLjkyNSAwTDEuNSA2djEybDEwLjQyNS02VjB6IiBmaWxsPSJ1cmwoI2xvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMikiPjwvcGF0aD4KICAgIDxwYXRoIGQ9Ik0yMi4zNSA2TDExLjkyNSAyNFYxMkwyMi4zNSA2eiIgZmlsbD0iIzU1NSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTIyLjM1IDZsLTEwLjQyNSA2TDEuNSA2aDIwLjg1eiIgZmlsbD0iI2ZmZiI+PC9wYXRoPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0ibG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0wIgogICAgICAgICAgICB4MT0iMTEuOTI1IiB4Mj0iMTEuOTI1IiB5MT0iMTIiIHkyPSIyNCI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE2IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4zOSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9Ii42NTgiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjgiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMSIKICAgICAgICAgICAgeDE9IjIyLjM1IiB4Mj0iMTEuOTI1IiB5MT0iNi4wMzciIHkyPSIxMi4xNSI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE4MiIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIuMzEiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNzE1IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9IjAiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMiIKICAgICAgICAgICAgeDE9IjExLjkyNSIgeDI9IjEuNSIgeTE9IjAiIHkyPSIxOCI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjYiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNjY3IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4yMiI+PC9zdG9wPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8L2RlZnM+Cjwvc3ZnPgo=)](https://cursor.com/install-mcp?name=MongoDB&config=eyJjb21tYW5kIjoibnB4IC15IG1vbmdvZGItbWNwLXNlcnZlciAtLXJlYWRPbmx5In0%3D)
 [![View on Smithery](https://smithery.ai/badge/@mongodb-js/mongodb-mcp-server)](https://smithery.ai/server/@mongodb-js/mongodb-mcp-server)
 
 # MongoDB MCP Server
@@ -22,13 +22,17 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
     - [Environment Variables](#environment-variables)
     - [Command-Line Arguments](#command-line-arguments)
     - [MCP Client Configuration](#mcp-configuration-file-examples)
+    - [Proxy Support](#proxy-support)
 - [🤝 Contributing](#contributing)
 
 <a name="getting-started"></a>
 
 ## Prerequisites
 
-- Node.js (v20.19.0 or later)
+- Node.js
+  - At least 20.19.0
+  - When using v22 then at least v22.12.0
+  - Otherwise any version 23+
 
 ```shell
 node -v
@@ -106,7 +110,7 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
 Start Server using npx command:
 
 ```shell
- npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
+ npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
 ```
 
 - For a complete list of arguments see [Configuration Options](#configuration-options)
@@ -115,7 +119,7 @@ Start Server using npx command:
 #### Option 4: Standalone Service using environment variables
 
 ```shell
- npx -y mongodb-mcp-server --readOnly
+ npx -y mongodb-mcp-server@latest --readOnly
 ```
 
 You can use environment variables in the config file or set them and run the server via npx.
@@ -225,6 +229,39 @@ With Atlas API credentials:
 }
 ```
 
+#### Option 6: Running as an HTTP Server
+
+> **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.**
+
+**Suggested Security Measures Examples:**
+
+- Implement authentication (e.g., API gateway, reverse proxy)
+- Use HTTPS/TLS encryption
+- Deploy behind a firewall or in private networks
+- Implement rate limiting
+- Never expose directly to the internet
+
+For more details, see [MCP Security Best Practices](https://modelcontextprotocol.io/docs/concepts/transports#security-considerations).
+
+You can run the MongoDB MCP Server as an HTTP server instead of the default stdio transport. This is useful if you want to interact with the server over HTTP, for example from a web client or to expose the server on a specific port.
+
+To start the server with HTTP transport, use the `--transport http` option:
+
+```shell
+npx -y mongodb-mcp-server@latest --transport http
+```
+
+By default, the server will listen on `http://127.0.0.1:3000`. You can customize the host and port using the `--httpHost` and `--httpPort` options:
+
+```shell
+npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=8080
+```
+
+- `--httpHost` (default: 127.0.0.1): The host to bind the HTTP server.
+- `--httpPort` (default: 3000): The port number for the HTTP server.
+
+> **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
+
 ## 🛠️ Supported Tools
 
 ### Tool List
@@ -278,23 +315,55 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 
 ### Configuration Options
 
-| Option             | Description                                                                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apiClientId`      | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
-| `apiClientSecret`  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
-| `connectionString` | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
-| `logPath`          | Folder to store logs.                                                                                                                                         |
-| `disabledTools`    | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
-| `readOnly`         | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
-| `indexCheck`       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
-| `telemetry`        | When set to disabled, disables telemetry collection.                                                                                                          |
+| CLI Option              | Environment Variable              | Default    | Description                                                                                                                                                   |
+| ----------------------- | --------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiClientId`           | `MDB_MCP_API_CLIENT_ID`           | <not set>  | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
+| `apiClientSecret`       | `MDB_MCP_API_CLIENT_SECRET`       | <not set>  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
+| `connectionString`      | `MDB_MCP_CONNECTION_STRING`       | <not set>  | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
+| `loggers`               | `MDB_MCP_LOGGERS`                 | disk,mcp   | Comma separated values, possible values are `mcp`, `disk` and `stderr`. See [Logger Options](#logger-options) for details.                                    |
+| `logPath`               | `MDB_MCP_LOG_PATH`                | see note\* | Folder to store logs.                                                                                                                                         |
+| `disabledTools`         | `MDB_MCP_DISABLED_TOOLS`          | <not set>  | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
+| `readOnly`              | `MDB_MCP_READ_ONLY`               | false      | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
+| `indexCheck`            | `MDB_MCP_INDEX_CHECK`             | false      | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
+| `telemetry`             | `MDB_MCP_TELEMETRY`               | enabled    | When set to disabled, disables telemetry collection.                                                                                                          |
+| `transport`             | `MDB_MCP_TRANSPORT`               | stdio      | Either 'stdio' or 'http'.                                                                                                                                     |
+| `httpPort`              | `MDB_MCP_HTTP_PORT`               | 3000       | Port number.                                                                                                                                                  |
+| `httpHost`              | `MDB_MCP_HTTP_HOST`               | 127.0.0.1  | Host to bind the http server.                                                                                                                                 |
+| `idleTimeoutMs`         | `MDB_MCP_IDLE_TIMEOUT_MS`         | 600000     | Idle timeout for a client to disconnect (only applies to http transport).                                                                                     |
+| `notificationTimeoutMs` | `MDB_MCP_NOTIFICATION_TIMEOUT_MS` | 540000     | Notification timeout for a client to be aware of diconnect (only applies to http transport).                                                                  |
 
-#### Log Path
+#### Logger Options
 
-Default log location is as follows:
+The `loggers` configuration option controls where logs are sent. You can specify one or more logger types as a comma-separated list. The available options are:
 
-- Windows: `%LOCALAPPDATA%\mongodb\mongodb-mcp\.app-logs`
-- macOS/Linux: `~/.mongodb/mongodb-mcp/.app-logs`
+- `mcp`: Sends logs to the MCP client (if supported by the client/transport).
+- `disk`: Writes logs to disk files. Log files are stored in the log path (see `logPath` above).
+- `stderr`: Outputs logs to standard error (stderr), useful for debugging or when running in containers.
+
+**Default:** `disk,mcp` (logs are written to disk and sent to the MCP client).
+
+You can combine multiple loggers, e.g. `--loggers disk stderr` or `export MDB_MCP_LOGGERS="mcp,stderr"`.
+
+##### Example: Set logger via environment variable
+
+```shell
+export MDB_MCP_LOGGERS="disk,stderr"
+```
+
+##### Example: Set logger via command-line argument
+
+```shell
+npx -y mongodb-mcp-server@latest --loggers mcp stderr
+```
+
+##### Log File Location
+
+When using the `disk` logger, log files are stored in:
+
+- **Windows:** `%LOCALAPPDATA%\mongodb\mongodb-mcp\.app-logs`
+- **macOS/Linux:** `~/.mongodb/mongodb-mcp/.app-logs`
+
+You can override the log directory with the `logPath` option.
 
 #### Disabled Tools
 
@@ -461,7 +530,7 @@ export MDB_MCP_LOG_PATH="/path/to/logs"
 Pass configuration options as command-line arguments when starting the server:
 
 ```shell
-npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs --readOnly --indexCheck
+npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs --readOnly --indexCheck
 ```
 
 #### MCP configuration file examples
@@ -505,6 +574,13 @@ npx -y mongodb-mcp-server --apiClientId="your-atlas-service-accounts-client-id" 
   }
 }
 ```
+
+### Proxy Support
+
+The MCP Server will detect typical PROXY environment variables and use them for
+connecting to the Atlas API, your MongoDB Cluster, or any other external calls
+to third-party services like OID Providers. The behaviour is the same as what
+`mongosh` does, so the same settings will work in the MCP Server.
 
 ## 🤝Contributing
 

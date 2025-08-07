@@ -6,7 +6,7 @@ import { EJSON } from "bson";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const AggregateArgs = {
-    pipeline: z.array(z.record(z.string(), z.unknown())).describe("An array of aggregation stages to execute"),
+    pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
 };
 
 export class AggregateTool extends MongoDBToolBase {

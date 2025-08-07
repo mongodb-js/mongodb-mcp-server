@@ -3,7 +3,8 @@ import { Session } from "./common/session.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
-import logger, { setStdioPreset, setContainerPreset, LogId } from "./common/logger.js";
+import { Resources } from "./resources/resources.js";
+import { LogId } from "./common/logger.js";
 import { ObjectId } from "mongodb";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
@@ -11,7 +12,6 @@ import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import { detectContainerEnv } from "./helpers/container.js";
 import { ToolBase } from "./tools/tool.js";
 
 export interface ServerOptions {
@@ -38,10 +38,15 @@ export class Server {
     }
 
     async connect(transport: Transport): Promise<void> {
-        this.mcpServer.server.registerCapabilities({ logging: {} });
-
-        this.registerTools();
+        // Resources are now reactive, so we register them ASAP so they can listen to events like
+        // connection events.
         this.registerResources();
+        await this.validateConfig();
+
+        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { subscribe: true, listChanged: true } });
+
+        // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
+        this.registerTools();
 
         // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
@@ -66,25 +71,15 @@ export class Server {
             return existingHandler(request, extra);
         });
 
-        const containerEnv = await detectContainerEnv();
-
-        if (containerEnv) {
-            setContainerPreset(this.mcpServer);
-        } else {
-            await setStdioPreset(this.mcpServer, this.userConfig.logPath);
-        }
-
-        await this.mcpServer.connect(transport);
-
         this.mcpServer.server.oninitialized = () => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
             this.session.sessionId = new ObjectId().toString();
 
-            logger.info(
-                LogId.serverInitialized,
-                "server",
-                `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`
-            );
+            this.session.logger.info({
+                id: LogId.serverInitialized,
+                context: "server",
+                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`,
+            });
 
             this.emitServerEvent("start", Date.now() - this.startTime);
         };
@@ -99,7 +94,7 @@ export class Server {
             this.emitServerEvent("stop", Date.now() - closeTime, error);
         };
 
-        await this.validateConfig();
+        await this.mcpServer.connect(transport);
     }
 
     async close(): Promise<void> {
@@ -152,43 +147,48 @@ export class Server {
     }
 
     private registerResources() {
-        this.mcpServer.resource(
-            "config",
-            "config://config",
-            {
-                description:
-                    "Server configuration, supplied by the user either as environment variables or as startup arguments",
-            },
-            (uri) => {
-                const result = {
-                    telemetry: this.userConfig.telemetry,
-                    logPath: this.userConfig.logPath,
-                    connectionString: this.userConfig.connectionString
-                        ? "set; access to MongoDB tools are currently available to use"
-                        : "not set; before using any MongoDB tool, you need to configure a connection string, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
-                    connectOptions: this.userConfig.connectOptions,
-                    atlas:
-                        this.userConfig.apiClientId && this.userConfig.apiClientSecret
-                            ? "set; MongoDB Atlas tools are currently available to use"
-                            : "not set; MongoDB Atlas tools are currently unavailable, to have access to MongoDB Atlas tools like creating clusters or connecting to clusters make sure to setup credentials, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
-                };
-                return {
-                    contents: [
-                        {
-                            text: JSON.stringify(result),
-                            mimeType: "application/json",
-                            uri: uri.href,
-                        },
-                    ],
-                };
-            }
-        );
+        for (const resourceConstructor of Resources) {
+            const resource = new resourceConstructor(this, this.telemetry);
+            resource.register();
+        }
     }
 
     private async validateConfig(): Promise<void> {
+        const transport = this.userConfig.transport as string;
+        if (transport !== "http" && transport !== "stdio") {
+            throw new Error(`Invalid transport: ${transport}`);
+        }
+
+        const telemetry = this.userConfig.telemetry as string;
+        if (telemetry !== "enabled" && telemetry !== "disabled") {
+            throw new Error(`Invalid telemetry: ${telemetry}`);
+        }
+
+        if (this.userConfig.httpPort < 1 || this.userConfig.httpPort > 65535) {
+            throw new Error(`Invalid httpPort: ${this.userConfig.httpPort}`);
+        }
+
+        if (this.userConfig.loggers.length === 0) {
+            throw new Error("No loggers found in config");
+        }
+
+        const loggerTypes = new Set(this.userConfig.loggers);
+        if (loggerTypes.size !== this.userConfig.loggers.length) {
+            throw new Error("Duplicate loggers found in config");
+        }
+
+        for (const loggerType of this.userConfig.loggers as string[]) {
+            if (loggerType !== "mcp" && loggerType !== "disk" && loggerType !== "stderr") {
+                throw new Error(`Invalid logger: ${loggerType}`);
+            }
+        }
+
         if (this.userConfig.connectionString) {
             try {
-                await this.session.connectToMongoDB(this.userConfig.connectionString, this.userConfig.connectOptions);
+                await this.session.connectToMongoDB({
+                    connectionString: this.userConfig.connectionString,
+                    ...this.userConfig.connectOptions,
+                });
             } catch (error) {
                 console.error(
                     "Failed to connect to MongoDB instance using the connection string from the config: ",

@@ -21,7 +21,7 @@ describeWithMongoDB("listDatabases tool", (integration) => {
             const response = await integration.mcpClient().callTool({ name: "list-databases", arguments: {} });
             const dbNames = getDbNames(response.content);
 
-            expect(defaultDatabases).toStrictEqual(dbNames);
+            expect(dbNames).toStrictEqual(defaultDatabases);
         });
     });
 

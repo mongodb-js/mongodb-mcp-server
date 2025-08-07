@@ -1,6 +1,10 @@
+import { LogId } from "../common/logger.js";
+import { Server } from "../server.js";
+import { TransportRunnerBase } from "./base.js";
 import { JSONRPCMessage, JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { EJSON } from "bson";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { UserConfig } from "../common/config.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
 // but it uses EJSON.parse instead of JSON.parse to handle BSON types
@@ -39,9 +43,38 @@ export class EJsonReadBuffer {
 //
 // This function creates a StdioServerTransport and replaces the internal readBuffer with EJsonReadBuffer
 // that uses EJson.parse instead.
-export function createEJsonTransport(): StdioServerTransport {
+export function createStdioTransport(): StdioServerTransport {
     const server = new StdioServerTransport();
     server["_readBuffer"] = new EJsonReadBuffer();
 
     return server;
+}
+
+export class StdioRunner extends TransportRunnerBase {
+    private server: Server | undefined;
+
+    constructor(userConfig: UserConfig) {
+        super(userConfig);
+    }
+
+    async start(): Promise<void> {
+        try {
+            this.server = this.setupServer(this.userConfig);
+
+            const transport = createStdioTransport();
+
+            await this.server.connect(transport);
+        } catch (error: unknown) {
+            this.logger.emergency({
+                id: LogId.serverStartFailure,
+                context: "server",
+                message: `Fatal error running server: ${error as string}`,
+            });
+            process.exit(1);
+        }
+    }
+
+    async close(): Promise<void> {
+        await this.server?.close();
+    }
 }

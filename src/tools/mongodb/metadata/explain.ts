@@ -16,7 +16,7 @@ export class ExplainTool extends MongoDBToolBase {
         ...DbOperationArgs,
         method: z
             .array(
-                z.union([
+                z.discriminatedUnion("name", [
                     z.object({
                         name: z.literal("aggregate"),
                         arguments: z.object(AggregateArgs),

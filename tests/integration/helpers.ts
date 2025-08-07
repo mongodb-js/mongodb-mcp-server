@@ -8,6 +8,8 @@ import { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { config } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { ConnectionManager } from "../../src/common/connectionManager.js";
+import { CompositeLogger } from "../../src/common/logger.js";
 
 interface ParameterInfo {
     name: string;
@@ -25,6 +27,7 @@ export interface IntegrationTest {
 export const defaultTestConfig: UserConfig = {
     ...config,
     telemetry: "disabled",
+    loggers: ["stderr"],
 };
 
 export function setupIntegrationTest(getUserConfig: () => UserConfig): IntegrationTest {
@@ -52,10 +55,14 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             }
         );
 
+        const connectionManager = new ConnectionManager();
+
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
             apiClientId: userConfig.apiClientId,
             apiClientSecret: userConfig.apiClientSecret,
+            connectionManager,
+            logger: new CompositeLogger(),
         });
 
         // Mock hasValidAccessToken for tests

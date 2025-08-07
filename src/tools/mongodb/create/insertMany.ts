@@ -9,7 +9,7 @@ export class InsertManyTool extends MongoDBToolBase {
     protected argsShape = {
         ...DbOperationArgs,
         documents: z
-            .array(z.record(z.string(), z.unknown()).describe("An individual MongoDB document"))
+            .array(z.object({}).passthrough().describe("An individual MongoDB document"))
             .describe(
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()"
             ),
