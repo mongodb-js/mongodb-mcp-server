@@ -11,7 +11,7 @@ import {
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import { ObjectId } from "bson";
-import { SessionExportsManager } from "./sessionExportsManager.js";
+import { SessionExportsManager, SessionExportsManagerConfig } from "./sessionExportsManager.js";
 import { config } from "./config.js";
 
 export interface SessionOptions {
@@ -19,6 +19,7 @@ export interface SessionOptions {
     apiClientId?: string;
     apiClientSecret?: string;
     connectionManager?: ConnectionManager;
+    exportsManagerConfig?: SessionExportsManagerConfig;
     logger: CompositeLogger;
 }
 
@@ -31,7 +32,7 @@ export type SessionEvents = {
 
 export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId = new ObjectId().toString();
-    readonly exportsManager = new SessionExportsManager(this, config);
+    readonly exportsManager: SessionExportsManager;
     connectionManager: ConnectionManager;
     apiClient: ApiClient;
     agentRunner?: {
@@ -41,7 +42,14 @@ export class Session extends EventEmitter<SessionEvents> {
 
     public logger: CompositeLogger;
 
-    constructor({ apiBaseUrl, apiClientId, apiClientSecret, connectionManager, logger }: SessionOptions) {
+    constructor({
+        apiBaseUrl,
+        apiClientId,
+        apiClientSecret,
+        connectionManager,
+        logger,
+        exportsManagerConfig,
+    }: SessionOptions) {
         super();
 
         this.logger = logger;
@@ -55,6 +63,7 @@ export class Session extends EventEmitter<SessionEvents> {
                 : undefined;
 
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
+        this.exportsManager = new SessionExportsManager(this.sessionId, exportsManagerConfig ?? config);
 
         this.connectionManager = connectionManager ?? new ConnectionManager();
         this.connectionManager.on("connection-succeeded", () => this.emit("connect"));

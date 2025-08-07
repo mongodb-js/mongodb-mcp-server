@@ -82,17 +82,19 @@ export class ExportedData {
         }
     };
 
-    private readResourceCallback: ReadResourceTemplateCallback = async (uri, { exportName }) => {
+    private readResourceCallback: ReadResourceTemplateCallback = async (url, { exportName }) => {
         try {
             if (typeof exportName !== "string") {
                 throw new Error("Cannot retrieve exported data, exportName not provided.");
             }
 
+            const { content, exportURI } = await this.server.session.exportsManager.readExport(exportName);
+
             return {
                 contents: [
                     {
-                        uri: this.server.session.exportsManager.exportNameToResourceURI(exportName),
-                        text: await this.server.session.exportsManager.readExport(exportName),
+                        uri: exportURI,
+                        text: content,
                         mimeType: "application/json",
                     },
                 ],
@@ -101,10 +103,7 @@ export class ExportedData {
             return {
                 contents: [
                     {
-                        uri:
-                            typeof exportName === "string"
-                                ? this.server.session.exportsManager.exportNameToResourceURI(exportName)
-                                : this.uri,
+                        uri: url.href,
                         text: `Error reading from ${this.uri}: ${error instanceof Error ? error.message : String(error)}`,
                     },
                 ],

@@ -43,24 +43,23 @@ export class ExportTool extends MongoDBToolBase {
         });
         const exportName = `${database}.${collection}.${Date.now()}.json`;
 
-        await this.session.exportsManager.createJSONExport({ input: findCursor, exportName, jsonExportFormat });
-        const exportedResourceURI = this.session.exportsManager.exportNameToResourceURI(exportName);
-        const exportedResourcePath = this.session.exportsManager.exportFilePath(
-            this.session.exportsManager.exportsDirectoryPath(),
-            exportName
-        );
+        const { exportURI, exportPath } = await this.session.exportsManager.createJSONExport({
+            input: findCursor,
+            exportName,
+            jsonExportFormat,
+        });
         const toolCallContent: CallToolResult["content"] = [
             // Not all the clients as of this commit understands how to
             // parse a resource_link so we provide a text result for them to
             // understand what to do with the result.
             {
                 type: "text",
-                text: `Exported data for namespace ${database}.${collection} is available under resource URI - "${exportedResourceURI}".`,
+                text: `Exported data for namespace ${database}.${collection} is available under resource URI - "${exportURI}".`,
             },
             {
                 type: "resource_link",
                 name: exportName,
-                uri: exportedResourceURI,
+                uri: exportURI,
                 description: "Resource URI for fetching exported data.",
                 mimeType: "application/json",
             },
@@ -71,7 +70,7 @@ export class ExportTool extends MongoDBToolBase {
         if (this.config.transport === "stdio") {
             toolCallContent.push({
                 type: "text",
-                text: `Optionally, the exported data can also be accessed under path - "${exportedResourcePath}"`,
+                text: `Optionally, the exported data can also be accessed under path - "${exportPath}"`,
             });
         }
 

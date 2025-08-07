@@ -3,7 +3,13 @@ import fs from "fs/promises";
 import { Readable, Transform } from "stream";
 import { FindCursor, Long } from "mongodb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SessionExportsManager, SessionExportsManagerConfig } from "../../../src/common/sessionExportsManager.js";
+import {
+    ensureExtension,
+    isExportExpired,
+    SessionExportsManager,
+    SessionExportsManagerConfig,
+    validateExportName,
+} from "../../../src/common/sessionExportsManager.js";
 
 import { config } from "../../../src/common/config.js";
 import { Session } from "../../../src/common/session.js";
@@ -27,18 +33,6 @@ function getExportNameAndPath(sessionId: string, timestamp: number) {
         exportName,
         exportPath,
         exportURI: `exported-data://${exportName}`,
-    };
-}
-
-async function createDummyExport(sessionId: string, timestamp: number) {
-    const content = "[]";
-    const { exportName, exportPath, sessionExportsPath } = getExportNameAndPath(sessionId, timestamp);
-    await fs.mkdir(sessionExportsPath, { recursive: true });
-    await fs.writeFile(exportPath, content);
-    return {
-        exportName,
-        exportPath,
-        content,
     };
 }
 
@@ -74,7 +68,7 @@ async function fileExists(filePath: string) {
     }
 }
 
-describe("SessionExportsManager integration test", () => {
+describe("SessionExportsManager unit test", () => {
     let session: Session;
     let manager: SessionExportsManager;
 
@@ -83,38 +77,7 @@ describe("SessionExportsManager integration test", () => {
         await fs.rm(exportsManagerConfig.exportsPath, { recursive: true, force: true });
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
         session = new Session({ apiBaseUrl: "" });
-        manager = new SessionExportsManager(session, exportsManagerConfig);
-    });
-
-    describe("#exportNameToResourceURI", () => {
-        it("should throw when export name has no extension", () => {
-            expect(() => manager.exportNameToResourceURI("name")).toThrow();
-        });
-
-        it("should return a resource URI", () => {
-            expect(manager.exportNameToResourceURI("name.json")).toEqual("exported-data://name.json");
-        });
-    });
-
-    describe("#exportsDirectoryPath", () => {
-        it("should return a session path when session is initialized", () => {
-            manager = new SessionExportsManager(session, exportsManagerConfig);
-            expect(manager.exportsDirectoryPath()).toEqual(
-                path.join(exportsManagerConfig.exportsPath, session.sessionId)
-            );
-        });
-    });
-
-    describe("#exportFilePath", () => {
-        it("should throw when export name has no extension", () => {
-            expect(() => manager.exportFilePath("session-path", "name")).toThrow();
-        });
-
-        it("should return path to provided export file", () => {
-            expect(manager.exportFilePath("session-path", "mflix.movies.json")).toEqual(
-                path.join("session-path", "mflix.movies.json")
-            );
-        });
+        manager = session.exportsManager;
     });
 
     describe("#readExport", () => {
@@ -123,8 +86,17 @@ describe("SessionExportsManager integration test", () => {
         });
 
         it("should return the resource content", async () => {
-            const { exportName, content } = await createDummyExport(session.sessionId, Date.now());
-            expect(await manager.readExport(exportName)).toEqual(content);
+            const { exportName, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
+            const inputCursor = createDummyFindCursor([]);
+            await manager.createJSONExport({
+                input: inputCursor,
+                exportName,
+                jsonExportFormat: "relaxed",
+            });
+            expect(await manager.readExport(exportName)).toEqual({
+                content: "[]",
+                exportURI,
+            });
         });
     });
 
@@ -173,7 +145,7 @@ describe("SessionExportsManager integration test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", exportURI);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(exportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(exportName)).content) as unknown[];
                 expect(jsonData).toEqual([]);
             });
         });
@@ -205,7 +177,7 @@ describe("SessionExportsManager integration test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "foo", longNumber: 12 }));
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "bar", longNumber: 123456 }));
             });
@@ -238,7 +210,7 @@ describe("SessionExportsManager integration test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
                 expect(jsonData).toContainEqual(
                     expect.objectContaining({ name: "foo", longNumber: { $numberLong: "12" } })
                 );
@@ -308,9 +280,9 @@ describe("SessionExportsManager integration test", () => {
             ]);
         });
 
-        it("should cleanup expired exports if session is initialized", async () => {
+        it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
-            const manager = new SessionExportsManager(session, {
+            const manager = new SessionExportsManager(session.sessionId, {
                 ...exportsManagerConfig,
                 exportTimeoutMs: 100,
                 exportCleanupIntervalMs: 50,
@@ -332,5 +304,39 @@ describe("SessionExportsManager integration test", () => {
             expect(manager.listAvailableExports()).toEqual([]);
             expect(await fileExists(exportPath)).toEqual(false);
         });
+    });
+});
+
+describe("#ensureExtension", () => {
+    it("should append provided extension when not present", () => {
+        expect(ensureExtension("random", "json")).toEqual("random.json");
+        expect(ensureExtension("random.1234", "json")).toEqual("random.1234.json");
+        expect(ensureExtension("/random/random-file", "json")).toEqual("/random/random-file.json");
+    });
+    it("should not append provided when present", () => {
+        expect(ensureExtension("random.json", "json")).toEqual("random.json");
+        expect(ensureExtension("random.1234.json", "json")).toEqual("random.1234.json");
+        expect(ensureExtension("/random/random-file.json", "json")).toEqual("/random/random-file.json");
+    });
+});
+
+describe("#validateExportName", () => {
+    it("should return decoded name when name is valid", () => {
+        expect(validateExportName(encodeURIComponent("Test Name.json"))).toEqual("Test Name.json");
+    });
+    it("should throw when name is invalid", () => {
+        expect(() => validateExportName("NoExtension")).toThrow("Provided export name has no extension");
+        expect(() => validateExportName("../something.json")).toThrow("Invalid export name: path traversal hinted");
+    });
+});
+
+describe("#isExportExpired", () => {
+    it("should return true if export is expired", () => {
+        const createdAt = Date.now() - 1000;
+        expect(isExportExpired(createdAt, 500)).toEqual(true);
+    });
+    it("should return false if export is not expired", () => {
+        const createdAt = Date.now();
+        expect(isExportExpired(createdAt, 500)).toEqual(false);
     });
 });

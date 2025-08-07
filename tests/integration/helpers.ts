@@ -63,6 +63,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             apiClientSecret: userConfig.apiClientSecret,
             connectionManager,
             logger: new CompositeLogger(),
+            exportsManagerConfig: userConfig,
         });
 
         // Mock hasValidAccessToken for tests

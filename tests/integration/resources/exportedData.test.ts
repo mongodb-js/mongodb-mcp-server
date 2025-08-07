@@ -1,8 +1,8 @@
 import { Long } from "bson";
 import { describe, expect, it, beforeEach } from "vitest";
-import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, timeout } from "../helpers.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { defaultTestConfig, timeout } from "../helpers.js";
+import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 
 describeWithMongoDB(
     "exported-data resource",
@@ -39,13 +39,12 @@ describeWithMongoDB(
                 expect(response.isError).toEqual(true);
                 expect(response.contents[0]?.uri).toEqual("exported-data://db.coll.json");
                 expect(response.contents[0]?.text).toEqual(
-                    "Error reading from exported-data://{exportName}: Requested export does not exist!"
+                    "Error reading from exported-data://{exportName}: Requested export has either expired or does not exist!"
                 );
             });
         });
 
-        // Skipping this currently as there seems to be a timing issue
-        describe.skip("when requesting an expired resource", () => {
+        describe("when requesting an expired resource", () => {
             it("should return an error", async () => {
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
@@ -66,7 +65,7 @@ describeWithMongoDB(
                 expect(response.isError).toEqual(true);
                 expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
                 expect(response.contents[0]?.text).toEqual(
-                    "Error reading from exported-data://{exportName}: Export has expired"
+                    "Error reading from exported-data://{exportName}: Requested export has expired!"
                 );
             });
         });
