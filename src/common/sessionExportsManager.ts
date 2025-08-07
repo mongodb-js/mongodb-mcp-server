@@ -10,6 +10,7 @@ import { pipeline } from "stream/promises";
 
 import { UserConfig } from "./config.js";
 import { LoggerBase, LogId } from "./logger.js";
+import { MongoLogId } from "mongodb-log-writer";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
@@ -71,7 +72,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
     private exportsDirectoryPath: string;
 
     constructor(
-        readonly sessionId: string,
+        sessionId: string,
         private readonly config: SessionExportsManagerConfig,
         private readonly logger: LoggerBase
     ) {
@@ -133,7 +134,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         } catch (error) {
             this.logger.error({
                 id: LogId.exportReadError,
-                context: "Error when reading export",
+                context: `Error when reading export - ${exportName}`,
                 message: error instanceof Error ? error.message : String(error),
             });
             if ((error as NodeJS.ErrnoException).code === "ENOENT") {
@@ -184,61 +185,54 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         jsonExportFormat: JSONExportFormat;
         inProgressExport: InProgressExport;
     }): Promise<void> {
+        let pipeSuccessful = false;
         try {
             await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
-            const inputStream = input.stream();
-            const ejsonDocStream = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
             const outputStream = createWriteStream(inProgressExport.exportPath);
             outputStream.write("[");
-            let pipeSuccessful = false;
-            try {
-                await pipeline([inputStream, ejsonDocStream, outputStream]);
-                pipeSuccessful = true;
-            } catch (pipelineError) {
-                // If the pipeline errors out then we might end up with
-                // partial and incorrect export so we remove it entirely.
-                await fs.unlink(inProgressExport.exportPath).catch((error) => {
-                    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-                        this.logger.error({
-                            id: LogId.exportCreationCleanupError,
-                            context: "Error when removing partial export",
-                            message: error instanceof Error ? error.message : String(error),
-                        });
-                    }
-                });
-                delete this.sessionExports[inProgressExport.exportName];
-                throw pipelineError;
-            } finally {
-                if (pipeSuccessful) {
-                    this.sessionExports[inProgressExport.exportName] = {
-                        ...inProgressExport,
-                        exportCreatedAt: Date.now(),
-                        exportStatus: "ready",
-                    };
-                    this.emit("export-available", inProgressExport.exportURI);
-                }
-                void input.close();
-            }
+            await pipeline([
+                input.stream(),
+                this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)),
+                outputStream,
+            ]);
+            pipeSuccessful = true;
         } catch (error) {
             this.logger.error({
                 id: LogId.exportCreationError,
-                context: "Error when generating JSON export",
+                context: `Error when generating JSON export for ${inProgressExport.exportName}`,
                 message: error instanceof Error ? error.message : String(error),
             });
+
+            // If the pipeline errors out then we might end up with
+            // partial and incorrect export so we remove it entirely.
+            await this.silentlyRemoveExport(
+                inProgressExport.exportPath,
+                LogId.exportCreationCleanupError,
+                `Error when removing incomplete export ${inProgressExport.exportName}`
+            );
+            delete this.sessionExports[inProgressExport.exportName];
+        } finally {
+            if (pipeSuccessful) {
+                this.sessionExports[inProgressExport.exportName] = {
+                    ...inProgressExport,
+                    exportCreatedAt: Date.now(),
+                    exportStatus: "ready",
+                };
+                this.emit("export-available", inProgressExport.exportURI);
+            }
+            void input.close();
         }
     }
 
     private getEJSONOptionsForFormat(format: JSONExportFormat): EJSONOptions | undefined {
-        if (format === "relaxed") {
-            return {
-                relaxed: true,
-            };
+        switch (format) {
+            case "relaxed":
+                return { relaxed: true };
+            case "canonical":
+                return { relaxed: false };
+            default:
+                return undefined;
         }
-        return format === "canonical"
-            ? {
-                  relaxed: false,
-              }
-            : undefined;
     }
 
     private docToEJSONStream(ejsonOptions: EJSONOptions | undefined): Transform {
@@ -276,7 +270,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             for (const { exportPath, exportCreatedAt, exportURI, exportName } of exportsForCleanup) {
                 if (isExportExpired(exportCreatedAt, this.config.exportTimeoutMs)) {
                     delete this.sessionExports[exportName];
-                    await this.silentlyRemoveExport(exportPath);
+                    await this.silentlyRemoveExport(
+                        exportPath,
+                        LogId.exportCleanupError,
+                        `Considerable error when removing export ${exportName}`
+                    );
                     this.emit("export-expired", exportURI);
                 }
             }
@@ -291,7 +289,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         }
     }
 
-    private async silentlyRemoveExport(exportPath: string): Promise<void> {
+    private async silentlyRemoveExport(exportPath: string, logId: MongoLogId, logContext: string): Promise<void> {
         try {
             await fs.unlink(exportPath);
         } catch (error) {
@@ -300,8 +298,8 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             // we need to flag.
             if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
                 this.logger.error({
-                    id: LogId.exportCleanupError,
-                    context: "Considerable error when removing export file",
+                    id: logId,
+                    context: logContext,
                     message: error instanceof Error ? error.message : String(error),
                 });
             }

@@ -15,8 +15,9 @@ import { config } from "../../../src/common/config.js";
 import { Session } from "../../../src/common/session.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { timeout } from "../../integration/helpers.js";
-import { EJSON, EJSONOptions } from "bson";
+import { EJSON, EJSONOptions, ObjectId } from "bson";
 import { CompositeLogger } from "../../../src/common/logger.js";
+import { ConnectionManager } from "../../../src/common/connectionManager.js";
 
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
 const exportsManagerConfig: SessionExportsManagerConfig = {
@@ -106,7 +107,15 @@ describe("SessionExportsManager unit test", () => {
         await manager?.close();
         await fs.rm(exportsManagerConfig.exportsPath, { recursive: true, force: true });
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
-        session = new Session({ apiBaseUrl: "", logger: new CompositeLogger() });
+        const logger = new CompositeLogger();
+        const sessionId = new ObjectId().toString();
+        session = new Session({
+            apiBaseUrl: "",
+            logger,
+            sessionId,
+            exportsManager: new SessionExportsManager(sessionId, config, logger),
+            connectionManager: new ConnectionManager(),
+        });
         manager = session.exportsManager;
     });
 

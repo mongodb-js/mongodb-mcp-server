@@ -10,17 +10,16 @@ import {
 } from "./connectionManager.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
-import { ObjectId } from "bson";
-import { SessionExportsManager, SessionExportsManagerConfig } from "./sessionExportsManager.js";
-import { config } from "./config.js";
+import { SessionExportsManager } from "./sessionExportsManager.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
     apiClientId?: string;
     apiClientSecret?: string;
-    connectionManager?: ConnectionManager;
-    exportsManagerConfig?: SessionExportsManagerConfig;
     logger: CompositeLogger;
+    sessionId: string;
+    exportsManager: SessionExportsManager;
+    connectionManager: ConnectionManager;
 }
 
 export type SessionEvents = {
@@ -31,10 +30,10 @@ export type SessionEvents = {
 };
 
 export class Session extends EventEmitter<SessionEvents> {
-    readonly sessionId = new ObjectId().toString();
+    readonly sessionId: string;
     readonly exportsManager: SessionExportsManager;
-    connectionManager: ConnectionManager;
-    apiClient: ApiClient;
+    readonly connectionManager: ConnectionManager;
+    readonly apiClient: ApiClient;
     agentRunner?: {
         name: string;
         version: string;
@@ -46,14 +45,14 @@ export class Session extends EventEmitter<SessionEvents> {
         apiBaseUrl,
         apiClientId,
         apiClientSecret,
-        connectionManager,
         logger,
-        exportsManagerConfig,
+        sessionId,
+        connectionManager,
+        exportsManager,
     }: SessionOptions) {
         super();
 
         this.logger = logger;
-
         const credentials: ApiClientCredentials | undefined =
             apiClientId && apiClientSecret
                 ? {
@@ -63,9 +62,10 @@ export class Session extends EventEmitter<SessionEvents> {
                 : undefined;
 
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
-        this.exportsManager = new SessionExportsManager(this.sessionId, exportsManagerConfig ?? config, logger);
 
-        this.connectionManager = connectionManager ?? new ConnectionManager();
+        this.sessionId = sessionId;
+        this.exportsManager = exportsManager;
+        this.connectionManager = connectionManager;
         this.connectionManager.on("connection-succeeded", () => this.emit("connect"));
         this.connectionManager.on("connection-timed-out", (error) => this.emit("connection-error", error.errorReason));
         this.connectionManager.on("connection-closed", () => this.emit("disconnect"));

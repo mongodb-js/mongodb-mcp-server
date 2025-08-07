@@ -4,9 +4,18 @@ import { Session } from "../../../../src/common/session.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { config } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
+import { ConnectionManager } from "../../../../src/common/connectionManager.js";
+import { SessionExportsManager } from "../../../../src/common/sessionExportsManager.js";
 
 describe("debug resource", () => {
-    const session = new Session({ apiBaseUrl: "", logger: new CompositeLogger() });
+    const logger = new CompositeLogger();
+    const session = new Session({
+        apiBaseUrl: "",
+        logger,
+        sessionId: "1FOO",
+        exportsManager: new SessionExportsManager("1FOO", config, logger),
+        connectionManager: new ConnectionManager(),
+    });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });
 
     let debugResource: DebugResource = new DebugResource(session, config, telemetry);

@@ -1,3 +1,4 @@
+import { ObjectId } from "bson";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { Server } from "../../src/server.js";
@@ -10,6 +11,7 @@ import { config } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConnectionManager } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
+import { SessionExportsManager } from "../../src/common/sessionExportsManager.js";
 
 interface ParameterInfo {
     name: string;
@@ -55,15 +57,19 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             }
         );
 
+        const logger = new CompositeLogger();
+        const sessionId = new ObjectId().toString();
+        const exportsManager = new SessionExportsManager(sessionId, userConfig, logger);
         const connectionManager = new ConnectionManager();
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
             apiClientId: userConfig.apiClientId,
             apiClientSecret: userConfig.apiClientSecret,
+            logger,
+            sessionId,
+            exportsManager,
             connectionManager,
-            logger: new CompositeLogger(),
-            exportsManagerConfig: userConfig,
         });
 
         // Mock hasValidAccessToken for tests

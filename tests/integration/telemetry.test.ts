@@ -5,6 +5,8 @@ import { config } from "../../src/common/config.js";
 import nodeMachineId from "node-machine-id";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";
+import { ConnectionManager } from "../../src/common/connectionManager.js";
+import { SessionExportsManager } from "../../src/common/sessionExportsManager.js";
 
 describe("Telemetry", () => {
     it("should resolve the actual machine ID", async () => {
@@ -12,10 +14,14 @@ describe("Telemetry", () => {
 
         const actualHashedId = createHmac("sha256", actualId.toUpperCase()).update("atlascli").digest("hex");
 
+        const logger = new CompositeLogger();
         const telemetry = Telemetry.create(
             new Session({
                 apiBaseUrl: "",
                 logger: new CompositeLogger(),
+                sessionId: "1FOO",
+                exportsManager: new SessionExportsManager("1FOO", config, logger),
+                connectionManager: new ConnectionManager(),
             }),
             config
         );
