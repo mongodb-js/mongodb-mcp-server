@@ -37,7 +37,10 @@ function getExportNameAndPath(sessionId: string, timestamp: number) {
     };
 }
 
-function createDummyFindCursor(dataArray: unknown[], chunkPushTimeoutMs?: number): FindCursor {
+function createDummyFindCursor(
+    dataArray: unknown[],
+    chunkPushTimeoutMs?: number
+): { cursor: FindCursor; cursorCloseNotification: Promise<void> } {
     let index = 0;
     const readable = new Readable({
         objectMode: true,
@@ -56,14 +59,26 @@ function createDummyFindCursor(dataArray: unknown[], chunkPushTimeoutMs?: number
         },
     });
 
+    let notifyClose: () => Promise<void>;
+    const cursorCloseNotification = new Promise<void>((resolve) => {
+        notifyClose = async () => {
+            await timeout(10);
+            resolve();
+        };
+    });
+    readable.once("close", () => void notifyClose?.());
+
     return {
-        stream() {
-            return readable;
-        },
-        close() {
-            return Promise.resolve(readable.destroy());
-        },
-    } as unknown as FindCursor;
+        cursor: {
+            stream() {
+                return readable;
+            },
+            close() {
+                return Promise.resolve(readable.destroy());
+            },
+        } as unknown as FindCursor,
+        cursorCloseNotification,
+    };
 }
 
 async function fileExists(filePath: string) {
@@ -92,21 +107,22 @@ describe("SessionExportsManager unit test", () => {
             // This export will finish in at-least 1 second
             const { exportName: exportName1 } = getExportNameAndPath(session.sessionId, Date.now());
             manager.createJSONExport({
-                input: createDummyFindCursor([{ name: "Test1" }], 1000),
+                input: createDummyFindCursor([{ name: "Test1" }], 1000).cursor,
                 exportName: exportName1,
                 jsonExportFormat: "relaxed",
             });
 
             // This export will finish way sooner than the first one
             const { exportName: exportName2 } = getExportNameAndPath(session.sessionId, Date.now());
+            const { cursor, cursorCloseNotification } = createDummyFindCursor([{ name: "Test1" }]);
             manager.createJSONExport({
-                input: createDummyFindCursor([{ name: "Test1" }]),
+                input: cursor,
                 exportName: exportName2,
                 jsonExportFormat: "relaxed",
             });
 
             // Small timeout to let the second export finish
-            await timeout(10);
+            await cursorCloseNotification;
             expect(manager.availableExports).toHaveLength(1);
             expect(manager.availableExports[0]?.exportName).toEqual(exportName2);
         });
@@ -119,15 +135,13 @@ describe("SessionExportsManager unit test", () => {
 
         it("should throw if the resource is still being generated", async () => {
             const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
-            const inputCursor = createDummyFindCursor([{ name: "Test1" }], 100);
+            const { cursor } = createDummyFindCursor([{ name: "Test1" }], 100);
             manager.createJSONExport({
-                input: inputCursor,
+                input: cursor,
                 exportName,
                 jsonExportFormat: "relaxed",
             });
-            // Small timeout but it won't be sufficient and the export
-            // generation will still be in progress
-            await timeout(10);
+            // note that we do not wait for cursor close
             await expect(() => manager.readExport(exportName)).rejects.toThrow(
                 "Requested export is still being generated!"
             );
@@ -135,26 +149,26 @@ describe("SessionExportsManager unit test", () => {
 
         it("should return the resource content if the resource is ready to be consumed", async () => {
             const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
-            const inputCursor = createDummyFindCursor([]);
+            const { cursor, cursorCloseNotification } = createDummyFindCursor([]);
             manager.createJSONExport({
-                input: inputCursor,
+                input: cursor,
                 exportName,
                 jsonExportFormat: "relaxed",
             });
-            // Small timeout to account for async operation
-            await timeout(10);
+            await cursorCloseNotification;
             expect(await manager.readExport(exportName)).toEqual("[]");
         });
     });
 
     describe("#createJSONExport", () => {
-        let inputCursor: FindCursor;
+        let cursor: FindCursor;
+        let cursorCloseNotification: Promise<void>;
         let exportName: string;
         let exportPath: string;
         let exportURI: string;
         beforeEach(() => {
-            void inputCursor?.close();
-            inputCursor = createDummyFindCursor([
+            void cursor?.close();
+            ({ cursor, cursorCloseNotification } = createDummyFindCursor([
                 {
                     name: "foo",
                     longNumber: Long.fromNumber(12),
@@ -163,22 +177,21 @@ describe("SessionExportsManager unit test", () => {
                     name: "bar",
                     longNumber: Long.fromNumber(123456),
                 },
-            ]);
+            ]));
             ({ exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now()));
         });
 
         describe("when cursor is empty", () => {
             it("should create an empty export", async () => {
-                inputCursor = createDummyFindCursor([]);
+                const { cursor, cursorCloseNotification } = createDummyFindCursor([]);
 
                 const emitSpy = vi.spyOn(manager, "emit");
                 manager.createJSONExport({
-                    input: inputCursor,
+                    input: cursor,
                     exportName,
                     jsonExportFormat: "relaxed",
                 });
-                // Small timeout to account for async operation
-                await timeout(10);
+                await cursorCloseNotification;
 
                 // Updates available export
                 const availableExports = manager.availableExports;
@@ -206,12 +219,11 @@ describe("SessionExportsManager unit test", () => {
             it("should export relaxed json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
                 manager.createJSONExport({
-                    input: inputCursor,
+                    input: cursor,
                     exportName,
                     jsonExportFormat: "relaxed",
                 });
-                // Small timeout to account for async operation
-                await timeout(10);
+                await cursorCloseNotification;
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
@@ -241,12 +253,11 @@ describe("SessionExportsManager unit test", () => {
             it("should export canonical json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
                 manager.createJSONExport({
-                    input: inputCursor,
+                    input: cursor,
                     exportName,
                     jsonExportFormat: "canonical",
                 });
-                // Small timeout to account for async operation
-                await timeout(50);
+                await cursorCloseNotification;
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
@@ -302,12 +313,11 @@ describe("SessionExportsManager unit test", () => {
                     });
                 };
                 manager.createJSONExport({
-                    input: inputCursor,
+                    input: cursor,
                     exportName,
                     jsonExportFormat: "relaxed",
                 });
-                // Small timeout to account for async operation
-                await timeout(50);
+                await cursorCloseNotification;
 
                 // Because the export was never populated in the available exports.
                 await expect(() => manager.readExport(exportName)).rejects.toThrow(
@@ -321,10 +331,11 @@ describe("SessionExportsManager unit test", () => {
     });
 
     describe("#cleanupExpiredExports", () => {
-        let input: FindCursor;
+        let cursor: FindCursor;
+        let cursorCloseNotification: Promise<void>;
         beforeEach(() => {
-            void input?.close();
-            input = createDummyFindCursor([
+            void cursor?.close();
+            ({ cursor, cursorCloseNotification } = createDummyFindCursor([
                 {
                     name: "foo",
                     longNumber: Long.fromNumber(12),
@@ -333,7 +344,7 @@ describe("SessionExportsManager unit test", () => {
                     name: "bar",
                     longNumber: Long.fromNumber(123456),
                 },
-            ]);
+            ]));
         });
 
         it("should not clean up in-progress exports", async () => {
@@ -347,8 +358,9 @@ describe("SessionExportsManager unit test", () => {
                 },
                 new CompositeLogger()
             );
+            const { cursor } = createDummyFindCursor([{ name: "Test" }], 2000);
             manager.createJSONExport({
-                input: createDummyFindCursor([{ name: "Test" }], 2000),
+                input: cursor,
                 exportName,
                 jsonExportFormat: "relaxed",
             });
@@ -374,13 +386,11 @@ describe("SessionExportsManager unit test", () => {
                 new CompositeLogger()
             );
             manager.createJSONExport({
-                input,
+                input: cursor,
                 exportName,
                 jsonExportFormat: "relaxed",
             });
-            // Small timeout to account for async operation and let export
-            // finish
-            await timeout(10);
+            await cursorCloseNotification;
 
             expect(manager.availableExports).toContainEqual(
                 expect.objectContaining({

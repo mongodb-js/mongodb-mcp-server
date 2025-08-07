@@ -209,7 +209,6 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 delete this.sessionExports[inProgressExport.exportName];
                 throw pipelineError;
             } finally {
-                void input.close();
                 if (pipeSuccessful) {
                     this.sessionExports[inProgressExport.exportName] = {
                         ...inProgressExport,
@@ -218,6 +217,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                     };
                     this.emit("export-available", inProgressExport.exportURI);
                 }
+                void input.close();
             }
         } catch (error) {
             this.logger.error({
