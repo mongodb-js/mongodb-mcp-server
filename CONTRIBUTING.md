@@ -33,7 +33,7 @@ This project implements a Model Context Protocol (MCP) server for MongoDB and Mo
    {
      "mcpServers": {
        "MongoDB": {
-         "command": "/path/to/mongodb-mcp-server/dist/index.js"
+         "command": "/path/to/mongodb-mcp-server/dist/esm/index.js"
        }
      }
    }
@@ -104,7 +104,7 @@ npm run inspect
 This is equivalent to:
 
 ```shell
-npx @modelcontextprotocol/inspector -- node dist/index.js
+npx @modelcontextprotocol/inspector -- node dist/esm/index.js
 ```
 
 ## Pull Request Guidelines

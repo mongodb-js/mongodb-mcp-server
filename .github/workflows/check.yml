@@ -55,4 +55,4 @@ jobs:
           rm -rf node_modules
           npm pkg set scripts.prepare="exit 0"
           npm install --omit=dev
-      - run: npx -y @modelcontextprotocol/inspector --cli --method tools/list -- node dist/index.js
+      - run: npx -y @modelcontextprotocol/inspector --cli --method tools/list -- node dist/esm/index.js

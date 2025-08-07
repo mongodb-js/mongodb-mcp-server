@@ -1,21 +1,28 @@
 import { ReactiveResource } from "../resource.js";
 import { config } from "../../common/config.js";
 import type { UserConfig } from "../../common/config.js";
+import type { Server } from "../../server.js";
+import type { Telemetry } from "../../telemetry/telemetry.js";
 
-export class ConfigResource extends ReactiveResource(
-    {
-        name: "config",
-        uri: "config://config",
-        config: {
-            description:
-                "Server configuration, supplied by the user either as environment variables or as startup arguments",
-        },
-    },
-    {
-        initial: { ...config },
-        events: [],
+export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
+    constructor(server: Server, telemetry: Telemetry) {
+        super(
+            {
+                name: "config",
+                uri: "config://config",
+                config: {
+                    description:
+                        "Server configuration, supplied by the user either as environment variables or as startup arguments",
+                },
+            },
+            {
+                initial: { ...config },
+                events: [],
+            },
+            server,
+            telemetry
+        );
     }
-) {
     reduce(eventName: undefined, event: undefined): UserConfig {
         void eventName;
         void event;
