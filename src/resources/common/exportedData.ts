@@ -15,15 +15,12 @@ export class ExportedData {
     private server?: Server;
 
     constructor(private readonly session: Session) {
-        this.session.exportsManager.on("export-available", (uri) => {
-            this.server?.mcpServer.sendResourceListChanged();
-            void this.server?.mcpServer.server.sendResourceUpdated({
-                uri,
-            });
-        });
-        this.session.exportsManager.on("export-expired", () => {
-            this.server?.mcpServer.sendResourceListChanged();
-        });
+        const onExportChanged = (uri: string): void => {
+            this.server?.sendResourceListChanged();
+            this.server?.sendResourceUpdated(uri);
+        };
+        this.session.exportsManager.on("export-available", onExportChanged);
+        this.session.exportsManager.on("export-expired", onExportChanged);
     }
 
     public register(server: Server): void {

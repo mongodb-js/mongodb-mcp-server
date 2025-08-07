@@ -9,7 +9,12 @@ import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
-import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+    CallToolRequestSchema,
+    CallToolResult,
+    SubscribeRequestSchema,
+    UnsubscribeRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import { ToolBase } from "./tools/tool.js";
 
@@ -27,6 +32,7 @@ export class Server {
     public readonly userConfig: UserConfig;
     public readonly tools: ToolBase[] = [];
     private readonly startTime: number;
+    private readonly subscriptions = new Set<string>();
 
     constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
         this.startTime = Date.now();
@@ -42,7 +48,7 @@ export class Server {
         this.registerResources();
         await this.validateConfig();
 
-        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true } });
+        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true, subscribe: true } });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
@@ -68,6 +74,26 @@ export class Server {
             }
 
             return existingHandler(request, extra);
+        });
+
+        this.mcpServer.server.setRequestHandler(SubscribeRequestSchema, ({ params }) => {
+            this.subscriptions.add(params.uri);
+            this.session.logger.debug({
+                id: LogId.serverInitialized,
+                context: "resources",
+                message: `Client subscribed to resource: ${params.uri}`,
+            });
+            return {};
+        });
+
+        this.mcpServer.server.setRequestHandler(UnsubscribeRequestSchema, ({ params }) => {
+            this.subscriptions.delete(params.uri);
+            this.session.logger.debug({
+                id: LogId.serverInitialized,
+                context: "resources",
+                message: `Client unsubscribed from resource: ${params.uri}`,
+            });
+            return {};
         });
 
         this.mcpServer.server.oninitialized = (): void => {
@@ -99,6 +125,16 @@ export class Server {
         await this.telemetry.close();
         await this.session.close();
         await this.mcpServer.close();
+    }
+
+    public sendResourceListChanged(): void {
+        this.mcpServer.sendResourceListChanged();
+    }
+
+    public sendResourceUpdated(uri: string): void {
+        if (this.subscriptions.has(uri)) {
+            void this.mcpServer.server.sendResourceUpdated({ uri });
+        }
     }
 
     /**

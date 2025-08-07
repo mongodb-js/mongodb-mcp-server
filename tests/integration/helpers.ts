@@ -286,6 +286,7 @@ export function timeout(ms: number): Promise<void> {
  */
 export function resourceChangedNotification(client: Client, uri: string): Promise<void> {
     return new Promise<void>((resolve) => {
+        void client.subscribeResource({ uri });
         client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
             if (notification.params.uri === uri) {
                 resolve();

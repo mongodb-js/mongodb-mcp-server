@@ -83,10 +83,10 @@ export abstract class ReactiveResource<Value, RelevantEvents extends readonly (k
         ],
     });
 
-    private async triggerUpdate(): Promise<void> {
+    private triggerUpdate(): void {
         try {
-            await this.server?.mcpServer.server.sendResourceUpdated({ uri: this.uri });
-            this.server?.mcpServer.sendResourceListChanged();
+            this.server?.sendResourceListChanged();
+            this.server?.sendResourceUpdated(this.uri);
         } catch (error: unknown) {
             this.session.logger.warning({
                 id: LogId.resourceUpdateFailure,
