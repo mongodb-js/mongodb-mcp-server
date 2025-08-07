@@ -25,7 +25,7 @@ export class DebugResource extends ReactiveResource<
                 },
             },
             {
-                initial: { tag: "disconnected" } as ConnectionStateDebuggingInformation,
+                initial: { tag: "disconnected" },
                 events: ["connect", "disconnect", "close", "connection-error"],
             },
             server,
