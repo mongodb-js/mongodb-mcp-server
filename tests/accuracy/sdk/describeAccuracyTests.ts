@@ -4,7 +4,7 @@ import { calculateToolCallingAccuracy } from "./accuracyScorer.js";
 import { getVercelToolCallingAgent, VercelAgent } from "./agent.js";
 import { prepareTestData, setupMongoDBIntegrationTest } from "../../integration/tools/mongodb/mongodbHelpers.js";
 import { AccuracyTestingClient, MockedTools } from "./accuracyTestingClient.js";
-import { AccuracyResultStorage, ExpectedToolCall } from "./accuracyResultStorage/resultStorage.js";
+import { AccuracyResultStorage, ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import { getAccuracyResultStorage } from "./accuracyResultStorage/getAccuracyResultStorage.js";
 import { getCommitSHA } from "./gitInfo.js";
 
@@ -39,6 +39,13 @@ export interface AccuracyTestConfig {
      * implementations are available, the testing client will prefer those over
      * actual MCP tool calls. */
     mockedTools?: MockedTools;
+
+    /**
+     * A custom scoring function to evaluate the accuracy of tool calls. This
+     * is typically needed if we want to do extra validations for the tool calls beyond
+     * what the baseline scorer will do.
+     */
+    customScorer?: (baselineScore: number, actualToolCalls: LLMToolCall[]) => number;
 }
 
 export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[]): void {
@@ -101,7 +108,10 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
             const timeAfterPrompt = Date.now();
 
             const llmToolCalls = testMCPClient.getLLMToolCalls();
-            const toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
+            let toolCallingAccuracy = calculateToolCallingAccuracy(testConfig.expectedToolCalls, llmToolCalls);
+            if (testConfig.customScorer) {
+                toolCallingAccuracy = testConfig.customScorer(toolCallingAccuracy, llmToolCalls);
+            }
 
             const responseTime = timeAfterPrompt - timeBeforePrompt;
             await accuracyResultStorage.saveModelResponseForPrompt({

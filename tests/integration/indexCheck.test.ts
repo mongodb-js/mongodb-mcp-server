@@ -198,7 +198,7 @@ describe("IndexCheck integration tests", () => {
 
                         expect(response.isError).toBeFalsy();
                         const content = getResponseContent(response.content);
-                        expect(content).toContain("Found");
+                        expect(content).toContain("The aggregation resulted in");
                     });
                 });
 
@@ -385,8 +385,8 @@ describe("IndexCheck integration tests", () => {
                     });
 
                     expect(response.isError).toBeFalsy();
-                    const content = getResponseContent(response.content);
-                    expect(content).toContain("Found");
+                    const content = getResponseContent(response);
+                    expect(content).toContain("The aggregation resulted in");
                     expect(content).not.toContain("Index check failed");
                 });
 

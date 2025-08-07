@@ -4,10 +4,9 @@ import {
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
-    getResponseElements,
     expectDefined,
 } from "../../../helpers.js";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("find tool", (integration) => {
     validateToolMetadata(integration, "find", "Run a find query against a MongoDB collection", [
@@ -57,7 +56,7 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "foos":');
+        expect(content).toEqual('Found 0 documents in the collection "foos"');
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -69,7 +68,7 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "non-existent":');
+        expect(content).toEqual('Found 0 documents in the collection "non-existent"');
     });
 
     describe("with existing database", () => {
@@ -148,12 +147,13 @@ describeWithMongoDB("find tool", (integration) => {
                         sort,
                     },
                 });
-                const elements = getResponseElements(response.content);
-                expect(elements).toHaveLength(expected.length + 1);
-                expect(elements[0]?.text).toEqual(`Found ${expected.length} documents in the collection "foo":`);
+                const content = getResponseContent(response);
+                expect(content).toContain(`Found ${expected.length} documents in the collection "foo".`);
+
+                const docs = getDocsFromUntrustedContent(content);
 
                 for (let i = 0; i < expected.length; i++) {
-                    expect(JSON.parse(elements[i + 1]?.text ?? "{}")).toEqual(expected[i]);
+                    expect(docs[i]).toEqual(expected[i]);
                 }
             });
         }
@@ -164,13 +164,14 @@ describeWithMongoDB("find tool", (integration) => {
                 name: "find",
                 arguments: { database: integration.randomDbName(), collection: "foo" },
             });
-            const elements = getResponseElements(response.content);
-            expect(elements).toHaveLength(11);
-            expect(elements[0]?.text).toEqual('Found 10 documents in the collection "foo":');
+            const content = getResponseContent(response);
+            expect(content).toContain('Found 10 documents in the collection "foo".');
+
+            const docs = getDocsFromUntrustedContent(content);
+            expect(docs.length).toEqual(10);
 
             for (let i = 0; i < 10; i++) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                expect(JSON.parse(elements[i + 1]?.text ?? "{}").value).toEqual(i);
+                expect((docs[i] as { value: number }).value).toEqual(i);
             }
         });
 
@@ -193,19 +194,20 @@ describeWithMongoDB("find tool", (integration) => {
                 },
             });
 
-            const elements = getResponseElements(response.content);
-            expect(elements).toHaveLength(2);
-            expect(elements[0]?.text).toEqual('Found 1 documents in the collection "foo":');
+            const content = getResponseContent(response);
+            expect(content).toContain('Found 1 documents in the collection "foo".');
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            expect(JSON.parse(elements[1]?.text ?? "{}").value).toEqual(fooObject.value);
+            const docs = getDocsFromUntrustedContent(content);
+            expect(docs.length).toEqual(1);
+
+            expect((docs[0] as { value: number }).value).toEqual(fooObject.value);
         });
     });
 
     validateAutoConnectBehavior(integration, "find", () => {
         return {
             args: { database: integration.randomDbName(), collection: "coll1" },
-            expectedResponse: 'Found 0 documents in the collection "coll1":',
+            expectedResponse: 'Found 0 documents in the collection "coll1"',
         };
     });
 });

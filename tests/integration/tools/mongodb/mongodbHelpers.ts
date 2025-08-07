@@ -32,6 +32,11 @@ const testDataPaths = [
         collection: "shows",
         path: path.join(testDataDumpPath, "mflix.shows.json"),
     },
+    {
+        db: "support",
+        collection: "tickets",
+        path: path.join(testDataDumpPath, "support.tickets.json"),
+    },
 ];
 
 interface MongoDBIntegrationTest {
@@ -235,4 +240,9 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
             );
         },
     };
+}
+
+export function getDocsFromUntrustedContent(content: string): unknown[] {
+    const json = content.split("\n").slice(3, -3).join("\n");
+    return JSON.parse(json) as unknown[];
 }
