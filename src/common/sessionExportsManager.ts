@@ -14,12 +14,22 @@ import { LoggerBase, LogId } from "./logger.js";
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
-type StoredExport = {
+interface CommonExportData {
     exportName: string;
     exportURI: string;
     exportPath: string;
+}
+
+interface ReadyExport extends CommonExportData {
+    exportStatus: "ready";
     exportCreatedAt: number;
-};
+}
+
+interface InProgressExport extends CommonExportData {
+    exportStatus: "in-progress";
+}
+
+type StoredExport = ReadyExport | InProgressExport;
 
 /**
  * Ideally just exportName and exportURI should be made publicly available but
@@ -75,7 +85,12 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
 
     public get availableExports(): AvailableExport[] {
         return Object.values(this.sessionExports)
-            .filter(({ exportCreatedAt: createdAt }) => !isExportExpired(createdAt, this.config.exportTimeoutMs))
+            .filter((sessionExport) => {
+                return (
+                    sessionExport.exportStatus === "ready" &&
+                    !isExportExpired(sessionExport.exportCreatedAt, this.config.exportTimeoutMs)
+                );
+            })
             .map(({ exportName, exportURI, exportPath }) => ({
                 exportName,
                 exportURI,
@@ -104,6 +119,10 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 throw new Error("Requested export has either expired or does not exist!");
             }
 
+            if (exportHandle.exportStatus === "in-progress") {
+                throw new Error("Requested export is still being generated!");
+            }
+
             const { exportPath, exportCreatedAt } = exportHandle;
 
             if (isExportExpired(exportCreatedAt, this.config.exportTimeoutMs)) {
@@ -124,7 +143,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         }
     }
 
-    public async createJSONExport({
+    public createJSONExport({
         input,
         exportName,
         jsonExportFormat,
@@ -132,30 +151,53 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         input: FindCursor;
         exportName: string;
         jsonExportFormat: JSONExportFormat;
-    }): Promise<AvailableExport> {
+    }): AvailableExport {
         try {
             const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
             const exportURI = `exported-data://${encodeURIComponent(exportNameWithExtension)}`;
             const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
+            const inProgressExport: InProgressExport = (this.sessionExports[exportNameWithExtension] = {
+                exportName: exportNameWithExtension,
+                exportPath: exportFilePath,
+                exportURI: exportURI,
+                exportStatus: "in-progress",
+            });
 
+            void this.startExport({ input, jsonExportFormat, inProgressExport });
+            return inProgressExport;
+        } catch (error) {
+            this.logger.error({
+                id: LogId.exportCreationError,
+                context: "Error when registering JSON export request",
+                message: error instanceof Error ? error.message : String(error),
+            });
+            throw error;
+        }
+    }
+
+    private async startExport({
+        input,
+        jsonExportFormat,
+        inProgressExport,
+    }: {
+        input: FindCursor;
+        jsonExportFormat: JSONExportFormat;
+        inProgressExport: InProgressExport;
+    }): Promise<void> {
+        try {
             await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
             const inputStream = input.stream();
             const ejsonDocStream = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
-            const outputStream = createWriteStream(exportFilePath);
+            const outputStream = createWriteStream(inProgressExport.exportPath);
             outputStream.write("[");
             let pipeSuccessful = false;
             try {
                 await pipeline([inputStream, ejsonDocStream, outputStream]);
                 pipeSuccessful = true;
-                return {
-                    exportName,
-                    exportURI,
-                    exportPath: exportFilePath,
-                };
             } catch (pipelineError) {
                 // If the pipeline errors out then we might end up with
                 // partial and incorrect export so we remove it entirely.
-                await fs.unlink(exportFilePath).catch((error) => {
+                await fs.unlink(inProgressExport.exportPath).catch((error) => {
                     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
                         this.logger.error({
                             id: LogId.exportCreationCleanupError,
@@ -164,17 +206,17 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                         });
                     }
                 });
+                delete this.sessionExports[inProgressExport.exportName];
                 throw pipelineError;
             } finally {
                 void input.close();
                 if (pipeSuccessful) {
-                    this.sessionExports[exportNameWithExtension] = {
-                        exportName: exportNameWithExtension,
+                    this.sessionExports[inProgressExport.exportName] = {
+                        ...inProgressExport,
                         exportCreatedAt: Date.now(),
-                        exportPath: exportFilePath,
-                        exportURI: exportURI,
+                        exportStatus: "ready",
                     };
-                    this.emit("export-available", exportURI);
+                    this.emit("export-available", inProgressExport.exportURI);
                 }
             }
         } catch (error) {
@@ -183,7 +225,6 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 context: "Error when generating JSON export",
                 message: error instanceof Error ? error.message : String(error),
             });
-            throw error;
         }
     }
 
@@ -228,9 +269,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         }
 
         this.exportsCleanupInProgress = true;
-        const exportsForCleanup = { ...this.sessionExports };
+        const exportsForCleanup = Object.values({ ...this.sessionExports }).filter(
+            (sessionExport): sessionExport is ReadyExport => sessionExport.exportStatus === "ready"
+        );
         try {
-            for (const { exportPath, exportCreatedAt, exportURI, exportName } of Object.values(exportsForCleanup)) {
+            for (const { exportPath, exportCreatedAt, exportURI, exportName } of exportsForCleanup) {
                 if (isExportExpired(exportCreatedAt, this.config.exportTimeoutMs)) {
                     delete this.sessionExports[exportName];
                     await this.silentlyRemoveExport(exportPath);

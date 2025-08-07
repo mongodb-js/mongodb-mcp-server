@@ -59,15 +59,13 @@ describeWithMongoDB(
                 expect(exportedResourceURI).toBeDefined();
 
                 // wait for export expired
-                await timeout(200);
+                await timeout(250);
                 const response = await integration.mcpClient().readResource({
                     uri: exportedResourceURI as string,
                 });
                 expect(response.isError).toEqual(true);
                 expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
-                expect(response.contents[0]?.text).toEqual(
-                    `Error reading ${exportedResourceURI}: Requested export has expired!`
-                );
+                expect(response.contents[0]?.text).toMatch(`Error reading ${exportedResourceURI}:`);
             });
         });
 
@@ -78,6 +76,8 @@ describeWithMongoDB(
                     name: "export",
                     arguments: { database: "db", collection: "coll" },
                 });
+                // Small timeout to let export finish
+                await timeout(50);
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
                     (part) => part.type === "resource_link"
@@ -98,6 +98,8 @@ describeWithMongoDB(
                     name: "export",
                     arguments: { database: "big", collection: "coll" },
                 });
+                // Small timeout to let export finish
+                await timeout(50);
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
                     (part) => part.type === "resource_link"

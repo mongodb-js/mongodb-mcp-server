@@ -37,14 +37,20 @@ function getExportNameAndPath(sessionId: string, timestamp: number) {
     };
 }
 
-function createDummyFindCursor(dataArray: unknown[]): FindCursor {
+function createDummyFindCursor(dataArray: unknown[], chunkPushTimeoutMs?: number): FindCursor {
     let index = 0;
     const readable = new Readable({
         objectMode: true,
-        read() {
+        async read() {
             if (index < dataArray.length) {
+                if (chunkPushTimeoutMs) {
+                    await timeout(chunkPushTimeoutMs);
+                }
                 this.push(dataArray[index++]);
             } else {
+                if (chunkPushTimeoutMs) {
+                    await timeout(chunkPushTimeoutMs);
+                }
                 this.push(null);
             }
         },
@@ -81,19 +87,62 @@ describe("SessionExportsManager unit test", () => {
         manager = session.exportsManager;
     });
 
+    describe("#availableExport", () => {
+        it("should list only the exports that are in ready state", async () => {
+            // This export will finish in at-least 1 second
+            const { exportName: exportName1 } = getExportNameAndPath(session.sessionId, Date.now());
+            manager.createJSONExport({
+                input: createDummyFindCursor([{ name: "Test1" }], 1000),
+                exportName: exportName1,
+                jsonExportFormat: "relaxed",
+            });
+
+            // This export will finish way sooner than the first one
+            const { exportName: exportName2 } = getExportNameAndPath(session.sessionId, Date.now());
+            manager.createJSONExport({
+                input: createDummyFindCursor([{ name: "Test1" }]),
+                exportName: exportName2,
+                jsonExportFormat: "relaxed",
+            });
+
+            // Small timeout to let the second export finish
+            await timeout(10);
+            expect(manager.availableExports).toHaveLength(1);
+            expect(manager.availableExports[0]?.exportName).toEqual(exportName2);
+        });
+    });
+
     describe("#readExport", () => {
         it("should throw when export name has no extension", async () => {
             await expect(() => manager.readExport("name")).rejects.toThrow();
         });
 
-        it("should return the resource content", async () => {
+        it("should throw if the resource is still being generated", async () => {
             const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
-            const inputCursor = createDummyFindCursor([]);
-            await manager.createJSONExport({
+            const inputCursor = createDummyFindCursor([{ name: "Test1" }], 100);
+            manager.createJSONExport({
                 input: inputCursor,
                 exportName,
                 jsonExportFormat: "relaxed",
             });
+            // Small timeout but it won't be sufficient and the export
+            // generation will still be in progress
+            await timeout(10);
+            await expect(() => manager.readExport(exportName)).rejects.toThrow(
+                "Requested export is still being generated!"
+            );
+        });
+
+        it("should return the resource content if the resource is ready to be consumed", async () => {
+            const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
+            const inputCursor = createDummyFindCursor([]);
+            manager.createJSONExport({
+                input: inputCursor,
+                exportName,
+                jsonExportFormat: "relaxed",
+            });
+            // Small timeout to account for async operation
+            await timeout(10);
             expect(await manager.readExport(exportName)).toEqual("[]");
         });
     });
@@ -123,11 +172,13 @@ describe("SessionExportsManager unit test", () => {
                 inputCursor = createDummyFindCursor([]);
 
                 const emitSpy = vi.spyOn(manager, "emit");
-                await manager.createJSONExport({
+                manager.createJSONExport({
                     input: inputCursor,
                     exportName,
                     jsonExportFormat: "relaxed",
                 });
+                // Small timeout to account for async operation
+                await timeout(10);
 
                 // Updates available export
                 const availableExports = manager.availableExports;
@@ -154,11 +205,13 @@ describe("SessionExportsManager unit test", () => {
         ])("$cond", ({ exportName }) => {
             it("should export relaxed json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
-                await manager.createJSONExport({
+                manager.createJSONExport({
                     input: inputCursor,
                     exportName,
                     jsonExportFormat: "relaxed",
                 });
+                // Small timeout to account for async operation
+                await timeout(10);
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
@@ -187,11 +240,13 @@ describe("SessionExportsManager unit test", () => {
         ])("$cond", ({ exportName }) => {
             it("should export canonical json, update available exports and emit export-available event", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
-                await manager.createJSONExport({
+                manager.createJSONExport({
                     input: inputCursor,
                     exportName,
                     jsonExportFormat: "canonical",
                 });
+                // Small timeout to account for async operation
+                await timeout(50);
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
@@ -218,7 +273,7 @@ describe("SessionExportsManager unit test", () => {
             });
         });
 
-        describe("when transform stream throws an error", () => {
+        describe("when there is an error in export generation", () => {
             it("should remove the partial export and never make it available", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -246,15 +301,18 @@ describe("SessionExportsManager unit test", () => {
                         },
                     });
                 };
+                manager.createJSONExport({
+                    input: inputCursor,
+                    exportName,
+                    jsonExportFormat: "relaxed",
+                });
+                // Small timeout to account for async operation
+                await timeout(50);
 
-                await expect(() =>
-                    manager.createJSONExport({
-                        input: inputCursor,
-                        exportName,
-                        jsonExportFormat: "relaxed",
-                    })
-                ).rejects.toThrow("Could not transform the chunk!");
-
+                // Because the export was never populated in the available exports.
+                await expect(() => manager.readExport(exportName)).rejects.toThrow(
+                    "Requested export has either expired or does not exist!"
+                );
                 expect(emitSpy).not.toHaveBeenCalled();
                 expect(manager.availableExports).toEqual([]);
                 expect(await fileExists(exportPath)).toEqual(false);
@@ -278,6 +336,32 @@ describe("SessionExportsManager unit test", () => {
             ]);
         });
 
+        it("should not clean up in-progress exports", async () => {
+            const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
+            const manager = new SessionExportsManager(
+                session.sessionId,
+                {
+                    ...exportsManagerConfig,
+                    exportTimeoutMs: 100,
+                    exportCleanupIntervalMs: 50,
+                },
+                new CompositeLogger()
+            );
+            manager.createJSONExport({
+                input: createDummyFindCursor([{ name: "Test" }], 2000),
+                exportName,
+                jsonExportFormat: "relaxed",
+            });
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            expect((manager as any).sessionExports[exportName]?.exportStatus).toEqual("in-progress");
+
+            // After clean up interval the export should still be there
+            await timeout(200);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            expect((manager as any).sessionExports[exportName]?.exportStatus).toEqual("in-progress");
+        });
+
         it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
             const manager = new SessionExportsManager(
@@ -289,11 +373,14 @@ describe("SessionExportsManager unit test", () => {
                 },
                 new CompositeLogger()
             );
-            await manager.createJSONExport({
+            manager.createJSONExport({
                 input,
                 exportName,
                 jsonExportFormat: "relaxed",
             });
+            // Small timeout to account for async operation and let export
+            // finish
+            await timeout(10);
 
             expect(manager.availableExports).toContainEqual(
                 expect.objectContaining({

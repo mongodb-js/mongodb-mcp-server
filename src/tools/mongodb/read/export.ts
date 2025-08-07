@@ -43,7 +43,7 @@ export class ExportTool extends MongoDBToolBase {
         });
         const exportName = `${database}.${collection}.${Date.now()}.json`;
 
-        const { exportURI, exportPath } = await this.session.exportsManager.createJSONExport({
+        const { exportURI, exportPath } = this.session.exportsManager.createJSONExport({
             input: findCursor,
             exportName,
             jsonExportFormat,
@@ -54,13 +54,13 @@ export class ExportTool extends MongoDBToolBase {
             // understand what to do with the result.
             {
                 type: "text",
-                text: `Exported data for namespace ${database}.${collection} is available under resource URI - "${exportURI}".`,
+                text: `Data for namespace ${database}.${collection} is being exported and will be made available under resource URI - "${exportURI}".`,
             },
             {
                 type: "resource_link",
                 name: exportName,
                 uri: exportURI,
-                description: "Resource URI for fetching exported data.",
+                description: "Resource URI for fetching exported data once it is ready.",
                 mimeType: "application/json",
             },
         ];
@@ -71,7 +71,7 @@ export class ExportTool extends MongoDBToolBase {
         if (this.config.transport === "stdio") {
             toolCallContent.push({
                 type: "text",
-                text: `Optionally, the exported data can also be accessed under path - "${exportPath}"`,
+                text: `Optionally, when the export is finished, the exported data can also be accessed under path - "${exportPath}"`,
             });
         }
 
