@@ -51,7 +51,7 @@
     "reformat": "prettier --write .",
     "generate": "./scripts/generate.sh",
     "test": "vitest --project unit-and-integration --coverage",
-    "pretest:accuracy": "npm run build:compile",
+    "pretest:accuracy": "npm run build",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh"
   },
   "license": "Apache-2.0",
