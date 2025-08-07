@@ -1,8 +1,9 @@
 import { Long } from "bson";
 import { describe, expect, it, beforeEach } from "vitest";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { defaultTestConfig, timeout } from "../helpers.js";
+import { defaultTestConfig, resourceChangedNotification, timeout } from "../helpers.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 
 describeWithMongoDB(
     "exported-data resource",
@@ -76,8 +77,9 @@ describeWithMongoDB(
                     name: "export",
                     arguments: { database: "db", collection: "coll" },
                 });
-                // Small timeout to let export finish
-                await timeout(50);
+                const content = exportResponse.content as CallToolResult["content"];
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
                     (part) => part.type === "resource_link"
@@ -98,8 +100,9 @@ describeWithMongoDB(
                     name: "export",
                     arguments: { database: "big", collection: "coll" },
                 });
-                // Small timeout to let export finish
-                await timeout(50);
+                const content = exportResponse.content as CallToolResult["content"];
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
                     (part) => part.type === "resource_link"

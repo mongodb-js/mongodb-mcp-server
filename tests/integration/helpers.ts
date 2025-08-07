@@ -2,7 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { Server } from "../../src/server.js";
 import { UserConfig } from "../../src/common/config.js";
-import { McpError } from "@modelcontextprotocol/sdk/types.js";
+import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
@@ -273,4 +273,17 @@ function validateToolAnnotations(tool: ToolInfo, name: string, description: stri
 
 export function timeout(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Subscribes to the resources changed notification for the provided URI
+ */
+export function resourceChangedNotification(client: Client, uri: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+        client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
+            if (notification.params.uri === uri) {
+                resolve();
+            }
+        });
+    });
 }

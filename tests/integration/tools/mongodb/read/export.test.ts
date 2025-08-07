@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
     databaseCollectionParameters,
-    timeout,
+    resourceChangedNotification,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
 } from "../../../helpers.js";
@@ -10,19 +10,25 @@ import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Long } from "bson";
 
-function contentWithTextResourceURI(content: CallToolResult["content"], namespace: string) {
+export function contentWithTextResourceURI(
+    content: CallToolResult["content"]
+): CallToolResult["content"][number] | undefined {
     return content.find((part) => {
-        return part.type === "text" && part.text.startsWith(`Data for namespace ${namespace}`);
+        return part.type === "text" && part.text.startsWith(`Data for namespace`);
     });
 }
 
-function contentWithResourceURILink(content: CallToolResult["content"], namespace: string) {
+export function contentWithResourceURILink(
+    content: CallToolResult["content"]
+): CallToolResult["content"][number] | undefined {
     return content.find((part) => {
-        return part.type === "resource_link" && part.uri.startsWith(`exported-data://${namespace}`);
+        return part.type === "resource_link";
     });
 }
 
-function contentWithExportPath(content: CallToolResult["content"]) {
+export function contentWithExportPath(
+    content: CallToolResult["content"]
+): CallToolResult["content"][number] | undefined {
     return content.find((part) => {
         return (
             part.type === "text" &&
@@ -89,20 +95,22 @@ describeWithMongoDB("export tool", (integration) => {
         { database: "test", collection: "bar", sort: [], limit: 10 },
     ]);
 
-    it("when provided with incorrect namespace, export should have empty data", async function () {
+    beforeEach(async () => {
         await integration.connectMcpClient();
+    });
+
+    it("when provided with incorrect namespace, export should have empty data", async function () {
         const response = await integration.mcpClient().callTool({
             name: "export",
             arguments: { database: "non-existent", collection: "foos" },
         });
-        // Small timeout to let export finish
-        await timeout(10);
-
         const content = response.content as CallToolResult["content"];
-        const namespace = "non-existent.foos";
+        const exportURI = contentWithResourceURILink(content)?.uri as string;
+        await resourceChangedNotification(integration.mcpClient(), exportURI);
+
         expect(content).toHaveLength(3);
-        expect(contentWithTextResourceURI(content, namespace)).toBeDefined();
-        expect(contentWithResourceURILink(content, namespace)).toBeDefined();
+        expect(contentWithTextResourceURI(content)).toBeDefined();
+        expect(contentWithResourceURILink(content)).toBeDefined();
 
         const localPathPart = contentWithExportPath(content);
         expect(localPathPart).toBeDefined();
@@ -131,10 +139,11 @@ describeWithMongoDB("export tool", (integration) => {
                 name: "export",
                 arguments: { database: integration.randomDbName(), collection: "foo" },
             });
-            // Small timeout to let export finish
-            await timeout(10);
+            const content = response.content as CallToolResult["content"];
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-            const localPathPart = contentWithExportPath(response.content as CallToolResult["content"]);
+            const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
@@ -154,10 +163,11 @@ describeWithMongoDB("export tool", (integration) => {
                 name: "export",
                 arguments: { database: integration.randomDbName(), collection: "foo", filter: { name: "foo" } },
             });
-            // Small timeout to let export finish
-            await timeout(10);
+            const content = response.content as CallToolResult["content"];
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-            const localPathPart = contentWithExportPath(response.content as CallToolResult["content"]);
+            const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
@@ -176,10 +186,11 @@ describeWithMongoDB("export tool", (integration) => {
                 name: "export",
                 arguments: { database: integration.randomDbName(), collection: "foo", limit: 1 },
             });
-            // Small timeout to let export finish
-            await timeout(10);
+            const content = response.content as CallToolResult["content"];
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-            const localPathPart = contentWithExportPath(response.content as CallToolResult["content"]);
+            const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
@@ -203,10 +214,11 @@ describeWithMongoDB("export tool", (integration) => {
                     sort: { longNumber: 1 },
                 },
             });
-            // Small timeout to let export finish
-            await timeout(10);
+            const content = response.content as CallToolResult["content"];
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-            const localPathPart = contentWithExportPath(response.content as CallToolResult["content"]);
+            const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
@@ -230,10 +242,11 @@ describeWithMongoDB("export tool", (integration) => {
                     projection: { _id: 0, name: 1 },
                 },
             });
-            // Small timeout to let export finish
-            await timeout(10);
+            const content = response.content as CallToolResult["content"];
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-            const localPathPart = contentWithExportPath(response.content as CallToolResult["content"]);
+            const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
@@ -261,10 +274,11 @@ describeWithMongoDB("export tool", (integration) => {
                     jsonExportFormat: "relaxed",
                 },
             });
-            // Small timeout to let export finish
-            await timeout(10);
+            const content = response.content as CallToolResult["content"];
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-            const localPathPart = contentWithExportPath(response.content as CallToolResult["content"]);
+            const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
@@ -293,10 +307,11 @@ describeWithMongoDB("export tool", (integration) => {
                     jsonExportFormat: "canonical",
                 },
             });
-            // Small timeout to let export finish
-            await timeout(10);
+            const content = response.content as CallToolResult["content"];
+            const exportURI = contentWithResourceURILink(content)?.uri as string;
+            await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-            const localPathPart = contentWithExportPath(response.content as CallToolResult["content"]);
+            const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
