@@ -18,7 +18,6 @@
       "request": "launch",
       "name": "Launch Program",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/dist/esm/index.js",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
       "preLaunchTask": "tsc: build - tsconfig.build.json",
