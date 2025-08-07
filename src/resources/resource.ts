@@ -42,6 +42,17 @@ export abstract class ReactiveResource<Value, RelevantEvents extends readonly (k
         this.current = current ?? options.initial;
         this.session = server.session;
         this.config = server.userConfig;
+
+        this.setupEventListeners();
+    }
+
+    private setupEventListeners(): void {
+        for (const event of this.events) {
+            this.session.on(event, (...args: SessionEvents[typeof event]) => {
+                this.reduceApply(event, (args as unknown[])[0] as PayloadOf<typeof event>);
+                void this.triggerUpdate();
+            });
+        }
     }
 
     public register(): void {
