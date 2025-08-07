@@ -66,7 +66,8 @@ export class ExportTool extends MongoDBToolBase {
         ];
 
         // This special case is to make it easier to work with exported data for
-        // stdio transport.
+        // clients that still cannot reference resources (Cursor).
+        // More information here: https://jira.mongodb.org/browse/MCP-104
         if (this.config.transport === "stdio") {
             toolCallContent.push({
                 type: "text",

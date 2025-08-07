@@ -87,17 +87,14 @@ describe("SessionExportsManager unit test", () => {
         });
 
         it("should return the resource content", async () => {
-            const { exportName, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
+            const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
             const inputCursor = createDummyFindCursor([]);
             await manager.createJSONExport({
                 input: inputCursor,
                 exportName,
                 jsonExportFormat: "relaxed",
             });
-            expect(await manager.readExport(exportName)).toEqual({
-                content: "[]",
-                exportURI,
-            });
+            expect(await manager.readExport(exportName)).toEqual("[]");
         });
     });
 
@@ -137,8 +134,8 @@ describe("SessionExportsManager unit test", () => {
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
-                        name: exportName,
-                        uri: exportURI,
+                        exportName,
+                        exportURI,
                     })
                 );
 
@@ -146,7 +143,7 @@ describe("SessionExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", exportURI);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse((await manager.readExport(exportName)).content) as unknown[];
+                const jsonData = JSON.parse(await manager.readExport(exportName)) as unknown[];
                 expect(jsonData).toEqual([]);
             });
         });
@@ -169,8 +166,8 @@ describe("SessionExportsManager unit test", () => {
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
-                        name: expectedExportName,
-                        uri: `exported-data://${expectedExportName}`,
+                        exportName: expectedExportName,
+                        exportURI: `exported-data://${expectedExportName}`,
                     })
                 );
 
@@ -178,7 +175,7 @@ describe("SessionExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
+                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "foo", longNumber: 12 }));
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "bar", longNumber: 123456 }));
             });
@@ -202,8 +199,8 @@ describe("SessionExportsManager unit test", () => {
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
-                        name: expectedExportName,
-                        uri: `exported-data://${expectedExportName}`,
+                        exportName: expectedExportName,
+                        exportURI: `exported-data://${expectedExportName}`,
                     })
                 );
 
@@ -211,7 +208,7 @@ describe("SessionExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
+                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
                 expect(jsonData).toContainEqual(
                     expect.objectContaining({ name: "foo", longNumber: { $numberLong: "12" } })
                 );
@@ -300,8 +297,8 @@ describe("SessionExportsManager unit test", () => {
 
             expect(manager.availableExports).toContainEqual(
                 expect.objectContaining({
-                    name: exportName,
-                    uri: exportURI,
+                    exportName,
+                    exportURI,
                 })
             );
             expect(await fileExists(exportPath)).toEqual(true);

@@ -48,10 +48,10 @@ export class ExportedData {
     private listResourcesCallback: ListResourcesCallback = () => {
         try {
             return {
-                resources: this.server.session.exportsManager.availableExports.map(({ name, uri }) => ({
-                    name: name,
-                    description: this.exportNameToDescription(name),
-                    uri: uri,
+                resources: this.server.session.exportsManager.availableExports.map(({ exportName, exportURI }) => ({
+                    name: exportName,
+                    description: this.exportNameToDescription(exportName),
+                    uri: exportURI,
                     mimeType: "application/json",
                 })),
             };
@@ -70,8 +70,8 @@ export class ExportedData {
     private autoCompleteExportName: CompleteResourceTemplateCallback = (value) => {
         try {
             return this.server.session.exportsManager.availableExports
-                .filter(({ name }) => name.startsWith(value))
-                .map(({ name }) => name);
+                .filter(({ exportName }) => exportName.startsWith(value))
+                .map(({ exportName }) => exportName);
         } catch (error) {
             this.server.session.logger.error({
                 id: LogId.exportedDataAutoCompleteError,
@@ -88,12 +88,12 @@ export class ExportedData {
                 throw new Error("Cannot retrieve exported data, exportName not provided.");
             }
 
-            const { content, exportURI } = await this.server.session.exportsManager.readExport(exportName);
+            const content = await this.server.session.exportsManager.readExport(exportName);
 
             return {
                 contents: [
                     {
-                        uri: exportURI,
+                        uri: url.href,
                         text: content,
                         mimeType: "application/json",
                     },
@@ -104,7 +104,7 @@ export class ExportedData {
                 contents: [
                     {
                         uri: url.href,
-                        text: `Error reading from ${this.uri}: ${error instanceof Error ? error.message : String(error)}`,
+                        text: `Error reading ${url.href}: ${error instanceof Error ? error.message : String(error)}`,
                     },
                 ],
                 isError: true,

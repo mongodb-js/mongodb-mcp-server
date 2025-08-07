@@ -32,14 +32,15 @@ describeWithMongoDB(
 
         describe("when requesting non-existent resource", () => {
             it("should return an error", async () => {
+                const exportURI = "exported-data://db.coll.json";
                 await integration.connectMcpClient();
                 const response = await integration.mcpClient().readResource({
-                    uri: "exported-data://db.coll.json",
+                    uri: exportURI,
                 });
                 expect(response.isError).toEqual(true);
-                expect(response.contents[0]?.uri).toEqual("exported-data://db.coll.json");
+                expect(response.contents[0]?.uri).toEqual(exportURI);
                 expect(response.contents[0]?.text).toEqual(
-                    "Error reading from exported-data://{exportName}: Requested export has either expired or does not exist!"
+                    `Error reading ${exportURI}: Requested export has either expired or does not exist!`
                 );
             });
         });
@@ -65,7 +66,7 @@ describeWithMongoDB(
                 expect(response.isError).toEqual(true);
                 expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
                 expect(response.contents[0]?.text).toEqual(
-                    "Error reading from exported-data://{exportName}: Requested export has expired!"
+                    `Error reading ${exportedResourceURI}: Requested export has expired!`
                 );
             });
         });
