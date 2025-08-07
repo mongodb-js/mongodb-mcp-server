@@ -111,8 +111,8 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 
     public async readExport(exportName: string): Promise<string> {
         try {
-            const exportNameWithExtension = validateExportName(exportName);
-            const exportHandle = this.storedExports[exportNameWithExtension];
+            exportName = decodeURIComponent(exportName);
+            const exportHandle = this.storedExports[exportName];
             if (!exportHandle) {
                 throw new Error("Requested export has either expired or does not exist!");
             }
