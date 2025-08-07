@@ -10,7 +10,7 @@ import {
 } from "./connectionManager.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
-import { SessionExportsManager } from "./sessionExportsManager.js";
+import { ExportsManager } from "./exportsManager.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -18,7 +18,7 @@ export interface SessionOptions {
     apiClientSecret?: string;
     logger: CompositeLogger;
     sessionId: string;
-    exportsManager: SessionExportsManager;
+    exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
 }
 
@@ -31,7 +31,7 @@ export type SessionEvents = {
 
 export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string;
-    readonly exportsManager: SessionExportsManager;
+    readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
     agentRunner?: {

@@ -55,25 +55,22 @@ type StoredExport = ReadyExport | InProgressExport;
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
 type AvailableExport = Pick<StoredExport, "exportName" | "exportURI" | "exportPath">;
 
-export type SessionExportsManagerConfig = Pick<
-    UserConfig,
-    "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs"
->;
+export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
 
-type SessionExportsManagerEvents = {
+type ExportsManagerEvents = {
     "export-expired": [string];
     "export-available": [string];
 };
 
-export class SessionExportsManager extends EventEmitter<SessionExportsManagerEvents> {
-    private sessionExports: Record<StoredExport["exportName"], StoredExport> = {};
+export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
+    private storedExports: Record<StoredExport["exportName"], StoredExport> = {};
     private exportsCleanupInProgress: boolean = false;
     private exportsCleanupInterval: NodeJS.Timeout;
     private exportsDirectoryPath: string;
 
     constructor(
         sessionId: string,
-        private readonly config: SessionExportsManagerConfig,
+        private readonly config: ExportsManagerConfig,
         private readonly logger: LoggerBase
     ) {
         super();
@@ -85,11 +82,11 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
     }
 
     public get availableExports(): AvailableExport[] {
-        return Object.values(this.sessionExports)
-            .filter((sessionExport) => {
+        return Object.values(this.storedExports)
+            .filter((storedExport) => {
                 return (
-                    sessionExport.exportStatus === "ready" &&
-                    !isExportExpired(sessionExport.exportCreatedAt, this.config.exportTimeoutMs)
+                    storedExport.exportStatus === "ready" &&
+                    !isExportExpired(storedExport.exportCreatedAt, this.config.exportTimeoutMs)
                 );
             })
             .map(({ exportName, exportURI, exportPath }) => ({
@@ -106,7 +103,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         } catch (error) {
             this.logger.error({
                 id: LogId.exportCloseError,
-                context: "Error while closing SessionExportManager",
+                context: "Error while closing ExportsManager",
                 message: error instanceof Error ? error.message : String(error),
             });
         }
@@ -115,7 +112,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
     public async readExport(exportName: string): Promise<string> {
         try {
             const exportNameWithExtension = validateExportName(exportName);
-            const exportHandle = this.sessionExports[exportNameWithExtension];
+            const exportHandle = this.storedExports[exportNameWithExtension];
             if (!exportHandle) {
                 throw new Error("Requested export has either expired or does not exist!");
             }
@@ -157,7 +154,7 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
             const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
             const exportURI = `exported-data://${encodeURIComponent(exportNameWithExtension)}`;
             const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
-            const inProgressExport: InProgressExport = (this.sessionExports[exportNameWithExtension] = {
+            const inProgressExport: InProgressExport = (this.storedExports[exportNameWithExtension] = {
                 exportName: exportNameWithExtension,
                 exportPath: exportFilePath,
                 exportURI: exportURI,
@@ -210,10 +207,10 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
                 LogId.exportCreationCleanupError,
                 `Error when removing incomplete export ${inProgressExport.exportName}`
             );
-            delete this.sessionExports[inProgressExport.exportName];
+            delete this.storedExports[inProgressExport.exportName];
         } finally {
             if (pipeSuccessful) {
-                this.sessionExports[inProgressExport.exportName] = {
+                this.storedExports[inProgressExport.exportName] = {
                     ...inProgressExport,
                     exportCreatedAt: Date.now(),
                     exportStatus: "ready",
@@ -263,13 +260,13 @@ export class SessionExportsManager extends EventEmitter<SessionExportsManagerEve
         }
 
         this.exportsCleanupInProgress = true;
-        const exportsForCleanup = Object.values({ ...this.sessionExports }).filter(
-            (sessionExport): sessionExport is ReadyExport => sessionExport.exportStatus === "ready"
+        const exportsForCleanup = Object.values({ ...this.storedExports }).filter(
+            (storedExport): storedExport is ReadyExport => storedExport.exportStatus === "ready"
         );
         try {
             for (const { exportPath, exportCreatedAt, exportURI, exportName } of exportsForCleanup) {
                 if (isExportExpired(exportCreatedAt, this.config.exportTimeoutMs)) {
-                    delete this.sessionExports[exportName];
+                    delete this.storedExports[exportName];
                     await this.silentlyRemoveExport(
                         exportPath,
                         LogId.exportCleanupError,

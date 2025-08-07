@@ -6,7 +6,7 @@ import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, LoggerBase, McpLogger } from "../common/logger.js";
 import { ObjectId } from "bson";
-import { SessionExportsManager } from "../common/sessionExportsManager.js";
+import { ExportsManager } from "../common/exportsManager.js";
 import { ConnectionManager } from "../common/connectionManager.js";
 
 export abstract class TransportRunnerBase {
@@ -44,7 +44,7 @@ export abstract class TransportRunnerBase {
 
         const logger = new CompositeLogger(...loggers);
         const sessionId = new ObjectId().toString();
-        const exportsManager = new SessionExportsManager(sessionId, userConfig, logger);
+        const exportsManager = new ExportsManager(sessionId, userConfig, logger);
         const connectionManager = new ConnectionManager();
 
         const session = new Session({

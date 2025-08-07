@@ -6,10 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
     ensureExtension,
     isExportExpired,
-    SessionExportsManager,
-    SessionExportsManagerConfig,
+    ExportsManager,
+    ExportsManagerConfig,
     validateExportName,
-} from "../../../src/common/sessionExportsManager.js";
+} from "../../../src/common/exportsManager.js";
 
 import { config } from "../../../src/common/config.js";
 import { Session } from "../../../src/common/session.js";
@@ -20,7 +20,7 @@ import { CompositeLogger } from "../../../src/common/logger.js";
 import { ConnectionManager } from "../../../src/common/connectionManager.js";
 
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
-const exportsManagerConfig: SessionExportsManagerConfig = {
+const exportsManagerConfig: ExportsManagerConfig = {
     exportsPath,
     exportTimeoutMs: config.exportTimeoutMs,
     exportCleanupIntervalMs: config.exportCleanupIntervalMs,
@@ -99,9 +99,9 @@ async function fileExists(filePath: string): Promise<boolean> {
     }
 }
 
-describe("SessionExportsManager unit test", () => {
+describe("ExportsManager unit test", () => {
     let session: Session;
-    let manager: SessionExportsManager;
+    let manager: ExportsManager;
 
     beforeEach(async () => {
         await manager?.close();
@@ -113,7 +113,7 @@ describe("SessionExportsManager unit test", () => {
             apiBaseUrl: "",
             logger,
             sessionId,
-            exportsManager: new SessionExportsManager(sessionId, config, logger),
+            exportsManager: new ExportsManager(sessionId, config, logger),
             connectionManager: new ConnectionManager(),
         });
         manager = session.exportsManager;
@@ -366,7 +366,7 @@ describe("SessionExportsManager unit test", () => {
 
         it("should not clean up in-progress exports", async () => {
             const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
-            const manager = new SessionExportsManager(
+            const manager = new ExportsManager(
                 session.sessionId,
                 {
                     ...exportsManagerConfig,
@@ -383,17 +383,17 @@ describe("SessionExportsManager unit test", () => {
             });
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-            expect((manager as any).sessionExports[exportName]?.exportStatus).toEqual("in-progress");
+            expect((manager as any).storedExports[exportName]?.exportStatus).toEqual("in-progress");
 
             // After clean up interval the export should still be there
             await timeout(200);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-            expect((manager as any).sessionExports[exportName]?.exportStatus).toEqual("in-progress");
+            expect((manager as any).storedExports[exportName]?.exportStatus).toEqual("in-progress");
         });
 
         it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
-            const manager = new SessionExportsManager(
+            const manager = new ExportsManager(
                 session.sessionId,
                 {
                     ...exportsManagerConfig,

@@ -5,7 +5,7 @@ import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { config } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { ConnectionManager } from "../../../../src/common/connectionManager.js";
-import { SessionExportsManager } from "../../../../src/common/sessionExportsManager.js";
+import { ExportsManager } from "../../../../src/common/exportsManager.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -13,7 +13,7 @@ describe("debug resource", () => {
         apiBaseUrl: "",
         logger,
         sessionId: "1FOO",
-        exportsManager: new SessionExportsManager("1FOO", config, logger),
+        exportsManager: new ExportsManager("1FOO", config, logger),
         connectionManager: new ConnectionManager(),
     });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });

@@ -4,7 +4,7 @@ import { Session } from "../../../src/common/session.js";
 import { config } from "../../../src/common/config.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { ConnectionManager } from "../../../src/common/connectionManager.js";
-import { SessionExportsManager } from "../../../src/common/sessionExportsManager.js";
+import { ExportsManager } from "../../../src/common/exportsManager.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
@@ -18,7 +18,7 @@ describe("Session", () => {
             apiBaseUrl: "https://api.test.com",
             logger,
             sessionId: "1FOO",
-            exportsManager: new SessionExportsManager("1FOO", config, logger),
+            exportsManager: new ExportsManager("1FOO", config, logger),
             connectionManager: new ConnectionManager(),
         });
 

@@ -6,7 +6,7 @@ import nodeMachineId from "node-machine-id";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ConnectionManager } from "../../src/common/connectionManager.js";
-import { SessionExportsManager } from "../../src/common/sessionExportsManager.js";
+import { ExportsManager } from "../../src/common/exportsManager.js";
 
 describe("Telemetry", () => {
     it("should resolve the actual machine ID", async () => {
@@ -20,7 +20,7 @@ describe("Telemetry", () => {
                 apiBaseUrl: "",
                 logger: new CompositeLogger(),
                 sessionId: "1FOO",
-                exportsManager: new SessionExportsManager("1FOO", config, logger),
+                exportsManager: new ExportsManager("1FOO", config, logger),
                 connectionManager: new ConnectionManager(),
             }),
             config

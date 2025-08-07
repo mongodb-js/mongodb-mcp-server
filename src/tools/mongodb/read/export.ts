@@ -2,7 +2,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationType, ToolArgs } from "../../tool.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
-import { jsonExportFormat } from "../../../common/sessionExportsManager.js";
+import { jsonExportFormat } from "../../../common/exportsManager.js";
 import z from "zod";
 
 export class ExportTool extends MongoDBToolBase {

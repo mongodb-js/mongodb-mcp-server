@@ -11,7 +11,7 @@ import { config } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConnectionManager } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
-import { SessionExportsManager } from "../../src/common/sessionExportsManager.js";
+import { ExportsManager } from "../../src/common/exportsManager.js";
 
 interface ParameterInfo {
     name: string;
@@ -59,7 +59,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         const logger = new CompositeLogger();
         const sessionId = new ObjectId().toString();
-        const exportsManager = new SessionExportsManager(sessionId, userConfig, logger);
+        const exportsManager = new ExportsManager(sessionId, userConfig, logger);
         const connectionManager = new ConnectionManager();
 
         const session = new Session({
