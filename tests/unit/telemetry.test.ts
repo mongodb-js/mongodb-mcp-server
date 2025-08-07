@@ -75,7 +75,7 @@ describe("Telemetry", () => {
         appendEventsCalls?: number;
         sendEventsCalledWith?: BaseEvent[] | undefined;
         appendEventsCalledWith?: BaseEvent[] | undefined;
-    } = {}) {
+    } = {}): void {
         const { calls: sendEvents } = mockApiClient.sendEvents.mock;
         const { calls: clearEvents } = mockEventCache.clearEvents.mock;
         const { calls: appendEvents } = mockEventCache.appendEvents.mock;

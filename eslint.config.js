@@ -52,6 +52,7 @@ export default defineConfig([
             "no-self-compare": "error",
             "no-unassigned-vars": "error",
             "@typescript-eslint/await-thenable": "error",
+            "@typescript-eslint/explicit-function-return-type": "error",
         },
     },
     globalIgnores([

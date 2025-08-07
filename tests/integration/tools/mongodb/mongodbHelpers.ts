@@ -44,7 +44,7 @@ export function describeWithMongoDB(
     name: string,
     fn: (integration: IntegrationTest & MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> }) => void,
     getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig
-) {
+): void {
     describe(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest();
         const integration = setupIntegrationTest(() => ({
@@ -125,7 +125,7 @@ export function setupMongoDBIntegrationTest(): MongoDBIntegrationTest {
         mongoCluster = undefined;
     });
 
-    const getConnectionString = () => {
+    const getConnectionString = (): string => {
         if (!mongoCluster) {
             throw new Error("beforeAll() hook not ran yet");
         }
@@ -134,7 +134,7 @@ export function setupMongoDBIntegrationTest(): MongoDBIntegrationTest {
     };
 
     return {
-        mongoClient: () => {
+        mongoClient: (): MongoClient => {
             if (!mongoClient) {
                 mongoClient = new MongoClient(getConnectionString());
             }
@@ -196,7 +196,10 @@ export function validateAutoConnectBehavior(
     });
 }
 
-export function prepareTestData(integration: MongoDBIntegrationTest) {
+export function prepareTestData(integration: MongoDBIntegrationTest): {
+    populateTestData: (this: void) => Promise<void>;
+    cleanupTestDatabases: (this: void, integration: MongoDBIntegrationTest) => Promise<void>;
+} {
     const NON_TEST_DBS = ["admin", "config", "local"];
     const testData: {
         db: string;
@@ -215,13 +218,13 @@ export function prepareTestData(integration: MongoDBIntegrationTest) {
     });
 
     return {
-        async populateTestData(this: void) {
+        async populateTestData(this: void): Promise<void> {
             const client = integration.mongoClient();
             for (const { db, collection, data } of testData) {
                 await client.db(db).collection(collection).insertMany(data);
             }
         },
-        async cleanupTestDatabases(this: void, integration: MongoDBIntegrationTest) {
+        async cleanupTestDatabases(this: void, integration: MongoDBIntegrationTest): Promise<void> {
             const client = integration.mongoClient();
             const admin = client.db().admin();
             const databases = await admin.listDatabases();

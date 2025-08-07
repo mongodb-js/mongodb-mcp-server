@@ -37,7 +37,11 @@ export function getVercelToolCallingAgent(
     requestedSystemPrompt?: string
 ): Agent<Model<LanguageModelV1>, VercelMCPClientTools, VercelAgentPromptResult> {
     return {
-        async prompt(prompt: string, model: Model<LanguageModelV1>, tools: VercelMCPClientTools) {
+        async prompt(
+            prompt: string,
+            model: Model<LanguageModelV1>,
+            tools: VercelMCPClientTools
+        ): Promise<VercelAgentPromptResult> {
             const result = await generateText({
                 model: model.getModel(),
                 system: [...systemPrompt, requestedSystemPrompt].filter(Boolean).join("\n"),

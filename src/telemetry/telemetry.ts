@@ -40,7 +40,7 @@ export class Telemetry {
         {
             commonProperties = { ...MACHINE_METADATA },
             eventCache = EventCache.getInstance(),
-            getRawMachineId = () => nodeMachineId.machineId(true),
+            getRawMachineId = (): Promise<string> => nodeMachineId.machineId(true),
         }: {
             eventCache?: EventCache;
             getRawMachineId?: () => Promise<string>;

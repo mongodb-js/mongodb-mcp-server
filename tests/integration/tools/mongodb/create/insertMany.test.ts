@@ -29,7 +29,7 @@ describeWithMongoDB("insertMany tool", (integration) => {
         { collection: "bar", database: "test", documents: { name: "Peter" } },
     ]);
 
-    const validateDocuments = async (collection: string, expectedDocuments: object[]) => {
+    const validateDocuments = async (collection: string, expectedDocuments: object[]): Promise<void> => {
         const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
         expectDefined(collections.find((c) => c.name === collection));
 

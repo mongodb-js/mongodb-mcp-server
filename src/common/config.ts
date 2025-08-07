@@ -130,7 +130,7 @@ function SNAKE_CASE_toCamelCase(str: string): string {
 }
 
 // Reads the cli args and parses them into a UserConfig object.
-function getCliConfig() {
+function getCliConfig(): Partial<UserConfig> {
     return argv(process.argv.slice(2), {
         array: ["disabledTools", "loggers"],
     }) as unknown as Partial<UserConfig>;

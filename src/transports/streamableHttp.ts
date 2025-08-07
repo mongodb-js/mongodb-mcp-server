@@ -33,7 +33,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
 
-        const handleSessionRequest = async (req: express.Request, res: express.Response) => {
+        const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
             if (!sessionId) {
                 res.status(400).json({
@@ -91,13 +91,13 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
                 const server = this.setupServer(this.userConfig);
                 const transport = new StreamableHTTPServerTransport({
-                    sessionIdGenerator: () => randomUUID().toString(),
-                    onsessioninitialized: (sessionId) => {
+                    sessionIdGenerator: (): string => randomUUID().toString(),
+                    onsessioninitialized: (sessionId): void => {
                         server.session.logger.setAttribute("sessionId", sessionId);
 
                         this.sessionStore.setSession(sessionId, transport, server.session.logger);
                     },
-                    onsessionclosed: async (sessionId) => {
+                    onsessionclosed: async (sessionId): Promise<void> => {
                         try {
                             await this.sessionStore.closeSession(sessionId, false);
                         } catch (error) {
@@ -110,7 +110,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     },
                 });
 
-                transport.onclose = () => {
+                transport.onclose = (): void => {
                     server.close().catch((error) => {
                         this.logger.error({
                             id: LogId.streamableHttpTransportCloseFailure,
@@ -165,7 +165,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     private withErrorHandling(
         fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
     ) {
-        return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
             fn(req, res, next).catch((error) => {
                 this.logger.error({
                     id: LogId.streamableHttpTransportRequestFailure,

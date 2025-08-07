@@ -35,7 +35,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
         { collection: "bar", database: "test", keys: "foo", name: "my-index" },
     ]);
 
-    const validateIndex = async (collection: string, expected: { name: string; key: object }[]) => {
+    const validateIndex = async (collection: string, expected: { name: string; key: object }[]): Promise<void> => {
         const mongoClient = integration.mongoClient();
         const collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
         expect(collections).toHaveLength(1);

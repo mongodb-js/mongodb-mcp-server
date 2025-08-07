@@ -102,7 +102,7 @@ export abstract class ToolBase {
         // the tool name changes. This means that you only get one name update before things end up
         // in a broken state.
         // See https://github.com/modelcontextprotocol/typescript-sdk/issues/414 for more details.
-        this.update = (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }) => {
+        this.update = (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }): void => {
             const tools = server.mcpServer["_registeredTools"] as { [toolName: string]: RegisteredTool };
             const existingTool = tools[this.name];
 

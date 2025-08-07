@@ -32,11 +32,24 @@ interface BaselineRunInfo {
     createdOn: string;
 }
 
+interface TestSummary {
+    totalPrompts: number;
+    totalModels: number;
+    responsesWithZeroAccuracy: ModelResponse[];
+    responsesWith75Accuracy: ModelResponse[];
+    responsesWith100Accuracy: ModelResponse[];
+    averageAccuracy: number;
+    responsesImproved: number;
+    responsesRegressed: number;
+    reportGeneratedOn: string;
+    resultCreatedOn: string;
+}
+
 function populateTemplate(template: string, data: Record<string, string>): string {
     return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => data[key] ?? "");
 }
 
-function formatRunStatus(status: AccuracyRunStatuses) {
+function formatRunStatus(status: AccuracyRunStatuses): string {
     const statusClasses = ["chip", "run-status"];
     if (status === "done") {
         statusClasses.push("perfect");
@@ -107,7 +120,7 @@ function formatBaselineAccuracy(response: PromptAndModelResponse): string {
     return `<span class="accuracy-comparison">${formatAccuracy(response.baselineToolAccuracy)}</span>`;
 }
 
-function getTestSummary(comparableResult: ComparableAccuracyResult) {
+function getTestSummary(comparableResult: ComparableAccuracyResult): TestSummary {
     const responses = comparableResult.promptAndModelResponses;
     return {
         totalPrompts: new Set(responses.map((r) => r.prompt)).size,
@@ -130,7 +143,7 @@ function getTestSummary(comparableResult: ComparableAccuracyResult) {
 
 async function generateHtmlReport(
     comparableResult: ComparableAccuracyResult,
-    testSummary: ReturnType<typeof getTestSummary>,
+    testSummary: TestSummary,
     baselineInfo: BaselineRunInfo | null
 ): Promise<string> {
     const responses = comparableResult.promptAndModelResponses;
@@ -193,7 +206,7 @@ async function generateHtmlReport(
 
 function generateMarkdownBrief(
     comparableResult: ComparableAccuracyResult,
-    testSummary: ReturnType<typeof getTestSummary>,
+    testSummary: TestSummary,
     baselineInfo: BaselineRunInfo | null
 ): string {
     const markdownTexts = [
@@ -243,7 +256,7 @@ function generateMarkdownBrief(
     return markdownTexts.join("\n");
 }
 
-async function generateTestSummary() {
+async function generateTestSummary(): Promise<void> {
     const storage = getAccuracyResultStorage();
     try {
         const baselineCommit = process.env.MDB_ACCURACY_BASELINE_COMMIT;

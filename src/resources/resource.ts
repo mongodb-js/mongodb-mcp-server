@@ -10,6 +10,7 @@ type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
 type ResourceConfiguration = { name: string; uri: string; config: ResourceMetadata };
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function ReactiveResource<Value, RelevantEvents extends readonly (keyof SessionEvents)[]>(
     { name, uri, config: resourceConfig }: ResourceConfiguration,
     {
@@ -58,7 +59,7 @@ export function ReactiveResource<Value, RelevantEvents extends readonly (keyof S
             ],
         });
 
-        private async triggerUpdate() {
+        private async triggerUpdate(): Promise<void> {
             try {
                 await this.server.mcpServer.server.sendResourceUpdated({ uri });
                 this.server.mcpServer.sendResourceListChanged();

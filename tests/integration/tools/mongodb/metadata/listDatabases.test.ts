@@ -45,7 +45,7 @@ describeWithMongoDB("listDatabases tool", (integration) => {
         () => {
             return {
                 args: {},
-                validate: (content) => {
+                validate: (content): void => {
                     const dbNames = getDbNames(content);
 
                     expect(defaultDatabases).toStrictEqual(dbNames);

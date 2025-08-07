@@ -59,7 +59,7 @@ export class Session extends EventEmitter<SessionEvents> {
         this.connectionManager.on("connection-errored", (error) => this.emit("connection-error", error.errorReason));
     }
 
-    setAgentRunner(agentRunner: Implementation | undefined) {
+    setAgentRunner(agentRunner: Implementation | undefined): void {
         if (agentRunner?.name && agentRunner?.version) {
             this.agentRunner = {
                 name: agentRunner.name,

@@ -1,6 +1,6 @@
 import { OpenAPIV3_1 } from "openapi-types";
 
-async function readStdin() {
+async function readStdin(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
         let data = "";
         process.stdin.setEncoding("utf8");
@@ -63,7 +63,7 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
     return { ...openapi, paths: filteredPaths };
 }
 
-async function main() {
+async function main(): Promise<void> {
     const openapiText = await readStdin();
     const openapi = JSON.parse(openapiText) as OpenAPIV3_1.Document;
     const filteredOpenapi = filterOpenapi(openapi);

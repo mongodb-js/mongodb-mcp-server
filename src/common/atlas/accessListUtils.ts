@@ -8,7 +8,7 @@ export async function makeCurrentIpAccessListEntry(
     apiClient: ApiClient,
     projectId: string,
     comment: string = DEFAULT_ACCESS_LIST_COMMENT
-) {
+): Promise<{ groupId: string; ipAddress: string; comment: string }> {
     const { currentIpv4Address } = await apiClient.getIpInfo();
     return {
         groupId: projectId,

@@ -71,7 +71,7 @@ export class Server {
             return existingHandler(request, extra);
         });
 
-        this.mcpServer.server.oninitialized = () => {
+        this.mcpServer.server.oninitialized = (): void => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
             this.session.sessionId = new ObjectId().toString();
 
@@ -84,12 +84,12 @@ export class Server {
             this.emitServerEvent("start", Date.now() - this.startTime);
         };
 
-        this.mcpServer.server.onclose = () => {
+        this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
             this.emitServerEvent("stop", Date.now() - closeTime);
         };
 
-        this.mcpServer.server.onerror = (error: Error) => {
+        this.mcpServer.server.onerror = (error: Error): void => {
             const closeTime = Date.now();
             this.emitServerEvent("stop", Date.now() - closeTime, error);
         };
@@ -108,7 +108,7 @@ export class Server {
      * @param command - The server command (e.g., "start", "stop", "register", "deregister")
      * @param additionalProperties - Additional properties specific to the event
      */
-    private emitServerEvent(command: ServerCommand, commandDuration: number, error?: Error) {
+    private emitServerEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
         const event: ServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
@@ -137,7 +137,7 @@ export class Server {
         this.telemetry.emitEvents([event]).catch(() => {});
     }
 
-    private registerTools() {
+    private registerTools(): void {
         for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
             const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
             if (tool.register(this)) {
@@ -146,7 +146,7 @@ export class Server {
         }
     }
 
-    private registerResources() {
+    private registerResources(): void {
         for (const resourceConstructor of Resources) {
             const resource = new resourceConstructor(this, this.telemetry);
             resource.register();

@@ -5,10 +5,10 @@ import { config } from "./common/config.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 
-async function main() {
+async function main(): Promise<void> {
     const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
 
-    const shutdown = () => {
+    const shutdown = (): void => {
         transportRunner.logger.info({
             id: LogId.serverCloseRequested,
             context: "server",

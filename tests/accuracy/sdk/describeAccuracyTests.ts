@@ -41,7 +41,7 @@ export interface AccuracyTestConfig {
     mockedTools?: MockedTools;
 }
 
-export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[]) {
+export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[]): void {
     if (!process.env.MDB_ACCURACY_RUN_ID) {
         throw new Error("MDB_ACCURACY_RUN_ID env variable is required for accuracy test runs!");
     }

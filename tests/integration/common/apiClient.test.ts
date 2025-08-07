@@ -28,7 +28,7 @@ describe("ApiClient integration test", () => {
             );
         });
 
-        function withToken(accessToken: string, expired: boolean) {
+        function withToken(accessToken: string, expired: boolean): void {
             const apiClientMut = apiClient as unknown as { accessToken: AccessToken };
             const diff = 10_000;
             const now = Date.now();

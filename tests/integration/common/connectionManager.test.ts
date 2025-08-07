@@ -9,7 +9,7 @@ import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import { config } from "../../../src/common/config.js";
 
 describeWithMongoDB("Connection Manager", (integration) => {
-    function connectionManager() {
+    function connectionManager(): ConnectionManager {
         return integration.mcpServer().session.connectionManager;
     }
 

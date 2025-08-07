@@ -22,7 +22,7 @@ function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: Ope
     return foundObj as T;
 }
 
-async function main() {
+async function main(): Promise<void> {
     const { spec, file } = argv(process.argv.slice(2));
 
     if (!spec || !file) {
@@ -92,7 +92,8 @@ async function main() {
     const operationOutput = operations
         .map((operation) => {
             const { operationId, method, path, requiredParams, hasResponseBody } = operation;
-            return `async ${operationId}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>) {
+            return `// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+async ${operationId}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>) {
     const { ${hasResponseBody ? `data, ` : ``}error, response } = await this.client.${method}("${path}", options);
     if (error) {
         throw ApiClientError.fromError(response, error);
