@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { setupUserConfig, UserConfig, defaultUserConfig } from "../../../src/common/config.js";
-import assert from "assert";
 
 describe("config", () => {
     describe("env var parsing", () => {
