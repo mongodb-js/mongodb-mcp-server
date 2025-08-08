@@ -273,9 +273,12 @@ function commaSeparatedToArray<T extends string[]>(str: string | string[] | unde
 
     if (str.length === 1) {
         if (str[0]?.indexOf(",") === -1) {
-            return str as T;
+            return str.filter((e) => e.trim().length > 0) as T;
         } else {
-            return str[0]?.split(",").map((e) => e.trim()) as T;
+            return str[0]
+                ?.split(",")
+                .map((e) => e.trim())
+                .filter((e) => e.length > 0) as T;
         }
     }
 
@@ -315,7 +318,8 @@ export function setupUserConfig({
         throw new Error(`Invalid telemetry: ${telemetry}`);
     }
 
-    if (userConfig.httpPort < 1 || userConfig.httpPort > 65535) {
+    const httpPort = +userConfig.httpPort;
+    if (httpPort < 1 || httpPort > 65535 || isNaN(httpPort)) {
         throw new Error(`Invalid httpPort: ${userConfig.httpPort}`);
     }
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { setupUserConfig, UserConfig, defaultUserConfig } from "../../../src/common/config.js";
+import assert from "assert";
 
 describe("config", () => {
     describe("env var parsing", () => {
@@ -407,6 +408,200 @@ describe("config", () => {
                 "mongodb://localhost/?directConnection=true&serverSelectionTimeoutMS=2000"
             );
             expect(actual.connectionSpecifier).toBe("mongodb://localhost");
+        });
+    });
+
+    describe("validation", () => {
+        describe("transport", () => {
+            it("should support http", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--transport", "http"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.transport).toEqual("http");
+            });
+
+            it("should support stdio", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--transport", "stdio"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.transport).toEqual("stdio");
+            });
+
+            it("should not support sse", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--transport", "sse"],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("Invalid transport: sse");
+            });
+
+            it("should not support arbitrary values", () => {
+                const value = Math.random() + "transport";
+
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--transport", value],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError(`Invalid transport: ${value}`);
+            });
+        });
+
+        describe("telemetry", () => {
+            it("can be enabled", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--telemetry", "enabled"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.telemetry).toEqual("enabled");
+            });
+
+            it("can be disabled", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--telemetry", "disabled"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.telemetry).toEqual("disabled");
+            });
+
+            it("should not support the boolean true value", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--telemetry", "true"],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("Invalid telemetry: true");
+            });
+
+            it("should not support the boolean false value", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--telemetry", "false"],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("Invalid telemetry: false");
+            });
+
+            it("should not support arbitrary values", () => {
+                const value = Math.random() + "telemetry";
+
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--telemetry", value],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError(`Invalid telemetry: ${value}`);
+            });
+        });
+
+        describe("httpPort", () => {
+            it("must be above 1", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--httpPort", "0"],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("Invalid httpPort: 0");
+            });
+
+            it("must be below 65535 (OS limit)", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--httpPort", "89527345"],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("Invalid httpPort: 89527345");
+            });
+
+            it("should not support non numeric values", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--httpPort", "portAventura"],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("Invalid httpPort: portAventura");
+            });
+
+            it("should support numeric values", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--httpPort", "8888"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.httpPort).toEqual("8888");
+            });
+        });
+
+        describe("loggers", () => {
+            it("must not be empty", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--loggers", ""],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("No loggers found in config");
+            });
+
+            it("must not allow duplicates", () => {
+                expect(() =>
+                    setupUserConfig({
+                        cli: ["myself", "--", "--loggers", "disk,disk,disk"],
+                        env: {},
+                        defaults: defaultUserConfig,
+                    })
+                ).toThrowError("Duplicate loggers found in config");
+            });
+
+            it("allows mcp logger", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--loggers", "mcp"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.loggers).toEqual(["mcp"]);
+            });
+
+            it("allows disk logger", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--loggers", "disk"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.loggers).toEqual(["disk"]);
+            });
+
+            it("allows stderr logger", () => {
+                const actual = setupUserConfig({
+                    cli: ["myself", "--", "--loggers", "stderr"],
+                    env: {},
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.loggers).toEqual(["stderr"]);
+            });
         });
     });
 });
