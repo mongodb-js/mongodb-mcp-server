@@ -2,7 +2,7 @@ import path from "path";
 import os from "os";
 import argv from "yargs-parser";
 import type { CliOptions } from "@mongosh/arg-parser";
-import { ReadConcernLevel, ReadPreferenceMode, W } from "mongodb";
+import type { ConnectionInfo } from "@mongosh/arg-parser";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
@@ -98,13 +98,6 @@ function isConnectionSpecifier(arg: string | undefined): boolean {
     );
 }
 
-export interface ConnectOptions {
-    readConcern: ReadConcernLevel;
-    readPreference: ReadPreferenceMode;
-    writeConcern: W;
-    timeoutMS: number;
-}
-
 // If we decide to support non-string config options, we'll need to extend the mechanism for parsing
 // env variables.
 export interface UserConfig extends CliOptions {
@@ -114,7 +107,6 @@ export interface UserConfig extends CliOptions {
     telemetry: "enabled" | "disabled";
     logPath: string;
     connectionString?: string;
-    connectOptions: ConnectOptions;
     disabledTools: Array<string>;
     readOnly?: boolean;
     indexCheck?: boolean;
@@ -129,12 +121,6 @@ export interface UserConfig extends CliOptions {
 const defaults: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",
     logPath: getLogPath(),
-    connectOptions: {
-        readConcern: "local",
-        readPreference: "secondaryPreferred",
-        writeConcern: "majority",
-        timeoutMS: 30_000,
-    },
     disabledTools: [],
     telemetry: "enabled",
     readOnly: false,
@@ -152,6 +138,19 @@ export const config = setupUserConfig({
     cli: process.argv,
     env: process.env,
 });
+
+export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
+    readConcern: {
+        level: "local",
+    },
+    readPreference: "secondaryPreferred",
+    writeConcern: {
+        w: "majority",
+    },
+    timeoutMS: 30_000,
+    proxy: { useEnvironmentVariableProxies: true },
+    applyProxyToOIDC: true,
+};
 
 function getLogPath(): string {
     const localDataPath =
@@ -292,3 +291,16 @@ export function setupUserConfig({
 
     return userConfig;
 }
+
+/**
+                   readConcern: {
+                    level: settings.readConcern,
+                },
+                readPreference: settings.readPreference,
+                writeConcern: {
+                    w: settings.writeConcern,
+                },
+                timeoutMS: settings.timeoutMS,
+                proxy: { useEnvironmentVariableProxies: true },
+                applyProxyToOIDC: true,
+**/

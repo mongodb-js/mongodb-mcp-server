@@ -1,5 +1,5 @@
 import { ReactiveResource } from "../resource.js";
-import { config } from "../../common/config.js";
+import { config, defaultDriverOptions } from "../../common/config.js";
 import type { UserConfig } from "../../common/config.js";
 import type { Server } from "../../server.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
@@ -37,7 +37,7 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
             connectionString: this.current.connectionString
                 ? "set; access to MongoDB tools are currently available to use"
                 : "not set; before using any MongoDB tool, you need to configure a connection string, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
-            connectOptions: this.current.connectOptions,
+            connectOptions: defaultDriverOptions,
             atlas:
                 this.current.apiClientId && this.current.apiClientSecret
                     ? "set; MongoDB Atlas tools are currently available to use"

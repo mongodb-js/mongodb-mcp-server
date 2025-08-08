@@ -111,7 +111,7 @@ function assertFIPSMode() {
 }
 
 function assertHelpMode() {
-    if (!!config.help) {
+    if (config.help) {
         console.log("For usage information refer to the README.md:");
         console.log("https://github.com/mongodb-js/mongodb-mcp-server?tab=readme-ov-file#quick-start");
         process.exit(0);
@@ -119,7 +119,7 @@ function assertHelpMode() {
 }
 
 function assertVersionMode() {
-    if (!!config.version) {
+    if (config.version) {
         console.log(packageInfo.version);
         process.exit(0);
     }
