@@ -514,6 +514,45 @@ describe("ExportsManager unit test", () => {
             expect(await fileExists(exportPath)).toEqual(false);
         });
     });
+
+    describe("#close", () => {
+        it("should abort ongoing export and remove partial file", async () => {
+            const { exportName, exportPath } = getExportNameAndPath(session.sessionId);
+            const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
+            manager.createJSONExport({
+                input: cursor,
+                exportName,
+                exportTitle: "Some export",
+                jsonExportFormat: "relaxed",
+            });
+            // Give the pipeline a brief moment to start and create the file
+            await timeout(50);
+
+            await manager.close();
+
+            await expect(fileExists(exportPath)).resolves.toEqual(false);
+        });
+
+        it("should timeout shutdown wait when operations never settle", async () => {
+            await manager.close();
+            const logger = new CompositeLogger();
+            manager = ExportsManager.init({ ...exportsManagerConfig, activeOpsDrainTimeoutMs: 50 }, logger);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            (manager as any).activeOperations.add(
+                new Promise<void>(() => {
+                    /* never resolves */
+                })
+            );
+
+            const start = Date.now();
+            await manager.close();
+            const elapsed = Date.now() - start;
+
+            // Should not block indefinitely; should be close to the configured timeout but well under 1s
+            expect(elapsed).toBeGreaterThanOrEqual(45);
+            expect(elapsed).toBeLessThan(1000);
+        });
+    });
 });
 
 describe("#ensureExtension", () => {

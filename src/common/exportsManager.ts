@@ -56,7 +56,11 @@ type StoredExport = ReadyExport | InProgressExport;
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
 type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
-export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
+export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs"> & {
+    // The maximum number of milliseconds to wait for in-flight operations to
+    // settle before shutting down ExportsManager.
+    activeOpsDrainTimeoutMs?: number;
+};
 
 type ExportsManagerEvents = {
     "export-expired": [string];
@@ -64,10 +68,12 @@ type ExportsManagerEvents = {
 };
 
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
-    private isShuttingDown: boolean = false;
     private storedExports: Record<StoredExport["exportName"], StoredExport> = {};
     private exportsCleanupInProgress: boolean = false;
     private exportsCleanupInterval?: NodeJS.Timeout;
+    private readonly shutdownController: AbortController = new AbortController();
+    private readonly activeOperations: Set<Promise<unknown>> = new Set();
+    private readonly activeOpsDrainTimeoutMs: number;
 
     private constructor(
         private readonly exportsDirectoryPath: string,
@@ -75,6 +81,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         private readonly logger: LoggerBase
     ) {
         super();
+        this.activeOpsDrainTimeoutMs = this.config.activeOpsDrainTimeoutMs ?? 10_000;
     }
 
     public get availableExports(): AvailableExport[] {
@@ -97,20 +104,19 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     protected init(): void {
         if (!this.exportsCleanupInterval) {
             this.exportsCleanupInterval = setInterval(
-                () => void this.cleanupExpiredExports(),
+                () => void this.trackOperation(this.cleanupExpiredExports()),
                 this.config.exportCleanupIntervalMs
             );
         }
     }
-
     public async close(): Promise<void> {
-        if (this.isShuttingDown) {
+        if (this.shutdownController.signal.aborted) {
             return;
         }
-
-        this.isShuttingDown = true;
         try {
             clearInterval(this.exportsCleanupInterval);
+            this.shutdownController.abort();
+            await this.waitForActiveOperationsToSettle(this.activeOpsDrainTimeoutMs);
             await fs.rm(this.exportsDirectoryPath, { force: true, recursive: true });
         } catch (error) {
             this.logger.error({
@@ -140,7 +146,9 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 throw new Error("Requested export has expired!");
             }
 
-            return await fs.readFile(exportPath, "utf8");
+            return await this.trackOperation(
+                fs.readFile(exportPath, { encoding: "utf8", signal: this.shutdownController.signal })
+            );
         } catch (error) {
             this.logger.error({
                 id: LogId.exportReadError,
@@ -181,7 +189,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 exportStatus: "in-progress",
             });
 
-            void this.startExport({ input, jsonExportFormat, inProgressExport });
+            void this.trackOperation(this.startExport({ input, jsonExportFormat, inProgressExport }));
             return inProgressExport;
         } catch (error) {
             this.logger.error({
@@ -206,11 +214,10 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         try {
             await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
             const outputStream = createWriteStream(inProgressExport.exportPath);
-            await pipeline([
-                input.stream(),
-                this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)),
-                outputStream,
-            ]);
+            await pipeline(
+                [input.stream(), this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)), outputStream],
+                { signal: this.shutdownController.signal }
+            );
             pipeSuccessful = true;
         } catch (error) {
             this.logger.error({
@@ -281,7 +288,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 
     private async cleanupExpiredExports(): Promise<void> {
-        if (this.exportsCleanupInProgress || this.isShuttingDown) {
+        if (this.exportsCleanupInProgress) {
             return;
         }
 
@@ -291,6 +298,9 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         );
         try {
             for (const { exportPath, exportCreatedAt, exportURI, exportName } of exportsForCleanup) {
+                if (this.shutdownController.signal.aborted) {
+                    break;
+                }
                 if (isExportExpired(exportCreatedAt, this.config.exportTimeoutMs)) {
                     delete this.storedExports[exportName];
                     await this.silentlyRemoveExport(
@@ -330,8 +340,39 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 
     private assertIsNotShuttingDown(): void {
-        if (this.isShuttingDown) {
+        if (this.shutdownController.signal.aborted) {
             throw new Error("ExportsManager is shutting down.");
+        }
+    }
+
+    private async trackOperation<T>(promise: Promise<T>): Promise<T> {
+        this.activeOperations.add(promise);
+        try {
+            return await promise;
+        } finally {
+            this.activeOperations.delete(promise);
+        }
+    }
+
+    private async waitForActiveOperationsToSettle(timeoutMs: number): Promise<void> {
+        const pendingPromises = Array.from(this.activeOperations);
+        if (pendingPromises.length === 0) {
+            return;
+        }
+        let timedOut = false;
+        const timeoutPromise = new Promise<void>((resolve) =>
+            setTimeout(() => {
+                timedOut = true;
+                resolve();
+            }, timeoutMs)
+        );
+        await Promise.race([Promise.allSettled(pendingPromises), timeoutPromise]);
+        if (timedOut && this.activeOperations.size > 0) {
+            this.logger.error({
+                id: LogId.exportCloseError,
+                context: `Close timed out waiting for ${this.activeOperations.size} operation(s) to settle`,
+                message: "Proceeding to force cleanup after timeout",
+            });
         }
     }
 
