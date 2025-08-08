@@ -56,7 +56,12 @@ describeWithMongoDB(
             "Export a collection data or query results in the specified EJSON format.",
             [
                 ...databaseCollectionParameters,
-
+                {
+                    name: "exportTitle",
+                    description: "A short description to uniquely identify the export.",
+                    type: "string",
+                    required: true,
+                },
                 {
                     name: "filter",
                     description: "The query filter, matching the syntax of the query argument of db.collection.find()",
@@ -117,7 +122,11 @@ describeWithMongoDB(
         it("when provided with incorrect namespace, export should have empty data", async function () {
             const response = await integration.mcpClient().callTool({
                 name: "export",
-                arguments: { database: "non-existent", collection: "foos" },
+                arguments: {
+                    database: "non-existent",
+                    collection: "foos",
+                    exportTitle: "Export for non-existent.foos",
+                },
             });
             const content = response.content as CallToolResult["content"];
             const exportURI = contentWithResourceURILink(content)?.uri as string;
@@ -152,7 +161,11 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: integration.randomDbName(), collection: "foo" },
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                    },
                 });
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
@@ -176,7 +189,12 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: integration.randomDbName(), collection: "foo", filter: { name: "foo" } },
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        filter: { name: "foo" },
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                    },
                 });
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
@@ -199,7 +217,12 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: integration.randomDbName(), collection: "foo", limit: 1 },
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        limit: 1,
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                    },
                 });
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
@@ -227,6 +250,7 @@ describeWithMongoDB(
                         collection: "foo",
                         limit: 1,
                         sort: { longNumber: 1 },
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -255,6 +279,7 @@ describeWithMongoDB(
                         collection: "foo",
                         limit: 1,
                         projection: { _id: 0, name: 1 },
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -287,6 +312,7 @@ describeWithMongoDB(
                         limit: 1,
                         projection: { _id: 0 },
                         jsonExportFormat: "relaxed",
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -320,6 +346,7 @@ describeWithMongoDB(
                         limit: 1,
                         projection: { _id: 0 },
                         jsonExportFormat: "canonical",
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
                     },
                 });
                 const content = response.content as CallToolResult["content"];

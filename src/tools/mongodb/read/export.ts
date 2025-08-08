@@ -10,6 +10,7 @@ export class ExportTool extends MongoDBToolBase {
     public name = "export";
     protected description = "Export a collection data or query results in the specified EJSON format.";
     protected argsShape = {
+        exportTitle: z.string().describe("A short description to uniquely identify the export."),
         ...DbOperationArgs,
         ...FindArgs,
         limit: z.number().optional().describe("The maximum number of documents to return"),
@@ -33,6 +34,7 @@ export class ExportTool extends MongoDBToolBase {
         projection,
         sort,
         limit,
+        exportTitle,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const findCursor = provider.find(database, collection, filter ?? {}, {
@@ -42,15 +44,14 @@ export class ExportTool extends MongoDBToolBase {
             promoteValues: false,
             bsonRegExp: true,
         });
-        // The format is namespace.date.objectid.json
-        // - namespace to identify which namespace the export belongs to
-        // - date to identify when the export was generated
-        // - objectid for uniqueness of the names
-        const exportName = `${database}.${collection}.${Date.now()}.${new ObjectId().toString()}.json`;
+        const exportName = `${database}.${collection}.${new ObjectId().toString()}.json`;
 
         const { exportURI, exportPath } = this.session.exportsManager.createJSONExport({
             input: findCursor,
             exportName,
+            exportTitle:
+                exportTitle ||
+                `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
             jsonExportFormat,
         });
         const toolCallContent: CallToolResult["content"] = [

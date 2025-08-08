@@ -17,6 +17,7 @@ export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
 interface CommonExportData {
     exportName: string;
+    exportTitle: string;
     exportURI: string;
     exportPath: string;
 }
@@ -53,7 +54,7 @@ type StoredExport = ReadyExport | InProgressExport;
  *
  * Ref Cursor: https://forum.cursor.com/t/cursor-mcp-resource-feature-support/50987
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
-type AvailableExport = Pick<StoredExport, "exportName" | "exportURI" | "exportPath">;
+type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
 export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
 
@@ -86,8 +87,9 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                     !isExportExpired(storedExport.exportCreatedAt, this.config.exportTimeoutMs)
                 );
             })
-            .map(({ exportName, exportURI, exportPath }) => ({
+            .map(({ exportName, exportTitle, exportURI, exportPath }) => ({
                 exportName,
+                exportTitle,
                 exportURI,
                 exportPath,
             }));
@@ -158,10 +160,12 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     public createJSONExport({
         input,
         exportName,
+        exportTitle,
         jsonExportFormat,
     }: {
         input: FindCursor;
         exportName: string;
+        exportTitle: string;
         jsonExportFormat: JSONExportFormat;
     }): AvailableExport {
         try {
@@ -174,6 +178,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
             const inProgressExport: InProgressExport = (this.storedExports[exportNameWithExtension] = {
                 exportName: exportNameWithExtension,
+                exportTitle,
                 exportPath: exportFilePath,
                 exportURI: exportURI,
                 exportStatus: "in-progress",

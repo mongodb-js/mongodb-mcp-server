@@ -49,12 +49,14 @@ export class ExportedData {
     private listResourcesCallback: ListResourcesCallback = () => {
         try {
             return {
-                resources: this.session.exportsManager.availableExports.map(({ exportName, exportURI }) => ({
-                    name: exportName,
-                    description: this.exportNameToDescription(exportName),
-                    uri: exportURI,
-                    mimeType: "application/json",
-                })),
+                resources: this.session.exportsManager.availableExports.map(
+                    ({ exportName, exportTitle, exportURI }) => ({
+                        name: exportName,
+                        description: exportTitle,
+                        uri: exportURI,
+                        mimeType: "application/json",
+                    })
+                ),
             };
         } catch (error) {
             this.session.logger.error({
@@ -112,20 +114,4 @@ export class ExportedData {
             };
         }
     };
-
-    private exportNameToDescription(exportName: string): string {
-        const match = exportName.match(/^(.+)\.(\d+)\.(.+)\.json$/);
-        if (!match) return "Exported data for an unknown namespace.";
-
-        const [, namespace, timestamp] = match;
-        if (!namespace) {
-            return "Exported data for an unknown namespace.";
-        }
-
-        if (!timestamp) {
-            return `Export from ${namespace}.`;
-        }
-
-        return `Export from ${namespace} done on ${new Date(parseInt(timestamp)).toLocaleString()}`;
-    }
 }

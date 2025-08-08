@@ -65,7 +65,7 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: "db", collection: "coll" },
+                    arguments: { database: "db", collection: "coll", exportTitle: "Export for db.coll" },
                 });
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
@@ -89,7 +89,7 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: "db", collection: "coll" },
+                    arguments: { database: "db", collection: "coll", exportTitle: "Export for db.coll" },
                 });
                 const content = exportResponse.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
@@ -112,7 +112,7 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: "big", collection: "coll" },
+                    arguments: { database: "big", collection: "coll", exportTitle: "Export for big.coll" },
                 });
                 const content = exportResponse.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
