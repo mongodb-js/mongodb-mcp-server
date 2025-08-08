@@ -73,7 +73,7 @@ export class ExportTool extends MongoDBToolBase {
         // This special case is to make it easier to work with exported data for
         // clients that still cannot reference resources (Cursor).
         // More information here: https://jira.mongodb.org/browse/MCP-104
-        if (this.config.transport === "stdio") {
+        if (this.isServerRunningLocally()) {
             toolCallContent.push({
                 type: "text",
                 text: `Optionally, when the export is finished, the exported data can also be accessed under path - "${exportPath}"`,
@@ -83,5 +83,9 @@ export class ExportTool extends MongoDBToolBase {
         return {
             content: toolCallContent,
         };
+    }
+
+    private isServerRunningLocally(): boolean {
+        return this.config.transport === "stdio" || ["127.0.0.1", "localhost"].includes(this.config.httpHost);
     }
 }
