@@ -14,15 +14,7 @@ export class ExportedData {
     private readonly uri = "exported-data://{exportName}";
     private server?: Server;
 
-    constructor(private readonly session: Session) {
-        this.session.exportsManager.on("export-available", (uri: string): void => {
-            this.server?.sendResourceListChanged();
-            this.server?.sendResourceUpdated(uri);
-        });
-        this.session.exportsManager.on("export-expired", (): void => {
-            this.server?.sendResourceListChanged();
-        });
-    }
+    constructor(private readonly session: Session) {}
 
     public register(server: Server): void {
         this.server = server;
@@ -44,6 +36,13 @@ export class ExportedData {
             { description: this.description },
             this.readResourceCallback
         );
+        this.session.exportsManager.on("export-available", (uri: string): void => {
+            server.sendResourceListChanged();
+            server.sendResourceUpdated(uri);
+        });
+        this.session.exportsManager.on("export-expired", (): void => {
+            server.sendResourceListChanged();
+        });
     }
 
     private listResourcesCallback: ListResourcesCallback = () => {
