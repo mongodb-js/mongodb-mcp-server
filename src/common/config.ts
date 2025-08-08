@@ -164,6 +164,11 @@ export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     applyProxyToOIDC: true,
 };
 
+export const driverOptions = setupDriverConfig({
+    config,
+    defaults: defaultDriverOptions,
+});
+
 function getLogPath(): string {
     const logPath = path.join(getLocalDataPath(), "mongodb-mcp", ".app-logs");
     return logPath;
@@ -301,4 +306,18 @@ export function setupUserConfig({
     }
 
     return userConfig;
+}
+
+export function setupDriverConfig({
+    config,
+    defaults,
+}: {
+    config: UserConfig;
+    defaults: ConnectionInfo["driverOptions"];
+}): ConnectionInfo["driverOptions"] {
+    const { driverOptions } = generateConnectionInfoFromCliArgs(config);
+    return {
+        ...defaults,
+        ...driverOptions,
+    };
 }

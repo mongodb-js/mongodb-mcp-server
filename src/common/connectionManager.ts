@@ -1,4 +1,4 @@
-import { defaultDriverOptions } from "./config.js";
+import { driverOptions } from "./config.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import EventEmitter from "events";
 import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
@@ -92,7 +92,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             serviceProvider = await NodeDriverServiceProvider.connect(settings.connectionString, {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                 productName: "MongoDB MCP",
-                ...defaultDriverOptions,
+                ...driverOptions,
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
