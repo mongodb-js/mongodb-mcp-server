@@ -15,7 +15,6 @@ describeWithMongoDB(
         beforeEach(async () => {
             await integration.mcpServer().session.connectToMongoDB({
                 connectionString: integration.connectionString(),
-                ...config.connectOptions,
             });
         });
 

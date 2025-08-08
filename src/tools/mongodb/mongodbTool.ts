@@ -118,7 +118,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     }
 
     protected connectToMongoDB(connectionString: string): Promise<void> {
-        return this.session.connectToMongoDB({ connectionString, ...this.config.connectOptions });
+        return this.session.connectToMongoDB({ connectionString });
     }
 
     protected resolveTelemetryMetadata(

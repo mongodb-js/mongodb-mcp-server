@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
-import { config } from "../../../src/common/config.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { ConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
@@ -52,7 +51,6 @@ describe("Session", () => {
             it(`should update connection string for ${testCase.name}`, async () => {
                 await session.connectToMongoDB({
                     connectionString: testCase.connectionString,
-                    ...config.connectOptions,
                 });
                 expect(session.serviceProvider).toBeDefined();
 
@@ -68,7 +66,7 @@ describe("Session", () => {
         }
 
         it("should configure the proxy to use environment variables", async () => {
-            await session.connectToMongoDB({ connectionString: "mongodb://localhost", ...config.connectOptions });
+            await session.connectToMongoDB({ connectionString: "mongodb://localhost" });
             expect(session.serviceProvider).toBeDefined();
 
             const connectMock = MockNodeDriverServiceProvider.connect;

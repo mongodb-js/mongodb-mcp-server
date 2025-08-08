@@ -221,7 +221,6 @@ export class Server {
             try {
                 await this.session.connectToMongoDB({
                     connectionString: this.userConfig.connectionString,
-                    ...this.userConfig.connectOptions,
                 });
             } catch (error) {
                 console.error(

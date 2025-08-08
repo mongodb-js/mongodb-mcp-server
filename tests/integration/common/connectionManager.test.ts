@@ -6,7 +6,6 @@ import {
 } from "../../../src/common/connectionManager.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
-import { config } from "../../../src/common/config.js";
 
 describeWithMongoDB("Connection Manager", (integration) => {
     function connectionManager(): ConnectionManager {
@@ -48,7 +47,6 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             await connectionManager().connect({
                 connectionString: integration.connectionString(),
-                ...integration.mcpServer().userConfig.connectOptions,
             });
         });
 
@@ -88,7 +86,6 @@ describeWithMongoDB("Connection Manager", (integration) => {
             beforeEach(async () => {
                 await connectionManager().connect({
                     connectionString: integration.connectionString(),
-                    ...integration.mcpServer().userConfig.connectOptions,
                 });
             });
 
@@ -110,7 +107,6 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 try {
                     await connectionManager().connect({
                         connectionString: "mongodb://localhost:xxxxx",
-                        ...integration.mcpServer().userConfig.connectOptions,
                     });
                 } catch (_error: unknown) {
                     void _error;
@@ -158,7 +154,6 @@ describe("Connection Manager connection type inference", () => {
         it(`infers ${connectionType} from ${connectionString}`, () => {
             const actualConnectionType = ConnectionManager.inferConnectionTypeFromSettings({
                 connectionString,
-                ...config.connectOptions,
             });
 
             expect(actualConnectionType).toBe(connectionType);
