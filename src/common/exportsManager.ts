@@ -158,6 +158,9 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): AvailableExport {
         try {
             const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
+            if (this.storedExports[exportNameWithExtension]) {
+                throw new Error("Export with same name is either already available or being generated.");
+            }
             const exportURI = `exported-data://${encodeURIComponent(exportNameWithExtension)}`;
             const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
             const inProgressExport: InProgressExport = (this.storedExports[exportNameWithExtension] = {
