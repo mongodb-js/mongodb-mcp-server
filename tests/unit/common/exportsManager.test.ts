@@ -130,6 +130,11 @@ describe("ExportsManager unit test", () => {
     });
 
     describe("#availableExport", () => {
+        it("should throw if the manager is shutting down", () => {
+            void manager.close();
+            expect(() => manager.availableExports).toThrow("ExportsManager is shutting down.");
+        });
+
         it("should list only the exports that are in ready state", async () => {
             // This export will finish in at-least 1 second
             const { exportName: exportName1 } = getExportNameAndPath(session.sessionId);
@@ -156,6 +161,11 @@ describe("ExportsManager unit test", () => {
     });
 
     describe("#readExport", () => {
+        it("should throw if the manager is shutting down", async () => {
+            void manager.close();
+            await expect(() => manager.readExport("name")).rejects.toThrow("ExportsManager is shutting down.");
+        });
+
         it("should throw when export name has no extension", async () => {
             await expect(() => manager.readExport("name")).rejects.toThrow();
         });
@@ -206,6 +216,18 @@ describe("ExportsManager unit test", () => {
                 },
             ]));
             ({ exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId));
+        });
+
+        it("should throw if the manager is shutting down", () => {
+            const { cursor } = createDummyFindCursor([]);
+            void manager.close();
+            expect(() =>
+                manager.createJSONExport({
+                    input: cursor,
+                    exportName,
+                    jsonExportFormat: "relaxed",
+                })
+            ).toThrow();
         });
 
         describe("when cursor is empty", () => {

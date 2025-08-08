@@ -64,6 +64,7 @@ type ExportsManagerEvents = {
 
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     private wasInitialized: boolean = false;
+    private isShuttingDown: boolean = false;
     private storedExports: Record<StoredExport["exportName"], StoredExport> = {};
     private exportsCleanupInProgress: boolean = false;
     private exportsCleanupInterval?: NodeJS.Timeout;
@@ -77,6 +78,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 
     public get availableExports(): AvailableExport[] {
+        this.assertIsNotShuttingDown();
         return Object.values(this.storedExports)
             .filter((storedExport) => {
                 return (
@@ -103,6 +105,11 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 
     public async close(): Promise<void> {
+        if (this.isShuttingDown) {
+            return;
+        }
+
+        this.isShuttingDown = true;
         try {
             clearInterval(this.exportsCleanupInterval);
             await fs.rm(this.exportsDirectoryPath, { force: true, recursive: true });
@@ -117,6 +124,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
 
     public async readExport(exportName: string): Promise<string> {
         try {
+            this.assertIsNotShuttingDown();
             exportName = decodeURIComponent(exportName);
             const exportHandle = this.storedExports[exportName];
             if (!exportHandle) {
@@ -157,6 +165,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         jsonExportFormat: JSONExportFormat;
     }): AvailableExport {
         try {
+            this.assertIsNotShuttingDown();
             const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
             if (this.storedExports[exportNameWithExtension]) {
                 throw new Error("Export with same name is either already available or being generated.");
@@ -270,7 +279,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 
     private async cleanupExpiredExports(): Promise<void> {
-        if (this.exportsCleanupInProgress) {
+        if (this.exportsCleanupInProgress || this.isShuttingDown) {
             return;
         }
 
@@ -315,6 +324,12 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                     message: error instanceof Error ? error.message : String(error),
                 });
             }
+        }
+    }
+
+    private assertIsNotShuttingDown(): void {
+        if (this.isShuttingDown) {
+            throw new Error("ExportsManager is shutting down.");
         }
     }
 
