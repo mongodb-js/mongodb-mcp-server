@@ -46,7 +46,7 @@ export class ExportTool extends MongoDBToolBase {
         });
         const exportName = `${database}.${collection}.${new ObjectId().toString()}.json`;
 
-        const { exportURI, exportPath } = this.session.exportsManager.createJSONExport({
+        const { exportURI, exportPath } = await this.session.exportsManager.createJSONExport({
             input: findCursor,
             exportName,
             exportTitle:
