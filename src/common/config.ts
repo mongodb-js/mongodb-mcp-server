@@ -121,7 +121,7 @@ export interface UserConfig extends CliOptions {
     notificationTimeoutMs: number;
 }
 
-const defaults: UserConfig = {
+export const defaultUserConfig: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",
     logPath: getLogPath(),
     exportsPath: getExportsPath(),
@@ -140,7 +140,7 @@ const defaults: UserConfig = {
 };
 
 export const config = setupUserConfig({
-    defaults,
+    defaults: defaultUserConfig,
     cli: process.argv,
     env: process.env,
 });
@@ -303,6 +303,35 @@ export function setupUserConfig({
     if (userConfig.connectionString && userConfig.connectionSpecifier) {
         const connectionInfo = generateConnectionInfoFromCliArgs(userConfig);
         userConfig.connectionString = connectionInfo.connectionString;
+    }
+
+    const transport = userConfig.transport as string;
+    if (transport !== "http" && transport !== "stdio") {
+        throw new Error(`Invalid transport: ${transport}`);
+    }
+
+    const telemetry = userConfig.telemetry as string;
+    if (telemetry !== "enabled" && telemetry !== "disabled") {
+        throw new Error(`Invalid telemetry: ${telemetry}`);
+    }
+
+    if (userConfig.httpPort < 1 || userConfig.httpPort > 65535) {
+        throw new Error(`Invalid httpPort: ${userConfig.httpPort}`);
+    }
+
+    if (userConfig.loggers.length === 0) {
+        throw new Error("No loggers found in config");
+    }
+
+    const loggerTypes = new Set(userConfig.loggers);
+    if (loggerTypes.size !== userConfig.loggers.length) {
+        throw new Error("Duplicate loggers found in config");
+    }
+
+    for (const loggerType of userConfig.loggers as string[]) {
+        if (loggerType !== "mcp" && loggerType !== "disk" && loggerType !== "stderr") {
+            throw new Error(`Invalid logger: ${loggerType}`);
+        }
     }
 
     return userConfig;
