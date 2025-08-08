@@ -139,7 +139,7 @@ export const config = setupUserConfig({
     env: process.env,
 });
 
-export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
+const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     readConcern: {
         level: "local",
     },
@@ -151,6 +151,11 @@ export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     proxy: { useEnvironmentVariableProxies: true },
     applyProxyToOIDC: true,
 };
+
+export const driverOptions = setupDriverConfig({
+    config,
+    defaults: defaultDriverOptions,
+});
 
 function getLogPath(): string {
     const localDataPath =
@@ -291,4 +296,18 @@ export function setupUserConfig({
     }
 
     return userConfig;
+}
+
+export function setupDriverConfig({
+    config,
+    defaults,
+}: {
+    config: UserConfig;
+    defaults: ConnectionInfo["driverOptions"];
+}): ConnectionInfo["driverOptions"] {
+    const { driverOptions } = generateConnectionInfoFromCliArgs(config);
+    return {
+        ...defaults,
+        ...driverOptions,
+    };
 }

@@ -88,7 +88,7 @@ main().catch((error: unknown) => {
     process.exit(1);
 });
 
-function assertFIPSMode() {
+function assertFIPSMode(): void | never {
     let fipsError: Error | undefined = undefined;
     if (config.tlsFIPSMode) {
         if (!fipsError && !crypto.getFips()) {
@@ -110,7 +110,7 @@ function assertFIPSMode() {
     }
 }
 
-function assertHelpMode() {
+function assertHelpMode(): void | never {
     if (config.help) {
         console.log("For usage information refer to the README.md:");
         console.log("https://github.com/mongodb-js/mongodb-mcp-server?tab=readme-ov-file#quick-start");
@@ -118,7 +118,7 @@ function assertHelpMode() {
     }
 }
 
-function assertVersionMode() {
+function assertVersionMode(): void | never {
     if (config.version) {
         console.log(packageInfo.version);
         process.exit(0);
