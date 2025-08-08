@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { setupUserConfig, UserConfig } from "../../../src/common/config.js";
 
-describe.only("config", () => {
+describe("config", () => {
     describe("env var parsing", () => {
         describe("string cases", () => {
             const testCases = {
@@ -227,7 +227,7 @@ describe.only("config", () => {
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
-                        expect(actual[key as keyof UserConfig]).toBe(value as unknown);
+                        expect(actual[key as keyof UserConfig]).toBe(value);
                     }
                 });
             }
@@ -312,10 +312,6 @@ describe.only("config", () => {
                     expected: { tlsFIPSMode: true },
                 },
                 {
-                    cli: ["--tlsUseSystemCA"],
-                    expected: { tlsUseSystemCA: true },
-                },
-                {
                     cli: ["--version"],
                     expected: { version: true },
                 },
@@ -330,7 +326,7 @@ describe.only("config", () => {
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
-                        expect(actual[key as keyof UserConfig]).toBe(value as unknown);
+                        expect(actual[key as keyof UserConfig]).toBe(value);
                     }
                 });
             }
@@ -357,7 +353,7 @@ describe.only("config", () => {
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
-                        expect(actual[key as keyof UserConfig]).toEqual(value as unknown);
+                        expect(actual[key as keyof UserConfig]).toEqual(value);
                     }
                 });
             }

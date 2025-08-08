@@ -2,10 +2,19 @@
 
 import { ConsoleLogger, LogId } from "./common/logger.js";
 import { config } from "./common/config.js";
+import crypto from "crypto";
+import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
+import { systemCA } from "@mongodb-js/devtools-proxy-support";
 
 async function main(): Promise<void> {
+    systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
+
+    assertFIPSMode();
+    assertHelpMode();
+    assertVersionMode();
+
     const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
 
     const shutdown = (): void => {
@@ -78,3 +87,40 @@ main().catch((error: unknown) => {
     });
     process.exit(1);
 });
+
+function assertFIPSMode() {
+    let fipsError: Error | undefined = undefined;
+    if (config.tlsFIPSMode) {
+        if (!fipsError && !crypto.getFips()) {
+            fipsError = new Error("FIPS mode not enabled despite requested.");
+        }
+    }
+
+    if (fipsError) {
+        if (process.config.variables.node_shared_openssl) {
+            console.error(
+                "Could not enable FIPS mode. Please ensure that your system OpenSSL installation supports FIPS."
+            );
+        } else {
+            console.error("Could not enable FIPS mode. This installation does not appear to support FIPS.");
+        }
+        console.error("Error details:");
+        console.error(fipsError);
+        process.exit(1);
+    }
+}
+
+function assertHelpMode() {
+    if (!!config.help) {
+        console.log("For usage information refer to the README.md:");
+        console.log("https://github.com/mongodb-js/mongodb-mcp-server?tab=readme-ov-file#quick-start");
+        process.exit(0);
+    }
+}
+
+function assertVersionMode() {
+    if (!!config.version) {
+        console.log(packageInfo.version);
+        process.exit(0);
+    }
+}
