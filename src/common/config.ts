@@ -250,6 +250,9 @@ function parseCliConfig(args: string[]): CliOptions {
         };
 
     const positionalArguments = parsed._ ?? [];
+    // if we have a positional argument that matches a connection string
+    // store it as the connection specifier and remove it from the argument
+    // list, so it doesn't get misunderstood by the mongosh args-parser
     if (!parsed.nodb && isConnectionSpecifier(positionalArguments[0])) {
         parsed.connectionSpecifier = positionalArguments.shift();
     }
