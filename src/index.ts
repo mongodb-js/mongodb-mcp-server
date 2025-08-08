@@ -1,5 +1,22 @@
 #!/usr/bin/env node
 
+let fipsError: Error | undefined;
+function enableFipsIfRequested(): void {
+    if (process.argv.includes("--tlsFIPSMode")) {
+        // FIPS mode should be enabled before we run any other code, including any dependencies.
+        // We still wrap this into a function so we can also call it immediately after
+        // entering the snapshot main function.
+        try {
+            // eslint-disable-next-line
+            require("crypto").setFips(1);
+        } catch (err: unknown) {
+            fipsError ??= err as Error;
+        }
+    }
+}
+
+enableFipsIfRequested();
+
 import { ConsoleLogger, LogId } from "./common/logger.js";
 import { config } from "./common/config.js";
 import crypto from "crypto";
@@ -89,7 +106,6 @@ main().catch((error: unknown) => {
 });
 
 function assertFIPSMode(): void | never {
-    let fipsError: Error | undefined = undefined;
     if (config.tlsFIPSMode) {
         if (!fipsError && !crypto.getFips()) {
             fipsError = new Error("FIPS mode not enabled despite requested.");
