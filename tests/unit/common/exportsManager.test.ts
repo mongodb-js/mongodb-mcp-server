@@ -230,6 +230,22 @@ describe("ExportsManager unit test", () => {
             ).toThrow();
         });
 
+        it("should throw if the same name export is requested more than once", () => {
+            const { cursor } = createDummyFindCursorWithDelay([{ name: 1 }, { name: 2 }], 100);
+            manager.createJSONExport({
+                input: cursor,
+                exportName,
+                jsonExportFormat: "relaxed",
+            });
+            expect(() =>
+                manager.createJSONExport({
+                    input: cursor,
+                    exportName,
+                    jsonExportFormat: "relaxed",
+                })
+            ).toThrow();
+        });
+
         describe("when cursor is empty", () => {
             it("should create an empty export", async () => {
                 const { cursor, cursorCloseNotification } = createDummyFindCursor([]);
