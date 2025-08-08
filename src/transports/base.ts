@@ -44,7 +44,7 @@ export abstract class TransportRunnerBase {
 
         const logger = new CompositeLogger(...loggers);
         const sessionId = new ObjectId().toString();
-        const exportsManager = new ExportsManager(sessionId, userConfig, logger);
+        const exportsManager = ExportsManager.init(sessionId, userConfig, logger);
         const connectionManager = new ConnectionManager();
 
         const session = new Session({

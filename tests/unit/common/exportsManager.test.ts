@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs/promises";
 import { Readable, Transform } from "stream";
 import { FindCursor, Long } from "mongodb";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
     ensureExtension,
     isExportExpired,
@@ -19,7 +19,7 @@ import { EJSON, EJSONOptions, ObjectId } from "bson";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { ConnectionManager } from "../../../src/common/connectionManager.js";
 
-const exportsPath = path.join(ROOT_DIR, "tests", "tmp", "exports");
+const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);
 const exportsManagerConfig: ExportsManagerConfig = {
     exportsPath,
     exportTimeoutMs: config.exportTimeoutMs,
@@ -104,8 +104,6 @@ describe("ExportsManager unit test", () => {
     let manager: ExportsManager;
 
     beforeEach(async () => {
-        await manager?.close();
-        await fs.rm(exportsManagerConfig.exportsPath, { recursive: true, force: true });
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
         const logger = new CompositeLogger();
         const sessionId = new ObjectId().toString();
@@ -113,10 +111,15 @@ describe("ExportsManager unit test", () => {
             apiBaseUrl: "",
             logger,
             sessionId,
-            exportsManager: new ExportsManager(sessionId, config, logger),
+            exportsManager: ExportsManager.init(sessionId, exportsManagerConfig, logger),
             connectionManager: new ConnectionManager(),
         });
         manager = session.exportsManager;
+    });
+
+    afterEach(async () => {
+        await manager?.close();
+        await fs.rm(exportsManagerConfig.exportsPath, { recursive: true, force: true });
     });
 
     describe("#availableExport", () => {
@@ -366,7 +369,7 @@ describe("ExportsManager unit test", () => {
 
         it("should not clean up in-progress exports", async () => {
             const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
-            const manager = new ExportsManager(
+            const manager = ExportsManager.init(
                 session.sessionId,
                 {
                     ...exportsManagerConfig,
@@ -393,7 +396,7 @@ describe("ExportsManager unit test", () => {
 
         it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
-            const manager = new ExportsManager(
+            const manager = ExportsManager.init(
                 session.sessionId,
                 {
                     ...exportsManagerConfig,

@@ -63,22 +63,17 @@ type ExportsManagerEvents = {
 };
 
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
+    private wasInitialized: boolean = false;
     private storedExports: Record<StoredExport["exportName"], StoredExport> = {};
     private exportsCleanupInProgress: boolean = false;
-    private exportsCleanupInterval: NodeJS.Timeout;
-    private exportsDirectoryPath: string;
+    private exportsCleanupInterval?: NodeJS.Timeout;
 
-    constructor(
-        sessionId: string,
+    private constructor(
+        private readonly exportsDirectoryPath: string,
         private readonly config: ExportsManagerConfig,
         private readonly logger: LoggerBase
     ) {
         super();
-        this.exportsDirectoryPath = path.join(this.config.exportsPath, sessionId);
-        this.exportsCleanupInterval = setInterval(
-            () => void this.cleanupExpiredExports(),
-            this.config.exportCleanupIntervalMs
-        );
     }
 
     public get availableExports(): AvailableExport[] {
@@ -94,6 +89,17 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 exportURI,
                 exportPath,
             }));
+    }
+
+    protected init(): void {
+        if (!this.wasInitialized) {
+            this.exportsCleanupInterval = setInterval(
+                () => void this.cleanupExpiredExports(),
+                this.config.exportCleanupIntervalMs
+            );
+
+            this.wasInitialized = true;
+        }
     }
 
     public async close(): Promise<void> {
@@ -301,6 +307,13 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 });
             }
         }
+    }
+
+    static init(sessionId: string, config: ExportsManagerConfig, logger: LoggerBase): ExportsManager {
+        const exportsDirectoryPath = path.join(config.exportsPath, sessionId);
+        const exportsManager = new ExportsManager(exportsDirectoryPath, config, logger);
+        exportsManager.init();
+        return exportsManager;
     }
 }
 

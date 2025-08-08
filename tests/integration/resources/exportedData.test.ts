@@ -1,9 +1,19 @@
+import path from "path";
+import fs from "fs/promises";
 import { Long } from "bson";
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, afterAll } from "vitest";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { defaultTestConfig, resourceChangedNotification, timeout } from "../helpers.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
+import { UserConfig } from "../../../src/lib.js";
+
+const userConfig: UserConfig = {
+    ...defaultTestConfig,
+    exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-${Date.now()}`),
+    exportTimeoutMs: 200,
+    exportCleanupIntervalMs: 300,
+};
 
 describeWithMongoDB(
     "exported-data resource",
@@ -17,6 +27,10 @@ describeWithMongoDB(
                     { name: "foo", longNumber: new Long(1234) },
                     { name: "bar", bigInt: new Long(123412341234) },
                 ]);
+        });
+
+        afterAll(async () => {
+            await fs.rm(userConfig.exportsPath, { recursive: true, force: true });
         });
 
         it("should be able to list resource template", async () => {
@@ -123,11 +137,5 @@ describeWithMongoDB(
             });
         });
     },
-    () => {
-        return {
-            ...defaultTestConfig,
-            exportTimeoutMs: 200,
-            exportCleanupIntervalMs: 300,
-        };
-    }
+    () => userConfig
 );

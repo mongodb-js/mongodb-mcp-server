@@ -59,7 +59,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         const logger = new CompositeLogger();
         const sessionId = new ObjectId().toString();
-        const exportsManager = new ExportsManager(sessionId, userConfig, logger);
+        const exportsManager = ExportsManager.init(sessionId, userConfig, logger);
         const connectionManager = new ConnectionManager();
 
         const session = new Session({

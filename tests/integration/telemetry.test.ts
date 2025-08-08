@@ -20,7 +20,7 @@ describe("Telemetry", () => {
                 apiBaseUrl: "",
                 logger: new CompositeLogger(),
                 sessionId: "1FOO",
-                exportsManager: new ExportsManager("1FOO", config, logger),
+                exportsManager: ExportsManager.init("1FOO", config, logger),
                 connectionManager: new ConnectionManager(),
             }),
             config

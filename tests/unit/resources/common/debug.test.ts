@@ -13,7 +13,7 @@ describe("debug resource", () => {
         apiBaseUrl: "",
         logger,
         sessionId: "1FOO",
-        exportsManager: new ExportsManager("1FOO", config, logger),
+        exportsManager: ExportsManager.init("1FOO", config, logger),
         connectionManager: new ConnectionManager(),
     });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });
