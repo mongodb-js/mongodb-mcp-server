@@ -1,8 +1,8 @@
 import path from "path";
 import os from "os";
 import argv from "yargs-parser";
-import type { CliOptions } from "@mongosh/arg-parser";
-import type { ConnectionInfo } from "@mongosh/arg-parser";
+import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
@@ -296,21 +296,9 @@ export function setupUserConfig({
     userConfig.loggers = commaSeparatedToArray(userConfig.loggers);
 
     if (userConfig.connectionString && userConfig.connectionSpecifier) {
-        delete userConfig.connectionString;
+        const connectionInfo = generateConnectionInfoFromCliArgs(userConfig);
+        userConfig.connectionString = connectionInfo.connectionString;
     }
 
     return userConfig;
 }
-
-/**
-                   readConcern: {
-                    level: settings.readConcern,
-                },
-                readPreference: settings.readPreference,
-                writeConcern: {
-                    w: settings.writeConcern,
-                },
-                timeoutMS: settings.timeoutMS,
-                proxy: { useEnvironmentVariableProxies: true },
-                applyProxyToOIDC: true,
-**/

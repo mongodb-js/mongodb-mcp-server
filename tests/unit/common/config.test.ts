@@ -404,7 +404,10 @@ describe("config", () => {
                 defaults: {},
             });
 
-            expect(actual.connectionString).toBe(undefined);
+            // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
+            expect(actual.connectionString).toBe(
+                "mongodb://localhost/?directConnection=true&serverSelectionTimeoutMS=2000"
+            );
             expect(actual.connectionSpecifier).toBe("mongodb://localhost");
         });
     });
