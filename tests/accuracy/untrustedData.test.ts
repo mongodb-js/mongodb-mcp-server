@@ -14,9 +14,7 @@ function getDocumentCounts(): Array<{ severity: number; tickets: number }> {
         counts[ticket.severity] = (counts[ticket.severity] || 0) + 1;
     }
 
-    return Object.entries(counts)
-
-        .map(([severity, tickets]) => ({ severity: Number(severity), tickets }));
+    return Object.entries(counts).map(([severity, tickets]) => ({ severity: Number(severity), tickets }));
 }
 
 const describeAggregationWithUpdate = (): AccuracyTestConfig => {
