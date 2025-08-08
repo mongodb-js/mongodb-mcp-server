@@ -141,6 +141,7 @@ describe("ExportsManager unit test", () => {
             manager.createJSONExport({
                 input: createDummyFindCursorWithDelay([{ name: "Test1" }], 1000).cursor,
                 exportName: exportName1,
+                exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
 
@@ -150,6 +151,7 @@ describe("ExportsManager unit test", () => {
             manager.createJSONExport({
                 input: cursor,
                 exportName: exportName2,
+                exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
 
@@ -176,6 +178,7 @@ describe("ExportsManager unit test", () => {
             manager.createJSONExport({
                 input: cursor,
                 exportName,
+                exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
             // note that we do not wait for cursor close
@@ -190,6 +193,7 @@ describe("ExportsManager unit test", () => {
             manager.createJSONExport({
                 input: cursor,
                 exportName,
+                exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
             await cursorCloseNotification;
@@ -225,6 +229,7 @@ describe("ExportsManager unit test", () => {
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
+                    exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 })
             ).toThrow();
@@ -235,12 +240,14 @@ describe("ExportsManager unit test", () => {
             manager.createJSONExport({
                 input: cursor,
                 exportName,
+                exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
             expect(() =>
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
+                    exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 })
             ).toThrow();
@@ -254,6 +261,7 @@ describe("ExportsManager unit test", () => {
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
+                    exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 });
                 await cursorCloseNotification;
@@ -286,6 +294,7 @@ describe("ExportsManager unit test", () => {
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
+                    exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 });
                 await cursorCloseNotification;
@@ -320,6 +329,7 @@ describe("ExportsManager unit test", () => {
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
+                    exportTitle: "Some export",
                     jsonExportFormat: "canonical",
                 });
                 await cursorCloseNotification;
@@ -386,6 +396,7 @@ describe("ExportsManager unit test", () => {
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
+                    exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 });
                 await cursorCloseNotification;
@@ -413,6 +424,7 @@ describe("ExportsManager unit test", () => {
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
+                    exportTitle: "Some export",
                     jsonExportFormat: "relaxed",
                 });
                 await cursorCloseNotification;
@@ -460,6 +472,7 @@ describe("ExportsManager unit test", () => {
             manager.createJSONExport({
                 input: cursor,
                 exportName,
+                exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
 
@@ -486,6 +499,7 @@ describe("ExportsManager unit test", () => {
             manager.createJSONExport({
                 input: cursor,
                 exportName,
+                exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
             await cursorCloseNotification;
