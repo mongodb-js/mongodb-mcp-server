@@ -1,4 +1,3 @@
-import { ObjectId } from "bson";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { Server } from "../../src/server.js";
@@ -58,8 +57,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
         );
 
         const logger = new CompositeLogger();
-        const sessionId = new ObjectId().toString();
-        const exportsManager = ExportsManager.init(sessionId, userConfig, logger);
+        const exportsManager = ExportsManager.init(userConfig, logger);
         const connectionManager = new ConnectionManager();
 
         const session = new Session({
@@ -67,7 +65,6 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             apiClientId: userConfig.apiClientId,
             apiClientSecret: userConfig.apiClientSecret,
             logger,
-            sessionId,
             exportsManager,
             connectionManager,
         });

@@ -4,7 +4,7 @@ import fs from "fs/promises";
 import EventEmitter from "events";
 import { createWriteStream } from "fs";
 import { FindCursor } from "mongodb";
-import { EJSON, EJSONOptions } from "bson";
+import { EJSON, EJSONOptions, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
 
@@ -335,7 +335,11 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    static init(sessionId: string, config: ExportsManagerConfig, logger: LoggerBase): ExportsManager {
+    static init(
+        config: ExportsManagerConfig,
+        logger: LoggerBase,
+        sessionId = new ObjectId().toString()
+    ): ExportsManager {
         const exportsDirectoryPath = path.join(config.exportsPath, sessionId);
         const exportsManager = new ExportsManager(exportsDirectoryPath, config, logger);
         exportsManager.init();

@@ -113,12 +113,10 @@ describe("ExportsManager unit test", () => {
     beforeEach(async () => {
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
         const logger = new CompositeLogger();
-        const sessionId = new ObjectId().toString();
         session = new Session({
             apiBaseUrl: "",
             logger,
-            sessionId,
-            exportsManager: ExportsManager.init(sessionId, exportsManagerConfig, logger),
+            exportsManager: ExportsManager.init(exportsManagerConfig, logger),
             connectionManager: new ConnectionManager(),
         });
         manager = session.exportsManager;
@@ -460,13 +458,13 @@ describe("ExportsManager unit test", () => {
         it("should not clean up in-progress exports", async () => {
             const { exportName } = getExportNameAndPath(session.sessionId);
             const manager = ExportsManager.init(
-                session.sessionId,
                 {
                     ...exportsManagerConfig,
                     exportTimeoutMs: 100,
                     exportCleanupIntervalMs: 50,
                 },
-                new CompositeLogger()
+                new CompositeLogger(),
+                session.sessionId
             );
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
             manager.createJSONExport({
@@ -488,13 +486,13 @@ describe("ExportsManager unit test", () => {
         it("should cleanup expired exports", async () => {
             const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId);
             const manager = ExportsManager.init(
-                session.sessionId,
                 {
                     ...exportsManagerConfig,
                     exportTimeoutMs: 100,
                     exportCleanupIntervalMs: 50,
                 },
-                new CompositeLogger()
+                new CompositeLogger(),
+                session.sessionId
             );
             manager.createJSONExport({
                 input: cursor,

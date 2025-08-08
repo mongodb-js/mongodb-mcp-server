@@ -17,8 +17,7 @@ describe("Session", () => {
             apiClientId: "test-client-id",
             apiBaseUrl: "https://api.test.com",
             logger,
-            sessionId: "1FOO",
-            exportsManager: ExportsManager.init("1FOO", config, logger),
+            exportsManager: ExportsManager.init(config, logger),
             connectionManager: new ConnectionManager(),
         });
 

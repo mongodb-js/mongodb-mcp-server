@@ -12,8 +12,7 @@ describe("debug resource", () => {
     const session = new Session({
         apiBaseUrl: "",
         logger,
-        sessionId: "1FOO",
-        exportsManager: ExportsManager.init("1FOO", config, logger),
+        exportsManager: ExportsManager.init(config, logger),
         connectionManager: new ConnectionManager(),
     });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });

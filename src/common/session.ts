@@ -1,3 +1,4 @@
+import { ObjectId } from "bson";
 import { ApiClient, ApiClientCredentials } from "./atlas/apiClient.js";
 import { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import { CompositeLogger, LogId } from "./logger.js";
@@ -17,7 +18,6 @@ export interface SessionOptions {
     apiClientId?: string;
     apiClientSecret?: string;
     logger: CompositeLogger;
-    sessionId: string;
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
 }
@@ -30,7 +30,7 @@ export type SessionEvents = {
 };
 
 export class Session extends EventEmitter<SessionEvents> {
-    readonly sessionId: string;
+    readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
@@ -46,7 +46,6 @@ export class Session extends EventEmitter<SessionEvents> {
         apiClientId,
         apiClientSecret,
         logger,
-        sessionId,
         connectionManager,
         exportsManager,
     }: SessionOptions) {
@@ -62,8 +61,6 @@ export class Session extends EventEmitter<SessionEvents> {
                 : undefined;
 
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
-
-        this.sessionId = sessionId;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
         this.connectionManager.on("connection-succeeded", () => this.emit("connect"));
