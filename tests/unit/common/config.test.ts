@@ -360,7 +360,7 @@ describe("config", () => {
         });
     });
 
-    describe("precende rules", () => {
+    describe("precedence rules", () => {
         it("cli arguments take precedence over env vars", () => {
             const actual = setupUserConfig({
                 cli: ["myself", "--", "--connectionString", "mongodb://localhost"],
