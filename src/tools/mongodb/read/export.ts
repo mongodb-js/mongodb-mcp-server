@@ -1,9 +1,10 @@
+import z from "zod";
+import { ObjectId } from "bson";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationType, ToolArgs } from "../../tool.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
-import z from "zod";
 
 export class ExportTool extends MongoDBToolBase {
     public name = "export";
@@ -41,7 +42,11 @@ export class ExportTool extends MongoDBToolBase {
             promoteValues: false,
             bsonRegExp: true,
         });
-        const exportName = `${database}.${collection}.${Date.now()}.json`;
+        // The format is namespace.date.objectid.json
+        // - namespace to identify which namespace the export belongs to
+        // - date to identify when the export was generated
+        // - objectid for uniqueness of the names
+        const exportName = `${database}.${collection}.${Date.now()}.${new ObjectId().toString()}.json`;
 
         const { exportURI, exportPath } = this.session.exportsManager.createJSONExport({
             input: findCursor,

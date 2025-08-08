@@ -15,12 +15,13 @@ export class ExportedData {
     private server?: Server;
 
     constructor(private readonly session: Session) {
-        const onExportChanged = (uri: string): void => {
+        this.session.exportsManager.on("export-available", (uri: string): void => {
             this.server?.sendResourceListChanged();
             this.server?.sendResourceUpdated(uri);
-        };
-        this.session.exportsManager.on("export-available", onExportChanged);
-        this.session.exportsManager.on("export-expired", onExportChanged);
+        });
+        this.session.exportsManager.on("export-expired", (): void => {
+            this.server?.sendResourceListChanged();
+        });
     }
 
     public register(server: Server): void {
@@ -113,7 +114,7 @@ export class ExportedData {
     };
 
     private exportNameToDescription(exportName: string): string {
-        const match = exportName.match(/^(.+)\.(\d+)\.json$/);
+        const match = exportName.match(/^(.+)\.(\d+)\.(.+)\.json$/);
         if (!match) return "Exported data for an unknown namespace.";
 
         const [, namespace, timestamp] = match;

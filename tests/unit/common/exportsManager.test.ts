@@ -28,14 +28,15 @@ const exportsManagerConfig: ExportsManagerConfig = {
 
 function getExportNameAndPath(
     sessionId: string,
-    timestamp: number
+    timestamp: number = Date.now(),
+    objectId: string = new ObjectId().toString()
 ): {
     sessionExportsPath: string;
     exportName: string;
     exportPath: string;
     exportURI: string;
 } {
-    const exportName = `foo.bar.${timestamp}.json`;
+    const exportName = `foo.bar.${timestamp}.${objectId}.json`;
     const sessionExportsPath = path.join(exportsPath, sessionId);
     const exportPath = path.join(sessionExportsPath, exportName);
     return {
@@ -48,22 +49,21 @@ function getExportNameAndPath(
 
 function createDummyFindCursor(
     dataArray: unknown[],
-    chunkPushTimeoutMs?: number
+    beforeEachChunk?: (chunkIndex: number) => void | Promise<void>
 ): { cursor: FindCursor; cursorCloseNotification: Promise<void> } {
     let index = 0;
     const readable = new Readable({
         objectMode: true,
         async read(): Promise<void> {
-            if (index < dataArray.length) {
-                if (chunkPushTimeoutMs) {
-                    await timeout(chunkPushTimeoutMs);
+            try {
+                await beforeEachChunk?.(index);
+                if (index < dataArray.length) {
+                    this.push(dataArray[index++]);
+                } else {
+                    this.push(null);
                 }
-                this.push(dataArray[index++]);
-            } else {
-                if (chunkPushTimeoutMs) {
-                    await timeout(chunkPushTimeoutMs);
-                }
-                this.push(null);
+            } catch (error) {
+                this.destroy(error as Error);
             }
         },
     });
@@ -88,6 +88,13 @@ function createDummyFindCursor(
         } as unknown as FindCursor,
         cursorCloseNotification,
     };
+}
+
+function createDummyFindCursorWithDelay(
+    dataArray: unknown[],
+    delayMs: number
+): { cursor: FindCursor; cursorCloseNotification: Promise<void> } {
+    return createDummyFindCursor(dataArray, () => timeout(delayMs));
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -125,15 +132,15 @@ describe("ExportsManager unit test", () => {
     describe("#availableExport", () => {
         it("should list only the exports that are in ready state", async () => {
             // This export will finish in at-least 1 second
-            const { exportName: exportName1 } = getExportNameAndPath(session.sessionId, Date.now());
+            const { exportName: exportName1 } = getExportNameAndPath(session.sessionId);
             manager.createJSONExport({
-                input: createDummyFindCursor([{ name: "Test1" }], 1000).cursor,
+                input: createDummyFindCursorWithDelay([{ name: "Test1" }], 1000).cursor,
                 exportName: exportName1,
                 jsonExportFormat: "relaxed",
             });
 
             // This export will finish way sooner than the first one
-            const { exportName: exportName2 } = getExportNameAndPath(session.sessionId, Date.now());
+            const { exportName: exportName2 } = getExportNameAndPath(session.sessionId);
             const { cursor, cursorCloseNotification } = createDummyFindCursor([{ name: "Test1" }]);
             manager.createJSONExport({
                 input: cursor,
@@ -154,8 +161,8 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should throw if the resource is still being generated", async () => {
-            const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
-            const { cursor } = createDummyFindCursor([{ name: "Test1" }], 100);
+            const { exportName } = getExportNameAndPath(session.sessionId);
+            const { cursor } = createDummyFindCursorWithDelay([{ name: "Test1" }], 100);
             manager.createJSONExport({
                 input: cursor,
                 exportName,
@@ -168,7 +175,7 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should return the resource content if the resource is ready to be consumed", async () => {
-            const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
+            const { exportName } = getExportNameAndPath(session.sessionId);
             const { cursor, cursorCloseNotification } = createDummyFindCursor([]);
             manager.createJSONExport({
                 input: cursor,
@@ -198,7 +205,7 @@ describe("ExportsManager unit test", () => {
                     longNumber: Long.fromNumber(123456),
                 },
             ]));
-            ({ exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now()));
+            ({ exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId));
         });
 
         describe("when cursor is empty", () => {
@@ -304,7 +311,7 @@ describe("ExportsManager unit test", () => {
             });
         });
 
-        describe("when there is an error in export generation", () => {
+        describe("when there is an error during stream transform", () => {
             it("should remove the partial export and never make it available", async () => {
                 const emitSpy = vi.spyOn(manager, "emit");
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -312,26 +319,59 @@ describe("ExportsManager unit test", () => {
                     let docsTransformed = 0;
                     return new Transform({
                         objectMode: true,
-                        transform: function (chunk: unknown, encoding, callback): void {
-                            ++docsTransformed;
+                        transform(chunk: unknown, encoding, callback): void {
                             try {
-                                if (docsTransformed === 1) {
+                                const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
+                                if (docsTransformed === 0) {
+                                    this.push("[" + doc);
+                                } else if (docsTransformed === 1) {
                                     throw new Error("Could not transform the chunk!");
+                                } else {
+                                    this.push(",\n" + doc);
                                 }
-                                const doc: string = EJSON.stringify(chunk, undefined, 2, ejsonOptions);
-                                const line = `${docsTransformed > 1 ? ",\n" : ""}${doc}`;
-
-                                callback(null, line);
-                            } catch (err: unknown) {
+                                docsTransformed++;
+                                callback();
+                            } catch (err) {
                                 callback(err as Error);
                             }
                         },
-                        final: function (callback): void {
-                            this.push("]");
-                            callback(null);
+                        flush(this: Transform, cb): void {
+                            if (docsTransformed === 0) {
+                                this.push("[]");
+                            } else {
+                                this.push("]");
+                            }
+                            cb();
                         },
                     });
                 };
+                manager.createJSONExport({
+                    input: cursor,
+                    exportName,
+                    jsonExportFormat: "relaxed",
+                });
+                await cursorCloseNotification;
+
+                // Because the export was never populated in the available exports.
+                await expect(() => manager.readExport(exportName)).rejects.toThrow(
+                    "Requested export has either expired or does not exist!"
+                );
+                expect(emitSpy).not.toHaveBeenCalled();
+                expect(manager.availableExports).toEqual([]);
+                expect(await fileExists(exportPath)).toEqual(false);
+            });
+        });
+
+        describe("when there is an error on read stream", () => {
+            it("should remove the partial export and never make it available", async () => {
+                const emitSpy = vi.spyOn(manager, "emit");
+                // A cursor that will make the read stream fail after the first chunk
+                const { cursor, cursorCloseNotification } = createDummyFindCursor([{ name: "Test1" }], (chunkIndex) => {
+                    if (chunkIndex > 0) {
+                        return Promise.reject(new Error("Connection timedout!"));
+                    }
+                    return Promise.resolve();
+                });
                 manager.createJSONExport({
                     input: cursor,
                     exportName,
@@ -368,7 +408,7 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should not clean up in-progress exports", async () => {
-            const { exportName } = getExportNameAndPath(session.sessionId, Date.now());
+            const { exportName } = getExportNameAndPath(session.sessionId);
             const manager = ExportsManager.init(
                 session.sessionId,
                 {
@@ -378,7 +418,7 @@ describe("ExportsManager unit test", () => {
                 },
                 new CompositeLogger()
             );
-            const { cursor } = createDummyFindCursor([{ name: "Test" }], 2000);
+            const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
             manager.createJSONExport({
                 input: cursor,
                 exportName,
@@ -395,7 +435,7 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should cleanup expired exports", async () => {
-            const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId, Date.now());
+            const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId);
             const manager = ExportsManager.init(
                 session.sessionId,
                 {

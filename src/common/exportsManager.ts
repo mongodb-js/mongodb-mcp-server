@@ -192,7 +192,6 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         try {
             await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
             const outputStream = createWriteStream(inProgressExport.exportPath);
-            outputStream.write("[");
             await pipeline([
                 input.stream(),
                 this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)),
@@ -242,20 +241,27 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         let docsTransformed = 0;
         return new Transform({
             objectMode: true,
-            transform: function (chunk: unknown, encoding, callback): void {
-                ++docsTransformed;
+            transform(chunk: unknown, encoding, callback): void {
                 try {
-                    const doc: string = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
-                    const line = `${docsTransformed > 1 ? ",\n" : ""}${doc}`;
-
-                    callback(null, line);
-                } catch (err: unknown) {
+                    const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
+                    if (docsTransformed === 0) {
+                        this.push("[" + doc);
+                    } else {
+                        this.push(",\n" + doc);
+                    }
+                    docsTransformed++;
+                    callback();
+                } catch (err) {
                     callback(err as Error);
                 }
             },
-            final: function (callback): void {
-                this.push("]");
-                callback(null);
+            flush(callback): void {
+                if (docsTransformed === 0) {
+                    this.push("[]");
+                } else {
+                    this.push("]");
+                }
+                callback();
             },
         });
     }
