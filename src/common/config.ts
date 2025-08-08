@@ -66,7 +66,6 @@ const OPTIONS = {
         "tlsAllowInvalidCertificates",
         "tlsAllowInvalidHostnames",
         "tlsFIPSMode",
-        "tlsUseSystemCA",
         "version",
     ],
     array: ["disabledTools", "loggers"],
