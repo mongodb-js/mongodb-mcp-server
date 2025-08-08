@@ -20,7 +20,7 @@ jobs:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - name: Create JIRA ticket
-        uses: mongodb/apix-action/create-jira@v12
+        uses: mongodb/apix-action/create-jira@v13
         id: create
         continue-on-error: true
         with:
