@@ -2,7 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { Server } from "../../src/server.js";
 import { UserConfig } from "../../src/common/config.js";
-import { McpError } from "@modelcontextprotocol/sdk/types.js";
+import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
@@ -10,6 +10,7 @@ import { config } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConnectionManager } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
+import { ExportsManager } from "../../src/common/exportsManager.js";
 
 interface ParameterInfo {
     name: string;
@@ -55,14 +56,17 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             }
         );
 
+        const logger = new CompositeLogger();
+        const exportsManager = ExportsManager.init(userConfig, logger);
         const connectionManager = new ConnectionManager();
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
             apiClientId: userConfig.apiClientId,
             apiClientSecret: userConfig.apiClientSecret,
+            logger,
+            exportsManager,
             connectionManager,
-            logger: new CompositeLogger(),
         });
 
         // Mock hasValidAccessToken for tests
@@ -268,4 +272,22 @@ function validateToolAnnotations(tool: ToolInfo, name: string, description: stri
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(false);
     }
+}
+
+export function timeout(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Subscribes to the resources changed notification for the provided URI
+ */
+export function resourceChangedNotification(client: Client, uri: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+        void client.subscribeResource({ uri });
+        client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
+            if (notification.params.uri === uri) {
+                resolve();
+            }
+        });
+    });
 }

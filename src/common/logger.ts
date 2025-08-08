@@ -49,6 +49,14 @@ export const LogId = {
     streamableHttpTransportSessionCloseNotificationFailure: mongoLogId(1_006_004),
     streamableHttpTransportRequestFailure: mongoLogId(1_006_005),
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
+
+    exportCleanupError: mongoLogId(1_007_001),
+    exportCreationError: mongoLogId(1_007_002),
+    exportCreationCleanupError: mongoLogId(1_007_003),
+    exportReadError: mongoLogId(1_007_004),
+    exportCloseError: mongoLogId(1_007_005),
+    exportedDataListError: mongoLogId(1_007_006),
+    exportedDataAutoCompleteError: mongoLogId(1_007_007),
 } as const;
 
 interface LogPayload {

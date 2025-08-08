@@ -1,3 +1,4 @@
+import { ObjectId } from "bson";
 import { ApiClient, ApiClientCredentials } from "./atlas/apiClient.js";
 import { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import { CompositeLogger, LogId } from "./logger.js";
@@ -10,13 +11,15 @@ import {
 } from "./connectionManager.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
+import { ExportsManager } from "./exportsManager.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
     apiClientId?: string;
     apiClientSecret?: string;
-    connectionManager?: ConnectionManager;
     logger: CompositeLogger;
+    exportsManager: ExportsManager;
+    connectionManager: ConnectionManager;
 }
 
 export type SessionEvents = {
@@ -27,9 +30,10 @@ export type SessionEvents = {
 };
 
 export class Session extends EventEmitter<SessionEvents> {
-    sessionId?: string;
-    connectionManager: ConnectionManager;
-    apiClient: ApiClient;
+    readonly sessionId: string = new ObjectId().toString();
+    readonly exportsManager: ExportsManager;
+    readonly connectionManager: ConnectionManager;
+    readonly apiClient: ApiClient;
     agentRunner?: {
         name: string;
         version: string;
@@ -37,11 +41,17 @@ export class Session extends EventEmitter<SessionEvents> {
 
     public logger: CompositeLogger;
 
-    constructor({ apiBaseUrl, apiClientId, apiClientSecret, connectionManager, logger }: SessionOptions) {
+    constructor({
+        apiBaseUrl,
+        apiClientId,
+        apiClientSecret,
+        logger,
+        connectionManager,
+        exportsManager,
+    }: SessionOptions) {
         super();
 
         this.logger = logger;
-
         const credentials: ApiClientCredentials | undefined =
             apiClientId && apiClientSecret
                 ? {
@@ -51,8 +61,8 @@ export class Session extends EventEmitter<SessionEvents> {
                 : undefined;
 
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
-
-        this.connectionManager = connectionManager ?? new ConnectionManager();
+        this.exportsManager = exportsManager;
+        this.connectionManager = connectionManager;
         this.connectionManager.on("connection-succeeded", () => this.emit("connect"));
         this.connectionManager.on("connection-timed-out", (error) => this.emit("connection-error", error.errorReason));
         this.connectionManager.on("connection-closed", () => this.emit("disconnect"));
@@ -107,6 +117,7 @@ export class Session extends EventEmitter<SessionEvents> {
     async close(): Promise<void> {
         await this.disconnect();
         await this.apiClient.close();
+        await this.exportsManager.close();
         this.emit("close");
     }
 

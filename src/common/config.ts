@@ -19,6 +19,9 @@ export interface UserConfig {
     apiClientSecret?: string;
     telemetry: "enabled" | "disabled";
     logPath: string;
+    exportsPath: string;
+    exportTimeoutMs: number;
+    exportCleanupIntervalMs: number;
     connectionString?: string;
     connectOptions: ConnectOptions;
     disabledTools: Array<string>;
@@ -35,6 +38,9 @@ export interface UserConfig {
 const defaults: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",
     logPath: getLogPath(),
+    exportsPath: getExportsPath(),
+    exportTimeoutMs: 300000, // 5 minutes
+    exportCleanupIntervalMs: 120000, // 2 minutes
     connectOptions: {
         readConcern: "local",
         readPreference: "secondaryPreferred",
@@ -59,15 +65,19 @@ export const config = {
     ...getCliConfig(),
 };
 
+function getLocalDataPath(): string {
+    return process.platform === "win32"
+        ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), "mongodb")
+        : path.join(os.homedir(), ".mongodb");
+}
+
 function getLogPath(): string {
-    const localDataPath =
-        process.platform === "win32"
-            ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), "mongodb")
-            : path.join(os.homedir(), ".mongodb");
-
-    const logPath = path.join(localDataPath, "mongodb-mcp", ".app-logs");
-
+    const logPath = path.join(getLocalDataPath(), "mongodb-mcp", ".app-logs");
     return logPath;
+}
+
+function getExportsPath(): string {
+    return path.join(getLocalDataPath(), "mongodb-mcp", "exports");
 }
 
 // Gets the config supplied by the user as environment variables. The variable names

@@ -1,13 +1,12 @@
 import { ReactiveResource } from "../resource.js";
-import { config } from "../../common/config.js";
 import type { UserConfig } from "../../common/config.js";
-import type { Server } from "../../server.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
+import type { Session } from "../../lib.js";
 
 export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
-    constructor(server: Server, telemetry: Telemetry) {
-        super(
-            {
+    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
+        super({
+            resourceConfiguration: {
                 name: "config",
                 uri: "config://config",
                 config: {
@@ -15,13 +14,14 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
                         "Server configuration, supplied by the user either as environment variables or as startup arguments",
                 },
             },
-            {
+            options: {
                 initial: { ...config },
                 events: [],
             },
-            server,
-            telemetry
-        );
+            session,
+            config,
+            telemetry,
+        });
     }
     reduce(eventName: undefined, event: undefined): UserConfig {
         void eventName;

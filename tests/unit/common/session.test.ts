@@ -3,6 +3,8 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import { Session } from "../../../src/common/session.js";
 import { config } from "../../../src/common/config.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
+import { ConnectionManager } from "../../../src/common/connectionManager.js";
+import { ExportsManager } from "../../../src/common/exportsManager.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
@@ -10,10 +12,13 @@ const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
 describe("Session", () => {
     let session: Session;
     beforeEach(() => {
+        const logger = new CompositeLogger();
         session = new Session({
             apiClientId: "test-client-id",
             apiBaseUrl: "https://api.test.com",
-            logger: new CompositeLogger(),
+            logger,
+            exportsManager: ExportsManager.init(config, logger),
+            connectionManager: new ConnectionManager(),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);

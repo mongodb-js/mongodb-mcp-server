@@ -20,28 +20,41 @@ export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyo
 };
 
 export abstract class ReactiveResource<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> {
-    protected readonly session: Session;
-    protected readonly config: UserConfig;
+    protected server?: Server;
+    protected session: Session;
+    protected config: UserConfig;
+    protected telemetry: Telemetry;
+
     protected current: Value;
     protected readonly name: string;
     protected readonly uri: string;
     protected readonly resourceConfig: ResourceMetadata;
     protected readonly events: RelevantEvents;
 
-    constructor(
-        resourceConfiguration: ResourceConfiguration,
-        options: ReactiveResourceOptions<Value, RelevantEvents>,
-        protected readonly server: Server,
-        protected readonly telemetry: Telemetry,
-        current?: Value
-    ) {
+    constructor({
+        resourceConfiguration,
+        options,
+        session,
+        config,
+        telemetry,
+        current,
+    }: {
+        resourceConfiguration: ResourceConfiguration;
+        options: ReactiveResourceOptions<Value, RelevantEvents>;
+        session: Session;
+        config: UserConfig;
+        telemetry: Telemetry;
+        current?: Value;
+    }) {
+        this.session = session;
+        this.config = config;
+        this.telemetry = telemetry;
+
         this.name = resourceConfiguration.name;
         this.uri = resourceConfiguration.uri;
         this.resourceConfig = resourceConfiguration.config;
         this.events = options.events;
         this.current = current ?? options.initial;
-        this.session = server.session;
-        this.config = server.userConfig;
 
         this.setupEventListeners();
     }
@@ -55,7 +68,8 @@ export abstract class ReactiveResource<Value, RelevantEvents extends readonly (k
         }
     }
 
-    public register(): void {
+    public register(server: Server): void {
+        this.server = server;
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }
 
@@ -69,10 +83,10 @@ export abstract class ReactiveResource<Value, RelevantEvents extends readonly (k
         ],
     });
 
-    private async triggerUpdate(): Promise<void> {
+    private triggerUpdate(): void {
         try {
-            await this.server.mcpServer.server.sendResourceUpdated({ uri: this.uri });
-            this.server.mcpServer.sendResourceListChanged();
+            this.server?.sendResourceListChanged();
+            this.server?.sendResourceUpdated(this.uri);
         } catch (error: unknown) {
             this.session.logger.warning({
                 id: LogId.resourceUpdateFailure,
