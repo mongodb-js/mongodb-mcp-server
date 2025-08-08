@@ -64,7 +64,6 @@ type ExportsManagerEvents = {
 };
 
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
-    private wasInitialized: boolean = false;
     private isShuttingDown: boolean = false;
     private storedExports: Record<StoredExport["exportName"], StoredExport> = {};
     private exportsCleanupInProgress: boolean = false;
@@ -96,13 +95,11 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 
     protected init(): void {
-        if (!this.wasInitialized) {
+        if (!this.exportsCleanupInterval) {
             this.exportsCleanupInterval = setInterval(
                 () => void this.cleanupExpiredExports(),
                 this.config.exportCleanupIntervalMs
             );
-
-            this.wasInitialized = true;
         }
     }
 
