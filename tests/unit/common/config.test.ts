@@ -1,38 +1,36 @@
 import { describe, it, expect } from "vitest";
-import { setupUserConfig, UserConfig } from "../../../src/common/config.js";
+import { setupUserConfig, UserConfig, defaultUserConfig } from "../../../src/common/config.js";
 
 describe("config", () => {
     describe("env var parsing", () => {
         describe("string cases", () => {
-            const testCases = {
-                MDB_MCP_API_BASE_URL: "apiBaseUrl",
-                MDB_MCP_API_CLIENT_ID: "apiClientId",
-                MDB_MCP_API_CLIENT_SECRET: "apiClientSecret",
-                MDB_MCP_TELEMETRY: "telemetry",
-                MDB_MCP_LOG_PATH: "logPath",
-                MDB_MCP_CONNECTION_STRING: "connectionString",
-                MDB_MCP_READ_ONLY: "readOnly",
-                MDB_MCP_INDEX_CHECK: "indexCheck",
-                MDB_MCP_TRANSPORT: "transport",
-                MDB_MCP_HTTP_PORT: "httpPort",
-                MDB_MCP_HTTP_HOST: "httpHost",
-                MDB_MCP_IDLE_TIMEOUT_MS: "idleTimeoutMs",
-                MDB_MCP_NOTIFICATION_TIMEOUT_MS: "notificationTimeoutMs",
-            } as const;
+            const testCases = [
+                { envVar: "MDB_MCP_API_BASE_URL", property: "apiBaseUrl", value: "http://test.com" },
+                { envVar: "MDB_MCP_API_CLIENT_ID", property: "apiClientId", value: "ClientIdLol" },
+                { envVar: "MDB_MCP_API_CLIENT_SECRET", property: "apiClientSecret", value: "SuperClientSecret" },
+                { envVar: "MDB_MCP_TELEMETRY", property: "telemetry", value: "enabled" },
+                { envVar: "MDB_MCP_LOG_PATH", property: "logPath", value: "/var/log" },
+                { envVar: "MDB_MCP_CONNECTION_STRING", property: "connectionString", value: "mongodb://localhost" },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: true },
+                { envVar: "MDB_MCP_INDEX_CHECK", property: "indexCheck", value: true },
+                { envVar: "MDB_MCP_TRANSPORT", property: "transport", value: "http" },
+                { envVar: "MDB_MCP_HTTP_PORT", property: "httpPort", value: 8080 },
+                { envVar: "MDB_MCP_HTTP_HOST", property: "httpHost", value: "localhost" },
+                { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
+                { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
+            ] as const;
 
-            for (const [envVar, config] of Object.entries(testCases)) {
-                it(`should map ${envVar} to ${config}`, () => {
-                    const randomValue = "value=" + Math.random();
-
+            for (const { envVar, property, value } of testCases) {
+                it(`should map ${envVar} to ${property} with value "${value}"`, () => {
                     const actual = setupUserConfig({
                         cli: [],
                         env: {
-                            [envVar]: randomValue,
+                            [envVar]: String(value),
                         },
-                        defaults: {},
+                        defaults: defaultUserConfig,
                     });
 
-                    expect(actual[config]).toBe(randomValue);
+                    expect(actual[property]).toBe(value);
                 });
             }
         });
@@ -45,17 +43,15 @@ describe("config", () => {
 
             for (const [envVar, config] of Object.entries(testCases)) {
                 it(`should map ${envVar} to ${config}`, () => {
-                    const randomValue = "value=" + Math.random();
-
                     const actual = setupUserConfig({
                         cli: [],
                         env: {
-                            [envVar]: randomValue,
+                            [envVar]: "disk,mcp",
                         },
-                        defaults: {},
+                        defaults: defaultUserConfig,
                     });
 
-                    expect(actual[config]).toEqual([randomValue]);
+                    expect(actual[config]).toEqual(["disk", "mcp"]);
                 });
             }
         });
@@ -101,8 +97,8 @@ describe("config", () => {
                     expected: { notificationTimeoutMs: "42" },
                 },
                 {
-                    cli: ["--telemetry", "obviously"],
-                    expected: { telemetry: "obviously" },
+                    cli: ["--telemetry", "enabled"],
+                    expected: { telemetry: "enabled" },
                 },
                 {
                     cli: ["--transport", "stdio"],
@@ -223,7 +219,7 @@ describe("config", () => {
                     const actual = setupUserConfig({
                         cli: ["myself", "--", ...cli],
                         env: {},
-                        defaults: {},
+                        defaults: defaultUserConfig,
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
@@ -322,7 +318,7 @@ describe("config", () => {
                     const actual = setupUserConfig({
                         cli: ["myself", "--", ...cli],
                         env: {},
-                        defaults: {},
+                        defaults: defaultUserConfig,
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
@@ -339,8 +335,8 @@ describe("config", () => {
                     expected: { disabledTools: ["some", "tool"] },
                 },
                 {
-                    cli: ["--loggers", "canada,file"],
-                    expected: { loggers: ["canada", "file"] },
+                    cli: ["--loggers", "disk,mcp"],
+                    expected: { loggers: ["disk", "mcp"] },
                 },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 
@@ -349,7 +345,7 @@ describe("config", () => {
                     const actual = setupUserConfig({
                         cli: ["myself", "--", ...cli],
                         env: {},
-                        defaults: {},
+                        defaults: defaultUserConfig,
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
@@ -365,7 +361,7 @@ describe("config", () => {
             const actual = setupUserConfig({
                 cli: ["myself", "--", "--connectionString", "mongodb://localhost"],
                 env: { MDB_MCP_CONNECTION_STRING: "mongodb://crazyhost" },
-                defaults: {},
+                defaults: defaultUserConfig,
             });
 
             expect(actual.connectionString).toBe("mongodb://localhost");
@@ -376,6 +372,7 @@ describe("config", () => {
                 cli: ["myself", "--", "--connectionString", "mongodb://localhost"],
                 env: {},
                 defaults: {
+                    ...defaultUserConfig,
                     connectionString: "mongodb://crazyhost",
                 },
             });
@@ -388,6 +385,7 @@ describe("config", () => {
                 cli: [],
                 env: { MDB_MCP_CONNECTION_STRING: "mongodb://localhost" },
                 defaults: {
+                    ...defaultUserConfig,
                     connectionString: "mongodb://crazyhost",
                 },
             });
@@ -401,7 +399,7 @@ describe("config", () => {
             const actual = setupUserConfig({
                 cli: ["myself", "--", "mongodb://localhost", "--connectionString", "toRemove"],
                 env: {},
-                defaults: {},
+                defaults: defaultUserConfig,
             });
 
             // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
