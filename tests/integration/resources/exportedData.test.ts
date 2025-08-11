@@ -74,13 +74,23 @@ describeWithMongoDB(
                 expect(exportedResourceURI).toBeDefined();
 
                 // wait for export expired
-                await timeout(300);
-                const response = await integration.mcpClient().readResource({
-                    uri: exportedResourceURI as string,
-                });
-                expect(response.isError).toEqual(true);
-                expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
-                expect(response.contents[0]?.text).toMatch(`Error reading ${exportedResourceURI}:`);
+                for (let tries = 0; tries < 10; tries++) {
+                    await timeout(300);
+                    const response = await integration.mcpClient().readResource({
+                        uri: exportedResourceURI as string,
+                    });
+
+                    // wait for an error from the MCP Server as it
+                    // means the resource is not available anymore
+                    if (response.isError === false) {
+                        continue;
+                    }
+
+                    expect(response.isError).toEqual(true);
+                    expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
+                    expect(response.contents[0]?.text).toMatch(`Error reading ${exportedResourceURI}:`);
+                    break;
+                }
             });
         });
 
