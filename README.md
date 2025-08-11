@@ -268,7 +268,7 @@ When deploying the MongoDB MCP as a Remote MCP Server with access to sensitive d
 
 The templates provided in this document are meant to be a starting point. While they can be a useful reference, they may not fully align with the best security practices for your specific situation. We strongly recommend you review and adapt these examples to ensure they meet your unique requirements and security policies before using them in a production environment.
 
-** ⚠️ Important Note**: The provided templates are offered on a _best-effort basis_. We do not endorse, nor do we have a support policy or any formal agreements with, the third-party services mentioned in these templates. Our team cannot provide direct support for issues related to their specific configurations. Please refer to the official documentation for those services for any technical assistance.
+**⚠️ Important Note:** The provided templates are offered on a _best-effort basis_. We do not endorse, nor do we have a support policy or any formal agreements with, the third-party services mentioned in these templates. Our team cannot provide direct support for issues related to their specific configurations. Please refer to the official documentation for those services for any technical assistance.
 
 #### Pomerium (Open Core Identity-Aware Proxy)
 
