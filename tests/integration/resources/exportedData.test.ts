@@ -82,7 +82,7 @@ describeWithMongoDB(
 
                     // wait for an error from the MCP Server as it
                     // means the resource is not available anymore
-                    if (response.isError === false) {
+                    if (response.isError !== true) {
                         continue;
                     }
 
