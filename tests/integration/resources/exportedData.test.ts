@@ -55,7 +55,7 @@ describeWithMongoDB(
                 expect(response.isError).toEqual(true);
                 expect(response.contents[0]?.uri).toEqual(exportURI);
                 expect(response.contents[0]?.text).toEqual(
-                    `Error reading ${exportURI}: Requested export has either expired or does not exist!`
+                    `Error reading ${exportURI}: Requested export has either expired or does not exist.`
                 );
             });
         });

@@ -202,7 +202,7 @@ describe("ExportsManager unit test", () => {
             await expect(() => manager.readExport("name")).rejects.toThrow("ExportsManager is shutting down.");
         });
 
-        it("should wait if resource is still being generated", async () => {
+        it("should notify the user if resource is still being generated", async () => {
             const { exportName } = getExportNameAndPath();
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test1" }], 200);
             // create only provides a readable handle but does not guarantee
@@ -214,23 +214,12 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
 
-            expect(await manager.readExport(exportName)).toEqual(JSON.stringify([{ name: "Test1" }]));
-        });
-
-        it("should allow concurrent reads of the same in-progress resource", async () => {
-            const { exportName } = getExportNameAndPath();
-            const { cursor } = createDummyFindCursorWithDelay([{ name: "Test1" }], 200);
-            // create only provides a readable handle but does not guarantee
-            // that resource is available for read
-            await manager.createJSONExport({
-                input: cursor,
-                exportName,
-                exportTitle: "Some export",
-                jsonExportFormat: "relaxed",
-            });
-            expect(
-                await Promise.all([await manager.readExport(exportName), await manager.readExport(exportName)])
-            ).toEqual([JSON.stringify([{ name: "Test1" }]), JSON.stringify([{ name: "Test1" }])]);
+            try {
+                await manager.readExport(exportName);
+                throw new Error("Should have failed.");
+            } catch (err: unknown) {
+                expect(String(err)).toEqual("Error: Requested export is still being generated. Try again later.");
+            }
         });
 
         it("should return the resource content if the resource is ready to be consumed", async () => {
@@ -463,7 +452,7 @@ describe("ExportsManager unit test", () => {
 
                 // Because the export was never populated in the available exports.
                 await expect(() => manager.readExport(exportName)).rejects.toThrow(
-                    "Requested export has either expired or does not exist!"
+                    "Requested export has either expired or does not exist."
                 );
                 expect(emitSpy).not.toHaveBeenCalled();
                 expect(manager.availableExports).toEqual([]);
@@ -491,7 +480,7 @@ describe("ExportsManager unit test", () => {
 
                 // Because the export was never populated in the available exports.
                 await expect(() => manager.readExport(exportName)).rejects.toThrow(
-                    "Requested export has either expired or does not exist!"
+                    "Requested export has either expired or does not exist."
                 );
                 expect(emitSpy).not.toHaveBeenCalled();
                 expect(manager.availableExports).toEqual([]);
