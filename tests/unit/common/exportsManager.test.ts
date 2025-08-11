@@ -12,13 +12,12 @@ import {
 } from "../../../src/common/exportsManager.js";
 
 import { config } from "../../../src/common/config.js";
-import { Session } from "../../../src/common/session.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { timeout } from "../../integration/helpers.js";
 import { EJSON, EJSONOptions, ObjectId } from "bson";
 import { CompositeLogger } from "../../../src/common/logger.js";
-import { ConnectionManager } from "../../../src/common/connectionManager.js";
 
+const logger = new CompositeLogger();
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);
 const exportsManagerConfig: ExportsManagerConfig = {
     exportsPath,
@@ -26,24 +25,35 @@ const exportsManagerConfig: ExportsManagerConfig = {
     exportCleanupIntervalMs: config.exportCleanupIntervalMs,
 } as const;
 
-function getExportNameAndPath(
-    sessionId: string,
-    timestamp: number = Date.now(),
-    objectId: string = new ObjectId().toString()
-): {
+function getExportNameAndPath({
+    uniqueExportsId = new ObjectId().toString(),
+    uniqueFileId = new ObjectId().toString(),
+    database = "foo",
+    collection = "bar",
+}:
+    | {
+          uniqueExportsId?: string;
+          uniqueFileId?: string;
+          database?: string;
+          collection?: string;
+      }
+    | undefined = {}): {
     sessionExportsPath: string;
     exportName: string;
     exportPath: string;
     exportURI: string;
+    uniqueExportsId: string;
 } {
-    const exportName = `foo.bar.${timestamp}.${objectId}.json`;
-    const sessionExportsPath = path.join(exportsPath, sessionId);
+    const exportName = `${database}.${collection}.${uniqueFileId}.json`;
+    // This is the exports directory for a session.
+    const sessionExportsPath = path.join(exportsPath, uniqueExportsId);
     const exportPath = path.join(sessionExportsPath, exportName);
     return {
         sessionExportsPath,
         exportName,
         exportPath,
         exportURI: `exported-data://${exportName}`,
+        uniqueExportsId,
     };
 }
 
@@ -106,24 +116,50 @@ async function fileExists(filePath: string): Promise<boolean> {
     }
 }
 
+function timeoutPromise(timeoutMS: number, context: string): Promise<never> {
+    return new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`${context} - Timed out!`)), timeoutMS);
+    });
+}
+
+async function getExportAvailableNotifier(
+    expectedExportURI: string,
+    manager: ExportsManager,
+    timeoutMS = 10_000
+): Promise<string> {
+    const exportAvailablePromise = new Promise<string>((resolve) => {
+        manager.on("export-available", (exportURI) => {
+            if (expectedExportURI === exportURI) {
+                resolve(exportURI);
+            }
+        });
+    });
+    return await Promise.race([
+        timeoutPromise(timeoutMS, `Waiting for export-available - ${expectedExportURI}`),
+        exportAvailablePromise,
+    ]);
+}
+
 describe("ExportsManager unit test", () => {
-    let session: Session;
     let manager: ExportsManager;
+    let managerClosedPromise: Promise<void>;
 
     beforeEach(async () => {
         await fs.mkdir(exportsManagerConfig.exportsPath, { recursive: true });
-        const logger = new CompositeLogger();
-        session = new Session({
-            apiBaseUrl: "",
-            logger,
-            exportsManager: ExportsManager.init(exportsManagerConfig, logger),
-            connectionManager: new ConnectionManager(),
+        manager = ExportsManager.init(exportsManagerConfig, logger);
+
+        let notifyManagerClosed: () => void;
+        managerClosedPromise = new Promise((resolve): void => {
+            notifyManagerClosed = resolve;
         });
-        manager = session.exportsManager;
+        manager.once("closed", (): void => {
+            notifyManagerClosed();
+        });
     });
 
     afterEach(async () => {
         await manager?.close();
+        await managerClosedPromise;
         await fs.rm(exportsManagerConfig.exportsPath, { recursive: true, force: true });
     });
 
@@ -135,7 +171,7 @@ describe("ExportsManager unit test", () => {
 
         it("should list only the exports that are in ready state", async () => {
             // This export will finish in at-least 1 second
-            const { exportName: exportName1 } = getExportNameAndPath(session.sessionId);
+            const { exportName: exportName1, uniqueExportsId } = getExportNameAndPath();
             await manager.createJSONExport({
                 input: createDummyFindCursorWithDelay([{ name: "Test1" }], 1000).cursor,
                 exportName: exportName1,
@@ -144,8 +180,9 @@ describe("ExportsManager unit test", () => {
             });
 
             // This export will finish way sooner than the first one
-            const { exportName: exportName2 } = getExportNameAndPath(session.sessionId);
-            const { cursor, cursorCloseNotification } = createDummyFindCursor([{ name: "Test1" }]);
+            const { exportName: exportName2, exportURI } = getExportNameAndPath({ uniqueExportsId });
+            const secondExportNotifier = getExportAvailableNotifier(exportURI, manager);
+            const { cursor } = createDummyFindCursor([{ name: "Test1" }]);
             await manager.createJSONExport({
                 input: cursor,
                 exportName: exportName2,
@@ -153,8 +190,7 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
 
-            // Small timeout to let the second export finish
-            await cursorCloseNotification;
+            await secondExportNotifier;
             expect(manager.availableExports).toHaveLength(1);
             expect(manager.availableExports[0]?.exportName).toEqual(exportName2);
         });
@@ -166,49 +202,63 @@ describe("ExportsManager unit test", () => {
             await expect(() => manager.readExport("name")).rejects.toThrow("ExportsManager is shutting down.");
         });
 
-        it("should throw when export name has no extension", async () => {
-            await expect(() => manager.readExport("name")).rejects.toThrow();
-        });
-
         it("should wait if resource is still being generated", async () => {
-            const { exportName } = getExportNameAndPath(session.sessionId);
+            const { exportName } = getExportNameAndPath();
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test1" }], 200);
+            // create only provides a readable handle but does not guarantee
+            // that resource is available for read
             await manager.createJSONExport({
                 input: cursor,
                 exportName,
                 exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
-            // note that we do not wait for cursor close
+
             expect(await manager.readExport(exportName)).toEqual(JSON.stringify([{ name: "Test1" }]));
         });
 
-        it("should allow concurrent reads of the same resource", async () => {
-            const { exportName } = getExportNameAndPath(session.sessionId);
+        it("should allow concurrent reads of the same in-progress resource", async () => {
+            const { exportName } = getExportNameAndPath();
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test1" }], 200);
+            // create only provides a readable handle but does not guarantee
+            // that resource is available for read
             await manager.createJSONExport({
                 input: cursor,
                 exportName,
                 exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
-            // note that we do not wait for cursor close
             expect(
                 await Promise.all([await manager.readExport(exportName), await manager.readExport(exportName)])
             ).toEqual([JSON.stringify([{ name: "Test1" }]), JSON.stringify([{ name: "Test1" }])]);
         });
 
         it("should return the resource content if the resource is ready to be consumed", async () => {
-            const { exportName } = getExportNameAndPath(session.sessionId);
-            const { cursor, cursorCloseNotification } = createDummyFindCursor([]);
+            const { exportName, exportURI } = getExportNameAndPath();
+            const { cursor } = createDummyFindCursor([]);
+            const exportAvailableNotifier = getExportAvailableNotifier(exportURI, manager);
             await manager.createJSONExport({
                 input: cursor,
                 exportName,
                 exportTitle: "Some export",
                 jsonExportFormat: "relaxed",
             });
-            await cursorCloseNotification;
+            await exportAvailableNotifier;
             expect(await manager.readExport(exportName)).toEqual("[]");
+        });
+
+        it("should handle encoded name", async () => {
+            const { exportName, exportURI } = getExportNameAndPath({ database: "some database", collection: "coll" });
+            const { cursor } = createDummyFindCursor([]);
+            const exportAvailableNotifier = getExportAvailableNotifier(encodeURI(exportURI), manager);
+            await manager.createJSONExport({
+                input: cursor,
+                exportName: encodeURIComponent(exportName),
+                exportTitle: "Some export",
+                jsonExportFormat: "relaxed",
+            });
+            await exportAvailableNotifier;
+            expect(await manager.readExport(encodeURIComponent(exportName))).toEqual("[]");
         });
     });
 
@@ -230,7 +280,7 @@ describe("ExportsManager unit test", () => {
                     longNumber: Long.fromNumber(123456),
                 },
             ]));
-            ({ exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId));
+            ({ exportName, exportPath, exportURI } = getExportNameAndPath());
         });
 
         it("should throw if the manager is shutting down", async () => {
@@ -247,21 +297,20 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should throw if the same name export is requested more than once", async () => {
-            const { cursor } = createDummyFindCursorWithDelay([{ name: 1 }, { name: 2 }], 100);
             await manager.createJSONExport({
-                input: cursor,
+                input: createDummyFindCursor([{ name: 1 }, { name: 2 }]).cursor,
                 exportName,
-                exportTitle: "Some export",
+                exportTitle: "Export title 1",
                 jsonExportFormat: "relaxed",
             });
             await expect(() =>
                 manager.createJSONExport({
-                    input: cursor,
+                    input: createDummyFindCursor([{ name: 1 }, { name: 2 }]).cursor,
                     exportName,
-                    exportTitle: "Some export",
+                    exportTitle: "Export title 2",
                     jsonExportFormat: "relaxed",
                 })
-            ).rejects.toThrow();
+            ).rejects.toThrow("Export with same name is either already available or being generated");
         });
 
         describe("when cursor is empty", () => {
@@ -469,7 +518,7 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should not clean up in-progress exports", async () => {
-            const { exportName } = getExportNameAndPath(session.sessionId);
+            const { exportName, uniqueExportsId } = getExportNameAndPath();
             const manager = ExportsManager.init(
                 {
                     ...exportsManagerConfig,
@@ -477,7 +526,7 @@ describe("ExportsManager unit test", () => {
                     exportCleanupIntervalMs: 50,
                 },
                 new CompositeLogger(),
-                session.sessionId
+                uniqueExportsId
             );
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
             await manager.createJSONExport({
@@ -497,7 +546,7 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should cleanup expired exports", async () => {
-            const { exportName, exportPath, exportURI } = getExportNameAndPath(session.sessionId);
+            const { exportName, exportPath, exportURI, uniqueExportsId } = getExportNameAndPath();
             const manager = ExportsManager.init(
                 {
                     ...exportsManagerConfig,
@@ -505,7 +554,7 @@ describe("ExportsManager unit test", () => {
                     exportCleanupIntervalMs: 50,
                 },
                 new CompositeLogger(),
-                session.sessionId
+                uniqueExportsId
             );
             await manager.createJSONExport({
                 input: cursor,
@@ -530,7 +579,7 @@ describe("ExportsManager unit test", () => {
 
     describe("#close", () => {
         it("should abort ongoing export and remove partial file", async () => {
-            const { exportName, exportPath } = getExportNameAndPath(session.sessionId);
+            const { exportName, exportPath } = getExportNameAndPath();
             const { cursor } = createDummyFindCursorWithDelay([{ name: "Test" }], 2000);
             await manager.createJSONExport({
                 input: cursor,
@@ -544,26 +593,6 @@ describe("ExportsManager unit test", () => {
             await manager.close();
 
             await expect(fileExists(exportPath)).resolves.toEqual(false);
-        });
-
-        it("should timeout shutdown wait when operations never settle", async () => {
-            await manager.close();
-            const logger = new CompositeLogger();
-            manager = ExportsManager.init({ ...exportsManagerConfig, activeOpsDrainTimeoutMs: 50 }, logger);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            (manager as any).activeOperations.add(
-                new Promise<void>(() => {
-                    /* never resolves */
-                })
-            );
-
-            const start = Date.now();
-            await manager.close();
-            const elapsed = Date.now() - start;
-
-            // Should not block indefinitely; should be close to the configured timeout but well under 1s
-            expect(elapsed).toBeGreaterThanOrEqual(45);
-            expect(elapsed).toBeLessThan(1000);
         });
     });
 });

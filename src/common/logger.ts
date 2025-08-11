@@ -57,6 +57,7 @@ export const LogId = {
     exportCloseError: mongoLogId(1_007_005),
     exportedDataListError: mongoLogId(1_007_006),
     exportedDataAutoCompleteError: mongoLogId(1_007_007),
+    exportLockError: mongoLogId(1_007_008),
 } as const;
 
 interface LogPayload {

@@ -70,17 +70,18 @@ export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeo
 };
 
 type ExportsManagerEvents = {
+    closed: [];
     "export-expired": [string];
     "export-available": [string];
 };
+
+class OperationAbortedError extends Error {}
 
 export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     private storedExports: Record<StoredExport["exportName"], StoredExport> = {};
     private exportsCleanupInProgress: boolean = false;
     private exportsCleanupInterval?: NodeJS.Timeout;
     private readonly shutdownController: AbortController = new AbortController();
-    private readonly activeOperations: Set<Promise<unknown>> = new Set();
-    private readonly activeOpsDrainTimeoutMs: number;
     private readonly readTimeoutMs: number;
     private readonly writeTimeoutMs: number;
     private readonly exportLocks: Map<string, RWLock> = new Map();
@@ -91,7 +92,6 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         private readonly logger: LoggerBase
     ) {
         super();
-        this.activeOpsDrainTimeoutMs = this.config.activeOpsDrainTimeoutMs ?? 10_000;
         this.readTimeoutMs = this.config.readTimeout ?? 30_0000; // 30 seconds is the default timeout for an MCP request
         this.writeTimeoutMs = this.config.writeTimeout ?? 120_000; // considering that writes can take time
     }
@@ -116,7 +116,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     protected init(): void {
         if (!this.exportsCleanupInterval) {
             this.exportsCleanupInterval = setInterval(
-                () => void this.trackOperation(this.cleanupExpiredExports()),
+                () => void this.cleanupExpiredExports(),
                 this.config.exportCleanupIntervalMs
             );
         }
@@ -128,8 +128,8 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         try {
             clearInterval(this.exportsCleanupInterval);
             this.shutdownController.abort();
-            await this.waitForActiveOperationsToSettle(this.activeOpsDrainTimeoutMs);
             await fs.rm(this.exportsDirectoryPath, { force: true, recursive: true });
+            this.emit("closed");
         } catch (error) {
             this.logger.error({
                 id: LogId.exportCloseError,
@@ -143,33 +143,35 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         try {
             this.assertIsNotShuttingDown();
             exportName = decodeURIComponent(exportName);
-            return await this.withLock(exportName, "read", false, async (): Promise<string> => {
-                const exportHandle = this.storedExports[exportName];
-                if (!exportHandle) {
-                    throw new Error("Requested export has either expired or does not exist!");
+            return await this.withLock(
+                {
+                    exportName,
+                    mode: "read",
+                    callbackName: "readExport",
+                },
+                async (): Promise<string> => {
+                    const exportHandle = this.storedExports[exportName];
+                    if (!exportHandle) {
+                        throw new Error("Requested export has either expired or does not exist!");
+                    }
+
+                    // This won't happen because of lock synchronization but
+                    // keeping it here to make TS happy.
+                    if (exportHandle.exportStatus === "in-progress") {
+                        throw new Error("Requested export is still being generated!");
+                    }
+
+                    const { exportPath } = exportHandle;
+
+                    return fs.readFile(exportPath, { encoding: "utf8", signal: this.shutdownController.signal });
                 }
-
-                // This won't happen anymore because of lock synchronization but
-                // keeping it here to make TS happy.
-                if (exportHandle.exportStatus === "in-progress") {
-                    throw new Error("Requested export is still being generated!");
-                }
-
-                const { exportPath } = exportHandle;
-
-                return await this.trackOperation(
-                    fs.readFile(exportPath, { encoding: "utf8", signal: this.shutdownController.signal })
-                );
-            });
+            );
         } catch (error) {
             this.logger.error({
                 id: LogId.exportReadError,
                 context: `Error when reading export - ${exportName}`,
                 message: error instanceof Error ? error.message : String(error),
             });
-            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-                throw new Error("Requested export does not exist!");
-            }
             throw error;
         }
     }
@@ -188,23 +190,32 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         try {
             this.assertIsNotShuttingDown();
             const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
-            return await this.withLock(exportNameWithExtension, "write", false, (): AvailableExport => {
-                if (this.storedExports[exportNameWithExtension]) {
-                    throw new Error("Export with same name is either already available or being generated.");
-                }
-                const exportURI = `exported-data://${encodeURIComponent(exportNameWithExtension)}`;
-                const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
-                const inProgressExport: InProgressExport = (this.storedExports[exportNameWithExtension] = {
+            return await this.withLock(
+                {
                     exportName: exportNameWithExtension,
-                    exportTitle,
-                    exportPath: exportFilePath,
-                    exportURI: exportURI,
-                    exportStatus: "in-progress",
-                });
+                    mode: "write",
+                    callbackName: "createJSONExport",
+                },
+                (): Promise<AvailableExport> => {
+                    if (this.storedExports[exportNameWithExtension]) {
+                        return Promise.reject(
+                            new Error("Export with same name is either already available or being generated.")
+                        );
+                    }
+                    const exportURI = `exported-data://${encodeURIComponent(exportNameWithExtension)}`;
+                    const exportFilePath = path.join(this.exportsDirectoryPath, exportNameWithExtension);
+                    const inProgressExport: InProgressExport = (this.storedExports[exportNameWithExtension] = {
+                        exportName: exportNameWithExtension,
+                        exportTitle,
+                        exportPath: exportFilePath,
+                        exportURI: exportURI,
+                        exportStatus: "in-progress",
+                    });
 
-                void this.trackOperation(this.startExport({ input, jsonExportFormat, inProgressExport }));
-                return inProgressExport;
-            });
+                    void this.startExport({ input, jsonExportFormat, inProgressExport });
+                    return Promise.resolve(inProgressExport);
+                }
+            );
         } catch (error) {
             this.logger.error({
                 id: LogId.exportCreationError,
@@ -224,47 +235,57 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         jsonExportFormat: JSONExportFormat;
         inProgressExport: InProgressExport;
     }): Promise<void> {
-        let pipeSuccessful = false;
-        await this.withLock(inProgressExport.exportName, "write", false, async (): Promise<void> => {
-            try {
-                await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
-                const outputStream = createWriteStream(inProgressExport.exportPath);
-                await pipeline(
-                    [
-                        input.stream(),
-                        this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)),
-                        outputStream,
-                    ],
-                    { signal: this.shutdownController.signal }
-                );
-                pipeSuccessful = true;
-            } catch (error) {
-                this.logger.error({
-                    id: LogId.exportCreationError,
-                    context: `Error when generating JSON export for ${inProgressExport.exportName}`,
-                    message: error instanceof Error ? error.message : String(error),
-                });
-
-                // If the pipeline errors out then we might end up with
-                // partial and incorrect export so we remove it entirely.
-                await this.silentlyRemoveExport(
-                    inProgressExport.exportPath,
-                    LogId.exportCreationCleanupError,
-                    `Error when removing incomplete export ${inProgressExport.exportName}`
-                );
-                delete this.storedExports[inProgressExport.exportName];
-            } finally {
-                if (pipeSuccessful) {
-                    this.storedExports[inProgressExport.exportName] = {
-                        ...inProgressExport,
-                        exportCreatedAt: Date.now(),
-                        exportStatus: "ready",
-                    };
-                    this.emit("export-available", inProgressExport.exportURI);
+        try {
+            await this.withLock(
+                {
+                    exportName: inProgressExport.exportName,
+                    mode: "write",
+                    callbackName: "startExport",
+                },
+                async (): Promise<void> => {
+                    let pipeSuccessful = false;
+                    try {
+                        await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
+                        const outputStream = createWriteStream(inProgressExport.exportPath);
+                        await pipeline(
+                            [
+                                input.stream(),
+                                this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)),
+                                outputStream,
+                            ],
+                            { signal: this.shutdownController.signal }
+                        );
+                        pipeSuccessful = true;
+                    } catch (error) {
+                        // If the pipeline errors out then we might end up with
+                        // partial and incorrect export so we remove it entirely.
+                        await this.silentlyRemoveExport(
+                            inProgressExport.exportPath,
+                            LogId.exportCreationCleanupError,
+                            `Error when removing incomplete export ${inProgressExport.exportName}`
+                        );
+                        delete this.storedExports[inProgressExport.exportName];
+                        throw error;
+                    } finally {
+                        if (pipeSuccessful) {
+                            this.storedExports[inProgressExport.exportName] = {
+                                ...inProgressExport,
+                                exportCreatedAt: Date.now(),
+                                exportStatus: "ready",
+                            };
+                            this.emit("export-available", inProgressExport.exportURI);
+                        }
+                        void input.close();
+                    }
                 }
-                void input.close();
-            }
-        });
+            );
+        } catch (error) {
+            this.logger.error({
+                id: LogId.exportCreationError,
+                context: `Error when generating JSON export for ${inProgressExport.exportName}`,
+                message: error instanceof Error ? error.message : String(error),
+            });
+        }
     }
 
     private getEJSONOptionsForFormat(format: JSONExportFormat): EJSONOptions | undefined {
@@ -321,15 +342,23 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             await Promise.allSettled(
                 exportsForCleanup.map(async ({ exportPath, exportCreatedAt, exportURI, exportName }) => {
                     if (isExportExpired(exportCreatedAt, this.config.exportTimeoutMs)) {
-                        await this.withLock(exportName, "write", true, async (): Promise<void> => {
-                            delete this.storedExports[exportName];
-                            await this.silentlyRemoveExport(
-                                exportPath,
-                                LogId.exportCleanupError,
-                                `Considerable error when removing export ${exportName}`
-                            );
-                            this.emit("export-expired", exportURI);
-                        });
+                        await this.withLock(
+                            {
+                                exportName,
+                                mode: "write",
+                                finalize: true,
+                                callbackName: "cleanupExpiredExport",
+                            },
+                            async (): Promise<void> => {
+                                delete this.storedExports[exportName];
+                                await this.silentlyRemoveExport(
+                                    exportPath,
+                                    LogId.exportCleanupError,
+                                    `Considerable error when removing export ${exportName}`
+                                );
+                                this.emit("export-expired", exportURI);
+                            }
+                        );
                     }
                 })
             );
@@ -367,62 +396,67 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    private async withLock<T>(
-        exportName: string,
-        mode: "read" | "write",
-        finalize: boolean,
-        fn: () => T | Promise<T>
-    ): Promise<T> {
+    private async withLock<CallbackResult extends Promise<unknown>>(
+        lockConfig: {
+            exportName: string;
+            mode: "read" | "write";
+            finalize?: boolean;
+            callbackName?: string;
+        },
+        callback: () => CallbackResult
+    ): Promise<Awaited<CallbackResult>> {
+        const { exportName, mode, finalize = false, callbackName } = lockConfig;
+        const operationName = callbackName ? `${callbackName} - ${exportName}` : exportName;
         let lock = this.exportLocks.get(exportName);
         if (!lock) {
             lock = new RWLock();
             this.exportLocks.set(exportName, lock);
         }
 
-        try {
+        let lockAcquired: boolean = false;
+        const acquireLock = async (): Promise<void> => {
             if (mode === "read") {
                 await lock.readLock(this.readTimeoutMs);
             } else {
                 await lock.writeLock(this.writeTimeoutMs);
             }
-            return await fn();
+            lockAcquired = true;
+        };
+
+        try {
+            await Promise.race([
+                this.operationAbortedPromise(`Acquire ${mode} lock for ${operationName}`),
+                acquireLock(),
+            ]);
+            return await Promise.race([this.operationAbortedPromise(operationName), callback()]);
         } finally {
-            lock.unlock();
+            if (lockAcquired) {
+                lock.unlock();
+            }
             if (finalize) {
                 this.exportLocks.delete(exportName);
             }
         }
     }
 
-    private async trackOperation<T>(promise: Promise<T>): Promise<T> {
-        this.activeOperations.add(promise);
-        try {
-            return await promise;
-        } finally {
-            this.activeOperations.delete(promise);
-        }
-    }
+    private operationAbortedPromise(operationName?: string): Promise<never> {
+        return new Promise((_, reject) => {
+            const rejectIfAborted = (): void => {
+                if (this.shutdownController.signal.aborted) {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const abortReason = this.shutdownController.signal.reason;
+                    const abortMessage =
+                        typeof abortReason === "string"
+                            ? abortReason
+                            : `${operationName ?? "Operation"} aborted - ExportsManager shutting down!`;
+                    reject(new OperationAbortedError(abortMessage));
+                    this.shutdownController.signal.removeEventListener("abort", rejectIfAborted);
+                }
+            };
 
-    private async waitForActiveOperationsToSettle(timeoutMs: number): Promise<void> {
-        const pendingPromises = Array.from(this.activeOperations);
-        if (pendingPromises.length === 0) {
-            return;
-        }
-        let timedOut = false;
-        const timeoutPromise = new Promise<void>((resolve) =>
-            setTimeout(() => {
-                timedOut = true;
-                resolve();
-            }, timeoutMs)
-        );
-        await Promise.race([Promise.allSettled(pendingPromises), timeoutPromise]);
-        if (timedOut && this.activeOperations.size > 0) {
-            this.logger.error({
-                id: LogId.exportCloseError,
-                context: `Close timed out waiting for ${this.activeOperations.size} operation(s) to settle`,
-                message: "Proceeding to force cleanup after timeout",
-            });
-        }
+            rejectIfAborted();
+            this.shutdownController.signal.addEventListener("abort", rejectIfAborted);
+        });
     }
 
     static init(
