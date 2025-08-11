@@ -264,13 +264,17 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 ### Gateways and Proxies
 
-When deploying the MongoDB MCP as a Remote MCP Server to production, you should place it behind an authentication gateway or reverse proxy.
+When deploying the MongoDB MCP as a Remote MCP Server with access to sensitive data, it's crucial to place it behind an authentication gateway or reverse proxy. This is an essential security and privacy best practice, consistent with deploying any service or integration that handles sensitive information.
+
+The templates provided in this document are meant to be a starting point. While they can be a useful reference, they may not fully align with the best security practices for your specific situation. We strongly recommend you review and adapt these examples to ensure they meet your unique requirements and security policies before using them in a production environment.
+
+** ⚠️ Important Note**: The provided templates are offered on a _best-effort basis_. We do not endorse, nor do we have a support policy or any formal agreements with, the third-party services mentioned in these templates. Our team cannot provide direct support for issues related to their specific configurations. Please refer to the official documentation for those services for any technical assistance.
 
 #### Pomerium (Open Core Identity-Aware Proxy)
 
 [Pomerium](https://www.pomerium.com/) is an identity-aware access proxy designed for zero-trust access that [supports MCP](https://www.pomerium.com/docs/capabilities/mcp) out of the box.
 
-**Key Benefits:**
+**Key Features:**
 - Policy-based access control on every request
 - Fine-grained access control
 - Enterprise identity provider support (Microsoft Entra ID, Google Identity, Okta, Auth0, GitHub, Keycloak, etc.)
