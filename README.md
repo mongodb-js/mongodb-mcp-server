@@ -275,6 +275,7 @@ The templates provided in this document are meant to be a starting point. While 
 [Pomerium](https://www.pomerium.com/) is an identity-aware access proxy designed for zero-trust access that [supports MCP](https://www.pomerium.com/docs/capabilities/mcp) out of the box.
 
 **Key Features:**
+
 - Policy-based access control on every request
 - Fine-grained access control
 - Enterprise identity provider support (Microsoft Entra ID, Google Identity, Okta, Auth0, GitHub, Keycloak, etc.)
@@ -293,11 +294,13 @@ The MCP Server will detect typical PROXY environment variables and use them for 
 This is useful when the MCP Server needs to connect through corporate firewalls or network restrictions to reach MongoDB Atlas or other external services.
 
 **Supported environment variables:**
+
 - `HTTP_PROXY` / `http_proxy` - HTTP proxy for non-SSL connections
 - `HTTPS_PROXY` / `https_proxy` - HTTPS proxy for SSL connections
 - `NO_PROXY` / `no_proxy` - Comma-separated list of hosts to bypass proxy
 
 **Example:**
+
 ```bash
 export HTTPS_PROXY=http://corporate-proxy.company.com:8080
 export NO_PROXY=localhost,127.0.0.1,*.company.com
