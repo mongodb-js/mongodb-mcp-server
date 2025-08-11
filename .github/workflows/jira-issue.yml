@@ -1,9 +1,15 @@
 ---
-name: Create JIRA ticket for new issues
+# This workflow automatically creates JIRA tickets when GitHub issues are opened
+# and closes JIRA tickets when GitHub issues are closed.
+#
+# Required secrets:
+# - JIRA_API_TOKEN: Your JIRA API token
+#
+name: Create and close JIRA tickets for GitHub issues
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened, labeled, closed]
 
 permissions:
   issues: write
@@ -70,3 +76,37 @@ jobs:
             } catch (error) {
               console.log('⚠️ Could not remove create-jira label:', error.message);
             }
+
+  close_jira_task:
+    name: Close Jira issue
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
+      - name: Find JIRA ticket by GitHub issue number
+        id: find_jira
+        uses: mongodb/apix-action/find-jira@v1
+        with:
+          token: ${{ secrets.JIRA_API_TOKEN }}
+          jql: "project = MCP AND description ~ '${{ github.event.issue.html_url }}'"
+
+      - name: Close JIRA ticket
+        if: steps.find_jira.outputs.found == 'true'
+        uses: mongodb/apix-action/transition-jira@v1
+        id: close_jira_ticket
+        continue-on-error: true
+        with:
+          token: ${{ secrets.JIRA_API_TOKEN }}
+          issue-key: ${{ steps.find_jira.outputs.issue-key }}
+          transition-id: 1381 # Resolved
+          resolution: Fixed
+      - name: Add closure comment
+        if: steps.close_jira_ticket.outcome == 'success'
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            The corresponding JIRA ticket has been automatically closed.
