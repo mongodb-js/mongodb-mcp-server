@@ -1,17 +1,35 @@
 #!/usr/bin/env node
 
-let fipsError: Error | undefined;
 function enableFipsIfRequested(): void {
-    if (process.argv.includes("--tlsFIPSMode")) {
-        // FIPS mode should be enabled before we run any other code, including any dependencies.
-        // We still wrap this into a function so we can also call it immediately after
-        // entering the snapshot main function.
+    let fipsError: Error | undefined;
+    const tlsFIPSMode = process.argv.includes("--tlsFIPSMode");
+
+    if (tlsFIPSMode) {
         try {
             // eslint-disable-next-line
             require("crypto").setFips(1);
         } catch (err: unknown) {
             fipsError ??= err as Error;
         }
+    }
+
+    if (tlsFIPSMode) {
+        if (!fipsError && !crypto.getFips()) {
+            fipsError = new Error("FIPS mode not enabled despite requested due to unknown error.");
+        }
+    }
+
+    if (fipsError) {
+        if (process.config.variables.node_shared_openssl) {
+            console.error(
+                "Could not enable FIPS mode. Please ensure that your system OpenSSL installation supports FIPS."
+            );
+        } else {
+            console.error("Could not enable FIPS mode. This installation does not appear to support FIPS.");
+        }
+        console.error("Error details:");
+        console.error(fipsError);
+        process.exit(1);
     }
 }
 
@@ -28,7 +46,6 @@ import { systemCA } from "@mongodb-js/devtools-proxy-support";
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
 
-    assertFIPSMode();
     assertHelpMode();
     assertVersionMode();
 
@@ -104,27 +121,6 @@ main().catch((error: unknown) => {
     });
     process.exit(1);
 });
-
-function assertFIPSMode(): void | never {
-    if (config.tlsFIPSMode) {
-        if (!fipsError && !crypto.getFips()) {
-            fipsError = new Error("FIPS mode not enabled despite requested.");
-        }
-    }
-
-    if (fipsError) {
-        if (process.config.variables.node_shared_openssl) {
-            console.error(
-                "Could not enable FIPS mode. Please ensure that your system OpenSSL installation supports FIPS."
-            );
-        } else {
-            console.error("Could not enable FIPS mode. This installation does not appear to support FIPS.");
-        }
-        console.error("Error details:");
-        console.error(fipsError);
-        process.exit(1);
-    }
-}
 
 function assertHelpMode(): void | never {
     if (config.help) {
