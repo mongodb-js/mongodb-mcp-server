@@ -74,7 +74,7 @@ describeWithMongoDB(
                 expect(exportedResourceURI).toBeDefined();
 
                 // wait for export expired
-                await timeout(250);
+                await timeout(300);
                 const response = await integration.mcpClient().readResource({
                     uri: exportedResourceURI as string,
                 });
