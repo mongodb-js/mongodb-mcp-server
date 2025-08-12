@@ -275,14 +275,10 @@ function commaSeparatedToArray<T extends string[]>(str: string | string[] | unde
     }
 
     if (str.length === 1) {
-        if (str[0]?.indexOf(",") === -1) {
-            return str.filter((e) => e.trim().length > 0) as T;
-        } else {
-            return str[0]
-                ?.split(",")
-                .map((e) => e.trim())
-                .filter((e) => e.length > 0) as T;
-        }
+        return str[0]
+            ?.split(",")
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0) as T;
     }
 
     return str as T;
