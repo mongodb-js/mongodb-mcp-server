@@ -1,4 +1,4 @@
-import { ConnectOptions } from "./config.js";
+import { driverOptions } from "./config.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import EventEmitter from "events";
 import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
@@ -14,7 +14,7 @@ export interface AtlasClusterConnectionInfo {
     expiryDate: Date;
 }
 
-export interface ConnectionSettings extends ConnectOptions {
+export interface ConnectionSettings {
     connectionString: string;
     atlas?: AtlasClusterConnectionInfo;
 }
@@ -70,6 +70,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
     constructor() {
         super();
+
         this.state = { tag: "disconnected" };
     }
 
@@ -91,16 +92,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             serviceProvider = await NodeDriverServiceProvider.connect(settings.connectionString, {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                 productName: "MongoDB MCP",
-                readConcern: {
-                    level: settings.readConcern,
-                },
-                readPreference: settings.readPreference,
-                writeConcern: {
-                    w: settings.writeConcern,
-                },
-                timeoutMS: settings.timeoutMS,
-                proxy: { useEnvironmentVariableProxies: true },
-                applyProxyToOIDC: true,
+                ...driverOptions,
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
