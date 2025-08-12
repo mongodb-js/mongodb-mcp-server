@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
-import { config } from "../../../src/common/config.js";
+import { config, driverOptions } from "../../../src/common/config.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { ConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
@@ -18,7 +18,7 @@ describe("Session", () => {
             apiBaseUrl: "https://api.test.com",
             logger,
             exportsManager: ExportsManager.init(config, logger),
-            connectionManager: new ConnectionManager(),
+            connectionManager: new ConnectionManager(config, driverOptions, logger),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
