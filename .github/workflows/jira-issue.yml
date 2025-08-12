@@ -88,14 +88,14 @@ jobs:
 
       - name: Find JIRA ticket by GitHub issue number
         id: find_jira
-        uses: mongodb/apix-action/find-jira@v1
+        uses: mongodb/apix-action/find-jira@v13
         with:
           token: ${{ secrets.JIRA_API_TOKEN }}
           jql: "project = MCP AND description ~ '${{ github.event.issue.html_url }}'"
 
       - name: Close JIRA ticket
         if: steps.find_jira.outputs.found == 'true'
-        uses: mongodb/apix-action/transition-jira@v1
+        uses: mongodb/apix-action/transition-jira@v13
         id: close_jira_ticket
         continue-on-error: true
         with:
