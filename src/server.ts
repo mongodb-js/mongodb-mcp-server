@@ -48,7 +48,7 @@ export class Server {
         this.registerResources();
         await this.validateConfig();
 
-        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true, subscribe: true } });
+        this.mcpServer.server.registerCapabilities({ resources: { listChanged: true, subscribe: true } });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
