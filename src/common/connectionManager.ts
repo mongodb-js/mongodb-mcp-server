@@ -207,8 +207,9 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
     private onOidcAuthFailed(error: unknown): void {
         if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
-            this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
-            void this.disconnect();
+            void this.disconnect().then(() => {
+                this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
+            });
         }
     }
 

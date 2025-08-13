@@ -60,8 +60,6 @@ export const LogId = {
     exportLockError: mongoLogId(1_007_008),
 
     oidcFlow: mongoLogId(1_008_001),
-    oidcClientError: mongoLogId(1_008_002),
-    oidcAuthFailed: mongoLogId(1_008_003),
 } as const;
 
 interface LogPayload {
