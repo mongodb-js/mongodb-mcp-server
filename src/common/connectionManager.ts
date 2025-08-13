@@ -287,7 +287,6 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         let ts: NodeJS.Timeout | undefined;
 
         return new Promise<T>((resolve, reject) => {
-            let count = 1;
             ts = setInterval(() => {
                 if (signal.aborted) {
                     return reject(new Error(`Aborted: ${signal.reason}`));
@@ -295,15 +294,9 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
                 const status = cm.currentConnectionState;
                 if (status.tag === tag) {
-                    if (additionalCondition && additionalCondition(status as T)) {
-                        return resolve(status as T);
-                    } else if (!additionalCondition) {
+                    if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
                         return resolve(status as T);
                     }
-                }
-
-                if (status.tag === "errored") {
-                    console.log("Try", count++, status.tag, status.errorReason);
                 }
             }, 100);
         }).finally(() => {
