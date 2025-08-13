@@ -1,18 +1,21 @@
 import { ObjectId } from "mongodb";
 import { Group } from "../../../../src/common/atlas/openapi.js";
 import { ApiClient } from "../../../../src/common/atlas/apiClient.js";
-import { setupIntegrationTest, IntegrationTest, defaultTestConfig } from "../../helpers.js";
+import { setupIntegrationTest, IntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import { afterAll, beforeAll, describe, SuiteCollector } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
 export function describeWithAtlas(name: string, fn: IntegrationTestFunction): SuiteCollector<object> {
     const testDefinition = (): void => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
+            }),
+            () => defaultDriverOptions
+        );
 
         describe(name, () => {
             fn(integration);

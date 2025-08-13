@@ -1,4 +1,4 @@
-import { UserConfig } from "../common/config.js";
+import { driverOptions, UserConfig } from "../common/config.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";
@@ -43,7 +43,7 @@ export abstract class TransportRunnerBase {
 
         const logger = new CompositeLogger(...loggers);
         const exportsManager = ExportsManager.init(userConfig, logger);
-        const connectionManager = new ConnectionManager();
+        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,

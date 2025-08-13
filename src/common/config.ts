@@ -151,7 +151,8 @@ function getLocalDataPath(): string {
         : path.join(os.homedir(), ".mongodb");
 }
 
-export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
+export type DriverOptions = ConnectionInfo["driverOptions"];
+export const defaultDriverOptions: DriverOptions = {
     readConcern: {
         level: "local",
     },
@@ -345,8 +346,8 @@ export function setupDriverConfig({
     defaults,
 }: {
     config: UserConfig;
-    defaults: ConnectionInfo["driverOptions"];
-}): ConnectionInfo["driverOptions"] {
+    defaults: Partial<DriverOptions>;
+}): DriverOptions {
     const { driverOptions } = generateConnectionInfoFromCliArgs(config);
     return {
         ...defaults,
