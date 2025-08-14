@@ -22,7 +22,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
     - [Environment Variables](#environment-variables)
     - [Command-Line Arguments](#command-line-arguments)
     - [MCP Client Configuration](#mcp-configuration-file-examples)
-    - [Proxy Support](#proxy-support)
+    - [Gateways and Proxies](#gateways-and-proxies)
 - [🤝 Contributing](#contributing)
 
 <a name="getting-started"></a>
@@ -261,6 +261,53 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 - `--httpPort` (default: 3000): The port number for the HTTP server.
 
 > **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
+
+### Gateways and Proxies
+
+When deploying the MongoDB MCP as a Remote MCP Server with access to sensitive data, it's crucial to place it behind an authentication gateway or reverse proxy. This is an essential security and privacy best practice, consistent with deploying any service or integration that handles sensitive information.
+
+The templates provided in this document are meant to be a starting point. While they can be a useful reference, they may not fully align with the best security practices for your specific situation. We strongly recommend you review and adapt these examples to ensure they meet your unique requirements and security policies before using them in a production environment.
+
+**⚠️ Important Note:** The provided templates are offered on a _best-effort basis_. We do not endorse, nor do we have a support policy or any formal agreements with, the third-party services mentioned in these templates. Our team cannot provide direct support for issues related to their specific configurations. Please refer to the official documentation for those services for any technical assistance.
+
+#### Pomerium (Open Core Identity-Aware Proxy)
+
+[Pomerium](https://www.pomerium.com/) is an identity-aware access proxy designed for zero-trust access that [supports MCP](https://www.pomerium.com/docs/capabilities/mcp) out of the box.
+
+**Key Features:**
+
+- Policy-based access control on every request
+- Fine-grained access control
+- Enterprise identity provider support (Microsoft Entra ID, Google Identity, Okta, Auth0, GitHub, Keycloak, etc.)
+- Built-in audit logging and monitoring
+
+For complete setup instructions and configuration examples, see the [Pomerium MCP documentation](https://www.pomerium.com/docs/capabilities/mcp).
+
+#### Add Your Gateway/Proxy Solution
+
+Help us expand this section. We welcome community contributions for additional gateway and proxy solutions. If you've successfully deployed the MongoDB MCP Server with authentication gateways or reverse proxies, please share your suggestions by [opening an issue](https://github.com/mongodb-js/mongodb-mcp-server/issues/new).
+
+#### Outbound Proxy Support
+
+The MCP Server will detect typical PROXY environment variables and use them for connecting to the Atlas API, your MongoDB Cluster, or any other external calls to third-party services like OIDC Providers. The behavior is the same as what `mongosh` does, so the same settings will work in the MCP Server.
+
+This is useful when the MCP Server needs to connect through corporate firewalls or network restrictions to reach MongoDB Atlas or other external services.
+
+**Supported environment variables:**
+
+- `HTTP_PROXY` / `http_proxy` - HTTP proxy for non-SSL connections
+- `HTTPS_PROXY` / `https_proxy` - HTTPS proxy for SSL connections
+- `NO_PROXY` / `no_proxy` - Comma-separated list of hosts to bypass proxy
+
+**Example:**
+
+```bash
+export HTTPS_PROXY=http://corporate-proxy.company.com:8080
+export NO_PROXY=localhost,127.0.0.1,*.company.com
+npx -y mongodb-mcp-server@latest --transport http
+```
+
+> **Note:** This proxy support is for **outbound connections** from the MCP server to MongoDB/Atlas. For **inbound authentication** (securing access to your MCP server), use the gateway examples above.
 
 ## 🛠️ Supported Tools
 
@@ -574,13 +621,6 @@ npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-clie
   }
 }
 ```
-
-### Proxy Support
-
-The MCP Server will detect typical PROXY environment variables and use them for
-connecting to the Atlas API, your MongoDB Cluster, or any other external calls
-to third-party services like OID Providers. The behaviour is the same as what
-`mongosh` does, so the same settings will work in the MCP Server.
 
 ## 🤝Contributing
 
