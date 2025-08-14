@@ -7,7 +7,12 @@ import {
 } from "../../../helpers.js";
 import { config } from "../../../../../src/common/config.js";
 import { defaultTestConfig, setupIntegrationTest } from "../../../helpers.js";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock the deviceId utility for consistent testing
+vi.mock("../../../../../src/helpers/deviceId.js", () => ({
+    getDeviceIdForConnection: vi.fn().mockResolvedValue("test-device-id"),
+}));
 
 describeWithMongoDB(
     "SwitchConnection tool",

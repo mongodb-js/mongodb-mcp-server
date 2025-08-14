@@ -5,8 +5,7 @@ import { LogId } from "../common/logger.js";
 import { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
-import nodeMachineId from "node-machine-id";
-import { getDeviceId } from "@mongodb-js/device-id";
+import { getDeviceIdForConnection } from "../helpers/deviceId.js";
 import { detectContainerEnv } from "../helpers/container.js";
 
 type EventResult = {
@@ -14,24 +13,19 @@ type EventResult = {
     error?: Error;
 };
 
-export const DEVICE_ID_TIMEOUT = 3000;
-
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
-    private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
-    private getRawMachineId: () => Promise<string>;
 
     private constructor(
         private readonly session: Session,
         private readonly userConfig: UserConfig,
         private readonly commonProperties: CommonProperties,
-        { eventCache, getRawMachineId }: { eventCache: EventCache; getRawMachineId: () => Promise<string> }
+        { eventCache }: { eventCache: EventCache }
     ) {
         this.eventCache = eventCache;
-        this.getRawMachineId = getRawMachineId;
     }
 
     static create(
@@ -40,14 +34,12 @@ export class Telemetry {
         {
             commonProperties = { ...MACHINE_METADATA },
             eventCache = EventCache.getInstance(),
-            getRawMachineId = (): Promise<string> => nodeMachineId.machineId(true),
         }: {
             eventCache?: EventCache;
-            getRawMachineId?: () => Promise<string>;
             commonProperties?: CommonProperties;
         } = {}
     ): Telemetry {
-        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, getRawMachineId });
+        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache });
 
         void instance.setup();
         return instance;
@@ -57,35 +49,7 @@ export class Telemetry {
         if (!this.isTelemetryEnabled()) {
             return;
         }
-        this.setupPromise = Promise.all([
-            getDeviceId({
-                getMachineId: () => this.getRawMachineId(),
-                onError: (reason, error) => {
-                    switch (reason) {
-                        case "resolutionError":
-                            this.session.logger.debug({
-                                id: LogId.telemetryDeviceIdFailure,
-                                context: "telemetry",
-                                message: String(error),
-                            });
-                            break;
-                        case "timeout":
-                            this.session.logger.debug({
-                                id: LogId.telemetryDeviceIdTimeout,
-                                context: "telemetry",
-                                message: "Device ID retrieval timed out",
-                                noRedaction: true,
-                            });
-                            break;
-                        case "abort":
-                            // No need to log in the case of aborts
-                            break;
-                    }
-                },
-                abortSignal: this.deviceIdAbortController.signal,
-            }),
-            detectContainerEnv(),
-        ]);
+        this.setupPromise = Promise.all([getDeviceIdForConnection(), detectContainerEnv()]);
 
         const [deviceId, containerEnv] = await this.setupPromise;
 
@@ -96,8 +60,6 @@ export class Telemetry {
     }
 
     public async close(): Promise<void> {
-        this.deviceIdAbortController.abort();
-        this.isBufferingEvents = false;
         await this.emitEvents(this.eventCache.getEvents());
     }
 
