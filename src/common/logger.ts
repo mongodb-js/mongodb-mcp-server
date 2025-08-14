@@ -244,15 +244,29 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
 }
 
 export class McpLogger extends LoggerBase {
+    private shouldLogFunction?: (level: LogLevel) => boolean;
+
     public constructor(private readonly server: McpServer) {
         super();
     }
 
     protected readonly type: LoggerType = "mcp";
 
+    /**
+     * Sets the function to check if a log level should be sent
+     */
+    public setShouldLogFunction(shouldLog: (level: LogLevel) => boolean): void {
+        this.shouldLogFunction = shouldLog;
+    }
+
     protected logCore(level: LogLevel, payload: LogPayload): void {
         // Only log if the server is connected
         if (!this.server?.isConnected()) {
+            return;
+        }
+
+        // Check if this log level should be sent
+        if (this.shouldLogFunction && !this.shouldLogFunction(level)) {
             return;
         }
 

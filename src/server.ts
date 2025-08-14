@@ -12,17 +12,20 @@ import { type ServerCommand } from "./telemetry/types.js";
 import {
     CallToolRequestSchema,
     CallToolResult,
+    SetLevelRequestSchema,
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import { ToolBase } from "./tools/tool.js";
+import { LogLevel, McpLogger } from "./common/logger.js";
 
 export interface ServerOptions {
     session: Session;
     userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
+    mcpLogger?: McpLogger;
 }
 
 export class Server {
@@ -33,13 +36,21 @@ export class Server {
     public readonly tools: ToolBase[] = [];
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
+    private minimumLogLevel: LogLevel = "info";
+    private readonly mcpLogger?: McpLogger;
 
-    constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
+    constructor({ session, mcpServer, userConfig, telemetry, mcpLogger }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.userConfig = userConfig;
+        this.mcpLogger = mcpLogger;
+
+        // Set up log level filtering for MCP logger
+        if (this.mcpLogger) {
+            this.mcpLogger.setShouldLogFunction((level: LogLevel) => this.shouldLog(level));
+        }
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -48,7 +59,7 @@ export class Server {
         this.registerResources();
         await this.validateConfig();
 
-        this.mcpServer.server.registerCapabilities({ resources: { listChanged: true, subscribe: true } });
+        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true, subscribe: true } });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
@@ -96,6 +107,16 @@ export class Server {
             return {};
         });
 
+        this.mcpServer.server.setRequestHandler(SetLevelRequestSchema, ({ params }) => {
+            this.minimumLogLevel = params.level;
+            this.session.logger.debug({
+                id: LogId.serverInitialized,
+                context: "logging",
+                message: `Log level set to: ${params.level}`,
+            });
+            return {};
+        });
+
         this.mcpServer.server.oninitialized = (): void => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
 
@@ -135,6 +156,18 @@ export class Server {
         if (this.subscriptions.has(uri)) {
             void this.mcpServer.server.sendResourceUpdated({ uri });
         }
+    }
+
+    /**
+     * Checks if a log level meets the minimum threshold for logging
+     * @param level - The log level to check
+     * @returns true if the level should be logged, false otherwise
+     */
+    public shouldLog(level: LogLevel): boolean {
+        const levels: LogLevel[] = ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"];
+        const currentIndex = levels.indexOf(this.minimumLogLevel);
+        const levelIndex = levels.indexOf(level);
+        return levelIndex >= currentIndex;
     }
 
     /**
