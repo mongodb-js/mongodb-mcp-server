@@ -113,25 +113,7 @@ export class DeviceIdService {
             const deviceId = await getDeviceId({
                 getMachineId: this.getMachineId,
                 onError: (reason, error) => {
-                    switch (reason) {
-                        case "resolutionError":
-                            this.logger.debug({
-                                id: LogId.telemetryDeviceIdFailure,
-                                context: "deviceId",
-                                message: `Device ID resolution error: ${String(error)}`,
-                            });
-                            break;
-                        case "timeout":
-                            this.logger.debug({
-                                id: LogId.telemetryDeviceIdTimeout,
-                                context: "deviceId",
-                                message: "Device ID retrieval timed out",
-                            });
-                            break;
-                        case "abort":
-                            // No need to log in the case of aborts
-                            break;
-                    }
+                    this.handleDeviceIdError(reason, error);
                 },
                 abortSignal: this.abortController.signal,
             });
@@ -156,6 +138,33 @@ export class DeviceIdService {
             return "unknown";
         } finally {
             this.abortController = undefined;
+        }
+    }
+
+    /**
+     * Handles device ID error.
+     * @param reason - The reason for the error
+     * @param error - The error object
+     */
+    private handleDeviceIdError(reason: string, error: Error): void {
+        switch (reason) {
+            case "resolutionError":
+                this.logger.debug({
+                    id: LogId.telemetryDeviceIdFailure,
+                    context: "deviceId",
+                    message: `Device ID resolution error: ${String(error)}`,
+                });
+                break;
+            case "timeout":
+                this.logger.debug({
+                    id: LogId.telemetryDeviceIdTimeout,
+                    context: "deviceId",
+                    message: "Device ID retrieval timed out",
+                });
+                break;
+            case "abort":
+                // No need to log in the case of aborts
+                break;
         }
     }
 }
