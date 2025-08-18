@@ -46,6 +46,10 @@ export class ConnectTool extends MongoDBToolBase {
 
     constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
         super(session, config, telemetry);
+        session.on("connect", () => {
+            this.updateMetadata();
+        });
+
         session.on("disconnect", () => {
             this.updateMetadata();
         });
@@ -67,6 +71,7 @@ export class ConnectTool extends MongoDBToolBase {
 
         await this.connectToMongoDB(connectionString);
         this.updateMetadata();
+
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
         };
@@ -82,7 +87,7 @@ export class ConnectTool extends MongoDBToolBase {
     }
 
     private updateMetadata(): void {
-        if (this.config.connectionString || this.session.serviceProvider) {
+        if (this.session.isConnectedToMongoDB) {
             this.update?.({
                 name: connectedName,
                 description: connectedDescription,

@@ -4,13 +4,17 @@ import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
-import logger, { LogId, LoggerBase, McpLogger, DiskLogger, ConsoleLogger } from "./common/logger.js";
-import { ObjectId } from "mongodb";
+import { LogId } from "./common/logger.js";
 import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
-import { CallToolRequestSchema, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+    CallToolRequestSchema,
+    CallToolResult,
+    SubscribeRequestSchema,
+    UnsubscribeRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import { ToolBase } from "./tools/tool.js";
 
@@ -28,6 +32,7 @@ export class Server {
     public readonly userConfig: UserConfig;
     public readonly tools: ToolBase[] = [];
     private readonly startTime: number;
+    private readonly subscriptions = new Set<string>();
 
     constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
         this.startTime = Date.now();
@@ -38,12 +43,15 @@ export class Server {
     }
 
     async connect(transport: Transport): Promise<void> {
+        // Resources are now reactive, so we register them ASAP so they can listen to events like
+        // connection events.
+        this.registerResources();
         await this.validateConfig();
 
-        this.mcpServer.server.registerCapabilities({ logging: {} });
+        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true, subscribe: true } });
 
+        // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
-        this.registerResources();
 
         // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
@@ -68,37 +76,44 @@ export class Server {
             return existingHandler(request, extra);
         });
 
-        const loggers: LoggerBase[] = [];
-        if (this.userConfig.loggers.includes("mcp")) {
-            loggers.push(new McpLogger(this.mcpServer));
-        }
-        if (this.userConfig.loggers.includes("disk")) {
-            loggers.push(await DiskLogger.fromPath(this.userConfig.logPath));
-        }
-        if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger());
-        }
-        logger.setLoggers(...loggers);
+        this.mcpServer.server.setRequestHandler(SubscribeRequestSchema, ({ params }) => {
+            this.subscriptions.add(params.uri);
+            this.session.logger.debug({
+                id: LogId.serverInitialized,
+                context: "resources",
+                message: `Client subscribed to resource: ${params.uri}`,
+            });
+            return {};
+        });
 
-        this.mcpServer.server.oninitialized = () => {
+        this.mcpServer.server.setRequestHandler(UnsubscribeRequestSchema, ({ params }) => {
+            this.subscriptions.delete(params.uri);
+            this.session.logger.debug({
+                id: LogId.serverInitialized,
+                context: "resources",
+                message: `Client unsubscribed from resource: ${params.uri}`,
+            });
+            return {};
+        });
+
+        this.mcpServer.server.oninitialized = (): void => {
             this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
-            this.session.sessionId = new ObjectId().toString();
 
-            logger.info(
-                LogId.serverInitialized,
-                "server",
-                `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`
-            );
+            this.session.logger.info({
+                id: LogId.serverInitialized,
+                context: "server",
+                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`,
+            });
 
             this.emitServerEvent("start", Date.now() - this.startTime);
         };
 
-        this.mcpServer.server.onclose = () => {
+        this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
             this.emitServerEvent("stop", Date.now() - closeTime);
         };
 
-        this.mcpServer.server.onerror = (error: Error) => {
+        this.mcpServer.server.onerror = (error: Error): void => {
             const closeTime = Date.now();
             this.emitServerEvent("stop", Date.now() - closeTime, error);
         };
@@ -112,12 +127,22 @@ export class Server {
         await this.mcpServer.close();
     }
 
+    public sendResourceListChanged(): void {
+        this.mcpServer.sendResourceListChanged();
+    }
+
+    public sendResourceUpdated(uri: string): void {
+        if (this.subscriptions.has(uri)) {
+            void this.mcpServer.server.sendResourceUpdated({ uri });
+        }
+    }
+
     /**
      * Emits a server event
      * @param command - The server command (e.g., "start", "stop", "register", "deregister")
      * @param additionalProperties - Additional properties specific to the event
      */
-    private emitServerEvent(command: ServerCommand, commandDuration: number, error?: Error) {
+    private emitServerEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
         const event: ServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
@@ -146,7 +171,7 @@ export class Server {
         this.telemetry.emitEvents([event]).catch(() => {});
     }
 
-    private registerTools() {
+    private registerTools(): void {
         for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
             const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
             if (tool.register(this)) {
@@ -155,46 +180,19 @@ export class Server {
         }
     }
 
-    private registerResources() {
+    private registerResources(): void {
         for (const resourceConstructor of Resources) {
-            const resource = new resourceConstructor(this, this.telemetry);
-            resource.register();
+            const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
+            resource.register(this);
         }
     }
 
     private async validateConfig(): Promise<void> {
-        const transport = this.userConfig.transport as string;
-        if (transport !== "http" && transport !== "stdio") {
-            throw new Error(`Invalid transport: ${transport}`);
-        }
-
-        const telemetry = this.userConfig.telemetry as string;
-        if (telemetry !== "enabled" && telemetry !== "disabled") {
-            throw new Error(`Invalid telemetry: ${telemetry}`);
-        }
-
-        if (this.userConfig.httpPort < 1 || this.userConfig.httpPort > 65535) {
-            throw new Error(`Invalid httpPort: ${this.userConfig.httpPort}`);
-        }
-
-        if (this.userConfig.loggers.length === 0) {
-            throw new Error("No loggers found in config");
-        }
-
-        const loggerTypes = new Set(this.userConfig.loggers);
-        if (loggerTypes.size !== this.userConfig.loggers.length) {
-            throw new Error("Duplicate loggers found in config");
-        }
-
-        for (const loggerType of this.userConfig.loggers as string[]) {
-            if (loggerType !== "mcp" && loggerType !== "disk" && loggerType !== "stderr") {
-                throw new Error(`Invalid logger: ${loggerType}`);
-            }
-        }
-
         if (this.userConfig.connectionString) {
             try {
-                await this.session.connectToMongoDB(this.userConfig.connectionString, this.userConfig.connectOptions);
+                await this.session.connectToMongoDB({
+                    connectionString: this.userConfig.connectionString,
+                });
             } catch (error) {
                 console.error(
                     "Failed to connect to MongoDB instance using the connection string from the config: ",

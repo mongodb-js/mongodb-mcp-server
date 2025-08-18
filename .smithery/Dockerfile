@@ -27,4 +27,4 @@ RUN npm ci --production --ignore-scripts
 # Expose no ports (stdio only)
 
 # Default command
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/esm/index.js"]

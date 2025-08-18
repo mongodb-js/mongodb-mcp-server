@@ -53,7 +53,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         expect(collections).toHaveLength(0);
     });
 
-    const insertDocuments = async () => {
+    const insertDocuments = async (): Promise<void> => {
         await integration
             .mongoClient()
             .db(integration.randomDbName())
@@ -66,7 +66,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
             ]);
     };
 
-    const validateDocuments = async (expected: object[]) => {
+    const validateDocuments = async (expected: object[]): Promise<void> => {
         const documents = await integration
             .mongoClient()
             .db(integration.randomDbName())

@@ -3,6 +3,7 @@ import { mongoLogId, MongoLogId, MongoLogManager, MongoLogWriter } from "mongodb
 import redact from "mongodb-redact";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
+import { EventEmitter } from "events";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
@@ -48,79 +49,177 @@ export const LogId = {
     streamableHttpTransportSessionCloseNotificationFailure: mongoLogId(1_006_004),
     streamableHttpTransportRequestFailure: mongoLogId(1_006_005),
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
+
+    exportCleanupError: mongoLogId(1_007_001),
+    exportCreationError: mongoLogId(1_007_002),
+    exportCreationCleanupError: mongoLogId(1_007_003),
+    exportReadError: mongoLogId(1_007_004),
+    exportCloseError: mongoLogId(1_007_005),
+    exportedDataListError: mongoLogId(1_007_006),
+    exportedDataAutoCompleteError: mongoLogId(1_007_007),
+    exportLockError: mongoLogId(1_007_008),
 } as const;
 
-export abstract class LoggerBase {
-    abstract log(level: LogLevel, id: MongoLogId, context: string, message: string): void;
+interface LogPayload {
+    id: MongoLogId;
+    context: string;
+    message: string;
+    noRedaction?: boolean | LoggerType | LoggerType[];
+    attributes?: Record<string, string>;
+}
 
-    info(id: MongoLogId, context: string, message: string): void {
-        this.log("info", id, context, message);
+export type LoggerType = "console" | "disk" | "mcp";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type EventMap<T> = Record<keyof T, any[]> | DefaultEventMap;
+type DefaultEventMap = [never];
+
+export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
+    private readonly defaultUnredactedLogger: LoggerType = "mcp";
+
+    public log(level: LogLevel, payload: LogPayload): void {
+        // If no explicit value is supplied for unredacted loggers, default to "mcp"
+        const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
+
+        this.logCore(level, {
+            ...payload,
+            message: this.redactIfNecessary(payload.message, noRedaction),
+        });
     }
 
-    error(id: MongoLogId, context: string, message: string): void {
-        this.log("error", id, context, message);
-    }
-    debug(id: MongoLogId, context: string, message: string): void {
-        this.log("debug", id, context, message);
+    protected abstract readonly type?: LoggerType;
+
+    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+
+    private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
+        if (typeof noRedaction === "boolean" && noRedaction) {
+            // If the consumer has supplied noRedaction: true, we don't redact the log message
+            // regardless of the logger type
+            return message;
+        }
+
+        if (typeof noRedaction === "string" && noRedaction === this.type) {
+            // If the consumer has supplied noRedaction: logger-type, we skip redacting if
+            // our logger type is the same as what the consumer requested
+            return message;
+        }
+
+        if (
+            typeof noRedaction === "object" &&
+            Array.isArray(noRedaction) &&
+            this.type &&
+            noRedaction.indexOf(this.type) !== -1
+        ) {
+            // If the consumer has supplied noRedaction: array, we skip redacting if our logger
+            // type is included in that array
+            return message;
+        }
+
+        return redact(message);
     }
 
-    notice(id: MongoLogId, context: string, message: string): void {
-        this.log("notice", id, context, message);
+    public info(payload: LogPayload): void {
+        this.log("info", payload);
     }
 
-    warning(id: MongoLogId, context: string, message: string): void {
-        this.log("warning", id, context, message);
+    public error(payload: LogPayload): void {
+        this.log("error", payload);
+    }
+    public debug(payload: LogPayload): void {
+        this.log("debug", payload);
     }
 
-    critical(id: MongoLogId, context: string, message: string): void {
-        this.log("critical", id, context, message);
+    public notice(payload: LogPayload): void {
+        this.log("notice", payload);
     }
 
-    alert(id: MongoLogId, context: string, message: string): void {
-        this.log("alert", id, context, message);
+    public warning(payload: LogPayload): void {
+        this.log("warning", payload);
     }
 
-    emergency(id: MongoLogId, context: string, message: string): void {
-        this.log("emergency", id, context, message);
+    public critical(payload: LogPayload): void {
+        this.log("critical", payload);
+    }
+
+    public alert(payload: LogPayload): void {
+        this.log("alert", payload);
+    }
+
+    public emergency(payload: LogPayload): void {
+        this.log("emergency", payload);
     }
 }
 
 export class ConsoleLogger extends LoggerBase {
-    log(level: LogLevel, id: MongoLogId, context: string, message: string): void {
-        message = redact(message);
-        console.error(`[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid})`);
+    protected readonly type: LoggerType = "console";
+
+    protected logCore(level: LogLevel, payload: LogPayload): void {
+        const { id, context, message } = payload;
+        console.error(
+            `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid}${this.serializeAttributes(payload.attributes)})`
+        );
+    }
+
+    private serializeAttributes(attributes?: Record<string, string>): string {
+        if (!attributes || Object.keys(attributes).length === 0) {
+            return "";
+        }
+        return `, ${Object.entries(attributes)
+            .map(([key, value]) => `${key}=${value}`)
+            .join(", ")}`;
     }
 }
 
-export class DiskLogger extends LoggerBase {
-    private constructor(private logWriter: MongoLogWriter) {
+export class DiskLogger extends LoggerBase<{ initialized: [] }> {
+    private bufferedMessages: { level: LogLevel; payload: LogPayload }[] = [];
+    private logWriter?: MongoLogWriter;
+
+    public constructor(logPath: string, onError: (error: Error) => void) {
         super();
+
+        void this.initialize(logPath, onError);
     }
 
-    static async fromPath(logPath: string): Promise<DiskLogger> {
-        await fs.mkdir(logPath, { recursive: true });
+    private async initialize(logPath: string, onError: (error: Error) => void): Promise<void> {
+        try {
+            await fs.mkdir(logPath, { recursive: true });
 
-        const manager = new MongoLogManager({
-            directory: logPath,
-            retentionDays: 30,
-            onwarn: console.warn,
-            onerror: console.error,
-            gzip: false,
-            retentionGB: 1,
-        });
+            const manager = new MongoLogManager({
+                directory: logPath,
+                retentionDays: 30,
+                onwarn: console.warn,
+                onerror: console.error,
+                gzip: false,
+                retentionGB: 1,
+            });
 
-        await manager.cleanupOldLogFiles();
+            await manager.cleanupOldLogFiles();
 
-        const logWriter = await manager.createLogWriter();
+            this.logWriter = await manager.createLogWriter();
 
-        return new DiskLogger(logWriter);
+            for (const message of this.bufferedMessages) {
+                this.logCore(message.level, message.payload);
+            }
+            this.bufferedMessages = [];
+            this.emit("initialized");
+        } catch (error: unknown) {
+            onError(error as Error);
+        }
     }
 
-    log(level: LogLevel, id: MongoLogId, context: string, message: string): void {
-        message = redact(message);
+    protected type: LoggerType = "disk";
+
+    protected logCore(level: LogLevel, payload: LogPayload): void {
+        if (!this.logWriter) {
+            // If the log writer is not initialized, buffer the message
+            this.bufferedMessages.push({ level, payload });
+            return;
+        }
+
+        const { id, context, message } = payload;
         const mongoDBLevel = this.mapToMongoDBLogLevel(level);
 
-        this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message);
+        this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message, payload.attributes);
     }
 
     private mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
@@ -145,11 +244,13 @@ export class DiskLogger extends LoggerBase {
 }
 
 export class McpLogger extends LoggerBase {
-    constructor(private server: McpServer) {
+    public constructor(private readonly server: McpServer) {
         super();
     }
 
-    log(level: LogLevel, _: MongoLogId, context: string, message: string): void {
+    protected readonly type: LoggerType = "mcp";
+
+    protected logCore(level: LogLevel, payload: LogPayload): void {
         // Only log if the server is connected
         if (!this.server?.isConnected()) {
             return;
@@ -157,33 +258,47 @@ export class McpLogger extends LoggerBase {
 
         void this.server.server.sendLoggingMessage({
             level,
-            data: `[${context}]: ${message}`,
+            data: `[${payload.context}]: ${payload.message}`,
         });
     }
 }
 
-class CompositeLogger extends LoggerBase {
-    private loggers: LoggerBase[] = [];
+export class CompositeLogger extends LoggerBase {
+    protected readonly type?: LoggerType;
+
+    private readonly loggers: LoggerBase[] = [];
+    private readonly attributes: Record<string, string> = {};
 
     constructor(...loggers: LoggerBase[]) {
         super();
 
-        this.setLoggers(...loggers);
+        this.loggers = loggers;
     }
 
-    setLoggers(...loggers: LoggerBase[]): void {
-        if (loggers.length === 0) {
-            throw new Error("At least one logger must be provided");
-        }
-        this.loggers = [...loggers];
+    public addLogger(logger: LoggerBase): void {
+        this.loggers.push(logger);
     }
 
-    log(level: LogLevel, id: MongoLogId, context: string, message: string): void {
+    public log(level: LogLevel, payload: LogPayload): void {
+        // Override the public method to avoid the base logger redacting the message payload
         for (const logger of this.loggers) {
-            logger.log(level, id, context, message);
+            logger.log(level, { ...payload, attributes: { ...this.attributes, ...payload.attributes } });
         }
+    }
+
+    protected logCore(): void {
+        throw new Error("logCore should never be invoked on CompositeLogger");
+    }
+
+    public setAttribute(key: string, value: string): void {
+        this.attributes[key] = value;
     }
 }
 
-const logger = new CompositeLogger(new ConsoleLogger());
-export default logger;
+export class NullLogger extends LoggerBase {
+    protected type?: LoggerType;
+
+    protected logCore(): void {
+        // No-op logger, does not log anything
+    }
+}

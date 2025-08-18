@@ -5,6 +5,7 @@ import { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { config } from "../../src/common/config.js";
 import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
+import { NullLogger } from "../../src/common/logger.js";
 import type { MockedFunction } from "vitest";
 
 // Mock the ApiClient to avoid real API calls
@@ -75,7 +76,7 @@ describe("Telemetry", () => {
         appendEventsCalls?: number;
         sendEventsCalledWith?: BaseEvent[] | undefined;
         appendEventsCalledWith?: BaseEvent[] | undefined;
-    } = {}) {
+    } = {}): void {
         const { calls: sendEvents } = mockApiClient.sendEvents.mock;
         const { calls: clearEvents } = mockEventCache.clearEvents.mock;
         const { calls: appendEvents } = mockEventCache.appendEvents.mock;
@@ -106,7 +107,7 @@ describe("Telemetry", () => {
         vi.clearAllMocks();
 
         // Setup mocked API client
-        mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }));
+        mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }, new NullLogger()));
 
         mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
         mockApiClient.hasCredentials = vi.fn().mockReturnValue(true);
@@ -125,6 +126,7 @@ describe("Telemetry", () => {
             agentRunner: { name: "test-agent", version: "1.0.0" } as const,
             close: vi.fn().mockResolvedValue(undefined),
             setAgentRunner: vi.fn().mockResolvedValue(undefined),
+            logger: new NullLogger(),
         } as unknown as Session;
 
         telemetry = Telemetry.create(session, config, {

@@ -4,80 +4,102 @@ import { UserConfig } from "../common/config.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
 import { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
-import logger, { LogId } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
-type ResourceConfiguration = { name: string; uri: string; config: ResourceMetadata };
+export type ResourceConfiguration = {
+    name: string;
+    uri: string;
+    config: ResourceMetadata;
+};
 
-export function ReactiveResource<Value, RelevantEvents extends readonly (keyof SessionEvents)[]>(
-    { name, uri, config: resourceConfig }: ResourceConfiguration,
-    {
-        initial,
-        events,
+export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> = {
+    initial: Value;
+    events: RelevantEvents;
+};
+
+export abstract class ReactiveResource<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> {
+    protected server?: Server;
+    protected session: Session;
+    protected config: UserConfig;
+    protected telemetry: Telemetry;
+
+    protected current: Value;
+    protected readonly name: string;
+    protected readonly uri: string;
+    protected readonly resourceConfig: ResourceMetadata;
+    protected readonly events: RelevantEvents;
+
+    constructor({
+        resourceConfiguration,
+        options,
+        session,
+        config,
+        telemetry,
+        current,
     }: {
-        initial: Value;
-        events: RelevantEvents;
-    }
-) {
-    type SomeEvent = RelevantEvents[number];
+        resourceConfiguration: ResourceConfiguration;
+        options: ReactiveResourceOptions<Value, RelevantEvents>;
+        session: Session;
+        config: UserConfig;
+        telemetry: Telemetry;
+        current?: Value;
+    }) {
+        this.session = session;
+        this.config = config;
+        this.telemetry = telemetry;
 
-    abstract class NewReactiveResource {
-        protected readonly session: Session;
-        protected readonly config: UserConfig;
-        protected current: Value;
+        this.name = resourceConfiguration.name;
+        this.uri = resourceConfiguration.uri;
+        this.resourceConfig = resourceConfiguration.config;
+        this.events = options.events;
+        this.current = current ?? options.initial;
 
-        constructor(
-            protected readonly server: Server,
-            protected readonly telemetry: Telemetry,
-            current?: Value
-        ) {
-            this.current = current ?? initial;
-            this.session = server.session;
-            this.config = server.userConfig;
-
-            for (const event of events) {
-                this.session.on(event, (...args: SessionEvents[typeof event]) => {
-                    this.reduceApply(event, (args as unknown[])[0] as PayloadOf<typeof event>);
-                    void this.triggerUpdate();
-                });
-            }
-        }
-
-        public register(): void {
-            this.server.mcpServer.registerResource(name, uri, resourceConfig, this.resourceCallback);
-        }
-
-        private resourceCallback: ReadResourceCallback = (uri) => ({
-            contents: [
-                {
-                    text: this.toOutput(),
-                    mimeType: "application/json",
-                    uri: uri.href,
-                },
-            ],
-        });
-
-        private async triggerUpdate() {
-            try {
-                await this.server.mcpServer.server.sendResourceUpdated({ uri });
-                this.server.mcpServer.sendResourceListChanged();
-            } catch (error: unknown) {
-                logger.warning(
-                    LogId.resourceUpdateFailure,
-                    "Could not send the latest resources to the client.",
-                    error as string
-                );
-            }
-        }
-
-        reduceApply(eventName: SomeEvent, ...event: PayloadOf<SomeEvent>[]): void {
-            this.current = this.reduce(eventName, ...event);
-        }
-
-        protected abstract reduce(eventName: SomeEvent, ...event: PayloadOf<SomeEvent>[]): Value;
-        abstract toOutput(): string;
+        this.setupEventListeners();
     }
 
-    return NewReactiveResource;
+    private setupEventListeners(): void {
+        for (const event of this.events) {
+            this.session.on(event, (...args: SessionEvents[typeof event]) => {
+                this.reduceApply(event, (args as unknown[])[0] as PayloadOf<typeof event>);
+                void this.triggerUpdate();
+            });
+        }
+    }
+
+    public register(server: Server): void {
+        this.server = server;
+        this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
+    }
+
+    private resourceCallback: ReadResourceCallback = (uri) => ({
+        contents: [
+            {
+                text: this.toOutput(),
+                mimeType: "application/json",
+                uri: uri.href,
+            },
+        ],
+    });
+
+    private triggerUpdate(): void {
+        try {
+            this.server?.sendResourceListChanged();
+            this.server?.sendResourceUpdated(this.uri);
+        } catch (error: unknown) {
+            this.session.logger.warning({
+                id: LogId.resourceUpdateFailure,
+                context: "resource",
+                message: `Could not send the latest resources to the client: ${error as string}`,
+            });
+        }
+    }
+
+    public reduceApply(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): void {
+        this.current = this.reduce(eventName, ...event);
+    }
+
+    protected abstract reduce(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): Value;
+    public abstract toOutput(): string;
 }

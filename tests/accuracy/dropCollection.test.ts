@@ -63,6 +63,12 @@ describeAccuracyTests([
                 },
             },
             {
+                toolName: "list-collections",
+                parameters: {
+                    database: "support",
+                },
+            },
+            {
                 toolName: "drop-collection",
                 parameters: {
                     database: "comics",

@@ -1,6 +1,6 @@
 import { ClusterDescription20240805, FlexClusterDescription20241113 } from "./openapi.js";
 import { ApiClient } from "./apiClient.js";
-import logger, { LogId } from "../logger.js";
+import { LogId } from "../logger.js";
 
 export interface Cluster {
     name?: string;
@@ -51,12 +51,12 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         });
 
     const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
-    const clusterInstanceType = instanceSize == "M0" ? "FREE" : "DEDICATED";
+    const clusterInstanceType = instanceSize === "M0" ? "FREE" : "DEDICATED";
 
     return {
         name: cluster.name,
         instanceType: clusterInstanceType,
-        instanceSize: clusterInstanceType == "DEDICATED" ? instanceSize : undefined,
+        instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
         connectionString: cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard,
@@ -87,7 +87,11 @@ export async function inspectCluster(apiClient: ApiClient, projectId: string, cl
             return formatFlexCluster(cluster);
         } catch (flexError) {
             const err = flexError instanceof Error ? flexError : new Error(String(flexError));
-            logger.error(LogId.atlasInspectFailure, "inspect-cluster", `error inspecting cluster: ${err.message}`);
+            apiClient.logger.error({
+                id: LogId.atlasInspectFailure,
+                context: "inspect-cluster",
+                message: `error inspecting cluster: ${err.message}`,
+            });
             throw error;
         }
     }

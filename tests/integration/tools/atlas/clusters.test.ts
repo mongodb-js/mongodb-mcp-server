@@ -5,11 +5,11 @@ import { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-function sleep(ms: number) {
+function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function deleteAndWaitCluster(session: Session, projectId: string, clusterName: string) {
+async function deleteAndWaitCluster(session: Session, projectId: string, clusterName: string): Promise<void> {
     await session.apiClient.deleteCluster({
         params: {
             path: {
@@ -40,7 +40,7 @@ async function waitCluster(
     projectId: string,
     clusterName: string,
     check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>
-) {
+): Promise<void> {
     while (true) {
         const cluster = await session.apiClient.getCluster({
             params: {

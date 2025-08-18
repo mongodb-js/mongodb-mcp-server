@@ -1,4 +1,6 @@
 import { ReactiveResource } from "../resource.js";
+import type { Telemetry } from "../../telemetry/telemetry.js";
+import { Session, UserConfig } from "../../lib.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
@@ -8,19 +10,29 @@ type ConnectionStateDebuggingInformation = {
     readonly errorReason?: string;
 };
 
-export class DebugResource extends ReactiveResource(
-    {
-        name: "debug-mongodb-connectivity",
-        uri: "debug://mongodb-connectivity",
-        config: {
-            description: "Debugging information for connectivity issues.",
-        },
-    },
-    {
-        initial: { tag: "disconnected" } as ConnectionStateDebuggingInformation,
-        events: ["connect", "disconnect", "close", "connection-error"],
+export class DebugResource extends ReactiveResource<
+    ConnectionStateDebuggingInformation,
+    readonly ["connect", "disconnect", "close", "connection-error"]
+> {
+    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
+        super({
+            resourceConfiguration: {
+                name: "debug-mongodb",
+                uri: "debug://mongodb",
+                config: {
+                    description:
+                        "Debugging information for MongoDB connectivity issues. Tracks the last connectivity error and attempt information.",
+                },
+            },
+            options: {
+                initial: { tag: "disconnected" },
+                events: ["connect", "disconnect", "close", "connection-error"],
+            },
+            session,
+            config,
+            telemetry,
+        });
     }
-) {
     reduce(
         eventName: "connect" | "disconnect" | "close" | "connection-error",
         event: string | undefined

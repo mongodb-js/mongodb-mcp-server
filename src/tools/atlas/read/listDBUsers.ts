@@ -40,7 +40,7 @@ export class ListDBUsersTool extends AtlasToolBase {
     }
 }
 
-function formatRoles(roles?: DatabaseUserRole[]) {
+function formatRoles(roles?: DatabaseUserRole[]): string {
     if (!roles?.length) {
         return "N/A";
     }
@@ -52,7 +52,7 @@ function formatRoles(roles?: DatabaseUserRole[]) {
         .join(", ");
 }
 
-function formatScopes(scopes?: UserScope[]) {
+function formatScopes(scopes?: UserScope[]): string {
     if (!scopes?.length) {
         return "All";
     }

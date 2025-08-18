@@ -14,15 +14,15 @@ export class InMemoryTransport implements Transport {
         const [outputReady, outputResolve] = InMemoryTransport.getPromise();
 
         this.output = new ReadableStream<JSONRPCMessage>({
-            start: (controller) => {
+            start: (controller): void => {
                 this.outputController = controller;
                 outputResolve();
             },
         });
 
         this.input = new WritableStream<JSONRPCMessage>({
-            write: (message) => this.onmessage?.(message),
-            start: () => {
+            write: (message): void => this.onmessage?.(message),
+            start: (): void => {
                 inputResolve();
             },
         });

@@ -32,6 +32,7 @@ jobs:
         id: bump-version
         run: |
           echo "NEW_VERSION=$(npm version ${{ inputs.version }} --no-git-tag-version)" >> $GITHUB_OUTPUT
+          npm run build:update-package-version
       - name: Create release PR
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # 7.0.8
         id: create-pr

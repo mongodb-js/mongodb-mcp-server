@@ -3,14 +3,21 @@ import { Session } from "../../src/common/session.js";
 import { config } from "../../src/common/config.js";
 import { getDeviceIdForConnection } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
+import { CompositeLogger } from "../../src/common/logger.js";
+import { ConnectionManager } from "../../src/common/connectionManager.js";
+import { ExportsManager } from "../../src/common/exportsManager.js";
 
 describe("Telemetry", () => {
     it("should resolve the actual device ID", async () => {
         const actualDeviceId = await getDeviceIdForConnection();
 
+        const logger = new CompositeLogger();
         const telemetry = Telemetry.create(
             new Session({
                 apiBaseUrl: "",
+                logger: new CompositeLogger(),
+                exportsManager: ExportsManager.init(config, logger),
+                connectionManager: new ConnectionManager(),
             }),
             config
         );

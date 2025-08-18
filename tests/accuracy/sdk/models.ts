@@ -24,7 +24,7 @@ export class OpenAIModel implements Model {
         return !!process.env.MDB_OPEN_AI_API_KEY;
     }
 
-    getModel() {
+    getModel(): LanguageModelV1 {
         return createOpenAI({
             apiKey: process.env.MDB_OPEN_AI_API_KEY,
         })(this.modelName);
@@ -43,7 +43,7 @@ export class AzureOpenAIModel implements Model {
         return !!process.env.MDB_AZURE_OPEN_AI_API_KEY && !!process.env.MDB_AZURE_OPEN_AI_API_URL;
     }
 
-    getModel() {
+    getModel(): LanguageModelV1 {
         return createAzure({
             baseURL: process.env.MDB_AZURE_OPEN_AI_API_URL,
             apiKey: process.env.MDB_AZURE_OPEN_AI_API_KEY,
@@ -64,7 +64,7 @@ export class GeminiModel implements Model {
         return !!process.env.MDB_GEMINI_API_KEY;
     }
 
-    getModel() {
+    getModel(): LanguageModelV1 {
         return createGoogleGenerativeAI({
             apiKey: process.env.MDB_GEMINI_API_KEY,
         })(this.modelName);
@@ -83,7 +83,7 @@ export class OllamaModel implements Model {
         return true;
     }
 
-    getModel() {
+    getModel(): LanguageModelV1 {
         return ollama(this.modelName);
     }
 }

@@ -58,20 +58,22 @@ export class HTTPServerProxyTestSetup {
         this.httpServer = createHTTPServer(handler);
         this.httpsServer = createHTTPSServer({ ...this.tlsOptions }, handler);
 
-        const onconnect = (server: HTTPServer) => (req: IncomingMessage, socket: Duplex, head: Buffer) => {
-            const [username, pw] = parseHTTPAuthHeader(req.headers["proxy-authorization"]);
-            if (this.authHandler?.(username, pw) === false) {
-                socket.end("HTTP/1.0 407 Proxy Authentication Required\r\n\r\n");
-                return;
-            }
-            if (req.url === "127.0.0.1:1") {
-                socket.end("HTTP/1.0 502 Bad Gateway\r\n\r\n");
-                return;
-            }
-            socket.unshift(head);
-            server.emit("connection", socket);
-            socket.write("HTTP/1.0 200 OK\r\n\r\n");
-        };
+        const onconnect =
+            (server: HTTPServer) =>
+            (req: IncomingMessage, socket: Duplex, head: Buffer): void => {
+                const [username, pw] = parseHTTPAuthHeader(req.headers["proxy-authorization"]);
+                if (this.authHandler?.(username, pw) === false) {
+                    socket.end("HTTP/1.0 407 Proxy Authentication Required\r\n\r\n");
+                    return;
+                }
+                if (req.url === "127.0.0.1:1") {
+                    socket.end("HTTP/1.0 502 Bad Gateway\r\n\r\n");
+                    return;
+                }
+                socket.unshift(head);
+                server.emit("connection", socket);
+                socket.write("HTTP/1.0 200 OK\r\n\r\n");
+            };
 
         this.httpProxyServer = createHTTPServer((req, res) => {
             const [username, pw] = parseHTTPAuthHeader(req.headers["proxy-authorization"]);

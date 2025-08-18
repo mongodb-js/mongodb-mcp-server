@@ -1,5 +1,5 @@
 import { ApiClient } from "./apiClient.js";
-import logger, { LogId } from "../logger.js";
+import { LogId } from "../logger.js";
 import { ApiClientError } from "./apiClientError.js";
 
 export const DEFAULT_ACCESS_LIST_COMMENT = "Added by MongoDB MCP Server to enable tool access";
@@ -8,7 +8,7 @@ export async function makeCurrentIpAccessListEntry(
     apiClient: ApiClient,
     projectId: string,
     comment: string = DEFAULT_ACCESS_LIST_COMMENT
-) {
+): Promise<{ groupId: string; ipAddress: string; comment: string }> {
     const { currentIpv4Address } = await apiClient.getIpInfo();
     return {
         groupId: projectId,
@@ -30,25 +30,25 @@ export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectI
             params: { path: { groupId: projectId } },
             body: [entry],
         });
-        logger.debug(
-            LogId.atlasIpAccessListAdded,
-            "accessListUtils",
-            `IP access list created: ${JSON.stringify(entry)}`
-        );
+        apiClient.logger.debug({
+            id: LogId.atlasIpAccessListAdded,
+            context: "accessListUtils",
+            message: `IP access list created: ${JSON.stringify(entry)}`,
+        });
     } catch (err) {
         if (err instanceof ApiClientError && err.response?.status === 409) {
             // 409 Conflict: entry already exists, log info
-            logger.debug(
-                LogId.atlasIpAccessListAdded,
-                "accessListUtils",
-                `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`
-            );
+            apiClient.logger.debug({
+                id: LogId.atlasIpAccessListAdded,
+                context: "accessListUtils",
+                message: `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`,
+            });
             return;
         }
-        logger.warning(
-            LogId.atlasIpAccessListAddFailure,
-            "accessListUtils",
-            `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`
-        );
+        apiClient.logger.warning({
+            id: LogId.atlasIpAccessListAddFailure,
+            context: "accessListUtils",
+            message: `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`,
+        });
     }
 }

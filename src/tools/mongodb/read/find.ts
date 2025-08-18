@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { DbOperationArgs, formatUntrustedData, MongoDBToolBase } from "../mongodbTool.js";
 import { ToolArgs, OperationType } from "../../tool.js";
 import { SortDirection } from "mongodb";
-import { EJSON } from "bson";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const FindArgs = {
@@ -55,21 +54,11 @@ export class FindTool extends MongoDBToolBase {
 
         const documents = await provider.find(database, collection, filter, { projection, limit, sort }).toArray();
 
-        const content: Array<{ text: string; type: "text" }> = [
-            {
-                text: `Found ${documents.length} documents in the collection "${collection}":`,
-                type: "text",
-            },
-            ...documents.map((doc) => {
-                return {
-                    text: EJSON.stringify(doc),
-                    type: "text",
-                } as { text: string; type: "text" };
-            }),
-        ];
-
         return {
-            content,
+            content: formatUntrustedData(
+                `Found ${documents.length} documents in the collection "${collection}"`,
+                documents
+            ),
         };
     }
 }

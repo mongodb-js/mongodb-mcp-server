@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { AccessToken } from "../../../src/common/atlas/apiClient.js";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import { HTTPServerProxyTestSetup } from "../fixtures/httpsServerProxyTest.js";
+import { NullLogger } from "../../../src/common/logger.js";
 
 describe("ApiClient integration test", () => {
     describe(`atlas API proxy integration`, () => {
@@ -14,17 +15,20 @@ describe("ApiClient integration test", () => {
             await proxyTestSetup.listen();
 
             process.env.HTTP_PROXY = `https://localhost:${proxyTestSetup.httpsProxyPort}/`;
-            apiClient = new ApiClient({
-                baseUrl: `https://localhost:${proxyTestSetup.httpsServerPort}/`,
-                credentials: {
-                    clientId: "test-client-id",
-                    clientSecret: "test-client-secret",
+            apiClient = new ApiClient(
+                {
+                    baseUrl: `https://localhost:${proxyTestSetup.httpsServerPort}/`,
+                    credentials: {
+                        clientId: "test-client-id",
+                        clientSecret: "test-client-secret",
+                    },
+                    userAgent: "test-user-agent",
                 },
-                userAgent: "test-user-agent",
-            });
+                new NullLogger()
+            );
         });
 
-        function withToken(accessToken: string, expired: boolean) {
+        function withToken(accessToken: string, expired: boolean): void {
             const apiClientMut = apiClient as unknown as { accessToken: AccessToken };
             const diff = 10_000;
             const now = Date.now();

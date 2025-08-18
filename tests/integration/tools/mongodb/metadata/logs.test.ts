@@ -74,7 +74,7 @@ describeWithMongoDB("logs tool", (integration) => {
                 database: integration.randomDbName(),
                 collection: "foo",
             },
-            validate: (content) => {
+            validate: (content): void => {
                 const elements = getResponseElements(content);
                 expect(elements.length).toBeLessThanOrEqual(51);
                 expect(elements[0]?.text).toMatch(/Found: \d+ messages/);

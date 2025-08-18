@@ -55,6 +55,10 @@ describeAccuracyTests([
                 toolName: "list-collections",
                 parameters: { database: "mflix" },
             },
+            {
+                toolName: "list-collections",
+                parameters: { database: "support" },
+            },
         ],
     },
 ]);

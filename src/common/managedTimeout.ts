@@ -8,12 +8,12 @@ export function setManagedTimeout(callback: () => Promise<void> | void, timeoutM
         void callback();
     }, timeoutMS);
 
-    function cancel() {
+    function cancel(): void {
         clearTimeout(timeoutId);
         timeoutId = undefined;
     }
 
-    function restart() {
+    function restart(): void {
         cancel();
         timeoutId = setTimeout(() => {
             void callback();

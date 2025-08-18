@@ -17,8 +17,10 @@ vi.mock("../../../../../src/helpers/deviceId.js", () => ({
 describeWithMongoDB(
     "SwitchConnection tool",
     (integration) => {
-        beforeEach(() => {
-            integration.mcpServer().userConfig.connectionString = integration.connectionString();
+        beforeEach(async () => {
+            await integration.mcpServer().session.connectToMongoDB({
+                connectionString: integration.connectionString(),
+            });
         });
 
         validateToolMetadata(
@@ -80,7 +82,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
 
-                expect(content).toContain("Error running switch-connection");
+                expect(content).toContain("The configured connection string is not valid.");
             });
         });
     },
@@ -130,7 +132,7 @@ describeWithMongoDB(
                     arguments: { connectionString: "mongodb://localhost:12345" },
                 });
                 const content = getResponseContent(response.content);
-                expect(content).toContain("Error running connect");
+                expect(content).toContain("The configured connection string is not valid.");
 
                 // Should not suggest using the config connection string (because we don't have one)
                 expect(content).not.toContain("Your config lists a different connection string");

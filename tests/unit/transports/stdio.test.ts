@@ -24,7 +24,7 @@ describe("stdioTransport", () => {
             extra?: {
                 authInfo?: AuthInfo;
             }
-        ) => {
+        ): void => {
             messages.push({ message, extra });
         };
 

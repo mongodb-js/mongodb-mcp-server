@@ -2,10 +2,10 @@ import {
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
-    getResponseElements,
+    getResponseContent,
 } from "../../../helpers.js";
 import { expect, it } from "vitest";
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
@@ -34,9 +34,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
             arguments: { database: "non-existent", collection: "people", pipeline: [{ $match: { name: "Peter" } }] },
         });
 
-        const elements = getResponseElements(response.content);
-        expect(elements).toHaveLength(1);
-        expect(elements[0]?.text).toEqual('Found 0 documents in the collection "people":');
+        const content = getResponseContent(response);
+        expect(content).toEqual("The aggregation resulted in 0 documents");
     });
 
     it("can run aggragation on an empty collection", async () => {
@@ -52,9 +51,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
             },
         });
 
-        const elements = getResponseElements(response.content);
-        expect(elements).toHaveLength(1);
-        expect(elements[0]?.text).toEqual('Found 0 documents in the collection "people":');
+        const content = getResponseContent(response);
+        expect(content).toEqual("The aggregation resulted in 0 documents");
     });
 
     it("can run aggragation on an existing collection", async () => {
@@ -78,17 +76,17 @@ describeWithMongoDB("aggregate tool", (integration) => {
             },
         });
 
-        const elements = getResponseElements(response.content);
-        expect(elements).toHaveLength(3);
-        expect(elements[0]?.text).toEqual('Found 2 documents in the collection "people":');
-        expect(asObject(JSON.parse(elements[1]?.text ?? "{}"))).toEqual(
+        const content = getResponseContent(response);
+        expect(content).toContain("The aggregation resulted in 2 documents");
+        const docs = getDocsFromUntrustedContent(content);
+        expect(docs[0]).toEqual(
             expect.objectContaining({
                 _id: expect.any(Object) as object,
                 name: "Søren",
                 age: 15,
             })
         );
-        expect(asObject(JSON.parse(elements[2]?.text ?? "{}"))).toEqual(
+        expect(docs[1]).toEqual(
             expect.objectContaining({
                 _id: expect.any(Object) as object,
                 name: "Laura",
@@ -104,12 +102,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
                 collection: "coll1",
                 pipeline: [{ $match: { name: "Liva" } }],
             },
-            expectedResponse: 'Found 0 documents in the collection "coll1"',
+            expectedResponse: "The aggregation resulted in 0 documents",
         };
     });
 });
-
-function asObject(val: unknown): Record<string, unknown> {
-    if (typeof val === "object" && val !== null) return val as Record<string, unknown>;
-    throw new Error("Expected an object");
-}

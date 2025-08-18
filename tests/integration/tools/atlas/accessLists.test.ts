@@ -4,7 +4,7 @@ import { expectDefined } from "../../helpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/accessListUtils.js";
 
-function generateRandomIp() {
+function generateRandomIp(): string {
     const randomIp: number[] = [192];
     for (let i = 0; i < 3; i++) {
         randomIp.push(Math.floor(Math.random() * 256));
