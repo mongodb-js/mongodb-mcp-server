@@ -84,9 +84,12 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         let serviceProvider: NodeDriverServiceProvider;
         try {
             settings = { ...settings };
-            settings.connectionString = setAppNameParamIfMissing({
+            settings.connectionString = await setAppNameParamIfMissing({
                 connectionString: settings.connectionString,
-                defaultAppName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                components: {
+                    appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                    // clientName: this.agentRunner?.name || "unknown", //TODO: MCP-68 - get client name from session
+                },
             });
 
             serviceProvider = await NodeDriverServiceProvider.connect(settings.connectionString, {
