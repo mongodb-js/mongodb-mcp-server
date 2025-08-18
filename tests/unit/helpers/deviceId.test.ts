@@ -10,7 +10,6 @@ const MockGetDeviceId = vi.mocked(getDeviceId);
 
 describe("Device ID Helper", () => {
     let testLogger: CompositeLogger;
-    let mockGetMachineId: () => Promise<string>;
 
     beforeEach(() => {
         vi.clearAllMocks();

@@ -10,6 +10,7 @@ import { DeviceIdService } from "../../../../src/helpers/deviceId.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
+    DeviceIdService.init(logger);
     const session = new Session({
         apiBaseUrl: "",
         logger,
@@ -22,7 +23,6 @@ describe("debug resource", () => {
 
     beforeEach(() => {
         debugResource = new DebugResource(session, config, telemetry);
-        DeviceIdService.init(logger);
     });
 
     it("should be connected when a connected event happens", () => {
