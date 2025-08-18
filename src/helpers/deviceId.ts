@@ -14,10 +14,12 @@ export class DeviceIdService {
     private deviceIdPromise: Promise<string> | undefined = undefined;
     private abortController: AbortController | undefined = undefined;
     private logger: LoggerBase;
-    private getMachineId: () => Promise<string>;
+    private readonly getMachineId: () => Promise<string>;
+    private timeout: number;
 
-    private constructor(logger: LoggerBase) {
+    private constructor(logger: LoggerBase, timeout: number) {
         this.logger = logger;
+        this.timeout = timeout;
         this.getMachineId = (): Promise<string> => nodeMachineId.machineId(true);
         // Start device ID calculation immediately
         this.startDeviceIdCalculation();
@@ -29,12 +31,20 @@ export class DeviceIdService {
      * @param logger - The logger instance to use
      * @returns The DeviceIdService instance
      */
-    public static init(logger: LoggerBase): DeviceIdService {
+    public static init(logger: LoggerBase, timeout?: number): DeviceIdService {
         if (DeviceIdService.instance) {
             return DeviceIdService.instance;
         }
-        DeviceIdService.instance = new DeviceIdService(logger);
+        DeviceIdService.instance = new DeviceIdService(logger, timeout ?? DEVICE_ID_TIMEOUT);
         return DeviceIdService.instance;
+    }
+
+    /**
+     * Checks if the DeviceIdService is initialized.
+     * @returns True if the DeviceIdService is initialized, false otherwise
+     */
+    public static isInitialized(): boolean {
+        return DeviceIdService.instance !== undefined;
     }
 
     /**
@@ -43,20 +53,9 @@ export class DeviceIdService {
      */
     public static getInstance(): DeviceIdService {
         if (!DeviceIdService.instance) {
-            throw Error("DeviceIdService not initialized");
+            throw new Error("DeviceIdService not initialized");
         }
         return DeviceIdService.instance;
-    }
-
-    /**
-     * Resets the singleton instance (mainly for testing).
-     */
-    static resetInstance(): void {
-        // abort any ongoing calculation
-        if (DeviceIdService.instance?.abortController) {
-            DeviceIdService.instance.abortController.abort();
-        }
-        DeviceIdService.instance = undefined;
     }
 
     /**
@@ -77,28 +76,27 @@ export class DeviceIdService {
      * @returns Promise that resolves to the device ID string
      */
     public async getDeviceId(): Promise<string> {
-        // Return cached value if available
         if (this.deviceId !== undefined) {
             return this.deviceId;
         }
 
-        // If calculation is already in progress, wait for it
-        if (this.deviceIdPromise) {
-            return this.deviceIdPromise;
+        if (!this.deviceIdPromise) {
+            throw new Error("DeviceIdService calculation not started");
         }
 
-        // If somehow we don't have a promise, raise an error
-        throw new Error("Failed to get device ID");
+        return this.deviceIdPromise;
     }
     /**
      * Aborts any ongoing device ID calculation.
      */
-    abortCalculation(): void {
+    public close(): void {
         if (this.abortController) {
             this.abortController.abort();
             this.abortController = undefined;
         }
+        this.deviceId = undefined;
         this.deviceIdPromise = undefined;
+        DeviceIdService.instance = undefined;
     }
 
     /**
@@ -113,8 +111,9 @@ export class DeviceIdService {
             const deviceId = await getDeviceId({
                 getMachineId: this.getMachineId,
                 onError: (reason, error) => {
-                    this.handleDeviceIdError(reason, error);
+                    this.handleDeviceIdError(reason, String(error));
                 },
+                timeout: this.timeout,
                 abortSignal: this.abortController.signal,
             });
 
@@ -128,7 +127,7 @@ export class DeviceIdService {
             }
 
             this.logger.debug({
-                id: LogId.telemetryDeviceIdFailure,
+                id: LogId.deviceIdResolutionError,
                 context: "deviceId",
                 message: `Failed to get device ID: ${String(error)}`,
             });
@@ -146,20 +145,21 @@ export class DeviceIdService {
      * @param reason - The reason for the error
      * @param error - The error object
      */
-    private handleDeviceIdError(reason: string, error: Error): void {
+    private handleDeviceIdError(reason: string, error: string): void {
         switch (reason) {
             case "resolutionError":
                 this.logger.debug({
-                    id: LogId.telemetryDeviceIdFailure,
+                    id: LogId.deviceIdResolutionError,
                     context: "deviceId",
-                    message: `Device ID resolution error: ${String(error)}`,
+                    message: `Resolution error: ${String(error)}`,
                 });
                 break;
             case "timeout":
                 this.logger.debug({
-                    id: LogId.telemetryDeviceIdTimeout,
+                    id: LogId.deviceIdTimeout,
                     context: "deviceId",
                     message: "Device ID retrieval timed out",
+                    noRedaction: true,
                 });
                 break;
             case "abort":

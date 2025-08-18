@@ -63,7 +63,7 @@ async function main(): Promise<void> {
         transportRunner
             .close()
             .then(() => {
-                deviceId.abortCalculation();
+                deviceId.close();
                 transportRunner.logger.info({
                     id: LogId.serverClosed,
                     context: "server",
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
                 process.exit(0);
             })
             .catch((error: unknown) => {
-                deviceId.abortCalculation();
+                deviceId.close();
                 transportRunner.logger.error({
                     id: LogId.serverCloseFailure,
                     context: "server",

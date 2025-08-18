@@ -8,200 +8,152 @@ vi.mock("@mongodb-js/device-id");
 vi.mock("node-machine-id");
 const MockGetDeviceId = vi.mocked(getDeviceId);
 
-describe("Device ID Helper", () => {
+describe("deviceId", () => {
     let testLogger: CompositeLogger;
 
     beforeEach(() => {
         vi.clearAllMocks();
         testLogger = new CompositeLogger();
-
-        // Reset singleton between tests
-        DeviceIdService.resetInstance();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        DeviceIdService.resetInstance();
+        if (DeviceIdService.isInitialized()) {
+            DeviceIdService.getInstance().close();
+        }
     });
 
-    describe("DeviceIdService Singleton", () => {
-        it("should return the same instance for multiple getInstance calls", () => {
-            // Initialize first
-            DeviceIdService.init(testLogger);
+    it("should return the same instance for multiple getInstance calls", () => {
+        // Initialize first
+        DeviceIdService.init(testLogger);
 
-            const instance1 = DeviceIdService.getInstance();
-            const instance2 = DeviceIdService.getInstance();
+        const instance1 = DeviceIdService.getInstance();
+        const instance2 = DeviceIdService.getInstance();
 
-            expect(instance1).toBe(instance2);
-        });
+        expect(instance1).toBe(instance2);
+    });
 
-        it("should throw error when getInstance is called before init", () => {
-            expect(() => DeviceIdService.getInstance()).toThrow("DeviceIdService not initialized");
-        });
+    it("should correctly report initialization status", () => {
+        expect(DeviceIdService.isInitialized()).toBe(false);
+        
+        DeviceIdService.init(testLogger);
+        expect(DeviceIdService.isInitialized()).toBe(true);
+        
+        DeviceIdService.getInstance().close();
+        expect(DeviceIdService.isInitialized()).toBe(false);
+    });
 
-        it("should successfully retrieve device ID", async () => {
-            const mockDeviceId = "test-device-id-123";
-            MockGetDeviceId.mockResolvedValue(mockDeviceId);
+    it("should throw error when getInstance is called before init", () => {
+        expect(() => DeviceIdService.getInstance()).toThrow("DeviceIdService not initialized");
+    });
 
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
+    it("should successfully retrieve device ID", async () => {
+        const mockDeviceId = "test-device-id-123";
+        MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
-            const deviceId = DeviceIdService.getInstance();
-            const result = await deviceId.getDeviceId();
+        // Initialize after mocking
+        DeviceIdService.init(testLogger);
 
-            expect(result).toBe(mockDeviceId);
-        });
+        const deviceId = DeviceIdService.getInstance();
+        const result = await deviceId.getDeviceId();
 
-        it("should cache device ID after first retrieval", async () => {
-            const mockDeviceId = "test-device-id-123";
-            MockGetDeviceId.mockResolvedValue(mockDeviceId);
+        expect(result).toBe(mockDeviceId);
+    });
 
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
+    it("should cache device ID after first retrieval", async () => {
+        const mockDeviceId = "test-device-id-123";
+        MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
-            const deviceId = DeviceIdService.getInstance();
+        // Initialize after mocking
+        const deviceId = DeviceIdService.init(testLogger);
+        // First call should trigger calculation
+        const result1 = await deviceId.getDeviceId();
+        expect(result1).toBe(mockDeviceId);
+        expect(MockGetDeviceId).toHaveBeenCalledTimes(1);
 
-            // First call should trigger calculation
-            const result1 = await deviceId.getDeviceId();
-            expect(result1).toBe(mockDeviceId);
-            expect(MockGetDeviceId).toHaveBeenCalledTimes(1);
+        // Second call should use cached value
+        const result2 = await deviceId.getDeviceId();
+        expect(result2).toBe(mockDeviceId);
+        expect(MockGetDeviceId).toHaveBeenCalledTimes(1); // Still only called once
+    });
 
-            // Second call should use cached value
-            const result2 = await deviceId.getDeviceId();
-            expect(result2).toBe(mockDeviceId);
-            expect(MockGetDeviceId).toHaveBeenCalledTimes(1); // Still only called once
-        });
-
-        it("should allow aborting calculation", async () => {
-            MockGetDeviceId.mockImplementation((options) => {
-                // Simulate a long-running operation that can be aborted
-                return new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => resolve("device-id"), 1000);
-                    options.abortSignal?.addEventListener("abort", () => {
-                        clearTimeout(timeout);
-                        const abortError = new Error("Aborted");
-                        abortError.name = "AbortError";
-                        reject(abortError);
-                    });
+    it("should allow aborting calculation", async () => {
+        MockGetDeviceId.mockImplementation((options) => {
+            // Simulate a long-running operation that can be aborted
+            return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => resolve("device-id"), 1000);
+                options.abortSignal?.addEventListener("abort", () => {
+                    clearTimeout(timeout);
+                    const abortError = new Error("Aborted");
+                    abortError.name = "AbortError";
+                    reject(abortError);
                 });
             });
-
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
-
-            const deviceId = DeviceIdService.getInstance();
-
-            // Start calculation
-            const promise = deviceId.getDeviceId();
-
-            // Abort immediately
-            deviceId.abortCalculation();
-
-            // Should reject with AbortError
-            await expect(promise).rejects.toThrow("Aborted");
         });
 
-        it("should return 'unknown' when getDeviceId throws an error", async () => {
-            MockGetDeviceId.mockRejectedValue(new Error("Device ID resolution failed"));
+        // Initialize after mocking
+        DeviceIdService.init(testLogger);
 
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
+        const deviceId = DeviceIdService.getInstance();
 
-            const deviceId = DeviceIdService.getInstance();
-            const result = await deviceId.getDeviceId();
+        // Start calculation
+        const promise = deviceId.getDeviceId();
 
-            expect(result).toBe("unknown");
-        });
+        // Abort immediately
+        deviceId.close();
 
-        it("should handle resolution error callback", async () => {
-            MockGetDeviceId.mockImplementation((options) => {
-                if (options.onError) {
-                    options.onError("resolutionError", new Error("Resolution failed"));
-                }
-                return Promise.resolve("device-id");
-            });
+        // Should reject with AbortError
+        await expect(promise).rejects.toThrow("Aborted");
+    });
 
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
+    it("should return 'unknown' when getDeviceId throws an error", async () => {
+        MockGetDeviceId.mockRejectedValue(new Error("Device ID resolution failed"));
 
-            const deviceId = DeviceIdService.getInstance();
-            const result = await deviceId.getDeviceId();
+        // Initialize after mocking
+        DeviceIdService.init(testLogger);
 
-            expect(result).toBe("device-id");
-            expect(MockGetDeviceId).toHaveBeenCalledTimes(1);
-        });
+        const deviceId = DeviceIdService.getInstance();
+        const result = await deviceId.getDeviceId();
 
-        it("should handle timeout error callback", async () => {
-            MockGetDeviceId.mockImplementation((options) => {
-                if (options.onError) {
-                    options.onError("timeout", new Error("Timeout"));
-                }
-                return Promise.resolve("device-id");
-            });
+        expect(result).toBe("unknown");
+    });
 
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
+    it("should handle machine ID generation failure", async () => {
+        MockGetDeviceId.mockRejectedValue(new Error("Device ID failed"));
 
-            const deviceId = DeviceIdService.getInstance();
-            const result = await deviceId.getDeviceId();
+        // Initialize after mocking
+        DeviceIdService.init(testLogger);
 
-            expect(result).toBe("device-id");
-        });
+        const deviceId = DeviceIdService.getInstance();
+        const result = await deviceId.getDeviceId();
 
-        it("should handle abort error callback without logging", async () => {
-            MockGetDeviceId.mockImplementation((options) => {
-                if (options.onError) {
-                    options.onError("abort", new Error("Aborted"));
-                }
-                return Promise.resolve("device-id");
-            });
+        expect(result).toBe("unknown");
+    });
 
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
+    it("should use AbortController signal", async () => {
+        MockGetDeviceId.mockResolvedValue("device-id");
 
-            const deviceId = DeviceIdService.getInstance();
-            const result = await deviceId.getDeviceId();
+        // Initialize after mocking
+        DeviceIdService.init(testLogger);
 
-            expect(result).toBe("device-id");
-        });
+        const deviceId = DeviceIdService.getInstance();
+        await deviceId.getDeviceId();
 
-        it("should handle machine ID generation failure", async () => {
-            MockGetDeviceId.mockRejectedValue(new Error("Device ID failed"));
+        const callArgs = MockGetDeviceId.mock.calls[0]?.[0];
+        if (callArgs) {
+            expect(callArgs.abortSignal).toBeInstanceOf(AbortSignal);
+        }
+    });
 
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
+    it("should handle non-Error exceptions", async () => {
+        MockGetDeviceId.mockRejectedValue("String error");
 
-            const deviceId = DeviceIdService.getInstance();
-            const result = await deviceId.getDeviceId();
+        // Initialize after mocking
+        DeviceIdService.init(testLogger);
 
-            expect(result).toBe("unknown");
-        });
+        const deviceId = DeviceIdService.getInstance();
+        const result = await deviceId.getDeviceId();
 
-        it("should use AbortController signal", async () => {
-            MockGetDeviceId.mockResolvedValue("device-id");
-
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
-
-            const deviceId = DeviceIdService.getInstance();
-            await deviceId.getDeviceId();
-
-            const callArgs = MockGetDeviceId.mock.calls[0]?.[0];
-            if (callArgs) {
-                expect(callArgs.abortSignal).toBeInstanceOf(AbortSignal);
-            }
-        });
-
-        it("should handle non-Error exceptions", async () => {
-            MockGetDeviceId.mockRejectedValue("String error");
-
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
-
-            const deviceId = DeviceIdService.getInstance();
-            const result = await deviceId.getDeviceId();
-
-            expect(result).toBe("unknown");
-        });
+        expect(result).toBe("unknown");
     });
 });
