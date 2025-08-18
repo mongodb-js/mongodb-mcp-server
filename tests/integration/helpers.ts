@@ -11,6 +11,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { ConnectionManager } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
+import { DeviceIdService } from "../../src/helpers/deviceId.js";
+import nodeMachineId from "node-machine-id";
 
 interface ParameterInfo {
     name: string;
@@ -58,6 +60,10 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init(userConfig, logger);
+
+        // Initialize DeviceIdService for tests
+        DeviceIdService.init(logger, () => nodeMachineId.machineId(true));
+
         const connectionManager = new ConnectionManager();
 
         const session = new Session({

@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { setAppNameParamIfMissing } from "../../../src/helpers/connectionOptions.js";
+import { DeviceIdService } from "../../../src/helpers/deviceId.js";
 
 // Mock the deviceId utility
 vi.mock("../../../src/helpers/deviceId.js", () => ({
-    getDeviceIdForConnection: vi.fn().mockResolvedValue("test-device-id"),
+    DeviceIdService: {
+        getInstance: vi.fn().mockReturnValue({
+            getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
+        }),
+    },
 }));
 
 describe("Connection Options", () => {
@@ -15,6 +20,7 @@ describe("Connection Options", () => {
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
+                    deviceId: DeviceIdService.getInstance().getDeviceId(),
                 },
             });
 
@@ -42,7 +48,7 @@ describe("Connection Options", () => {
                 connectionString,
                 components: {
                     appName: "TestApp",
-                    deviceId: "custom-device-id",
+                    deviceId: Promise.resolve("custom-device-id"),
                     clientName: "TestClient",
                 },
             });
@@ -56,6 +62,7 @@ describe("Connection Options", () => {
                 connectionString,
                 components: {
                     appName: "TestApp",
+                    deviceId: DeviceIdService.getInstance().getDeviceId(),
                 },
             });
 
@@ -69,6 +76,7 @@ describe("Connection Options", () => {
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
+                    deviceId: DeviceIdService.getInstance().getDeviceId(),
                 },
             });
 
@@ -82,6 +90,7 @@ describe("Connection Options", () => {
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
+                    deviceId: DeviceIdService.getInstance().getDeviceId(),
                 },
             });
 

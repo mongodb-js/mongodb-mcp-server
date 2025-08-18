@@ -5,8 +5,8 @@ import { LogId } from "../common/logger.js";
 import { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
-import { getDeviceIdForConnection } from "../helpers/deviceId.js";
 import { detectContainerEnv } from "../helpers/container.js";
+import { DeviceIdService } from "../helpers/deviceId.js";
 
 type EventResult = {
     success: boolean;
@@ -18,14 +18,16 @@ export class Telemetry {
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
     private eventCache: EventCache;
+    private deviceId: DeviceIdService;
 
     private constructor(
         private readonly session: Session,
         private readonly userConfig: UserConfig,
         private readonly commonProperties: CommonProperties,
-        { eventCache }: { eventCache: EventCache }
+        { eventCache, deviceId }: { eventCache: EventCache; deviceId: DeviceIdService }
     ) {
         this.eventCache = eventCache;
+        this.deviceId = deviceId;
     }
 
     static create(
@@ -34,12 +36,14 @@ export class Telemetry {
         {
             commonProperties = { ...MACHINE_METADATA },
             eventCache = EventCache.getInstance(),
+            deviceId = DeviceIdService.getInstance(),
         }: {
             eventCache?: EventCache;
+            deviceId?: DeviceIdService;
             commonProperties?: CommonProperties;
         } = {}
     ): Telemetry {
-        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache });
+        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, deviceId });
 
         void instance.setup();
         return instance;
@@ -49,10 +53,11 @@ export class Telemetry {
         if (!this.isTelemetryEnabled()) {
             return;
         }
-        this.setupPromise = Promise.all([getDeviceIdForConnection(), detectContainerEnv()]);
-        const [deviceId, containerEnv] = await this.setupPromise;
 
-        this.commonProperties.device_id = deviceId;
+        this.setupPromise = Promise.all([this.deviceId.getDeviceId(), detectContainerEnv()]);
+        const [deviceIdValue, containerEnv] = await this.setupPromise;
+
+        this.commonProperties.device_id = deviceIdValue;
         this.commonProperties.is_container_env = containerEnv;
 
         this.isBufferingEvents = false;

@@ -1,10 +1,9 @@
 import { MongoClientOptions } from "mongodb";
 import ConnectionString from "mongodb-connection-string-url";
-import { getDeviceIdForConnection } from "./deviceId.js";
 
 export interface AppNameComponents {
     appName: string;
-    deviceId?: string;
+    deviceId?: Promise<string>;
     clientName?: string;
 }
 
@@ -30,7 +29,8 @@ export async function setAppNameParamIfMissing({
         return connectionStringUrl.toString();
     }
 
-    const deviceId = components.deviceId || (await getDeviceIdForConnection());
+    const deviceId = components.deviceId ? await components.deviceId : "unknown";
+
     const clientName = components.clientName || "unknown";
 
     // Build the extended appName format: appName--deviceId--clientName

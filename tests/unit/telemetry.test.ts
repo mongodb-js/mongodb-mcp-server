@@ -7,6 +7,7 @@ import { config } from "../../src/common/config.js";
 import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
 import { NullLogger } from "../../src/common/logger.js";
 import type { MockedFunction } from "vitest";
+import { DeviceIdService } from "../../src/helpers/deviceId.js";
 
 // Mock the ApiClient to avoid real API calls
 vi.mock("../../src/common/atlas/apiClient.js");
@@ -18,7 +19,11 @@ const MockEventCache = vi.mocked(EventCache);
 
 // Mock the deviceId utility
 vi.mock("../../src/helpers/deviceId.js", () => ({
-    getDeviceIdForConnection: vi.fn().mockResolvedValue("test-device-id"),
+    DeviceIdService: {
+        init: vi.fn(),
+        getInstance: vi.fn(),
+        resetInstance: vi.fn(),
+    },
 }));
 
 describe("Telemetry", () => {
@@ -119,11 +124,27 @@ describe("Telemetry", () => {
         mockEventCache.appendEvents = vi.fn().mockResolvedValue(undefined);
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
+        // Setup mocked DeviceId
+        const mockDeviceId = {
+            getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
+            abortCalculation: vi.fn().mockResolvedValue(undefined),
+            deviceId: undefined,
+            deviceIdPromise: undefined,
+            abortController: undefined,
+            logger: new NullLogger(),
+            getMachineId: vi.fn(),
+            startDeviceIdCalculation: vi.fn(),
+            calculateDeviceId: vi.fn(),
+        } as unknown as DeviceIdService;
+        DeviceIdService.getInstance = vi.fn().mockReturnValue(mockDeviceId);
+        DeviceIdService.init = vi.fn().mockReturnValue(mockDeviceId);
+
         // Create a simplified session with our mocked API client
         session = {
             apiClient: mockApiClient as unknown as ApiClient,
             sessionId: "test-session-id",
             agentRunner: { name: "test-agent", version: "1.0.0" } as const,
+            mcpClient: { name: "test-agent", version: "1.0.0" },
             close: vi.fn().mockResolvedValue(undefined),
             setAgentRunner: vi.fn().mockResolvedValue(undefined),
             logger: new NullLogger(),
@@ -131,6 +152,7 @@ describe("Telemetry", () => {
 
         telemetry = Telemetry.create(session, config, {
             eventCache: mockEventCache as unknown as EventCache,
+            deviceId: mockDeviceId,
         });
 
         config.telemetry = "enabled";
@@ -234,8 +256,9 @@ describe("Telemetry", () => {
 
                 it("should handle device ID resolution failure gracefully", async () => {
                     // Mock the deviceId utility to return "unknown" for this test
-                    const { getDeviceIdForConnection } = await import("../../src/helpers/deviceId.js");
-                    vi.mocked(getDeviceIdForConnection).mockResolvedValueOnce("unknown");
+                    const { DeviceIdService } = await import("../../src/helpers/deviceId.js");
+                    const mockDeviceId = vi.mocked(DeviceIdService.getInstance());
+                    mockDeviceId.getDeviceId.mockResolvedValueOnce("unknown");
 
                     telemetry = Telemetry.create(session, config);
 
@@ -251,8 +274,9 @@ describe("Telemetry", () => {
 
                 it("should handle device ID timeout gracefully", async () => {
                     // Mock the deviceId utility to return "unknown" for this test
-                    const { getDeviceIdForConnection } = await import("../../src/helpers/deviceId.js");
-                    vi.mocked(getDeviceIdForConnection).mockResolvedValueOnce("unknown");
+                    const { DeviceIdService } = await import("../../src/helpers/deviceId.js");
+                    const mockDeviceId = vi.mocked(DeviceIdService.getInstance());
+                    mockDeviceId.getDeviceId.mockResolvedValueOnce("unknown");
 
                     telemetry = Telemetry.create(session, config);
 

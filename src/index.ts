@@ -42,6 +42,8 @@ import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
+import { DeviceIdService } from "./helpers/deviceId.js";
+import nodeMachineId from "node-machine-id";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -50,6 +52,7 @@ async function main(): Promise<void> {
     assertVersionMode();
 
     const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
+    const deviceId = DeviceIdService.init(transportRunner.logger, () => nodeMachineId.machineId(true));
 
     const shutdown = (): void => {
         transportRunner.logger.info({
@@ -61,6 +64,7 @@ async function main(): Promise<void> {
         transportRunner
             .close()
             .then(() => {
+                deviceId.abortCalculation();
                 transportRunner.logger.info({
                     id: LogId.serverClosed,
                     context: "server",
@@ -69,6 +73,7 @@ async function main(): Promise<void> {
                 process.exit(0);
             })
             .catch((error: unknown) => {
+                deviceId.abortCalculation();
                 transportRunner.logger.error({
                     id: LogId.serverCloseFailure,
                     context: "server",

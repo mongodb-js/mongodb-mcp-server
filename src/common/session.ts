@@ -72,20 +72,22 @@ export class Session extends EventEmitter<SessionEvents> {
 
     setMcpClient(mcpClient: Implementation | undefined): void {
         if (!mcpClient) {
-            this.mcpClient = undefined;
+            this.connectionManager.setClientName("unknown");
             this.logger.debug({
                 id: LogId.serverMcpClientSet,
                 context: "session",
                 message: "MCP client info not found",
             });
-            return;
         }
 
         this.mcpClient = {
-            name: mcpClient.name || "unknown",
-            version: mcpClient.version || "unknown",
-            title: mcpClient.title || "unknown",
+            name: mcpClient?.name || "unknown",
+            version: mcpClient?.version || "unknown",
+            title: mcpClient?.title || "unknown",
         };
+
+        // Set the client name on the connection manager for appName generation
+        this.connectionManager.setClientName(this.mcpClient.name || "unknown");
     }
 
     async disconnect(): Promise<void> {

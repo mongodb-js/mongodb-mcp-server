@@ -8,7 +8,14 @@ import { ExportsManager } from "../../../src/common/exportsManager.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 vi.mock("../../../src/helpers/deviceId.js", () => ({
-    getDeviceIdForConnection: vi.fn().mockResolvedValue("test-device-id"),
+    DeviceIdService: {
+        init: vi.fn(),
+        getInstance: vi.fn().mockReturnValue({
+            getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
+        }),
+        getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
+        resetInstance: vi.fn(),
+    },
 }));
 
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
@@ -87,7 +94,7 @@ describe("Session", () => {
         it("should include client name when agent runner is set", async () => {
             session.setMcpClient({ name: "test-client", version: "1.0.0" });
 
-            await session.connectToMongoDB("mongodb://localhost:27017", config.connectOptions);
+            await session.connectToMongoDB({ connectionString: "mongodb://localhost:27017" });
             expect(session.serviceProvider).toBeDefined();
 
             const connectMock = MockNodeDriverServiceProvider.connect;
@@ -99,7 +106,7 @@ describe("Session", () => {
         });
 
         it("should use 'unknown' for client name when agent runner is not set", async () => {
-            await session.connectToMongoDB("mongodb://localhost:27017", config.connectOptions);
+            await session.connectToMongoDB({ connectionString: "mongodb://localhost:27017" });
             expect(session.serviceProvider).toBeDefined();
 
             const connectMock = MockNodeDriverServiceProvider.connect;

@@ -6,6 +6,8 @@ import { packageInfo } from "./packageInfo.js";
 import ConnectionString from "mongodb-connection-string-url";
 import { MongoClientOptions } from "mongodb";
 import { ErrorCodes, MongoDBError } from "./errors.js";
+import { DeviceIdService } from "../helpers/deviceId.js";
+import { AppNameComponents } from "../helpers/connectionOptions.js";
 
 export interface AtlasClusterConnectionInfo {
     username: string;
@@ -67,11 +69,19 @@ export interface ConnectionManagerEvents {
 
 export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     private state: AnyConnectionState;
+    private deviceId: DeviceIdService;
+    private clientName: string;
 
     constructor() {
         super();
 
         this.state = { tag: "disconnected" };
+        this.deviceId = DeviceIdService.getInstance();
+        this.clientName = "unknown";
+    }
+
+    setClientName(clientName: string): void {
+        this.clientName = clientName;
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
@@ -84,14 +94,15 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         let serviceProvider: NodeDriverServiceProvider;
         try {
             settings = { ...settings };
+            const appNameComponents: AppNameComponents = {
+                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                deviceId: this.deviceId.getDeviceId(),
+                clientName: this.clientName,
+            };
+
             settings.connectionString = await setAppNameParamIfMissing({
                 connectionString: settings.connectionString,
-                components: {
-                    appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
-                    // deviceId: deviceId, //TODO: MCP-68 - get deviceId from session
-                    // clientName: this.clientInfo?.name || "unknown",
-                    clientName: "unknown", //TODO: MCP-68 - get client name from session
-                },
+                components: appNameComponents,
             });
 
             serviceProvider = await NodeDriverServiceProvider.connect(settings.connectionString, {
