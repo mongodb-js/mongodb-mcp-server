@@ -88,7 +88,9 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
                 connectionString: settings.connectionString,
                 components: {
                     appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
-                    // clientName: this.agentRunner?.name || "unknown", //TODO: MCP-68 - get client name from session
+                    // deviceId: deviceId, //TODO: MCP-68 - get deviceId from session
+                    // clientName: this.clientInfo?.name || "unknown",
+                    clientName: "unknown", //TODO: MCP-68 - get client name from session
                 },
             });
 

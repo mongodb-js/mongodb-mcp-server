@@ -34,9 +34,10 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
-    agentRunner?: {
-        name: string;
-        version: string;
+    mcpClient?: {
+        name?: string;
+        version?: string;
+        title?: string;
     };
 
     public logger: CompositeLogger;
@@ -69,13 +70,22 @@ export class Session extends EventEmitter<SessionEvents> {
         this.connectionManager.on("connection-errored", (error) => this.emit("connection-error", error.errorReason));
     }
 
-    setAgentRunner(agentRunner: Implementation | undefined): void {
-        if (agentRunner?.name && agentRunner?.version) {
-            this.agentRunner = {
-                name: agentRunner.name,
-                version: agentRunner.version,
-            };
+    setMcpClient(mcpClient: Implementation | undefined): void {
+        if (!mcpClient) {
+            this.mcpClient = undefined;
+            this.logger.debug({
+                id: LogId.serverMcpClientSet,
+                context: "session",
+                message: "MCP client info not found",
+            });
+            return;
         }
+
+        this.mcpClient = {
+            name: mcpClient.name || "unknown",
+            version: mcpClient.version || "unknown",
+            title: mcpClient.title || "unknown",
+        };
     }
 
     async disconnect(): Promise<void> {

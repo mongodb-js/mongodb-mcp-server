@@ -85,7 +85,7 @@ describe("Session", () => {
         });
 
         it("should include client name when agent runner is set", async () => {
-            session.setAgentRunner({ name: "test-client", version: "1.0.0" });
+            session.setMcpClient({ name: "test-client", version: "1.0.0" });
 
             await session.connectToMongoDB("mongodb://localhost:27017", config.connectOptions);
             expect(session.serviceProvider).toBeDefined();

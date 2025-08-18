@@ -97,12 +97,12 @@ export class Server {
         });
 
         this.mcpServer.server.oninitialized = (): void => {
-            this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
+            this.session.setMcpClient(this.mcpServer.server.getClientVersion());
 
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`,
+                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.mcpClient?.name}`,
             });
 
             this.emitServerEvent("start", Date.now() - this.startTime);

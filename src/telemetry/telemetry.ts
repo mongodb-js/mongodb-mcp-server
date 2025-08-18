@@ -98,8 +98,8 @@ export class Telemetry {
         return {
             ...this.commonProperties,
             transport: this.userConfig.transport,
-            mcp_client_version: this.session.agentRunner?.version,
-            mcp_client_name: this.session.agentRunner?.name,
+            mcp_client_version: this.session.mcpClient?.version,
+            mcp_client_name: this.session.mcpClient?.name,
             session_id: this.session.sessionId,
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",

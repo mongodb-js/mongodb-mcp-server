@@ -1,6 +1,6 @@
 import { getDeviceId } from "@mongodb-js/device-id";
 import nodeMachineId from "node-machine-id";
-import logger, { LogId } from "../common/logger.js";
+import { LogId, CompositeLogger } from "../common/logger.js";
 
 export const DEVICE_ID_TIMEOUT = 3000;
 
@@ -13,11 +13,11 @@ export const DEVICE_ID_TIMEOUT = 3000;
  *
  * @example
  * ```typescript
- * const deviceId = await getDeviceIdForConnection();
+ * const deviceId = await getDeviceIdForConnection(logger);
  * console.log(deviceId); // Outputs the device ID or "unknown" in case of failure
  * ```
  */
-export async function getDeviceIdForConnection(): Promise<string> {
+export async function getDeviceIdForConnection(logger: CompositeLogger): Promise<string> {
     const controller = new AbortController();
 
     try {
