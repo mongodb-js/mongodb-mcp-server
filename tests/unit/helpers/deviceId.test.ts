@@ -72,23 +72,6 @@ describe("Device ID Helper", () => {
             expect(MockGetDeviceId).toHaveBeenCalledTimes(1); // Still only called once
         });
 
-        it("should return cached device ID without triggering calculation", async () => {
-            const mockDeviceId = "test-device-id-123";
-            MockGetDeviceId.mockResolvedValue(mockDeviceId);
-
-            // Initialize after mocking
-            DeviceIdService.init(testLogger);
-
-            const deviceId = DeviceIdService.getInstance();
-
-            // First call to populate cache
-            await deviceId.getDeviceId();
-
-            // Get cached value without triggering calculation
-            const cachedValue = await deviceId.getDeviceId();
-            expect(cachedValue).toBe(mockDeviceId);
-        });
-
         it("should allow aborting calculation", async () => {
             MockGetDeviceId.mockImplementation((options) => {
                 // Simulate a long-running operation that can be aborted
@@ -145,6 +128,7 @@ describe("Device ID Helper", () => {
             const result = await deviceId.getDeviceId();
 
             expect(result).toBe("device-id");
+            expect(MockGetDeviceId).toHaveBeenCalledTimes(1);
         });
 
         it("should handle timeout error callback", async () => {

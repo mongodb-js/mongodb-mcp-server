@@ -69,18 +69,17 @@ describe("Connection Options", () => {
             expect(result).toContain("appName=TestApp--test-device-id--unknown");
         });
 
-        it("should use deviceId utility when deviceId is not provided", async () => {
+        it("should use deviceId as unknown when deviceId is not provided", async () => {
             const connectionString = "mongodb://localhost:27017";
             const result = await setAppNameParamIfMissing({
                 connectionString,
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
-                    deviceId: DeviceIdService.getInstance().getDeviceId(),
                 },
             });
 
-            expect(result).toContain("appName=TestApp--test-device-id--TestClient");
+            expect(result).toContain("appName=TestApp--unknown--TestClient");
         });
 
         it("should preserve other query parameters", async () => {
