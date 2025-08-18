@@ -29,12 +29,12 @@ export async function setAppNameParamIfMissing({
         return connectionStringUrl.toString();
     }
 
+    const appName = components.appName || "unknown";
     const deviceId = components.deviceId ? await components.deviceId : "unknown";
-
     const clientName = components.clientName || "unknown";
 
     // Build the extended appName format: appName--deviceId--clientName
-    const extendedAppName = `${components.appName}--${deviceId}--${clientName}`;
+    const extendedAppName = `${appName}--${deviceId}--${clientName}`;
 
     searchParams.set("appName", extendedAppName);
 
