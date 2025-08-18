@@ -43,7 +43,6 @@ import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { DeviceIdService } from "./helpers/deviceId.js";
-import nodeMachineId from "node-machine-id";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -52,7 +51,7 @@ async function main(): Promise<void> {
     assertVersionMode();
 
     const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
-    const deviceId = DeviceIdService.init(transportRunner.logger, () => nodeMachineId.machineId(true));
+    const deviceId = DeviceIdService.init(transportRunner.logger);
 
     const shutdown = (): void => {
         transportRunner.logger.info({

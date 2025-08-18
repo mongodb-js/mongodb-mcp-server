@@ -1,4 +1,5 @@
 import { getDeviceId } from "@mongodb-js/device-id";
+import nodeMachineId from "node-machine-id";
 import { LogId, LoggerBase } from "../common/logger.js";
 
 export const DEVICE_ID_TIMEOUT = 3000;
@@ -15,9 +16,9 @@ export class DeviceIdService {
     private logger: LoggerBase;
     private getMachineId: () => Promise<string>;
 
-    private constructor(logger: LoggerBase, getMachineId: () => Promise<string>) {
+    private constructor(logger: LoggerBase) {
         this.logger = logger;
-        this.getMachineId = getMachineId;
+        this.getMachineId = (): Promise<string> => nodeMachineId.machineId(true);
         // Start device ID calculation immediately
         this.startDeviceIdCalculation();
     }
@@ -28,11 +29,11 @@ export class DeviceIdService {
      * @param logger - The logger instance to use
      * @returns The DeviceIdService instance
      */
-    public static init(logger: LoggerBase, getMachineId: () => Promise<string>): DeviceIdService {
+    public static init(logger: LoggerBase): DeviceIdService {
         if (DeviceIdService.instance) {
             return DeviceIdService.instance;
         }
-        DeviceIdService.instance = new DeviceIdService(logger, getMachineId);
+        DeviceIdService.instance = new DeviceIdService(logger);
         return DeviceIdService.instance;
     }
 
@@ -51,6 +52,10 @@ export class DeviceIdService {
      * Resets the singleton instance (mainly for testing).
      */
     static resetInstance(): void {
+        // abort any ongoing calculation
+        if (DeviceIdService.instance?.abortController) {
+            DeviceIdService.instance.abortController.abort();
+        }
         DeviceIdService.instance = undefined;
     }
 

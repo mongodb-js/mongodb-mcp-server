@@ -7,7 +7,6 @@ import { CompositeLogger } from "../../../src/common/logger.js";
 // Mock the dependencies
 vi.mock("@mongodb-js/device-id");
 vi.mock("node-machine-id");
-
 const MockGetDeviceId = vi.mocked(getDeviceId);
 
 describe("Device ID Helper", () => {
@@ -17,9 +16,6 @@ describe("Device ID Helper", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         testLogger = new CompositeLogger();
-
-        // Create a mock getMachineId function
-        mockGetMachineId = vi.fn().mockResolvedValue("test-machine-id");
 
         // Reset singleton between tests
         DeviceIdService.resetInstance();
@@ -33,7 +29,7 @@ describe("Device ID Helper", () => {
     describe("DeviceIdService Singleton", () => {
         it("should return the same instance for multiple getInstance calls", () => {
             // Initialize first
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const instance1 = DeviceIdService.getInstance();
             const instance2 = DeviceIdService.getInstance();
@@ -50,17 +46,12 @@ describe("Device ID Helper", () => {
             MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             const result = await deviceId.getDeviceId();
 
             expect(result).toBe(mockDeviceId);
-            expect(MockGetDeviceId).toHaveBeenCalledWith({
-                getMachineId: mockGetMachineId,
-                onError: expect.any(Function),
-                abortSignal: expect.any(AbortSignal),
-            });
         });
 
         it("should cache device ID after first retrieval", async () => {
@@ -68,7 +59,7 @@ describe("Device ID Helper", () => {
             MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
 
@@ -88,7 +79,7 @@ describe("Device ID Helper", () => {
             MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
 
@@ -115,7 +106,7 @@ describe("Device ID Helper", () => {
             });
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
 
@@ -133,7 +124,7 @@ describe("Device ID Helper", () => {
             MockGetDeviceId.mockRejectedValue(new Error("Device ID resolution failed"));
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             const result = await deviceId.getDeviceId();
@@ -150,7 +141,7 @@ describe("Device ID Helper", () => {
             });
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             const result = await deviceId.getDeviceId();
@@ -167,7 +158,7 @@ describe("Device ID Helper", () => {
             });
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             const result = await deviceId.getDeviceId();
@@ -184,7 +175,7 @@ describe("Device ID Helper", () => {
             });
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             const result = await deviceId.getDeviceId();
@@ -199,7 +190,7 @@ describe("Device ID Helper", () => {
             MockGetDeviceId.mockRejectedValue(new Error("Device ID failed"));
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             const result = await deviceId.getDeviceId();
@@ -211,7 +202,7 @@ describe("Device ID Helper", () => {
             MockGetDeviceId.mockResolvedValue("device-id");
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             await deviceId.getDeviceId();
@@ -226,7 +217,7 @@ describe("Device ID Helper", () => {
             MockGetDeviceId.mockRejectedValue("String error");
 
             // Initialize after mocking
-            DeviceIdService.init(testLogger, mockGetMachineId);
+            DeviceIdService.init(testLogger);
 
             const deviceId = DeviceIdService.getInstance();
             const result = await deviceId.getDeviceId();

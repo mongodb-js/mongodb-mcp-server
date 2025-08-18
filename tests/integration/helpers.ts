@@ -1,18 +1,17 @@
+import { CompositeLogger } from "../../src/common/logger.js";
+import { ExportsManager } from "../../src/common/exportsManager.js";
+import { Session } from "../../src/common/session.js";
+import { Server } from "../../src/server.js";
+import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { Server } from "../../src/server.js";
 import { UserConfig } from "../../src/common/config.js";
+import { DeviceIdService } from "../../src/helpers/deviceId.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Session } from "../../src/common/session.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { config } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConnectionManager } from "../../src/common/connectionManager.js";
-import { CompositeLogger } from "../../src/common/logger.js";
-import { ExportsManager } from "../../src/common/exportsManager.js";
-import { DeviceIdService } from "../../src/helpers/deviceId.js";
-import nodeMachineId from "node-machine-id";
 
 interface ParameterInfo {
     name: string;
@@ -41,6 +40,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
         const userConfig = getUserConfig();
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
+        const logger = new CompositeLogger();
 
         await serverTransport.start();
         await clientTransport.start();
@@ -58,11 +58,10 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             }
         );
 
-        const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         // Initialize DeviceIdService for tests
-        DeviceIdService.init(logger, () => nodeMachineId.machineId(true));
+        DeviceIdService.init(logger);
 
         const connectionManager = new ConnectionManager();
 
