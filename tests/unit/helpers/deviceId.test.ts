@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { DeviceIdService } from "../../../src/helpers/deviceId.js";
 import { getDeviceId } from "@mongodb-js/device-id";
@@ -184,9 +183,6 @@ describe("Device ID Helper", () => {
         });
 
         it("should handle machine ID generation failure", async () => {
-            // Mock getMachineId to throw an error
-            mockGetMachineId = vi.fn().mockRejectedValue(new Error("Machine ID generation failed"));
-
             MockGetDeviceId.mockRejectedValue(new Error("Device ID failed"));
 
             // Initialize after mocking

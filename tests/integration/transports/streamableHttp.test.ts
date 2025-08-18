@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { config } from "../../../src/common/config.js";
+import { DeviceIdService } from "../../../src/helpers/deviceId.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -15,6 +16,7 @@ describe("StreamableHttpRunner", () => {
         config.telemetry = "disabled";
         config.loggers = ["stderr"];
         runner = new StreamableHttpRunner(config);
+        DeviceIdService.init(runner.logger);
         await runner.start();
     });
 

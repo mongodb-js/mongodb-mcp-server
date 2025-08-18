@@ -15,7 +15,7 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): Su
         }));
 
         describe(name, () => {
-            fn(integration);
+            fn(clea);
         });
     };
 

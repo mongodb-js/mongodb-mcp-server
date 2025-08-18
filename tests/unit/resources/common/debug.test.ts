@@ -6,6 +6,7 @@ import { config } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { ConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
+import { DeviceIdService } from "../../../../src/helpers/deviceId.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -21,6 +22,7 @@ describe("debug resource", () => {
 
     beforeEach(() => {
         debugResource = new DebugResource(session, config, telemetry);
+        DeviceIdService.init(logger);
     });
 
     it("should be connected when a connected event happens", () => {
