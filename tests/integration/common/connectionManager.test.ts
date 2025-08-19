@@ -4,6 +4,7 @@ import {
     ConnectionStateConnected,
     ConnectionStringAuthType,
 } from "../../../src/common/connectionManager.js";
+import type { UserConfig } from "../../../src/common/config.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 
@@ -136,23 +137,52 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
 describe("Connection Manager connection type inference", () => {
     const testCases = [
-        { connectionString: "mongodb://localhost:27017", connectionType: "scram" },
-        { connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-X509", connectionType: "x.509" },
-        { connectionString: "mongodb://localhost:27017?authMechanism=GSSAPI", connectionType: "kerberos" },
+        { userConfig: {}, connectionString: "mongodb://localhost:27017", connectionType: "scram" },
         {
+            userConfig: {},
+            connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-X509",
+            connectionType: "x.509",
+        },
+        {
+            userConfig: {},
+            connectionString: "mongodb://localhost:27017?authMechanism=GSSAPI",
+            connectionType: "kerberos",
+        },
+        {
+            userConfig: {},
             connectionString: "mongodb://localhost:27017?authMechanism=PLAIN&authSource=$external",
             connectionType: "ldap",
         },
-        { connectionString: "mongodb://localhost:27017?authMechanism=PLAIN", connectionType: "scram" },
-        { connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-OIDC", connectionType: "oidc-auth-flow" },
+        { userConfig: {}, connectionString: "mongodb://localhost:27017?authMechanism=PLAIN", connectionType: "scram" },
+        {
+            userConfig: { transport: "stdio", browser: "firefox" },
+            connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-OIDC",
+            connectionType: "oidc-auth-flow",
+        },
+        {
+            userConfig: { transport: "http", httpHost: "127.0.0.1", browser: "ie6" },
+            connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-OIDC",
+            connectionType: "oidc-auth-flow",
+        },
+        {
+            userConfig: { transport: "http", httpHost: "0.0.0.0", browser: "ie6" },
+            connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-OIDC",
+            connectionType: "oidc-device-flow",
+        },
+        {
+            userConfig: { transport: "stdio" },
+            connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-OIDC",
+            connectionType: "oidc-device-flow",
+        },
     ] as {
+        userConfig: Partial<UserConfig>;
         connectionString: string;
         connectionType: ConnectionStringAuthType;
     }[];
 
-    for (const { connectionString, connectionType } of testCases) {
+    for (const { userConfig, connectionString, connectionType } of testCases) {
         it(`infers ${connectionType} from ${connectionString}`, () => {
-            const actualConnectionType = ConnectionManager.inferConnectionTypeFromSettings({
+            const actualConnectionType = ConnectionManager.inferConnectionTypeFromSettings(userConfig as UserConfig, {
                 connectionString,
             });
 

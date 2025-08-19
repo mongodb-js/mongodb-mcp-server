@@ -1,6 +1,6 @@
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { Session } from "../../src/common/session.js";
-import { config } from "../../src/common/config.js";
+import { config, driverOptions } from "../../src/common/config.js";
 import { DeviceIdService } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";
@@ -18,9 +18,9 @@ describe("Telemetry", () => {
         const telemetry = Telemetry.create(
             new Session({
                 apiBaseUrl: "",
-                logger: new CompositeLogger(),
+                logger,
                 exportsManager: ExportsManager.init(config, logger),
-                connectionManager: new ConnectionManager(),
+                connectionManager: new ConnectionManager(config, driverOptions, logger),
             }),
             config
         );

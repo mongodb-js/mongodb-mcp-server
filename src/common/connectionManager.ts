@@ -1,4 +1,4 @@
-import { driverOptions } from "./config.js";
+import { UserConfig, DriverOptions } from "./config.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import EventEmitter from "events";
 import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
@@ -8,6 +8,8 @@ import { MongoClientOptions } from "mongodb";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import { DeviceIdService } from "../helpers/deviceId.js";
 import { AppNameComponents } from "../helpers/connectionOptions.js";
+import { CompositeLogger, LogId } from "./logger.js";
+import { ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
 export interface AtlasClusterConnectionInfo {
     username: string;
@@ -71,11 +73,22 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     private state: AnyConnectionState;
     private deviceId: DeviceIdService;
     private clientName: string;
+    private bus: EventEmitter;
 
-    constructor() {
+    constructor(
+        private userConfig: UserConfig,
+        private driverOptions: DriverOptions,
+        private logger: CompositeLogger,
+        bus?: EventEmitter
+    ) {
         super();
 
+        this.bus = bus ?? new EventEmitter();
         this.state = { tag: "disconnected" };
+
+        this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
+        this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
+        
         this.deviceId = DeviceIdService.getInstance();
         this.clientName = "unknown";
     }
@@ -92,6 +105,8 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         }
 
         let serviceProvider: NodeDriverServiceProvider;
+        let connectionInfo: ConnectionInfo;
+
         try {
             settings = { ...settings };
             const appNameComponents: AppNameComponents = {
@@ -105,11 +120,30 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
                 components: appNameComponents,
             });
 
-            serviceProvider = await NodeDriverServiceProvider.connect(settings.connectionString, {
-                productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
-                productName: "MongoDB MCP",
-                ...driverOptions,
+            connectionInfo = generateConnectionInfoFromCliArgs({
+                ...this.userConfig,
+                ...this.driverOptions,
+                connectionSpecifier: settings.connectionString,
             });
+
+            if (connectionInfo.driverOptions.oidc) {
+                connectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
+                connectionInfo.driverOptions.oidc.notifyDeviceFlow ??= this.onOidcNotifyDeviceFlow.bind(this);
+            }
+
+            connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
+            connectionInfo.driverOptions.applyProxyToOIDC ??= true;
+
+            serviceProvider = await NodeDriverServiceProvider.connect(
+                connectionInfo.connectionString,
+                {
+                    productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
+                    productName: "MongoDB MCP",
+                    ...connectionInfo.driverOptions,
+                },
+                undefined,
+                this.bus
+            );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-errored", {
@@ -121,13 +155,26 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         }
 
         try {
+            const connectionType = ConnectionManager.inferConnectionTypeFromSettings(this.userConfig, connectionInfo);
+            if (connectionType.startsWith("oidc")) {
+                void this.pingAndForget(serviceProvider);
+
+                return this.changeState("connection-requested", {
+                    tag: "connecting",
+                    connectedAtlasCluster: settings.atlas,
+                    serviceProvider,
+                    connectionStringAuthType: connectionType,
+                    oidcConnectionType: connectionType as OIDCConnectionAuthType,
+                });
+            }
+
             await serviceProvider?.runCommand?.("admin", { hello: 1 });
 
             return this.changeState("connection-succeeded", {
                 tag: "connected",
                 connectedAtlasCluster: settings.atlas,
                 serviceProvider,
-                connectionStringAuthType: ConnectionManager.inferConnectionTypeFromSettings(settings),
+                connectionStringAuthType: connectionType,
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
@@ -173,13 +220,60 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         return newState;
     }
 
-    static inferConnectionTypeFromSettings(settings: ConnectionSettings): ConnectionStringAuthType {
+    private onOidcAuthFailed(error: unknown): void {
+        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
+            void this.disconnectOnOidcError(error);
+        }
+    }
+
+    private onOidcAuthSucceeded(): void {
+        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
+            this.changeState("connection-succeeded", { ...this.state, tag: "connected" });
+        }
+
+        this.logger.info({
+            id: LogId.oidcFlow,
+            context: "mongodb-oidc-plugin:auth-succeeded",
+            message: "Authenticated successfully.",
+        });
+    }
+
+    private onOidcNotifyDeviceFlow(flowInfo: { verificationUrl: string; userCode: string }): void {
+        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
+            this.changeState("connection-requested", {
+                ...this.state,
+                tag: "connecting",
+                connectionStringAuthType: "oidc-device-flow",
+                oidcLoginUrl: flowInfo.verificationUrl,
+                oidcUserCode: flowInfo.userCode,
+            });
+        }
+
+        this.logger.info({
+            id: LogId.oidcFlow,
+            context: "mongodb-oidc-plugin:notify-device-flow",
+            message: "OIDC Flow changed automatically to device flow.",
+        });
+    }
+
+    static inferConnectionTypeFromSettings(
+        config: UserConfig,
+        settings: { connectionString: string }
+    ): ConnectionStringAuthType {
         const connString = new ConnectionString(settings.connectionString);
         const searchParams = connString.typedSearchParams<MongoClientOptions>();
 
         switch (searchParams.get("authMechanism")) {
             case "MONGODB-OIDC": {
-                return "oidc-auth-flow"; // TODO: depending on if we don't have a --browser later it can be oidc-device-flow
+                if (config.transport === "stdio" && config.browser) {
+                    return "oidc-auth-flow";
+                }
+
+                if (config.transport === "http" && config.httpHost === "127.0.0.1" && config.browser) {
+                    return "oidc-auth-flow";
+                }
+
+                return "oidc-device-flow";
             }
             case "MONGODB-X509":
                 return "x.509";
@@ -195,6 +289,32 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             case null:
             default:
                 return "scram";
+        }
+    }
+
+    private async pingAndForget(serviceProvider: NodeDriverServiceProvider): Promise<void> {
+        try {
+            await serviceProvider?.runCommand?.("admin", { hello: 1 });
+        } catch (error: unknown) {
+            this.logger.warning({
+                id: LogId.oidcFlow,
+                context: "pingAndForget",
+                message: String(error),
+            });
+        }
+    }
+
+    private async disconnectOnOidcError(error: unknown): Promise<void> {
+        try {
+            await this.disconnect();
+        } catch (error: unknown) {
+            this.logger.warning({
+                id: LogId.oidcFlow,
+                context: "disconnectOnOidcError",
+                message: String(error),
+            });
+        } finally {
+            this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
         }
     }
 }

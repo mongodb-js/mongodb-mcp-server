@@ -64,6 +64,7 @@ export default defineConfig([
         "eslint.config.js",
         "vitest.config.ts",
         "src/types/*.d.ts",
+        "tests/integration/fixtures/",
     ]),
     eslintPluginPrettierRecommended,
 ]);
