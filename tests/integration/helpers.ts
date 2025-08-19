@@ -129,22 +129,26 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
     };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function getResponseContent(content: unknown | { content: unknown }): string {
+export function getResponseContent(content: unknown): string {
     return getResponseElements(content)
         .map((item) => item.text)
         .join("\n");
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function getResponseElements(content: unknown | { content: unknown }): { type: string; text: string }[] {
+export interface ResponseElement {
+    type: string;
+    text: string;
+    _meta?: unknown;
+}
+
+export function getResponseElements(content: unknown): ResponseElement[] {
     if (typeof content === "object" && content !== null && "content" in content) {
-        content = (content as { content: unknown }).content;
+        content = content.content;
     }
 
     expect(content).toBeInstanceOf(Array);
 
-    const response = content as { type: string; text: string }[];
+    const response = content as ResponseElement[];
     for (const item of response) {
         expect(item).toHaveProperty("type");
         expect(item).toHaveProperty("text");
