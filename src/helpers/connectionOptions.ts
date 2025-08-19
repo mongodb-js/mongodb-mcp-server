@@ -40,3 +40,18 @@ export async function setAppNameParamIfMissing({
 
     return connectionStringUrl.toString();
 }
+
+/**
+ * Validates the connection string
+ * @param connectionString - The connection string to validate
+ * @param looseValidation - Whether to allow loose validation
+ * @returns void
+ * @throws Error if the connection string is invalid
+ */
+export async function validateConnectionString(connectionString: string, looseValidation: boolean): Promise<void> {
+    try {
+        new ConnectionString(connectionString, { looseValidation });
+    } catch (error) {
+        throw new Error(`Invalid connection string with error: ${error}`);
+    }
+}
