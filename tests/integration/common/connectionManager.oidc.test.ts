@@ -231,6 +231,8 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     expect(response).toContain("The user needs to finish their OIDC connection by opening");
                     expect(response).toContain(state.oidcLoginUrl);
                     expect(response).toContain(state.oidcUserCode);
+                    expect(response).not.toContain("Please use one of the following tools");
+                    expect(response).not.toContain("There are no tools available to connect.");
 
                     await waitUntil<ConnectionStateConnected>(
                         "connected",
