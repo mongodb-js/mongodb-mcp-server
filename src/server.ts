@@ -9,7 +9,6 @@ import { Telemetry } from "./telemetry/telemetry.js";
 import { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
-import ConnectionString from "mongodb-connection-string-url";
 import {
     CallToolRequestSchema,
     CallToolResult,
@@ -100,6 +99,8 @@ export class Server {
 
         this.mcpServer.server.oninitialized = (): void => {
             this.session.setMcpClient(this.mcpServer.server.getClientVersion());
+            // Placed here to start the connection to the config connection string as soon as the server is initialized.
+            void this.connectToConfigConnectionString();
 
             this.session.logger.info({
                 id: LogId.serverInitialized,
@@ -108,9 +109,6 @@ export class Server {
             });
 
             this.emitServerEvent("start", Date.now() - this.startTime);
-
-            // Placed here to start the connection to the config connection string as soon as the server is initialized.
-            this.connectToConfigConnectionString();
         };
 
         this.mcpServer.server.onclose = (): void => {
@@ -196,10 +194,13 @@ export class Server {
         // Validate connection string
         if (this.userConfig.connectionString) {
             try {
-                await validateConnectionString(this.userConfig.connectionString, false);
+                validateConnectionString(this.userConfig.connectionString, false);
             } catch (error) {
                 console.error("Connection string validation failed with error: ", error);
-                throw new Error("Connection string validation failed with error: " + error);
+                throw new Error(
+                    "Connection string validation failed with error: " +
+                        (error instanceof Error ? error.message : String(error))
+                );
             }
         }
 

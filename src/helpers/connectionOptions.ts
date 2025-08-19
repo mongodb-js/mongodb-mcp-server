@@ -48,10 +48,12 @@ export async function setAppNameParamIfMissing({
  * @returns void
  * @throws Error if the connection string is invalid
  */
-export async function validateConnectionString(connectionString: string, looseValidation: boolean): Promise<void> {
+export function validateConnectionString(connectionString: string, looseValidation: boolean): void {
     try {
         new ConnectionString(connectionString, { looseValidation });
     } catch (error) {
-        throw new Error(`Invalid connection string with error: ${error}`);
+        throw new Error(
+            `Invalid connection string with error: ${error instanceof Error ? error.message : String(error)}`
+        );
     }
 }
