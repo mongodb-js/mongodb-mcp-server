@@ -35,10 +35,10 @@ describe("deviceId", () => {
 
     it("should correctly report initialization status", () => {
         expect(DeviceIdService.isInitialized()).toBe(false);
-        
+
         DeviceIdService.init(testLogger);
         expect(DeviceIdService.isInitialized()).toBe(true);
-        
+
         DeviceIdService.getInstance().close();
         expect(DeviceIdService.isInitialized()).toBe(false);
     });
