@@ -30,31 +30,35 @@ export class ConnectClusterTool extends AtlasToolBase {
 
     private determineReadOnlyRole(): boolean {
         if (this.config.readOnly) return true;
-        
+
         const disabledTools = this.config.disabledTools || [];
-        const hasWriteAccess = !disabledTools.includes("create") && 
-                              !disabledTools.includes("update") && 
-                              !disabledTools.includes("delete");
-        const hasReadAccess = !disabledTools.includes("read") && 
-                             !disabledTools.includes("metadata");
-        
+        const hasWriteAccess =
+            !disabledTools.includes("create") && !disabledTools.includes("update") && !disabledTools.includes("delete");
+        const hasReadAccess = !disabledTools.includes("read") && !disabledTools.includes("metadata");
+
         return !hasWriteAccess && hasReadAccess;
     }
 
     private isConnectedToOtherCluster(projectId: string, clusterName: string): boolean {
-        return this.session.isConnectedToMongoDB && 
-               (!this.session.connectedAtlasCluster ||
+        return (
+            this.session.isConnectedToMongoDB &&
+            (!this.session.connectedAtlasCluster ||
                 this.session.connectedAtlasCluster.projectId !== projectId ||
-                this.session.connectedAtlasCluster.clusterName !== clusterName);
+                this.session.connectedAtlasCluster.clusterName !== clusterName)
+        );
     }
 
     private getConnectionState(): "connected" | "connecting" | "disconnected" | "errored" {
         const state = this.session.connectionManager.currentConnectionState;
         switch (state.tag) {
-            case "connected": return "connected";
-            case "connecting": return "connecting";
-            case "disconnected": return "disconnected";
-            case "errored": return "errored";
+            case "connected":
+                return "connected";
+            case "connecting":
+                return "connecting";
+            case "disconnected":
+                return "disconnected";
+            case "errored":
+                return "errored";
         }
     }
 
@@ -140,11 +144,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         return { username, password, expiryDate };
     }
 
-    private buildConnectionString(
-        clusterConnectionString: string,
-        username: string,
-        password: string
-    ): string {
+    private buildConnectionString(clusterConnectionString: string, username: string, password: string): string {
         const cn = new URL(clusterConnectionString);
         cn.username = username;
         cn.password = password;
@@ -163,11 +163,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         const readOnly = this.determineReadOnlyRole();
-        const { username, password, expiryDate } = await this.createDatabaseUser(
-            projectId,
-            clusterName,
-            readOnly
-        );
+        const { username, password, expiryDate } = await this.createDatabaseUser(projectId, clusterName, readOnly);
 
         const connectedAtlasCluster = {
             username,
@@ -176,11 +172,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             expiryDate,
         };
 
-        const connectionString = this.buildConnectionString(
-            cluster.connectionString,
-            username,
-            password
-        );
+        const connectionString = this.buildConnectionString(cluster.connectionString, username, password);
 
         return { connectionString, atlas: connectedAtlasCluster };
     }
@@ -240,9 +232,11 @@ export class ConnectClusterTool extends AtlasToolBase {
 
     private async cleanupDatabaseUserOnFailure(atlas: AtlasClusterConnectionInfo): Promise<void> {
         const currentCluster = this.session.connectedAtlasCluster;
-        if (currentCluster?.projectId === atlas.projectId &&
+        if (
+            currentCluster?.projectId === atlas.projectId &&
             currentCluster?.clusterName === atlas.clusterName &&
-            currentCluster?.username) {
+            currentCluster?.username
+        ) {
             try {
                 await this.session.apiClient.deleteDatabaseUser({
                     params: {
