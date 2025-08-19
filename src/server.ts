@@ -188,40 +188,10 @@ export class Server {
     }
 
     private async validateConfig(): Promise<void> {
-        const transport = this.userConfig.transport as string;
-        if (transport !== "http" && transport !== "stdio") {
-            throw new Error(`Invalid transport: ${transport}`);
-        }
-
-        const telemetry = this.userConfig.telemetry as string;
-        if (telemetry !== "enabled" && telemetry !== "disabled") {
-            throw new Error(`Invalid telemetry: ${telemetry}`);
-        }
-
-        if (this.userConfig.httpPort < 1 || this.userConfig.httpPort > 65535) {
-            throw new Error(`Invalid httpPort: ${this.userConfig.httpPort}`);
-        }
-
-        if (this.userConfig.loggers.length === 0) {
-            throw new Error("No loggers found in config");
-        }
-
-        const loggerTypes = new Set(this.userConfig.loggers);
-        if (loggerTypes.size !== this.userConfig.loggers.length) {
-            throw new Error("Duplicate loggers found in config");
-        }
-
-        for (const loggerType of this.userConfig.loggers as string[]) {
-            if (loggerType !== "mcp" && loggerType !== "disk" && loggerType !== "stderr") {
-                throw new Error(`Invalid logger: ${loggerType}`);
-            }
-        }
-
         if (this.userConfig.connectionString) {
             try {
                 await this.session.connectToMongoDB({
                     connectionString: this.userConfig.connectionString,
-                    ...this.userConfig.connectOptions,
                 });
             } catch (error) {
                 console.error(

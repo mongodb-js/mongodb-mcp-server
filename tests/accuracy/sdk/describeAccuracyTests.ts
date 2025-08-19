@@ -61,7 +61,7 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
     eachModel(`$displayName`, function (model) {
         const configsWithDescriptions = getConfigsWithDescriptions(accuracyTestConfigs);
         const accuracyRunId = `${process.env.MDB_ACCURACY_RUN_ID}`;
-        const mdbIntegration = setupMongoDBIntegrationTest();
+        const mdbIntegration = setupMongoDBIntegrationTest({}, []);
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
         let commitSHA: string;
