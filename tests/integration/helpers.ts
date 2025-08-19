@@ -8,7 +8,7 @@ import { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ConnectionManager } from "../../src/common/connectionManager.js";
+import { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 
@@ -303,4 +303,32 @@ export function resourceChangedNotification(client: Client, uri: string): Promis
 
 export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>): string {
     return JSON.stringify(response.content, undefined, 2);
+}
+
+export function waitUntil<T extends ConnectionState>(
+    tag: T["tag"],
+    cm: ConnectionManager,
+    signal: AbortSignal,
+    additionalCondition?: (state: T) => boolean
+): Promise<T> {
+    let ts: NodeJS.Timeout | undefined;
+
+    return new Promise<T>((resolve, reject) => {
+        ts = setInterval(() => {
+            if (signal.aborted) {
+                return reject(new Error(`Aborted: ${signal.reason}`));
+            }
+
+            const status = cm.currentConnectionState;
+            if (status.tag === tag) {
+                if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
+                    return resolve(status as T);
+                }
+            }
+        }, 100);
+    }).finally(() => {
+        if (ts !== undefined) {
+            clearInterval(ts);
+        }
+    });
 }

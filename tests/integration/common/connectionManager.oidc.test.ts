@@ -7,12 +7,8 @@ import {
     getServerVersion,
     MongoDBIntegrationTestCase,
 } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, responseAsText, timeout } from "../helpers.js";
-import {
-    ConnectionManager,
-    ConnectionStateConnected,
-    ConnectionStateConnecting,
-} from "../../../src/common/connectionManager.js";
+import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
+import { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
 import { setupDriverConfig, UserConfig } from "../../../src/common/config.js";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
@@ -161,7 +157,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
     for (const { version, nonce } of baseTestMatrix) {
         describeOidcTest(version, `auth-flow;nonce=${nonce}`, { additionalConfig: { oidcNoNonce: !nonce } }, (it) => {
             it("can connect with the expected user", async ({ signal }, integration) => {
-                const state = await ConnectionManager.waitUntil<ConnectionStateConnected>(
+                const state = await waitUntil<ConnectionStateConnected>(
                     "connected",
                     integration.mcpServer().session.connectionManager,
                     signal
@@ -186,7 +182,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             });
 
             it("can list existing databases", async ({ signal }, integration) => {
-                const state = await ConnectionManager.waitUntil<ConnectionStateConnected>(
+                const state = await waitUntil<ConnectionStateConnected>(
                     "connected",
                     integration.mcpServer().session.connectionManager,
                     signal
@@ -198,7 +194,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             });
 
             it("can refresh a token once expired", async ({ signal }, integration) => {
-                const state = await ConnectionManager.waitUntil<ConnectionStateConnected>(
+                const state = await waitUntil<ConnectionStateConnected>(
                     "connected",
                     integration.mcpServer().session.connectionManager,
                     signal
@@ -221,7 +217,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             { additionalConfig: { oidcFlows: "device-auth", browser: false } },
             (it) => {
                 it("gets requested by the agent to connect", async ({ signal }, integration) => {
-                    const state = await ConnectionManager.waitUntil<ConnectionStateConnecting>(
+                    const state = await waitUntil<ConnectionStateConnecting>(
                         "connecting",
                         integration.mcpServer().session.connectionManager,
                         signal,
@@ -236,7 +232,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     expect(response).toContain(state.oidcLoginUrl);
                     expect(response).toContain(state.oidcUserCode);
 
-                    await ConnectionManager.waitUntil<ConnectionStateConnected>(
+                    await waitUntil<ConnectionStateConnected>(
                         "connected",
                         integration.mcpServer().session.connectionManager,
                         signal

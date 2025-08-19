@@ -140,9 +140,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         try {
             const connectionType = ConnectionManager.inferConnectionTypeFromSettings(this.userConfig, connectionInfo);
             if (connectionType.startsWith("oidc")) {
-                // The error here is irrelevant, we only use this ping to force the connection
-                // Errors will be handled by the auth flow.
-                void serviceProvider?.runCommand?.("admin", { hello: 1 }).catch(() => {});
+                void this.pingAndForget(serviceProvider);
 
                 return this.changeState("connection-requested", {
                     tag: "connecting",
@@ -207,9 +205,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
     private onOidcAuthFailed(error: unknown): void {
         if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
-            void this.disconnect().then(() => {
-                this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
-            });
+            void this.disconnectOnOidcError(error);
         }
     }
 
@@ -279,31 +275,23 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         }
     }
 
-    static async waitUntil<T extends ConnectionState>(
-        tag: T["tag"],
-        cm: ConnectionManager,
-        signal: AbortSignal,
-        additionalCondition?: (state: T) => boolean
-    ): Promise<T> {
-        let ts: NodeJS.Timeout | undefined;
+    private async pingAndForget(serviceProvider: NodeDriverServiceProvider): Promise<void> {
+        try {
+            await serviceProvider?.runCommand?.("admin", { hello: 1 }).catch(() => {});
+        } catch (error: unknown) {
+            // we really don't care about this error
+            void error;
+        }
+    }
 
-        return new Promise<T>((resolve, reject) => {
-            ts = setInterval(() => {
-                if (signal.aborted) {
-                    return reject(new Error(`Aborted: ${signal.reason}`));
-                }
-
-                const status = cm.currentConnectionState;
-                if (status.tag === tag) {
-                    if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
-                        return resolve(status as T);
-                    }
-                }
-            }, 100);
-        }).finally(() => {
-            if (ts !== undefined) {
-                clearInterval(ts);
-            }
-        });
+    private async disconnectOnOidcError(error: unknown): Promise<void> {
+        try {
+            await this.disconnect();
+        } catch (error: unknown) {
+            // we really don't care about this error
+            void error;
+        } finally {
+            this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
+        }
     }
 }
