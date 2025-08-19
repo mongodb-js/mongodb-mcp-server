@@ -277,10 +277,13 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
     private async pingAndForget(serviceProvider: NodeDriverServiceProvider): Promise<void> {
         try {
-            await serviceProvider?.runCommand?.("admin", { hello: 1 }).catch(() => {});
+            await serviceProvider?.runCommand?.("admin", { hello: 1 });
         } catch (error: unknown) {
-            // we really don't care about this error
-            void error;
+            this.logger.warning({
+                id: LogId.oidcFlow,
+                context: "pingAndForget",
+                message: String(error),
+            });
         }
     }
 
@@ -288,8 +291,11 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         try {
             await this.disconnect();
         } catch (error: unknown) {
-            // we really don't care about this error
-            void error;
+            this.logger.warning({
+                id: LogId.oidcFlow,
+                context: "disconnectOnOidcError",
+                message: String(error),
+            });
         } finally {
             this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
         }
