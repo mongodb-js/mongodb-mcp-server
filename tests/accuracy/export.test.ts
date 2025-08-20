@@ -8,6 +8,7 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
                     filter: Matcher.emptyObjectOrUndefined,
@@ -22,6 +23,7 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
                     filter: {
@@ -37,6 +39,7 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
                     projection: {
@@ -57,6 +60,7 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
                     filter: { genres: "Horror" },
