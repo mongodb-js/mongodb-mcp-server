@@ -7,7 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { UserConfig, DriverOptions } from "../../src/common/config.js";
-import { DeviceIdService } from "../../src/helpers/deviceId.js";
+import { DeviceId } from "../../src/helpers/deviceId.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -68,9 +68,6 @@ export function setupIntegrationTest(
         );
 
         const exportsManager = ExportsManager.init(userConfig, logger);
-
-        // Initialize DeviceIdService for tests
-        DeviceIdService.init(logger);
 
         const connectionManager = new ConnectionManager(userConfig, driverOptions, logger);
 

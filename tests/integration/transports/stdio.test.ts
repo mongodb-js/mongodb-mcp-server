@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
-import { DeviceIdService } from "../../../src/helpers/deviceId.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 
 describeWithMongoDB("StdioRunner", (integration) => {
@@ -22,7 +22,6 @@ describeWithMongoDB("StdioRunner", (integration) => {
                 name: "test",
                 version: "0.0.0",
             });
-            DeviceIdService.init(new CompositeLogger());
             await client.connect(transport);
         });
 

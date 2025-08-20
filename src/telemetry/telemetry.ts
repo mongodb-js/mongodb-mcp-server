@@ -6,7 +6,7 @@ import { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
-import { DeviceIdService } from "../helpers/deviceId.js";
+import { DeviceId } from "../helpers/deviceId.js";
 
 type EventResult = {
     success: boolean;
@@ -18,13 +18,13 @@ export class Telemetry {
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
     private eventCache: EventCache;
-    private deviceId: DeviceIdService;
+    private deviceId: DeviceId;
 
     private constructor(
         private readonly session: Session,
         private readonly userConfig: UserConfig,
         private readonly commonProperties: CommonProperties,
-        { eventCache, deviceId }: { eventCache: EventCache; deviceId: DeviceIdService }
+        { eventCache, deviceId }: { eventCache: EventCache; deviceId: DeviceId }
     ) {
         this.eventCache = eventCache;
         this.deviceId = deviceId;
@@ -36,10 +36,10 @@ export class Telemetry {
         {
             commonProperties = { ...MACHINE_METADATA },
             eventCache = EventCache.getInstance(),
-            deviceId = DeviceIdService.getInstance(),
+            deviceId = DeviceId.create(session.logger),
         }: {
             eventCache?: EventCache;
-            deviceId?: DeviceIdService;
+            deviceId?: DeviceId;
             commonProperties?: CommonProperties;
         } = {}
     ): Telemetry {
@@ -54,7 +54,7 @@ export class Telemetry {
             return;
         }
 
-        this.setupPromise = Promise.all([this.deviceId.getDeviceId(), detectContainerEnv()]);
+        this.setupPromise = Promise.all([this.deviceId.get(), detectContainerEnv()]);
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
         this.commonProperties.device_id = deviceIdValue;

@@ -6,7 +6,7 @@ import { packageInfo } from "./packageInfo.js";
 import ConnectionString from "mongodb-connection-string-url";
 import { MongoClientOptions } from "mongodb";
 import { ErrorCodes, MongoDBError } from "./errors.js";
-import { DeviceIdService } from "../helpers/deviceId.js";
+import { DeviceId } from "../helpers/deviceId.js";
 import { AppNameComponents } from "../helpers/connectionOptions.js";
 import { CompositeLogger, LogId } from "./logger.js";
 import { ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
@@ -71,7 +71,7 @@ export interface ConnectionManagerEvents {
 
 export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     private state: AnyConnectionState;
-    private deviceId: DeviceIdService;
+    private deviceId: DeviceId;
     private clientName: string;
     private bus: EventEmitter;
 
@@ -88,8 +88,8 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
-        
-        this.deviceId = DeviceIdService.getInstance();
+
+        this.deviceId = DeviceId.create(this.logger);
         this.clientName = "unknown";
     }
 
@@ -111,7 +111,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             settings = { ...settings };
             const appNameComponents: AppNameComponents = {
                 appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
-                deviceId: this.deviceId.getDeviceId(),
+                deviceId: this.deviceId.get(),
                 clientName: this.clientName,
             };
 

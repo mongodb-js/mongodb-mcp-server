@@ -1,7 +1,7 @@
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { Session } from "../../src/common/session.js";
 import { config, driverOptions } from "../../src/common/config.js";
-import { DeviceIdService } from "../../src/helpers/deviceId.js";
+import { DeviceId } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ConnectionManager } from "../../src/common/connectionManager.js";
@@ -11,9 +11,8 @@ describe("Telemetry", () => {
     it("should resolve the actual device ID", async () => {
         const logger = new CompositeLogger();
 
-        // Initialize DeviceIdService like the main application does
-        DeviceIdService.init(logger);
-        const actualDeviceId = await DeviceIdService.getInstance().getDeviceId();
+        const deviceId = DeviceId.create(logger);
+        const actualDeviceId = await deviceId.get();
 
         const telemetry = Telemetry.create(
             new Session({
@@ -22,7 +21,8 @@ describe("Telemetry", () => {
                 exportsManager: ExportsManager.init(config, logger),
                 connectionManager: new ConnectionManager(config, driverOptions, logger),
             }),
-            config
+            config,
+            { deviceId }
         );
 
         expect(telemetry.getCommonProperties().device_id).toBe(undefined);

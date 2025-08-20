@@ -1,29 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, Mocked, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
 import { config, driverOptions } from "../../../src/common/config.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { ConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
-vi.mock("../../../src/helpers/deviceId.js", () => ({
-    DeviceIdService: {
-        init: vi.fn(),
-        getInstance: vi.fn().mockReturnValue({
-            getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
-        }),
-        getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
-        resetInstance: vi.fn(),
-    },
-}));
 
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
 
 describe("Session", () => {
     let session: Session;
+    let mockDeviceId: Mocked<DeviceId>;
+
     beforeEach(() => {
         const logger = new CompositeLogger();
+        mockDeviceId = vi.mocked(DeviceId.create(logger));
+        mockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
+
         session = new Session({
             apiClientId: "test-client-id",
             apiBaseUrl: "https://api.test.com",

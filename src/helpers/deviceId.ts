@@ -4,62 +4,68 @@ import { LogId, LoggerBase } from "../common/logger.js";
 
 export const DEVICE_ID_TIMEOUT = 3000;
 
-export class DeviceIdService {
-    private static instance: DeviceIdService | undefined = undefined;
+export class DeviceId {
     private deviceId: string | undefined = undefined;
     private deviceIdPromise: Promise<string> | undefined = undefined;
     private abortController: AbortController | undefined = undefined;
     private logger: LoggerBase;
     private readonly getMachineId: () => Promise<string>;
     private timeout: number;
+    private static instance: DeviceId | undefined = undefined;
 
-    private constructor(logger: LoggerBase, timeout: number) {
+    private constructor(logger: LoggerBase, timeout: number = DEVICE_ID_TIMEOUT) {
         this.logger = logger;
         this.timeout = timeout;
         this.getMachineId = (): Promise<string> => nodeMachineId.machineId(true);
     }
 
-    static create(
-        logger: LoggerBase,
-        { timeout = DEVICE_ID_TIMEOUT }: { timeout?: number } = {},
-        ): DeviceIdService {        
-        const instance = new DeviceIdService(logger, timeout);
+    public static create(logger: LoggerBase, timeout?: number): DeviceId {
+        if (this.instance) {
+            return this.instance;
+        }
 
+        const instance = new DeviceId(logger, timeout ?? DEVICE_ID_TIMEOUT);
         void instance.setup();
+
+        this.instance = instance;
+
         return instance;
     }
 
+    /**
+     * Sets up the device ID calculation promise and abort controller.
+     */
     private async setup(): Promise<void> {
         this.abortController = new AbortController();
-
         this.deviceIdPromise = this.calculateDeviceId();
-        const deviceId = await this.deviceIdPromise;
-        this.deviceId = deviceId;
+        // start the promise upon setup
+        void this.deviceIdPromise;
     }
 
-    
-     public close(): void {
+    /**
+     * Closes the device ID calculation promise and abort controller.
+     */
+    public close(): void {
         if (this.abortController) {
             this.abortController.abort();
             this.abortController = undefined;
         }
         this.deviceId = undefined;
         this.deviceIdPromise = undefined;
-        DeviceIdService.instance = undefined;
+        DeviceId.instance = undefined;
     }
-    
 
     /**
      * Gets the device ID, waiting for the calculation to complete if necessary.
      * @returns Promise that resolves to the device ID string
      */
-    public async getDeviceId(): Promise<string> {
+    public async get(): Promise<string> {
         if (this.deviceId !== undefined) {
             return this.deviceId;
         }
 
         if (!this.deviceIdPromise) {
-            throw new Error("DeviceIdService calculation not started");
+            this.deviceIdPromise = this.calculateDeviceId();
         }
 
         return this.deviceIdPromise;
@@ -124,7 +130,7 @@ export class DeviceIdService {
                 });
                 break;
             case "abort":
-                // No need to log in the case of aborts
+                // No need to log in the case of 'abort' errors
                 break;
         }
     }

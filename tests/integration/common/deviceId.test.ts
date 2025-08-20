@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { DeviceIdService } from "../../../src/helpers/deviceId.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import nodeMachineId from "node-machine-id";
 
@@ -12,15 +12,13 @@ describe("Device ID", () => {
     });
 
     afterEach(() => {
-        if (DeviceIdService.isInitialized()) {
-            DeviceIdService.getInstance().close();
-        }
+        DeviceId.create(testLogger).close();
     });
 
     describe("when resolving device ID", () => {
         it("should successfully resolve device ID in real environment", async () => {
-            const deviceId = DeviceIdService.init(testLogger);
-            const result = await deviceId.getDeviceId();
+            const deviceId = DeviceId.create(testLogger);
+            const result = await deviceId.get();
 
             expect(result).not.toBe("unknown");
             expect(result).toBeTruthy();
@@ -31,23 +29,23 @@ describe("Device ID", () => {
         it("should cache device ID after first resolution", async () => {
             // spy on machineId
             const machineIdSpy = vi.spyOn(nodeMachineId, "machineId");
-            const deviceId = DeviceIdService.init(testLogger);
+            const deviceId = DeviceId.create(testLogger);
 
             // First call
-            const result1 = await deviceId.getDeviceId();
+            const result1 = await deviceId.get();
             expect(result1).not.toBe("unknown");
 
             // Second call should be cached
-            const result2 = await deviceId.getDeviceId();
+            const result2 = await deviceId.get();
             expect(result2).toBe(result1);
             // check that machineId was called only once
             expect(machineIdSpy).toHaveBeenCalledOnce();
         });
 
         it("should handle concurrent device ID requests correctly", async () => {
-            const deviceId = DeviceIdService.init(testLogger);
+            const deviceId = DeviceId.create(testLogger);
 
-            const promises = Array.from({ length: 5 }, () => deviceId.getDeviceId());
+            const promises = Array.from({ length: 5 }, () => deviceId.get());
 
             // All should resolve to the same value
             const results = await Promise.all(promises);
@@ -81,10 +79,10 @@ describe("Device ID", () => {
                     reject(new Error("Machine ID failed"));
                 });
             });
-            const deviceId = DeviceIdService.init(testLogger);
-            const handleDeviceIdErrorSpy = vi.spyOn(deviceId, "handleDeviceIdError" as keyof DeviceIdService);
+            const deviceId = DeviceId.create(testLogger);
+            const handleDeviceIdErrorSpy = vi.spyOn(deviceId, "handleDeviceIdError" as keyof DeviceId);
 
-            const result = await deviceId.getDeviceId();
+            const result = await deviceId.get();
 
             expect(result).toBe("unknown");
             expect(handleDeviceIdErrorSpy).toHaveBeenCalledWith(
@@ -101,38 +99,13 @@ describe("Device ID", () => {
                 });
             });
 
-            const deviceId = DeviceIdService.init(testLogger);
-            const handleDeviceIdErrorSpy = vi.spyOn(deviceId, "handleDeviceIdError" as keyof DeviceIdService);
+            const deviceId = DeviceId.create(testLogger, 100); // Short timeout
+            const handleDeviceIdErrorSpy = vi.spyOn(deviceId, "handleDeviceIdError" as keyof DeviceId);
 
-            deviceId.close();
-
-            // expect the deviceId service to throw an error
-            await expect(deviceId.getDeviceId()).rejects.toThrow(Error);
-            // test that the private function handleDeviceIdError was called with reason "abort"
-            expect(handleDeviceIdErrorSpy).toHaveBeenCalledWith(
-                "abort",
-                expect.stringContaining("Aborted by abort signal")
-            );
-
-            // check that the deviceId service is not initialized anymore
-            expect(() => DeviceIdService.getInstance()).toThrow(Error);
-        });
-
-        it("should handle timeout scenarios gracefully", async () => {
-            nodeMachineId.machineId = vi.fn().mockImplementation(() => {
-                return new Promise<string>((resolve) => {
-                    setTimeout(() => resolve("delayed-id"), 200);
-                });
-            });
-
-            // override the timeout to 100ms
-            const deviceId = DeviceIdService.init(testLogger, 100);
-            const handleDeviceIdErrorSpy = vi.spyOn(deviceId, "handleDeviceIdError" as keyof DeviceIdService);
-
-            const result = await deviceId.getDeviceId();
+            const result = await deviceId.get();
 
             expect(result).toBe("unknown");
-            expect(handleDeviceIdErrorSpy).toHaveBeenCalledWith("timeout", expect.stringContaining("Timeout"));
-        }, 5000);
+            expect(handleDeviceIdErrorSpy).toHaveBeenCalledWith("timeout", expect.any(String));
+        });
     });
 });

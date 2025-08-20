@@ -1,17 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, Mocked, vi } from "vitest";
 import { setAppNameParamIfMissing } from "../../../src/helpers/connectionOptions.js";
-import { DeviceIdService } from "../../../src/helpers/deviceId.js";
-
-// Mock the deviceId utility
-vi.mock("../../../src/helpers/deviceId.js", () => ({
-    DeviceIdService: {
-        getInstance: vi.fn().mockReturnValue({
-            getDeviceId: vi.fn().mockResolvedValue("test-device-id"),
-        }),
-    },
-}));
+import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { CompositeLogger } from "../../../src/common/logger.js";
 
 describe("Connection Options", () => {
+    let testLogger: CompositeLogger;
+    let mockDeviceId: Mocked<DeviceId>;
+
+    beforeEach(() => {
+        testLogger = new CompositeLogger();
+        testLogger.debug = vi.fn();
+
+        mockDeviceId = vi.mocked(DeviceId.create(testLogger));
+        mockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
+    });
+
     describe("setAppNameParamIfMissing", () => {
         it("should set extended appName when no appName is present", async () => {
             const connectionString = "mongodb://localhost:27017";
@@ -20,7 +23,7 @@ describe("Connection Options", () => {
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
-                    deviceId: DeviceIdService.getInstance().getDeviceId(),
+                    deviceId: mockDeviceId.get(),
                 },
             });
 
@@ -62,7 +65,7 @@ describe("Connection Options", () => {
                 connectionString,
                 components: {
                     appName: "TestApp",
-                    deviceId: DeviceIdService.getInstance().getDeviceId(),
+                    deviceId: mockDeviceId.get(),
                 },
             });
 
@@ -89,7 +92,7 @@ describe("Connection Options", () => {
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
-                    deviceId: DeviceIdService.getInstance().getDeviceId(),
+                    deviceId: mockDeviceId.get(),
                 },
             });
 
