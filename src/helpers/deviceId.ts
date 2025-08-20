@@ -25,7 +25,7 @@ export class DeviceId {
         }
 
         const instance = new DeviceId(logger, timeout ?? DEVICE_ID_TIMEOUT);
-        void instance.setup();
+        instance.setup();
 
         this.instance = instance;
 
@@ -35,7 +35,7 @@ export class DeviceId {
     /**
      * Sets up the device ID calculation promise and abort controller.
      */
-    private async setup(): Promise<void> {
+    private setup(): void {
         this.abortController = new AbortController();
         this.deviceIdPromise = this.calculateDeviceId();
         // start the promise upon setup

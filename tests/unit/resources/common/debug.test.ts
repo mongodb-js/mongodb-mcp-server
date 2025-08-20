@@ -6,7 +6,6 @@ import { config, driverOptions } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { ConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { DeviceId } from "../../../../src/helpers/deviceId.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
