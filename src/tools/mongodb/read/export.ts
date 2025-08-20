@@ -71,6 +71,7 @@ export class ExportTool extends MongoDBToolBase {
             cursor = provider.aggregate(database, collection, pipeline, {
                 promoteValues: false,
                 bsonRegExp: true,
+                allowDiskUse: true,
             });
         }
 
