@@ -4,10 +4,6 @@ import { LogId, LoggerBase } from "../common/logger.js";
 
 export const DEVICE_ID_TIMEOUT = 3000;
 
-/**
- * Singleton class for managing device ID retrieval and caching.
- * Starts device ID calculation early and is shared across all services.
- */
 export class DeviceIdService {
     private static instance: DeviceIdService | undefined = undefined;
     private deviceId: string | undefined = undefined;
@@ -21,55 +17,37 @@ export class DeviceIdService {
         this.logger = logger;
         this.timeout = timeout;
         this.getMachineId = (): Promise<string> => nodeMachineId.machineId(true);
-        // Start device ID calculation immediately
-        this.startDeviceIdCalculation();
     }
 
-    /**
-     * Initializes the DeviceIdService singleton with a logger.
-     * A separated init method is used to use a single instance of the logger.
-     * @param logger - The logger instance to use
-     * @returns The DeviceIdService instance
-     */
-    public static init(logger: LoggerBase, timeout?: number): DeviceIdService {
-        if (DeviceIdService.instance) {
-            return DeviceIdService.instance;
-        }
-        DeviceIdService.instance = new DeviceIdService(logger, timeout ?? DEVICE_ID_TIMEOUT);
-        return DeviceIdService.instance;
+    static create(
+        logger: LoggerBase,
+        { timeout = DEVICE_ID_TIMEOUT }: { timeout?: number } = {},
+        ): DeviceIdService {        
+        const instance = new DeviceIdService(logger, timeout);
+
+        void instance.setup();
+        return instance;
     }
 
-    /**
-     * Checks if the DeviceIdService is initialized.
-     * @returns True if the DeviceIdService is initialized, false otherwise
-     */
-    public static isInitialized(): boolean {
-        return DeviceIdService.instance !== undefined;
-    }
-
-    /**
-     * Gets the singleton instance of DeviceIdService.
-     * @returns The DeviceIdService instance
-     */
-    public static getInstance(): DeviceIdService {
-        if (!DeviceIdService.instance) {
-            throw new Error("DeviceIdService not initialized");
-        }
-        return DeviceIdService.instance;
-    }
-
-    /**
-     * Starts the device ID calculation process.
-     * This method is called automatically in the constructor.
-     */
-    private startDeviceIdCalculation(): void {
-        if (this.deviceIdPromise) {
-            return;
-        }
-
+    private async setup(): Promise<void> {
         this.abortController = new AbortController();
+
         this.deviceIdPromise = this.calculateDeviceId();
+        const deviceId = await this.deviceIdPromise;
+        this.deviceId = deviceId;
     }
+
+    
+     public close(): void {
+        if (this.abortController) {
+            this.abortController.abort();
+            this.abortController = undefined;
+        }
+        this.deviceId = undefined;
+        this.deviceIdPromise = undefined;
+        DeviceIdService.instance = undefined;
+    }
+    
 
     /**
      * Gets the device ID, waiting for the calculation to complete if necessary.
@@ -85,18 +63,6 @@ export class DeviceIdService {
         }
 
         return this.deviceIdPromise;
-    }
-    /**
-     * Aborts any ongoing device ID calculation.
-     */
-    public close(): void {
-        if (this.abortController) {
-            this.abortController.abort();
-            this.abortController = undefined;
-        }
-        this.deviceId = undefined;
-        this.deviceIdPromise = undefined;
-        DeviceIdService.instance = undefined;
     }
 
     /**
@@ -140,11 +106,6 @@ export class DeviceIdService {
         }
     }
 
-    /**
-     * Handles device ID error.
-     * @param reason - The reason for the error
-     * @param error - The error object
-     */
     private handleDeviceIdError(reason: string, error: string): void {
         switch (reason) {
             case "resolutionError":
