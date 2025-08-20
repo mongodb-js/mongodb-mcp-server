@@ -5,8 +5,6 @@ import { ToolArgs, OperationType } from "../../tool.js";
 import { SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
-export const limitArg = z.number().optional().describe("The maximum number of documents to return");
-
 export const FindArgs = {
     filter: z
         .object({})
@@ -18,7 +16,7 @@ export const FindArgs = {
         .passthrough()
         .optional()
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
-    limit: limitArg.default(10),
+    limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
     sort: z
         .object({})
         .catchall(z.custom<SortDirection>())

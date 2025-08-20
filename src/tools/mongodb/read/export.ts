@@ -4,7 +4,7 @@ import { AggregationCursor, FindCursor } from "mongodb";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationType, ToolArgs } from "../../tool.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { FindArgs, limitArg } from "./find.js";
+import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
 
@@ -21,7 +21,7 @@ export class ExportTool extends MongoDBToolBase {
                         name: z.literal("find"),
                         arguments: z.object({
                             ...FindArgs,
-                            limit: limitArg,
+                            limit: FindArgs.limit.removeDefault(),
                         }),
                     }),
                     z.object({
