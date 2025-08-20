@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import { ToolArgs, OperationType, formatUntrustedData } from "../../tool.js";
 
 export class InspectAccessListTool extends AtlasToolBase {
     public name = "atlas-inspect-access-list";
@@ -20,23 +20,25 @@ export class InspectAccessListTool extends AtlasToolBase {
             },
         });
 
-        if (!accessList?.results?.length) {
-            throw new Error("No access list entries found.");
+        const results = accessList.results ?? [];
+
+        if (!results.length) {
+            return {
+                content: [{ type: "text", text: "No access list entries found." }],
+            };
         }
 
         return {
-            content: [
-                {
-                    type: "text",
-                    text: `IP ADDRESS | CIDR | COMMENT
+            content: formatUntrustedData(
+                `Found ${results.length} access list entries`,
+                `IP ADDRESS | CIDR | COMMENT
 ------|------|------
-${(accessList.results || [])
+${results
     .map((entry) => {
         return `${entry.ipAddress} | ${entry.cidrBlock} | ${entry.comment}`;
     })
-    .join("\n")}`,
-                },
-            ],
+    .join("\n")}`
+            ),
         };
     }
 }

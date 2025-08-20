@@ -1,7 +1,6 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ObjectId } from "mongodb";
 import { parseTable, describeWithAtlas } from "./atlasHelpers.js";
-import { expectDefined } from "../../helpers.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
 import { afterAll, describe, expect, it } from "vitest";
 
 const randomId = new ObjectId().toString();
@@ -38,13 +37,14 @@ describeWithAtlas("projects", (integration) => {
             expect(createProject.inputSchema.properties).toHaveProperty("organizationId");
         });
         it("should create a project", async () => {
-            const response = (await integration.mcpClient().callTool({
+            const response = await integration.mcpClient().callTool({
                 name: "atlas-create-project",
                 arguments: { projectName: projName },
-            })) as CallToolResult;
-            expect(response.content).toBeInstanceOf(Array);
-            expect(response.content).toHaveLength(1);
-            expect(response.content[0]?.text).toContain(projName);
+            });
+
+            const elements = getResponseElements(response);
+            expect(elements).toHaveLength(1);
+            expect(elements[0]?.text).toContain(projName);
         });
     });
     describe("atlas-list-projects", () => {
@@ -58,14 +58,13 @@ describeWithAtlas("projects", (integration) => {
         });
 
         it("returns project names", async () => {
-            const response = (await integration
-                .mcpClient()
-                .callTool({ name: "atlas-list-projects", arguments: {} })) as CallToolResult;
-            expect(response.content).toBeInstanceOf(Array);
-            expect(response.content).toHaveLength(1);
-            expect(response.content[0]?.text).toContain(projName);
-            const data = parseTable(response.content[0]?.text as string);
-            expect(data).toBeInstanceOf(Array);
+            const response = await integration.mcpClient().callTool({ name: "atlas-list-projects", arguments: {} });
+            const elements = getResponseElements(response);
+            expect(elements).toHaveLength(2);
+            expect(elements[0]?.text).toMatch(/Found \d+ projects/);
+            expect(elements[1]?.text).toContain("<untrusted-user-data-");
+            expect(elements[1]?.text).toContain(projName);
+            const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
             expect(data.length).toBeGreaterThan(0);
             let found = false;
             for (const project of data) {

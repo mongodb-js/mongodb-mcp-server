@@ -1,6 +1,6 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import { ToolArgs, OperationType, formatUntrustedData } from "../../tool.js";
 import { getSimplifiedSchema } from "mongodb-schema";
 
 export class CollectionSchemaTool extends MongoDBToolBase {
@@ -28,16 +28,10 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         }
 
         return {
-            content: [
-                {
-                    text: `Found ${fieldsCount} fields in the schema for "${database}.${collection}"`,
-                    type: "text",
-                },
-                {
-                    text: JSON.stringify(schema),
-                    type: "text",
-                },
-            ],
+            content: formatUntrustedData(
+                `Found ${fieldsCount} fields in the schema for "${database}.${collection}"`,
+                JSON.stringify(schema)
+            ),
         };
     }
 }

@@ -49,19 +49,22 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
         expect(elements[0]?.text).toEqual('Found 1 indexes in the collection "people":');
-        expect(elements[1]?.text).toEqual('Name "_id_", definition: {"_id":1}');
+        expect(elements[1]?.text).toContain('Name: "_id_", definition: {"_id":1}');
     });
 
     it("returns all indexes for a collection", async () => {
         await integration.mongoClient().db(integration.randomDbName()).createCollection("people");
 
         const indexTypes: IndexDirection[] = [-1, 1, "2d", "2dsphere", "text", "hashed"];
+        const indexNames: Map<IndexDirection, string> = new Map();
         for (const indexType of indexTypes) {
-            await integration
+            const indexName = await integration
                 .mongoClient()
                 .db(integration.randomDbName())
                 .collection("people")
                 .createIndex({ [`prop_${indexType}`]: indexType });
+
+            indexNames.set(indexType, indexName);
         }
 
         await integration.connectMcpClient();
@@ -74,20 +77,20 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         });
 
         const elements = getResponseElements(response.content);
-        expect(elements).toHaveLength(indexTypes.length + 2);
+        expect(elements).toHaveLength(2);
+
         expect(elements[0]?.text).toEqual(`Found ${indexTypes.length + 1} indexes in the collection "people":`);
-        expect(elements[1]?.text).toEqual('Name "_id_", definition: {"_id":1}');
+        expect(elements[1]?.text).toContain('Name: "_id_", definition: {"_id":1}');
 
         for (const indexType of indexTypes) {
-            const index = elements.find((element) => element.text.includes(`prop_${indexType}`));
-            expectDefined(index);
-
             let expectedDefinition = JSON.stringify({ [`prop_${indexType}`]: indexType });
             if (indexType === "text") {
                 expectedDefinition = '{"_fts":"text"';
             }
 
-            expect(index.text).toContain(`definition: ${expectedDefinition}`);
+            expect(elements[1]?.text).toContain(
+                `Name: "${indexNames.get(indexType)}", definition: ${expectedDefinition}`
+            );
         }
     });
 

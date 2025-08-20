@@ -1,6 +1,6 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import { ToolArgs, OperationType, formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 import { ExplainVerbosity, Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
@@ -88,16 +88,10 @@ export class ExplainTool extends MongoDBToolBase {
         }
 
         return {
-            content: [
-                {
-                    text: `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation in "${database}.${collection}". This information can be used to understand how the query was executed and to optimize the query performance.`,
-                    type: "text",
-                },
-                {
-                    text: JSON.stringify(result),
-                    type: "text",
-                },
-            ],
+            content: formatUntrustedData(
+                `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation in "${database}.${collection}". This information can be used to understand how the query was executed and to optimize the query performance.`,
+                JSON.stringify(result)
+            ),
         };
     }
 }

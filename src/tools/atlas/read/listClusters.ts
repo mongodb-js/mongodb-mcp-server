@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import { ToolArgs, OperationType, formatUntrustedData } from "../../tool.js";
 import {
     PaginatedClusterDescription20240805,
     PaginatedOrgGroupView,
@@ -86,7 +86,9 @@ ${rows}`,
     ): CallToolResult {
         // Check if both traditional clusters and flex clusters are absent
         if (!clusters?.results?.length && !flexClusters?.results?.length) {
-            throw new Error("No clusters found.");
+            return {
+                content: [{ type: "text", text: "No clusters found." }],
+            };
         }
         const formattedClusters = clusters?.results?.map((cluster) => formatCluster(cluster)) || [];
         const formattedFlexClusters = flexClusters?.results?.map((cluster) => formatFlexCluster(cluster)) || [];
@@ -96,18 +98,12 @@ ${rows}`,
             })
             .join("\n");
         return {
-            content: [
-                {
-                    type: "text",
-                    text: `Here are your MongoDB Atlas clusters in project "${project.name}" (${project.id}):`,
-                },
-                {
-                    type: "text",
-                    text: `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Connection String
+            content: formatUntrustedData(
+                `Found ${rows.length} clusters in project "${project.name}" (${project.id}):`,
+                `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Connection String
 ----------------|----------------|----------------|----------------|----------------|----------------
-${rows}`,
-                },
-            ],
+${rows}`
+            ),
         };
     }
 }

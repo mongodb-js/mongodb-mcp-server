@@ -5,6 +5,7 @@ import {
     validateThrowsForInvalidArguments,
     databaseInvalidArgs,
     getResponseElements,
+    getDataFromUntrustedContent,
 } from "../../../helpers.js";
 import * as crypto from "crypto";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
@@ -31,7 +32,8 @@ describeWithMongoDB("dbStats tool", (integration) => {
             expect(elements).toHaveLength(2);
             expect(elements[0]?.text).toBe(`Statistics for database ${integration.randomDbName()}`);
 
-            const stats = JSON.parse(elements[1]?.text ?? "{}") as {
+            const json = getDataFromUntrustedContent(elements[1]?.text ?? "{}");
+            const stats = JSON.parse(json) as {
                 db: string;
                 collections: number;
                 storageSize: number;
@@ -78,7 +80,7 @@ describeWithMongoDB("dbStats tool", (integration) => {
                 expect(elements).toHaveLength(2);
                 expect(elements[0]?.text).toBe(`Statistics for database ${integration.randomDbName()}`);
 
-                const stats = JSON.parse(elements[1]?.text ?? "{}") as {
+                const stats = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "{}")) as {
                     db: string;
                     collections: unknown;
                     storageSize: unknown;

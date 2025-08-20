@@ -332,3 +332,12 @@ export function waitUntil<T extends ConnectionState>(
         }
     });
 }
+
+export function getDataFromUntrustedContent(content: string): string {
+    const regex = /^[ \t]*<untrusted-user-data-[0-9a-f\\-]*>(?<data>.*)^[ \t]*<\/untrusted-user-data-[0-9a-f\\-]*>/gms;
+    const match = regex.exec(content);
+    if (!match || !match.groups || !match.groups.data) {
+        throw new Error("Could not find untrusted user data in content");
+    }
+    return match.groups.data.trim();
+}

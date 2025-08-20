@@ -1,6 +1,6 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import { ToolArgs, OperationType, formatUntrustedData } from "../../tool.js";
 import { EJSON } from "bson";
 
 export class DbStatsTool extends MongoDBToolBase {
@@ -20,16 +20,7 @@ export class DbStatsTool extends MongoDBToolBase {
         });
 
         return {
-            content: [
-                {
-                    text: `Statistics for database ${database}`,
-                    type: "text",
-                },
-                {
-                    text: EJSON.stringify(result),
-                    type: "text",
-                },
-            ],
+            content: formatUntrustedData(`Statistics for database ${database}`, EJSON.stringify(result)),
         };
     }
 }
