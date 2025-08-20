@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs/promises";
 import EventEmitter from "events";
 import { createWriteStream } from "fs";
-import { FindCursor } from "mongodb";
+import { AggregationCursor, FindCursor } from "mongodb";
 import { EJSON, EJSONOptions, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
@@ -154,7 +154,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         exportTitle,
         jsonExportFormat,
     }: {
-        input: FindCursor;
+        input: FindCursor | AggregationCursor;
         exportName: string;
         exportTitle: string;
         jsonExportFormat: JSONExportFormat;
@@ -194,7 +194,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         jsonExportFormat,
         inProgressExport,
     }: {
-        input: FindCursor;
+        input: FindCursor | AggregationCursor;
         jsonExportFormat: JSONExportFormat;
         inProgressExport: InProgressExport;
     }): Promise<void> {
