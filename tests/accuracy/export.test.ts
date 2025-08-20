@@ -95,4 +95,34 @@ describeAccuracyTests([
             },
         ],
     },
+    {
+        prompt: "Export an aggregation that groups all movie titles by the field release_year from mflix.movies",
+        expectedToolCalls: [
+            {
+                toolName: "export",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "aggregate",
+                            arguments: {
+                                pipeline: [
+                                    {
+                                        $group: {
+                                            _id: "$release_year",
+                                            titles: {
+                                                $push: "$title",
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
+    },
 ]);

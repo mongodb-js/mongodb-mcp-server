@@ -18,15 +18,21 @@ export class ExportTool extends MongoDBToolBase {
             .array(
                 z.discriminatedUnion("name", [
                     z.object({
-                        name: z.literal("find"),
-                        arguments: z.object({
-                            ...FindArgs,
-                            limit: FindArgs.limit.removeDefault(),
-                        }),
+                        name: z
+                            .literal("find")
+                            .describe("The literal name 'find' to represent a find cursor as target."),
+                        arguments: z
+                            .object({
+                                ...FindArgs,
+                                limit: FindArgs.limit.removeDefault(),
+                            })
+                            .describe("The arguments for 'find' operation."),
                     }),
                     z.object({
-                        name: z.literal("aggregate"),
-                        arguments: z.object(AggregateArgs),
+                        name: z
+                            .literal("aggregate")
+                            .describe("The literal name 'aggregate' to represent an aggregation cursor as target."),
+                        arguments: z.object(AggregateArgs).describe("The arguments for 'aggregate' operation."),
                     }),
                 ])
             )
