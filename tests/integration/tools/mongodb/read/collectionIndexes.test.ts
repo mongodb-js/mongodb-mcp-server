@@ -5,7 +5,6 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
     databaseCollectionInvalidArgs,
-    expectDefined,
 } from "../../../helpers.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { expect, it } from "vitest";
