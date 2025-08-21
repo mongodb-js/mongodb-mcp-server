@@ -46,7 +46,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.use(express.json());
         app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
-                const header = req.headers[key];
+                const header = req.headers[key.toLowerCase()];
                 if (!header || header !== value) {
                     res.status(403).send({ error: `Invalid value for header "${key}"` });
                     return;
