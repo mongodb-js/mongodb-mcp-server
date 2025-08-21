@@ -14,6 +14,7 @@ describe("StreamableHttpRunner", () => {
         oldLoggers = config.loggers;
         config.telemetry = "disabled";
         config.loggers = ["stderr"];
+        config.httpPort = 0; // Use a random port for testing
         runner = new StreamableHttpRunner(config);
         await runner.start();
     });
@@ -28,7 +29,7 @@ describe("StreamableHttpRunner", () => {
         let client: Client;
         let transport: StreamableHTTPClientTransport;
         beforeAll(async () => {
-            transport = new StreamableHTTPClientTransport(new URL("http://127.0.0.1:3000/mcp"));
+            transport = new StreamableHTTPClientTransport(new URL(`${runner.address}/mcp`));
 
             client = new Client({
                 name: "test",

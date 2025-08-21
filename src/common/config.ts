@@ -116,6 +116,7 @@ export interface UserConfig extends CliOptions {
     transport: "stdio" | "http";
     httpPort: number;
     httpHost: string;
+    httpHeaders?: Record<string, string>;
     loggers: Array<"stderr" | "disk" | "mcp">;
     idleTimeoutMs: number;
     notificationTimeoutMs: number;
