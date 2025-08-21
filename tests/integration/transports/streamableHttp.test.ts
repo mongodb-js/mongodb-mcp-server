@@ -9,14 +9,12 @@ describe("StreamableHttpRunner", () => {
     let oldTelemetry: "enabled" | "disabled";
     let oldLoggers: ("stderr" | "disk" | "mcp")[];
 
-    beforeAll(async () => {
+    beforeAll(() => {
         oldTelemetry = config.telemetry;
         oldLoggers = config.loggers;
         config.telemetry = "disabled";
         config.loggers = ["stderr"];
         config.httpPort = 0; // Use a random port for testing
-        runner = new StreamableHttpRunner(config);
-        await runner.start();
     });
 
     afterAll(async () => {
@@ -25,33 +23,81 @@ describe("StreamableHttpRunner", () => {
         config.loggers = oldLoggers;
     });
 
-    describe("client connects successfully", () => {
-        let client: Client;
-        let transport: StreamableHTTPClientTransport;
-        beforeAll(async () => {
-            transport = new StreamableHTTPClientTransport(new URL(`${runner.address}/mcp`));
+    const headerTestCases: { headers: Record<string, string>; description: string }[] = [
+        { headers: {}, description: "without headers" },
+        { headers: { "x-custom-header": "test-value" }, description: "with headers" },
+    ];
 
-            client = new Client({
-                name: "test",
-                version: "0.0.0",
+    for (const { headers, description } of headerTestCases) {
+        describe(description, () => {
+            beforeAll(async () => {
+                config.httpHeaders = headers;
+                runner = new StreamableHttpRunner(config);
+                await runner.start();
             });
-            await client.connect(transport);
-        });
 
-        afterAll(async () => {
-            await client.close();
-            await transport.close();
-        });
+            const clientHeaderTestCases = [
+                {
+                    headers: {},
+                    description: "without client headers",
+                    expectSuccess: Object.keys(headers).length === 0,
+                },
+                { headers, description: "with matching client headers", expectSuccess: true },
+                { headers: { ...headers, foo: "bar" }, description: "with extra client headers", expectSuccess: true },
+                {
+                    headers: { foo: "bar" },
+                    description: "with non-matching client headers",
+                    expectSuccess: Object.keys(headers).length === 0,
+                },
+            ];
 
-        it("handles requests and sends responses", async () => {
-            const response = await client.listTools();
-            expect(response).toBeDefined();
-            expect(response.tools).toBeDefined();
-            expect(response.tools.length).toBeGreaterThan(0);
+            for (const {
+                headers: clientHeaders,
+                description: clientDescription,
+                expectSuccess,
+            } of clientHeaderTestCases) {
+                describe(clientDescription, () => {
+                    let client: Client;
+                    let transport: StreamableHTTPClientTransport;
+                    beforeAll(() => {
+                        client = new Client({
+                            name: "test",
+                            version: "0.0.0",
+                        });
+                        transport = new StreamableHTTPClientTransport(new URL(`${runner.address}/mcp`), {
+                            requestInit: {
+                                headers: clientHeaders,
+                            },
+                        });
+                    });
 
-            const sortedTools = response.tools.sort((a, b) => a.name.localeCompare(b.name));
-            expect(sortedTools[0]?.name).toBe("aggregate");
-            expect(sortedTools[0]?.description).toBe("Run an aggregation against a MongoDB collection");
+                    afterAll(async () => {
+                        await client.close();
+                        await transport.close();
+                    });
+
+                    it(`should ${expectSuccess ? "succeed" : "fail"}`, async () => {
+                        try {
+                            await client.connect(transport);
+                            const response = await client.listTools();
+                            expect(response).toBeDefined();
+                            expect(response.tools).toBeDefined();
+                            expect(response.tools.length).toBeGreaterThan(0);
+
+                            const sortedTools = response.tools.sort((a, b) => a.name.localeCompare(b.name));
+                            expect(sortedTools[0]?.name).toBe("aggregate");
+                            expect(sortedTools[0]?.description).toBe("Run an aggregation against a MongoDB collection");
+                        } catch (err) {
+                            if (expectSuccess) {
+                                throw err;
+                            } else {
+                                expect(err).toBeDefined();
+                                expect(err?.toString()).toContain("HTTP 403");
+                            }
+                        }
+                    });
+                });
+            }
         });
-    });
+    }
 });
