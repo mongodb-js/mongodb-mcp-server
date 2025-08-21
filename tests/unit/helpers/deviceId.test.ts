@@ -17,6 +17,8 @@ describe("deviceId", () => {
     });
 
     afterEach(() => {
+        DeviceId.create(testLogger).close();
+
         vi.restoreAllMocks();
     });
 
@@ -76,13 +78,8 @@ describe("deviceId", () => {
         // Abort the calculation
         deviceId.close();
 
-        // Should reject with AbortError - handle the unhandled rejection
-        try {
-            await promise;
-        } catch (error) {
-            expect(error).toBeInstanceOf(Error);
-            expect((error as Error).name).toBe("AbortError");
-        }
+        // Should reject with AbortError
+        await expect(promise).rejects.toThrow("Aborted");
     });
 
     it("should handle resolution errors gracefully", async () => {
