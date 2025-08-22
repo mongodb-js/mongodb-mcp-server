@@ -42,10 +42,9 @@ describe("getDefaultRoleFromConfig", () => {
         });
     });
 
-    // loop with each disabled tool
     for (const tool of ["create", "update", "delete", "metadata"]) {
-        it(`should return the correct role for a read-write config with ${tool} disabled`, () => {
-            const config = { ...readWriteConfig, disabledTools: [tool] };
+        it(`should return the correct role for a config with ${tool} disabled`, () => {
+            const config = { ...defaultConfig, disabledTools: [tool] };
             const role = getDefaultRoleFromConfig(config);
             expect(role).toEqual({
                 roleName: "readAnyDatabase",
