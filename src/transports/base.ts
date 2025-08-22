@@ -37,8 +37,10 @@ export abstract class TransportRunnerBase {
         });
 
         const loggers = [this.logger];
+        let mcpLogger: McpLogger | undefined;
         if (userConfig.loggers.includes("mcp")) {
-            loggers.push(new McpLogger(mcpServer));
+            mcpLogger = new McpLogger(mcpServer);
+            loggers.push(mcpLogger);
         }
 
         const logger = new CompositeLogger(...loggers);
@@ -61,6 +63,7 @@ export abstract class TransportRunnerBase {
             session,
             telemetry,
             userConfig,
+            mcpLogger,
         });
     }
 
