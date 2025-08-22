@@ -306,7 +306,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `collection-schema` - Describe the schema for a collection
 - `collection-storage-size` - Get the size of a collection in MB
 - `db-stats` - Return statistics about a MongoDB database
-- `export` - Export a query or aggregation results in the specified EJSON format.
+- `export` - Export query or aggregation results to EJSON format. Creates a uniquely named export accessible via the `exported-data` resource.
 
 ## 📄 Supported Resources
 
@@ -339,9 +339,9 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `httpHost`                | `MDB_MCP_HTTP_HOST`                  | 127.0.0.1  | Host to bind the http server.                                                                                                                                 |
 | `idleTimeoutMs`           | `MDB_MCP_IDLE_TIMEOUT_MS`            | 600000     | Idle timeout for a client to disconnect (only applies to http transport).                                                                                     |
 | `notificationTimeoutMs`   | `MDB_MCP_NOTIFICATION_TIMEOUT_MS`    | 540000     | Notification timeout for a client to be aware of diconnect (only applies to http transport).                                                                  |
-| `exportsPath`             | `MDB_MCP_EXPORTS_PATH`               | see note\* | Folder to store the exported data to.                                                                                                                         |
-| `exportTimeoutMs`         | `MDB_MCP_EXPORT_TIMEOUT_MS`          | 300000     | Time in milliseconds, after which an export will be considered expired.                                                                                       |
-| `exportCleanupIntervalMs` | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS` | 120000     | Time in milliseconds which dictate how often a cleanup will be attempted for expired exports.                                                                 |
+| `exportsPath`             | `MDB_MCP_EXPORTS_PATH`               | see note\* | Folder to store exported data files.                                                                                                                          |
+| `exportTimeoutMs`         | `MDB_MCP_EXPORT_TIMEOUT_MS`          | 300000     | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                    |
+| `exportCleanupIntervalMs` | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS` | 120000     | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                          |
 
 #### Logger Options
 
@@ -428,14 +428,14 @@ When index check mode is active, you'll see an error message if a query is rejec
 
 #### Exports
 
-The data exported by the `export` tool are temporarily stored in the configured `exportsPath` on the machine running the MCP server until cleaned up by the exports clean up cycle. If the `exportsPath` configuration is not provided then the following defaults are used:
+The data exported by the `export` tool is temporarily stored in the configured `exportsPath` on the machine running the MCP server until cleaned up by the export cleanup process. If the `exportsPath` configuration is not provided, the following defaults are used:
 
 - **Windows:** `%LOCALAPPDATA%\mongodb\mongodb-mcp\exports`
 - **macOS/Linux:** `~/.mongodb/mongodb-mcp/exports`
 
-The `exportTimeoutMs` configuration controls the time after which an export is considered to be expired. By default the value is 5 minutes and can be overridden using the config parameter.
+The `exportTimeoutMs` configuration controls the time after which the exported data is considered expired and eligible for cleanup. By default, exports expire after 5 minutes (300000ms).
 
-The `exportCleanupIntervalMs` configuration controls how often the exports clean up cycle attempts to remove the expired exports. By default the value is 2 minutes and can be overridden using the config parameter.
+The `exportCleanupIntervalMs` configuration controls how frequently the cleanup process runs to remove expired export files. By default, cleanup runs every 2 minutes (120000ms).
 
 #### Telemetry
 
