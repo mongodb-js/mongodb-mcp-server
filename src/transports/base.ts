@@ -69,5 +69,13 @@ export abstract class TransportRunnerBase {
 
     abstract start(): Promise<void>;
 
-    abstract close(): Promise<void>;
+    abstract closeTransport(): Promise<void>;
+
+    async close(): Promise<void> {
+        try {
+            await this.closeTransport();
+        } finally {
+            this.deviceId.close();
+        }
+    }
 }

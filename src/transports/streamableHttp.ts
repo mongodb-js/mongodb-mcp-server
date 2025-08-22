@@ -147,7 +147,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         });
     }
 
-    async close(): Promise<void> {
+    async closeTransport(): Promise<void> {
         await Promise.all([
             this.sessionStore.closeAllSessions(),
             new Promise<void>((resolve, reject) => {
