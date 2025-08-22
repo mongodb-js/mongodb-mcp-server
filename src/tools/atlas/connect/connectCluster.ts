@@ -93,6 +93,8 @@ export class ConnectClusterTool extends AtlasToolBase {
                 oidcAuthType: "NONE",
                 x509Type: "NONE",
                 deleteAfterDate: expiryDate.toISOString(),
+                description:
+                    "This role is created by MongoDB MCP to connect to the cluster via the atlas-connect-cluster tool",
             },
         });
 
