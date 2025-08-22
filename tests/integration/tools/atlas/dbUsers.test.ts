@@ -1,4 +1,4 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";

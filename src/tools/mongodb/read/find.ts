@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, formatUntrustedData, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
-import { SortDirection } from "mongodb";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import type { SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 
 export const FindArgs = {

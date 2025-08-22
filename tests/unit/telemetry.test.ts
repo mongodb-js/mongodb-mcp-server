@@ -1,13 +1,13 @@
 import { ApiClient } from "../../src/common/atlas/apiClient.js";
-import { Session } from "../../src/common/session.js";
+import type { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
-import { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
+import type { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { config } from "../../src/common/config.js";
 import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
 import { NullLogger } from "../../src/common/logger.js";
 import type { MockedFunction } from "vitest";
-import { DeviceId } from "../../src/helpers/deviceId.js";
+import type { DeviceId } from "../../src/helpers/deviceId.js";
 
 // Mock the ApiClient to avoid real API calls
 vi.mock("../../src/common/atlas/apiClient.js");

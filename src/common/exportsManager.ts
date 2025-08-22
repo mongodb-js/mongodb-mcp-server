@@ -3,14 +3,16 @@ import path from "path";
 import fs from "fs/promises";
 import EventEmitter from "events";
 import { createWriteStream } from "fs";
-import { AggregationCursor, FindCursor } from "mongodb";
-import { EJSON, EJSONOptions, ObjectId } from "bson";
+import type { AggregationCursor, FindCursor } from "mongodb";
+import type { EJSONOptions } from "bson";
+import { EJSON, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
-import { MongoLogId } from "mongodb-log-writer";
+import type { MongoLogId } from "mongodb-log-writer";
 
-import { UserConfig } from "./config.js";
-import { LoggerBase, LogId } from "./logger.js";
+import type { UserConfig } from "./config.js";
+import type { LoggerBase } from "./logger.js";
+import { LogId } from "./logger.js";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;

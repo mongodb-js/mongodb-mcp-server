@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { setupUserConfig, UserConfig, defaultUserConfig } from "../../../src/common/config.js";
+import type { UserConfig } from "../../../src/common/config.js";
+import { setupUserConfig, defaultUserConfig } from "../../../src/common/config.js";
 
 describe("config", () => {
     describe("env var parsing", () => {

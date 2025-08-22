@@ -1,10 +1,11 @@
-import createClient, { Client, Middleware } from "openapi-fetch";
-import type { ClientOptions, FetchOptions } from "openapi-fetch";
+import createClient from "openapi-fetch";
+import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
-import { paths, operations } from "./openapi.js";
-import { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
+import type { paths, operations } from "./openapi.js";
+import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
-import { LoggerBase, LogId } from "../logger.js";
+import type { LoggerBase } from "../logger.js";
+import { LogId } from "../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import * as oauth from "oauth4webapi";
 import { Request as NodeFetchRequest } from "node-fetch";

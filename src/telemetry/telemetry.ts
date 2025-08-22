@@ -1,12 +1,12 @@
-import { Session } from "../common/session.js";
-import { BaseEvent, CommonProperties } from "./types.js";
-import { UserConfig } from "../common/config.js";
+import type { Session } from "../common/session.js";
+import type { BaseEvent, CommonProperties } from "./types.js";
+import type { UserConfig } from "../common/config.js";
 import { LogId } from "../common/logger.js";
-import { ApiClient } from "../common/atlas/apiClient.js";
+import type { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
-import { DeviceId } from "../helpers/deviceId.js";
+import type { DeviceId } from "../helpers/deviceId.js";
 
 type EventResult = {
     success: boolean;

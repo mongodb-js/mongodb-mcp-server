@@ -2,7 +2,7 @@ import path from "path";
 import { Long } from "bson";
 import fs from "fs/promises";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     databaseCollectionParameters,
     defaultTestConfig,
@@ -11,7 +11,7 @@ import {
     validateToolMetadata,
 } from "../../../helpers.js";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
-import { UserConfig } from "../../../../../src/lib.js";
+import type { UserConfig } from "../../../../../src/lib.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,

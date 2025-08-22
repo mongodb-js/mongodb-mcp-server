@@ -1,6 +1,8 @@
-import { describe, beforeEach, afterEach, vi, MockInstance, it, expect } from "vitest";
-import { CompositeLogger, ConsoleLogger, DiskLogger, LoggerType, LogId, McpLogger } from "../../src/common/logger.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { MockInstance } from "vitest";
+import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
+import type { LoggerType } from "../../src/common/logger.js";
+import { CompositeLogger, ConsoleLogger, DiskLogger, LogId, McpLogger } from "../../src/common/logger.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import os from "os";
 import * as path from "path";
 import * as fs from "fs/promises";

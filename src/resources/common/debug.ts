@@ -1,6 +1,6 @@
 import { ReactiveResource } from "../resource.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
-import { Session, UserConfig } from "../../lib.js";
+import type { Session, UserConfig } from "../../lib.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";

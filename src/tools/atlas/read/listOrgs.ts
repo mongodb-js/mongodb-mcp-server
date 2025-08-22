@@ -1,6 +1,6 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { OperationType } from "../../tool.js";
+import type { OperationType } from "../../tool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
     public name = "atlas-list-orgs";

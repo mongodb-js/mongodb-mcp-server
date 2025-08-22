@@ -1,4 +1,4 @@
-import { ApiError } from "./openapi.js";
+import type { ApiError } from "./openapi.js";
 
 export class ApiClientError extends Error {
     private constructor(

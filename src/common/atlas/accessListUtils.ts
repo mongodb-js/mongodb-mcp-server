@@ -1,4 +1,4 @@
-import { ApiClient } from "./apiClient.js";
+import type { ApiClient } from "./apiClient.js";
 import { LogId } from "../logger.js";
 import { ApiClientError } from "./apiClientError.js";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateToolCallingAccuracy } from "../accuracy/sdk/accuracyScorer.js";
-import { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracyResultStorage/resultStorage.js";
+import type { ExpectedToolCall, LLMToolCall } from "../accuracy/sdk/accuracyResultStorage/resultStorage.js";
 import { Matcher } from "../accuracy/sdk/matcher.js";
 
 describe("calculateToolCallingAccuracy", () => {

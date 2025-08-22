@@ -7,7 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
 } from "../../../helpers.js";
-import { IndexDirection } from "mongodb";
+import type { IndexDirection } from "mongodb";
 import { expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool", (integration) => {
