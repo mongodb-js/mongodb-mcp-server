@@ -4,7 +4,7 @@ import { Server } from "../../server.js";
 import { Session } from "../../common/session.js";
 import { UserConfig } from "../../common/config.js";
 import { Telemetry } from "../../telemetry/telemetry.js";
-import { getServerVersion } from "../../helpers/getServerVersion.js";
+import { packageInfo } from "../../common/packageInfo.js";
 
 export abstract class AssistantToolBase extends ToolBase {
     protected server?: Server;
@@ -19,7 +19,7 @@ export abstract class AssistantToolBase extends ToolBase {
     ) {
         super(session, config, telemetry);
         this.baseUrl = new URL(config.assistantBaseUrl);
-        const serverVersion = getServerVersion();
+        const serverVersion = packageInfo.version;
         this.requiredHeaders = {
             "x-request-origin": "mongodb-mcp-server",
             "user-agent": serverVersion ? `mongodb-mcp-server/v${serverVersion}` : "mongodb-mcp-server",
