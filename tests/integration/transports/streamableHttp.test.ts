@@ -17,12 +17,6 @@ describe("StreamableHttpRunner", () => {
         config.httpPort = 0; // Use a random port for testing
     });
 
-    afterAll(async () => {
-        await runner.close();
-        config.telemetry = oldTelemetry;
-        config.loggers = oldLoggers;
-    });
-
     const headerTestCases: { headers: Record<string, string>; description: string }[] = [
         { headers: {}, description: "without headers" },
         { headers: { "x-custom-header": "test-value" }, description: "with headers" },
@@ -34,6 +28,13 @@ describe("StreamableHttpRunner", () => {
                 config.httpHeaders = headers;
                 runner = new StreamableHttpRunner(config);
                 await runner.start();
+            });
+
+            afterAll(async () => {
+                await runner.close();
+                config.telemetry = oldTelemetry;
+                config.loggers = oldLoggers;
+                config.httpHeaders = {};
             });
 
             const clientHeaderTestCases = [
@@ -100,4 +101,23 @@ describe("StreamableHttpRunner", () => {
             }
         });
     }
+
+    it("can create multiple runners", async () => {
+        const runners: StreamableHttpRunner[] = [];
+        try {
+            for (let i = 0; i < 3; i++) {
+                config.httpPort = 0; // Use a random port for each runner
+                const runner = new StreamableHttpRunner(config);
+                await runner.start();
+                runners.push(runner);
+            }
+
+            const addresses = new Set<string>(runners.map((r) => r.address));
+            expect(addresses.size).toBe(runners.length);
+        } finally {
+            for (const runner of runners) {
+                await runner.close();
+            }
+        }
+    });
 });
