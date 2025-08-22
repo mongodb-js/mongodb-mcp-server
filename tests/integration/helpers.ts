@@ -11,6 +11,7 @@ import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotoc
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
+import { DeviceId } from "../../src/helpers/deviceId.js";
 
 interface ParameterInfo {
     name: string;
@@ -68,7 +69,8 @@ export function setupIntegrationTest(
 
         const exportsManager = ExportsManager.init(userConfig, logger);
 
-        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger);
+        const deviceId = DeviceId.create(logger);
+        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
@@ -87,7 +89,7 @@ export function setupIntegrationTest(
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create(session, userConfig);
+        const telemetry = Telemetry.create(session, userConfig, deviceId);
 
         mcpServer = new Server({
             session,

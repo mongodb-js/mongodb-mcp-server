@@ -6,16 +6,18 @@ import { config, driverOptions } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { ConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
+import { DeviceId } from "../../../../src/helpers/deviceId.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
+    const deviceId = DeviceId.create(logger);
     const session = new Session({
         apiBaseUrl: "",
         logger,
         exportsManager: ExportsManager.init(config, logger),
-        connectionManager: new ConnectionManager(config, driverOptions, logger),
+        connectionManager: new ConnectionManager(config, driverOptions, logger, deviceId),
     });
-    const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });
+    const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" }, deviceId);
 
     let debugResource: DebugResource = new DebugResource(session, config, telemetry);
 

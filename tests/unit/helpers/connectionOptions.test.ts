@@ -1,18 +1,17 @@
-import { beforeEach, describe, expect, it, Mocked, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setAppNameParamIfMissing } from "../../../src/helpers/connectionOptions.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 
+const MockDeviceId = vi.mocked(DeviceId.create(new CompositeLogger()));
+
 describe("Connection Options", () => {
     let testLogger: CompositeLogger;
-    let mockDeviceId: Mocked<DeviceId>;
 
     beforeEach(() => {
         testLogger = new CompositeLogger();
         testLogger.debug = vi.fn();
-
-        mockDeviceId = vi.mocked(DeviceId.create(testLogger));
-        mockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
+        MockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
     });
 
     describe("setAppNameParamIfMissing", () => {
@@ -23,7 +22,7 @@ describe("Connection Options", () => {
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
-                    deviceId: mockDeviceId.get(),
+                    deviceId: MockDeviceId.get(),
                 },
             });
 
@@ -65,7 +64,7 @@ describe("Connection Options", () => {
                 connectionString,
                 components: {
                     appName: "TestApp",
-                    deviceId: mockDeviceId.get(),
+                    deviceId: MockDeviceId.get(),
                 },
             });
 
@@ -92,7 +91,7 @@ describe("Connection Options", () => {
                 components: {
                     appName: "TestApp",
                     clientName: "TestClient",
-                    deviceId: mockDeviceId.get(),
+                    deviceId: MockDeviceId.get(),
                 },
             });
 

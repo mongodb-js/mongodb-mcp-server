@@ -130,9 +130,8 @@ describe("Telemetry", () => {
             logger: new NullLogger(),
         } as unknown as Session;
 
-        telemetry = Telemetry.create(session, config, {
+        telemetry = Telemetry.create(session, config, mockDeviceId, {
             eventCache: mockEventCache as unknown as EventCache,
-            deviceId: mockDeviceId,
         });
 
         config.telemetry = "enabled";
@@ -227,7 +226,7 @@ describe("Telemetry", () => {
                         get: vi.fn().mockResolvedValue("test-device-id"),
                     } as unknown as DeviceId;
 
-                    telemetry = Telemetry.create(session, config, { deviceId: mockDeviceId });
+                    telemetry = Telemetry.create(session, config, mockDeviceId);
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
@@ -243,7 +242,7 @@ describe("Telemetry", () => {
                         get: vi.fn().mockResolvedValue("unknown"),
                     } as unknown as DeviceId;
 
-                    telemetry = Telemetry.create(session, config, { deviceId: mockDeviceId });
+                    telemetry = Telemetry.create(session, config, mockDeviceId);
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);
@@ -260,7 +259,7 @@ describe("Telemetry", () => {
                         get: vi.fn().mockResolvedValue("unknown"),
                     } as unknown as DeviceId;
 
-                    telemetry = Telemetry.create(session, config, { deviceId: mockDeviceId });
+                    telemetry = Telemetry.create(session, config, mockDeviceId);
 
                     expect(telemetry["isBufferingEvents"]).toBe(true);
                     expect(telemetry.getCommonProperties().device_id).toBe(undefined);

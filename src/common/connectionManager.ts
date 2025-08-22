@@ -79,6 +79,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         private userConfig: UserConfig,
         private driverOptions: DriverOptions,
         private logger: CompositeLogger,
+        deviceId: DeviceId,
         bus?: EventEmitter
     ) {
         super();
@@ -89,7 +90,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
 
-        this.deviceId = DeviceId.create(this.logger);
+        this.deviceId = deviceId;
         this.clientName = "unknown";
     }
 

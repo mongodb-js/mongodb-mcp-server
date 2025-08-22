@@ -33,13 +33,12 @@ export class Telemetry {
     static create(
         session: Session,
         userConfig: UserConfig,
+        deviceId: DeviceId,
         {
             commonProperties = { ...MACHINE_METADATA },
             eventCache = EventCache.getInstance(),
-            deviceId = DeviceId.create(session.logger),
         }: {
             eventCache?: EventCache;
-            deviceId?: DeviceId;
             commonProperties?: CommonProperties;
         } = {}
     ): Telemetry {

@@ -5,6 +5,7 @@ import nodeMachineId from "node-machine-id";
 
 describe("Device ID", () => {
     let testLogger: CompositeLogger;
+    let deviceId: DeviceId;
 
     beforeEach(() => {
         testLogger = new CompositeLogger();
@@ -12,12 +13,12 @@ describe("Device ID", () => {
     });
 
     afterEach(() => {
-        DeviceId.create(testLogger).close();
+        deviceId?.close();
     });
 
     describe("when resolving device ID", () => {
         it("should successfully resolve device ID in real environment", async () => {
-            const deviceId = DeviceId.create(testLogger);
+            deviceId = DeviceId.create(testLogger);
             const result = await deviceId.get();
 
             expect(result).not.toBe("unknown");
@@ -29,7 +30,7 @@ describe("Device ID", () => {
         it("should cache device ID after first resolution", async () => {
             // spy on machineId
             const machineIdSpy = vi.spyOn(nodeMachineId, "machineId");
-            const deviceId = DeviceId.create(testLogger);
+            deviceId = DeviceId.create(testLogger);
 
             // First call
             const result1 = await deviceId.get();
@@ -43,7 +44,7 @@ describe("Device ID", () => {
         });
 
         it("should handle concurrent device ID requests correctly", async () => {
-            const deviceId = DeviceId.create(testLogger);
+            deviceId = DeviceId.create(testLogger);
 
             const promises = Array.from({ length: 5 }, () => deviceId.get());
 
@@ -79,7 +80,7 @@ describe("Device ID", () => {
                     reject(new Error("Machine ID failed"));
                 });
             });
-            const deviceId = DeviceId.create(testLogger);
+            deviceId = DeviceId.create(testLogger);
             const handleDeviceIdErrorSpy = vi.spyOn(deviceId, "handleDeviceIdError" as keyof DeviceId);
 
             const result = await deviceId.get();
@@ -99,7 +100,7 @@ describe("Device ID", () => {
                 });
             });
 
-            const deviceId = DeviceId.create(testLogger, 100); // Short timeout
+            deviceId = DeviceId.create(testLogger, 100); // Short timeout
             const handleDeviceIdErrorSpy = vi.spyOn(deviceId, "handleDeviceIdError" as keyof DeviceId);
 
             const result = await deviceId.get();

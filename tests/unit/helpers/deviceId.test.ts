@@ -10,6 +10,7 @@ const MockGetDeviceId = vi.mocked(getDeviceId);
 
 describe("deviceId", () => {
     let testLogger: CompositeLogger;
+    let deviceId: DeviceId;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -17,23 +18,22 @@ describe("deviceId", () => {
     });
 
     afterEach(() => {
-        DeviceId.create(testLogger).close();
-
         vi.restoreAllMocks();
+        deviceId.close();
     });
 
-    it("should create not separate instances", () => {
-        const instance1 = DeviceId.create(testLogger);
-        const instance2 = DeviceId.create(testLogger);
+    it("should fail to create separate instances", () => {
+        deviceId = DeviceId.create(testLogger);
 
-        expect(instance1).toBe(instance2);
+        // try to create a new device id and see it raises an error
+        expect(() => DeviceId.create(testLogger)).toThrow("DeviceId instance already exists");
     });
 
     it("should successfully retrieve device ID", async () => {
         const mockDeviceId = "test-device-id-123";
         MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
-        const deviceId = DeviceId.create(testLogger);
+        deviceId = DeviceId.create(testLogger);
         const result = await deviceId.get();
 
         expect(result).toBe(mockDeviceId);
@@ -43,7 +43,7 @@ describe("deviceId", () => {
         const mockDeviceId = "test-device-id-123";
         MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
-        const deviceId = DeviceId.create(testLogger);
+        deviceId = DeviceId.create(testLogger);
 
         // First call should trigger calculation
         const result1 = await deviceId.get();
@@ -82,35 +82,6 @@ describe("deviceId", () => {
         await expect(promise).rejects.toThrow("Aborted");
     });
 
-    it("should handle resolution errors gracefully", async () => {
-        MockGetDeviceId.mockRejectedValue(new Error("Resolution failed"));
-
-        const deviceId = DeviceId.create(testLogger);
-        const result = await deviceId.get();
-
-        expect(result).toBe("unknown");
-    });
-
-    it("should handle timeout errors gracefully", async () => {
-        MockGetDeviceId.mockImplementation((options) => {
-            return new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    const timeoutError = new Error("Timeout");
-                    timeoutError.name = "TimeoutError";
-                    reject(timeoutError);
-                }, 100);
-                options.abortSignal?.addEventListener("abort", () => {
-                    clearTimeout(timeout);
-                });
-            });
-        });
-
-        const deviceId = DeviceId.create(testLogger, 50); // Short timeout
-        const result = await deviceId.get();
-
-        expect(result).toBe("unknown");
-    });
-
     it("should use custom timeout", async () => {
         const mockDeviceId = "test-device-id-123";
         MockGetDeviceId.mockResolvedValue(mockDeviceId);
@@ -130,7 +101,7 @@ describe("deviceId", () => {
         const mockDeviceId = "test-device-id-123";
         MockGetDeviceId.mockResolvedValue(mockDeviceId);
 
-        const deviceId = DeviceId.create(testLogger);
+        deviceId = DeviceId.create(testLogger);
         const result = await deviceId.get();
 
         expect(result).toBe(mockDeviceId);
@@ -142,7 +113,7 @@ describe("deviceId", () => {
     });
 
     it("should handle multiple close calls gracefully", () => {
-        const deviceId = DeviceId.create(testLogger);
+        deviceId = DeviceId.create(testLogger);
 
         // First close should work
         expect(() => deviceId.close()).not.toThrow();
@@ -152,9 +123,10 @@ describe("deviceId", () => {
     });
 
     it("should not throw error when get is called after close", async () => {
-        const deviceId = DeviceId.create(testLogger);
+        deviceId = DeviceId.create(testLogger);
         deviceId.close();
 
-        await expect(deviceId.get()).rejects.toThrow("Device ID calculation not started");
+        // undefined should be returned
+        expect(await deviceId.get()).toBeUndefined();
     });
 });

@@ -19,10 +19,10 @@ describe("Telemetry", () => {
                 apiBaseUrl: "",
                 logger,
                 exportsManager: ExportsManager.init(config, logger),
-                connectionManager: new ConnectionManager(config, driverOptions, logger),
+                connectionManager: new ConnectionManager(config, driverOptions, logger, deviceId),
             }),
             config,
-            { deviceId }
+            deviceId
         );
 
         expect(telemetry.getCommonProperties().device_id).toBe(undefined);

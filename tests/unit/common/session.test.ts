@@ -10,6 +10,7 @@ import { DeviceId } from "../../../src/helpers/deviceId.js";
 vi.mock("@mongosh/service-provider-node-driver");
 
 const MockNodeDriverServiceProvider = vi.mocked(NodeDriverServiceProvider);
+const MockDeviceId = vi.mocked(DeviceId.create(new CompositeLogger()));
 
 describe("Session", () => {
     let session: Session;
@@ -17,18 +18,19 @@ describe("Session", () => {
 
     beforeEach(() => {
         const logger = new CompositeLogger();
-        mockDeviceId = vi.mocked(DeviceId.create(logger));
-        mockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
+
+        mockDeviceId = MockDeviceId;
 
         session = new Session({
             apiClientId: "test-client-id",
             apiBaseUrl: "https://api.test.com",
             logger,
             exportsManager: ExportsManager.init(config, logger),
-            connectionManager: new ConnectionManager(config, driverOptions, logger),
+            connectionManager: new ConnectionManager(config, driverOptions, logger, mockDeviceId),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
+        MockDeviceId.get = vi.fn().mockResolvedValue("test-device-id");
     });
 
     describe("connectToMongoDB", () => {

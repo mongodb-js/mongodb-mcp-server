@@ -21,7 +21,7 @@ export class DeviceId {
 
     public static create(logger: LoggerBase, timeout?: number): DeviceId {
         if (this.instance) {
-            return this.instance;
+            throw new Error("DeviceId instance already exists, use get() to retrieve the device ID");
         }
 
         const instance = new DeviceId(logger, timeout ?? DEVICE_ID_TIMEOUT);
@@ -32,14 +32,8 @@ export class DeviceId {
         return instance;
     }
 
-    /**
-     * Sets up the device ID calculation promise and abort controller.
-     */
     private setup(): void {
-        this.abortController = new AbortController();
         this.deviceIdPromise = this.calculateDeviceId();
-        // start the promise upon setup
-        void this.deviceIdPromise;
     }
 
     /**
@@ -50,6 +44,7 @@ export class DeviceId {
             this.abortController.abort();
             this.abortController = undefined;
         }
+
         this.deviceId = undefined;
         this.deviceIdPromise = undefined;
         DeviceId.instance = undefined;
@@ -59,16 +54,16 @@ export class DeviceId {
      * Gets the device ID, waiting for the calculation to complete if necessary.
      * @returns Promise that resolves to the device ID string
      */
-    public async get(): Promise<string> {
-        if (this.deviceId !== undefined) {
-            return this.deviceId;
+    public get(): Promise<string> {
+        if (this.deviceId) {
+            return Promise.resolve(this.deviceId);
         }
 
-        if (!this.deviceIdPromise) {
-            this.deviceIdPromise = this.calculateDeviceId();
+        if (this.deviceIdPromise) {
+            return this.deviceIdPromise;
         }
 
-        return this.deviceIdPromise;
+        return this.calculateDeviceId();
     }
 
     /**
@@ -76,43 +71,24 @@ export class DeviceId {
      */
     private async calculateDeviceId(): Promise<string> {
         if (!this.abortController) {
-            throw new Error("Device ID calculation not started");
+            this.abortController = new AbortController();
         }
 
-        try {
-            const deviceId = await getDeviceId({
-                getMachineId: this.getMachineId,
-                onError: (reason, error) => {
-                    this.handleDeviceIdError(reason, String(error));
-                },
-                timeout: this.timeout,
-                abortSignal: this.abortController.signal,
-            });
+        this.deviceIdPromise = getDeviceId({
+            getMachineId: this.getMachineId,
+            onError: (reason, error) => {
+                this.handleDeviceIdError(reason, String(error));
+            },
+            timeout: this.timeout,
+            abortSignal: this.abortController.signal,
+        });
 
-            // Cache the result
-            this.deviceId = deviceId;
-            return deviceId;
-        } catch (error) {
-            // Check if this was an abort error
-            if (error instanceof Error && error.name === "AbortError") {
-                throw error; // Re-throw abort errors
-            }
-
-            this.logger.debug({
-                id: LogId.deviceIdResolutionError,
-                context: "deviceId",
-                message: `Failed to get device ID: ${String(error)}`,
-            });
-
-            // Cache the fallback value
-            this.deviceId = "unknown";
-            return "unknown";
-        } finally {
-            this.abortController = undefined;
-        }
+        return this.deviceIdPromise;
     }
 
     private handleDeviceIdError(reason: string, error: string): void {
+        this.deviceIdPromise = Promise.resolve("unknown");
+
         switch (reason) {
             case "resolutionError":
                 this.logger.debug({
