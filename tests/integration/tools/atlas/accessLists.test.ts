@@ -1,4 +1,4 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject } from "./atlasHelpers.js";
 import { expectDefined } from "../../helpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

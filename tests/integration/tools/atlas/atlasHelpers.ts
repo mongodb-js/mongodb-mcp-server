@@ -1,8 +1,10 @@
 import { ObjectId } from "mongodb";
-import { Group } from "../../../../src/common/atlas/openapi.js";
-import { ApiClient } from "../../../../src/common/atlas/apiClient.js";
-import { setupIntegrationTest, IntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
-import { afterAll, beforeAll, describe, SuiteCollector } from "vitest";
+import type { Group } from "../../../../src/common/atlas/openapi.js";
+import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
+import type { IntegrationTest } from "../../helpers.js";
+import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
+import type { SuiteCollector } from "vitest";
+import { afterAll, beforeAll, describe } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 

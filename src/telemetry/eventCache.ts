@@ -1,5 +1,5 @@
 import { LRUCache } from "lru-cache";
-import { BaseEvent } from "./types.js";
+import type { BaseEvent } from "./types.js";
 
 /**
  * Singleton class for in-memory telemetry event caching

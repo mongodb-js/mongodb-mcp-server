@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
-import { Cluster, inspectCluster } from "../../../common/atlas/cluster.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import type { Cluster } from "../../../common/atlas/cluster.js";
+import { inspectCluster } from "../../../common/atlas/cluster.js";
 
 export class InspectClusterTool extends AtlasToolBase {
     public name = "atlas-inspect-cluster";

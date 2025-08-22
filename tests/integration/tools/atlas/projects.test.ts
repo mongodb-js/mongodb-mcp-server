@@ -1,4 +1,4 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ObjectId } from "mongodb";
 import { parseTable, describeWithAtlas } from "./atlasHelpers.js";
 import { expectDefined } from "../../helpers.js";

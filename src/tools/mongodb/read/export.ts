@@ -1,8 +1,8 @@
 import z from "zod";
 import { ObjectId } from "bson";
-import { AggregationCursor, FindCursor } from "mongodb";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { OperationType, ToolArgs } from "../../tool.js";
+import type { AggregationCursor, FindCursor } from "mongodb";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { OperationType, ToolArgs } from "../../tool.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";

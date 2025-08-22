@@ -1,6 +1,6 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs } from "../../tool.js";
 
 export class CreateCollectionTool extends MongoDBToolBase {
     public name = "create-collection";

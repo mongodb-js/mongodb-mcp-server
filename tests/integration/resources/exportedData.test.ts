@@ -2,11 +2,11 @@ import path from "path";
 import fs from "fs/promises";
 import { Long } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { defaultTestConfig, resourceChangedNotification, timeout } from "../helpers.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
-import { UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "../../../src/lib.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,

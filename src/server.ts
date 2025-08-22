@@ -1,22 +1,22 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Session } from "./common/session.js";
-import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Session } from "./common/session.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
 import { LogId } from "./common/logger.js";
-import { Telemetry } from "./telemetry/telemetry.js";
-import { UserConfig } from "./common/config.js";
+import type { Telemetry } from "./telemetry/telemetry.js";
+import type { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     CallToolRequestSchema,
-    CallToolResult,
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import { ToolBase } from "./tools/tool.js";
+import type { ToolBase } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 
 export interface ServerOptions {

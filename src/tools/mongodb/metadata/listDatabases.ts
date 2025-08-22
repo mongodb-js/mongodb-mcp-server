@@ -1,7 +1,7 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import * as bson from "bson";
-import { OperationType } from "../../tool.js";
+import type * as bson from "bson";
+import type { OperationType } from "../../tool.js";
 
 export class ListDatabasesTool extends MongoDBToolBase {
     public name = "list-databases";

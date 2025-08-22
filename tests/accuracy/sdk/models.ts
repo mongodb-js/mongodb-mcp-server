@@ -1,4 +1,4 @@
-import { LanguageModelV1 } from "ai";
+import type { LanguageModelV1 } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAzure } from "@ai-sdk/azure";
 import { createOpenAI } from "@ai-sdk/openai";

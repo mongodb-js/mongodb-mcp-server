@@ -1,16 +1,13 @@
-import { MongoCluster, MongoClusterOptions } from "mongodb-runner";
+import type { MongoClusterOptions } from "mongodb-runner";
+import { MongoCluster } from "mongodb-runner";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import { Document, MongoClient, ObjectId } from "mongodb";
-import {
-    getResponseContent,
-    IntegrationTest,
-    setupIntegrationTest,
-    defaultTestConfig,
-    defaultDriverOptions,
-} from "../../helpers.js";
-import { UserConfig, DriverOptions } from "../../../../src/common/config.js";
+import type { Document } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
+import type { IntegrationTest } from "../../helpers.js";
+import { getResponseContent, setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
+import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

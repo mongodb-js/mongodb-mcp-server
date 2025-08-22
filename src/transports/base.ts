@@ -1,10 +1,12 @@
-import { driverOptions, UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config.js";
+import { driverOptions } from "../common/config.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CompositeLogger, ConsoleLogger, DiskLogger, LoggerBase, McpLogger } from "../common/logger.js";
+import type { LoggerBase } from "../common/logger.js";
+import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
 import { ConnectionManager } from "../common/connectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";

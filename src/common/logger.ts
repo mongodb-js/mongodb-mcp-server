@@ -1,8 +1,9 @@
 import fs from "fs/promises";
-import { mongoLogId, MongoLogId, MongoLogManager, MongoLogWriter } from "mongodb-log-writer";
+import type { MongoLogId, MongoLogWriter } from "mongodb-log-writer";
+import { mongoLogId, MongoLogManager } from "mongodb-log-writer";
 import redact from "mongodb-redact";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];

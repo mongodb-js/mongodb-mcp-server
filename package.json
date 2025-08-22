@@ -62,7 +62,7 @@
     "@eslint/js": "^9.30.1",
     "@modelcontextprotocol/inspector": "^0.16.0",
     "@mongodb-js/oidc-mock-provider": "^0.11.3",
-    "@redocly/cli": "^1.34.4",
+    "@redocly/cli": "^2.0.7",
     "@types/express": "^5.0.1",
     "@types/http-proxy": "^1.17.16",
     "@types/node": "^24.0.12",

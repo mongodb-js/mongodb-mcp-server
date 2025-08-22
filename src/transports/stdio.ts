@@ -1,10 +1,11 @@
 import { LogId } from "../common/logger.js";
-import { Server } from "../server.js";
+import type { Server } from "../server.js";
 import { TransportRunnerBase } from "./base.js";
-import { JSONRPCMessage, JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
+import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { EJSON } from "bson";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
 // but it uses EJSON.parse instead of JSON.parse to handle BSON types
