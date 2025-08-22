@@ -1,9 +1,9 @@
 import express from "express";
-import http from "http";
+import type http from "http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { TransportRunnerBase } from "./base.js";
-import { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config.js";
 import { LogId } from "../common/logger.js";
 import { randomUUID } from "crypto";
 import { SessionStore } from "../common/sessionStore.js";
@@ -147,7 +147,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         });
     }
 
-    async close(): Promise<void> {
+    async closeTransport(): Promise<void> {
         await Promise.all([
             this.sessionStore.closeAllSessions(),
             new Promise<void>((resolve, reject) => {

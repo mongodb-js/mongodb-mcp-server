@@ -1,7 +1,7 @@
-import { Session } from "../../../../src/common/session.js";
+import type { Session } from "../../../../src/common/session.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
-import { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
+import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 function sleep(ms: number): Promise<void> {

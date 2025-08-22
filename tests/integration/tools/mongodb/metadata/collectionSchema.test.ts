@@ -9,9 +9,9 @@ import {
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import { Document } from "bson";
-import { OptionalId } from "mongodb";
-import { SimplifiedSchema } from "mongodb-schema";
+import type { Document } from "bson";
+import type { OptionalId } from "mongodb";
+import type { SimplifiedSchema } from "mongodb-schema";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("collectionSchema tool", (integration) => {

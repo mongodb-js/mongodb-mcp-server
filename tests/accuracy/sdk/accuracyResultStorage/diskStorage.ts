@@ -2,14 +2,14 @@ import path from "path";
 import fs from "fs/promises";
 import { lock } from "proper-lockfile";
 import { ACCURACY_RESULTS_DIR, LATEST_ACCURACY_RUN_NAME } from "../constants.js";
-import {
+import type {
     AccuracyResult,
     AccuracyResultStorage,
-    AccuracyRunStatus,
     AccuracyRunStatuses,
     ExpectedToolCall,
     ModelResponse,
 } from "./resultStorage.js";
+import { AccuracyRunStatus } from "./resultStorage.js";
 
 export class DiskBasedResultStorage implements AccuracyResultStorage {
     async getAccuracyResult(commitSHA: string, runId?: string): Promise<AccuracyResult | null> {

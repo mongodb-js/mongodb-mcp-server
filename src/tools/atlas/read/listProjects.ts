@@ -1,8 +1,9 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { formatUntrustedData, OperationType } from "../../tool.js";
+import type { OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
-import { ToolArgs } from "../../tool.js";
+import type { ToolArgs } from "../../tool.js";
 
 export class ListProjectsTool extends AtlasToolBase {
     public name = "atlas-list-projects";

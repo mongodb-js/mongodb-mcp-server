@@ -1,17 +1,19 @@
 import { ObjectId } from "bson";
-import { ApiClient, ApiClientCredentials } from "./atlas/apiClient.js";
-import { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import { CompositeLogger, LogId } from "./logger.js";
+import type { ApiClientCredentials } from "./atlas/apiClient.js";
+import { ApiClient } from "./atlas/apiClient.js";
+import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { CompositeLogger } from "./logger.js";
+import { LogId } from "./logger.js";
 import EventEmitter from "events";
-import {
+import type {
     AtlasClusterConnectionInfo,
     ConnectionManager,
     ConnectionSettings,
     ConnectionStateConnected,
 } from "./connectionManager.js";
-import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
-import { ExportsManager } from "./exportsManager.js";
+import type { ExportsManager } from "./exportsManager.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -34,9 +36,10 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
-    agentRunner?: {
-        name: string;
-        version: string;
+    mcpClient?: {
+        name?: string;
+        version?: string;
+        title?: string;
     };
 
     public logger: CompositeLogger;
@@ -69,13 +72,24 @@ export class Session extends EventEmitter<SessionEvents> {
         this.connectionManager.on("connection-errored", (error) => this.emit("connection-error", error.errorReason));
     }
 
-    setAgentRunner(agentRunner: Implementation | undefined): void {
-        if (agentRunner?.name && agentRunner?.version) {
-            this.agentRunner = {
-                name: agentRunner.name,
-                version: agentRunner.version,
-            };
+    setMcpClient(mcpClient: Implementation | undefined): void {
+        if (!mcpClient) {
+            this.connectionManager.setClientName("unknown");
+            this.logger.debug({
+                id: LogId.serverMcpClientSet,
+                context: "session",
+                message: "MCP client info not found",
+            });
         }
+
+        this.mcpClient = {
+            name: mcpClient?.name || "unknown",
+            version: mcpClient?.version || "unknown",
+            title: mcpClient?.title || "unknown",
+        };
+
+        // Set the client name on the connection manager for appName generation
+        this.connectionManager.setClientName(this.mcpClient.name || "unknown");
     }
 
     async disconnect(): Promise<void> {

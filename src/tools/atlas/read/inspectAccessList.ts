@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { ToolArgs, OperationType, formatUntrustedData } from "../../tool.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 
 export class InspectAccessListTool extends AtlasToolBase {
     public name = "atlas-inspect-access-list";

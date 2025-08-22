@@ -1,13 +1,17 @@
-import { UserConfig, DriverOptions } from "./config.js";
+import type { UserConfig, DriverOptions } from "./config.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import EventEmitter from "events";
 import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import { packageInfo } from "./packageInfo.js";
 import ConnectionString from "mongodb-connection-string-url";
-import { MongoClientOptions } from "mongodb";
+import type { MongoClientOptions } from "mongodb";
 import { ErrorCodes, MongoDBError } from "./errors.js";
-import { CompositeLogger, LogId } from "./logger.js";
-import { ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import type { DeviceId } from "../helpers/deviceId.js";
+import type { AppNameComponents } from "../helpers/connectionOptions.js";
+import type { CompositeLogger } from "./logger.js";
+import { LogId } from "./logger.js";
+import type { ConnectionInfo } from "@mongosh/arg-parser";
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
 export interface AtlasClusterConnectionInfo {
     username: string;
@@ -69,12 +73,15 @@ export interface ConnectionManagerEvents {
 
 export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     private state: AnyConnectionState;
+    private deviceId: DeviceId;
+    private clientName: string;
     private bus: EventEmitter;
 
     constructor(
         private userConfig: UserConfig,
         private driverOptions: DriverOptions,
         private logger: CompositeLogger,
+        deviceId: DeviceId,
         bus?: EventEmitter
     ) {
         super();
@@ -84,6 +91,13 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
+
+        this.deviceId = deviceId;
+        this.clientName = "unknown";
+    }
+
+    setClientName(clientName: string): void {
+        this.clientName = clientName;
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
@@ -98,9 +112,15 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
         try {
             settings = { ...settings };
-            settings.connectionString = setAppNameParamIfMissing({
+            const appNameComponents: AppNameComponents = {
+                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                deviceId: this.deviceId.get(),
+                clientName: this.clientName,
+            };
+
+            settings.connectionString = await setAppNameParamIfMissing({
                 connectionString: settings.connectionString,
-                defaultAppName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                components: appNameComponents,
             });
 
             connectionInfo = generateConnectionInfoFromCliArgs({

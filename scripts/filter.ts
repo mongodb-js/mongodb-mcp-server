@@ -1,4 +1,4 @@
-import { OpenAPIV3_1 } from "openapi-types";
+import type { OpenAPIV3_1 } from "openapi-types";
 
 async function readStdin(): Promise<string> {
     return new Promise<string>((resolve, reject) => {

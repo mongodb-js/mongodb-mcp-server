@@ -1,20 +1,22 @@
 import path from "path";
 import fs from "fs/promises";
 import { Readable, Transform } from "stream";
-import { FindCursor, Long } from "mongodb";
+import type { FindCursor } from "mongodb";
+import { Long } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js";
 import {
     ensureExtension,
     isExportExpired,
     ExportsManager,
-    ExportsManagerConfig,
     validateExportName,
 } from "../../../src/common/exportsManager.js";
 
 import { config } from "../../../src/common/config.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { timeout } from "../../integration/helpers.js";
-import { EJSON, EJSONOptions, ObjectId } from "bson";
+import type { EJSONOptions } from "bson";
+import { EJSON, ObjectId } from "bson";
 import { CompositeLogger } from "../../../src/common/logger.js";
 
 const logger = new CompositeLogger();

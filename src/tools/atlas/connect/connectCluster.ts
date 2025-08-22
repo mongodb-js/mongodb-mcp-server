@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
-import { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
+import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 

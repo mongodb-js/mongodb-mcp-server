@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { usesIndex, getIndexCheckErrorMessage } from "../../../src/helpers/indexCheck.js";
-import { Document } from "mongodb";
+import type { Document } from "mongodb";
 
 describe("indexCheck", () => {
     describe("usesIndex", () => {

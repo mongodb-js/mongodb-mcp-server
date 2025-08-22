@@ -1,5 +1,6 @@
-import { generateText, LanguageModelV1, experimental_createMCPClient } from "ai";
-import { Model } from "./models.js";
+import type { LanguageModelV1, experimental_createMCPClient } from "ai";
+import { generateText } from "ai";
+import type { Model } from "./models.js";
 
 const systemPrompt = [
     'The keywords "MUST", "MUST NOT", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119',

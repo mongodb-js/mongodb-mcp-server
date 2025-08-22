@@ -1,12 +1,12 @@
-import {
+import type {
     CompleteResourceTemplateCallback,
     ListResourcesCallback,
     ReadResourceTemplateCallback,
-    ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "../../server.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Server } from "../../server.js";
 import { LogId } from "../../common/logger.js";
-import { Session } from "../../common/session.js";
+import type { Session } from "../../common/session.js";
 
 export class ExportedData {
     private readonly name = "exported-data";

@@ -1,4 +1,4 @@
-import { IndexDirection } from "mongodb";
+import type { IndexDirection } from "mongodb";
 import {
     databaseCollectionParameters,
     validateToolMetadata,
