@@ -13,12 +13,11 @@ export function getDefaultRoleFromConfig(config: UserConfig): DatabaseUserRole {
         };
     }
 
-    // If all write tools are enabled, use readWriteAnyDatabase
+    // If any of the write tools are enabled, use readWriteAnyDatabase
     if (
-        !config.disabledTools?.includes("create") &&
-        !config.disabledTools?.includes("update") &&
-        !config.disabledTools?.includes("delete") &&
-        !config.disabledTools?.includes("metadata")
+        !config.disabledTools?.includes("create") ||
+        !config.disabledTools?.includes("update") ||
+        !config.disabledTools?.includes("delete")
     ) {
         return {
             roleName: "readWriteAnyDatabase",

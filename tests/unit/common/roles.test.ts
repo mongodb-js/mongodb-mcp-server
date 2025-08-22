@@ -18,6 +18,30 @@ describe("getDefaultRoleFromConfig", () => {
         disabledTools: [],
     };
 
+    const readWriteConfigWithDeleteDisabled: UserConfig = {
+        ...defaultConfig,
+        readOnly: false,
+        disabledTools: ["delete"],
+    };
+
+    const readWriteConfigWithCreateDisabled: UserConfig = {
+        ...defaultConfig,
+        readOnly: false,
+        disabledTools: ["create"],
+    };
+
+    const readWriteConfigWithUpdateDisabled: UserConfig = {
+        ...defaultConfig,
+        readOnly: false,
+        disabledTools: ["update"],
+    };
+
+    const readWriteConfigWithAllToolsDisabled: UserConfig = {
+        ...defaultConfig,
+        readOnly: false,
+        disabledTools: ["create", "update", "delete"],
+    };
+
     it("should return the correct role for a read-only config", () => {
         const role = getDefaultRoleFromConfig(readOnlyConfig);
         expect(role).toEqual({
@@ -42,14 +66,35 @@ describe("getDefaultRoleFromConfig", () => {
         });
     });
 
-    for (const tool of ["create", "update", "delete", "metadata"]) {
-        it(`should return the correct role for a config with ${tool} disabled`, () => {
-            const config = { ...defaultConfig, disabledTools: [tool] };
-            const role = getDefaultRoleFromConfig(config);
-            expect(role).toEqual({
-                roleName: "readAnyDatabase",
-                databaseName: "admin",
-            });
+    it("should return the correct role for a read-write config with delete disabled", () => {
+        const role = getDefaultRoleFromConfig(readWriteConfigWithDeleteDisabled);
+        expect(role).toEqual({
+            roleName: "readWriteAnyDatabase",
+            databaseName: "admin",
         });
-    }
+    });
+
+    it("should return the correct role for a read-write config with create disabled", () => {
+        const role = getDefaultRoleFromConfig(readWriteConfigWithCreateDisabled);
+        expect(role).toEqual({
+            roleName: "readWriteAnyDatabase",
+            databaseName: "admin",
+        });
+    });
+
+    it("should return the correct role for a read-write config with update disabled", () => {
+        const role = getDefaultRoleFromConfig(readWriteConfigWithUpdateDisabled);
+        expect(role).toEqual({
+            roleName: "readAnyDatabase",
+            databaseName: "admin",
+        });
+    });
+
+    it("should return the correct role for a read-write config with all tools disabled", () => {
+        const role = getDefaultRoleFromConfig(readWriteConfigWithAllToolsDisabled);
+        expect(role).toEqual({
+            roleName: "readAnyDatabase",
+            databaseName: "admin",
+        });
+    });
 });
