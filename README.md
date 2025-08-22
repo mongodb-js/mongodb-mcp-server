@@ -15,6 +15,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
+- [📄 Supported Resources](#supported-resources)
 - [⚙️ Configuration](#configuration)
   - [Configuration Options](#configuration-options)
   - [Atlas API Access](#atlas-api-access)
@@ -262,7 +263,7 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 > **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
 
-## Supported Tools
+## 🛠️ Supported Tools
 
 ### Tool List
 
