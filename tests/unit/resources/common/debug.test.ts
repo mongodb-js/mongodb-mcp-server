@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
-import { config } from "../../../../src/common/config.js";
+import { config, driverOptions } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { ConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
@@ -13,7 +13,7 @@ describe("debug resource", () => {
         apiBaseUrl: "",
         logger,
         exportsManager: ExportsManager.init(config, logger),
-        connectionManager: new ConnectionManager(),
+        connectionManager: new ConnectionManager(config, driverOptions, logger),
     });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" });
 

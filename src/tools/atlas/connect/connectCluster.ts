@@ -139,7 +139,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             try {
                 lastError = undefined;
 
-                await this.session.connectToMongoDB({ connectionString, ...this.config.connectOptions, atlas });
+                await this.session.connectToMongoDB({ connectionString, atlas });
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));

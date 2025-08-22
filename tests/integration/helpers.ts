@@ -1,14 +1,14 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { Server } from "../../src/server.js";
-import { UserConfig } from "../../src/common/config.js";
+import { DriverOptions, UserConfig } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
-import { config } from "../../src/common/config.js";
+import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ConnectionManager } from "../../src/common/connectionManager.js";
+import { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 
@@ -31,12 +31,21 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-export function setupIntegrationTest(getUserConfig: () => UserConfig): IntegrationTest {
+export const defaultDriverOptions: DriverOptions = {
+    ...driverOptions,
+};
+
+export function setupIntegrationTest(
+    getUserConfig: () => UserConfig,
+    getDriverOptions: () => DriverOptions
+): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
+        const driverOptions = getDriverOptions();
+
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
 
@@ -58,7 +67,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init(userConfig, logger);
-        const connectionManager = new ConnectionManager();
+        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
@@ -289,5 +298,37 @@ export function resourceChangedNotification(client: Client, uri: string): Promis
                 resolve();
             }
         });
+    });
+}
+
+export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>): string {
+    return JSON.stringify(response.content, undefined, 2);
+}
+
+export function waitUntil<T extends ConnectionState>(
+    tag: T["tag"],
+    cm: ConnectionManager,
+    signal: AbortSignal,
+    additionalCondition?: (state: T) => boolean
+): Promise<T> {
+    let ts: NodeJS.Timeout | undefined;
+
+    return new Promise<T>((resolve, reject) => {
+        ts = setInterval(() => {
+            if (signal.aborted) {
+                return reject(new Error(`Aborted: ${signal.reason}`));
+            }
+
+            const status = cm.currentConnectionState;
+            if (status.tag === tag) {
+                if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
+                    return resolve(status as T);
+                }
+            }
+        }, 100);
+    }).finally(() => {
+        if (ts !== undefined) {
+            clearInterval(ts);
+        }
     });
 }

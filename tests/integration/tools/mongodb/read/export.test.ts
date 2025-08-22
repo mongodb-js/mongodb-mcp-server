@@ -63,12 +63,6 @@ describeWithMongoDB(
                     required: true,
                 },
                 {
-                    name: "filter",
-                    description: "The query filter, matching the syntax of the query argument of db.collection.find()",
-                    type: "object",
-                    required: false,
-                },
-                {
                     name: "jsonExportFormat",
                     description: [
                         "The format to be used when exporting collection data as EJSON with default being relaxed.",
@@ -79,24 +73,10 @@ describeWithMongoDB(
                     required: false,
                 },
                 {
-                    name: "limit",
-                    description: "The maximum number of documents to return",
-                    type: "number",
-                    required: false,
-                },
-                {
-                    name: "projection",
-                    description:
-                        "The projection, matching the syntax of the projection argument of db.collection.find()",
-                    type: "object",
-                    required: false,
-                },
-                {
-                    name: "sort",
-                    description:
-                        "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort(). The keys of the object are the fields to sort on, while the values are the sort directions (1 for ascending, -1 for descending).",
-                    type: "object",
-                    required: false,
+                    name: "exportTarget",
+                    type: "array",
+                    description: "The export target along with its arguments.",
+                    required: true,
                 },
             ]
         );
@@ -126,6 +106,14 @@ describeWithMongoDB(
                     database: "non-existent",
                     collection: "foos",
                     exportTitle: "Export for non-existent.foos",
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: {
+                                filter: {},
+                            },
+                        },
+                    ],
                 },
             });
             const content = response.content as CallToolResult["content"];
@@ -165,6 +153,14 @@ describeWithMongoDB(
                         database: integration.randomDbName(),
                         collection: "foo",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "find",
+                                arguments: {
+                                    filter: {},
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -192,8 +188,15 @@ describeWithMongoDB(
                     arguments: {
                         database: integration.randomDbName(),
                         collection: "foo",
-                        filter: { name: "foo" },
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "find",
+                                arguments: {
+                                    filter: { name: "foo" },
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -220,8 +223,16 @@ describeWithMongoDB(
                     arguments: {
                         database: integration.randomDbName(),
                         collection: "foo",
-                        limit: 1,
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "find",
+                                arguments: {
+                                    filter: {},
+                                    limit: 1,
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -248,9 +259,17 @@ describeWithMongoDB(
                     arguments: {
                         database: integration.randomDbName(),
                         collection: "foo",
-                        limit: 1,
-                        sort: { longNumber: 1 },
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "find",
+                                arguments: {
+                                    filter: {},
+                                    limit: 1,
+                                    sort: { longNumber: 1 },
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -277,9 +296,17 @@ describeWithMongoDB(
                     arguments: {
                         database: integration.randomDbName(),
                         collection: "foo",
-                        limit: 1,
-                        projection: { _id: 0, name: 1 },
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "find",
+                                arguments: {
+                                    filter: {},
+                                    limit: 1,
+                                    projection: { _id: 0, name: 1 },
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -309,10 +336,18 @@ describeWithMongoDB(
                     arguments: {
                         database: integration.randomDbName(),
                         collection: "foo",
-                        limit: 1,
-                        projection: { _id: 0 },
                         jsonExportFormat: "relaxed",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "find",
+                                arguments: {
+                                    filter: {},
+                                    limit: 1,
+                                    projection: { _id: 0 },
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -343,10 +378,18 @@ describeWithMongoDB(
                     arguments: {
                         database: integration.randomDbName(),
                         collection: "foo",
-                        limit: 1,
-                        projection: { _id: 0 },
                         jsonExportFormat: "canonical",
                         exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "find",
+                                arguments: {
+                                    filter: {},
+                                    limit: 1,
+                                    projection: { _id: 0 },
+                                },
+                            },
+                        ],
                     },
                 });
                 const content = response.content as CallToolResult["content"];
@@ -370,6 +413,48 @@ describeWithMongoDB(
                         },
                     },
                 ]);
+            });
+
+            it("should allow exporting an aggregation", async () => {
+                await integration.connectMcpClient();
+                const response = await integration.mcpClient().callTool({
+                    name: "export",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        exportTitle: `Export for ${integration.randomDbName()}.foo`,
+                        exportTarget: [
+                            {
+                                name: "aggregate",
+                                arguments: {
+                                    pipeline: [
+                                        {
+                                            $match: {},
+                                        },
+                                        {
+                                            $limit: 1,
+                                        },
+                                    ],
+                                },
+                            },
+                        ],
+                    },
+                });
+                const content = response.content as CallToolResult["content"];
+                const exportURI = contentWithResourceURILink(content)?.uri as string;
+                await resourceChangedNotification(integration.mcpClient(), exportURI);
+
+                const localPathPart = contentWithExportPath(content);
+                expect(localPathPart).toBeDefined();
+                const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
+                expect(localPath).toBeDefined();
+
+                const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
+                    string,
+                    unknown
+                >[];
+                expect(exportedContent).toHaveLength(1);
+                expect(exportedContent[0]?.name).toEqual("foo");
             });
         });
     },

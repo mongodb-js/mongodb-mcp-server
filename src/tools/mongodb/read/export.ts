@@ -1,19 +1,42 @@
 import z from "zod";
 import { ObjectId } from "bson";
+import { AggregationCursor, FindCursor } from "mongodb";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationType, ToolArgs } from "../../tool.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
+import { AggregateArgs } from "./aggregate.js";
 
 export class ExportTool extends MongoDBToolBase {
     public name = "export";
     protected description = "Export a collection data or query results in the specified EJSON format.";
     protected argsShape = {
-        exportTitle: z.string().describe("A short description to uniquely identify the export."),
         ...DbOperationArgs,
-        ...FindArgs,
-        limit: z.number().optional().describe("The maximum number of documents to return"),
+        exportTitle: z.string().describe("A short description to uniquely identify the export."),
+        exportTarget: z
+            .array(
+                z.discriminatedUnion("name", [
+                    z.object({
+                        name: z
+                            .literal("find")
+                            .describe("The literal name 'find' to represent a find cursor as target."),
+                        arguments: z
+                            .object({
+                                ...FindArgs,
+                                limit: FindArgs.limit.removeDefault(),
+                            })
+                            .describe("The arguments for 'find' operation."),
+                    }),
+                    z.object({
+                        name: z
+                            .literal("aggregate")
+                            .describe("The literal name 'aggregate' to represent an aggregation cursor as target."),
+                        arguments: z.object(AggregateArgs).describe("The arguments for 'aggregate' operation."),
+                    }),
+                ])
+            )
+            .describe("The export target along with its arguments."),
         jsonExportFormat: jsonExportFormat
             .default("relaxed")
             .describe(
@@ -30,24 +53,38 @@ export class ExportTool extends MongoDBToolBase {
         database,
         collection,
         jsonExportFormat,
-        filter,
-        projection,
-        sort,
-        limit,
         exportTitle,
+        exportTarget: target,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
-        const findCursor = provider.find(database, collection, filter ?? {}, {
-            projection,
-            sort,
-            limit,
-            promoteValues: false,
-            bsonRegExp: true,
-        });
+        const exportTarget = target[0];
+        if (!exportTarget) {
+            throw new Error("Export target not provided. Expected one of the following: `aggregate`, `find`");
+        }
+
+        let cursor: FindCursor | AggregationCursor;
+        if (exportTarget.name === "find") {
+            const { filter, projection, sort, limit } = exportTarget.arguments;
+            cursor = provider.find(database, collection, filter ?? {}, {
+                projection,
+                sort,
+                limit,
+                promoteValues: false,
+                bsonRegExp: true,
+            });
+        } else {
+            const { pipeline } = exportTarget.arguments;
+            cursor = provider.aggregate(database, collection, pipeline, {
+                promoteValues: false,
+                bsonRegExp: true,
+                allowDiskUse: true,
+            });
+        }
+
         const exportName = `${database}.${collection}.${new ObjectId().toString()}.json`;
 
         const { exportURI, exportPath } = await this.session.exportsManager.createJSONExport({
-            input: findCursor,
+            input: cursor,
             exportName,
             exportTitle:
                 exportTitle ||
