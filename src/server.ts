@@ -17,6 +17,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import type { ToolBase } from "./tools/tool.js";
+import { AssistantTools } from "./tools/assistant/tools.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 
 export interface ServerOptions {
@@ -175,7 +176,7 @@ export class Server {
     }
 
     private registerTools(): void {
-        for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
+        for (const toolConstructor of [...AtlasTools, ...MongoDbTools, ...AssistantTools]) {
             const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
             if (tool.register(this)) {
                 this.tools.push(tool);
