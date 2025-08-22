@@ -7,7 +7,7 @@ import { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 import { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
-import { DatabaseUserRole } from "../../../common/atlas/openapi.js";
+import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 
@@ -73,7 +73,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const password = await generateSecurePassword();
 
         const expiryDate = new Date(Date.now() + EXPIRY_MS);
-        const role = this.getRoleFromConfig();
+        const role = getDefaultRoleFromConfig(this.config);
 
         await this.session.apiClient.createDatabaseUser({
             params: {
@@ -243,37 +243,6 @@ export class ConnectClusterTool extends AtlasToolBase {
                     text: `Warning: Make sure your IP address was enabled in the allow list setting of the Atlas cluster.`,
                 },
             ],
-        };
-    }
-
-    /**
-     * @description Get the role name for the database user based on the Atlas Admin API https://www.mongodb.com/docs/atlas/mongodb-users-roles-and-privileges/
-     * @returns The role name for the database user
-     */
-    private getRoleFromConfig(): DatabaseUserRole {
-        if (this.config.readOnly) {
-            return {
-                roleName: "readAnyDatabase",
-                databaseName: "admin",
-            };
-        }
-
-        // If all write tools are enabled, use readWriteAnyDatabase
-        if (
-            !this.config.disabledTools?.includes("create") &&
-            !this.config.disabledTools?.includes("update") &&
-            !this.config.disabledTools?.includes("delete") &&
-            !this.config.disabledTools?.includes("metadata")
-        ) {
-            return {
-                roleName: "readWriteAnyDatabase",
-                databaseName: "admin",
-            };
-        }
-
-        return {
-            roleName: "readAnyDatabase",
-            databaseName: "admin",
         };
     }
 }
