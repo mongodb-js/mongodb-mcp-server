@@ -48,6 +48,13 @@ export default defineConfig([
         rules: {
             "@typescript-eslint/switch-exhaustiveness-check": "error",
             "@typescript-eslint/no-non-null-assertion": "error",
+            "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+            "@typescript-eslint/consistent-type-exports": [
+                "error",
+                {
+                    fixMixedExportsWithInlineTypeSpecifier: false,
+                },
+            ],
             eqeqeq: "error",
             "no-self-compare": "error",
             "no-unassigned-vars": "error",
