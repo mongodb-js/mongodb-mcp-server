@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getDefaultRoleFromConfig } from "../../../src/common/atlas/roles.js";
-import { defaultUserConfig, UserConfig } from "../../../src/common/config.js";
+import { defaultUserConfig, type UserConfig } from "../../../src/common/config.js";
 
 describe("getDefaultRoleFromConfig", () => {
     const defaultConfig: UserConfig = {
