@@ -308,7 +308,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `db-stats` - Return statistics about a MongoDB database
 - `export` - Export a query or aggregation results in the specified EJSON format.
 
-## Supported Resources
+## 📄 Supported Resources
 
 - `config` - Server configuration, supplied by the user either as environment variables or as startup arguments with sensitive parameters redacted. The resource can be accessed under URI `config://config`.
 - `debug` - Debugging information for MongoDB connectivity issues. Tracks the last connectivity attempt and error information. The resource can be accessed under URI `debug://mongodb`.
