@@ -1,5 +1,5 @@
-import { UserConfig } from "../config.js";
-import { DatabaseUserRole } from "./openapi.js";
+import type { UserConfig } from "../config.js";
+import type { DatabaseUserRole } from "./openapi.js";
 
 /**
  * Get the default role name for the database user based on the Atlas Admin API
