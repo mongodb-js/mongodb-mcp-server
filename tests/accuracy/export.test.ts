@@ -8,10 +8,16 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
-                    filter: Matcher.emptyObjectOrUndefined,
-                    limit: Matcher.undefined,
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: {},
+                        },
+                    ],
                 },
             },
         ],
@@ -22,11 +28,20 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
-                    filter: {
-                        runtime: { $lt: 100 },
-                    },
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: {
+                                filter: {
+                                    runtime: { $lt: 100 },
+                                },
+                            },
+                        },
+                    ],
                 },
             },
         ],
@@ -37,16 +52,25 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
-                    projection: {
-                        title: 1,
-                        _id: Matcher.anyOf(
-                            Matcher.undefined,
-                            Matcher.number((value) => value === 0)
-                        ),
-                    },
-                    filter: Matcher.emptyObjectOrUndefined,
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: {
+                                projection: {
+                                    title: 1,
+                                    _id: Matcher.anyOf(
+                                        Matcher.undefined,
+                                        Matcher.number((value) => value === 0)
+                                    ),
+                                },
+                                filter: Matcher.emptyObjectOrUndefined,
+                            },
+                        },
+                    ],
                 },
             },
         ],
@@ -57,11 +81,50 @@ describeAccuracyTests([
             {
                 toolName: "export",
                 parameters: {
+                    exportTitle: Matcher.string(),
                     database: "mflix",
                     collection: "movies",
-                    filter: { genres: "Horror" },
-                    sort: { runtime: 1 },
-                    limit: 2,
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: {
+                                filter: { genres: "Horror" },
+                                sort: { runtime: 1 },
+                                limit: 2,
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Export an aggregation that groups all movie titles by the field release_year from mflix.movies",
+        expectedToolCalls: [
+            {
+                toolName: "export",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "aggregate",
+                            arguments: {
+                                pipeline: [
+                                    {
+                                        $group: {
+                                            _id: "$release_year",
+                                            titles: {
+                                                $push: "$title",
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    ],
                 },
             },
         ],
