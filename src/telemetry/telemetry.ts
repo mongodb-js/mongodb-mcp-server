@@ -5,49 +5,44 @@ import { LogId } from "../common/logger.js";
 import { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
-import nodeMachineId from "node-machine-id";
-import { getDeviceId } from "@mongodb-js/device-id";
 import { detectContainerEnv } from "../helpers/container.js";
+import { DeviceId } from "../helpers/deviceId.js";
 
 type EventResult = {
     success: boolean;
     error?: Error;
 };
 
-export const DEVICE_ID_TIMEOUT = 3000;
-
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
-    private deviceIdAbortController = new AbortController();
     private eventCache: EventCache;
-    private getRawMachineId: () => Promise<string>;
+    private deviceId: DeviceId;
 
     private constructor(
         private readonly session: Session,
         private readonly userConfig: UserConfig,
         private readonly commonProperties: CommonProperties,
-        { eventCache, getRawMachineId }: { eventCache: EventCache; getRawMachineId: () => Promise<string> }
+        { eventCache, deviceId }: { eventCache: EventCache; deviceId: DeviceId }
     ) {
         this.eventCache = eventCache;
-        this.getRawMachineId = getRawMachineId;
+        this.deviceId = deviceId;
     }
 
     static create(
         session: Session,
         userConfig: UserConfig,
+        deviceId: DeviceId,
         {
             commonProperties = { ...MACHINE_METADATA },
             eventCache = EventCache.getInstance(),
-            getRawMachineId = (): Promise<string> => nodeMachineId.machineId(true),
         }: {
             eventCache?: EventCache;
-            getRawMachineId?: () => Promise<string>;
             commonProperties?: CommonProperties;
         } = {}
     ): Telemetry {
-        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, getRawMachineId });
+        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, deviceId });
 
         void instance.setup();
         return instance;
@@ -57,46 +52,17 @@ export class Telemetry {
         if (!this.isTelemetryEnabled()) {
             return;
         }
-        this.setupPromise = Promise.all([
-            getDeviceId({
-                getMachineId: () => this.getRawMachineId(),
-                onError: (reason, error) => {
-                    switch (reason) {
-                        case "resolutionError":
-                            this.session.logger.debug({
-                                id: LogId.telemetryDeviceIdFailure,
-                                context: "telemetry",
-                                message: String(error),
-                            });
-                            break;
-                        case "timeout":
-                            this.session.logger.debug({
-                                id: LogId.telemetryDeviceIdTimeout,
-                                context: "telemetry",
-                                message: "Device ID retrieval timed out",
-                                noRedaction: true,
-                            });
-                            break;
-                        case "abort":
-                            // No need to log in the case of aborts
-                            break;
-                    }
-                },
-                abortSignal: this.deviceIdAbortController.signal,
-            }),
-            detectContainerEnv(),
-        ]);
 
-        const [deviceId, containerEnv] = await this.setupPromise;
+        this.setupPromise = Promise.all([this.deviceId.get(), detectContainerEnv()]);
+        const [deviceIdValue, containerEnv] = await this.setupPromise;
 
-        this.commonProperties.device_id = deviceId;
+        this.commonProperties.device_id = deviceIdValue;
         this.commonProperties.is_container_env = containerEnv;
 
         this.isBufferingEvents = false;
     }
 
     public async close(): Promise<void> {
-        this.deviceIdAbortController.abort();
         this.isBufferingEvents = false;
         await this.emitEvents(this.eventCache.getEvents());
     }
@@ -136,8 +102,8 @@ export class Telemetry {
         return {
             ...this.commonProperties,
             transport: this.userConfig.transport,
-            mcp_client_version: this.session.agentRunner?.version,
-            mcp_client_name: this.session.agentRunner?.name,
+            mcp_client_version: this.session.mcpClient?.version,
+            mcp_client_name: this.session.mcpClient?.name,
             session_id: this.session.sessionId,
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",

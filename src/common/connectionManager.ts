@@ -6,6 +6,8 @@ import { packageInfo } from "./packageInfo.js";
 import ConnectionString from "mongodb-connection-string-url";
 import { MongoClientOptions } from "mongodb";
 import { ErrorCodes, MongoDBError } from "./errors.js";
+import { DeviceId } from "../helpers/deviceId.js";
+import { AppNameComponents } from "../helpers/connectionOptions.js";
 import { CompositeLogger, LogId } from "./logger.js";
 import { ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
@@ -69,12 +71,15 @@ export interface ConnectionManagerEvents {
 
 export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     private state: AnyConnectionState;
+    private deviceId: DeviceId;
+    private clientName: string;
     private bus: EventEmitter;
 
     constructor(
         private userConfig: UserConfig,
         private driverOptions: DriverOptions,
         private logger: CompositeLogger,
+        deviceId: DeviceId,
         bus?: EventEmitter
     ) {
         super();
@@ -84,6 +89,13 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
+
+        this.deviceId = deviceId;
+        this.clientName = "unknown";
+    }
+
+    setClientName(clientName: string): void {
+        this.clientName = clientName;
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
@@ -98,9 +110,15 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
         try {
             settings = { ...settings };
-            settings.connectionString = setAppNameParamIfMissing({
+            const appNameComponents: AppNameComponents = {
+                appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                deviceId: this.deviceId.get(),
+                clientName: this.clientName,
+            };
+
+            settings.connectionString = await setAppNameParamIfMissing({
                 connectionString: settings.connectionString,
-                defaultAppName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
+                components: appNameComponents,
             });
 
             connectionInfo = generateConnectionInfoFromCliArgs({

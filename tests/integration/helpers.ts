@@ -1,16 +1,17 @@
+import { CompositeLogger } from "../../src/common/logger.js";
+import { ExportsManager } from "../../src/common/exportsManager.js";
+import { Session } from "../../src/common/session.js";
+import { Server } from "../../src/server.js";
+import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { Server } from "../../src/server.js";
-import { DriverOptions, UserConfig } from "../../src/common/config.js";
+import { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Session } from "../../src/common/session.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
-import { CompositeLogger } from "../../src/common/logger.js";
-import { ExportsManager } from "../../src/common/exportsManager.js";
+import { DeviceId } from "../../src/helpers/deviceId.js";
 
 interface ParameterInfo {
     name: string;
@@ -41,6 +42,7 @@ export function setupIntegrationTest(
 ): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
+    let deviceId: DeviceId | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
@@ -48,6 +50,7 @@ export function setupIntegrationTest(
 
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
+        const logger = new CompositeLogger();
 
         await serverTransport.start();
         await clientTransport.start();
@@ -65,9 +68,10 @@ export function setupIntegrationTest(
             }
         );
 
-        const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init(userConfig, logger);
-        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger);
+
+        deviceId = DeviceId.create(logger);
+        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
@@ -86,7 +90,7 @@ export function setupIntegrationTest(
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create(session, userConfig);
+        const telemetry = Telemetry.create(session, userConfig, deviceId);
 
         mcpServer = new Server({
             session,
@@ -114,6 +118,9 @@ export function setupIntegrationTest(
 
         await mcpServer?.close();
         mcpServer = undefined;
+
+        deviceId?.close();
+        deviceId = undefined;
     });
 
     const getMcpClient = (): Client => {
