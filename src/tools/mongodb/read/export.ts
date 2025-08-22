@@ -10,7 +10,7 @@ import { AggregateArgs } from "./aggregate.js";
 
 export class ExportTool extends MongoDBToolBase {
     public name = "export";
-    protected description = "Export a collection data or query results in the specified EJSON format.";
+    protected description = "Export a query or aggregation results in the specified EJSON format.";
     protected argsShape = {
         ...DbOperationArgs,
         exportTitle: z.string().describe("A short description to uniquely identify the export."),

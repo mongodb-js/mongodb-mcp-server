@@ -21,7 +21,7 @@ export class DebugResource extends ReactiveResource<
                 uri: "debug://mongodb",
                 config: {
                     description:
-                        "Debugging information for MongoDB connectivity issues. Tracks the last connectivity error and attempt information.",
+                        "Debugging information for MongoDB connectivity issues. Tracks the last connectivity attempt and error information.",
                 },
             },
             options: {

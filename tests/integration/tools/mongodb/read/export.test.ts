@@ -53,7 +53,7 @@ describeWithMongoDB(
         validateToolMetadata(
             integration,
             "export",
-            "Export a collection data or query results in the specified EJSON format.",
+            "Export a query or aggregation results in the specified EJSON format.",
             [
                 ...databaseCollectionParameters,
                 {
