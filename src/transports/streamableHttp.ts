@@ -18,6 +18,18 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
     private sessionStore!: SessionStore;
 
+    public get address(): string {
+        const result = this.httpServer?.address();
+        if (typeof result === "string") {
+            return result;
+        }
+        if (typeof result === "object" && result) {
+            return `http://${result.address}:${result.port}`;
+        }
+
+        throw new Error("Server is not started yet");
+    }
+
     constructor(userConfig: UserConfig) {
         super(userConfig);
     }
@@ -32,6 +44,17 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
+        app.use((req, res, next) => {
+            for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
+                const header = req.headers[key.toLowerCase()];
+                if (!header || header !== value) {
+                    res.status(403).send({ error: `Invalid value for header "${key}"` });
+                    return;
+                }
+            }
+
+            next();
+        });
 
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];

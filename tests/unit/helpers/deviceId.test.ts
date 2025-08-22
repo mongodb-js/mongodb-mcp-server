@@ -22,11 +22,16 @@ describe("deviceId", () => {
         deviceId.close();
     });
 
-    it("should fail to create separate instances", () => {
+    it("should return different instance from create", async () => {
         deviceId = DeviceId.create(testLogger);
-
-        // try to create a new device id and see it raises an error
-        expect(() => DeviceId.create(testLogger)).toThrow("DeviceId instance already exists");
+        let second: DeviceId | undefined;
+        try {
+            second = DeviceId.create(testLogger);
+            expect(second === deviceId).toBe(false);
+            expect(await second.get()).toBe(await deviceId.get());
+        } finally {
+            second?.close();
+        }
     });
 
     it("should successfully retrieve device ID", async () => {

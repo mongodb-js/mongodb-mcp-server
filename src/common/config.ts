@@ -116,6 +116,7 @@ export interface UserConfig extends CliOptions {
     transport: "stdio" | "http";
     httpPort: number;
     httpHost: string;
+    httpHeaders: Record<string, string>;
     loggers: Array<"stderr" | "disk" | "mcp">;
     idleTimeoutMs: number;
     notificationTimeoutMs: number;
@@ -137,6 +138,7 @@ export const defaultUserConfig: UserConfig = {
     loggers: ["disk", "mcp"],
     idleTimeoutMs: 600000, // 10 minutes
     notificationTimeoutMs: 540000, // 9 minutes
+    httpHeaders: {},
 };
 
 export const config = setupUserConfig({
