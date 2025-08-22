@@ -85,7 +85,7 @@ describe("getDefaultRoleFromConfig", () => {
     it("should return the correct role for a read-write config with update disabled", () => {
         const role = getDefaultRoleFromConfig(readWriteConfigWithUpdateDisabled);
         expect(role).toEqual({
-            roleName: "readAnyDatabase",
+            roleName: "readWriteAnyDatabase",
             databaseName: "admin",
         });
     });
