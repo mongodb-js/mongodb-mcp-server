@@ -42,6 +42,7 @@ export function setupIntegrationTest(
 ): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
+    let deviceId: DeviceId | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
@@ -69,7 +70,7 @@ export function setupIntegrationTest(
 
         const exportsManager = ExportsManager.init(userConfig, logger);
 
-        const deviceId = DeviceId.create(logger);
+        deviceId = DeviceId.create(logger);
         const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, deviceId);
 
         const session = new Session({
@@ -117,6 +118,9 @@ export function setupIntegrationTest(
 
         await mcpServer?.close();
         mcpServer = undefined;
+
+        await deviceId.close();
+        deviceId = undefined;
     });
 
     const getMcpClient = (): Client => {
