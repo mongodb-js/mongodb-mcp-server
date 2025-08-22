@@ -1,5 +1,6 @@
 import path from "path";
-import { AccuracyTestConfig, describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import type { AccuracyTestConfig } from "./sdk/describeAccuracyTests.js";
+import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 import * as fs from "fs";
 

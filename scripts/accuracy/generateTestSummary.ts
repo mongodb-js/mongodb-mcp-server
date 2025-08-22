@@ -1,7 +1,7 @@
 import path from "path";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { getAccuracyResultStorage } from "../../tests/accuracy/sdk/accuracyResultStorage/getAccuracyResultStorage.js";
-import {
+import type {
     AccuracyResult,
     AccuracyRunStatuses,
     ExpectedToolCall,

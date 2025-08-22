@@ -1,30 +1,29 @@
 import { ObjectId } from "mongodb";
-import { Group } from "../../../../src/common/atlas/openapi.js";
-import { ApiClient } from "../../../../src/common/atlas/apiClient.js";
-import { setupIntegrationTest, IntegrationTest, defaultTestConfig } from "../../helpers.js";
-import { afterAll, beforeAll, describe, SuiteCollector } from "vitest";
+import type { Group } from "../../../../src/common/atlas/openapi.js";
+import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
+import type { IntegrationTest } from "../../helpers.js";
+import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
+import type { SuiteCollector } from "vitest";
+import { afterAll, beforeAll, describe } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
-export function describeWithAtlas(name: string, fn: IntegrationTestFunction): SuiteCollector<object> {
-    const testDefinition = (): void => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
-        }));
-
-        describe(name, () => {
-            fn(integration);
-        });
-    };
-
-    if (!process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length) {
-        // eslint-disable-next-line vitest/valid-describe-callback
-        return describe.skip("atlas", testDefinition);
-    }
-    // eslint-disable-next-line vitest/no-identical-title, vitest/valid-describe-callback
-    return describe("atlas", testDefinition);
+export function describeWithAtlas(name: string, fn: IntegrationTestFunction): void {
+    const describeFn =
+        !process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length
+            ? describe.skip
+            : describe;
+    describeFn(name, () => {
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
+            }),
+            () => defaultDriverOptions
+        );
+        fn(integration);
+    });
 }
 
 interface ProjectTestArgs {
@@ -34,14 +33,19 @@ interface ProjectTestArgs {
 type ProjectTestFunction = (args: ProjectTestArgs) => void;
 
 export function withProject(integration: IntegrationTest, fn: ProjectTestFunction): SuiteCollector<object> {
-    return describe("project", () => {
+    return describe("with project", () => {
         let projectId: string = "";
 
         beforeAll(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
 
-            const group = await createProject(apiClient);
-            projectId = group.id || "";
+            try {
+                const group = await createProject(apiClient);
+                projectId = group.id || "";
+            } catch (error) {
+                console.error("Failed to create project:", error);
+                throw error;
+            }
         });
 
         afterAll(async () => {
@@ -60,9 +64,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             getProjectId: (): string => projectId,
         };
 
-        describe("with project", () => {
-            fn(args);
-        });
+        fn(args);
     });
 }
 

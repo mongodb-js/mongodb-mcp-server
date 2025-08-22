@@ -2,11 +2,11 @@ import path from "path";
 import fs from "fs/promises";
 import { Long } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { defaultTestConfig, resourceChangedNotification, timeout } from "../helpers.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
-import { UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "../../../src/lib.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -65,7 +65,12 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: "db", collection: "coll", exportTitle: "Export for db.coll" },
+                    arguments: {
+                        database: "db",
+                        collection: "coll",
+                        exportTitle: "Export for db.coll",
+                        exportTarget: [{ name: "find", arguments: {} }],
+                    },
                 });
 
                 const exportedResourceURI = (exportResponse as CallToolResult).content.find(
@@ -99,7 +104,12 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: "db", collection: "coll", exportTitle: "Export for db.coll" },
+                    arguments: {
+                        database: "db",
+                        collection: "coll",
+                        exportTitle: "Export for db.coll",
+                        exportTarget: [{ name: "find", arguments: {} }],
+                    },
                 });
                 const content = exportResponse.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
@@ -122,7 +132,12 @@ describeWithMongoDB(
                 await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
                     name: "export",
-                    arguments: { database: "big", collection: "coll", exportTitle: "Export for big.coll" },
+                    arguments: {
+                        database: "big",
+                        collection: "coll",
+                        exportTitle: "Export for big.coll",
+                        exportTarget: [{ name: "find", arguments: {} }],
+                    },
                 });
                 const content = exportResponse.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;

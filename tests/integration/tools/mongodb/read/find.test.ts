@@ -56,7 +56,7 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "foos"');
+        expect(content).toEqual('Found 0 documents in the collection "foos".');
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -68,7 +68,7 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "non-existent"');
+        expect(content).toEqual('Found 0 documents in the collection "non-existent".');
     });
 
     describe("with existing database", () => {

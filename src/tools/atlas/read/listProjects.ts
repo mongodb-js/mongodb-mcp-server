@@ -1,8 +1,9 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { OperationType } from "../../tool.js";
+import type { OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
-import { ToolArgs } from "../../tool.js";
+import type { ToolArgs } from "../../tool.js";
 
 export class ListProjectsTool extends AtlasToolBase {
     public name = "atlas-list-projects";
@@ -16,7 +17,9 @@ export class ListProjectsTool extends AtlasToolBase {
         const orgData = await this.session.apiClient.listOrganizations();
 
         if (!orgData?.results?.length) {
-            throw new Error("No organizations found in your MongoDB Atlas account.");
+            return {
+                content: [{ type: "text", text: "No organizations found in your MongoDB Atlas account." }],
+            };
         }
 
         const orgs: Record<string, string> = orgData.results
@@ -35,7 +38,9 @@ export class ListProjectsTool extends AtlasToolBase {
             : await this.session.apiClient.listProjects();
 
         if (!data?.results?.length) {
-            throw new Error("No projects found in your MongoDB Atlas account.");
+            return {
+                content: [{ type: "text", text: `No projects found in organization ${orgId}.` }],
+            };
         }
 
         // Format projects as a table
@@ -50,7 +55,7 @@ export class ListProjectsTool extends AtlasToolBase {
 ----------------| ----------------| ----------------| ----------------| ----------------
 ${rows}`;
         return {
-            content: [{ type: "text", text: formattedProjects }],
+            content: formatUntrustedData(`Found ${rows.length} projects`, formattedProjects),
         };
     }
 }

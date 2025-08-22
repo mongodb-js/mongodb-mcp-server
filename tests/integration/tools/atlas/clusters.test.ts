@@ -1,8 +1,7 @@
-import { Session } from "../../../../src/common/session.js";
+import type { Session } from "../../../../src/common/session.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
-import { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 function sleep(ms: number): Promise<void> {
@@ -87,17 +86,17 @@ describeWithAtlas("clusters", (integration) => {
                 const session = integration.mcpServer().session;
                 const ipInfo = await session.apiClient.getIpInfo();
 
-                const response = (await integration.mcpClient().callTool({
+                const response = await integration.mcpClient().callTool({
                     name: "atlas-create-free-cluster",
                     arguments: {
                         projectId,
                         name: clusterName,
                         region: "US_EAST_1",
                     },
-                })) as CallToolResult;
-                expect(response.content).toBeInstanceOf(Array);
-                expect(response.content).toHaveLength(2);
-                expect(response.content[0]?.text).toContain("has been created");
+                });
+                const elements = getResponseElements(response.content);
+                expect(elements).toHaveLength(2);
+                expect(elements[0]?.text).toContain("has been created");
 
                 // Check that the current IP is present in the access list
                 const accessList = await session.apiClient.listProjectIpAccessLists({
@@ -123,13 +122,15 @@ describeWithAtlas("clusters", (integration) => {
             it("returns cluster data", async () => {
                 const projectId = getProjectId();
 
-                const response = (await integration.mcpClient().callTool({
+                const response = await integration.mcpClient().callTool({
                     name: "atlas-inspect-cluster",
                     arguments: { projectId, clusterName: clusterName },
-                })) as CallToolResult;
-                expect(response.content).toBeInstanceOf(Array);
-                expect(response.content).toHaveLength(1);
-                expect(response.content[0]?.text).toContain(`${clusterName} | `);
+                });
+                const elements = getResponseElements(response.content);
+                expect(elements).toHaveLength(2);
+                expect(elements[0]?.text).toContain("Cluster details:");
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(`${clusterName} | `);
             });
         });
 
@@ -146,12 +147,15 @@ describeWithAtlas("clusters", (integration) => {
             it("returns clusters by project", async () => {
                 const projectId = getProjectId();
 
-                const response = (await integration
+                const response = await integration
                     .mcpClient()
-                    .callTool({ name: "atlas-list-clusters", arguments: { projectId } })) as CallToolResult;
-                expect(response.content).toBeInstanceOf(Array);
-                expect(response.content).toHaveLength(2);
-                expect(response.content[1]?.text).toContain(`${clusterName} | `);
+                    .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
+
+                const elements = getResponseElements(response);
+                expect(elements).toHaveLength(2);
+                expect(elements[0]?.text).toMatch(/Found \d+ clusters in project/);
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(`${clusterName} | `);
             });
         });
 
@@ -194,23 +198,20 @@ describeWithAtlas("clusters", (integration) => {
                 const projectId = getProjectId();
 
                 for (let i = 0; i < 10; i++) {
-                    const response = (await integration.mcpClient().callTool({
+                    const response = await integration.mcpClient().callTool({
                         name: "atlas-connect-cluster",
                         arguments: { projectId, clusterName },
-                    })) as CallToolResult;
-                    expect(response.content).toBeInstanceOf(Array);
-                    expect(response.content.length).toBeGreaterThanOrEqual(1);
-                    expect(response.content[0]?.type).toEqual("text");
-                    const c = response.content[0] as { text: string };
+                    });
+
+                    const elements = getResponseElements(response.content);
+                    expect(elements.length).toBeGreaterThanOrEqual(1);
                     if (
-                        c.text.includes("Cluster is already connected.") ||
-                        c.text.includes(`Connected to cluster "${clusterName}"`)
+                        elements[0]?.text.includes("Cluster is already connected.") ||
+                        elements[0]?.text.includes(`Connected to cluster "${clusterName}"`)
                     ) {
                         break; // success
                     } else {
-                        expect(response.content[0]?.text).toContain(
-                            `Attempting to connect to cluster "${clusterName}"...`
-                        );
+                        expect(elements[0]?.text).toContain(`Attempting to connect to cluster "${clusterName}"...`);
                     }
                     await sleep(500);
                 }

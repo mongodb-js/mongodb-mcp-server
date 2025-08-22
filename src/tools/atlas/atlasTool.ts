@@ -1,6 +1,7 @@
-import { ToolBase, ToolCategory, TelemetryToolMetadata, ToolArgs } from "../tool.js";
-import { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ToolCategory, TelemetryToolMetadata, ToolArgs } from "../tool.js";
+import { ToolBase } from "../tool.js";
+import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../../common/logger.js";
 import { z } from "zod";
 import { ApiClientError } from "../../common/atlas/apiClientError.js";

@@ -29,7 +29,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                'No collections found for database "non-existent". To create a collection, use the "create-collection" tool.'
+                'Found 0 collections for database "non-existent". To create a collection, use the "create-collection" tool.'
             );
         });
     });
@@ -45,8 +45,9 @@ describeWithMongoDB("listCollections tool", (integration) => {
                 arguments: { database: integration.randomDbName() },
             });
             const items = getResponseElements(response.content);
-            expect(items).toHaveLength(1);
-            expect(items[0]?.text).toContain('Name: "collection-1"');
+            expect(items).toHaveLength(2);
+            expect(items[0]?.text).toEqual(`Found 1 collections for database "${integration.randomDbName()}".`);
+            expect(items[1]?.text).toContain('"collection-1"');
 
             await mongoClient.db(integration.randomDbName()).createCollection("collection-2");
 
@@ -56,10 +57,10 @@ describeWithMongoDB("listCollections tool", (integration) => {
             });
             const items2 = getResponseElements(response2.content);
             expect(items2).toHaveLength(2);
-            expect(items2.map((item) => item.text)).toIncludeSameMembers([
-                'Name: "collection-1"',
-                'Name: "collection-2"',
-            ]);
+
+            expect(items2[0]?.text).toEqual(`Found 2 collections for database "${integration.randomDbName()}".`);
+            expect(items2[1]?.text).toContain('"collection-1"');
+            expect(items2[1]?.text).toContain('"collection-2"');
         });
     });
 
@@ -70,7 +71,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
         () => {
             return {
                 args: { database: integration.randomDbName() },
-                expectedResponse: `No collections found for database "${integration.randomDbName()}". To create a collection, use the "create-collection" tool.`,
+                expectedResponse: `Found 0 collections for database "${integration.randomDbName()}". To create a collection, use the "create-collection" tool.`,
             };
         }
     );

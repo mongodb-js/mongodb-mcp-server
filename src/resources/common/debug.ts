@@ -1,6 +1,6 @@
 import { ReactiveResource } from "../resource.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
-import { Session, UserConfig } from "../../lib.js";
+import type { Session, UserConfig } from "../../lib.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
@@ -21,7 +21,7 @@ export class DebugResource extends ReactiveResource<
                 uri: "debug://mongodb",
                 config: {
                     description:
-                        "Debugging information for MongoDB connectivity issues. Tracks the last connectivity error and attempt information.",
+                        "Debugging information for MongoDB connectivity issues. Tracks the last connectivity attempt and error information.",
                 },
             },
             options: {

@@ -1,4 +1,4 @@
-import { ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
+import type { ExpectedToolCall, LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import { Matcher } from "./matcher.js";
 
 /**

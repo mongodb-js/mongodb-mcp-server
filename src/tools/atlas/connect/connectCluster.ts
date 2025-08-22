@@ -1,12 +1,13 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
-import { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
+import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
+import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 
@@ -72,16 +73,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const password = await generateSecurePassword();
 
         const expiryDate = new Date(Date.now() + EXPIRY_MS);
-
-        const readOnly =
-            this.config.readOnly ||
-            (this.config.disabledTools?.includes("create") &&
-                this.config.disabledTools?.includes("update") &&
-                this.config.disabledTools?.includes("delete") &&
-                !this.config.disabledTools?.includes("read") &&
-                !this.config.disabledTools?.includes("metadata"));
-
-        const roleName = readOnly ? "readAnyDatabase" : "readWriteAnyDatabase";
+        const role = getDefaultRoleFromConfig(this.config);
 
         await this.session.apiClient.createDatabaseUser({
             params: {
@@ -92,12 +84,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             body: {
                 databaseName: "admin",
                 groupId: projectId,
-                roles: [
-                    {
-                        roleName,
-                        databaseName: "admin",
-                    },
-                ],
+                roles: [role],
                 scopes: [{ type: "CLUSTER", name: clusterName }],
                 username,
                 password,
@@ -106,6 +93,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 oidcAuthType: "NONE",
                 x509Type: "NONE",
                 deleteAfterDate: expiryDate.toISOString(),
+                description: "This temporary user is created by the MongoDB MCP Server to connect to the cluster.",
             },
         });
 

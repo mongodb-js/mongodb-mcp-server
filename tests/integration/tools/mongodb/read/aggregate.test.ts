@@ -35,7 +35,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
 
         const content = getResponseContent(response);
-        expect(content).toEqual("The aggregation resulted in 0 documents");
+        expect(content).toEqual("The aggregation resulted in 0 documents.");
     });
 
     it("can run aggragation on an empty collection", async () => {
@@ -52,7 +52,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
 
         const content = getResponseContent(response);
-        expect(content).toEqual("The aggregation resulted in 0 documents");
+        expect(content).toEqual("The aggregation resulted in 0 documents.");
     });
 
     it("can run aggragation on an existing collection", async () => {

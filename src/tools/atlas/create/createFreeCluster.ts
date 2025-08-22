@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
-import { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {

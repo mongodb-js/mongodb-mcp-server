@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, formatUntrustedData, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+import { EJSON } from "bson";
 
 export const AggregateArgs = {
     pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
@@ -36,7 +38,10 @@ export class AggregateTool extends MongoDBToolBase {
         const documents = await provider.aggregate(database, collection, pipeline).toArray();
 
         return {
-            content: formatUntrustedData(`The aggregation resulted in ${documents.length} documents`, documents),
+            content: formatUntrustedData(
+                `The aggregation resulted in ${documents.length} documents.`,
+                documents.length > 0 ? EJSON.stringify(documents) : undefined
+            ),
         };
     }
 }

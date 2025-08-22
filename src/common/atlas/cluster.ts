@@ -1,5 +1,5 @@
-import { ClusterDescription20240805, FlexClusterDescription20241113 } from "./openapi.js";
-import { ApiClient } from "./apiClient.js";
+import type { ClusterDescription20240805, FlexClusterDescription20241113 } from "./openapi.js";
+import type { ApiClient } from "./apiClient.js";
 import { LogId } from "../logger.js";
 
 export interface Cluster {
