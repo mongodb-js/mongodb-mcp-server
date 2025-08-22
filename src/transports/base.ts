@@ -7,9 +7,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, LoggerBase, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
 import { ConnectionManager } from "../common/connectionManager.js";
+import { DeviceId } from "../helpers/deviceId.js";
 
 export abstract class TransportRunnerBase {
     public logger: LoggerBase;
+    public deviceId: DeviceId;
 
     protected constructor(protected readonly userConfig: UserConfig) {
         const loggers: LoggerBase[] = [];
@@ -28,6 +30,7 @@ export abstract class TransportRunnerBase {
         }
 
         this.logger = new CompositeLogger(...loggers);
+        this.deviceId = DeviceId.create(this.logger);
     }
 
     protected setupServer(userConfig: UserConfig): Server {
@@ -43,7 +46,7 @@ export abstract class TransportRunnerBase {
 
         const logger = new CompositeLogger(...loggers);
         const exportsManager = ExportsManager.init(userConfig, logger);
-        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger);
+        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, this.deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
@@ -54,7 +57,7 @@ export abstract class TransportRunnerBase {
             connectionManager,
         });
 
-        const telemetry = Telemetry.create(session, userConfig);
+        const telemetry = Telemetry.create(session, userConfig, this.deviceId);
 
         return new Server({
             mcpServer,
@@ -66,5 +69,13 @@ export abstract class TransportRunnerBase {
 
     abstract start(): Promise<void>;
 
-    abstract close(): Promise<void>;
+    abstract closeTransport(): Promise<void>;
+
+    async close(): Promise<void> {
+        try {
+            await this.closeTransport();
+        } finally {
+            this.deviceId.close();
+        }
+    }
 }

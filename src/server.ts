@@ -17,6 +17,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import { ToolBase } from "./tools/tool.js";
+import { validateConnectionString } from "./helpers/connectionOptions.js";
 
 export interface ServerOptions {
     session: Session;
@@ -97,12 +98,14 @@ export class Server {
         });
 
         this.mcpServer.server.oninitialized = (): void => {
-            this.session.setAgentRunner(this.mcpServer.server.getClientVersion());
+            this.session.setMcpClient(this.mcpServer.server.getClientVersion());
+            // Placed here to start the connection to the config connection string as soon as the server is initialized.
+            void this.connectToConfigConnectionString();
 
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.agentRunner?.name}`,
+                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.mcpClient?.name}`,
             });
 
             this.emitServerEvent("start", Date.now() - this.startTime);
@@ -188,20 +191,20 @@ export class Server {
     }
 
     private async validateConfig(): Promise<void> {
+        // Validate connection string
         if (this.userConfig.connectionString) {
             try {
-                await this.session.connectToMongoDB({
-                    connectionString: this.userConfig.connectionString,
-                });
+                validateConnectionString(this.userConfig.connectionString, false);
             } catch (error) {
-                console.error(
-                    "Failed to connect to MongoDB instance using the connection string from the config: ",
-                    error
+                console.error("Connection string validation failed with error: ", error);
+                throw new Error(
+                    "Connection string validation failed with error: " +
+                        (error instanceof Error ? error.message : String(error))
                 );
-                throw new Error("Failed to connect to MongoDB instance using the connection string from the config");
             }
         }
 
+        // Validate API client credentials
         if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
             try {
                 await this.session.apiClient.validateAccessToken();
@@ -216,6 +219,22 @@ export class Server {
                 console.error(
                     "Failed to validate MongoDB Atlas the credentials from the config, but validated the connection string."
                 );
+            }
+        }
+    }
+
+    private async connectToConfigConnectionString(): Promise<void> {
+        if (this.userConfig.connectionString) {
+            try {
+                await this.session.connectToMongoDB({
+                    connectionString: this.userConfig.connectionString,
+                });
+            } catch (error) {
+                console.error(
+                    "Failed to connect to MongoDB instance using the connection string from the config: ",
+                    error
+                );
+                throw new Error("Failed to connect to MongoDB instance using the connection string from the config");
             }
         }
     }

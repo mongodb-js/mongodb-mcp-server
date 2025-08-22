@@ -50,7 +50,6 @@ async function main(): Promise<void> {
     assertVersionMode();
 
     const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
-
     const shutdown = (): void => {
         transportRunner.logger.info({
             id: LogId.serverCloseRequested,

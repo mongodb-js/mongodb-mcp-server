@@ -74,7 +74,7 @@ export class StdioRunner extends TransportRunnerBase {
         }
     }
 
-    async close(): Promise<void> {
+    async closeTransport(): Promise<void> {
         await this.server?.close();
     }
 }
