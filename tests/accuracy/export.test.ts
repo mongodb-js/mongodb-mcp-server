@@ -10,7 +10,6 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
@@ -29,7 +28,6 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
@@ -52,7 +50,6 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
@@ -80,7 +77,6 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
