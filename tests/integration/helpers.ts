@@ -119,7 +119,7 @@ export function setupIntegrationTest(
         await mcpServer?.close();
         mcpServer = undefined;
 
-        await deviceId.close();
+        deviceId?.close();
         deviceId = undefined;
     });
 
