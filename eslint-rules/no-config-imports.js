@@ -16,13 +16,12 @@ export default {
                 properties: {
                     configFilePath: {
                         type: "string",
-                        description: "Path (relative to root of the project) to the config file to restrict.",
+                        description: "Path to the config file to restrict.",
                     },
                     allowedFiles: {
                         type: "array",
                         items: { type: "string" },
-                        description:
-                            "List of file paths (relative to root of the project) that are allowed to import value exports from config.ts.",
+                        description: "List of file paths that are allowed to import value exports from config.ts.",
                     },
                 },
                 required: ["configFilePath"],
