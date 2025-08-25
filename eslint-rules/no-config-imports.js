@@ -1,6 +1,17 @@
 "use strict";
 import path from "path";
 
+// The file from which we wish to discourage importing values
+const configFilePath = path.resolve(import.meta.dirname, "../src/common/config.js");
+
+// Files that are allowed to import value exports from config.ts
+const allowedConfigValueImportFiles = [
+    // Main entry point that injects the config
+    "src/index.ts",
+    // Config resource definition that works with the some config values
+    "src/resources/common/config.ts",
+];
+
 // Ref: https://eslint.org/docs/latest/extend/custom-rules
 export default {
     meta: {
@@ -11,41 +22,15 @@ export default {
             recommended: true,
         },
         fixable: null,
-        schema: [
-            {
-                type: "object",
-                properties: {
-                    configFilePath: {
-                        type: "string",
-                        description: "Path to the config file to restrict.",
-                    },
-                    allowedFiles: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "List of file paths that are allowed to import value exports from config.ts.",
-                    },
-                },
-                required: ["configFilePath"],
-            },
-        ],
         messages: {
             noConfigImports:
                 "Value imports from config.ts are not allowed. Use dependency injection instead. Only type imports are permitted.",
         },
     },
     create(context) {
-        const options = context.options[0];
-        if (!options) {
-            throw new Error(
-                "no-config-imports should be configured with an object with at-least 'configFilePath' key."
-            );
-        }
-        const configFilePath = path.resolve(options.configFilePath);
-        const allowedFiles = options.allowedFiles || [];
-
         const currentFilePath = path.resolve(context.getFilename());
 
-        const isCurrentFileAllowedToImport = allowedFiles.some((allowedFile) => {
+        const isCurrentFileAllowedToImport = allowedConfigValueImportFiles.some((allowedFile) => {
             const resolvedAllowedFile = path.resolve(allowedFile);
             return currentFilePath === resolvedAllowedFile;
         });

@@ -11,16 +11,6 @@ const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
 
 const files = [...testFiles, "src/**/*.ts", "scripts/**/*.ts"];
 
-// Files that are allowed to import value exports from config.ts
-const allowedConfigValueImportFiles = [
-    // Main entry point that injects the config
-    "src/index.ts",
-    // Config resource definition that works with the some config values
-    "src/resources/common/config.ts",
-];
-
-const configFilePath = path.resolve(import.meta.dirname, "src/common/config.js");
-
 export default defineConfig([
     { files, plugins: { js }, extends: ["js/recommended"] },
     { files, languageOptions: { globals: globals.node } },
@@ -84,13 +74,7 @@ export default defineConfig([
             },
         },
         rules: {
-            "no-config-imports/no-config-imports": [
-                "error",
-                {
-                    configFilePath,
-                    allowedFiles: allowedConfigValueImportFiles,
-                },
-            ],
+            "no-config-imports/no-config-imports": "error",
         },
     },
     globalIgnores([
