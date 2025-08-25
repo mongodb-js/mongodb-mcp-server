@@ -1,5 +1,5 @@
 import type { TestContext } from "vitest";
-import { describe, beforeEach, afterAll, it, expect } from "vitest";
+import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
 import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
@@ -168,11 +168,22 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     };
                 };
 
-                const status: ConnectionStatus = (await state.serviceProvider.runCommand("admin", {
-                    connectionStatus: 1,
-                })) as unknown as ConnectionStatus;
+                const status: ConnectionStatus = await vi.waitFor(async () => {
+                    const result: ConnectionStatus = (await state.serviceProvider.runCommand("admin", {
+                        connectionStatus: 1,
+                    })) as unknown as ConnectionStatus;
 
-                expect(status.authInfo.authenticatedUsers[0]).toEqual({ user: "dev/testuser", db: "$external" });
+                    if (!result) {
+                        throw new Error("Status can not be undefined. Retrying.");
+                    }
+
+                    return result;
+                });
+
+                expect(status.authInfo.authenticatedUsers[0]).toEqual({
+                    user: "dev/testuser",
+                    db: "$external",
+                });
                 expect(status.authInfo.authenticatedUserRoles[0]).toEqual({
                     role: "dev/mocktaTestServer-group",
                     db: "admin",
