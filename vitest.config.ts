@@ -40,9 +40,9 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "eslint-rules",
-                    include: ["eslint-rules/*.test.js"]
-                }
-            }
+                    include: ["eslint-rules/*.test.js"],
+                },
+            },
         ],
     },
 });
