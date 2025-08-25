@@ -6,8 +6,6 @@ import rule from "./no-config-imports.js";
 
 const ROOT = process.cwd();
 const resolve = (p) => path.resolve(ROOT, p);
-const CONFIG_FILE_PATH = resolve("src/common/config.js");
-const ALLOWED_CONFIG_VALUE_IMPORT_FILES = [resolve("src/index.ts"), resolve("src/resources/common/config.ts")];
 
 const ruleTester = new RuleTester({
     languageOptions: {
@@ -23,22 +21,18 @@ describe("no-config-imports", () => {
                 {
                     filename: resolve("src/some/module.ts"),
                     code: 'import type { UserConfig } from "../common/config.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                 },
                 {
                     filename: resolve("src/some/module.ts"),
                     code: 'import { something } from "../common/logger.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                 },
                 {
                     filename: resolve("src/some/module.ts"),
                     code: 'import type * as Cfg from "../common/config.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                 },
                 {
-                    filename: ALLOWED_CONFIG_VALUE_IMPORT_FILES[1],
+                    filename: resolve("src/index.ts"),
                     code: 'import { driverOptions } from "../common/config.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                 },
             ],
             invalid: [],
@@ -52,25 +46,21 @@ describe("no-config-imports", () => {
                 {
                     filename: resolve("src/another/module.ts"),
                     code: 'import { driverOptions } from "../common/config.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                     errors: [{ messageId: "noConfigImports" }],
                 },
                 {
                     filename: resolve("src/another/module.ts"),
                     code: 'import configDefault from "../common/config.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                     errors: [{ messageId: "noConfigImports" }],
                 },
                 {
                     filename: resolve("src/another/module.ts"),
                     code: 'import * as cfg from "../common/config.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                     errors: [{ messageId: "noConfigImports" }],
                 },
                 {
                     filename: resolve("src/another/module.ts"),
                     code: 'import { type UserConfig, driverOptions } from "../common/config.js";\n',
-                    options: [{ configFilePath: CONFIG_FILE_PATH, allowedFiles: ALLOWED_CONFIG_VALUE_IMPORT_FILES }],
                     errors: [{ messageId: "noConfigImports" }],
                 },
             ],
