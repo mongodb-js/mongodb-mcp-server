@@ -1,5 +1,4 @@
-import type { UserConfig } from "../common/config.js";
-import { driverOptions } from "../common/config.js";
+import type { DriverOptions, UserConfig } from "../common/config.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";
@@ -15,7 +14,10 @@ export abstract class TransportRunnerBase {
     public logger: LoggerBase;
     public deviceId: DeviceId;
 
-    protected constructor(protected readonly userConfig: UserConfig) {
+    protected constructor(
+        protected readonly userConfig: UserConfig,
+        private readonly driverOptions: DriverOptions
+    ) {
         const loggers: LoggerBase[] = [];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger());
@@ -35,37 +37,37 @@ export abstract class TransportRunnerBase {
         this.deviceId = DeviceId.create(this.logger);
     }
 
-    protected setupServer(userConfig: UserConfig): Server {
+    protected setupServer(): Server {
         const mcpServer = new McpServer({
             name: packageInfo.mcpServerName,
             version: packageInfo.version,
         });
 
         const loggers = [this.logger];
-        if (userConfig.loggers.includes("mcp")) {
+        if (this.userConfig.loggers.includes("mcp")) {
             loggers.push(new McpLogger(mcpServer));
         }
 
         const logger = new CompositeLogger(...loggers);
-        const exportsManager = ExportsManager.init(userConfig, logger);
-        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, this.deviceId);
+        const exportsManager = ExportsManager.init(this.userConfig, logger);
+        const connectionManager = new ConnectionManager(this.userConfig, this.driverOptions, logger, this.deviceId);
 
         const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
+            apiBaseUrl: this.userConfig.apiBaseUrl,
+            apiClientId: this.userConfig.apiClientId,
+            apiClientSecret: this.userConfig.apiClientSecret,
             logger,
             exportsManager,
             connectionManager,
         });
 
-        const telemetry = Telemetry.create(session, userConfig, this.deviceId);
+        const telemetry = Telemetry.create(session, this.userConfig, this.deviceId);
 
         return new Server({
             mcpServer,
             session,
             telemetry,
-            userConfig,
+            userConfig: this.userConfig,
         });
     }
 
