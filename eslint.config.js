@@ -1,13 +1,25 @@
+import path from "path";
 import { defineConfig, globalIgnores } from "eslint/config";
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import vitestPlugin from "@vitest/eslint-plugin";
+import noConfigImports from "./eslint-rules/no-config-imports.js";
 
 const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
 
 const files = [...testFiles, "src/**/*.ts", "scripts/**/*.ts"];
+
+// Files that are allowed to import value exports from config.ts
+const allowedConfigValueImportFiles = [
+    // Main entry point that injects the config
+    "src/index.ts",
+    // Config resource definition that works with the some config values
+    "src/resources/common/config.ts",
+];
+
+const configFilePath = path.resolve(import.meta.dirname, "src/common/config.js");
 
 export default defineConfig([
     { files, plugins: { js }, extends: ["js/recommended"] },
@@ -62,6 +74,25 @@ export default defineConfig([
             "@typescript-eslint/explicit-function-return-type": "error",
         },
     },
+    {
+        files: ["src/**/*.ts"],
+        plugins: {
+            "no-config-imports": {
+                rules: {
+                    "no-config-imports": noConfigImports,
+                },
+            },
+        },
+        rules: {
+            "no-config-imports/no-config-imports": [
+                "error",
+                {
+                    configFilePath,
+                    allowedFiles: allowedConfigValueImportFiles,
+                },
+            ],
+        },
+    },
     globalIgnores([
         "node_modules",
         "dist",
@@ -72,6 +103,7 @@ export default defineConfig([
         "vitest.config.ts",
         "src/types/*.d.ts",
         "tests/integration/fixtures/",
+        "eslint-rules",
     ]),
     eslintPluginPrettierRecommended,
 ]);
