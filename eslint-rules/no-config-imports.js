@@ -33,7 +33,12 @@ export default {
         },
     },
     create(context) {
-        const options = context.options[0] || {};
+        const options = context.options[0];
+        if (!options) {
+            throw new Error(
+                "no-config-imports should be configured with an object with at-least 'configFilePath' key."
+            );
+        }
         const configFilePath = path.resolve(options.configFilePath);
         const allowedFiles = options.allowedFiles || [];
 
