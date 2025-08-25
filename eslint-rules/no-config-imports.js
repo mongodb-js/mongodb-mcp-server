@@ -1,3 +1,4 @@
+"use strict";
 import path from "path";
 
 // Ref: https://eslint.org/docs/latest/extend/custom-rules
