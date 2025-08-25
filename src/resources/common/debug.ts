@@ -1,7 +1,7 @@
 import { ReactiveResource } from "../resource.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session, UserConfig } from "../../lib.js";
-import { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
+import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
