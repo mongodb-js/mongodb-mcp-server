@@ -109,6 +109,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
         let serviceProvider: NodeDriverServiceProvider;
         let connectionInfo: ConnectionInfo;
+        let connectionStringAuthType: ConnectionStringAuthType = "scram";
 
         try {
             settings = { ...settings };
@@ -137,6 +138,11 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             connectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
+            connectionStringAuthType = ConnectionManager.inferConnectionTypeFromSettings(
+                this.userConfig,
+                connectionInfo
+            );
+
             serviceProvider = await NodeDriverServiceProvider.connect(
                 connectionInfo.connectionString,
                 {
@@ -152,6 +158,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             this.changeState("connection-errored", {
                 tag: "errored",
                 errorReason,
+                connectionStringAuthType,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
@@ -184,6 +191,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             this.changeState("connection-errored", {
                 tag: "errored",
                 errorReason,
+                connectionStringAuthType,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);

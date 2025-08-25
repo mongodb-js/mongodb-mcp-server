@@ -119,7 +119,49 @@ describeWithMongoDB("Connection Manager", (integration) => {
             });
 
             it("should notify that it failed connecting", () => {
-                expect(connectionManagerSpies["connection-errored"]).toHaveBeenCalled();
+                expect(connectionManagerSpies["connection-errored"]).toHaveBeenCalledWith({
+                    tag: "errored",
+                    connectedAtlasCluster: undefined,
+                    connectionStringAuthType: "scram",
+                    errorReason: "Unable to parse localhost:xxxxx with URL",
+                });
+            });
+
+            it("should be marked explicitly as connected", () => {
+                expect(connectionManager().currentConnectionState.tag).toEqual("errored");
+            });
+        });
+
+        describe("when fails to connect to a new atlas cluster", () => {
+            const atlas = {
+                username: "",
+                projectId: "",
+                clusterName: "My Atlas Cluster",
+                expiryDate: new Date(),
+            };
+
+            beforeEach(async () => {
+                try {
+                    await connectionManager().connect({
+                        connectionString: "mongodb://localhost:xxxxx",
+                        atlas,
+                    });
+                } catch (_error: unknown) {
+                    void _error;
+                }
+            });
+
+            it("should notify that it was disconnected before connecting", () => {
+                expect(connectionManagerSpies["connection-closed"]).toHaveBeenCalled();
+            });
+
+            it("should notify that it failed connecting", () => {
+                expect(connectionManagerSpies["connection-errored"]).toHaveBeenCalledWith({
+                    tag: "errored",
+                    connectedAtlasCluster: atlas,
+                    connectionStringAuthType: "scram",
+                    errorReason: "Unable to parse localhost:xxxxx with URL",
+                });
             });
 
             it("should be marked explicitly as connected", () => {
