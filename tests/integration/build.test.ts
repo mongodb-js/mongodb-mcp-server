@@ -47,6 +47,7 @@ describe("Build Test", () => {
             "Telemetry",
             "StreamableHttpRunner",
             "defaultUserConfig",
+            "LoggerBase",
         ]);
     });
 });

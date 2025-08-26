@@ -1,6 +1,5 @@
 import { getDeviceId } from "@mongodb-js/device-id";
-// Important: don't import the default module as that doesn't work for cjs module resolution.
-import { machineId } from "node-machine-id";
+import * as nodeMachineId from "node-machine-id";
 import type { LoggerBase } from "../common/logger.js";
 import { LogId } from "../common/logger.js";
 
@@ -18,7 +17,7 @@ export class DeviceId {
     private constructor(logger: LoggerBase, timeout: number = DEVICE_ID_TIMEOUT) {
         this.logger = logger;
         this.timeout = timeout;
-        this.getMachineId = (): Promise<string> => machineId(true);
+        this.getMachineId = (): Promise<string> => nodeMachineId.machineId(true);
         this.abortController = new AbortController();
 
         this.deviceIdPromise = DeviceId.UnknownDeviceId;

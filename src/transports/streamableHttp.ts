@@ -166,7 +166,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         this.logger.info({
             id: LogId.streamableHttpTransportStarted,
             context: "streamableHttpTransport",
-            message: `Server started on http://${this.userConfig.httpHost}:${this.userConfig.httpPort}`,
+            message: `Server started on ${this.address}`,
             noRedaction: true,
         });
     }
