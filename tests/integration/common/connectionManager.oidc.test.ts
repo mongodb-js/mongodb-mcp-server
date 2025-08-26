@@ -1,15 +1,13 @@
-import { describe, beforeEach, afterAll, it, expect, TestContext } from "vitest";
+import type { TestContext } from "vitest";
+import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
 import process from "process";
-import {
-    describeWithMongoDB,
-    isCommunityServer,
-    getServerVersion,
-    MongoDBIntegrationTestCase,
-} from "../tools/mongodb/mongodbHelpers.js";
+import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
-import { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
-import { setupDriverConfig, UserConfig } from "../../../src/common/config.js";
+import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
+import type { UserConfig } from "../../../src/common/config.js";
+import { setupDriverConfig } from "../../../src/common/config.js";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
@@ -170,11 +168,22 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     };
                 };
 
-                const status: ConnectionStatus = (await state.serviceProvider.runCommand("admin", {
-                    connectionStatus: 1,
-                })) as unknown as ConnectionStatus;
+                const status: ConnectionStatus = await vi.waitFor(async () => {
+                    const result: ConnectionStatus = (await state.serviceProvider.runCommand("admin", {
+                        connectionStatus: 1,
+                    })) as unknown as ConnectionStatus;
 
-                expect(status.authInfo.authenticatedUsers[0]).toEqual({ user: "dev/testuser", db: "$external" });
+                    if (!result) {
+                        throw new Error("Status can not be undefined. Retrying.");
+                    }
+
+                    return result;
+                });
+
+                expect(status.authInfo.authenticatedUsers[0]).toEqual({
+                    user: "dev/testuser",
+                    db: "$external",
+                });
                 expect(status.authInfo.authenticatedUserRoles[0]).toEqual({
                     role: "dev/mocktaTestServer-group",
                     db: "admin",

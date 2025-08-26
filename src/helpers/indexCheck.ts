@@ -1,5 +1,5 @@
-import { Document } from "mongodb";
-import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import type { Document } from "mongodb";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
 
 /**

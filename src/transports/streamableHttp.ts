@@ -1,9 +1,9 @@
 import express from "express";
-import http from "http";
+import type http from "http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { TransportRunnerBase } from "./base.js";
-import { UserConfig } from "../common/config.js";
+import type { DriverOptions, UserConfig } from "../common/config.js";
 import { LogId } from "../common/logger.js";
 import { randomUUID } from "crypto";
 import { SessionStore } from "../common/sessionStore.js";
@@ -30,8 +30,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         throw new Error("Server is not started yet");
     }
 
-    constructor(userConfig: UserConfig) {
-        super(userConfig);
+    constructor(userConfig: UserConfig, driverOptions: DriverOptions) {
+        super(userConfig, driverOptions);
     }
 
     async start(): Promise<void> {
@@ -112,7 +112,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     return;
                 }
 
-                const server = this.setupServer(this.userConfig);
+                const server = this.setupServer();
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: (): string => randomUUID().toString(),
                     onsessioninitialized: (sessionId): void => {

@@ -6,11 +6,12 @@ import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { UserConfig, DriverOptions } from "../../src/common/config.js";
+import type { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
+import type { ConnectionState } from "../../src/common/connectionManager.js";
+import { ConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 
 interface ParameterInfo {
@@ -338,4 +339,13 @@ export function waitUntil<T extends ConnectionState>(
             clearInterval(ts);
         }
     });
+}
+
+export function getDataFromUntrustedContent(content: string): string {
+    const regex = /^[ \t]*<untrusted-user-data-[0-9a-f\\-]*>(?<data>.*)^[ \t]*<\/untrusted-user-data-[0-9a-f\\-]*>/gms;
+    const match = regex.exec(content);
+    if (!match || !match.groups || !match.groups.data) {
+        throw new Error("Could not find untrusted user data in content");
+    }
+    return match.groups.data.trim();
 }

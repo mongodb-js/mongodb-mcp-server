@@ -1,15 +1,17 @@
-import { UserConfig, DriverOptions } from "./config.js";
+import type { UserConfig, DriverOptions } from "./config.js";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import EventEmitter from "events";
 import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import { packageInfo } from "./packageInfo.js";
 import ConnectionString from "mongodb-connection-string-url";
-import { MongoClientOptions } from "mongodb";
+import type { MongoClientOptions } from "mongodb";
 import { ErrorCodes, MongoDBError } from "./errors.js";
-import { DeviceId } from "../helpers/deviceId.js";
-import { AppNameComponents } from "../helpers/connectionOptions.js";
-import { CompositeLogger, LogId } from "./logger.js";
-import { ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import type { DeviceId } from "../helpers/deviceId.js";
+import type { AppNameComponents } from "../helpers/connectionOptions.js";
+import type { CompositeLogger } from "./logger.js";
+import { LogId } from "./logger.js";
+import type { ConnectionInfo } from "@mongosh/arg-parser";
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
 export interface AtlasClusterConnectionInfo {
     username: string;

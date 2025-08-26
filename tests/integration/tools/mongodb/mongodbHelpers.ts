@@ -1,16 +1,19 @@
-import { MongoCluster, MongoClusterOptions } from "mongodb-runner";
+import type { MongoClusterOptions } from "mongodb-runner";
+import { MongoCluster } from "mongodb-runner";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import { Document, MongoClient, ObjectId } from "mongodb";
+import type { Document } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
+import type { IntegrationTest } from "../../helpers.js";
 import {
     getResponseContent,
-    IntegrationTest,
     setupIntegrationTest,
     defaultTestConfig,
     defaultDriverOptions,
+    getDataFromUntrustedContent,
 } from "../../helpers.js";
-import { UserConfig, DriverOptions } from "../../../../src/common/config.js";
+import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -265,14 +268,9 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
 }
 
 export function getDocsFromUntrustedContent(content: string): unknown[] {
-    const lines = content.split("\n");
-    const startIdx = lines.findIndex((line) => line.trim().startsWith("["));
-    const endIdx = lines.length - 1 - [...lines].reverse().findIndex((line) => line.trim().endsWith("]"));
-    if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
-        throw new Error("Could not find JSON array in content");
-    }
-    const json = lines.slice(startIdx, endIdx + 1).join("\n");
-    return JSON.parse(json) as unknown[];
+    const data = getDataFromUntrustedContent(content);
+
+    return JSON.parse(data) as unknown[];
 }
 
 export async function isCommunityServer(integration: MongoDBIntegrationTestCase): Promise<boolean> {

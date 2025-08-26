@@ -1,6 +1,7 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 
 export class CollectionIndexesTool extends MongoDBToolBase {
     public name = "collection-indexes";
@@ -13,18 +14,14 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         const indexes = await provider.getIndexes(database, collection);
 
         return {
-            content: [
-                {
-                    text: `Found ${indexes.length} indexes in the collection "${collection}":`,
-                    type: "text",
-                },
-                ...(indexes.map((indexDefinition) => {
-                    return {
-                        text: `Name "${indexDefinition.name}", definition: ${JSON.stringify(indexDefinition.key)}`,
-                        type: "text",
-                    };
-                }) as { text: string; type: "text" }[]),
-            ],
+            content: formatUntrustedData(
+                `Found ${indexes.length} indexes in the collection "${collection}":`,
+                indexes.length > 0
+                    ? indexes
+                          .map((index) => `Name: "${index.name}", definition: ${JSON.stringify(index.key)}`)
+                          .join("\n")
+                    : undefined
+            ),
         };
     }
 

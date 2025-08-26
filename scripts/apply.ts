@@ -1,5 +1,5 @@
 import fs from "fs/promises";
-import { OpenAPIV3_1 } from "openapi-types";
+import type { OpenAPIV3_1 } from "openapi-types";
 import argv from "yargs-parser";
 
 function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: OpenAPIV3_1.Document): T {

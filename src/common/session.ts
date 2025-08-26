@@ -1,17 +1,19 @@
 import { ObjectId } from "bson";
-import { ApiClient, ApiClientCredentials } from "./atlas/apiClient.js";
-import { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import { CompositeLogger, LogId } from "./logger.js";
+import type { ApiClientCredentials } from "./atlas/apiClient.js";
+import { ApiClient } from "./atlas/apiClient.js";
+import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { CompositeLogger } from "./logger.js";
+import { LogId } from "./logger.js";
 import EventEmitter from "events";
-import {
+import type {
     AtlasClusterConnectionInfo,
     ConnectionManager,
     ConnectionSettings,
     ConnectionStateConnected,
 } from "./connectionManager.js";
-import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
-import { ExportsManager } from "./exportsManager.js";
+import type { ExportsManager } from "./exportsManager.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;

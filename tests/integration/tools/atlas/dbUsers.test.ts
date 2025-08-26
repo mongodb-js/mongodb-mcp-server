@@ -1,4 +1,3 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
@@ -101,17 +100,21 @@ describeWithAtlas("db users", (integration) => {
                 expectDefined(listDbUsers.inputSchema.properties);
                 expect(listDbUsers.inputSchema.properties).toHaveProperty("projectId");
             });
+
             it("returns database users by project", async () => {
                 const projectId = getProjectId();
 
                 await createUserWithMCP();
 
-                const response = (await integration
+                const response = await integration
                     .mcpClient()
-                    .callTool({ name: "atlas-list-db-users", arguments: { projectId } })) as CallToolResult;
-                expect(response.content).toBeInstanceOf(Array);
-                expect(response.content).toHaveLength(1);
-                expect(response.content[0]?.text).toContain(userName);
+                    .callTool({ name: "atlas-list-db-users", arguments: { projectId } });
+
+                const elements = getResponseElements(response);
+                expect(elements).toHaveLength(2);
+                expect(elements[0]?.text).toContain("Found 1 database users in project");
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(userName);
             });
         });
     });

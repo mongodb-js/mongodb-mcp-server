@@ -1,6 +1,7 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 
 export class ListCollectionsTool extends MongoDBToolBase {
     public name = "list-collections";
@@ -20,19 +21,17 @@ export class ListCollectionsTool extends MongoDBToolBase {
                 content: [
                     {
                         type: "text",
-                        text: `No collections found for database "${database}". To create a collection, use the "create-collection" tool.`,
+                        text: `Found 0 collections for database "${database}". To create a collection, use the "create-collection" tool.`,
                     },
                 ],
             };
         }
 
         return {
-            content: collections.map((collection) => {
-                return {
-                    text: `Name: "${collection.name}"`,
-                    type: "text",
-                };
-            }),
+            content: formatUntrustedData(
+                `Found ${collections.length} collections for database "${database}".`,
+                collections.map((collection) => `"${collection.name}"`).join("\n")
+            ),
         };
     }
 }

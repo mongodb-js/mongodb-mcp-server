@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, Mocked, vi } from "vitest";
+import type { Mocked } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
 import { config, driverOptions } from "../../../src/common/config.js";

@@ -1,6 +1,7 @@
 import { getDeviceId } from "@mongodb-js/device-id";
 import nodeMachineId from "node-machine-id";
-import { LogId, LoggerBase } from "../common/logger.js";
+import type { LoggerBase } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 
 export const DEVICE_ID_TIMEOUT = 3000;
 

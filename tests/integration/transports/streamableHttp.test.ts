@@ -2,7 +2,7 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { config } from "../../../src/common/config.js";
+import { config, driverOptions } from "../../../src/common/config.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -26,7 +26,7 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeAll(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner(config);
+                runner = new StreamableHttpRunner(config, driverOptions);
                 await runner.start();
             });
 
@@ -107,7 +107,7 @@ describe("StreamableHttpRunner", () => {
         try {
             for (let i = 0; i < 3; i++) {
                 config.httpPort = 0; // Use a random port for each runner
-                const runner = new StreamableHttpRunner(config);
+                const runner = new StreamableHttpRunner(config, driverOptions);
                 await runner.start();
                 runners.push(runner);
             }

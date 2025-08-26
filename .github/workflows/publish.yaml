@@ -14,7 +14,7 @@ jobs:
       VERSION: ${{ steps.get-version.outputs.VERSION }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
@@ -52,7 +52,7 @@ jobs:
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version-file: package.json

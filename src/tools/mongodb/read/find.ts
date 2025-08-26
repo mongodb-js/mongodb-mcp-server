@@ -1,9 +1,11 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, formatUntrustedData, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
-import { SortDirection } from "mongodb";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
+import type { SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+import { EJSON } from "bson";
 
 export const FindArgs = {
     filter: z
@@ -56,8 +58,8 @@ export class FindTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${documents.length} documents in the collection "${collection}"`,
-                documents
+                `Found ${documents.length} documents in the collection "${collection}".`,
+                documents.length > 0 ? EJSON.stringify(documents) : undefined
             ),
         };
     }

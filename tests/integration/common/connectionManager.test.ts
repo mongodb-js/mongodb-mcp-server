@@ -1,9 +1,9 @@
-import {
-    ConnectionManager,
+import type {
     ConnectionManagerEvents,
     ConnectionStateConnected,
     ConnectionStringAuthType,
 } from "../../../src/common/connectionManager.js";
+import { ConnectionManager } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
