@@ -64,7 +64,7 @@ export const LogId = {
     oidcFlow: mongoLogId(1_008_001),
 } as const;
 
-interface LogPayload {
+export interface LogPayload {
     id: MongoLogId;
     context: string;
     message: string;
@@ -152,6 +152,26 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     public emergency(payload: LogPayload): void {
         this.log("emergency", payload);
     }
+
+    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
+        switch (level) {
+            case "info":
+                return "info";
+            case "warning":
+                return "warn";
+            case "error":
+                return "error";
+            case "notice":
+            case "debug":
+                return "debug";
+            case "critical":
+            case "alert":
+            case "emergency":
+                return "fatal";
+            default:
+                return "info";
+        }
+    }
 }
 
 export class ConsoleLogger extends LoggerBase {
@@ -225,26 +245,6 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
 
         this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message, payload.attributes);
     }
-
-    private mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
-        switch (level) {
-            case "info":
-                return "info";
-            case "warning":
-                return "warn";
-            case "error":
-                return "error";
-            case "notice":
-            case "debug":
-                return "debug";
-            case "critical":
-            case "alert":
-            case "emergency":
-                return "fatal";
-            default:
-                return "info";
-        }
-    }
 }
 
 export class McpLogger extends LoggerBase {
@@ -286,7 +286,11 @@ export class CompositeLogger extends LoggerBase {
     public log(level: LogLevel, payload: LogPayload): void {
         // Override the public method to avoid the base logger redacting the message payload
         for (const logger of this.loggers) {
-            logger.log(level, { ...payload, attributes: { ...this.attributes, ...payload.attributes } });
+            const attributes =
+                Object.keys(this.attributes).length > 0 || payload.attributes
+                    ? { ...this.attributes, ...payload.attributes }
+                    : undefined;
+            logger.log(level, { ...payload, attributes });
         }
     }
 

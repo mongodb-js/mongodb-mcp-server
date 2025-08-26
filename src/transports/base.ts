@@ -16,9 +16,10 @@ export abstract class TransportRunnerBase {
 
     protected constructor(
         protected readonly userConfig: UserConfig,
-        private readonly driverOptions: DriverOptions
+        private readonly driverOptions: DriverOptions,
+        additionalLoggers: LoggerBase[]
     ) {
-        const loggers: LoggerBase[] = [];
+        const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger());
         }

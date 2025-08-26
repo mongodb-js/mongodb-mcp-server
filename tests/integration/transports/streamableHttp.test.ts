@@ -1,8 +1,10 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { config, driverOptions } from "../../../src/common/config.js";
+import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
+import { LoggerBase, LogId } from "../../../src/common/logger.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -119,5 +121,36 @@ describe("StreamableHttpRunner", () => {
                 await runner.close();
             }
         }
+    });
+
+    describe("with custom logger", () => {
+        beforeEach(() => {
+            config.loggers = [];
+        });
+
+        class CustomLogger extends LoggerBase {
+            protected type?: LoggerType = "console";
+            public messages: { level: LogLevel; payload: LogPayload }[] = [];
+            protected logCore(level: LogLevel, payload: LogPayload): void {
+                this.messages.push({ level, payload });
+            }
+        }
+
+        it("can provide custom logger", async () => {
+            const logger = new CustomLogger();
+            const runner = new StreamableHttpRunner(config, driverOptions, [logger]);
+            await runner.start();
+
+            const messages = logger.messages;
+            expect(messages.length).toBeGreaterThan(0);
+
+            const serverStartedMessage = messages.filter(
+                (m) => m.payload.id === LogId.streamableHttpTransportStarted
+            )[0];
+            expect(serverStartedMessage).toBeDefined();
+            expect(serverStartedMessage?.payload.message).toContain("Server started on");
+            expect(serverStartedMessage?.payload.context).toBe("streamableHttpTransport");
+            expect(serverStartedMessage?.level).toBe("info");
+        });
     });
 });

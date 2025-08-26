@@ -1,3 +1,4 @@
+import type { LoggerBase } from "../common/logger.js";
 import { LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
 import { TransportRunnerBase } from "./base.js";
@@ -54,8 +55,8 @@ export function createStdioTransport(): StdioServerTransport {
 export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
-    constructor(userConfig: UserConfig, driverOptions: DriverOptions) {
-        super(userConfig, driverOptions);
+    constructor(userConfig: UserConfig, driverOptions: DriverOptions, additionalLoggers: LoggerBase[] = []) {
+        super(userConfig, driverOptions, additionalLoggers);
     }
 
     async start(): Promise<void> {

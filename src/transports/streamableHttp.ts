@@ -4,6 +4,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { TransportRunnerBase } from "./base.js";
 import type { DriverOptions, UserConfig } from "../common/config.js";
+import type { LoggerBase } from "../common/logger.js";
 import { LogId } from "../common/logger.js";
 import { randomUUID } from "crypto";
 import { SessionStore } from "../common/sessionStore.js";
@@ -30,8 +31,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         throw new Error("Server is not started yet");
     }
 
-    constructor(userConfig: UserConfig, driverOptions: DriverOptions) {
-        super(userConfig, driverOptions);
+    constructor(userConfig: UserConfig, driverOptions: DriverOptions, additionalLoggers: LoggerBase[] = []) {
+        super(userConfig, driverOptions, additionalLoggers);
     }
 
     async start(): Promise<void> {
