@@ -7,7 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
-import { ConnectionManager } from "../common/connectionManager.js";
+import { MCPConnectionManager } from "../common/mcpConnectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 
 export abstract class TransportRunnerBase {
@@ -46,7 +46,7 @@ export abstract class TransportRunnerBase {
 
         const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(this.userConfig, logger);
-        const connectionManager = new ConnectionManager(this.userConfig, this.driverOptions, logger, this.deviceId);
+        const connectionManager = new MCPConnectionManager(this.userConfig, this.driverOptions, logger, this.deviceId);
 
         const session = new Session({
             apiBaseUrl: this.userConfig.apiBaseUrl,

@@ -7,10 +7,10 @@ import { LogId } from "./logger.js";
 import EventEmitter from "events";
 import type {
     AtlasClusterConnectionInfo,
-    ConnectionManager,
+    MCPConnectionManager,
     ConnectionSettings,
     ConnectionStateConnected,
-} from "./connectionManager.js";
+} from "./mcpConnectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
@@ -21,7 +21,7 @@ export interface SessionOptions {
     apiClientSecret?: string;
     logger: CompositeLogger;
     exportsManager: ExportsManager;
-    connectionManager: ConnectionManager;
+    connectionManager: MCPConnectionManager;
 }
 
 export type SessionEvents = {
@@ -34,7 +34,7 @@ export type SessionEvents = {
 export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
-    readonly connectionManager: ConnectionManager;
+    readonly connectionManager: MCPConnectionManager;
     readonly apiClient: ApiClient;
     mcpClient?: {
         name?: string;

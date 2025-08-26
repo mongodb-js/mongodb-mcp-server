@@ -63,7 +63,7 @@ export type AnyConnectionState =
     | ConnectionStateDisconnected
     | ConnectionStateErrored;
 
-export interface ConnectionManagerEvents {
+export interface MCPConnectionManagerEvents {
     "connection-requested": [AnyConnectionState];
     "connection-succeeded": [ConnectionStateConnected];
     "connection-timed-out": [ConnectionStateErrored];
@@ -71,7 +71,7 @@ export interface ConnectionManagerEvents {
     "connection-errored": [ConnectionStateErrored];
 }
 
-export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
+export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvents> {
     private state: AnyConnectionState;
     private deviceId: DeviceId;
     private clientName: string;
@@ -158,7 +158,10 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         }
 
         try {
-            const connectionType = ConnectionManager.inferConnectionTypeFromSettings(this.userConfig, connectionInfo);
+            const connectionType = MCPConnectionManager.inferConnectionTypeFromSettings(
+                this.userConfig,
+                connectionInfo
+            );
             if (connectionType.startsWith("oidc")) {
                 void this.pingAndForget(serviceProvider);
 
@@ -212,7 +215,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         return this.state;
     }
 
-    changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(
+    changeState<Event extends keyof MCPConnectionManagerEvents, State extends MCPConnectionManagerEvents[Event][0]>(
         event: Event,
         newState: State
     ): State {
