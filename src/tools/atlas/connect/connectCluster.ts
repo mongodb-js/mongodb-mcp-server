@@ -94,7 +94,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 x509Type: "NONE",
                 deleteAfterDate: expiryDate.toISOString(),
                 description:
-                    "This temporary user is created by the MongoDB MCP Server to connect to the cluster. See https://www.mongodb.com/docs/mcp-server/tools/#considerations for more info.",
+                    "Temporary user by MongoDB MCP, see https://www.mongodb.com/docs/mcp-server/tools/#considerations",
             },
         });
 
