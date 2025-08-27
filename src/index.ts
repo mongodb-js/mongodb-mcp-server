@@ -91,8 +91,10 @@ async function main(): Promise<void> {
         transportRunner.logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
-            message: "Closing server",
+            message: `Closing server due to error: ${error as string}`,
+            noRedaction: true,
         });
+
         try {
             await transportRunner.close();
             transportRunner.logger.info({

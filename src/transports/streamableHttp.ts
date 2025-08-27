@@ -74,7 +74,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     jsonrpc: "2.0",
                     error: {
                         code: JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
-                        message: `session id is invalid`,
+                        message: "session id is invalid",
                     },
                 });
                 return;
@@ -85,7 +85,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     jsonrpc: "2.0",
                     error: {
                         code: JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
-                        message: `session not found`,
+                        message: "session not found",
                     },
                 });
                 return;
@@ -114,12 +114,42 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 }
 
                 const server = this.setupServer();
+                let keepAliveLoop: NodeJS.Timeout;
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: (): string => randomUUID().toString(),
                     onsessioninitialized: (sessionId): void => {
                         server.session.logger.setAttribute("sessionId", sessionId);
 
                         this.sessionStore.setSession(sessionId, transport, server.session.logger);
+
+                        let failedPings = 0;
+                        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                        keepAliveLoop = setInterval(async () => {
+                            try {
+                                this.logger.debug({
+                                    id: LogId.streamableHttpTransportKeepAlive,
+                                    context: "streamableHttpTransport",
+                                    message: "Sending ping",
+                                });
+
+                                await transport.send({
+                                    jsonrpc: "2.0",
+                                    method: "ping",
+                                });
+                                failedPings = 0;
+                            } catch (err) {
+                                this.logger.warning({
+                                    id: LogId.streamableHttpTransportKeepAliveFailure,
+                                    context: "streamableHttpTransport",
+                                    message: `Error sending ping (attempt #${failedPings + 1}): ${err instanceof Error ? err.message : String(err)}`,
+                                });
+
+                                if (++failedPings > 3) {
+                                    clearInterval(keepAliveLoop);
+                                    await transport.close();
+                                }
+                            }
+                        }, 30_000);
                     },
                     onsessionclosed: async (sessionId): Promise<void> => {
                         try {
@@ -135,6 +165,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 });
 
                 transport.onclose = (): void => {
+                    clearInterval(keepAliveLoop);
+
                     server.close().catch((error) => {
                         this.logger.error({
                             id: LogId.streamableHttpTransportCloseFailure,
