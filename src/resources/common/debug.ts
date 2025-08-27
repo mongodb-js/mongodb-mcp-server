@@ -69,7 +69,9 @@ export class DebugResource extends ReactiveResource<
                     result += `Attempted connecting to Atlas Cluster "${this.current.connectedAtlasCluster.clusterName}" in project with id "${this.current.connectedAtlasCluster.projectId}".\n`;
                 }
 
-                result += `The inferred authentication mechanism is "${this.current.connectionStringAuthType ?? "could-not-infer"}".\n`;
+                if (this.current.connectionStringAuthType !== undefined) {
+                    result += `The inferred authentication mechanism is "${this.current.connectionStringAuthType}".\n`;
+                }
                 result += `<error>${this.current.errorReason}</error>`;
                 break;
             case "connecting":
