@@ -67,7 +67,7 @@ describe("StreamableHttpRunner", () => {
                             name: "test",
                             version: "0.0.0",
                         });
-                        transport = new StreamableHTTPClientTransport(new URL(`${runner.address}/mcp`), {
+                        transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
                             requestInit: {
                                 headers: clientHeaders,
                             },
@@ -114,7 +114,7 @@ describe("StreamableHttpRunner", () => {
                 runners.push(runner);
             }
 
-            const addresses = new Set<string>(runners.map((r) => r.address));
+            const addresses = new Set<string>(runners.map((r) => r.serverAddress));
             expect(addresses.size).toBe(runners.length);
         } finally {
             for (const runner of runners) {

@@ -19,7 +19,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
     private sessionStore!: SessionStore;
 
-    public get address(): string {
+    public get serverAddress(): string {
         const result = this.httpServer?.address();
         if (typeof result === "string") {
             return result;
@@ -166,7 +166,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         this.logger.info({
             id: LogId.streamableHttpTransportStarted,
             context: "streamableHttpTransport",
-            message: `Server started on ${this.address}`,
+            message: `Server started on ${this.serverAddress}`,
             noRedaction: true,
         });
     }
