@@ -168,17 +168,28 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     };
                 };
 
-                const status: ConnectionStatus = await vi.waitFor(async () => {
-                    const result: ConnectionStatus = (await state.serviceProvider.runCommand("admin", {
-                        connectionStatus: 1,
-                    })) as unknown as ConnectionStatus;
+                const status: ConnectionStatus = await vi.waitFor(
+                    async () => {
+                        const result = (await state.serviceProvider.runCommand("admin", {
+                            connectionStatus: 1,
+                        })) as unknown as ConnectionStatus | undefined;
 
-                    if (!result) {
-                        throw new Error("Status can not be undefined. Retrying.");
-                    }
+                        if (!result) {
+                            throw new Error("Status can not be undefined. Retrying.");
+                        }
 
-                    return result;
-                });
+                        if (!result.authInfo.authenticatedUsers.length) {
+                            throw new Error("No authenticated users found. Retrying.");
+                        }
+
+                        if (!result.authInfo.authenticatedUserRoles.length) {
+                            throw new Error("No authenticated user roles found. Retrying.");
+                        }
+
+                        return result;
+                    },
+                    { timeout: 5000 }
+                );
 
                 expect(status.authInfo.authenticatedUsers[0]).toEqual({
                     user: "dev/testuser",
