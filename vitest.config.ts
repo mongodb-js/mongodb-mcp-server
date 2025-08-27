@@ -36,6 +36,13 @@ export default defineConfig({
                     include: ["**/accuracy/*.test.ts"],
                 },
             },
+            {
+                extends: true,
+                test: {
+                    name: "eslint-rules",
+                    include: ["eslint-rules/*.test.js"],
+                },
+            },
         ],
     },
 });

@@ -2,7 +2,7 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { config } from "../../../src/common/config.js";
+import { config, driverOptions } from "../../../src/common/config.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -14,7 +14,7 @@ describe("StreamableHttpRunner", () => {
         oldLoggers = config.loggers;
         config.telemetry = "disabled";
         config.loggers = ["stderr"];
-        runner = new StreamableHttpRunner(config);
+        runner = new StreamableHttpRunner(config, driverOptions);
         await runner.start();
     });
 
