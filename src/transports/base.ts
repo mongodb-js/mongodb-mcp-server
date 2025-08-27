@@ -13,7 +13,7 @@ import { DeviceId } from "../helpers/deviceId.js";
 export type CreateConnectionManagerFn<ConnectParams extends MCPConnectParams> = (createParams: {
     logger: CompositeLogger;
     deviceId: DeviceId;
-}) => ConnectionManager<ConnectParams>;
+}) => ConnectionManager<ConnectParams> | Promise<ConnectionManager<ConnectParams>>;
 
 export abstract class TransportRunnerBase<ConnectParams extends MCPConnectParams> {
     public logger: LoggerBase;
@@ -43,7 +43,7 @@ export abstract class TransportRunnerBase<ConnectParams extends MCPConnectParams
         this.deviceId = DeviceId.create(this.logger);
     }
 
-    protected setupServer(): Server {
+    protected async setupServer(): Promise<Server> {
         const mcpServer = new McpServer({
             name: packageInfo.mcpServerName,
             version: packageInfo.version,
@@ -51,7 +51,7 @@ export abstract class TransportRunnerBase<ConnectParams extends MCPConnectParams
 
         const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(this.userConfig, logger);
-        const connectionManager = this.createConnectionManager({ logger, deviceId: this.deviceId });
+        const connectionManager = await this.createConnectionManager({ logger, deviceId: this.deviceId });
 
         const session = new Session({
             apiBaseUrl: this.userConfig.apiBaseUrl,

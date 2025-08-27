@@ -56,7 +56,7 @@ export class StdioRunner<ConnectParams extends MCPConnectParams> extends Transpo
 
     async start(): Promise<void> {
         try {
-            this.server = this.setupServer();
+            this.server = await this.setupServer();
 
             const transport = createStdioTransport();
 

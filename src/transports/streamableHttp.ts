@@ -108,7 +108,7 @@ export class StreamableHttpRunner<ConnectParams extends MCPConnectParams> extend
                     return;
                 }
 
-                const server = this.setupServer();
+                const server = await this.setupServer();
                 let keepAliveLoop: NodeJS.Timeout;
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: (): string => randomUUID().toString(),
