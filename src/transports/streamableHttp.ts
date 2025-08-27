@@ -3,10 +3,11 @@ import type http from "http";
 import { randomUUID } from "crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { TransportRunnerBase } from "./base.js";
-import { LogId } from "../common/logger.js";
+import { LogId, type LoggerBase } from "../common/logger.js";
+import { type UserConfig } from "../common/config.js";
 import { SessionStore } from "../common/sessionStore.js";
 import type { MCPConnectParams } from "../common/connectionManager.js";
+import { type CreateConnectionManagerFn, TransportRunnerBase } from "./base.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -17,6 +18,14 @@ const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 export class StreamableHttpRunner<ConnectParams extends MCPConnectParams> extends TransportRunnerBase<ConnectParams> {
     private httpServer: http.Server | undefined;
     private sessionStore!: SessionStore;
+
+    constructor(
+        userConfig: UserConfig,
+        createConnectionManager: CreateConnectionManagerFn<ConnectParams>,
+        additionalLoggers: LoggerBase[] = []
+    ) {
+        super(userConfig, createConnectionManager, additionalLoggers);
+    }
 
     public get serverAddress(): string {
         const result = this.httpServer?.address();

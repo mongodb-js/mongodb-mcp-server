@@ -22,7 +22,7 @@ export abstract class TransportRunnerBase<ConnectParams extends MCPConnectParams
     constructor(
         protected readonly userConfig: UserConfig,
         private readonly createConnectionManager: CreateConnectionManagerFn<ConnectParams>,
-        additionalLoggers: LoggerBase[] = []
+        additionalLoggers: LoggerBase[]
     ) {
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
