@@ -5,9 +5,11 @@ import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { config, driverOptions } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
+import { MCPConnectionManager } from "../../../src/common/mcpConnectionManager.js";
+import type { MCPConnectParams } from "../../../src/lib.js";
 
 describe("StreamableHttpRunner", () => {
-    let runner: StreamableHttpRunner;
+    let runner: StreamableHttpRunner<MCPConnectParams>;
     let oldTelemetry: "enabled" | "disabled";
     let oldLoggers: ("stderr" | "disk" | "mcp")[];
 
@@ -28,7 +30,10 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeAll(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner(config, driverOptions);
+                runner = new StreamableHttpRunner(
+                    config,
+                    ({ logger, deviceId }) => new MCPConnectionManager(config, driverOptions, logger, deviceId)
+                );
                 await runner.start();
             });
 
@@ -105,11 +110,14 @@ describe("StreamableHttpRunner", () => {
     }
 
     it("can create multiple runners", async () => {
-        const runners: StreamableHttpRunner[] = [];
+        const runners: StreamableHttpRunner<MCPConnectParams>[] = [];
         try {
             for (let i = 0; i < 3; i++) {
                 config.httpPort = 0; // Use a random port for each runner
-                const runner = new StreamableHttpRunner(config, driverOptions);
+                const runner = new StreamableHttpRunner(
+                    config,
+                    ({ logger, deviceId }) => new MCPConnectionManager(config, driverOptions, logger, deviceId)
+                );
                 await runner.start();
                 runners.push(runner);
             }
@@ -138,7 +146,11 @@ describe("StreamableHttpRunner", () => {
 
         it("can provide custom logger", async () => {
             const logger = new CustomLogger();
-            const runner = new StreamableHttpRunner(config, driverOptions, [logger]);
+            const runner = new StreamableHttpRunner(
+                config,
+                ({ logger, deviceId }) => new MCPConnectionManager(config, driverOptions, logger, deviceId),
+                [logger]
+            );
             await runner.start();
 
             const messages = logger.messages;

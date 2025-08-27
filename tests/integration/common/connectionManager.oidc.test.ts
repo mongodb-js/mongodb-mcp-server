@@ -5,7 +5,7 @@ import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
-import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/mcpConnectionManager.js";
+import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { setupDriverConfig } from "../../../src/common/config.js";
 import path from "path";

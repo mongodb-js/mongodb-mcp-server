@@ -12,69 +12,18 @@ import type { CompositeLogger } from "./logger.js";
 import { LogId } from "./logger.js";
 import type { ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import {
+    ConnectionManager,
+    type AnyConnectionState,
+    type ConnectionStringAuthType,
+    type OIDCConnectionAuthType,
+    type ConnectionStateDisconnected,
+    type ConnectionStateErrored,
+    type MCPConnectParams,
+} from "./connectionManager.js";
 
-export interface AtlasClusterConnectionInfo {
-    username: string;
-    projectId: string;
-    clusterName: string;
-    expiryDate: Date;
-}
-
-export interface ConnectionSettings {
-    connectionString: string;
-    atlas?: AtlasClusterConnectionInfo;
-}
-
-type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
-type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
-export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
-
-export interface ConnectionState {
-    tag: ConnectionTag;
-    connectionStringAuthType?: ConnectionStringAuthType;
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
-}
-
-export interface ConnectionStateConnected extends ConnectionState {
-    tag: "connected";
-    serviceProvider: NodeDriverServiceProvider;
-}
-
-export interface ConnectionStateConnecting extends ConnectionState {
-    tag: "connecting";
-    serviceProvider: NodeDriverServiceProvider;
-    oidcConnectionType: OIDCConnectionAuthType;
-    oidcLoginUrl?: string;
-    oidcUserCode?: string;
-}
-
-export interface ConnectionStateDisconnected extends ConnectionState {
-    tag: "disconnected";
-}
-
-export interface ConnectionStateErrored extends ConnectionState {
-    tag: "errored";
-    errorReason: string;
-}
-
-export type AnyConnectionState =
-    | ConnectionStateConnected
-    | ConnectionStateConnecting
-    | ConnectionStateDisconnected
-    | ConnectionStateErrored;
-
-export interface MCPConnectionManagerEvents {
-    "connection-requested": [AnyConnectionState];
-    "connection-succeeded": [ConnectionStateConnected];
-    "connection-timed-out": [ConnectionStateErrored];
-    "connection-closed": [ConnectionStateDisconnected];
-    "connection-errored": [ConnectionStateErrored];
-}
-
-export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvents> {
-    private state: AnyConnectionState;
+export class MCPConnectionManager extends ConnectionManager<MCPConnectParams> {
     private deviceId: DeviceId;
-    private clientName: string;
     private bus: EventEmitter;
 
     constructor(
@@ -85,23 +34,15 @@ export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvent
         bus?: EventEmitter
     ) {
         super();
-
         this.bus = bus ?? new EventEmitter();
-        this.state = { tag: "disconnected" };
-
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
-
         this.deviceId = deviceId;
         this.clientName = "unknown";
     }
 
-    setClientName(clientName: string): void {
-        this.clientName = clientName;
-    }
-
-    async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
-        this.emit("connection-requested", this.state);
+    async connect(connectParams: MCPConnectParams): Promise<AnyConnectionState> {
+        this._events.emit("connection-requested", this.state);
 
         if (this.state.tag === "connected" || this.state.tag === "connecting") {
             await this.disconnect();
@@ -111,22 +52,22 @@ export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvent
         let connectionInfo: ConnectionInfo;
 
         try {
-            settings = { ...settings };
+            connectParams = { ...connectParams };
             const appNameComponents: AppNameComponents = {
                 appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
                 deviceId: this.deviceId.get(),
                 clientName: this.clientName,
             };
 
-            settings.connectionString = await setAppNameParamIfMissing({
-                connectionString: settings.connectionString,
+            connectParams.connectionString = await setAppNameParamIfMissing({
+                connectionString: connectParams.connectionString,
                 components: appNameComponents,
             });
 
             connectionInfo = generateConnectionInfoFromCliArgs({
                 ...this.userConfig,
                 ...this.driverOptions,
-                connectionSpecifier: settings.connectionString,
+                connectionSpecifier: connectParams.connectionString,
             });
 
             if (connectionInfo.driverOptions.oidc) {
@@ -152,7 +93,7 @@ export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvent
             this.changeState("connection-errored", {
                 tag: "errored",
                 errorReason,
-                connectedAtlasCluster: settings.atlas,
+                connectedAtlasCluster: connectParams.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
@@ -167,7 +108,7 @@ export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvent
 
                 return this.changeState("connection-requested", {
                     tag: "connecting",
-                    connectedAtlasCluster: settings.atlas,
+                    connectedAtlasCluster: connectParams.atlas,
                     serviceProvider,
                     connectionStringAuthType: connectionType,
                     oidcConnectionType: connectionType as OIDCConnectionAuthType,
@@ -178,7 +119,7 @@ export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvent
 
             return this.changeState("connection-succeeded", {
                 tag: "connected",
-                connectedAtlasCluster: settings.atlas,
+                connectedAtlasCluster: connectParams.atlas,
                 serviceProvider,
                 connectionStringAuthType: connectionType,
             });
@@ -187,7 +128,7 @@ export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvent
             this.changeState("connection-errored", {
                 tag: "errored",
                 errorReason,
-                connectedAtlasCluster: settings.atlas,
+                connectedAtlasCluster: connectParams.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
         }
@@ -209,21 +150,6 @@ export class MCPConnectionManager extends EventEmitter<MCPConnectionManagerEvent
         }
 
         return { tag: "disconnected" };
-    }
-
-    get currentConnectionState(): AnyConnectionState {
-        return this.state;
-    }
-
-    changeState<Event extends keyof MCPConnectionManagerEvents, State extends MCPConnectionManagerEvents[Event][0]>(
-        event: Event,
-        newState: State
-    ): State {
-        this.state = newState;
-        // TypeScript doesn't seem to be happy with the spread operator and generics
-        // eslint-disable-next-line
-        this.emit(event, ...([newState] as any));
-        return newState;
     }
 
     private onOidcAuthFailed(error: unknown): void {

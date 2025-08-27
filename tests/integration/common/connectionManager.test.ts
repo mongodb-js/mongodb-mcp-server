@@ -1,15 +1,16 @@
 import type {
-    MCPConnectionManagerEvents,
+    ConnectionManager,
+    ConnectionManagerEvents,
     ConnectionStateConnected,
     ConnectionStringAuthType,
-} from "../../../src/common/mcpConnectionManager.js";
+} from "../../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../../src/common/mcpConnectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 
 describeWithMongoDB("Connection Manager", (integration) => {
-    function connectionManager(): MCPConnectionManager {
+    function connectionManager(): ConnectionManager {
         return integration.mcpServer().session.connectionManager;
     }
 
@@ -24,11 +25,11 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
     describe("when successfully connected", () => {
         type ConnectionManagerSpies = {
-            "connection-requested": (event: MCPConnectionManagerEvents["connection-requested"][0]) => void;
-            "connection-succeeded": (event: MCPConnectionManagerEvents["connection-succeeded"][0]) => void;
-            "connection-timed-out": (event: MCPConnectionManagerEvents["connection-timed-out"][0]) => void;
-            "connection-closed": (event: MCPConnectionManagerEvents["connection-closed"][0]) => void;
-            "connection-errored": (event: MCPConnectionManagerEvents["connection-errored"][0]) => void;
+            "connection-requested": (event: ConnectionManagerEvents["connection-requested"][0]) => void;
+            "connection-succeeded": (event: ConnectionManagerEvents["connection-succeeded"][0]) => void;
+            "connection-timed-out": (event: ConnectionManagerEvents["connection-timed-out"][0]) => void;
+            "connection-closed": (event: ConnectionManagerEvents["connection-closed"][0]) => void;
+            "connection-errored": (event: ConnectionManagerEvents["connection-errored"][0]) => void;
         };
 
         let connectionManagerSpies: ConnectionManagerSpies;
@@ -43,7 +44,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
             };
 
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
-                connectionManager().on(event as keyof MCPConnectionManagerEvents, spy);
+                connectionManager().events.on(event as keyof ConnectionManagerEvents, spy);
             }
 
             await connectionManager().connect({

@@ -7,10 +7,10 @@ import { LogId } from "./logger.js";
 import EventEmitter from "events";
 import type {
     AtlasClusterConnectionInfo,
-    MCPConnectionManager,
-    ConnectionSettings,
+    ConnectionManager,
     ConnectionStateConnected,
-} from "./mcpConnectionManager.js";
+    MCPConnectParams,
+} from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
@@ -21,7 +21,7 @@ export interface SessionOptions {
     apiClientSecret?: string;
     logger: CompositeLogger;
     exportsManager: ExportsManager;
-    connectionManager: MCPConnectionManager;
+    connectionManager: ConnectionManager;
 }
 
 export type SessionEvents = {
@@ -34,7 +34,7 @@ export type SessionEvents = {
 export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
-    readonly connectionManager: MCPConnectionManager;
+    readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
     mcpClient?: {
         name?: string;
@@ -66,10 +66,14 @@ export class Session extends EventEmitter<SessionEvents> {
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
-        this.connectionManager.on("connection-succeeded", () => this.emit("connect"));
-        this.connectionManager.on("connection-timed-out", (error) => this.emit("connection-error", error.errorReason));
-        this.connectionManager.on("connection-closed", () => this.emit("disconnect"));
-        this.connectionManager.on("connection-errored", (error) => this.emit("connection-error", error.errorReason));
+        this.connectionManager.events.on("connection-succeeded", () => this.emit("connect"));
+        this.connectionManager.events.on("connection-timed-out", (error) =>
+            this.emit("connection-error", error.errorReason)
+        );
+        this.connectionManager.events.on("connection-closed", () => this.emit("disconnect"));
+        this.connectionManager.events.on("connection-errored", (error) =>
+            this.emit("connection-error", error.errorReason)
+        );
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {
@@ -135,9 +139,9 @@ export class Session extends EventEmitter<SessionEvents> {
         this.emit("close");
     }
 
-    async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
+    async connectToMongoDB(connectParams: MCPConnectParams): Promise<void> {
         try {
-            await this.connectionManager.connect({ ...settings });
+            await this.connectionManager.connect({ ...connectParams });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : (error as string);
             this.emit("connection-error", message);

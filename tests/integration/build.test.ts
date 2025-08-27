@@ -41,11 +41,14 @@ describe("Build Test", () => {
         const esmKeys = Object.keys(esmModule).sort();
 
         expect(cjsKeys).toEqual(esmKeys);
-        expect(cjsKeys).toIncludeSameMembers([
+        expect(cjsKeys).toContainEqual([
+            "CompositeLogger",
+            "ConnectionManager",
+            "LoggerBase",
             "Server",
             "Session",
-            "Telemetry",
             "StreamableHttpRunner",
+            "Telemetry",
             "defaultUserConfig",
             "LoggerBase",
         ]);

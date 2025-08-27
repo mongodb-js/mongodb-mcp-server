@@ -6,7 +6,7 @@ import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
-import type { AtlasClusterConnectionInfo } from "../../../common/mcpConnectionManager.js";
+import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours

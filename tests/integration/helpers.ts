@@ -10,7 +10,7 @@ import type { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ConnectionState } from "../../src/common/mcpConnectionManager.js";
+import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/mcpConnectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 
@@ -315,7 +315,7 @@ export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>
 
 export function waitUntil<T extends ConnectionState>(
     tag: T["tag"],
-    cm: MCPConnectionManager,
+    cm: ConnectionManager,
     signal: AbortSignal,
     additionalCondition?: (state: T) => boolean
 ): Promise<T> {

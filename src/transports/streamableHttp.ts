@@ -1,13 +1,12 @@
 import express from "express";
 import type http from "http";
+import { randomUUID } from "crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { TransportRunnerBase } from "./base.js";
-import type { DriverOptions, UserConfig } from "../common/config.js";
-import type { LoggerBase } from "../common/logger.js";
 import { LogId } from "../common/logger.js";
-import { randomUUID } from "crypto";
 import { SessionStore } from "../common/sessionStore.js";
+import type { MCPConnectParams } from "../common/connectionManager.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -15,7 +14,7 @@ const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
-export class StreamableHttpRunner extends TransportRunnerBase {
+export class StreamableHttpRunner<ConnectParams extends MCPConnectParams> extends TransportRunnerBase<ConnectParams> {
     private httpServer: http.Server | undefined;
     private sessionStore!: SessionStore;
 
@@ -29,10 +28,6 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         }
 
         throw new Error("Server is not started yet");
-    }
-
-    constructor(userConfig: UserConfig, driverOptions: DriverOptions, additionalLoggers: LoggerBase[] = []) {
-        super(userConfig, driverOptions, additionalLoggers);
     }
 
     async start(): Promise<void> {

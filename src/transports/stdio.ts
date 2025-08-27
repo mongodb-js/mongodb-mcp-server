@@ -1,12 +1,11 @@
-import type { LoggerBase } from "../common/logger.js";
+import { EJSON } from "bson";
+import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
 import { TransportRunnerBase } from "./base.js";
-import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
-import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
-import { EJSON } from "bson";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { DriverOptions, UserConfig } from "../common/config.js";
+import type { MCPConnectParams } from "../common/connectionManager.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
 // but it uses EJSON.parse instead of JSON.parse to handle BSON types
@@ -52,12 +51,8 @@ export function createStdioTransport(): StdioServerTransport {
     return server;
 }
 
-export class StdioRunner extends TransportRunnerBase {
+export class StdioRunner<ConnectParams extends MCPConnectParams> extends TransportRunnerBase<ConnectParams> {
     private server: Server | undefined;
-
-    constructor(userConfig: UserConfig, driverOptions: DriverOptions, additionalLoggers: LoggerBase[] = []) {
-        super(userConfig, driverOptions, additionalLoggers);
-    }
 
     async start(): Promise<void> {
         try {

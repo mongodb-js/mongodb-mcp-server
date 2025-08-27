@@ -1,4 +1,4 @@
-import type { DriverOptions, UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";
@@ -7,17 +7,22 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
-import { MCPConnectionManager } from "../common/mcpConnectionManager.js";
+import type { ConnectionManager, MCPConnectParams } from "../common/connectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 
-export abstract class TransportRunnerBase {
+export type CreateConnectionManagerFn<ConnectParams extends MCPConnectParams> = (createParams: {
+    logger: CompositeLogger;
+    deviceId: DeviceId;
+}) => ConnectionManager<ConnectParams>;
+
+export abstract class TransportRunnerBase<ConnectParams extends MCPConnectParams> {
     public logger: LoggerBase;
     public deviceId: DeviceId;
 
-    protected constructor(
+    constructor(
         protected readonly userConfig: UserConfig,
-        private readonly driverOptions: DriverOptions,
-        additionalLoggers: LoggerBase[]
+        private readonly createConnectionManager: CreateConnectionManagerFn<ConnectParams>,
+        additionalLoggers: LoggerBase[] = []
     ) {
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
@@ -46,7 +51,7 @@ export abstract class TransportRunnerBase {
 
         const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(this.userConfig, logger);
-        const connectionManager = new MCPConnectionManager(this.userConfig, this.driverOptions, logger, this.deviceId);
+        const connectionManager = this.createConnectionManager({ logger, deviceId: this.deviceId });
 
         const session = new Session({
             apiBaseUrl: this.userConfig.apiBaseUrl,
