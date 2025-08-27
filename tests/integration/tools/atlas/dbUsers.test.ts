@@ -28,11 +28,17 @@ describeWithAtlas("db users", (integration) => {
         };
 
         afterEach(async () => {
+            const projectId = getProjectId();
+            if (!projectId) {
+                // projectId may be empty if beforeAll failed
+                return;
+            }
+
             try {
                 await integration.mcpServer().session.apiClient.deleteDatabaseUser({
                     params: {
                         path: {
-                            groupId: getProjectId(),
+                            groupId: projectId,
                             username: userName,
                             databaseName: "admin",
                         },

@@ -27,16 +27,18 @@ describeWithAtlas("ip access lists", (integration) => {
             const apiClient = integration.mcpServer().session.apiClient;
 
             const projectId = getProjectId();
-
-            for (const value of values) {
-                await apiClient.deleteProjectIpAccessList({
-                    params: {
-                        path: {
-                            groupId: projectId,
-                            entryValue: value,
+            if (projectId) {
+                // projectId may be empty if beforeAll failed.
+                for (const value of values) {
+                    await apiClient.deleteProjectIpAccessList({
+                        params: {
+                            path: {
+                                groupId: projectId,
+                                entryValue: value,
+                            },
                         },
-                    },
-                });
+                    });
+                }
             }
         });
 
