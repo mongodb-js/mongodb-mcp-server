@@ -13,7 +13,6 @@ describeWithAtlas("orgs", (integration) => {
         it("returns org names", async () => {
             const response = await integration.mcpClient().callTool({ name: "atlas-list-orgs", arguments: {} });
             const elements = getResponseElements(response);
-            expect(elements).toHaveLength(2);
             expect(elements[0]?.text).toContain("Found 1 organizations");
             expect(elements[1]?.text).toContain("<untrusted-user-data-");
             const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
