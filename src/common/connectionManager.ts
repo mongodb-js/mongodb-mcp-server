@@ -6,7 +6,7 @@ import { type ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh
 import type { DeviceId } from "../helpers/deviceId.js";
 import type { DriverOptions, UserConfig } from "./config.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
-import { type CompositeLogger, LogId } from "./logger.js";
+import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 
@@ -123,7 +123,7 @@ export class MCPConnectionManager extends ConnectionManager {
     constructor(
         private userConfig: UserConfig,
         private driverOptions: DriverOptions,
-        private logger: CompositeLogger,
+        private logger: LoggerBase,
         deviceId: DeviceId,
         bus?: EventEmitter
     ) {
@@ -132,7 +132,6 @@ export class MCPConnectionManager extends ConnectionManager {
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
         this.deviceId = deviceId;
-        this.clientName = "unknown";
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {

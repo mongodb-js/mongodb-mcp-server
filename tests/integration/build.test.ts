@@ -43,7 +43,6 @@ describe("Build Test", () => {
         expect(cjsKeys).toEqual(esmKeys);
         expect(cjsKeys).toEqual(
             expect.arrayContaining([
-                "CompositeLogger",
                 "ConnectionManager",
                 "LoggerBase",
                 "Server",

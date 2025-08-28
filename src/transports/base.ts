@@ -11,7 +11,7 @@ import type { ConnectionManager } from "../common/connectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 
 export type ConnectionManagerFactoryFn = (createParams: {
-    logger: CompositeLogger;
+    logger: LoggerBase;
     deviceId: DeviceId;
 }) => Promise<ConnectionManager>;
 
