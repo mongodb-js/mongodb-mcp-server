@@ -29,9 +29,8 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeAll(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner(
-                    config,
-                    ({ logger, deviceId }) => new MCPConnectionManager(config, driverOptions, logger, deviceId)
+                runner = new StreamableHttpRunner(config, ({ logger, deviceId }) =>
+                    Promise.resolve(new MCPConnectionManager(config, driverOptions, logger, deviceId))
                 );
                 await runner.start();
             });
@@ -113,9 +112,8 @@ describe("StreamableHttpRunner", () => {
         try {
             for (let i = 0; i < 3; i++) {
                 config.httpPort = 0; // Use a random port for each runner
-                const runner = new StreamableHttpRunner(
-                    config,
-                    ({ logger, deviceId }) => new MCPConnectionManager(config, driverOptions, logger, deviceId)
+                const runner = new StreamableHttpRunner(config, ({ logger, deviceId }) =>
+                    Promise.resolve(new MCPConnectionManager(config, driverOptions, logger, deviceId))
                 );
                 await runner.start();
                 runners.push(runner);
@@ -147,7 +145,8 @@ describe("StreamableHttpRunner", () => {
             const logger = new CustomLogger();
             const runner = new StreamableHttpRunner(
                 config,
-                ({ logger, deviceId }) => new MCPConnectionManager(config, driverOptions, logger, deviceId),
+                ({ logger, deviceId }) =>
+                    Promise.resolve(new MCPConnectionManager(config, driverOptions, logger, deviceId)),
                 [logger]
             );
             await runner.start();
