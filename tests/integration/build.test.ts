@@ -41,6 +41,13 @@ describe("Build Test", () => {
         const esmKeys = Object.keys(esmModule).sort();
 
         expect(cjsKeys).toEqual(esmKeys);
-        expect(cjsKeys).toEqual(["Server", "Session", "Telemetry"]);
+        expect(cjsKeys).toIncludeSameMembers([
+            "Server",
+            "Session",
+            "Telemetry",
+            "StreamableHttpRunner",
+            "defaultUserConfig",
+            "LoggerBase",
+        ]);
     });
 });

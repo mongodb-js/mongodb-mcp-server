@@ -2,9 +2,9 @@ import fs from "fs/promises";
 import type { MongoLogId, MongoLogWriter } from "mongodb-log-writer";
 import { mongoLogId, MongoLogManager } from "mongodb-log-writer";
 import redact from "mongodb-redact";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
+import type { Server } from "../lib.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
@@ -51,6 +51,8 @@ export const LogId = {
     streamableHttpTransportSessionCloseNotificationFailure: mongoLogId(1_006_004),
     streamableHttpTransportRequestFailure: mongoLogId(1_006_005),
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
+    streamableHttpTransportKeepAliveFailure: mongoLogId(1_006_007),
+    streamableHttpTransportKeepAlive: mongoLogId(1_006_008),
 
     exportCleanupError: mongoLogId(1_007_001),
     exportCreationError: mongoLogId(1_007_002),
@@ -64,7 +66,7 @@ export const LogId = {
     oidcFlow: mongoLogId(1_008_001),
 } as const;
 
-interface LogPayload {
+export interface LogPayload {
     id: MongoLogId;
     context: string;
     message: string;
@@ -152,6 +154,26 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     public emergency(payload: LogPayload): void {
         this.log("emergency", payload);
     }
+
+    protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
+        switch (level) {
+            case "info":
+                return "info";
+            case "warning":
+                return "warn";
+            case "error":
+                return "error";
+            case "notice":
+            case "debug":
+                return "debug";
+            case "critical":
+            case "alert":
+            case "emergency":
+                return "fatal";
+            default:
+                return "info";
+        }
+    }
 }
 
 export class ConsoleLogger extends LoggerBase {
@@ -225,30 +247,21 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
 
         this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message, payload.attributes);
     }
-
-    private mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
-        switch (level) {
-            case "info":
-                return "info";
-            case "warning":
-                return "warn";
-            case "error":
-                return "error";
-            case "notice":
-            case "debug":
-                return "debug";
-            case "critical":
-            case "alert":
-            case "emergency":
-                return "fatal";
-            default:
-                return "info";
-        }
-    }
 }
 
 export class McpLogger extends LoggerBase {
-    public constructor(private readonly server: McpServer) {
+    private static readonly LOG_LEVELS: LogLevel[] = [
+        "debug",
+        "info",
+        "notice",
+        "warning",
+        "error",
+        "critical",
+        "alert",
+        "emergency",
+    ];
+
+    public constructor(private readonly server: Server) {
         super();
     }
 
@@ -256,11 +269,18 @@ export class McpLogger extends LoggerBase {
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
         // Only log if the server is connected
-        if (!this.server?.isConnected()) {
+        if (!this.server.mcpServer.isConnected()) {
             return;
         }
 
-        void this.server.server.sendLoggingMessage({
+        const minimumLevel = McpLogger.LOG_LEVELS.indexOf(this.server.mcpLogLevel);
+        const currentLevel = McpLogger.LOG_LEVELS.indexOf(level);
+        if (minimumLevel > currentLevel) {
+            // Don't log if the requested level is lower than the minimum level
+            return;
+        }
+
+        void this.server.mcpServer.server.sendLoggingMessage({
             level,
             data: `[${payload.context}]: ${payload.message}`,
         });
@@ -286,7 +306,11 @@ export class CompositeLogger extends LoggerBase {
     public log(level: LogLevel, payload: LogPayload): void {
         // Override the public method to avoid the base logger redacting the message payload
         for (const logger of this.loggers) {
-            logger.log(level, { ...payload, attributes: { ...this.attributes, ...payload.attributes } });
+            const attributes =
+                Object.keys(this.attributes).length > 0 || payload.attributes
+                    ? { ...this.attributes, ...payload.attributes }
+                    : undefined;
+            logger.log(level, { ...payload, attributes });
         }
     }
 
