@@ -1,12 +1,12 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
-import type { LoggerType } from "../../src/common/logger.js";
+import type { LoggerType, LogLevel } from "../../src/common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, LogId, McpLogger } from "../../src/common/logger.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import os from "os";
 import * as path from "path";
 import * as fs from "fs/promises";
 import { once } from "events";
+import type { Server } from "../../src/server.js";
 
 describe("Logger", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
@@ -14,6 +14,7 @@ describe("Logger", () => {
 
     let mcpLoggerSpy: MockInstance;
     let mcpLogger: McpLogger;
+    let minimumMcpLogLevel: LogLevel;
 
     beforeEach(() => {
         // Mock console.error before creating the ConsoleLogger
@@ -22,12 +23,18 @@ describe("Logger", () => {
         consoleLogger = new ConsoleLogger();
 
         mcpLoggerSpy = vi.fn();
+        minimumMcpLogLevel = "debug";
         mcpLogger = new McpLogger({
-            server: {
-                sendLoggingMessage: mcpLoggerSpy,
+            mcpServer: {
+                server: {
+                    sendLoggingMessage: mcpLoggerSpy,
+                },
+                isConnected: () => true,
             },
-            isConnected: () => true,
-        } as unknown as McpServer);
+            get mcpLogLevel() {
+                return minimumMcpLogLevel;
+            },
+        } as unknown as Server);
     });
 
     afterEach(() => {
@@ -304,6 +311,26 @@ describe("Logger", () => {
                 expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
                 expect(getLastConsoleMessage()).not.toContain("foo=bar");
             });
+        });
+    });
+
+    describe("mcp logger", () => {
+        it("filters out messages below the minimum log level", () => {
+            minimumMcpLogLevel = "debug";
+            mcpLogger.log("debug", { id: LogId.serverInitialized, context: "test", message: "Debug message" });
+
+            expect(mcpLoggerSpy).toHaveBeenCalledOnce();
+            expect(getLastMcpLogMessage()).toContain("Debug message");
+
+            minimumMcpLogLevel = "info";
+            mcpLogger.log("debug", { id: LogId.serverInitialized, context: "test", message: "Debug message 2" });
+
+            expect(mcpLoggerSpy).toHaveBeenCalledTimes(1);
+
+            mcpLogger.log("alert", { id: LogId.serverInitialized, context: "test", message: "Alert message" });
+
+            expect(mcpLoggerSpy).toHaveBeenCalledTimes(2);
+            expect(getLastMcpLogMessage()).toContain("Alert message");
         });
     });
 });

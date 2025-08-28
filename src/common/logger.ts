@@ -2,9 +2,9 @@ import fs from "fs/promises";
 import type { MongoLogId, MongoLogWriter } from "mongodb-log-writer";
 import { mongoLogId, MongoLogManager } from "mongodb-log-writer";
 import redact from "mongodb-redact";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
+import type { Server } from "../lib.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
@@ -250,7 +250,18 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
 }
 
 export class McpLogger extends LoggerBase {
-    public constructor(private readonly server: McpServer) {
+    private static readonly LOG_LEVELS: LogLevel[] = [
+        "debug",
+        "info",
+        "notice",
+        "warning",
+        "error",
+        "critical",
+        "alert",
+        "emergency",
+    ];
+
+    public constructor(private readonly server: Server) {
         super();
     }
 
@@ -258,11 +269,18 @@ export class McpLogger extends LoggerBase {
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
         // Only log if the server is connected
-        if (!this.server?.isConnected()) {
+        if (!this.server.mcpServer.isConnected()) {
             return;
         }
 
-        void this.server.server.sendLoggingMessage({
+        const minimumLevel = McpLogger.LOG_LEVELS.indexOf(this.server.mcpLogLevel);
+        const currentLevel = McpLogger.LOG_LEVELS.indexOf(level);
+        if (minimumLevel > currentLevel) {
+            // Don't log if the requested level is lower than the minimum level
+            return;
+        }
+
+        void this.server.mcpServer.server.sendLoggingMessage({
             level,
             data: `[${payload.context}]: ${payload.message}`,
         });

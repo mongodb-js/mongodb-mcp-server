@@ -44,12 +44,7 @@ export abstract class TransportRunnerBase {
             version: packageInfo.version,
         });
 
-        const loggers = [this.logger];
-        if (this.userConfig.loggers.includes("mcp")) {
-            loggers.push(new McpLogger(mcpServer));
-        }
-
-        const logger = new CompositeLogger(...loggers);
+        const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(this.userConfig, logger);
         const connectionManager = new ConnectionManager(this.userConfig, this.driverOptions, logger, this.deviceId);
 
@@ -64,12 +59,20 @@ export abstract class TransportRunnerBase {
 
         const telemetry = Telemetry.create(session, this.userConfig, this.deviceId);
 
-        return new Server({
+        const result = new Server({
             mcpServer,
             session,
             telemetry,
             userConfig: this.userConfig,
         });
+
+        // We need to create the MCP logger after the server is constructed
+        // because it needs the server instance
+        if (this.userConfig.loggers.includes("mcp")) {
+            logger.addLogger(new McpLogger(result));
+        }
+
+        return result;
     }
 
     abstract start(): Promise<void>;
