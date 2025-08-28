@@ -1,5 +1,5 @@
 import { getDeviceId } from "@mongodb-js/device-id";
-import * as nodeMachineId from "node-machine-id";
+import nodeMachineId from "node-machine-id";
 import type { LoggerBase } from "../common/logger.js";
 import { LogId } from "../common/logger.js";
 
