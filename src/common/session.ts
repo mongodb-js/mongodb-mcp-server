@@ -67,10 +67,10 @@ export class Session extends EventEmitter<SessionEvents> {
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
-        this.connectionManager.on("connection-succeeded", () => this.emit("connect"));
-        this.connectionManager.on("connection-timed-out", (error) => this.emit("connection-error", error));
-        this.connectionManager.on("connection-closed", () => this.emit("disconnect"));
-        this.connectionManager.on("connection-errored", (error) => this.emit("connection-error", error));
+        this.connectionManager.on("connection-success", () => this.emit("connect"));
+        this.connectionManager.on("connection-time-out", (error) => this.emit("connection-error", error));
+        this.connectionManager.on("connection-close", () => this.emit("disconnect"));
+        this.connectionManager.on("connection-error", (error) => this.emit("connection-error", error));
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {
