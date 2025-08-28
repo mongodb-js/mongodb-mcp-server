@@ -19,7 +19,7 @@ export abstract class TransportRunnerBase {
     public logger: LoggerBase;
     public deviceId: DeviceId;
 
-    constructor(
+    protected constructor(
         protected readonly userConfig: UserConfig,
         private readonly createConnectionManager: CreateConnectionManagerFn,
         additionalLoggers: LoggerBase[]

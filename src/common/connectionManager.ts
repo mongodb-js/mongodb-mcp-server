@@ -17,8 +17,13 @@ export interface AtlasClusterConnectionInfo {
     expiryDate: Date;
 }
 
+export interface ConnectionSettings {
+    connectionString: string;
+    atlas?: AtlasClusterConnectionInfo;
+}
+
 type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
-export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
+type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
 
 export interface ConnectionState {
@@ -61,11 +66,6 @@ export interface ConnectionManagerEvents {
     "connection-timed-out": [ConnectionStateErrored];
     "connection-closed": [ConnectionStateDisconnected];
     "connection-errored": [ConnectionStateErrored];
-}
-
-export interface ConnectionSettings {
-    connectionString: string;
-    atlas?: AtlasClusterConnectionInfo;
 }
 
 export abstract class ConnectionManager {
@@ -119,7 +119,7 @@ export class MCPConnectionManager extends ConnectionManager {
         this.clientName = "unknown";
     }
 
-    async connect(connectParams: ConnectionSettings): Promise<AnyConnectionState> {
+    async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         this._events.emit("connection-requested", this.state);
 
         if (this.state.tag === "connected" || this.state.tag === "connecting") {
@@ -130,22 +130,22 @@ export class MCPConnectionManager extends ConnectionManager {
         let connectionInfo: ConnectionInfo;
 
         try {
-            connectParams = { ...connectParams };
+            settings = { ...settings };
             const appNameComponents: AppNameComponents = {
                 appName: `${packageInfo.mcpServerName} ${packageInfo.version}`,
                 deviceId: this.deviceId.get(),
                 clientName: this.clientName,
             };
 
-            connectParams.connectionString = await setAppNameParamIfMissing({
-                connectionString: connectParams.connectionString,
+            settings.connectionString = await setAppNameParamIfMissing({
+                connectionString: settings.connectionString,
                 components: appNameComponents,
             });
 
             connectionInfo = generateConnectionInfoFromCliArgs({
                 ...this.userConfig,
                 ...this.driverOptions,
-                connectionSpecifier: connectParams.connectionString,
+                connectionSpecifier: settings.connectionString,
             });
 
             if (connectionInfo.driverOptions.oidc) {
@@ -171,7 +171,7 @@ export class MCPConnectionManager extends ConnectionManager {
             this.changeState("connection-errored", {
                 tag: "errored",
                 errorReason,
-                connectedAtlasCluster: connectParams.atlas,
+                connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
@@ -186,7 +186,7 @@ export class MCPConnectionManager extends ConnectionManager {
 
                 return this.changeState("connection-requested", {
                     tag: "connecting",
-                    connectedAtlasCluster: connectParams.atlas,
+                    connectedAtlasCluster: settings.atlas,
                     serviceProvider,
                     connectionStringAuthType: connectionType,
                     oidcConnectionType: connectionType as OIDCConnectionAuthType,
@@ -197,7 +197,7 @@ export class MCPConnectionManager extends ConnectionManager {
 
             return this.changeState("connection-succeeded", {
                 tag: "connected",
-                connectedAtlasCluster: connectParams.atlas,
+                connectedAtlasCluster: settings.atlas,
                 serviceProvider,
                 connectionStringAuthType: connectionType,
             });
@@ -206,7 +206,7 @@ export class MCPConnectionManager extends ConnectionManager {
             this.changeState("connection-errored", {
                 tag: "errored",
                 errorReason,
-                connectedAtlasCluster: connectParams.atlas,
+                connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
         }
