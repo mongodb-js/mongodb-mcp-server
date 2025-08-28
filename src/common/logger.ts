@@ -250,7 +250,7 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
 }
 
 export class McpLogger extends LoggerBase {
-    private static readonly LOG_LEVELS: LogLevel[] = [
+    public static readonly LOG_LEVELS: LogLevel[] = [
         "debug",
         "info",
         "notice",
@@ -259,7 +259,7 @@ export class McpLogger extends LoggerBase {
         "critical",
         "alert",
         "emergency",
-    ];
+    ] as const;
 
     public constructor(private readonly server: Server) {
         super();

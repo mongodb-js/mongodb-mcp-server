@@ -7,6 +7,7 @@ import * as path from "path";
 import * as fs from "fs/promises";
 import { once } from "events";
 import type { Server } from "../../src/server.js";
+import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 
 describe("Logger", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
@@ -331,6 +332,10 @@ describe("Logger", () => {
 
             expect(mcpLoggerSpy).toHaveBeenCalledTimes(2);
             expect(getLastMcpLogMessage()).toContain("Alert message");
+        });
+
+        it("MCPLogger.LOG_LEVELS contains all possible levels", () => {
+            expect(McpLogger.LOG_LEVELS).toEqual(LoggingMessageNotificationSchema.shape.params.shape.level.options);
         });
     });
 });
