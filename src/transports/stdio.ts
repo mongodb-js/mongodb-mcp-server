@@ -6,7 +6,6 @@ import { type LoggerBase, LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
 import { type CreateConnectionManagerFn, TransportRunnerBase } from "./base.js";
 import { type UserConfig } from "../common/config.js";
-import type { MCPConnectParams } from "../common/connectionManager.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
 // but it uses EJSON.parse instead of JSON.parse to handle BSON types
@@ -52,12 +51,12 @@ export function createStdioTransport(): StdioServerTransport {
     return server;
 }
 
-export class StdioRunner<ConnectParams extends MCPConnectParams> extends TransportRunnerBase<ConnectParams> {
+export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
     constructor(
         userConfig: UserConfig,
-        createConnectionManager: CreateConnectionManagerFn<ConnectParams>,
+        createConnectionManager: CreateConnectionManagerFn,
         additionalLoggers: LoggerBase[] = []
     ) {
         super(userConfig, createConnectionManager, additionalLoggers);

@@ -6,7 +6,6 @@ export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { type CreateConnectionManagerFn } from "./transports/base.js";
 export {
     ConnectionManager,
-    type MCPConnectParams,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateConnected,

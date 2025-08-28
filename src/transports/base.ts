@@ -7,21 +7,21 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
-import type { ConnectionManager, MCPConnectParams } from "../common/connectionManager.js";
+import type { ConnectionManager } from "../common/connectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 
-export type CreateConnectionManagerFn<ConnectParams extends MCPConnectParams> = (createParams: {
+export type CreateConnectionManagerFn = (createParams: {
     logger: CompositeLogger;
     deviceId: DeviceId;
-}) => ConnectionManager<ConnectParams> | Promise<ConnectionManager<ConnectParams>>;
+}) => ConnectionManager | Promise<ConnectionManager>;
 
-export abstract class TransportRunnerBase<ConnectParams extends MCPConnectParams> {
+export abstract class TransportRunnerBase {
     public logger: LoggerBase;
     public deviceId: DeviceId;
 
     constructor(
         protected readonly userConfig: UserConfig,
-        private readonly createConnectionManager: CreateConnectionManagerFn<ConnectParams>,
+        private readonly createConnectionManager: CreateConnectionManagerFn,
         additionalLoggers: LoggerBase[]
     ) {
         const loggers: LoggerBase[] = [...additionalLoggers];

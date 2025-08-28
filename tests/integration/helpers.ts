@@ -11,7 +11,7 @@ import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotoc
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
-import { MCPConnectionManager } from "../../src/common/mcpConnectionManager.js";
+import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 
 interface ParameterInfo {

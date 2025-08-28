@@ -5,11 +5,10 @@ import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { config, driverOptions } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
-import { MCPConnectionManager } from "../../../src/common/mcpConnectionManager.js";
-import type { MCPConnectParams } from "../../../src/lib.js";
+import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 
 describe("StreamableHttpRunner", () => {
-    let runner: StreamableHttpRunner<MCPConnectParams>;
+    let runner: StreamableHttpRunner;
     let oldTelemetry: "enabled" | "disabled";
     let oldLoggers: ("stderr" | "disk" | "mcp")[];
 
@@ -110,7 +109,7 @@ describe("StreamableHttpRunner", () => {
     }
 
     it("can create multiple runners", async () => {
-        const runners: StreamableHttpRunner<MCPConnectParams>[] = [];
+        const runners: StreamableHttpRunner[] = [];
         try {
             for (let i = 0; i < 3; i++) {
                 config.httpPort = 0; // Use a random port for each runner

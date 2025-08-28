@@ -4,7 +4,7 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import { Session } from "../../../src/common/session.js";
 import { config, driverOptions } from "../../../src/common/config.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
-import { MCPConnectionManager } from "../../../src/common/mcpConnectionManager.js";
+import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 

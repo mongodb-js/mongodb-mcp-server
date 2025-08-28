@@ -6,7 +6,6 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId, type LoggerBase } from "../common/logger.js";
 import { type UserConfig } from "../common/config.js";
 import { SessionStore } from "../common/sessionStore.js";
-import type { MCPConnectParams } from "../common/connectionManager.js";
 import { type CreateConnectionManagerFn, TransportRunnerBase } from "./base.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
@@ -15,13 +14,13 @@ const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
-export class StreamableHttpRunner<ConnectParams extends MCPConnectParams> extends TransportRunnerBase<ConnectParams> {
+export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
     private sessionStore!: SessionStore;
 
     constructor(
         userConfig: UserConfig,
-        createConnectionManager: CreateConnectionManagerFn<ConnectParams>,
+        createConnectionManager: CreateConnectionManagerFn,
         additionalLoggers: LoggerBase[] = []
     ) {
         super(userConfig, createConnectionManager, additionalLoggers);

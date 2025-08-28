@@ -4,7 +4,7 @@ import type {
     ConnectionStateConnected,
     ConnectionStringAuthType,
 } from "../../../src/common/connectionManager.js";
-import { MCPConnectionManager } from "../../../src/common/mcpConnectionManager.js";
+import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";

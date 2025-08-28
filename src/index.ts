@@ -42,9 +42,8 @@ import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
-import type { MCPConnectParams } from "./lib.js";
 import type { CreateConnectionManagerFn } from "./transports/base.js";
-import { MCPConnectionManager } from "./common/mcpConnectionManager.js";
+import { MCPConnectionManager } from "./common/connectionManager.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -52,13 +51,13 @@ async function main(): Promise<void> {
     assertHelpMode();
     assertVersionMode();
 
-    const createConnectionManager: CreateConnectionManagerFn<MCPConnectParams> = ({ logger, deviceId }) =>
+    const createConnectionManager: CreateConnectionManagerFn = ({ logger, deviceId }) =>
         new MCPConnectionManager(config, driverOptions, logger, deviceId);
 
     const transportRunner =
         config.transport === "stdio"
-            ? new StdioRunner<MCPConnectParams>(config, createConnectionManager)
-            : new StreamableHttpRunner<MCPConnectParams>(config, createConnectionManager);
+            ? new StdioRunner(config, createConnectionManager)
+            : new StreamableHttpRunner(config, createConnectionManager);
     const shutdown = (): void => {
         transportRunner.logger.info({
             id: LogId.serverCloseRequested,

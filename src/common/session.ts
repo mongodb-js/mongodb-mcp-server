@@ -8,8 +8,8 @@ import EventEmitter from "events";
 import type {
     AtlasClusterConnectionInfo,
     ConnectionManager,
+    ConnectionSettings,
     ConnectionStateConnected,
-    MCPConnectParams,
 } from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
@@ -139,9 +139,9 @@ export class Session extends EventEmitter<SessionEvents> {
         this.emit("close");
     }
 
-    async connectToMongoDB(connectParams: MCPConnectParams): Promise<void> {
+    async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
         try {
-            await this.connectionManager.connect({ ...connectParams });
+            await this.connectionManager.connect({ ...settings });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : (error as string);
             this.emit("connection-error", message);
