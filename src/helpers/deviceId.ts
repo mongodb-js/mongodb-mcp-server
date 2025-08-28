@@ -1,7 +1,8 @@
 import { getDeviceId } from "@mongodb-js/device-id";
-import nodeMachineId from "node-machine-id";
 import type { LoggerBase } from "../common/logger.js";
 import { LogId } from "../common/logger.js";
+
+// Import node-machine-id based on the module system
 
 export const DEVICE_ID_TIMEOUT = 3000;
 
@@ -17,7 +18,11 @@ export class DeviceId {
     private constructor(logger: LoggerBase, timeout: number = DEVICE_ID_TIMEOUT) {
         this.logger = logger;
         this.timeout = timeout;
-        this.getMachineId = (): Promise<string> => nodeMachineId.machineId(true);
+        this.getMachineId = async (): Promise<string> => {
+            const nodeMachineId = await import("node-machine-id");
+            const machineId = nodeMachineId.default?.machineId || nodeMachineId.machineId;
+            return machineId(true);
+        };
         this.abortController = new AbortController();
 
         this.deviceIdPromise = DeviceId.UnknownDeviceId;
