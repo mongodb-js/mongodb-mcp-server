@@ -1,8 +1,8 @@
 import type {
-    ConnectionManager,
     ConnectionManagerEvents,
     ConnectionStateConnected,
     ConnectionStringAuthType,
+    TestConnectionManager,
 } from "../../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
@@ -10,8 +10,8 @@ import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 
 describeWithMongoDB("Connection Manager", (integration) => {
-    function connectionManager(): ConnectionManager {
-        return integration.mcpServer().session.connectionManager;
+    function connectionManager(): TestConnectionManager {
+        return integration.mcpServer().session.connectionManager as TestConnectionManager;
     }
 
     afterEach(async () => {

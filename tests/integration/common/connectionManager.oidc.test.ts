@@ -5,7 +5,11 @@ import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
-import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
+import type {
+    ConnectionStateConnected,
+    ConnectionStateConnecting,
+    TestConnectionManager,
+} from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { setupDriverConfig } from "../../../src/common/config.js";
 import path from "path";
@@ -122,7 +126,8 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                 }
 
                 beforeEach(async () => {
-                    const connectionManager = integration.mcpServer().session.connectionManager;
+                    const connectionManager = integration.mcpServer().session
+                        .connectionManager as TestConnectionManager;
                     // disconnect on purpose doesn't change the state if it was failed to avoid losing
                     // information in production.
                     await connectionManager.disconnect();
