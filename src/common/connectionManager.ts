@@ -81,12 +81,16 @@ export type TestConnectionManager = ConnectionManager & {
 };
 
 export abstract class ConnectionManager {
-    protected clientName: string = "unknown";
+    protected clientName: string;
+    protected readonly _events;
+    readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
+    private state: AnyConnectionState;
 
-    protected readonly _events = new EventEmitter<ConnectionManagerEvents>();
-    readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once"> = this._events;
-
-    protected state: AnyConnectionState = { tag: "disconnected" };
+    constructor() {
+        this.clientName = "unknown";
+        this.events = this._events = new EventEmitter<ConnectionManagerEvents>();
+        this.state = { tag: "disconnected" };
+    }
 
     get currentConnectionState(): AnyConnectionState {
         return this.state;
@@ -132,9 +136,9 @@ export class MCPConnectionManager extends ConnectionManager {
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
-        this._events.emit("connection-requested", this.state);
+        this._events.emit("connection-requested", this.currentConnectionState);
 
-        if (this.state.tag === "connected" || this.state.tag === "connecting") {
+        if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
             await this.disconnect();
         }
 
@@ -225,13 +229,13 @@ export class MCPConnectionManager extends ConnectionManager {
     }
 
     async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
-        if (this.state.tag === "disconnected" || this.state.tag === "errored") {
-            return this.state;
+        if (this.currentConnectionState.tag === "disconnected" || this.currentConnectionState.tag === "errored") {
+            return this.currentConnectionState;
         }
 
-        if (this.state.tag === "connected" || this.state.tag === "connecting") {
+        if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
             try {
-                await this.state.serviceProvider?.close(true);
+                await this.currentConnectionState.serviceProvider?.close(true);
             } finally {
                 this.changeState("connection-closed", {
                     tag: "disconnected",
@@ -243,14 +247,20 @@ export class MCPConnectionManager extends ConnectionManager {
     }
 
     private onOidcAuthFailed(error: unknown): void {
-        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
+        if (
+            this.currentConnectionState.tag === "connecting" &&
+            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+        ) {
             void this.disconnectOnOidcError(error);
         }
     }
 
     private onOidcAuthSucceeded(): void {
-        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
-            this.changeState("connection-succeeded", { ...this.state, tag: "connected" });
+        if (
+            this.currentConnectionState.tag === "connecting" &&
+            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+        ) {
+            this.changeState("connection-succeeded", { ...this.currentConnectionState, tag: "connected" });
         }
 
         this.logger.info({
@@ -261,9 +271,12 @@ export class MCPConnectionManager extends ConnectionManager {
     }
 
     private onOidcNotifyDeviceFlow(flowInfo: { verificationUrl: string; userCode: string }): void {
-        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
+        if (
+            this.currentConnectionState.tag === "connecting" &&
+            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+        ) {
             this.changeState("connection-requested", {
-                ...this.state,
+                ...this.currentConnectionState,
                 tag: "connecting",
                 connectionStringAuthType: "oidc-device-flow",
                 oidcLoginUrl: flowInfo.verificationUrl,
