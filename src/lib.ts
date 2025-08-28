@@ -3,7 +3,7 @@ export { Session, type SessionOptions } from "./common/session.js";
 export { defaultUserConfig, type UserConfig } from "./common/config.js";
 export { LoggerBase, CompositeLogger, type LogPayload, type LoggerType, type LogLevel } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
-export { type CreateConnectionManagerFn } from "./transports/base.js";
+export { type ConnectionManagerFactoryFn } from "./transports/base.js";
 export {
     ConnectionManager,
     type AnyConnectionState,

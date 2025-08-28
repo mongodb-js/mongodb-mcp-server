@@ -4,7 +4,7 @@ import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { type LoggerBase, LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
-import { type CreateConnectionManagerFn, TransportRunnerBase } from "./base.js";
+import { type ConnectionManagerFactoryFn, TransportRunnerBase } from "./base.js";
 import { type UserConfig } from "../common/config.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
@@ -56,7 +56,7 @@ export class StdioRunner extends TransportRunnerBase {
 
     constructor(
         userConfig: UserConfig,
-        createConnectionManager: CreateConnectionManagerFn,
+        createConnectionManager: ConnectionManagerFactoryFn,
         additionalLoggers: LoggerBase[] = []
     ) {
         super(userConfig, createConnectionManager, additionalLoggers);

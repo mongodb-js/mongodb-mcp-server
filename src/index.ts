@@ -42,7 +42,7 @@ import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
-import type { CreateConnectionManagerFn } from "./transports/base.js";
+import type { ConnectionManagerFactoryFn } from "./transports/base.js";
 import { MCPConnectionManager } from "./common/connectionManager.js";
 
 async function main(): Promise<void> {
@@ -51,8 +51,8 @@ async function main(): Promise<void> {
     assertHelpMode();
     assertVersionMode();
 
-    const createConnectionManager: CreateConnectionManagerFn = ({ logger, deviceId }) =>
-        new MCPConnectionManager(config, driverOptions, logger, deviceId);
+    const createConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId }) =>
+        Promise.resolve(new MCPConnectionManager(config, driverOptions, logger, deviceId));
 
     const transportRunner =
         config.transport === "stdio"

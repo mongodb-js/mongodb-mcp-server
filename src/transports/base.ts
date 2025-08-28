@@ -10,10 +10,10 @@ import { ExportsManager } from "../common/exportsManager.js";
 import type { ConnectionManager } from "../common/connectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 
-export type CreateConnectionManagerFn = (createParams: {
+export type ConnectionManagerFactoryFn = (createParams: {
     logger: CompositeLogger;
     deviceId: DeviceId;
-}) => ConnectionManager | Promise<ConnectionManager>;
+}) => Promise<ConnectionManager>;
 
 export abstract class TransportRunnerBase {
     public logger: LoggerBase;
@@ -21,7 +21,7 @@ export abstract class TransportRunnerBase {
 
     protected constructor(
         protected readonly userConfig: UserConfig,
-        private readonly createConnectionManager: CreateConnectionManagerFn,
+        private readonly createConnectionManager: ConnectionManagerFactoryFn,
         additionalLoggers: LoggerBase[]
     ) {
         const loggers: LoggerBase[] = [...additionalLoggers];

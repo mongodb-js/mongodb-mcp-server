@@ -6,7 +6,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId, type LoggerBase } from "../common/logger.js";
 import { type UserConfig } from "../common/config.js";
 import { SessionStore } from "../common/sessionStore.js";
-import { type CreateConnectionManagerFn, TransportRunnerBase } from "./base.js";
+import { type ConnectionManagerFactoryFn, TransportRunnerBase } from "./base.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -20,7 +20,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
     constructor(
         userConfig: UserConfig,
-        createConnectionManager: CreateConnectionManagerFn,
+        createConnectionManager: ConnectionManagerFactoryFn,
         additionalLoggers: LoggerBase[] = []
     ) {
         super(userConfig, createConnectionManager, additionalLoggers);
