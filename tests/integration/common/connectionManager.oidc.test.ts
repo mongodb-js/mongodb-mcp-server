@@ -128,7 +128,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     await connectionManager.disconnect();
                     // for testing, force disconnecting AND setting the connection to closed to reset the
                     // state of the connection manager
-                    connectionManager.changeState("connection-closed", { tag: "disconnected" });
+                    connectionManager.changeState("connection-close", { tag: "disconnected" });
 
                     await integration.connectMcpClient();
                 }, DEFAULT_TIMEOUT);

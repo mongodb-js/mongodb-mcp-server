@@ -64,11 +64,11 @@ export type AnyConnectionState =
     | ConnectionStateErrored;
 
 export interface ConnectionManagerEvents {
-    "connection-requested": [AnyConnectionState];
-    "connection-succeeded": [ConnectionStateConnected];
-    "connection-timed-out": [ConnectionStateErrored];
-    "connection-closed": [ConnectionStateDisconnected];
-    "connection-errored": [ConnectionStateErrored];
+    "connection-request": [AnyConnectionState];
+    "connection-success": [ConnectionStateConnected];
+    "connection-time-out": [ConnectionStateErrored];
+    "connection-close": [ConnectionStateDisconnected];
+    "connection-error": [ConnectionStateErrored];
 }
 
 export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
@@ -101,7 +101,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
-        this.emit("connection-requested", this.state);
+        this.emit("connection-request", this.state);
 
         if (this.state.tag === "connected" || this.state.tag === "connecting") {
             await this.disconnect();
@@ -109,6 +109,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
         let serviceProvider: NodeDriverServiceProvider;
         let connectionInfo: ConnectionInfo;
+        let connectionStringAuthType: ConnectionStringAuthType = "scram";
 
         try {
             settings = { ...settings };
@@ -137,6 +138,11 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             connectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
+            connectionStringAuthType = ConnectionManager.inferConnectionTypeFromSettings(
+                this.userConfig,
+                connectionInfo
+            );
+
             serviceProvider = await NodeDriverServiceProvider.connect(
                 connectionInfo.connectionString,
                 {
@@ -149,9 +155,10 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
-            this.changeState("connection-errored", {
+            this.changeState("connection-error", {
                 tag: "errored",
                 errorReason,
+                connectionStringAuthType,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
@@ -162,7 +169,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             if (connectionType.startsWith("oidc")) {
                 void this.pingAndForget(serviceProvider);
 
-                return this.changeState("connection-requested", {
+                return this.changeState("connection-request", {
                     tag: "connecting",
                     connectedAtlasCluster: settings.atlas,
                     serviceProvider,
@@ -173,7 +180,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
             await serviceProvider?.runCommand?.("admin", { hello: 1 });
 
-            return this.changeState("connection-succeeded", {
+            return this.changeState("connection-success", {
                 tag: "connected",
                 connectedAtlasCluster: settings.atlas,
                 serviceProvider,
@@ -181,9 +188,10 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
-            this.changeState("connection-errored", {
+            this.changeState("connection-error", {
                 tag: "errored",
                 errorReason,
+                connectionStringAuthType,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
@@ -199,7 +207,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             try {
                 await this.state.serviceProvider?.close(true);
             } finally {
-                this.changeState("connection-closed", {
+                this.changeState("connection-close", {
                     tag: "disconnected",
                 });
             }
@@ -231,7 +239,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
     private onOidcAuthSucceeded(): void {
         if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
-            this.changeState("connection-succeeded", { ...this.state, tag: "connected" });
+            this.changeState("connection-success", { ...this.state, tag: "connected" });
         }
 
         this.logger.info({
@@ -243,7 +251,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
 
     private onOidcNotifyDeviceFlow(flowInfo: { verificationUrl: string; userCode: string }): void {
         if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
-            this.changeState("connection-requested", {
+            this.changeState("connection-request", {
                 ...this.state,
                 tag: "connecting",
                 connectionStringAuthType: "oidc-device-flow",
@@ -317,7 +325,7 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
                 message: String(error),
             });
         } finally {
-            this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
+            this.changeState("connection-error", { tag: "errored", errorReason: String(error) });
         }
     }
 }

@@ -1,13 +1,13 @@
 import { ReactiveResource } from "../resource.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session, UserConfig } from "../../lib.js";
+import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
     readonly connectionStringAuthType?: "scram" | "ldap" | "kerberos" | "oidc-auth-flow" | "oidc-device-flow" | "x.509";
-    readonly oidcLoginUrl?: string;
-    readonly oidcUserCode?: string;
     readonly errorReason?: string;
+    readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };
 
 export class DebugResource extends ReactiveResource<
@@ -35,15 +35,21 @@ export class DebugResource extends ReactiveResource<
     }
     reduce(
         eventName: "connect" | "disconnect" | "close" | "connection-error",
-        event: string | undefined
+        event: ConnectionStateErrored | undefined
     ): ConnectionStateDebuggingInformation {
-        void event;
-
         switch (eventName) {
             case "connect":
                 return { tag: "connected" };
-            case "connection-error":
-                return { tag: "errored", errorReason: event };
+            case "connection-error": {
+                return {
+                    tag: "errored",
+                    connectionStringAuthType: event?.connectionStringAuthType,
+                    connectedAtlasCluster: event?.connectedAtlasCluster,
+                    errorReason:
+                        event?.errorReason ??
+                        "Could not find a reason. This might be a bug in the MCP Server. Please open an issue in https://github.com/mongodb-js/mongodb-mcp-server.",
+                };
+            }
             case "disconnect":
             case "close":
                 return { tag: "disconnected" };
@@ -59,6 +65,13 @@ export class DebugResource extends ReactiveResource<
                 break;
             case "errored":
                 result += `The user is not connected to a MongoDB cluster because of an error.\n`;
+                if (this.current.connectedAtlasCluster) {
+                    result += `Attempted connecting to Atlas Cluster "${this.current.connectedAtlasCluster.clusterName}" in project with id "${this.current.connectedAtlasCluster.projectId}".\n`;
+                }
+
+                if (this.current.connectionStringAuthType !== undefined) {
+                    result += `The inferred authentication mechanism is "${this.current.connectionStringAuthType}".\n`;
+                }
                 result += `<error>${this.current.errorReason}</error>`;
                 break;
             case "connecting":

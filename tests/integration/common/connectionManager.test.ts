@@ -19,27 +19,27 @@ describeWithMongoDB("Connection Manager", (integration) => {
         await connectionManager().disconnect();
         // for testing, force disconnecting AND setting the connection to closed to reset the
         // state of the connection manager
-        connectionManager().changeState("connection-closed", { tag: "disconnected" });
+        connectionManager().changeState("connection-close", { tag: "disconnected" });
     });
 
     describe("when successfully connected", () => {
         type ConnectionManagerSpies = {
-            "connection-requested": (event: ConnectionManagerEvents["connection-requested"][0]) => void;
-            "connection-succeeded": (event: ConnectionManagerEvents["connection-succeeded"][0]) => void;
-            "connection-timed-out": (event: ConnectionManagerEvents["connection-timed-out"][0]) => void;
-            "connection-closed": (event: ConnectionManagerEvents["connection-closed"][0]) => void;
-            "connection-errored": (event: ConnectionManagerEvents["connection-errored"][0]) => void;
+            "connection-request": (event: ConnectionManagerEvents["connection-request"][0]) => void;
+            "connection-success": (event: ConnectionManagerEvents["connection-success"][0]) => void;
+            "connection-time-out": (event: ConnectionManagerEvents["connection-time-out"][0]) => void;
+            "connection-close": (event: ConnectionManagerEvents["connection-close"][0]) => void;
+            "connection-error": (event: ConnectionManagerEvents["connection-error"][0]) => void;
         };
 
         let connectionManagerSpies: ConnectionManagerSpies;
 
         beforeEach(async () => {
             connectionManagerSpies = {
-                "connection-requested": vi.fn(),
-                "connection-succeeded": vi.fn(),
-                "connection-timed-out": vi.fn(),
-                "connection-closed": vi.fn(),
-                "connection-errored": vi.fn(),
+                "connection-request": vi.fn(),
+                "connection-success": vi.fn(),
+                "connection-time-out": vi.fn(),
+                "connection-close": vi.fn(),
+                "connection-error": vi.fn(),
             };
 
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
@@ -62,11 +62,11 @@ describeWithMongoDB("Connection Manager", (integration) => {
         });
 
         it("should notify that the connection was requested", () => {
-            expect(connectionManagerSpies["connection-requested"]).toHaveBeenCalledOnce();
+            expect(connectionManagerSpies["connection-request"]).toHaveBeenCalledOnce();
         });
 
         it("should notify that the connection was successful", () => {
-            expect(connectionManagerSpies["connection-succeeded"]).toHaveBeenCalledOnce();
+            expect(connectionManagerSpies["connection-success"]).toHaveBeenCalledOnce();
         });
 
         describe("when disconnects", () => {
@@ -75,7 +75,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
             });
 
             it("should notify that it was disconnected before connecting", () => {
-                expect(connectionManagerSpies["connection-closed"]).toHaveBeenCalled();
+                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
             });
 
             it("should be marked explicitly as disconnected", () => {
@@ -91,11 +91,11 @@ describeWithMongoDB("Connection Manager", (integration) => {
             });
 
             it("should notify that it was disconnected before connecting", () => {
-                expect(connectionManagerSpies["connection-closed"]).toHaveBeenCalled();
+                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
             });
 
             it("should notify that it was connected again", () => {
-                expect(connectionManagerSpies["connection-succeeded"]).toHaveBeenCalled();
+                expect(connectionManagerSpies["connection-success"]).toHaveBeenCalled();
             });
 
             it("should be marked explicitly as connected", () => {
@@ -115,11 +115,53 @@ describeWithMongoDB("Connection Manager", (integration) => {
             });
 
             it("should notify that it was disconnected before connecting", () => {
-                expect(connectionManagerSpies["connection-closed"]).toHaveBeenCalled();
+                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
             });
 
             it("should notify that it failed connecting", () => {
-                expect(connectionManagerSpies["connection-errored"]).toHaveBeenCalled();
+                expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
+                    tag: "errored",
+                    connectedAtlasCluster: undefined,
+                    connectionStringAuthType: "scram",
+                    errorReason: "Unable to parse localhost:xxxxx with URL",
+                });
+            });
+
+            it("should be marked explicitly as connected", () => {
+                expect(connectionManager().currentConnectionState.tag).toEqual("errored");
+            });
+        });
+
+        describe("when fails to connect to a new atlas cluster", () => {
+            const atlas = {
+                username: "",
+                projectId: "",
+                clusterName: "My Atlas Cluster",
+                expiryDate: new Date(),
+            };
+
+            beforeEach(async () => {
+                try {
+                    await connectionManager().connect({
+                        connectionString: "mongodb://localhost:xxxxx",
+                        atlas,
+                    });
+                } catch (_error: unknown) {
+                    void _error;
+                }
+            });
+
+            it("should notify that it was disconnected before connecting", () => {
+                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
+            });
+
+            it("should notify that it failed connecting", () => {
+                expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
+                    tag: "errored",
+                    connectedAtlasCluster: atlas,
+                    connectionStringAuthType: "scram",
+                    errorReason: "Unable to parse localhost:xxxxx with URL",
+                });
             });
 
             it("should be marked explicitly as connected", () => {
