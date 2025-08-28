@@ -10,6 +10,7 @@ import type {
     ConnectionManager,
     ConnectionSettings,
     ConnectionStateConnected,
+    ConnectionStateErrored,
 } from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
@@ -28,7 +29,7 @@ export type SessionEvents = {
     connect: [];
     close: [];
     disconnect: [];
-    "connection-error": [string];
+    "connection-error": [ConnectionStateErrored];
 };
 
 export class Session extends EventEmitter<SessionEvents> {
@@ -66,14 +67,10 @@ export class Session extends EventEmitter<SessionEvents> {
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
-        this.connectionManager.events.on("connection-succeeded", () => this.emit("connect"));
-        this.connectionManager.events.on("connection-timed-out", (error) =>
-            this.emit("connection-error", error.errorReason)
-        );
-        this.connectionManager.events.on("connection-closed", () => this.emit("disconnect"));
-        this.connectionManager.events.on("connection-errored", (error) =>
-            this.emit("connection-error", error.errorReason)
-        );
+        this.connectionManager.events.on("connection-success", () => this.emit("connect"));
+        this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
+        this.connectionManager.events.on("connection-close", () => this.emit("disconnect"));
+        this.connectionManager.events.on("connection-error", (error) => this.emit("connection-error", error));
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {
@@ -140,13 +137,7 @@ export class Session extends EventEmitter<SessionEvents> {
     }
 
     async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
-        try {
-            await this.connectionManager.connect({ ...settings });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : (error as string);
-            this.emit("connection-error", message);
-            throw error;
-        }
+        await this.connectionManager.connect({ ...settings });
     }
 
     get isConnectedToMongoDB(): boolean {
