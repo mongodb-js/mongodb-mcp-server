@@ -138,15 +138,21 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                                 });
                                 failedPings = 0;
                             } catch (err) {
-                                this.logger.warning({
-                                    id: LogId.streamableHttpTransportKeepAliveFailure,
-                                    context: "streamableHttpTransport",
-                                    message: `Error sending ping (attempt #${failedPings + 1}): ${err instanceof Error ? err.message : String(err)}`,
-                                });
+                                try {
+                                    failedPings++;
+                                    this.logger.warning({
+                                        id: LogId.streamableHttpTransportKeepAliveFailure,
+                                        context: "streamableHttpTransport",
+                                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                                    });
 
-                                if (++failedPings > 3) {
-                                    clearInterval(keepAliveLoop);
-                                    await transport.close();
+                                    if (failedPings > 3) {
+                                        clearInterval(keepAliveLoop);
+                                        await transport.close();
+                                    }
+                                } catch {
+                                    // Ignore the error of the transport close as there's nothing else
+                                    // we can do at this point.
                                 }
                             }
                         }, 30_000);
