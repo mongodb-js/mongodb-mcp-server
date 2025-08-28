@@ -5,7 +5,7 @@ import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logger.js";
-import { LogId } from "./common/logger.js";
+import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
 import type { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
@@ -107,6 +107,10 @@ export class Server {
         });
 
         this.mcpServer.server.setRequestHandler(SetLevelRequestSchema, ({ params }) => {
+            if (!McpLogger.LOG_LEVELS.includes(params.level)) {
+                throw new Error(`Invalid log level: ${params.level}`);
+            }
+
             this._mcpLogLevel = params.level;
             return {};
         });
