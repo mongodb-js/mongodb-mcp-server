@@ -1,14 +1,14 @@
 import { ObjectId } from "mongodb";
-import { parseTable, describeWithAtlas } from "./atlasHelpers.js";
+import { parseTable, describeWithAtlas, afterAllWithRetry } from "./atlasHelpers.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const randomId = new ObjectId().toString();
 
 describeWithAtlas("projects", (integration) => {
     const projName = "testProj-" + randomId;
 
-    afterAll(async () => {
+    afterAllWithRetry(async () => {
         const session = integration.mcpServer().session;
 
         const projects = await session.apiClient.listProjects();

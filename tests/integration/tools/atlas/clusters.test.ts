@@ -1,8 +1,8 @@
 import type { Session } from "../../../../src/common/session.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
+import { describeWithAtlas, withProject, randomId, afterAllWithRetry, beforeAllWithRetry } from "./atlasHelpers.js";
 import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -60,7 +60,7 @@ describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId }) => {
         const clusterName = "ClusterTest-" + randomId;
 
-        afterAll(async () => {
+        afterAllWithRetry(async () => {
             const projectId = getProjectId();
             if (projectId) {
                 const session: Session = integration.mcpServer().session;
@@ -160,7 +160,7 @@ describeWithAtlas("clusters", (integration) => {
         });
 
         describe("atlas-connect-cluster", () => {
-            beforeAll(async () => {
+            beforeAllWithRetry(async () => {
                 const projectId = getProjectId();
                 await waitCluster(integration.mcpServer().session, projectId, clusterName, (cluster) => {
                     return (

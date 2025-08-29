@@ -4,7 +4,7 @@ import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
 import type { IntegrationTest } from "../../helpers.js";
 import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
-import { afterAll, beforeAll, describe } from "vitest";
+import { afterAll, beforeEach, describe } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -36,19 +36,13 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
     return describe("with project", () => {
         let projectId: string = "";
 
-        beforeAll(async () => {
+        beforeAllWithRetry(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
-
-            try {
-                const group = await createProject(apiClient);
-                projectId = group.id;
-            } catch (error) {
-                console.error("Failed to create project:", error);
-                throw error;
-            }
+            const group = await createProject(apiClient);
+            projectId = group.id;
         });
 
-        afterAll(async () => {
+        afterAllWithRetry(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
             if (projectId) {
                 // projectId may be empty if beforeAll failed.
@@ -67,6 +61,63 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
         };
 
         fn(args);
+    });
+}
+
+export function beforeAllWithRetry(fixture: () => Promise<void>): void {
+    beforeEach(async () => {
+        const MAX_SETUP_ATTEMPTS = 10;
+        const SETUP_BACKOFF_MS = 10;
+        let lastError: Error | undefined = undefined;
+
+        for (let attempt = 0; attempt < MAX_SETUP_ATTEMPTS; attempt++) {
+            try {
+                await fixture();
+                lastError = undefined;
+                break;
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    lastError = error;
+                } else {
+                    lastError = new Error(String(error));
+                }
+
+                console.error("beforeAll(attempt:", attempt, "):", error);
+                await new Promise((resolve) => setTimeout(resolve, SETUP_BACKOFF_MS * attempt));
+            }
+        }
+
+        if (lastError) {
+            throw lastError;
+        }
+    });
+}
+
+export function afterAllWithRetry(fixture: () => Promise<void>): void {
+    afterAll(async () => {
+        const MAX_SETUP_ATTEMPTS = 10;
+        const SETUP_BACKOFF_MS = 10;
+        let lastError: Error | undefined = undefined;
+
+        for (let attempt = 0; attempt < MAX_SETUP_ATTEMPTS; attempt++) {
+            try {
+                await fixture();
+                lastError = undefined;
+                break;
+            } catch (error) {
+                if (error instanceof Error) {
+                    lastError = error;
+                } else {
+                    lastError = new Error(String(error));
+                }
+                console.error("afterAll(attempt:", attempt, "):", error);
+                await new Promise((resolve) => setTimeout(resolve, SETUP_BACKOFF_MS * attempt));
+            }
+        }
+
+        if (lastError) {
+            throw lastError;
+        }
     });
 }
 
