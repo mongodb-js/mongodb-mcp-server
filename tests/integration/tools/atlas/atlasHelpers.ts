@@ -4,7 +4,7 @@ import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
 import type { IntegrationTest } from "../../helpers.js";
 import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
-import { afterAll, beforeEach, describe } from "vitest";
+import { beforeAll, afterAll, describe } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -65,7 +65,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 }
 
 export function beforeAllWithRetry(fixture: () => Promise<void>): void {
-    beforeEach(async () => {
+    beforeAll(async () => {
         const MAX_SETUP_ATTEMPTS = 10;
         const SETUP_BACKOFF_MS = 10;
         let lastError: Error | undefined = undefined;
