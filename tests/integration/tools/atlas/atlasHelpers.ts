@@ -4,7 +4,7 @@ import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
 import type { IntegrationTest } from "../../helpers.js";
 import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
-import { beforeAll, afterAll, describe } from "vitest";
+import { beforeAll, afterAll, describe, it } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -64,13 +64,14 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
     });
 }
 
+const MAX_ATLAS_STEP_ATTEMPTS = 10;
+const SETUP_BACKOFF_MS = 10;
+
 export function beforeAllWithRetry(fixture: () => Promise<void>): void {
     beforeAll(async () => {
-        const MAX_SETUP_ATTEMPTS = 10;
-        const SETUP_BACKOFF_MS = 10;
         let lastError: Error | undefined = undefined;
 
-        for (let attempt = 0; attempt < MAX_SETUP_ATTEMPTS; attempt++) {
+        for (let attempt = 0; attempt < MAX_ATLAS_STEP_ATTEMPTS; attempt++) {
             try {
                 await fixture();
                 lastError = undefined;
@@ -95,11 +96,9 @@ export function beforeAllWithRetry(fixture: () => Promise<void>): void {
 
 export function afterAllWithRetry(fixture: () => Promise<void>): void {
     afterAll(async () => {
-        const MAX_SETUP_ATTEMPTS = 10;
-        const SETUP_BACKOFF_MS = 10;
         let lastError: Error | undefined = undefined;
 
-        for (let attempt = 0; attempt < MAX_SETUP_ATTEMPTS; attempt++) {
+        for (let attempt = 0; attempt < MAX_ATLAS_STEP_ATTEMPTS; attempt++) {
             try {
                 await fixture();
                 lastError = undefined;
@@ -111,6 +110,34 @@ export function afterAllWithRetry(fixture: () => Promise<void>): void {
                     lastError = new Error(String(error));
                 }
                 console.error("afterAll(attempt:", attempt, "):", error);
+                await new Promise((resolve) => setTimeout(resolve, SETUP_BACKOFF_MS * attempt));
+            }
+        }
+
+        if (lastError) {
+            throw lastError;
+        }
+    });
+}
+
+export function itWithRetry(name: string, test: () => Promise<void>): void {
+    // complains about not having assertions, but assertions are inside the test function
+    // eslint-disable-next-line
+    it(name, async () => {
+        let lastError: Error | undefined = undefined;
+
+        for (let attempt = 0; attempt < MAX_ATLAS_STEP_ATTEMPTS; attempt++) {
+            try {
+                await test();
+                lastError = undefined;
+                break;
+            } catch (error) {
+                if (error instanceof Error) {
+                    lastError = error;
+                } else {
+                    lastError = new Error(String(error));
+                }
+                console.error(`${name} (attempt: ${attempt}):`, error);
                 await new Promise((resolve) => setTimeout(resolve, SETUP_BACKOFF_MS * attempt));
             }
         }

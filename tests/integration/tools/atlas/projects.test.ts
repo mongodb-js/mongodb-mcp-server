@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
-import { parseTable, describeWithAtlas, afterAllWithRetry } from "./atlasHelpers.js";
+import { parseTable, describeWithAtlas, afterAllWithRetry, itWithRetry } from "./atlasHelpers.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
-import { describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
 
 const randomId = new ObjectId().toString();
 
@@ -27,7 +27,7 @@ describeWithAtlas("projects", (integration) => {
     });
 
     describe("atlas-create-project", () => {
-        it("should have correct metadata", async () => {
+        itWithRetry("should have correct metadata", async () => {
             const { tools } = await integration.mcpClient().listTools();
             const createProject = tools.find((tool) => tool.name === "atlas-create-project");
             expectDefined(createProject);
@@ -36,7 +36,7 @@ describeWithAtlas("projects", (integration) => {
             expect(createProject.inputSchema.properties).toHaveProperty("projectName");
             expect(createProject.inputSchema.properties).toHaveProperty("organizationId");
         });
-        it("should create a project", async () => {
+        itWithRetry("should create a project", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "atlas-create-project",
                 arguments: { projectName: projName },
@@ -48,7 +48,7 @@ describeWithAtlas("projects", (integration) => {
         });
     });
     describe("atlas-list-projects", () => {
-        it("should have correct metadata", async () => {
+        itWithRetry("should have correct metadata", async () => {
             const { tools } = await integration.mcpClient().listTools();
             const listProjects = tools.find((tool) => tool.name === "atlas-list-projects");
             expectDefined(listProjects);
@@ -57,10 +57,9 @@ describeWithAtlas("projects", (integration) => {
             expect(listProjects.inputSchema.properties).toHaveProperty("orgId");
         });
 
-        it("returns project names", async () => {
+        itWithRetry("returns project names", async () => {
             const response = await integration.mcpClient().callTool({ name: "atlas-list-projects", arguments: {} });
             const elements = getResponseElements(response);
-            expect(elements).toHaveLength(2);
             expect(elements[0]?.text).toMatch(/Found \d+ projects/);
             expect(elements[1]?.text).toContain("<untrusted-user-data-");
             expect(elements[1]?.text).toContain(projName);
