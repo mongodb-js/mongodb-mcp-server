@@ -51,9 +51,9 @@ jobs:
         run: npm ci
       - name: Run tests
         env:
-          MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
-          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
-          MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+          MDB_MCP_API_CLIENT_ID: ${{ secrets.QA_ATLAS_CLIENT_ID }}
+          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.QA_ATLAS_CLIENT_SECRET }}
+          MDB_MCP_API_BASE_URL: ${{ vars.QA_ATLAS_BASE_URL }}
         run: npm test -- --exclude "tests/unit/**" --exclude "tests/integration/tools/mongodb/**" --exclude "tests/integration/*.ts"
       - name: Upload test results
         uses: actions/upload-artifact@v4
