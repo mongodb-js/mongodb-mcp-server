@@ -58,16 +58,28 @@ jobs:
           node-version-file: package.json
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
+      - name: Get npm tag
+        id: npm-tag
+        run: |
+          $regex = "^v?(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:[^.]*)))?"
+          $version = "${{ needs.check.outputs.VERSION }}"
+          $releaseChannel = $groups["prerelease"][0].value
+
+          if ([string]::IsNullOrEmpty($releaseChannel)) {
+              $releaseChannel = "latest"
+          }
+          Write-Output "RELEASE_CHANNEL=$releaseChannel" >> $Env:GITHUB_OUTPUT
+
       - name: Build package
         run: |
           npm ci
           npm run build
       - name: Publish to NPM
-        run: npm publish
+        run: npm publish --tag ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish git release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }}
+          gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }} ${{ (steps.npm-tag.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
