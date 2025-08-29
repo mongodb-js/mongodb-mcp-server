@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { UserConfig } from "../../../src/common/config.js";
 import { setupUserConfig, defaultUserConfig, warnAboutDeprecatedCliArgs } from "../../../src/common/config.js";
-import { CliOptions } from "@mongosh/arg-parser";
+import type { CliOptions } from "@mongosh/arg-parser";
 
 describe("config", () => {
     describe("env var parsing", () => {
