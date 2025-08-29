@@ -279,17 +279,17 @@ export function warnAboutDeprecatedCliArgs(
     warn: (msg: string) => void
 ): void {
     console.log(args);
-    let wasWarned = false;
+    let usedDeprecatedArgument = false;
     // the first position argument should be used
     // instead of --connectionString, as it's how the mongosh works.
     if (args.connectionString) {
-        wasWarned = true;
+        usedDeprecatedArgument = true;
         warn(
             "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable."
         );
     }
 
-    if (wasWarned) {
+    if (usedDeprecatedArgument) {
         warn("Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
     }
 }
