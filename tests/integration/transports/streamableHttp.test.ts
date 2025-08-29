@@ -2,10 +2,10 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
-import { config, driverOptions } from "../../../src/common/config.js";
+import { config } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -29,9 +29,7 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeAll(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner(config, ({ logger, deviceId }) =>
-                    Promise.resolve(new MCPConnectionManager(config, driverOptions, logger, deviceId))
-                );
+                runner = new StreamableHttpRunner(config);
                 await runner.start();
             });
 
@@ -112,9 +110,7 @@ describe("StreamableHttpRunner", () => {
         try {
             for (let i = 0; i < 3; i++) {
                 config.httpPort = 0; // Use a random port for each runner
-                const runner = new StreamableHttpRunner(config, ({ logger, deviceId }) =>
-                    Promise.resolve(new MCPConnectionManager(config, driverOptions, logger, deviceId))
-                );
+                const runner = new StreamableHttpRunner(config);
                 await runner.start();
                 runners.push(runner);
             }
@@ -143,12 +139,7 @@ describe("StreamableHttpRunner", () => {
 
         it("can provide custom logger", async () => {
             const logger = new CustomLogger();
-            const runner = new StreamableHttpRunner(
-                config,
-                ({ logger, deviceId }) =>
-                    Promise.resolve(new MCPConnectionManager(config, driverOptions, logger, deviceId)),
-                [logger]
-            );
+            const runner = new StreamableHttpRunner(config, createMCPConnectionManager, [logger]);
             await runner.start();
 
             const messages = logger.messages;
