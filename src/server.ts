@@ -4,7 +4,8 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
-import { LogId } from "./common/logger.js";
+import type { LogLevel } from "./common/logger.js";
+import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
 import type { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
@@ -12,6 +13,7 @@ import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     CallToolRequestSchema,
+    SetLevelRequestSchema,
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -32,6 +34,13 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly tools: ToolBase[] = [];
+
+    private _mcpLogLevel: LogLevel = "debug";
+
+    public get mcpLogLevel(): LogLevel {
+        return this._mcpLogLevel;
+    }
+
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
@@ -94,6 +103,15 @@ export class Server {
                 context: "resources",
                 message: `Client unsubscribed from resource: ${params.uri}`,
             });
+            return {};
+        });
+
+        this.mcpServer.server.setRequestHandler(SetLevelRequestSchema, ({ params }) => {
+            if (!McpLogger.LOG_LEVELS.includes(params.level)) {
+                throw new Error(`Invalid log level: ${params.level}`);
+            }
+
+            this._mcpLogLevel = params.level;
             return {};
         });
 

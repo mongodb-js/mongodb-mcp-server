@@ -10,6 +10,10 @@ const allowedConfigValueImportFiles = [
     "src/index.ts",
     // Config resource definition that works with the some config values
     "src/resources/common/config.ts",
+    // The file exports, a factory function to create MCPConnectionManager and
+    // it relies on driver options generator and default driver options from
+    // config file.
+    "src/common/connectionManager.ts",
 ];
 
 // Ref: https://eslint.org/docs/latest/extend/custom-rules

@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'ubuntu-latest'
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:

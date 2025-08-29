@@ -10,8 +10,8 @@ import type { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ConnectionState } from "../../src/common/connectionManager.js";
-import { ConnectionManager } from "../../src/common/connectionManager.js";
+import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 
 interface ParameterInfo {
@@ -72,7 +72,7 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,

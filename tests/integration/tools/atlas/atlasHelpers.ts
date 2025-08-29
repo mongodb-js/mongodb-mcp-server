@@ -41,7 +41,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
             try {
                 const group = await createProject(apiClient);
-                projectId = group.id || "";
+                projectId = group.id;
             } catch (error) {
                 console.error("Failed to create project:", error);
                 throw error;
@@ -50,14 +50,16 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
         afterAll(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
-
-            await apiClient.deleteProject({
-                params: {
-                    path: {
-                        groupId: projectId,
+            if (projectId) {
+                // projectId may be empty if beforeAll failed.
+                await apiClient.deleteProject({
+                    params: {
+                        path: {
+                            groupId: projectId,
+                        },
                     },
-                },
-            });
+                });
+            }
         });
 
         const args = {
@@ -90,7 +92,7 @@ export function parseTable(text: string): Record<string, string>[] {
 
 export const randomId = new ObjectId().toString();
 
-async function createProject(apiClient: ApiClient): Promise<Group> {
+async function createProject(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
     const projectName: string = `testProj-` + randomId;
 
     const orgs = await apiClient.listOrganizations();
@@ -109,5 +111,5 @@ async function createProject(apiClient: ApiClient): Promise<Group> {
         throw new Error("Failed to create project");
     }
 
-    return group;
+    return group as Group & Required<Pick<Group, "id">>;
 }

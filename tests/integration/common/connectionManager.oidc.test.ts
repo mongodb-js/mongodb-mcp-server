@@ -5,7 +5,11 @@ import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
-import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
+import type {
+    ConnectionStateConnected,
+    ConnectionStateConnecting,
+    TestConnectionManager,
+} from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { setupDriverConfig } from "../../../src/common/config.js";
 import path from "path";
@@ -122,13 +126,14 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                 }
 
                 beforeEach(async () => {
-                    const connectionManager = integration.mcpServer().session.connectionManager;
+                    const connectionManager = integration.mcpServer().session
+                        .connectionManager as TestConnectionManager;
                     // disconnect on purpose doesn't change the state if it was failed to avoid losing
                     // information in production.
                     await connectionManager.disconnect();
                     // for testing, force disconnecting AND setting the connection to closed to reset the
                     // state of the connection manager
-                    connectionManager.changeState("connection-closed", { tag: "disconnected" });
+                    connectionManager.changeState("connection-close", { tag: "disconnected" });
 
                     await integration.connectMcpClient();
                 }, DEFAULT_TIMEOUT);
@@ -168,17 +173,28 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     };
                 };
 
-                const status: ConnectionStatus = await vi.waitFor(async () => {
-                    const result: ConnectionStatus = (await state.serviceProvider.runCommand("admin", {
-                        connectionStatus: 1,
-                    })) as unknown as ConnectionStatus;
+                const status: ConnectionStatus = await vi.waitFor(
+                    async () => {
+                        const result = (await state.serviceProvider.runCommand("admin", {
+                            connectionStatus: 1,
+                        })) as unknown as ConnectionStatus | undefined;
 
-                    if (!result) {
-                        throw new Error("Status can not be undefined. Retrying.");
-                    }
+                        if (!result) {
+                            throw new Error("Status can not be undefined. Retrying.");
+                        }
 
-                    return result;
-                });
+                        if (!result.authInfo.authenticatedUsers.length) {
+                            throw new Error("No authenticated users found. Retrying.");
+                        }
+
+                        if (!result.authInfo.authenticatedUserRoles.length) {
+                            throw new Error("No authenticated user roles found. Retrying.");
+                        }
+
+                        return result;
+                    },
+                    { timeout: 5000 }
+                );
 
                 expect(status.authInfo.authenticatedUsers[0]).toEqual({
                     user: "dev/testuser",

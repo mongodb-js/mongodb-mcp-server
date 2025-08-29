@@ -62,10 +62,10 @@ describeWithAtlas("clusters", (integration) => {
 
         afterAll(async () => {
             const projectId = getProjectId();
-
-            const session: Session = integration.mcpServer().session;
-
-            await deleteAndWaitCluster(session, projectId, clusterName);
+            if (projectId) {
+                const session: Session = integration.mcpServer().session;
+                await deleteAndWaitCluster(session, projectId, clusterName);
+            }
         });
 
         describe("atlas-create-free-cluster", () => {

@@ -36,7 +36,7 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import { ConsoleLogger, LogId } from "./common/logger.js";
-import { config, driverOptions } from "./common/config.js";
+import { config } from "./common/config.js";
 import crypto from "crypto";
 import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
@@ -49,10 +49,7 @@ async function main(): Promise<void> {
     assertHelpMode();
     assertVersionMode();
 
-    const transportRunner =
-        config.transport === "stdio"
-            ? new StdioRunner(config, driverOptions)
-            : new StreamableHttpRunner(config, driverOptions);
+    const transportRunner = config.transport === "stdio" ? new StdioRunner(config) : new StreamableHttpRunner(config);
     const shutdown = (): void => {
         transportRunner.logger.info({
             id: LogId.serverCloseRequested,
@@ -91,8 +88,10 @@ async function main(): Promise<void> {
         transportRunner.logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
-            message: "Closing server",
+            message: `Closing server due to error: ${error as string}`,
+            noRedaction: true,
         });
+
         try {
             await transportRunner.close();
             transportRunner.logger.info({

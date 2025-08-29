@@ -1,4 +1,4 @@
-import type { DriverOptions, UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";
@@ -7,8 +7,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
-import { ConnectionManager } from "../common/connectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
+import { type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 
 export abstract class TransportRunnerBase {
     public logger: LoggerBase;
@@ -16,9 +16,10 @@ export abstract class TransportRunnerBase {
 
     protected constructor(
         protected readonly userConfig: UserConfig,
-        private readonly driverOptions: DriverOptions
+        private readonly createConnectionManager: ConnectionManagerFactoryFn,
+        additionalLoggers: LoggerBase[]
     ) {
-        const loggers: LoggerBase[] = [];
+        const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger());
         }
@@ -37,20 +38,19 @@ export abstract class TransportRunnerBase {
         this.deviceId = DeviceId.create(this.logger);
     }
 
-    protected setupServer(): Server {
+    protected async setupServer(): Promise<Server> {
         const mcpServer = new McpServer({
             name: packageInfo.mcpServerName,
             version: packageInfo.version,
         });
 
-        const loggers = [this.logger];
-        if (this.userConfig.loggers.includes("mcp")) {
-            loggers.push(new McpLogger(mcpServer));
-        }
-
-        const logger = new CompositeLogger(...loggers);
+        const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(this.userConfig, logger);
-        const connectionManager = new ConnectionManager(this.userConfig, this.driverOptions, logger, this.deviceId);
+        const connectionManager = await this.createConnectionManager({
+            logger,
+            userConfig: this.userConfig,
+            deviceId: this.deviceId,
+        });
 
         const session = new Session({
             apiBaseUrl: this.userConfig.apiBaseUrl,
@@ -63,12 +63,20 @@ export abstract class TransportRunnerBase {
 
         const telemetry = Telemetry.create(session, this.userConfig, this.deviceId);
 
-        return new Server({
+        const result = new Server({
             mcpServer,
             session,
             telemetry,
             userConfig: this.userConfig,
         });
+
+        // We need to create the MCP logger after the server is constructed
+        // because it needs the server instance
+        if (this.userConfig.loggers.includes("mcp")) {
+            logger.addLogger(new McpLogger(result));
+        }
+
+        return result;
     }
 
     abstract start(): Promise<void>;
