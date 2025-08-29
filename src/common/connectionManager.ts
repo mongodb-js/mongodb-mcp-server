@@ -4,7 +4,7 @@ import ConnectionString from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { type ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import type { DriverOptions, UserConfig } from "./config.js";
+import { defaultDriverOptions, setupDriverConfig, type DriverOptions, type UserConfig } from "./config.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
@@ -360,3 +360,23 @@ export class MCPConnectionManager extends ConnectionManager {
         }
     }
 }
+
+/**
+ * Consumers of MCP server library have option to bring their own connection
+ * management if they need to. To support that, we enable injecting connection
+ * manager implementation through a factory function.
+ */
+export type ConnectionManagerFactoryFn = (createParams: {
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    userConfig: UserConfig;
+}) => Promise<ConnectionManager>;
+
+export const createMCPConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
+    const driverOptions = setupDriverConfig({
+        config: userConfig,
+        defaults: defaultDriverOptions,
+    });
+
+    return Promise.resolve(new MCPConnectionManager(userConfig, driverOptions, logger, deviceId));
+};

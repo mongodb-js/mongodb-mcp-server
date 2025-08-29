@@ -7,13 +7,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
-import type { ConnectionManager } from "../common/connectionManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
-
-export type ConnectionManagerFactoryFn = (createParams: {
-    logger: LoggerBase;
-    deviceId: DeviceId;
-}) => Promise<ConnectionManager>;
+import { type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 
 export abstract class TransportRunnerBase {
     public logger: LoggerBase;
@@ -51,7 +46,11 @@ export abstract class TransportRunnerBase {
 
         const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(this.userConfig, logger);
-        const connectionManager = await this.createConnectionManager({ logger, deviceId: this.deviceId });
+        const connectionManager = await this.createConnectionManager({
+            logger,
+            userConfig: this.userConfig,
+            deviceId: this.deviceId,
+        });
 
         const session = new Session({
             apiBaseUrl: this.userConfig.apiBaseUrl,
