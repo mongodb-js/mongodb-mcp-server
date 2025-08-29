@@ -42,23 +42,6 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             try {
                 const group = await createProject(apiClient);
                 projectId = group.id;
-
-                // add current IP to project access list
-                const { currentIpv4Address } = await apiClient.getIpInfo();
-                await apiClient.createProjectIpAccessList({
-                    params: {
-                        path: {
-                            groupId: projectId,
-                        },
-                    },
-                    body: [
-                        {
-                            ipAddress: currentIpv4Address,
-                            groupId: projectId,
-                            comment: "Added by MongoDB MCP Server to enable tool access",
-                        },
-                    ],
-                });
             } catch (error) {
                 console.error("Failed to create project:", error);
                 throw error;
@@ -127,6 +110,23 @@ async function createProject(apiClient: ApiClient): Promise<Group & Required<Pic
     if (!group?.id) {
         throw new Error("Failed to create project");
     }
+
+    // add current IP to project access list
+    const { currentIpv4Address } = await apiClient.getIpInfo();
+    await apiClient.createProjectIpAccessList({
+        params: {
+            path: {
+                groupId: group.id,
+            },
+        },
+        body: [
+            {
+                ipAddress: currentIpv4Address,
+                groupId: group.id,
+                comment: "Added by MongoDB MCP Server to enable tool access",
+            },
+        ],
+    });
 
     return group as Group & Required<Pick<Group, "id">>;
 }
