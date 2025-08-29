@@ -1,6 +1,6 @@
-import { describeWithAtlas, withProject } from "./atlasHelpers.js";
+import { afterAllWithRetry, beforeAllWithRetry, describeWithAtlas, withProject } from "./atlasHelpers.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/accessListUtils.js";
 
 function generateRandomIp(): string {
@@ -17,13 +17,13 @@ describeWithAtlas("ip access lists", (integration) => {
         const cidrBlocks = [generateRandomIp() + "/16", generateRandomIp() + "/24"];
         const values = [...ips, ...cidrBlocks];
 
-        beforeAll(async () => {
+        beforeAllWithRetry(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
             const ipInfo = await apiClient.getIpInfo();
             values.push(ipInfo.currentIpv4Address);
         });
 
-        afterAll(async () => {
+        afterAllWithRetry(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
 
             const projectId = getProjectId();
