@@ -12,7 +12,7 @@ import type { Server } from "../server.js";
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
 
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
-export type ToolCategory = "mongodb" | "atlas";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;

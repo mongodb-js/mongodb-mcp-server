@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
+import { AtlasLocalTools } from "./tools/atlasLocal/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logger.js";
@@ -193,7 +194,7 @@ export class Server {
     }
 
     private registerTools(): void {
-        for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
+        for (const toolConstructor of [...AtlasTools, ...AtlasLocalTools, ...MongoDbTools]) {
             const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
             if (tool.register(this)) {
                 this.tools.push(tool);
