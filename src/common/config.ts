@@ -278,7 +278,6 @@ export function warnAboutDeprecatedCliArgs(
         },
     warn: (msg: string) => void
 ): void {
-    console.log(args);
     let usedDeprecatedArgument = false;
     // the first position argument should be used
     // instead of --connectionString, as it's how the mongosh works.
