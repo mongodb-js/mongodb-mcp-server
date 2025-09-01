@@ -2,8 +2,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
 
-export abstract class AtlasToolBase extends ToolBase {
-    public category: ToolCategory = "atlas-local";
+export abstract class AtlasLocalToolBase extends ToolBase {
+    public category: ToolCategory = "atlasLocal";
 
     protected handleError(
         error: unknown,
