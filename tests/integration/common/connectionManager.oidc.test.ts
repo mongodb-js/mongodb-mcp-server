@@ -98,7 +98,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             ...defaultTestConfig,
             oidcRedirectURi: "http://localhost:0/",
             authenticationMechanism: "MONGODB-OIDC",
-            maxIdleTimeMS: "1",
+            maxIdleTimeMS: "10000",
             minPoolSize: "0",
             username: "testuser",
             browser: fetchBrowserFixture,
