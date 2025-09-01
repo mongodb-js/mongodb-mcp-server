@@ -218,7 +218,7 @@ export class Server {
                 console.error("Connection string validation failed with error: ", error);
                 throw new Error(
                     "Connection string validation failed with error: " +
-                    (error instanceof Error ? error.message : String(error))
+                        (error instanceof Error ? error.message : String(error))
                 );
             }
         }
