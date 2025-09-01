@@ -13,6 +13,9 @@ const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
 
+const createdUserMessage =
+    "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations";
+
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -206,11 +209,17 @@ export class ConnectClusterTool extends AtlasToolBase {
                         },
                     ];
 
-                    // Add feedback about IP access list if it was updated
                     if (ipAccessListUpdated) {
                         content.push({
                             type: "text",
                             text: addedIpAccessListMessage,
+                        });
+                    }
+
+                    if (createdUser) {
+                        content.push({
+                            type: "text",
+                            text: createdUserMessage,
                         });
                     }
 
@@ -267,7 +276,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         if (createdUser) {
             content.push({
                 type: "text" as const,
-                text: `Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations`,
+                text: createdUserMessage,
             });
         }
 
