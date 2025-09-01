@@ -84,7 +84,6 @@ describeWithAtlas("clusters", (integration) => {
             it("should create a free cluster and add current IP to access list", async () => {
                 const projectId = getProjectId();
                 const session = integration.mcpServer().session;
-                const ipInfo = await session.apiClient.getIpInfo();
 
                 const response = await integration.mcpClient().callTool({
                     name: "atlas-create-free-cluster",
@@ -102,7 +101,7 @@ describeWithAtlas("clusters", (integration) => {
                 const accessList = await session.apiClient.listProjectIpAccessLists({
                     params: { path: { groupId: projectId } },
                 });
-                const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);
+                const found = accessList.results?.some((entry) => entry.ipAddress === getIpAddress());
                 expect(found).toBe(true);
             });
         });
