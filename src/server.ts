@@ -20,6 +20,7 @@ import {
 import assert from "assert";
 import type { ToolBase } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
+import { packageInfo } from "./common/packageInfo.js";
 
 export interface ServerOptions {
     session: Session;
@@ -123,7 +124,7 @@ export class Server {
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.mcpClient?.name}`,
+                message: `Server with version ${packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
             });
 
             this.emitServerEvent("start", Date.now() - this.startTime);
