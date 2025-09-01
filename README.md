@@ -286,7 +286,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 
 #### MongoDB Atlas Local Tools
 
-- 
+-
 
 #### MongoDB Database Tools
 
