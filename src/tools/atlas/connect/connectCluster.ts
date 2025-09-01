@@ -10,6 +10,8 @@ import type { AtlasClusterConnectionInfo } from "../../../common/connectionManag
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
+const addedIpAccessListMessage =
+    "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -208,7 +210,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                     if (ipAccessListUpdated) {
                         content.push({
                             type: "text",
-                            text: `Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.`,
+                            text: addedIpAccessListMessage,
                         });
                     }
 
@@ -258,7 +260,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         if (ipAccessListUpdated) {
             content.push({
                 type: "text" as const,
-                text: `Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.`,
+                text: addedIpAccessListMessage,
             });
         }
 
