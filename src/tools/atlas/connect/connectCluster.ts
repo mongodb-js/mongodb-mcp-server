@@ -62,7 +62,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     private async prepareClusterConnection(
         projectId: string,
         clusterName: string
-    ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
+    ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo; userCreated: boolean }> {
         const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
 
         if (!cluster.connectionString) {
@@ -110,7 +110,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         cn.password = password;
         cn.searchParams.set("authSource", "admin");
 
-        return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
+        return { connectionString: cn.toString(), atlas: connectedAtlasCluster, userCreated: true };
     }
 
     private async connectToCluster(connectionString: string, atlas: AtlasClusterConnectionInfo): Promise<void> {
@@ -190,19 +190,29 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
+        const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
+        let createdUser = false;
+
         for (let i = 0; i < 60; i++) {
             const state = this.queryConnection(projectId, clusterName);
             switch (state) {
                 case "connected": {
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: `Connected to cluster "${clusterName}".`,
-                            },
-                        ],
-                    };
+                    const content: CallToolResult["content"] = [
+                        {
+                            type: "text",
+                            text: `Connected to cluster "${clusterName}".`,
+                        },
+                    ];
+
+                    // Add feedback about IP access list if it was updated
+                    if (ipAccessListUpdated) {
+                        content.push({
+                            type: "text",
+                            text: `Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.`,
+                        });
+                    }
+
+                    return { content };
                 }
                 case "connecting":
                 case "unknown": {
@@ -212,8 +222,12 @@ export class ConnectClusterTool extends AtlasToolBase {
                 case "disconnected":
                 default: {
                     await this.session.disconnect();
-                    const { connectionString, atlas } = await this.prepareClusterConnection(projectId, clusterName);
+                    const { connectionString, atlas, userCreated } = await this.prepareClusterConnection(
+                        projectId,
+                        clusterName
+                    );
 
+                    createdUser = userCreated;
                     // try to connect for about 5 minutes asynchronously
                     void this.connectToCluster(connectionString, atlas).catch((err: unknown) => {
                         const error = err instanceof Error ? err : new Error(String(err));
@@ -230,21 +244,31 @@ export class ConnectClusterTool extends AtlasToolBase {
             await sleep(500);
         }
 
-        return {
-            content: [
-                {
-                    type: "text" as const,
-                    text: `Attempting to connect to cluster "${clusterName}"...`,
-                },
-                {
-                    type: "text" as const,
-                    text: `Warning: Provisioning a user and connecting to the cluster may take more time, please check again in a few seconds.`,
-                },
-                {
-                    type: "text" as const,
-                    text: `Warning: Make sure your IP address was enabled in the allow list setting of the Atlas cluster.`,
-                },
-            ],
-        };
+        const content: CallToolResult["content"] = [
+            {
+                type: "text" as const,
+                text: `Attempting to connect to cluster "${clusterName}"...`,
+            },
+            {
+                type: "text" as const,
+                text: `Warning: Provisioning a user and connecting to the cluster may take more time, please check again in a few seconds.`,
+            },
+        ];
+
+        if (ipAccessListUpdated) {
+            content.push({
+                type: "text" as const,
+                text: `Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.`,
+            });
+        }
+
+        if (createdUser) {
+            content.push({
+                type: "text" as const,
+                text: `Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations`,
+            });
+        }
+
+        return { content };
     }
 }
