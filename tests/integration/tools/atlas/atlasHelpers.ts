@@ -19,6 +19,7 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): vo
                 ...defaultTestConfig,
                 apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
                 apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
+                apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
             }),
             () => defaultDriverOptions
         );
@@ -39,6 +40,13 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
         beforeAll(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
 
+            // check that it has credentials
+            if (!apiClient.hasCredentials()) {
+                throw new Error("No credentials available");
+            }
+
+            // validate access token
+            await apiClient.validateAccessToken();
             try {
                 const group = await createProject(apiClient);
                 projectId = group.id;
@@ -110,6 +118,23 @@ async function createProject(apiClient: ApiClient): Promise<Group & Required<Pic
     if (!group?.id) {
         throw new Error("Failed to create project");
     }
+
+    // add current IP to project access list
+    const { currentIpv4Address } = await apiClient.getIpInfo();
+    await apiClient.createProjectIpAccessList({
+        params: {
+            path: {
+                groupId: group.id,
+            },
+        },
+        body: [
+            {
+                ipAddress: currentIpv4Address,
+                groupId: group.id,
+                comment: "Added by MongoDB MCP Server to enable tool access",
+            },
+        ],
+    });
 
     return group as Group & Required<Pick<Group, "id">>;
 }

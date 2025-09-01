@@ -84,7 +84,7 @@ export function setupIntegrationTest(
         });
 
         // Mock hasValidAccessToken for tests
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
+        if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
