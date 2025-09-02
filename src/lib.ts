@@ -11,4 +11,5 @@ export {
     type ConnectionStateErrored,
     type ConnectionManagerFactoryFn,
 } from "./common/connectionManager.js";
+export { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 export { Telemetry } from "./telemetry/telemetry.js";
