@@ -120,7 +120,6 @@ export class Server {
             this.session.setMcpClient(this.mcpServer.server.getClientVersion());
             // Placed here to start the connection to the config connection string as soon as the server is initialized.
             void this.connectToConfigConnectionString();
-
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
@@ -245,15 +244,21 @@ export class Server {
     private async connectToConfigConnectionString(): Promise<void> {
         if (this.userConfig.connectionString) {
             try {
+                this.session.logger.info({
+                    id: LogId.serverInitialized,
+                    context: "server",
+                    message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
+                });
                 await this.session.connectToMongoDB({
                     connectionString: this.userConfig.connectionString,
                 });
             } catch (error) {
-                console.error(
-                    "Failed to connect to MongoDB instance using the connection string from the config: ",
-                    error
-                );
-                throw new Error("Failed to connect to MongoDB instance using the connection string from the config");
+                // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
+                this.session.logger.error({
+                    id: LogId.mongodbConnectFailure,
+                    context: "server",
+                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`,
+                });
             }
         }
     }
