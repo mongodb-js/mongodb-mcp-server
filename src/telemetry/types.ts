@@ -73,4 +73,5 @@ export type CommonProperties = {
     config_atlas_auth?: TelemetryBoolSet;
     config_connection_string?: TelemetryBoolSet;
     session_id?: string;
+    hosting_mode?: string;
 } & CommonStaticProperties;

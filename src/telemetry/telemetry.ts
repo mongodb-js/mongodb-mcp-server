@@ -14,6 +14,8 @@ type EventResult = {
 };
 
 export class Telemetry {
+    public static hostingMode?: string;
+
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
@@ -42,6 +44,7 @@ export class Telemetry {
             commonProperties?: CommonProperties;
         } = {}
     ): Telemetry {
+        commonProperties.hosting_mode = Telemetry.hostingMode;
         const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, deviceId });
 
         void instance.setup();
