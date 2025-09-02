@@ -245,7 +245,7 @@ export class Server {
         if (this.userConfig.connectionString) {
             try {
                 this.session.logger.info({
-                    id: LogId.serverInitialized,
+                    id: LogId.mongodbConnectTry,
                     context: "server",
                     message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
                 });
@@ -257,7 +257,7 @@ export class Server {
                 this.session.logger.error({
                     id: LogId.mongodbConnectFailure,
                     context: "server",
-                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`,
+                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
                 });
             }
         }
