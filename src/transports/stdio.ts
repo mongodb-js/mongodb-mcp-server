@@ -2,11 +2,9 @@ import { EJSON } from "bson";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { type LoggerBase, LogId } from "../common/logger.js";
+import { LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
-import { TransportRunnerBase } from "./base.js";
-import { type UserConfig } from "../common/config.js";
-import { createMCPConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
 // but it uses EJSON.parse instead of JSON.parse to handle BSON types
@@ -55,12 +53,8 @@ export function createStdioTransport(): StdioServerTransport {
 export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
-    constructor(
-        userConfig: UserConfig,
-        createConnectionManager: ConnectionManagerFactoryFn = createMCPConnectionManager,
-        additionalLoggers: LoggerBase[] = []
-    ) {
-        super(userConfig, createConnectionManager, additionalLoggers);
+    constructor(config: TransportRunnerConfig) {
+        super(config);
     }
 
     async start(): Promise<void> {

@@ -21,12 +21,14 @@ import assert from "assert";
 import type { ToolBase } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
+import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 
 export interface ServerOptions {
     session: Session;
     userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
+    connectionErrorHandler: ConnectionErrorHandler;
 }
 
 export class Server {
@@ -35,6 +37,7 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly tools: ToolBase[] = [];
+    public readonly connectionErrorHandler: ConnectionErrorHandler;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -45,12 +48,13 @@ export class Server {
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
+    constructor({ session, mcpServer, userConfig, telemetry, connectionErrorHandler }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.userConfig = userConfig;
+        this.connectionErrorHandler = connectionErrorHandler;
     }
 
     async connect(transport: Transport): Promise<void> {
