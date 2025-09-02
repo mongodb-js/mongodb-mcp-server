@@ -5,11 +5,12 @@ import type { ToolBase } from "../tools/tool.js";
 
 export type ConnectionErrorHandler = (
     error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>,
-    additionalContext: {
-        availableTools: ToolBase[];
-        connectionState: AnyConnectionState;
-    }
-) => { errorHandled: false } | { errorHandled: true; result: CallToolResult };
+    additionalContext: ConnectionErrorHandlerContext
+) => ConnectionErrorUnhandled | ConnectionErrorHandled;
+
+export type ConnectionErrorHandlerContext = { availableTools: ToolBase[]; connectionState: AnyConnectionState };
+export type ConnectionErrorUnhandled = { errorHandled: false };
+export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
 
 export const connectionErrorHandler: ConnectionErrorHandler = (error, { availableTools, connectionState }) => {
     const connectTools = availableTools
