@@ -41,6 +41,7 @@ export const LogId = {
 
     mongodbConnectFailure: mongoLogId(1_004_001),
     mongodbDisconnectFailure: mongoLogId(1_004_002),
+    mongodbConnectTry: mongoLogId(1_004_003),
 
     toolUpdateFailure: mongoLogId(1_005_001),
     resourceUpdateFailure: mongoLogId(1_005_002),

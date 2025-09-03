@@ -8,17 +8,35 @@ import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
-import { type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import { createMCPConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import {
+    type ConnectionErrorHandler,
+    connectionErrorHandler as defaultConnectionErrorHandler,
+} from "../common/connectionErrorHandler.js";
+
+export type TransportRunnerConfig = {
+    userConfig: UserConfig;
+    createConnectionManager?: ConnectionManagerFactoryFn;
+    connectionErrorHandler?: ConnectionErrorHandler;
+    additionalLoggers?: LoggerBase[];
+};
 
 export abstract class TransportRunnerBase {
     public logger: LoggerBase;
     public deviceId: DeviceId;
+    protected readonly userConfig: UserConfig;
+    private readonly createConnectionManager: ConnectionManagerFactoryFn;
+    private readonly connectionErrorHandler: ConnectionErrorHandler;
 
-    protected constructor(
-        protected readonly userConfig: UserConfig,
-        private readonly createConnectionManager: ConnectionManagerFactoryFn,
-        additionalLoggers: LoggerBase[]
-    ) {
+    protected constructor({
+        userConfig,
+        createConnectionManager = createMCPConnectionManager,
+        connectionErrorHandler = defaultConnectionErrorHandler,
+        additionalLoggers = [],
+    }: TransportRunnerConfig) {
+        this.userConfig = userConfig;
+        this.createConnectionManager = createConnectionManager;
+        this.connectionErrorHandler = connectionErrorHandler;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger());
@@ -68,6 +86,7 @@ export abstract class TransportRunnerBase {
             session,
             telemetry,
             userConfig: this.userConfig,
+            connectionErrorHandler: this.connectionErrorHandler,
         });
 
         // We need to create the MCP logger after the server is constructed

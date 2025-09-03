@@ -29,6 +29,7 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): vo
 
 interface ProjectTestArgs {
     getProjectId: () => string;
+    getIpAddress: () => string;
 }
 
 type ProjectTestFunction = (args: ProjectTestArgs) => void;
@@ -36,6 +37,7 @@ type ProjectTestFunction = (args: ProjectTestArgs) => void;
 export function withProject(integration: IntegrationTest, fn: ProjectTestFunction): SuiteCollector<object> {
     return describe("with project", () => {
         let projectId: string = "";
+        let ipAddress: string = "";
 
         beforeAll(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
@@ -49,6 +51,8 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             await apiClient.validateAccessToken();
             try {
                 const group = await createProject(apiClient);
+                const ipInfo = await apiClient.getIpInfo();
+                ipAddress = ipInfo.currentIpv4Address;
                 projectId = group.id;
             } catch (error) {
                 console.error("Failed to create project:", error);
@@ -72,6 +76,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
         const args = {
             getProjectId: (): string => projectId,
+            getIpAddress: (): string => ipAddress,
         };
 
         fn(args);
