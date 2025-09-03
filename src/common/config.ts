@@ -3,6 +3,8 @@ import os from "os";
 import argv from "yargs-parser";
 import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import { Keychain } from "./keychain.js";
+import type { Secret } from "./keychain.js";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
@@ -316,6 +318,29 @@ function commaSeparatedToArray<T extends string[]>(str: string | string[] | unde
     return str as T;
 }
 
+export function registerKnownSecretsInRootKeychain(userConfig: UserConfig): void {
+    const keychain = Keychain.root;
+
+    const maybeRegister = (value: string | undefined, kind: Secret["kind"]) => {
+        if (value) {
+            keychain.register(value, kind);
+        }
+    };
+
+    maybeRegister(userConfig.apiClientId, "user");
+    maybeRegister(userConfig.apiClientSecret, "password");
+    maybeRegister(userConfig.awsAccessKeyId, "password");
+    maybeRegister(userConfig.awsIamSessionToken, "password");
+    maybeRegister(userConfig.awsSecretAccessKey, "password");
+    maybeRegister(userConfig.awsSessionToken, "password");
+    maybeRegister(userConfig.password, "password");
+    maybeRegister(userConfig.tlsCAFile, "url");
+    maybeRegister(userConfig.tlsCRLFile, "url");
+    maybeRegister(userConfig.tlsCertificateKeyFile, "url");
+    maybeRegister(userConfig.tlsCertificateKeyFilePassword, "password");
+    maybeRegister(userConfig.username, "user");
+}
+
 export function setupUserConfig({
     cli,
     env,
@@ -369,6 +394,7 @@ export function setupUserConfig({
         }
     }
 
+    registerKnownSecretsInRootKeychain(userConfig);
     return userConfig;
 }
 

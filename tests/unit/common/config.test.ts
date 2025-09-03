@@ -1,7 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { UserConfig } from "../../../src/common/config.js";
-import { setupUserConfig, defaultUserConfig, warnAboutDeprecatedCliArgs } from "../../../src/common/config.js";
+import {
+    setupUserConfig,
+    defaultUserConfig,
+    warnAboutDeprecatedCliArgs,
+    registerKnownSecretsInRootKeychain,
+} from "../../../src/common/config.js";
 import type { CliOptions } from "@mongosh/arg-parser";
+import { Keychain } from "../../../src/common/keychain.js";
+import type { Secret } from "../../../src/common/keychain.js";
 
 describe("config", () => {
     describe("env var parsing", () => {
@@ -641,4 +648,40 @@ describe("Deprecated CLI arguments", () => {
             });
         });
     }
+
+    describe("keychain management", () => {
+        type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
+        const testCases = [
+            { cliArg: "apiClientId", secretKind: "user" },
+            { cliArg: "apiClientSecret", secretKind: "password" },
+            { cliArg: "awsAccessKeyId", secretKind: "password" },
+            { cliArg: "awsIamSessionToken", secretKind: "password" },
+            { cliArg: "awsSecretAccessKey", secretKind: "password" },
+            { cliArg: "awsSessionToken", secretKind: "password" },
+            { cliArg: "password", secretKind: "password" },
+            { cliArg: "tlsCAFile", secretKind: "url" },
+            { cliArg: "tlsCRLFile", secretKind: "url" },
+            { cliArg: "tlsCertificateKeyFile", secretKind: "url" },
+            { cliArg: "tlsCertificateKeyFilePassword", secretKind: "password" },
+            { cliArg: "username", secretKind: "user" },
+        ] as TestCase[];
+        let keychain: Keychain;
+
+        beforeEach(() => {
+            keychain = Keychain.root;
+            keychain.clearAllSecrets();
+        });
+
+        afterEach(() => {
+            keychain.clearAllSecrets();
+        });
+
+        for (const { cliArg, secretKind } of testCases) {
+            it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
+                registerKnownSecretsInRootKeychain({ [cliArg]: cliArg });
+
+                expect(keychain.allSecrets).to.deep.equal([{ value: cliArg, kind: secretKind }]);
+            });
+        }
+    });
 });

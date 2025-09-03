@@ -5,6 +5,7 @@ import redact from "mongodb-redact";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
 import type { Server } from "../lib.js";
+import type { Keychain } from "./keychain.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
@@ -83,6 +84,10 @@ type DefaultEventMap = [never];
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
     private readonly defaultUnredactedLogger: LoggerType = "mcp";
 
+    constructor(private readonly keychain: Keychain | undefined) {
+        super();
+    }
+
     public log(level: LogLevel, payload: LogPayload): void {
         // If no explicit value is supplied for unredacted loggers, default to "mcp"
         const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
@@ -121,7 +126,7 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
             return message;
         }
 
-        return redact(message);
+        return redact(message, this.keychain?.allSecrets ?? []);
     }
 
     public info(payload: LogPayload): void {
@@ -179,6 +184,10 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
 export class ConsoleLogger extends LoggerBase {
     protected readonly type: LoggerType = "console";
 
+    public constructor(keychain: Keychain) {
+        super(keychain);
+    }
+
     protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
         console.error(
@@ -200,8 +209,8 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
     private bufferedMessages: { level: LogLevel; payload: LogPayload }[] = [];
     private logWriter?: MongoLogWriter;
 
-    public constructor(logPath: string, onError: (error: Error) => void) {
-        super();
+    public constructor(logPath: string, onError: (error: Error) => void, keychain: Keychain) {
+        super(keychain);
 
         void this.initialize(logPath, onError);
     }
@@ -261,8 +270,11 @@ export class McpLogger extends LoggerBase {
         "emergency",
     ] as const;
 
-    public constructor(private readonly server: Server) {
-        super();
+    public constructor(
+        private readonly server: Server,
+        keychain: Keychain
+    ) {
+        super(keychain);
     }
 
     protected readonly type: LoggerType = "mcp";
@@ -294,7 +306,9 @@ export class CompositeLogger extends LoggerBase {
     private readonly attributes: Record<string, string> = {};
 
     constructor(...loggers: LoggerBase[]) {
-        super();
+        // composite logger does not redact, only the actual delegates do the work
+        // so we don't need the Keychain here
+        super(undefined);
 
         this.loggers = loggers;
     }
