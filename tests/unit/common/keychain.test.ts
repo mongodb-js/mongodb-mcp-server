@@ -15,15 +15,15 @@ describe("Keychain", () => {
 
     it("should register a new secret", () => {
         keychain.register("123456", "password");
-        expect(keychain.allSecrets).to.deep.equal([{ value: "123456", kind: "password" }]);
+        expect(keychain.allSecrets).toEqual([{ value: "123456", kind: "password" }]);
     });
 
     it("should remove cleared secrets", () => {
         keychain.register("123456", "password");
-        expect(keychain.allSecrets).to.deep.equal([{ value: "123456", kind: "password" }]);
+        expect(keychain.allSecrets).toEqual([{ value: "123456", kind: "password" }]);
 
         keychain.clearAllSecrets();
         keychain.register("654321", "user");
-        expect(keychain.allSecrets).to.deep.equal([{ value: "654321", kind: "user" }]);
+        expect(keychain.allSecrets).toEqual([{ value: "654321", kind: "user" }]);
     });
 });

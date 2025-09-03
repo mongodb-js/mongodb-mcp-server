@@ -17,6 +17,7 @@ import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../..
 import { defaultTestConfig } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
+import { Keychain } from "../../../../src/common/keychain.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -88,6 +89,7 @@ describe("MongoDBTool implementations", () => {
             logger,
             exportsManager,
             connectionManager,
+            keychain: new Keychain(),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 

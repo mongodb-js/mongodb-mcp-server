@@ -680,7 +680,7 @@ describe("Deprecated CLI arguments", () => {
             it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
                 registerKnownSecretsInRootKeychain({ [cliArg]: cliArg });
 
-                expect(keychain.allSecrets).to.deep.equal([{ value: cliArg, kind: secretKind }]);
+                expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
             });
         }
     });

@@ -318,10 +318,10 @@ function commaSeparatedToArray<T extends string[]>(str: string | string[] | unde
     return str as T;
 }
 
-export function registerKnownSecretsInRootKeychain(userConfig: UserConfig): void {
+export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): void {
     const keychain = Keychain.root;
 
-    const maybeRegister = (value: string | undefined, kind: Secret["kind"]) => {
+    const maybeRegister = (value: string | undefined, kind: Secret["kind"]): void => {
         if (value) {
             keychain.register(value, kind);
         }

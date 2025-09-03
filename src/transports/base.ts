@@ -8,7 +8,6 @@ import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
-import { type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import { Keychain } from "../common/keychain.js";
 import { createMCPConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import {

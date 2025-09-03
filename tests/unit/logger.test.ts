@@ -213,9 +213,13 @@ describe("Logger", () => {
         };
 
         it("buffers messages during initialization", async () => {
-            const diskLogger = new DiskLogger(logPath, (err) => {
-                expect.fail(`Disk logger should not fail to initialize: ${err}`);
-            });
+            const diskLogger = new DiskLogger(
+                logPath,
+                (err) => {
+                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
+                },
+                keychain
+            );
 
             diskLogger.info({ id: LogId.serverInitialized, context: "test", message: "Test message" });
             await assertNoLogs();
@@ -229,9 +233,13 @@ describe("Logger", () => {
         });
 
         it("includes attributes in the logs", async () => {
-            const diskLogger = new DiskLogger(logPath, (err) => {
-                expect.fail(`Disk logger should not fail to initialize: ${err}`);
-            });
+            const diskLogger = new DiskLogger(
+                logPath,
+                (err) => {
+                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
+                },
+                keychain
+            );
 
             diskLogger.info({
                 id: LogId.serverInitialized,

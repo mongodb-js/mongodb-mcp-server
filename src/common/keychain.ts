@@ -14,7 +14,7 @@ export class Keychain {
     private secrets: Secret[];
     private static rootKeychain: Keychain = new Keychain();
 
-    private constructor() {
+    constructor() {
         this.secrets = [];
     }
 

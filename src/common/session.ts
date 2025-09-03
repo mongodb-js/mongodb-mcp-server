@@ -15,7 +15,7 @@ import type {
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
-import { Keychain } from "./keychain.js";
+import type { Keychain } from "./keychain.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;

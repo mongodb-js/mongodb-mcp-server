@@ -6,6 +6,7 @@ import { config } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
 import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { Keychain } from "../../../src/common/keychain.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -138,7 +139,7 @@ describe("StreamableHttpRunner", () => {
         }
 
         it("can provide custom logger", async () => {
-            const logger = new CustomLogger();
+            const logger = new CustomLogger(new Keychain());
             const runner = new StreamableHttpRunner({
                 userConfig: config,
                 createConnectionManager: createMCPConnectionManager,
