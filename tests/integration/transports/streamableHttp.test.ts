@@ -29,7 +29,7 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeAll(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner(config);
+                runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
             });
 
@@ -110,7 +110,7 @@ describe("StreamableHttpRunner", () => {
         try {
             for (let i = 0; i < 3; i++) {
                 config.httpPort = 0; // Use a random port for each runner
-                const runner = new StreamableHttpRunner(config);
+                const runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
                 runners.push(runner);
             }
@@ -139,7 +139,11 @@ describe("StreamableHttpRunner", () => {
 
         it("can provide custom logger", async () => {
             const logger = new CustomLogger();
-            const runner = new StreamableHttpRunner(config, createMCPConnectionManager, [logger]);
+            const runner = new StreamableHttpRunner({
+                userConfig: config,
+                createConnectionManager: createMCPConnectionManager,
+                additionalLoggers: [logger],
+            });
             await runner.start();
 
             const messages = logger.messages;
