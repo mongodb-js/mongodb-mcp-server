@@ -13,6 +13,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
+import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 
 interface ParameterInfo {
     name: string;
@@ -101,6 +102,7 @@ export function setupIntegrationTest(
                 name: "test-server",
                 version: "5.2.3",
             }),
+            connectionErrorHandler,
         });
 
         await mcpServer.connect(serverTransport);

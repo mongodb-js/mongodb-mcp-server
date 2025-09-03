@@ -4,9 +4,9 @@ export enum ErrorCodes {
     ForbiddenCollscan = 1_000_002,
 }
 
-export class MongoDBError extends Error {
+export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
     constructor(
-        public code: ErrorCodes,
+        public code: ErrorCode,
         message: string
     ) {
         super(message);
