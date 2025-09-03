@@ -2,12 +2,18 @@ import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { Keychain } from "../../../../src/common/keychain.js";
 
 describeWithAtlas("db users", (integration) => {
     withProject(integration, ({ getProjectId }) => {
         let userName: string;
         beforeEach(() => {
             userName = "testuser-" + randomId;
+            Keychain.root.clearAllSecrets();
+        });
+
+        afterEach(() => {
+            Keychain.root.clearAllSecrets();
         });
 
         const createUserWithMCP = async (password?: string): Promise<unknown> => {
@@ -97,7 +103,11 @@ describeWithAtlas("db users", (integration) => {
                 const passwordStart = elements[0]?.text.lastIndexOf(":") ?? -1;
                 const passwordEnd = elements[0]?.text.length ?? 1 - 1;
 
-                const password = elements[0]?.text.substring(passwordStart).substring(0, passwordEnd).trim();
+                const password = elements[0]?.text
+                    .substring(passwordStart + 1, passwordEnd - 1)
+                    .replace("`", "")
+                    .trim();
+
                 expect(integration.mcpServer().session.keychain.allSecrets).toEqual([
                     {
                         value: userName,
