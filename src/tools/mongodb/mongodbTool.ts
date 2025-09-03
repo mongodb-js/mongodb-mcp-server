@@ -68,9 +68,9 @@ export abstract class MongoDBToolBase extends ToolBase {
                     });
                     if (outcome?.errorHandled) {
                         return outcome.result;
-                    } else {
-                        return super.handleError(error, args);
                     }
+
+                    return super.handleError(error, args);
                 }
                 case ErrorCodes.ForbiddenCollscan:
                     return {

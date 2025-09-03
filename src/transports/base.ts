@@ -30,13 +30,13 @@ export abstract class TransportRunnerBase {
 
     protected constructor({
         userConfig,
-        createConnectionManager,
-        connectionErrorHandler,
+        createConnectionManager = createMCPConnectionManager,
+        connectionErrorHandler = defaultConnectionErrorHandler,
         additionalLoggers = [],
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
-        this.createConnectionManager = createConnectionManager ?? createMCPConnectionManager;
-        this.connectionErrorHandler = connectionErrorHandler ?? defaultConnectionErrorHandler;
+        this.createConnectionManager = createConnectionManager;
+        this.connectionErrorHandler = connectionErrorHandler;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger());
