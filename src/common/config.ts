@@ -253,6 +253,13 @@ function parseCliConfig(args: string[]): CliOptions {
         };
 
     const positionalArguments = parsed._ ?? [];
+
+    // we use console.warn here because we still don't have our logging system configured
+    // so we don't have a logger. For stdio, the warning will be received as a string in
+    // the client and IDEs like VSCode do show the message in the log window. For HTTP,
+    // it will be in the stdout of the process.
+    warnAboutDeprecatedCliArgs({ ...parsed, _: positionalArguments }, console.warn);
+
     // if we have a positional argument that matches a connection string
     // store it as the connection specifier and remove it from the argument
     // list, so it doesn't get misunderstood by the mongosh args-parser
@@ -262,6 +269,28 @@ function parseCliConfig(args: string[]): CliOptions {
 
     delete parsed._;
     return parsed;
+}
+
+export function warnAboutDeprecatedCliArgs(
+    args: CliOptions &
+        UserConfig & {
+            _?: string[];
+        },
+    warn: (msg: string) => void
+): void {
+    let usedDeprecatedArgument = false;
+    // the first position argument should be used
+    // instead of --connectionString, as it's how the mongosh works.
+    if (args.connectionString) {
+        usedDeprecatedArgument = true;
+        warn(
+            "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable."
+        );
+    }
+
+    if (usedDeprecatedArgument) {
+        warn("Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
+    }
 }
 
 function commaSeparatedToArray<T extends string[]>(str: string | string[] | undefined): T {

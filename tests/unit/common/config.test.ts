@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { UserConfig } from "../../../src/common/config.js";
-import { setupUserConfig, defaultUserConfig } from "../../../src/common/config.js";
+import { setupUserConfig, defaultUserConfig, warnAboutDeprecatedCliArgs } from "../../../src/common/config.js";
+import type { CliOptions } from "@mongosh/arg-parser";
 
 describe("config", () => {
     describe("env var parsing", () => {
@@ -604,4 +605,40 @@ describe("config", () => {
             });
         });
     });
+});
+
+describe("Deprecated CLI arguments", () => {
+    const referDocMessage =
+        "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
+
+    type TestCase = { readonly cliArg: keyof (CliOptions & UserConfig); readonly warning: string };
+    const testCases = [
+        {
+            cliArg: "connectionString",
+            warning:
+                "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable.",
+        },
+    ] as TestCase[];
+
+    for (const { cliArg, warning } of testCases) {
+        describe(`deprecation behaviour of ${cliArg}`, () => {
+            let cliArgs: CliOptions & UserConfig & { _?: string[] };
+            let warn: (msg: string) => void;
+
+            beforeEach(() => {
+                cliArgs = { [cliArg]: "RandomString" } as unknown as CliOptions & UserConfig & { _?: string[] };
+                warn = vi.fn();
+
+                warnAboutDeprecatedCliArgs(cliArgs, warn);
+            });
+
+            it(`warns the usage of ${cliArg} as it is deprecated`, () => {
+                expect(warn).toHaveBeenCalledWith(warning);
+            });
+
+            it(`shows the reference message when ${cliArg} was passed`, () => {
+                expect(warn).toHaveBeenCalledWith(referDocMessage);
+            });
+        });
+    }
 });
