@@ -14,11 +14,6 @@ type EventResult = {
 };
 
 export class Telemetry {
-    public static baseCommonProperties: CommonProperties = {
-        ...MACHINE_METADATA,
-        hosting_mode: "standalone",
-    };
-
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
@@ -40,14 +35,21 @@ export class Telemetry {
         userConfig: UserConfig,
         deviceId: DeviceId,
         {
-            commonProperties = this.baseCommonProperties,
+            commonProperties = {},
             eventCache = EventCache.getInstance(),
         }: {
+            commonProperties?: Partial<CommonProperties>;
             eventCache?: EventCache;
-            commonProperties?: CommonProperties;
         } = {}
     ): Telemetry {
-        const instance = new Telemetry(session, userConfig, commonProperties, { eventCache, deviceId });
+        const mergedProperties = {
+            ...MACHINE_METADATA,
+            ...commonProperties,
+        };
+        const instance = new Telemetry(session, userConfig, mergedProperties, {
+            eventCache,
+            deviceId,
+        });
 
         void instance.setup();
         return instance;

@@ -214,12 +214,9 @@ describe("Telemetry", () => {
         });
 
         it("should add hostingMode to events if set", async () => {
-            Telemetry.baseCommonProperties = {
-                ...Telemetry.baseCommonProperties,
-                hosting_mode: "vscode-extension",
-            };
             telemetry = Telemetry.create(session, config, mockDeviceId, {
                 eventCache: mockEventCache as unknown as EventCache,
+                commonProperties: { hosting_mode: "vscode-extension" },
             });
             await telemetry.setupPromise;
 
