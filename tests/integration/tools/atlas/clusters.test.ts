@@ -57,7 +57,7 @@ async function waitCluster(
 }
 
 describeWithAtlas("clusters", (integration) => {
-    withProject(integration, ({ getProjectId }) => {
+    withProject(integration, ({ getProjectId, getIpAddress }) => {
         const clusterName = "ClusterTest-" + randomId;
 
         afterAll(async () => {
@@ -84,7 +84,6 @@ describeWithAtlas("clusters", (integration) => {
             it("should create a free cluster and add current IP to access list", async () => {
                 const projectId = getProjectId();
                 const session = integration.mcpServer().session;
-                const ipInfo = await session.apiClient.getIpInfo();
 
                 const response = await integration.mcpClient().callTool({
                     name: "atlas-create-free-cluster",
@@ -102,7 +101,7 @@ describeWithAtlas("clusters", (integration) => {
                 const accessList = await session.apiClient.listProjectIpAccessLists({
                     params: { path: { groupId: projectId } },
                 });
-                const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);
+                const found = accessList.results?.some((entry) => entry.ipAddress === getIpAddress());
                 expect(found).toBe(true);
             });
         });
@@ -162,6 +161,7 @@ describeWithAtlas("clusters", (integration) => {
         describe("atlas-connect-cluster", () => {
             beforeAll(async () => {
                 const projectId = getProjectId();
+                const ipAddress = getIpAddress();
                 await waitCluster(integration.mcpServer().session, projectId, clusterName, (cluster) => {
                     return (
                         cluster.stateName === "IDLE" &&
@@ -177,7 +177,7 @@ describeWithAtlas("clusters", (integration) => {
                     body: [
                         {
                             comment: "MCP test",
-                            cidrBlock: "0.0.0.0/0",
+                            ipAddress: ipAddress,
                         },
                     ],
                 });
@@ -196,6 +196,7 @@ describeWithAtlas("clusters", (integration) => {
 
             it("connects to cluster", async () => {
                 const projectId = getProjectId();
+                let connected = false;
 
                 for (let i = 0; i < 10; i++) {
                     const response = await integration.mcpClient().callTool({
@@ -205,16 +206,25 @@ describeWithAtlas("clusters", (integration) => {
 
                     const elements = getResponseElements(response.content);
                     expect(elements.length).toBeGreaterThanOrEqual(1);
-                    if (
-                        elements[0]?.text.includes("Cluster is already connected.") ||
-                        elements[0]?.text.includes(`Connected to cluster "${clusterName}"`)
-                    ) {
-                        break; // success
+                    if (elements[0]?.text.includes(`Connected to cluster "${clusterName}"`)) {
+                        connected = true;
+
+                        // assert that some of the element s have the message
+                        expect(
+                            elements.some((element) =>
+                                element.text.includes(
+                                    "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
+                                )
+                            )
+                        ).toBe(true);
+
+                        break;
                     } else {
                         expect(elements[0]?.text).toContain(`Attempting to connect to cluster "${clusterName}"...`);
                     }
                     await sleep(500);
                 }
+                expect(connected).toBe(true);
             });
 
             describe("when not connected", () => {
