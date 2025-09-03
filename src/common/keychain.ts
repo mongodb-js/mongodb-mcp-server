@@ -1,7 +1,5 @@
-export type Secret = {
-    value: string;
-    kind: string;
-};
+import type { Secret } from "mongodb-redact";
+export type { Secret } from "mongodb-redact";
 
 /**
  * This class holds the secrets of a single server. Ideally, we might want to have a keychain
