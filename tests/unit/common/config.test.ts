@@ -660,7 +660,7 @@ describe("CLI arguments", () => {
                 cliArgs = { [cliArg]: "RandomString" } as unknown as CliOptions & UserConfig & { _?: string[] };
                 warn = vi.fn();
 
-                warnAboutDeprecatedOrUnknownCliArgs(cliArgs, warn);
+                warnAboutDeprecatedOrUnknownCliArgs(cliArgs as unknown as Record<string, unknown>, warn);
             });
 
             it(`warns the usage of ${cliArg} as it is deprecated`, () => {

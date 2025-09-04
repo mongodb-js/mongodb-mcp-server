@@ -319,11 +319,11 @@ function parseCliConfig(args: string[]): CliOptions {
     return parsed;
 }
 
-export function warnAboutDeprecatedOrUnknownCliArgs(args: object, warn: (msg: string) => void): void {
+export function warnAboutDeprecatedOrUnknownCliArgs(args: Record<string, unknown>, warn: (msg: string) => void): void {
     let usedDeprecatedArgument = false;
     let usedInvalidArgument = false;
 
-    const knownArgs = args as UserConfig & CliOptions;
+    const knownArgs = args as unknown as UserConfig & CliOptions;
     // the first position argument should be used
     // instead of --connectionString, as it's how the mongosh works.
     if (knownArgs.connectionString) {
