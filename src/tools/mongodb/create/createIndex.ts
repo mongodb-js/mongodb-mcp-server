@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { ToolArgs, OperationType } from "../../tool.js";
-import { IndexDirection } from "mongodb";
+import type { ToolArgs, OperationType } from "../../tool.js";
+import type { IndexDirection } from "mongodb";
 
 export class CreateIndexTool extends MongoDBToolBase {
     public name = "create-index";

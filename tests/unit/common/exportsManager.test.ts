@@ -1,20 +1,22 @@
 import path from "path";
 import fs from "fs/promises";
 import { Readable, Transform } from "stream";
-import { FindCursor, Long } from "mongodb";
+import type { FindCursor } from "mongodb";
+import { Long } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js";
 import {
     ensureExtension,
     isExportExpired,
     ExportsManager,
-    ExportsManagerConfig,
     validateExportName,
 } from "../../../src/common/exportsManager.js";
-
+import type { AvailableExport } from "../../../src/common/exportsManager.js";
 import { config } from "../../../src/common/config.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
 import { timeout } from "../../integration/helpers.js";
-import { EJSON, EJSONOptions, ObjectId } from "bson";
+import type { EJSONOptions } from "bson";
+import { EJSON, ObjectId } from "bson";
 import { CompositeLogger } from "../../../src/common/logger.js";
 
 const logger = new CompositeLogger();
@@ -119,6 +121,15 @@ async function fileExists(filePath: string): Promise<boolean> {
 function timeoutPromise(timeoutMS: number, context: string): Promise<never> {
     return new Promise((_, reject) => {
         setTimeout(() => reject(new Error(`${context} - Timed out!`)), timeoutMS);
+    });
+}
+
+async function waitUntilThereIsAnExportAvailable(manager: ExportsManager): Promise<AvailableExport[]> {
+    return await vi.waitFor(() => {
+        const exports = manager.availableExports;
+        expect(exports.length).toBeGreaterThan(0);
+
+        return exports;
     });
 }
 
@@ -316,7 +327,8 @@ describe("ExportsManager unit test", () => {
                 await cursorCloseNotification;
 
                 // Updates available export
-                const availableExports = manager.availableExports;
+                // this is async code so we should wait and retry
+                const availableExports = await waitUntilThereIsAnExportAvailable(manager);
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
@@ -350,7 +362,7 @@ describe("ExportsManager unit test", () => {
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
-                const availableExports = manager.availableExports;
+                const availableExports = await waitUntilThereIsAnExportAvailable(manager);
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({
@@ -385,7 +397,7 @@ describe("ExportsManager unit test", () => {
 
                 const expectedExportName = exportName.endsWith(".json") ? exportName : `${exportName}.json`;
                 // Updates available export
-                const availableExports = manager.availableExports;
+                const availableExports = await waitUntilThereIsAnExportAvailable(manager);
                 expect(availableExports).toHaveLength(1);
                 expect(availableExports).toContainEqual(
                     expect.objectContaining({

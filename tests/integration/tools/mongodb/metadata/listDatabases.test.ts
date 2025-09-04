@@ -1,5 +1,5 @@
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import { getResponseElements, getParameters, expectDefined } from "../../../helpers.js";
+import { getResponseElements, getParameters, expectDefined, getDataFromUntrustedContent } from "../../../helpers.js";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("listDatabases tool", (integration) => {
@@ -21,7 +21,7 @@ describeWithMongoDB("listDatabases tool", (integration) => {
             const response = await integration.mcpClient().callTool({ name: "list-databases", arguments: {} });
             const dbNames = getDbNames(response.content);
 
-            expect(dbNames).toStrictEqual(defaultDatabases);
+            expect(dbNames).toIncludeSameMembers(defaultDatabases);
         });
     });
 
@@ -66,13 +66,13 @@ describeWithMongoDB("listDatabases tool", (integration) => {
 
 function getDbNames(content: unknown): (string | null)[] {
     const responseItems = getResponseElements(content);
-    return responseItems
+    expect(responseItems).toHaveLength(2);
+    const data = getDataFromUntrustedContent(responseItems[1]?.text ?? "{}");
+    return data
+        .split("\n")
         .map((item) => {
-            if (item && typeof item.text === "string") {
-                const match = item.text.match(/Name: ([^,]+), Size: \d+ bytes/);
-                return match ? match[1] : null;
-            }
-            return null;
+            const match = item.match(/Name: ([^,]+), Size: \d+ bytes/);
+            return match ? match[1] : null;
         })
         .filter((item): item is string | null => item !== undefined);
 }

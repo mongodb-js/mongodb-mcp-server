@@ -1,12 +1,13 @@
-import { Collection, MongoClient } from "mongodb";
-import {
+import type { Collection } from "mongodb";
+import { MongoClient } from "mongodb";
+import type {
     AccuracyResult,
     AccuracyResultStorage,
-    AccuracyRunStatus,
     AccuracyRunStatuses,
     ExpectedToolCall,
     ModelResponse,
 } from "./resultStorage.js";
+import { AccuracyRunStatus } from "./resultStorage.js";
 
 // We could decide to omit some fields from the model response to reduce the size of the stored results. Since
 // so far, the responses are not too big, we do not omit any fields, but if we decide to do so in the future,

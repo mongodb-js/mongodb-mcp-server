@@ -1,9 +1,11 @@
+import path from "path";
 import { defineConfig, globalIgnores } from "eslint/config";
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import vitestPlugin from "@vitest/eslint-plugin";
+import noConfigImports from "./eslint-rules/no-config-imports.js";
 
 const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
 
@@ -48,11 +50,31 @@ export default defineConfig([
         rules: {
             "@typescript-eslint/switch-exhaustiveness-check": "error",
             "@typescript-eslint/no-non-null-assertion": "error",
+            "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+            "@typescript-eslint/consistent-type-exports": [
+                "error",
+                {
+                    fixMixedExportsWithInlineTypeSpecifier: false,
+                },
+            ],
             eqeqeq: "error",
             "no-self-compare": "error",
             "no-unassigned-vars": "error",
             "@typescript-eslint/await-thenable": "error",
             "@typescript-eslint/explicit-function-return-type": "error",
+        },
+    },
+    {
+        files: ["src/**/*.ts"],
+        plugins: {
+            "no-config-imports": {
+                rules: {
+                    "no-config-imports": noConfigImports,
+                },
+            },
+        },
+        rules: {
+            "no-config-imports/no-config-imports": "error",
         },
     },
     globalIgnores([
@@ -64,6 +86,8 @@ export default defineConfig([
         "eslint.config.js",
         "vitest.config.ts",
         "src/types/*.d.ts",
+        "tests/integration/fixtures/",
+        "eslint-rules",
     ]),
     eslintPluginPrettierRecommended,
 ]);

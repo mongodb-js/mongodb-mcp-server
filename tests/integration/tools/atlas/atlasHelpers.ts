@@ -1,68 +1,85 @@
 import { ObjectId } from "mongodb";
-import { Group } from "../../../../src/common/atlas/openapi.js";
-import { ApiClient } from "../../../../src/common/atlas/apiClient.js";
-import { setupIntegrationTest, IntegrationTest, defaultTestConfig } from "../../helpers.js";
-import { afterAll, beforeAll, describe, SuiteCollector } from "vitest";
+import type { Group } from "../../../../src/common/atlas/openapi.js";
+import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
+import type { IntegrationTest } from "../../helpers.js";
+import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
+import type { SuiteCollector } from "vitest";
+import { afterAll, beforeAll, describe } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
-export function describeWithAtlas(name: string, fn: IntegrationTestFunction): SuiteCollector<object> {
-    const testDefinition = (): void => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
-        }));
-
-        describe(name, () => {
-            fn(integration);
-        });
-    };
-
-    if (!process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length) {
-        // eslint-disable-next-line vitest/valid-describe-callback
-        return describe.skip("atlas", testDefinition);
-    }
-    // eslint-disable-next-line vitest/no-identical-title, vitest/valid-describe-callback
-    return describe("atlas", testDefinition);
+export function describeWithAtlas(name: string, fn: IntegrationTestFunction): void {
+    const describeFn =
+        !process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length
+            ? describe.skip
+            : describe;
+    describeFn(name, () => {
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
+                apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+            }),
+            () => defaultDriverOptions
+        );
+        fn(integration);
+    });
 }
 
 interface ProjectTestArgs {
     getProjectId: () => string;
+    getIpAddress: () => string;
 }
 
 type ProjectTestFunction = (args: ProjectTestArgs) => void;
 
 export function withProject(integration: IntegrationTest, fn: ProjectTestFunction): SuiteCollector<object> {
-    return describe("project", () => {
+    return describe("with project", () => {
         let projectId: string = "";
+        let ipAddress: string = "";
 
         beforeAll(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
 
-            const group = await createProject(apiClient);
-            projectId = group.id || "";
+            // check that it has credentials
+            if (!apiClient.hasCredentials()) {
+                throw new Error("No credentials available");
+            }
+
+            // validate access token
+            await apiClient.validateAccessToken();
+            try {
+                const group = await createProject(apiClient);
+                const ipInfo = await apiClient.getIpInfo();
+                ipAddress = ipInfo.currentIpv4Address;
+                projectId = group.id;
+            } catch (error) {
+                console.error("Failed to create project:", error);
+                throw error;
+            }
         });
 
         afterAll(async () => {
             const apiClient = integration.mcpServer().session.apiClient;
-
-            await apiClient.deleteProject({
-                params: {
-                    path: {
-                        groupId: projectId,
+            if (projectId) {
+                // projectId may be empty if beforeAll failed.
+                await apiClient.deleteProject({
+                    params: {
+                        path: {
+                            groupId: projectId,
+                        },
                     },
-                },
-            });
+                });
+            }
         });
 
         const args = {
             getProjectId: (): string => projectId,
+            getIpAddress: (): string => ipAddress,
         };
 
-        describe("with project", () => {
-            fn(args);
-        });
+        fn(args);
     });
 }
 
@@ -88,7 +105,7 @@ export function parseTable(text: string): Record<string, string>[] {
 
 export const randomId = new ObjectId().toString();
 
-async function createProject(apiClient: ApiClient): Promise<Group> {
+async function createProject(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
     const projectName: string = `testProj-` + randomId;
 
     const orgs = await apiClient.listOrganizations();
@@ -107,5 +124,22 @@ async function createProject(apiClient: ApiClient): Promise<Group> {
         throw new Error("Failed to create project");
     }
 
-    return group;
+    // add current IP to project access list
+    const { currentIpv4Address } = await apiClient.getIpInfo();
+    await apiClient.createProjectIpAccessList({
+        params: {
+            path: {
+                groupId: group.id,
+            },
+        },
+        body: [
+            {
+                ipAddress: currentIpv4Address,
+                groupId: group.id,
+                comment: "Added by MongoDB MCP Server to enable tool access",
+            },
+        ],
+    });
+
+    return group as Group & Required<Pick<Group, "id">>;
 }

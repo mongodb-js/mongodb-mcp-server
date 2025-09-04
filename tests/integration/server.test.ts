@@ -1,4 +1,4 @@
-import { defaultTestConfig, expectDefined, setupIntegrationTest } from "./helpers.js";
+import { defaultDriverOptions, defaultTestConfig, expectDefined, setupIntegrationTest } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
 
@@ -19,15 +19,19 @@ describe("Server integration test", () => {
             ...defaultTestConfig,
             apiClientId: undefined,
             apiClientSecret: undefined,
-        })
+        }),
+        () => defaultDriverOptions
     );
 
     describe("with atlas", () => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            apiClientId: "test",
-            apiClientSecret: "test",
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                apiClientId: "test",
+                apiClientSecret: "test",
+            }),
+            () => defaultDriverOptions
+        );
 
         describe("list capabilities", () => {
             it("should return positive number of tools and have some atlas tools", async () => {
@@ -59,12 +63,15 @@ describe("Server integration test", () => {
     });
 
     describe("with read-only mode", () => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            readOnly: true,
-            apiClientId: "test",
-            apiClientSecret: "test",
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                readOnly: true,
+                apiClientId: "test",
+                apiClientSecret: "test",
+            }),
+            () => defaultDriverOptions
+        );
 
         it("should only register read and metadata operation tools when read-only mode is enabled", async () => {
             const tools = await integration.mcpClient().listTools();

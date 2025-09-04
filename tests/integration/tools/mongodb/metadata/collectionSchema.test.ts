@@ -7,10 +7,11 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
+    getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import { Document } from "bson";
-import { OptionalId } from "mongodb";
-import { SimplifiedSchema } from "mongodb-schema";
+import type { Document } from "bson";
+import type { OptionalId } from "mongodb";
+import type { SimplifiedSchema } from "mongodb-schema";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("collectionSchema tool", (integration) => {
@@ -137,7 +138,7 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
                     `Found ${Object.entries(testCase.expectedSchema).length} fields in the schema for "${integration.randomDbName()}.foo"`
                 );
 
-                const schema = JSON.parse(items[1]?.text ?? "{}") as SimplifiedSchema;
+                const schema = JSON.parse(getDataFromUntrustedContent(items[1]?.text ?? "{}")) as SimplifiedSchema;
                 expect(schema).toEqual(testCase.expectedSchema);
             });
         }

@@ -1,5 +1,4 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { expectDefined } from "../../helpers.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
 import { parseTable, describeWithAtlas } from "./atlasHelpers.js";
 import { describe, expect, it } from "vitest";
 
@@ -12,12 +11,11 @@ describeWithAtlas("orgs", (integration) => {
         });
 
         it("returns org names", async () => {
-            const response = (await integration
-                .mcpClient()
-                .callTool({ name: "atlas-list-orgs", arguments: {} })) as CallToolResult;
-            expect(response.content).toBeInstanceOf(Array);
-            expect(response.content).toHaveLength(1);
-            const data = parseTable(response.content[0]?.text as string);
+            const response = await integration.mcpClient().callTool({ name: "atlas-list-orgs", arguments: {} });
+            const elements = getResponseElements(response);
+            expect(elements[0]?.text).toContain("Found 1 organizations");
+            expect(elements[1]?.text).toContain("<untrusted-user-data-");
+            const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
             expect(data).toHaveLength(1);
             expect(data[0]?.["Organization Name"]).toEqual("MongoDB MCP Test");
         });

@@ -1,10 +1,19 @@
+import type { MongoClusterOptions } from "mongodb-runner";
 import { MongoCluster } from "mongodb-runner";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import { Document, MongoClient, ObjectId } from "mongodb";
-import { getResponseContent, IntegrationTest, setupIntegrationTest, defaultTestConfig } from "../../helpers.js";
-import { UserConfig } from "../../../../src/common/config.js";
+import type { Document } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
+import type { IntegrationTest } from "../../helpers.js";
+import {
+    getResponseContent,
+    setupIntegrationTest,
+    defaultTestConfig,
+    defaultDriverOptions,
+    getDataFromUntrustedContent,
+} from "../../helpers.js";
+import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -45,16 +54,27 @@ interface MongoDBIntegrationTest {
     randomDbName: () => string;
 }
 
+export type MongoDBIntegrationTestCase = IntegrationTest &
+    MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> };
+
 export function describeWithMongoDB(
     name: string,
-    fn: (integration: IntegrationTest & MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> }) => void,
-    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig
+    fn: (integration: MongoDBIntegrationTestCase) => void,
+    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
+    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
+    downloadOptions: MongoClusterOptions["downloadOptions"] = { enterprise: false },
+    serverArgs: string[] = []
 ): void {
     describe(name, () => {
-        const mdbIntegration = setupMongoDBIntegrationTest();
-        const integration = setupIntegrationTest(() => ({
-            ...getUserConfig(mdbIntegration),
-        }));
+        const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions, serverArgs);
+        const integration = setupIntegrationTest(
+            () => ({
+                ...getUserConfig(mdbIntegration),
+            }),
+            () => ({
+                ...getDriverOptions(mdbIntegration),
+            })
+        );
 
         fn({
             ...integration,
@@ -72,7 +92,10 @@ export function describeWithMongoDB(
     });
 }
 
-export function setupMongoDBIntegrationTest(): MongoDBIntegrationTest {
+export function setupMongoDBIntegrationTest(
+    downloadOptions: MongoClusterOptions["downloadOptions"],
+    serverArgs: string[]
+): MongoDBIntegrationTest {
     let mongoCluster: MongoCluster | undefined;
     let mongoClient: MongoClient | undefined;
     let randomDbName: string;
@@ -101,7 +124,9 @@ export function setupMongoDBIntegrationTest(): MongoDBIntegrationTest {
                     tmpDir: dbsDir,
                     logDir: path.join(tmpDir, "mongodb-runner", "logs"),
                     topology: "standalone",
-                    version: "8.0.10",
+                    version: downloadOptions?.version ?? "8.0.12",
+                    downloadOptions,
+                    args: serverArgs,
                 });
 
                 return;
@@ -243,12 +268,21 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
 }
 
 export function getDocsFromUntrustedContent(content: string): unknown[] {
-    const lines = content.split("\n");
-    const startIdx = lines.findIndex((line) => line.trim().startsWith("["));
-    const endIdx = lines.length - 1 - [...lines].reverse().findIndex((line) => line.trim().endsWith("]"));
-    if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
-        throw new Error("Could not find JSON array in content");
-    }
-    const json = lines.slice(startIdx, endIdx + 1).join("\n");
-    return JSON.parse(json) as unknown[];
+    const data = getDataFromUntrustedContent(content);
+
+    return JSON.parse(data) as unknown[];
+}
+
+export async function isCommunityServer(integration: MongoDBIntegrationTestCase): Promise<boolean> {
+    const client = integration.mongoClient();
+    const buildInfo = await client.db("_").command({ buildInfo: 1 });
+    const modules: string[] = buildInfo.modules as string[];
+
+    return !modules.includes("enterprise");
+}
+
+export async function getServerVersion(integration: MongoDBIntegrationTestCase): Promise<string> {
+    const client = integration.mongoClient();
+    const serverStatus = await client.db("admin").admin().serverStatus();
+    return serverStatus.version as string;
 }

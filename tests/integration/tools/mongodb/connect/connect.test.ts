@@ -1,5 +1,6 @@
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import {
+    defaultDriverOptions,
     getResponseContent,
     getResponseElements,
     validateThrowsForInvalidArguments,
@@ -138,10 +139,13 @@ describeWithMongoDB(
 );
 
 describe("Connect tool when disabled", () => {
-    const integration = setupIntegrationTest(() => ({
-        ...defaultTestConfig,
-        disabledTools: ["connect"],
-    }));
+    const integration = setupIntegrationTest(
+        () => ({
+            ...defaultTestConfig,
+            disabledTools: ["connect"],
+        }),
+        () => defaultDriverOptions
+    );
 
     it("is not suggested when querying MongoDB disconnected", async () => {
         const response = await integration.mcpClient().callTool({

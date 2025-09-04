@@ -1,16 +1,20 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "./inMemoryTransport.js";
-import { Server } from "../../src/server.js";
-import { UserConfig } from "../../src/common/config.js";
-import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Session } from "../../src/common/session.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
-import { config } from "../../src/common/config.js";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ConnectionManager } from "../../src/common/connectionManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
+import { Session } from "../../src/common/session.js";
+import { Server } from "../../src/server.js";
+import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "./inMemoryTransport.js";
+import type { UserConfig, DriverOptions } from "../../src/common/config.js";
+import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { config, driverOptions } from "../../src/common/config.js";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../src/common/connectionManager.js";
+import { DeviceId } from "../../src/helpers/deviceId.js";
+import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 interface ParameterInfo {
     name: string;
@@ -31,14 +35,25 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-export function setupIntegrationTest(getUserConfig: () => UserConfig): IntegrationTest {
+export const defaultDriverOptions: DriverOptions = {
+    ...driverOptions,
+};
+
+export function setupIntegrationTest(
+    getUserConfig: () => UserConfig,
+    getDriverOptions: () => DriverOptions
+): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
+    let deviceId: DeviceId | undefined;
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
+        const driverOptions = getDriverOptions();
+
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
+        const logger = new CompositeLogger();
 
         await serverTransport.start();
         await clientTransport.start();
@@ -56,9 +71,10 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             }
         );
 
-        const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init(userConfig, logger);
-        const connectionManager = new ConnectionManager();
+
+        deviceId = DeviceId.create(logger);
+        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
@@ -67,17 +83,18 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
             logger,
             exportsManager,
             connectionManager,
+            keychain: new Keychain(),
         });
 
         // Mock hasValidAccessToken for tests
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
+        if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create(session, userConfig);
+        const telemetry = Telemetry.create(session, userConfig, deviceId);
 
         mcpServer = new Server({
             session,
@@ -87,6 +104,7 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
                 name: "test-server",
                 version: "5.2.3",
             }),
+            connectionErrorHandler,
         });
 
         await mcpServer.connect(serverTransport);
@@ -105,6 +123,9 @@ export function setupIntegrationTest(getUserConfig: () => UserConfig): Integrati
 
         await mcpServer?.close();
         mcpServer = undefined;
+
+        deviceId?.close();
+        deviceId = undefined;
     });
 
     const getMcpClient = (): Client => {
@@ -290,4 +311,45 @@ export function resourceChangedNotification(client: Client, uri: string): Promis
             }
         });
     });
+}
+
+export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>): string {
+    return JSON.stringify(response.content, undefined, 2);
+}
+
+export function waitUntil<T extends ConnectionState>(
+    tag: T["tag"],
+    cm: ConnectionManager,
+    signal: AbortSignal,
+    additionalCondition?: (state: T) => boolean
+): Promise<T> {
+    let ts: NodeJS.Timeout | undefined;
+
+    return new Promise<T>((resolve, reject) => {
+        ts = setInterval(() => {
+            if (signal.aborted) {
+                return reject(new Error(`Aborted: ${signal.reason}`));
+            }
+
+            const status = cm.currentConnectionState;
+            if (status.tag === tag) {
+                if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
+                    return resolve(status as T);
+                }
+            }
+        }, 100);
+    }).finally(() => {
+        if (ts !== undefined) {
+            clearInterval(ts);
+        }
+    });
+}
+
+export function getDataFromUntrustedContent(content: string): string {
+    const regex = /^[ \t]*<untrusted-user-data-[0-9a-f\\-]*>(?<data>.*)^[ \t]*<\/untrusted-user-data-[0-9a-f\\-]*>/gms;
+    const match = regex.exec(content);
+    if (!match || !match.groups || !match.groups.data) {
+        throw new Error("Could not find untrusted user data in content");
+    }
+    return match.groups.data.trim();
 }

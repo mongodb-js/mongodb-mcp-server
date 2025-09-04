@@ -1,8 +1,31 @@
-import { describe, it, expect } from "vitest";
-import { setupUserConfig, UserConfig, defaultUserConfig } from "../../../src/common/config.js";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { UserConfig } from "../../../src/common/config.js";
+import {
+    setupUserConfig,
+    defaultUserConfig,
+    warnAboutDeprecatedCliArgs,
+    registerKnownSecretsInRootKeychain,
+} from "../../../src/common/config.js";
+import type { CliOptions } from "@mongosh/arg-parser";
+import { Keychain } from "../../../src/common/keychain.js";
+import type { Secret } from "../../../src/common/keychain.js";
 
 describe("config", () => {
     describe("env var parsing", () => {
+        describe("mongodb urls", () => {
+            it("should not try to parse a multiple-host urls", () => {
+                const actual = setupUserConfig({
+                    env: {
+                        MDB_MCP_CONNECTION_STRING: "mongodb://user:password@host1,host2,host3/",
+                    },
+                    cli: [],
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+            });
+        });
+
         describe("string cases", () => {
             const testCases = [
                 { envVar: "MDB_MCP_API_BASE_URL", property: "apiBaseUrl", value: "http://test.com" },
@@ -58,6 +81,16 @@ describe("config", () => {
     });
 
     describe("cli parsing", () => {
+        it("should not try to parse a multiple-host urls", () => {
+            const actual = setupUserConfig({
+                cli: ["myself", "--", "--connectionString", "mongodb://user:password@host1,host2,host3/"],
+                env: {},
+                defaults: defaultUserConfig,
+            });
+
+            expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+        });
+
         describe("string use cases", () => {
             const testCases = [
                 {
@@ -602,5 +635,77 @@ describe("config", () => {
                 expect(actual.loggers).toEqual(["stderr"]);
             });
         });
+    });
+});
+
+describe("Deprecated CLI arguments", () => {
+    const referDocMessage =
+        "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
+
+    type TestCase = { readonly cliArg: keyof (CliOptions & UserConfig); readonly warning: string };
+    const testCases = [
+        {
+            cliArg: "connectionString",
+            warning:
+                "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable.",
+        },
+    ] as TestCase[];
+
+    for (const { cliArg, warning } of testCases) {
+        describe(`deprecation behaviour of ${cliArg}`, () => {
+            let cliArgs: CliOptions & UserConfig & { _?: string[] };
+            let warn: (msg: string) => void;
+
+            beforeEach(() => {
+                cliArgs = { [cliArg]: "RandomString" } as unknown as CliOptions & UserConfig & { _?: string[] };
+                warn = vi.fn();
+
+                warnAboutDeprecatedCliArgs(cliArgs, warn);
+            });
+
+            it(`warns the usage of ${cliArg} as it is deprecated`, () => {
+                expect(warn).toHaveBeenCalledWith(warning);
+            });
+
+            it(`shows the reference message when ${cliArg} was passed`, () => {
+                expect(warn).toHaveBeenCalledWith(referDocMessage);
+            });
+        });
+    }
+
+    describe("keychain management", () => {
+        type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
+        const testCases = [
+            { cliArg: "apiClientId", secretKind: "user" },
+            { cliArg: "apiClientSecret", secretKind: "password" },
+            { cliArg: "awsAccessKeyId", secretKind: "password" },
+            { cliArg: "awsIamSessionToken", secretKind: "password" },
+            { cliArg: "awsSecretAccessKey", secretKind: "password" },
+            { cliArg: "awsSessionToken", secretKind: "password" },
+            { cliArg: "password", secretKind: "password" },
+            { cliArg: "tlsCAFile", secretKind: "url" },
+            { cliArg: "tlsCRLFile", secretKind: "url" },
+            { cliArg: "tlsCertificateKeyFile", secretKind: "url" },
+            { cliArg: "tlsCertificateKeyFilePassword", secretKind: "password" },
+            { cliArg: "username", secretKind: "user" },
+        ] as TestCase[];
+        let keychain: Keychain;
+
+        beforeEach(() => {
+            keychain = Keychain.root;
+            keychain.clearAllSecrets();
+        });
+
+        afterEach(() => {
+            keychain.clearAllSecrets();
+        });
+
+        for (const { cliArg, secretKind } of testCases) {
+            it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
+                registerKnownSecretsInRootKeychain({ [cliArg]: cliArg });
+
+                expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
+            });
+        }
     });
 });

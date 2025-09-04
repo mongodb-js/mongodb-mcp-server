@@ -1,10 +1,10 @@
-import { LogId } from "../common/logger.js";
-import { Server } from "../server.js";
-import { TransportRunnerBase } from "./base.js";
-import { JSONRPCMessage, JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { EJSON } from "bson";
+import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { UserConfig } from "../common/config.js";
+import { LogId } from "../common/logger.js";
+import type { Server } from "../server.js";
+import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 
 // This is almost a copy of ReadBuffer from @modelcontextprotocol/sdk
 // but it uses EJSON.parse instead of JSON.parse to handle BSON types
@@ -53,13 +53,13 @@ export function createStdioTransport(): StdioServerTransport {
 export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
 
-    constructor(userConfig: UserConfig) {
-        super(userConfig);
+    constructor(config: TransportRunnerConfig) {
+        super(config);
     }
 
     async start(): Promise<void> {
         try {
-            this.server = this.setupServer(this.userConfig);
+            this.server = await this.setupServer();
 
             const transport = createStdioTransport();
 
@@ -74,7 +74,7 @@ export class StdioRunner extends TransportRunnerBase {
         }
     }
 
-    async close(): Promise<void> {
+    async closeTransport(): Promise<void> {
         await this.server?.close();
     }
 }

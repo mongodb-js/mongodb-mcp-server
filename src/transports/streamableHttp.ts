@@ -1,12 +1,11 @@
 import express from "express";
-import http from "http";
+import type http from "http";
+import { randomUUID } from "crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { TransportRunnerBase } from "./base.js";
-import { UserConfig } from "../common/config.js";
 import { LogId } from "../common/logger.js";
-import { randomUUID } from "crypto";
 import { SessionStore } from "../common/sessionStore.js";
+import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -18,8 +17,20 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
     private sessionStore!: SessionStore;
 
-    constructor(userConfig: UserConfig) {
-        super(userConfig);
+    constructor(config: TransportRunnerConfig) {
+        super(config);
+    }
+
+    public get serverAddress(): string {
+        const result = this.httpServer?.address();
+        if (typeof result === "string") {
+            return result;
+        }
+        if (typeof result === "object" && result) {
+            return `http://${result.address}:${result.port}`;
+        }
+
+        throw new Error("Server is not started yet");
     }
 
     async start(): Promise<void> {
@@ -32,6 +43,17 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
+        app.use((req, res, next) => {
+            for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
+                const header = req.headers[key.toLowerCase()];
+                if (!header || header !== value) {
+                    res.status(403).send({ error: `Invalid value for header "${key}"` });
+                    return;
+                }
+            }
+
+            next();
+        });
 
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
@@ -50,7 +72,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     jsonrpc: "2.0",
                     error: {
                         code: JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
-                        message: `session id is invalid`,
+                        message: "session id is invalid",
                     },
                 });
                 return;
@@ -61,7 +83,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     jsonrpc: "2.0",
                     error: {
                         code: JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
-                        message: `session not found`,
+                        message: "session not found",
                     },
                 });
                 return;
@@ -89,13 +111,49 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     return;
                 }
 
-                const server = this.setupServer(this.userConfig);
+                const server = await this.setupServer();
+                let keepAliveLoop: NodeJS.Timeout;
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: (): string => randomUUID().toString(),
                     onsessioninitialized: (sessionId): void => {
                         server.session.logger.setAttribute("sessionId", sessionId);
 
                         this.sessionStore.setSession(sessionId, transport, server.session.logger);
+
+                        let failedPings = 0;
+                        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                        keepAliveLoop = setInterval(async () => {
+                            try {
+                                this.logger.debug({
+                                    id: LogId.streamableHttpTransportKeepAlive,
+                                    context: "streamableHttpTransport",
+                                    message: "Sending ping",
+                                });
+
+                                await transport.send({
+                                    jsonrpc: "2.0",
+                                    method: "ping",
+                                });
+                                failedPings = 0;
+                            } catch (err) {
+                                try {
+                                    failedPings++;
+                                    this.logger.warning({
+                                        id: LogId.streamableHttpTransportKeepAliveFailure,
+                                        context: "streamableHttpTransport",
+                                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                                    });
+
+                                    if (failedPings > 3) {
+                                        clearInterval(keepAliveLoop);
+                                        await transport.close();
+                                    }
+                                } catch {
+                                    // Ignore the error of the transport close as there's nothing else
+                                    // we can do at this point.
+                                }
+                            }
+                        }, 30_000);
                     },
                     onsessionclosed: async (sessionId): Promise<void> => {
                         try {
@@ -111,6 +169,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 });
 
                 transport.onclose = (): void => {
+                    clearInterval(keepAliveLoop);
+
                     server.close().catch((error) => {
                         this.logger.error({
                             id: LogId.streamableHttpTransportCloseFailure,
@@ -142,12 +202,12 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         this.logger.info({
             id: LogId.streamableHttpTransportStarted,
             context: "streamableHttpTransport",
-            message: `Server started on http://${this.userConfig.httpHost}:${this.userConfig.httpPort}`,
+            message: `Server started on ${this.serverAddress}`,
             noRedaction: true,
         });
     }
 
-    async close(): Promise<void> {
+    async closeTransport(): Promise<void> {
         await Promise.all([
             this.sessionStore.closeAllSessions(),
             new Promise<void>((resolve, reject) => {

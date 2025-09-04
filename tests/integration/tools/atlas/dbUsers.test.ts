@@ -1,8 +1,8 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { Keychain } from "../../../../src/common/keychain.js";
 
 describeWithAtlas("db users", (integration) => {
     withProject(integration, ({ getProjectId }) => {
@@ -29,11 +29,17 @@ describeWithAtlas("db users", (integration) => {
         };
 
         afterEach(async () => {
+            const projectId = getProjectId();
+            if (!projectId) {
+                // projectId may be empty if beforeAll failed
+                return;
+            }
+
             try {
                 await integration.mcpServer().session.apiClient.deleteDatabaseUser({
                     params: {
                         path: {
-                            groupId: getProjectId(),
+                            groupId: projectId,
                             username: userName,
                             databaseName: "admin",
                         },
@@ -48,6 +54,14 @@ describeWithAtlas("db users", (integration) => {
         });
 
         describe("atlas-create-db-user", () => {
+            beforeEach(() => {
+                Keychain.root.clearAllSecrets();
+            });
+
+            afterEach(() => {
+                Keychain.root.clearAllSecrets();
+            });
+
             it("should have correct metadata", async () => {
                 const { tools } = await integration.mcpClient().listTools();
                 const createDbUser = tools.find((tool) => tool.name === "atlas-create-db-user");
@@ -69,6 +83,16 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain("created successfully");
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).not.toContain("testpassword");
+
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: userName,
+                    kind: "user",
+                });
+
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: "testpassword",
+                    kind: "password",
+                });
             });
 
             it("should create a database user with generated password", async () => {
@@ -78,6 +102,24 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain("created successfully");
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).toContain("with password: `");
+
+                const passwordStart = elements[0]?.text.lastIndexOf(":") ?? -1;
+                const passwordEnd = elements[0]?.text.length ?? 1 - 1;
+
+                const password = elements[0]?.text
+                    .substring(passwordStart + 1, passwordEnd - 1)
+                    .replace(/`/g, "")
+                    .trim();
+
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: userName,
+                    kind: "user",
+                });
+
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: password,
+                    kind: "password",
+                });
             });
 
             it("should add current IP to access list when creating a database user", async () => {
@@ -101,17 +143,21 @@ describeWithAtlas("db users", (integration) => {
                 expectDefined(listDbUsers.inputSchema.properties);
                 expect(listDbUsers.inputSchema.properties).toHaveProperty("projectId");
             });
+
             it("returns database users by project", async () => {
                 const projectId = getProjectId();
 
                 await createUserWithMCP();
 
-                const response = (await integration
+                const response = await integration
                     .mcpClient()
-                    .callTool({ name: "atlas-list-db-users", arguments: { projectId } })) as CallToolResult;
-                expect(response.content).toBeInstanceOf(Array);
-                expect(response.content).toHaveLength(1);
-                expect(response.content[0]?.text).toContain(userName);
+                    .callTool({ name: "atlas-list-db-users", arguments: { projectId } });
+
+                const elements = getResponseElements(response);
+                expect(elements).toHaveLength(2);
+                expect(elements[0]?.text).toContain("Found 1 database users in project");
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(userName);
             });
         });
     });

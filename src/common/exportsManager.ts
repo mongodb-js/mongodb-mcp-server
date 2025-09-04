@@ -3,14 +3,16 @@ import path from "path";
 import fs from "fs/promises";
 import EventEmitter from "events";
 import { createWriteStream } from "fs";
-import { FindCursor } from "mongodb";
-import { EJSON, EJSONOptions, ObjectId } from "bson";
+import type { AggregationCursor, FindCursor } from "mongodb";
+import type { EJSONOptions } from "bson";
+import { EJSON, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
-import { MongoLogId } from "mongodb-log-writer";
+import type { MongoLogId } from "mongodb-log-writer";
 
-import { UserConfig } from "./config.js";
-import { LoggerBase, LogId } from "./logger.js";
+import type { UserConfig } from "./config.js";
+import type { LoggerBase } from "./logger.js";
+import { LogId } from "./logger.js";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
@@ -54,7 +56,7 @@ type StoredExport = ReadyExport | InProgressExport;
  *
  * Ref Cursor: https://forum.cursor.com/t/cursor-mcp-resource-feature-support/50987
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
-type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
+export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
 export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
 
@@ -154,7 +156,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         exportTitle,
         jsonExportFormat,
     }: {
-        input: FindCursor;
+        input: FindCursor | AggregationCursor;
         exportName: string;
         exportTitle: string;
         jsonExportFormat: JSONExportFormat;
@@ -194,7 +196,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         jsonExportFormat,
         inProgressExport,
     }: {
-        input: FindCursor;
+        input: FindCursor | AggregationCursor;
         jsonExportFormat: JSONExportFormat;
         inProgressExport: InProgressExport;
     }): Promise<void> {

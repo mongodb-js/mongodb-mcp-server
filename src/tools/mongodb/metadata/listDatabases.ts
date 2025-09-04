@@ -1,7 +1,8 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import * as bson from "bson";
-import { OperationType } from "../../tool.js";
+import type * as bson from "bson";
+import type { OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 
 export class ListDatabasesTool extends MongoDBToolBase {
     public name = "list-databases";
@@ -14,12 +15,12 @@ export class ListDatabasesTool extends MongoDBToolBase {
         const dbs = (await provider.listDatabases("")).databases as { name: string; sizeOnDisk: bson.Long }[];
 
         return {
-            content: dbs.map((db) => {
-                return {
-                    text: `Name: ${db.name}, Size: ${db.sizeOnDisk.toString()} bytes`,
-                    type: "text",
-                };
-            }),
+            content: formatUntrustedData(
+                `Found ${dbs.length} databases`,
+                dbs.length > 0
+                    ? dbs.map((db) => `Name: ${db.name}, Size: ${db.sizeOnDisk.toString()} bytes`).join("\n")
+                    : undefined
+            ),
         };
     }
 }

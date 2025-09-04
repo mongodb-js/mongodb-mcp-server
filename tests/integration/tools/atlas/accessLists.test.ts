@@ -1,6 +1,5 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeWithAtlas, withProject } from "./atlasHelpers.js";
-import { expectDefined } from "../../helpers.js";
+import { expectDefined, getResponseElements } from "../../helpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/accessListUtils.js";
 
@@ -28,16 +27,18 @@ describeWithAtlas("ip access lists", (integration) => {
             const apiClient = integration.mcpServer().session.apiClient;
 
             const projectId = getProjectId();
-
-            for (const value of values) {
-                await apiClient.deleteProjectIpAccessList({
-                    params: {
-                        path: {
-                            groupId: projectId,
-                            entryValue: value,
+            if (projectId) {
+                // projectId may be empty if beforeAll failed.
+                for (const value of values) {
+                    await apiClient.deleteProjectIpAccessList({
+                        params: {
+                            path: {
+                                groupId: projectId,
+                                entryValue: value,
+                            },
                         },
-                    },
-                });
+                    });
+                }
             }
         });
 
@@ -58,7 +59,7 @@ describeWithAtlas("ip access lists", (integration) => {
             it("should create an access list", async () => {
                 const projectId = getProjectId();
 
-                const response = (await integration.mcpClient().callTool({
+                const response = await integration.mcpClient().callTool({
                     name: "atlas-create-access-list",
                     arguments: {
                         projectId,
@@ -66,10 +67,10 @@ describeWithAtlas("ip access lists", (integration) => {
                         cidrBlocks: cidrBlocks,
                         currentIpAddress: true,
                     },
-                })) as CallToolResult;
-                expect(response.content).toBeInstanceOf(Array);
-                expect(response.content).toHaveLength(1);
-                expect(response.content[0]?.text).toContain("IP/CIDR ranges added to access list");
+                });
+                const elements = getResponseElements(response.content);
+                expect(elements).toHaveLength(1);
+                expect(elements[0]?.text).toContain("IP/CIDR ranges added to access list");
             });
         });
 
@@ -86,13 +87,15 @@ describeWithAtlas("ip access lists", (integration) => {
             it("returns access list data", async () => {
                 const projectId = getProjectId();
 
-                const response = (await integration
+                const response = await integration
                     .mcpClient()
-                    .callTool({ name: "atlas-inspect-access-list", arguments: { projectId } })) as CallToolResult;
-                expect(response.content).toBeInstanceOf(Array);
-                expect(response.content).toHaveLength(1);
+                    .callTool({ name: "atlas-inspect-access-list", arguments: { projectId } });
+
+                const elements = getResponseElements(response);
+                expect(elements).toHaveLength(2);
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
                 for (const value of values) {
-                    expect(response.content[0]?.text).toContain(value);
+                    expect(elements[1]?.text).toContain(value);
                 }
             });
         });
