@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
-import { AtlasLocalTools } from "./tools/atlasLocal/tools.js";
+import { BuildAtlasLocalTools } from "./tools/atlasLocal/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logger.js";
@@ -62,7 +62,7 @@ export class Server {
         this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true, subscribe: true } });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
-        this.registerTools();
+        await this.registerTools();
 
         // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
@@ -193,8 +193,9 @@ export class Server {
         this.telemetry.emitEvents([event]).catch(() => {});
     }
 
-    private registerTools(): void {
-        for (const toolConstructor of [...AtlasTools, ...AtlasLocalTools, ...MongoDbTools]) {
+    private async registerTools(): Promise<void> {
+        const atlasLocalTools = await BuildAtlasLocalTools();
+        for (const toolConstructor of [...AtlasTools, ...atlasLocalTools, ...MongoDbTools]) {
             const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
             if (tool.register(this)) {
                 this.tools.push(tool);

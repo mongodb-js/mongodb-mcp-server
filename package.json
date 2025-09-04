@@ -96,6 +96,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.4",
+    "@mongodb-js-preview/atlas-local": "^0.0.0-preview.1",
     "@mongodb-js/device-id": "^0.3.1",
     "@mongodb-js/devtools-connect": "^3.9.3",
     "@mongodb-js/devtools-proxy-support": "^0.5.2",
