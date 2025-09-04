@@ -4,8 +4,9 @@ import { config, driverOptions } from "../../src/common/config.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";
-import { ConnectionManager } from "../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 describe("Telemetry", () => {
     it("should resolve the actual device ID", async () => {
@@ -19,7 +20,8 @@ describe("Telemetry", () => {
                 apiBaseUrl: "",
                 logger,
                 exportsManager: ExportsManager.init(config, logger),
-                connectionManager: new ConnectionManager(config, driverOptions, logger, deviceId),
+                connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+                keychain: new Keychain(),
             }),
             config,
             deviceId

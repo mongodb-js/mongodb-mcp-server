@@ -2,15 +2,16 @@ import type {
     ConnectionManagerEvents,
     ConnectionStateConnected,
     ConnectionStringAuthType,
+    TestConnectionManager,
 } from "../../../src/common/connectionManager.js";
-import { ConnectionManager } from "../../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 
 describeWithMongoDB("Connection Manager", (integration) => {
-    function connectionManager(): ConnectionManager {
-        return integration.mcpServer().session.connectionManager;
+    function connectionManager(): TestConnectionManager {
+        return integration.mcpServer().session.connectionManager as TestConnectionManager;
     }
 
     afterEach(async () => {
@@ -43,7 +44,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
             };
 
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
-                connectionManager().on(event as keyof ConnectionManagerEvents, spy);
+                connectionManager().events.on(event as keyof ConnectionManagerEvents, spy);
             }
 
             await connectionManager().connect({
@@ -224,9 +225,12 @@ describe("Connection Manager connection type inference", () => {
 
     for (const { userConfig, connectionString, connectionType } of testCases) {
         it(`infers ${connectionType} from ${connectionString}`, () => {
-            const actualConnectionType = ConnectionManager.inferConnectionTypeFromSettings(userConfig as UserConfig, {
-                connectionString,
-            });
+            const actualConnectionType = MCPConnectionManager.inferConnectionTypeFromSettings(
+                userConfig as UserConfig,
+                {
+                    connectionString,
+                }
+            );
 
             expect(actualConnectionType).toBe(connectionType);
         });

@@ -4,9 +4,10 @@ import { Session } from "../../../../src/common/session.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { config, driverOptions } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
-import { ConnectionManager } from "../../../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
+import { Keychain } from "../../../../src/common/keychain.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -15,7 +16,8 @@ describe("debug resource", () => {
         apiBaseUrl: "",
         logger,
         exportsManager: ExportsManager.init(config, logger),
-        connectionManager: new ConnectionManager(config, driverOptions, logger, deviceId),
+        connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+        keychain: new Keychain(),
     });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" }, deviceId);
 

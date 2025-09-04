@@ -15,6 +15,7 @@ import type {
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
+import type { Keychain } from "./keychain.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -23,6 +24,7 @@ export interface SessionOptions {
     logger: CompositeLogger;
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
+    keychain: Keychain;
 }
 
 export type SessionEvents = {
@@ -37,6 +39,8 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
+    readonly keychain: Keychain;
+
     mcpClient?: {
         name?: string;
         version?: string;
@@ -52,9 +56,11 @@ export class Session extends EventEmitter<SessionEvents> {
         logger,
         connectionManager,
         exportsManager,
+        keychain,
     }: SessionOptions) {
         super();
 
+        this.keychain = keychain;
         this.logger = logger;
         const credentials: ApiClientCredentials | undefined =
             apiClientId && apiClientSecret
@@ -67,10 +73,10 @@ export class Session extends EventEmitter<SessionEvents> {
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
-        this.connectionManager.on("connection-success", () => this.emit("connect"));
-        this.connectionManager.on("connection-time-out", (error) => this.emit("connection-error", error));
-        this.connectionManager.on("connection-close", () => this.emit("disconnect"));
-        this.connectionManager.on("connection-error", (error) => this.emit("connection-error", error));
+        this.connectionManager.events.on("connection-success", () => this.emit("connect"));
+        this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
+        this.connectionManager.events.on("connection-close", () => this.emit("disconnect"));
+        this.connectionManager.events.on("connection-error", (error) => this.emit("connection-error", error));
     }
 
     setMcpClient(mcpClient: Implementation | undefined): void {

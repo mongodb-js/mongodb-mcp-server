@@ -1,10 +1,12 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
-import { config, driverOptions } from "../../../src/common/config.js";
+import { describe, expect, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import { config } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
+import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { Keychain } from "../../../src/common/keychain.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -28,7 +30,7 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeAll(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner(config, driverOptions);
+                runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
             });
 
@@ -109,7 +111,7 @@ describe("StreamableHttpRunner", () => {
         try {
             for (let i = 0; i < 3; i++) {
                 config.httpPort = 0; // Use a random port for each runner
-                const runner = new StreamableHttpRunner(config, driverOptions);
+                const runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
                 runners.push(runner);
             }
@@ -137,8 +139,12 @@ describe("StreamableHttpRunner", () => {
         }
 
         it("can provide custom logger", async () => {
-            const logger = new CustomLogger();
-            const runner = new StreamableHttpRunner(config, driverOptions, [logger]);
+            const logger = new CustomLogger(new Keychain());
+            const runner = new StreamableHttpRunner({
+                userConfig: config,
+                createConnectionManager: createMCPConnectionManager,
+                additionalLoggers: [logger],
+            });
             await runner.start();
 
             const messages = logger.messages;
@@ -151,6 +157,28 @@ describe("StreamableHttpRunner", () => {
             expect(serverStartedMessage?.payload.message).toContain("Server started on");
             expect(serverStartedMessage?.payload.context).toBe("streamableHttpTransport");
             expect(serverStartedMessage?.level).toBe("info");
+        });
+    });
+
+    describe("with telemetry properties", () => {
+        afterEach(async () => {
+            await runner.close();
+            config.telemetry = oldTelemetry;
+            config.loggers = oldLoggers;
+            config.httpHeaders = {};
+        });
+
+        it("merges them with the base properties", async () => {
+            config.telemetry = "enabled";
+            runner = new StreamableHttpRunner({
+                userConfig: config,
+                telemetryProperties: { hosting_mode: "vscode-extension" },
+            });
+            await runner.start();
+
+            const server = await runner["setupServer"]();
+            const properties = server["telemetry"].getCommonProperties();
+            expect(properties.hosting_mode).toBe("vscode-extension");
         });
     });
 });

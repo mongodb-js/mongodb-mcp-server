@@ -10,9 +10,11 @@ import type { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { config, driverOptions } from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ConnectionState } from "../../src/common/connectionManager.js";
-import { ConnectionManager } from "../../src/common/connectionManager.js";
+import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
+import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 interface ParameterInfo {
     name: string;
@@ -72,7 +74,7 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
@@ -81,10 +83,11 @@ export function setupIntegrationTest(
             logger,
             exportsManager,
             connectionManager,
+            keychain: new Keychain(),
         });
 
         // Mock hasValidAccessToken for tests
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
+        if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
@@ -101,6 +104,7 @@ export function setupIntegrationTest(
                 name: "test-server",
                 version: "5.2.3",
             }),
+            connectionErrorHandler,
         });
 
         await mcpServer.connect(serverTransport);
