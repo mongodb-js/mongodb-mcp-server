@@ -56,7 +56,7 @@ type StoredExport = ReadyExport | InProgressExport;
  *
  * Ref Cursor: https://forum.cursor.com/t/cursor-mcp-resource-feature-support/50987
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
-type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
+export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
 export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
 
