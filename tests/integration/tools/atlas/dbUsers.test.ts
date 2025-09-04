@@ -39,6 +39,7 @@ describeWithAtlas("db users", (integration) => {
                 await integration.mcpServer().session.apiClient.deleteDatabaseUser({
                     params: {
                         path: {
+                            groupId: projectId,
                             username: userName,
                             databaseName: "admin",
                         },
