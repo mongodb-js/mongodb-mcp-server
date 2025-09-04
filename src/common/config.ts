@@ -114,7 +114,7 @@ export function validateConfigKey(key: string): { valid: boolean; suggestion?: s
             return { valid: false, suggestion: validKey };
         }
 
-        // else, infer something using levenhstein so we suggest a valid key
+        // else, infer something using levenshtein so we suggest a valid key
         const lev = levenshtein.get(key, validKey);
         if (lev < minLev) {
             minLev = lev;
