@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import type { MongoLogId, MongoLogWriter } from "mongodb-log-writer";
 import { mongoLogId, MongoLogManager } from "mongodb-log-writer";
-import redact from "mongodb-redact";
+import { redact } from "mongodb-redact";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
 import type { Server } from "../lib.js";
