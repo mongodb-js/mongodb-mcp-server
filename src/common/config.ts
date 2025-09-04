@@ -104,10 +104,10 @@ export function validateConfigKey(key: string): { valid: boolean; suggestion?: s
         return { valid: true };
     }
 
-    // find the closest match for a suggestion
     let minLev = Number.MAX_VALUE;
     let suggestion = "";
 
+    // find the closest match for a suggestion
     for (const validKey of ALL_CONFIG_KEYS) {
         // check if there is an exact case-insensitive match
         if (validKey.toLowerCase() === key.toLowerCase()) {
@@ -286,10 +286,6 @@ function parseEnvConfig(env: Record<string, unknown>): Partial<UserConfig> {
 
 function SNAKE_CASE_toCamelCase(str: string): string {
     return str.toLowerCase().replace(/([-_][a-z])/g, (group) => group.toUpperCase().replace("_", ""));
-}
-
-function camelCaseTo_SNAKE_CASE(str: string): string {
-    return str.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
 }
 
 // Right now we have arguments that are not compatible with the format used in mongosh.
