@@ -97,7 +97,7 @@ const ALL_CONFIG_KEYS = new Set(
         .concat(OPTIONS.array)
         .concat(OPTIONS.boolean)
         .concat(Object.keys(OPTIONS.alias))
-) as Set<string>;
+);
 
 export function validateConfigKey(key: string): { valid: boolean; suggestion?: string } {
     if (ALL_CONFIG_KEYS.has(key)) {
@@ -319,19 +319,14 @@ function parseCliConfig(args: string[]): CliOptions {
     return parsed;
 }
 
-export function warnAboutDeprecatedOrUnknownCliArgs(
-    args: CliOptions &
-        UserConfig & {
-            _?: string[];
-        } & any,
-    warn: (msg: string) => void
-): void {
+export function warnAboutDeprecatedOrUnknownCliArgs(args: object, warn: (msg: string) => void): void {
     let usedDeprecatedArgument = false;
     let usedInvalidArgument = false;
 
+    const knownArgs = args as UserConfig & CliOptions;
     // the first position argument should be used
     // instead of --connectionString, as it's how the mongosh works.
-    if (args.connectionString) {
+    if (knownArgs.connectionString) {
         usedDeprecatedArgument = true;
         warn(
             "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable."
