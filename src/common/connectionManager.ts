@@ -238,7 +238,7 @@ export class MCPConnectionManager extends ConnectionManager {
 
         if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
             try {
-                await this.currentConnectionState.serviceProvider?.close();
+                await this.currentConnectionState.serviceProvider?.close(true);
             } finally {
                 this.changeState("connection-close", {
                     tag: "disconnected",
