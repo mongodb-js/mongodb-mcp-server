@@ -256,7 +256,7 @@ function SNAKE_CASE_toCamelCase(str: string): string {
 // whatever is in mongosh.
 function parseCliConfig(args: string[]): CliOptions {
     const programArgs = args.slice(2);
-    const parsed = argv(programArgs, OPTIONS) as unknown as CliOptions &
+    const parsed = argv(programArgs, OPTIONS as unknown as argv.Options) as unknown as CliOptions &
         UserConfig & {
             _?: string[];
         };
