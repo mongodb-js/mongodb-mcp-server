@@ -34,3 +34,7 @@ export class Keychain {
         return [...this.secrets];
     }
 }
+
+export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void {
+    Keychain.root.register(value, kind);
+}

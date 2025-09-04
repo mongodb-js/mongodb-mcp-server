@@ -19,3 +19,5 @@ export type {
 } from "./common/connectionErrorHandler.js";
 export { ErrorCodes } from "./common/errors.js";
 export { Telemetry } from "./telemetry/telemetry.js";
+export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
+export type { Secret } from "./common/keychain.js";
