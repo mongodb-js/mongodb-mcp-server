@@ -192,7 +192,7 @@ function parseEnvConfig(env: Record<string, unknown>): Partial<UserConfig> {
         }
         if (path.length === 0) {
             // MongoDB URLs must not be preprocessed
-            if (value.startsWith("mongodb://") || value.startsWith("mongodb+srv://")) {
+            if (typeof value === "string" && (value.startsWith("mongodb://") || value.startsWith("mongodb+srv://"))) {
                 obj[currentField] = value;
                 return;
             }
