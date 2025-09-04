@@ -5,7 +5,7 @@ import type AtlasLocal from "@mongodb-js-preview/atlas-local";
 const atlasLocalTools = [ListDeploymentsTool];
 
 // Build the Atlas Local tools
-export const BuildAtlasLocalTools = async () => {
+export const BuildAtlasLocalTools = async (): Promise<typeof atlasLocalTools> => {
     // Initialize the Atlas Local client
     const client = await GetAtlasLocalClient();
 
@@ -13,7 +13,7 @@ export const BuildAtlasLocalTools = async () => {
     // On unsupported platforms, the client will be undefined
     if (client) {
         // Set the client on the tools
-        atlasLocalTools.forEach(tool => {
+        atlasLocalTools.forEach((tool) => {
             tool.prototype.client = client;
         });
     }
@@ -30,4 +30,4 @@ export const GetAtlasLocalClient = async (): Promise<AtlasLocal.Client | undefin
         console.warn("Atlas Local native binding not available:", error);
         return undefined;
     }
-}
+};

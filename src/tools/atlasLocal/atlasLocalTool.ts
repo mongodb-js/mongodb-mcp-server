@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata, ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
-import { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type AtlasLocal from "@mongodb-js-preview/atlas-local";
 
 export abstract class AtlasLocalToolBase extends ToolBase {
@@ -27,6 +27,7 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
     ): TelemetryToolMetadata {
         // TODO: include deployment id in the metadata where possible
+        void args; // this shuts up the eslint rule until we implement the TODO above
         return {};
     }
 }
