@@ -14,6 +14,7 @@ import type { ConnectionManager, ConnectionState } from "../../src/common/connec
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 interface ParameterInfo {
     name: string;
@@ -82,6 +83,7 @@ export function setupIntegrationTest(
             logger,
             exportsManager,
             connectionManager,
+            keychain: new Keychain(),
         });
 
         // Mock hasValidAccessToken for tests

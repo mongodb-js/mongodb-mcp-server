@@ -115,6 +115,9 @@ export class ConnectClusterTool extends AtlasToolBase {
         cn.password = password;
         cn.searchParams.set("authSource", "admin");
 
+        this.session.keychain.register(username, "user");
+        this.session.keychain.register(password, "password");
+
         return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
     }
 

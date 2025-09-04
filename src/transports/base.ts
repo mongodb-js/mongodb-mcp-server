@@ -8,6 +8,7 @@ import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
+import { Keychain } from "../common/keychain.js";
 import { createMCPConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import {
     type ConnectionErrorHandler,
@@ -39,16 +40,20 @@ export abstract class TransportRunnerBase {
         this.connectionErrorHandler = connectionErrorHandler;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger());
+            loggers.push(new ConsoleLogger(Keychain.root));
         }
 
         if (this.userConfig.loggers.includes("disk")) {
             loggers.push(
-                new DiskLogger(this.userConfig.logPath, (err) => {
-                    // If the disk logger fails to initialize, we log the error to stderr and exit
-                    console.error("Error initializing disk logger:", err);
-                    process.exit(1);
-                })
+                new DiskLogger(
+                    this.userConfig.logPath,
+                    (err) => {
+                        // If the disk logger fails to initialize, we log the error to stderr and exit
+                        console.error("Error initializing disk logger:", err);
+                        process.exit(1);
+                    },
+                    Keychain.root
+                )
             );
         }
 
@@ -77,6 +82,7 @@ export abstract class TransportRunnerBase {
             logger,
             exportsManager,
             connectionManager,
+            keychain: Keychain.root,
         });
 
         const telemetry = Telemetry.create(session, this.userConfig, this.deviceId);
@@ -92,7 +98,7 @@ export abstract class TransportRunnerBase {
         // We need to create the MCP logger after the server is constructed
         // because it needs the server instance
         if (this.userConfig.loggers.includes("mcp")) {
-            logger.addLogger(new McpLogger(result));
+            logger.addLogger(new McpLogger(result, Keychain.root));
         }
 
         return result;

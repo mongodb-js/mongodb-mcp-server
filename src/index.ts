@@ -42,6 +42,7 @@ import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
+import { Keychain } from "./common/keychain.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -121,7 +122,7 @@ main().catch((error: unknown) => {
     // At this point, we may be in a very broken state, so we can't rely on the logger
     // being functional. Instead, create a brand new ConsoleLogger and log the error
     // to the console.
-    const logger = new ConsoleLogger();
+    const logger = new ConsoleLogger(Keychain.root);
     logger.emergency({
         id: LogId.serverStartFailure,
         context: "server",
