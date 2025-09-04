@@ -5,7 +5,7 @@ import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "./keychain.js";
 import type { Secret } from "./keychain.js";
-import { get as levenshtein } from "fast-levenshtein";
+import levenshtein from "ts-levenshtein";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
@@ -115,7 +115,7 @@ export function validateConfigKey(key: string): { valid: boolean; suggestion?: s
         }
 
         // else, infer something using levenhstein so we suggest a valid key
-        const lev = levenshtein(key, validKey);
+        const lev = levenshtein.get(key, validKey);
         if (lev < minLev) {
             minLev = lev;
             suggestion = validKey;
