@@ -191,6 +191,12 @@ function parseEnvConfig(env: Record<string, unknown>): Partial<UserConfig> {
             return;
         }
         if (path.length === 0) {
+            // MongoDB URLs must not be preprocessed
+            if (value.startsWith("mongodb://") || value.startsWith("mongodb+srv://")) {
+                obj[currentField] = value;
+                return;
+            }
+
             const numberValue = Number(value);
             if (!isNaN(numberValue)) {
                 obj[currentField] = numberValue;
