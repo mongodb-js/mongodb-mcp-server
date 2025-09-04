@@ -3,8 +3,8 @@ import type { UserConfig } from "../../../src/common/config.js";
 import {
     setupUserConfig,
     defaultUserConfig,
-    warnAboutDeprecatedCliArgs,
     registerKnownSecretsInRootKeychain,
+    warnAboutDeprecatedOrUnknownCliArgs,
 } from "../../../src/common/config.js";
 import type { CliOptions } from "@mongosh/arg-parser";
 import { Keychain } from "../../../src/common/keychain.js";
@@ -638,7 +638,7 @@ describe("config", () => {
     });
 });
 
-describe("Deprecated CLI arguments", () => {
+describe("CLI arguments", () => {
     const referDocMessage =
         "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
 
@@ -660,7 +660,7 @@ describe("Deprecated CLI arguments", () => {
                 cliArgs = { [cliArg]: "RandomString" } as unknown as CliOptions & UserConfig & { _?: string[] };
                 warn = vi.fn();
 
-                warnAboutDeprecatedCliArgs(cliArgs, warn);
+                warnAboutDeprecatedOrUnknownCliArgs(cliArgs, warn);
             });
 
             it(`warns the usage of ${cliArg} as it is deprecated`, () => {
@@ -672,6 +672,56 @@ describe("Deprecated CLI arguments", () => {
             });
         });
     }
+
+    describe("invalid arguments", () => {
+        let warn: (msg: string) => void;
+
+        beforeEach(() => {
+            warn = vi.fn();
+        });
+
+        it("should show a warning when an argument is not known", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    wakanda: "",
+                },
+                warn
+            );
+
+            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'wakanda'.");
+            expect(warn).toHaveBeenCalledWith(
+                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            );
+        });
+
+        it("should show a suggestion when is a simple typo", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    readonli: "",
+                },
+                warn
+            );
+
+            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonli'. Did you mean 'readOnly'?");
+            expect(warn).toHaveBeenCalledWith(
+                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            );
+        });
+
+        it("should show a suggestion when the only change is on the case", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    readonly: "",
+                },
+                warn
+            );
+
+            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonly'. Did you mean 'readOnly'?");
+            expect(warn).toHaveBeenCalledWith(
+                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            );
+        });
+    });
 
     describe("keychain management", () => {
         type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };

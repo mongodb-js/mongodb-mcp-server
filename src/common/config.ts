@@ -5,6 +5,7 @@ import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "./keychain.js";
 import type { Secret } from "./keychain.js";
+import { get as levenshtein } from "fast-levenshtein";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
@@ -90,6 +91,44 @@ const OPTIONS = {
         "short-option-groups": false,
     },
 } as const;
+
+const ALL_CONFIG_KEYS = new Set(
+    (OPTIONS.string as readonly string[])
+        .concat(OPTIONS.array)
+        .concat(OPTIONS.boolean)
+        .concat(Object.keys(OPTIONS.alias))
+) as Set<string>;
+
+export function validateConfigKey(key: string): { valid: boolean; suggestion?: string } {
+    if (ALL_CONFIG_KEYS.has(key)) {
+        return { valid: true };
+    }
+
+    // find the closest match for a suggestion
+    let minLev = Number.MAX_VALUE;
+    let suggestion = "";
+
+    for (const validKey of ALL_CONFIG_KEYS) {
+        // check if there is an exact case-insensitive match
+        if (validKey.toLowerCase() === key.toLowerCase()) {
+            return { valid: false, suggestion: validKey };
+        }
+
+        // else, infer something using levenhstein so we suggest a valid key
+        const lev = levenshtein(key, validKey);
+        if (lev < minLev) {
+            minLev = lev;
+            suggestion = validKey;
+        }
+    }
+
+    if (minLev <= 2) {
+        // accept up to 2 typos
+        return { valid: false, suggestion };
+    }
+
+    return { valid: false };
+}
 
 function isConnectionSpecifier(arg: string | undefined): boolean {
     return (
@@ -249,6 +288,10 @@ function SNAKE_CASE_toCamelCase(str: string): string {
     return str.toLowerCase().replace(/([-_][a-z])/g, (group) => group.toUpperCase().replace("_", ""));
 }
 
+function camelCaseTo_SNAKE_CASE(str: string): string {
+    return str.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
+}
+
 // Right now we have arguments that are not compatible with the format used in mongosh.
 // An example is using --connectionString and positional arguments.
 // We will consolidate them in a way where the mongosh format takes precedence.
@@ -267,7 +310,7 @@ function parseCliConfig(args: string[]): CliOptions {
     // so we don't have a logger. For stdio, the warning will be received as a string in
     // the client and IDEs like VSCode do show the message in the log window. For HTTP,
     // it will be in the stdout of the process.
-    warnAboutDeprecatedCliArgs({ ...parsed, _: positionalArguments }, console.warn);
+    warnAboutDeprecatedOrUnknownCliArgs({ ...parsed, _: positionalArguments }, console.warn);
 
     // if we have a positional argument that matches a connection string
     // store it as the connection specifier and remove it from the argument
@@ -280,14 +323,16 @@ function parseCliConfig(args: string[]): CliOptions {
     return parsed;
 }
 
-export function warnAboutDeprecatedCliArgs(
+export function warnAboutDeprecatedOrUnknownCliArgs(
     args: CliOptions &
         UserConfig & {
             _?: string[];
-        },
+        } & any,
     warn: (msg: string) => void
 ): void {
     let usedDeprecatedArgument = false;
+    let usedInvalidArgument = false;
+
     // the first position argument should be used
     // instead of --connectionString, as it's how the mongosh works.
     if (args.connectionString) {
@@ -297,7 +342,24 @@ export function warnAboutDeprecatedCliArgs(
         );
     }
 
-    if (usedDeprecatedArgument) {
+    for (const providedKey of Object.keys(args)) {
+        if (providedKey === "_") {
+            // positional argument
+            continue;
+        }
+
+        const { valid, suggestion } = validateConfigKey(providedKey);
+        if (!valid) {
+            usedInvalidArgument = true;
+            if (suggestion) {
+                warn(`Invalid command line argument '${providedKey}'. Did you mean '${suggestion}'?`);
+            } else {
+                warn(`Invalid command line argument '${providedKey}'.`);
+            }
+        }
+    }
+
+    if (usedInvalidArgument || usedDeprecatedArgument) {
         warn("Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
     }
 }
