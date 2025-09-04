@@ -429,6 +429,42 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listDropIndexes(options: FetchOptions<operations["listDropIndexes"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listSchemaAdvice(options: FetchOptions<operations["listSchemaAdvice"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listClusterSuggestedIndexes(options: FetchOptions<operations["listClusterSuggestedIndexes"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listDatabaseUsers(options: FetchOptions<operations["listDatabaseUsers"]>) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/databaseUsers",
@@ -499,6 +535,18 @@ export class ApiClient {
     async getFlexCluster(options: FetchOptions<operations["getFlexCluster"]>) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listSlowQueries(options: FetchOptions<operations["listSlowQueries"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs",
             options
         );
         if (error) {

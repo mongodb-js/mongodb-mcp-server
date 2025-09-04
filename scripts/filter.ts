@@ -41,6 +41,10 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "deleteProjectIpAccessList",
         "listOrganizationProjects",
         "listAlerts",
+        "listDropIndexes",
+        "listClusterSuggestedIndexes",
+        "listSchemaAdvice",
+        "listSlowQueries",
     ];
 
     const filteredPaths = {};

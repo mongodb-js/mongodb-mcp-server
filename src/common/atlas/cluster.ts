@@ -96,3 +96,25 @@ export async function inspectCluster(apiClient: ApiClient, projectId: string, cl
         }
     }
 }
+
+export async function getProcessIdFromCluster(
+    apiClient: ApiClient,
+    projectId: string,
+    clusterName: string
+): Promise<string> {
+    try {
+        // Reuse existing inspectCluster method
+        const cluster = await inspectCluster(apiClient, projectId, clusterName);
+        if (!cluster.connectionString) {
+            throw new Error("No connection string available for cluster");
+        }
+        // Extract host:port from connection string
+        const url = new URL(cluster.connectionString);
+        const processId = `${url.hostname}:${url.port || "27017"}`;
+        return processId;
+    } catch (error) {
+        throw new Error(
+            `Failed to get processId from cluster: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+}
