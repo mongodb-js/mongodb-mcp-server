@@ -74,6 +74,16 @@ describe("config", () => {
     });
 
     describe("cli parsing", () => {
+        it("should not try to parse a multiple-host urls", () => {
+            const actual = setupUserConfig({
+                cli: ["myself", "--", "--connectionString", "mongodb://user:password@host1,host2,host3/"],
+                env: {},
+                defaults: defaultUserConfig,
+            });
+
+            expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+        });
+
         describe("string use cases", () => {
             const testCases = [
                 {
