@@ -11,7 +11,7 @@ describe("Server integration test", () => {
                 expectDefined(tools);
                 expect(tools.tools.length).toBeGreaterThan(0);
 
-                const atlasTools = tools.tools.filter((tool) => tool.name.startsWith("atlas-"));
+                const atlasTools = tools.tools.filter((tool) => tool.name.startsWith("atlas-") && !tool.name.startsWith("atlas-local-"));
                 expect(atlasTools.length).toBeLessThanOrEqual(0);
             });
         },

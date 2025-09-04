@@ -10,7 +10,7 @@ describeWithMongoDB("StdioRunner", (integration) => {
         beforeAll(async () => {
             transport = new StdioClientTransport({
                 command: "node",
-                args: ["dist/index.js"],
+                args: ["dist/index.js", "--disableTools", "atlas-local"],
                 env: {
                     MDB_MCP_TRANSPORT: "stdio",
                     MDB_MCP_CONNECTION_STRING: integration.connectionString(),
