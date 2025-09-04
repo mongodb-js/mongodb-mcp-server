@@ -2,6 +2,7 @@ import { ClusterDescription20240805, FlexClusterDescription20241113 } from "./op
 import { ApiClient } from "./apiClient.js";
 import { LogId } from "../logger.js";
 
+const DEFAULT_PORT = "27017";
 export interface Cluster {
     name?: string;
     instanceType: "FREE" | "DEDICATED" | "FLEX";
@@ -103,14 +104,12 @@ export async function getProcessIdFromCluster(
     clusterName: string
 ): Promise<string> {
     try {
-        // Reuse existing inspectCluster method
         const cluster = await inspectCluster(apiClient, projectId, clusterName);
         if (!cluster.connectionString) {
             throw new Error("No connection string available for cluster");
         }
-        // Extract host:port from connection string
         const url = new URL(cluster.connectionString);
-        const processId = `${url.hostname}:${url.port || "27017"}`;
+        const processId = `${url.hostname}:${url.port || DEFAULT_PORT}`;
         return processId;
     } catch (error) {
         throw new Error(
