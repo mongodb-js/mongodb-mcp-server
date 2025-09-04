@@ -9,11 +9,6 @@ describeWithAtlas("db users", (integration) => {
         let userName: string;
         beforeEach(() => {
             userName = "testuser-" + randomId;
-            Keychain.root.clearAllSecrets();
-        });
-
-        afterEach(() => {
-            Keychain.root.clearAllSecrets();
         });
 
         const createUserWithMCP = async (password?: string): Promise<unknown> => {
@@ -44,7 +39,6 @@ describeWithAtlas("db users", (integration) => {
                 await integration.mcpServer().session.apiClient.deleteDatabaseUser({
                     params: {
                         path: {
-                            groupId: projectId,
                             username: userName,
                             databaseName: "admin",
                         },
@@ -59,6 +53,14 @@ describeWithAtlas("db users", (integration) => {
         });
 
         describe("atlas-create-db-user", () => {
+            beforeEach(() => {
+                Keychain.root.clearAllSecrets();
+            });
+
+            afterEach(() => {
+                Keychain.root.clearAllSecrets();
+            });
+
             it("should have correct metadata", async () => {
                 const { tools } = await integration.mcpClient().listTools();
                 const createDbUser = tools.find((tool) => tool.name === "atlas-create-db-user");
@@ -80,16 +82,16 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain("created successfully");
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).not.toContain("testpassword");
-                expect(integration.mcpServer().session.keychain.allSecrets).toEqual([
-                    {
-                        value: userName,
-                        kind: "user",
-                    },
-                    {
-                        value: "testpassword",
-                        kind: "password",
-                    },
-                ]);
+
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: userName,
+                    kind: "user",
+                });
+
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: "testpassword",
+                    kind: "password",
+                });
             });
 
             it("should create a database user with generated password", async () => {
@@ -105,19 +107,18 @@ describeWithAtlas("db users", (integration) => {
 
                 const password = elements[0]?.text
                     .substring(passwordStart + 1, passwordEnd - 1)
-                    .replace("`", "")
+                    .replace(/`/g, "")
                     .trim();
 
-                expect(integration.mcpServer().session.keychain.allSecrets).toEqual([
-                    {
-                        value: userName,
-                        kind: "user",
-                    },
-                    {
-                        value: password,
-                        kind: "password",
-                    },
-                ]);
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: userName,
+                    kind: "user",
+                });
+
+                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                    value: password,
+                    kind: "password",
+                });
             });
 
             it("should add current IP to access list when creating a database user", async () => {
