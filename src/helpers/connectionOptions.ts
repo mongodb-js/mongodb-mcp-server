@@ -1,5 +1,5 @@
 import type { MongoClientOptions } from "mongodb";
-import ConnectionString from "mongodb-connection-string-url";
+import { ConnectionString } from "mongodb-connection-string-url";
 
 export interface AppNameComponents {
     appName: string;

@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import type { MongoClientOptions } from "mongodb";
-import ConnectionString from "mongodb-connection-string-url";
+import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { type ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
