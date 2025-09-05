@@ -61,7 +61,6 @@ describeWithAtlas("projects", (integration) => {
             const response = await integration.mcpClient().callTool({ name: "atlas-list-projects", arguments: {} });
             const elements = getResponseElements(response);
             expect(elements).toHaveLength(2);
-            expect(elements[0]?.text).toMatch(/Found \d+ projects/);
             expect(elements[1]?.text).toContain("<untrusted-user-data-");
             expect(elements[1]?.text).toContain(projName);
             const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
@@ -73,6 +72,8 @@ describeWithAtlas("projects", (integration) => {
                 }
             }
             expect(found).toBe(true);
+
+            expect(elements[0]?.text).toBe(`Found ${data.length} projects`);
         });
     });
 });
