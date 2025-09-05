@@ -6,7 +6,6 @@ import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
-import { UserConfig } from "../../../common/config.js";
 
 export const AggregateArgs = {
     pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
