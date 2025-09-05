@@ -1,5 +1,5 @@
 import { LogId } from "../logger.js";
-import { ApiClient } from "./apiClient.js";
+import type { ApiClient } from "./apiClient.js";
 import { getProcessIdFromCluster } from "./cluster.js";
 
 export enum PerformanceAdvisorOperation {
@@ -105,17 +105,14 @@ export async function getSuggestedIndexes(
                 },
             },
         });
-        if (!response?.suggestedIndexes?.length) {
-            throw new Error("No suggested indexes found.");
-        }
-        return { suggestedIndexes: response.suggestedIndexes };
+        return { suggestedIndexes: response?.content?.suggestedIndexes ?? [] };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSuggestedIndexesFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list suggested indexes: ${err instanceof Error ? err.message : String(err)}`,
         });
-        throw new Error(`Failed to list suggested indexes.`);
+        throw new Error(`Failed to list suggested indexes: ${err instanceof Error ? err.message : String(err)}`);
     }
 }
 
@@ -137,17 +134,10 @@ export async function getDropIndexSuggestions(
                 },
             },
         });
-        if (
-            !response?.hiddenIndexes?.length &&
-            !response?.redundantIndexes?.length &&
-            !response?.unusedIndexes?.length
-        ) {
-            throw new Error("No drop index suggestions found.");
-        }
         return {
-            hiddenIndexes: response?.hiddenIndexes ?? [],
-            redundantIndexes: response?.redundantIndexes ?? [],
-            unusedIndexes: response?.unusedIndexes ?? [],
+            hiddenIndexes: response?.content?.hiddenIndexes ?? [],
+            redundantIndexes: response?.content?.redundantIndexes ?? [],
+            unusedIndexes: response?.content?.unusedIndexes ?? [],
         };
     } catch (err) {
         apiClient.logger.debug({
@@ -155,7 +145,7 @@ export async function getDropIndexSuggestions(
             context: "performanceAdvisorUtils",
             message: `Failed to list drop index suggestions: ${err instanceof Error ? err.message : String(err)}`,
         });
-        throw new Error(`Failed to list drop index suggestions.`);
+        throw new Error(`Failed to list drop index suggestions: ${err instanceof Error ? err.message : String(err)}`);
     }
 }
 
@@ -173,17 +163,14 @@ export async function getSchemaAdvice(
                 },
             },
         });
-        if (!response?.recommendations?.length) {
-            throw new Error("No schema advice found.");
-        }
-        return { recommendations: response.recommendations };
+        return { recommendations: response?.content?.recommendations ?? [] };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSchemaAdviceFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list schema advice: ${err instanceof Error ? err.message : String(err)}`,
         });
-        throw new Error(`Failed to list schema advice.`);
+        throw new Error(`Failed to list schema advice: ${err instanceof Error ? err.message : String(err)}`);
     }
 }
 
@@ -213,16 +200,13 @@ export async function getSlowQueries(
             },
         });
 
-        if (!response?.slowQueries?.length) {
-            throw new Error("No slow query logs found.");
-        }
-        return { slowQueryLogs: response.slowQueries };
+        return { slowQueryLogs: response?.content?.slowQueries ?? [] };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSlowQueryLogsFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list slow query logs: ${err instanceof Error ? err.message : String(err)}`,
         });
-        throw new Error(`Failed to list slow query logs.`);
+        throw new Error(`Failed to list slow query logs: ${err instanceof Error ? err.message : String(err)}`);
     }
 }

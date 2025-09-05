@@ -1,14 +1,14 @@
 import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { OperationType, ToolArgs } from "../../tool.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { OperationType, ToolArgs } from "../../tool.js";
 import {
     getSuggestedIndexes,
     getDropIndexSuggestions,
     getSchemaAdvice,
     getSlowQueries,
     PerformanceAdvisorOperation,
-    PerformanceAdvisorData,
+    type PerformanceAdvisorData,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
 
 export class ListPerformanceAdvisorTool extends AtlasToolBase {
