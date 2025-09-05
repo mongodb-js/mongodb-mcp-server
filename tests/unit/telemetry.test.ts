@@ -24,8 +24,8 @@ describe("Telemetry", () => {
         hasCredentials: MockedFunction<() => boolean>;
     };
     let mockEventCache: {
-        getEvents: MockedFunction<() => BaseEvent[]>;
-        clearEvents: MockedFunction<() => Promise<void>>;
+        getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
+        removeEvents: MockedFunction<(ids: number[]) => Promise<void>>;
         appendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
     };
     let session: Session;
@@ -74,23 +74,23 @@ describe("Telemetry", () => {
     // Helper function to verify mock calls to reduce duplication
     function verifyMockCalls({
         sendEventsCalls = 0,
-        clearEventsCalls = 0,
+        removeEventsCalls = 0,
         appendEventsCalls = 0,
         sendEventsCalledWith = undefined,
         appendEventsCalledWith = undefined,
     }: {
         sendEventsCalls?: number;
-        clearEventsCalls?: number;
+        removeEventsCalls?: number;
         appendEventsCalls?: number;
         sendEventsCalledWith?: BaseEvent[] | undefined;
         appendEventsCalledWith?: BaseEvent[] | undefined;
     } = {}): void {
         const { calls: sendEvents } = mockApiClient.sendEvents.mock;
-        const { calls: clearEvents } = mockEventCache.clearEvents.mock;
+        const { calls: removeEvents } = mockEventCache.removeEvents.mock;
         const { calls: appendEvents } = mockEventCache.appendEvents.mock;
 
         expect(sendEvents.length).toBe(sendEventsCalls);
-        expect(clearEvents.length).toBe(clearEventsCalls);
+        expect(removeEvents.length).toBe(removeEventsCalls);
         expect(appendEvents.length).toBe(appendEventsCalls);
 
         if (sendEventsCalledWith) {
@@ -123,7 +123,7 @@ describe("Telemetry", () => {
         // Setup mocked EventCache
         mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;
         mockEventCache.getEvents = vi.fn().mockReturnValue([]);
-        mockEventCache.clearEvents = vi.fn().mockResolvedValue(undefined);
+        mockEventCache.removeEvents = vi.fn().mockResolvedValue(undefined);
         mockEventCache.appendEvents = vi.fn().mockResolvedValue(undefined);
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
@@ -159,7 +159,7 @@ describe("Telemetry", () => {
 
             verifyMockCalls({
                 sendEventsCalls: 1,
-                clearEventsCalls: 1,
+                removeEventsCalls: 1,
                 sendEventsCalledWith: [testEvent],
             });
         });
@@ -192,7 +192,7 @@ describe("Telemetry", () => {
             });
 
             // Set up mock to return cached events
-            mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
+            mockEventCache.getEvents.mockReturnValueOnce([{ id: 0, event: cachedEvent }]);
 
             await telemetry.setupPromise;
 
@@ -200,7 +200,7 @@ describe("Telemetry", () => {
 
             verifyMockCalls({
                 sendEventsCalls: 1,
-                clearEventsCalls: 1,
+                removeEventsCalls: 1,
                 sendEventsCalledWith: [cachedEvent, newEvent],
             });
         });
