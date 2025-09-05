@@ -10,7 +10,7 @@ describeWithMongoDB("StdioRunner", (integration) => {
         beforeAll(async () => {
             transport = new StdioClientTransport({
                 command: "node",
-                args: ["dist/index.js", "--disableTools", "atlas-local"],
+                args: ["dist/index.js", "--disabledTools", "atlas-local"],
                 env: {
                     MDB_MCP_TRANSPORT: "stdio",
                     MDB_MCP_CONNECTION_STRING: integration.connectionString(),
@@ -32,7 +32,7 @@ describeWithMongoDB("StdioRunner", (integration) => {
             const response = await client.listTools();
             expect(response).toBeDefined();
             expect(response.tools).toBeDefined();
-            expect(response.tools).toHaveLength(22);
+            expect(response.tools).toHaveLength(21);
 
             const sortedTools = response.tools.sort((a, b) => a.name.localeCompare(b.name));
             expect(sortedTools[0]?.name).toBe("aggregate");
