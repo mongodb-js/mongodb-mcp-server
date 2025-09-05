@@ -7,6 +7,7 @@ import { CompositeLogger } from "../../../src/common/logger.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { Keychain } from "../../../src/common/keychain.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -28,6 +29,7 @@ describe("Session", () => {
             logger,
             exportsManager: ExportsManager.init(config, logger),
             connectionManager: new MCPConnectionManager(config, driverOptions, logger, mockDeviceId),
+            keychain: new Keychain(),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);

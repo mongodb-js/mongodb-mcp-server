@@ -3,6 +3,8 @@ import os from "os";
 import argv from "yargs-parser";
 import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import { Keychain } from "./keychain.js";
+import type { Secret } from "./keychain.js";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
@@ -87,7 +89,7 @@ const OPTIONS = {
         "greedy-arrays": true,
         "short-option-groups": false,
     },
-};
+} as const;
 
 function isConnectionSpecifier(arg: string | undefined): boolean {
     return (
@@ -185,12 +187,19 @@ function getExportsPath(): string {
 // are prefixed with `MDB_MCP_` and the keys match the UserConfig keys, but are converted
 // to SNAKE_UPPER_CASE.
 function parseEnvConfig(env: Record<string, unknown>): Partial<UserConfig> {
+    const CONFIG_WITH_URLS: Set<string> = new Set<(typeof OPTIONS)["string"][number]>(["connectionString"]);
+
     function setValue(obj: Record<string, unknown>, path: string[], value: string): void {
         const currentField = path.shift();
         if (!currentField) {
             return;
         }
         if (path.length === 0) {
+            if (CONFIG_WITH_URLS.has(currentField)) {
+                obj[currentField] = value;
+                return;
+            }
+
             const numberValue = Number(value);
             if (!isNaN(numberValue)) {
                 obj[currentField] = numberValue;
@@ -247,12 +256,19 @@ function SNAKE_CASE_toCamelCase(str: string): string {
 // whatever is in mongosh.
 function parseCliConfig(args: string[]): CliOptions {
     const programArgs = args.slice(2);
-    const parsed = argv(programArgs, OPTIONS) as unknown as CliOptions &
+    const parsed = argv(programArgs, OPTIONS as unknown as argv.Options) as unknown as CliOptions &
         UserConfig & {
             _?: string[];
         };
 
     const positionalArguments = parsed._ ?? [];
+
+    // we use console.warn here because we still don't have our logging system configured
+    // so we don't have a logger. For stdio, the warning will be received as a string in
+    // the client and IDEs like VSCode do show the message in the log window. For HTTP,
+    // it will be in the stdout of the process.
+    warnAboutDeprecatedCliArgs({ ...parsed, _: positionalArguments }, console.warn);
+
     // if we have a positional argument that matches a connection string
     // store it as the connection specifier and remove it from the argument
     // list, so it doesn't get misunderstood by the mongosh args-parser
@@ -262,6 +278,28 @@ function parseCliConfig(args: string[]): CliOptions {
 
     delete parsed._;
     return parsed;
+}
+
+export function warnAboutDeprecatedCliArgs(
+    args: CliOptions &
+        UserConfig & {
+            _?: string[];
+        },
+    warn: (msg: string) => void
+): void {
+    let usedDeprecatedArgument = false;
+    // the first position argument should be used
+    // instead of --connectionString, as it's how the mongosh works.
+    if (args.connectionString) {
+        usedDeprecatedArgument = true;
+        warn(
+            "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable."
+        );
+    }
+
+    if (usedDeprecatedArgument) {
+        warn("Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
+    }
 }
 
 function commaSeparatedToArray<T extends string[]>(str: string | string[] | undefined): T {
@@ -285,6 +323,29 @@ function commaSeparatedToArray<T extends string[]>(str: string | string[] | unde
     }
 
     return str as T;
+}
+
+export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): void {
+    const keychain = Keychain.root;
+
+    const maybeRegister = (value: string | undefined, kind: Secret["kind"]): void => {
+        if (value) {
+            keychain.register(value, kind);
+        }
+    };
+
+    maybeRegister(userConfig.apiClientId, "user");
+    maybeRegister(userConfig.apiClientSecret, "password");
+    maybeRegister(userConfig.awsAccessKeyId, "password");
+    maybeRegister(userConfig.awsIamSessionToken, "password");
+    maybeRegister(userConfig.awsSecretAccessKey, "password");
+    maybeRegister(userConfig.awsSessionToken, "password");
+    maybeRegister(userConfig.password, "password");
+    maybeRegister(userConfig.tlsCAFile, "url");
+    maybeRegister(userConfig.tlsCRLFile, "url");
+    maybeRegister(userConfig.tlsCertificateKeyFile, "url");
+    maybeRegister(userConfig.tlsCertificateKeyFilePassword, "password");
+    maybeRegister(userConfig.username, "user");
 }
 
 export function setupUserConfig({
@@ -340,6 +401,7 @@ export function setupUserConfig({
         }
     }
 
+    registerKnownSecretsInRootKeychain(userConfig);
     return userConfig;
 }
 

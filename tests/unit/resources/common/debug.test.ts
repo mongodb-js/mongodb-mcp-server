@@ -7,6 +7,7 @@ import { CompositeLogger } from "../../../../src/common/logger.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
+import { Keychain } from "../../../../src/common/keychain.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -16,6 +17,7 @@ describe("debug resource", () => {
         logger,
         exportsManager: ExportsManager.init(config, logger),
         connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+        keychain: new Keychain(),
     });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" }, deviceId);
 

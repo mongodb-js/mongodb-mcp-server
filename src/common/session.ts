@@ -15,6 +15,7 @@ import type {
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
+import type { Keychain } from "./keychain.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -23,6 +24,7 @@ export interface SessionOptions {
     logger: CompositeLogger;
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
+    keychain: Keychain;
 }
 
 export type SessionEvents = {
@@ -37,6 +39,8 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
+    readonly keychain: Keychain;
+
     mcpClient?: {
         name?: string;
         version?: string;
@@ -52,9 +56,11 @@ export class Session extends EventEmitter<SessionEvents> {
         logger,
         connectionManager,
         exportsManager,
+        keychain,
     }: SessionOptions) {
         super();
 
+        this.keychain = keychain;
         this.logger = logger;
         const credentials: ApiClientCredentials | undefined =
             apiClientId && apiClientSecret

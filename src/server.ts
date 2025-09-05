@@ -21,12 +21,15 @@ import {
 import assert from "assert";
 import type { ToolBase } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
+import { packageInfo } from "./common/packageInfo.js";
+import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 
 export interface ServerOptions {
     session: Session;
     userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
+    connectionErrorHandler: ConnectionErrorHandler;
 }
 
 export class Server {
@@ -35,6 +38,7 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly tools: ToolBase[] = [];
+    public readonly connectionErrorHandler: ConnectionErrorHandler;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -45,12 +49,13 @@ export class Server {
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
+    constructor({ session, mcpServer, userConfig, telemetry, connectionErrorHandler }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.userConfig = userConfig;
+        this.connectionErrorHandler = connectionErrorHandler;
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -120,11 +125,10 @@ export class Server {
             this.session.setMcpClient(this.mcpServer.server.getClientVersion());
             // Placed here to start the connection to the config connection string as soon as the server is initialized.
             void this.connectToConfigConnectionString();
-
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.mcpClient?.name}`,
+                message: `Server with version ${packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
             });
 
             this.emitServerEvent("start", Date.now() - this.startTime);
@@ -245,15 +249,21 @@ export class Server {
     private async connectToConfigConnectionString(): Promise<void> {
         if (this.userConfig.connectionString) {
             try {
+                this.session.logger.info({
+                    id: LogId.mongodbConnectTry,
+                    context: "server",
+                    message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
+                });
                 await this.session.connectToMongoDB({
                     connectionString: this.userConfig.connectionString,
                 });
             } catch (error) {
-                console.error(
-                    "Failed to connect to MongoDB instance using the connection string from the config: ",
-                    error
-                );
-                throw new Error("Failed to connect to MongoDB instance using the connection string from the config");
+                // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
+                this.session.logger.error({
+                    id: LogId.mongodbConnectFailure,
+                    context: "server",
+                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
+                });
             }
         }
     }

@@ -8,29 +8,57 @@ import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logger.js";
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
-import { type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import { Keychain } from "../common/keychain.js";
+import { createMCPConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import {
+    type ConnectionErrorHandler,
+    connectionErrorHandler as defaultConnectionErrorHandler,
+} from "../common/connectionErrorHandler.js";
+import type { CommonProperties } from "../telemetry/types.js";
+
+export type TransportRunnerConfig = {
+    userConfig: UserConfig;
+    createConnectionManager?: ConnectionManagerFactoryFn;
+    connectionErrorHandler?: ConnectionErrorHandler;
+    additionalLoggers?: LoggerBase[];
+    telemetryProperties?: Partial<CommonProperties>;
+};
 
 export abstract class TransportRunnerBase {
     public logger: LoggerBase;
     public deviceId: DeviceId;
+    protected readonly userConfig: UserConfig;
+    private readonly createConnectionManager: ConnectionManagerFactoryFn;
+    private readonly connectionErrorHandler: ConnectionErrorHandler;
+    private readonly telemetryProperties: Partial<CommonProperties>;
 
-    protected constructor(
-        protected readonly userConfig: UserConfig,
-        private readonly createConnectionManager: ConnectionManagerFactoryFn,
-        additionalLoggers: LoggerBase[]
-    ) {
+    protected constructor({
+        userConfig,
+        createConnectionManager = createMCPConnectionManager,
+        connectionErrorHandler = defaultConnectionErrorHandler,
+        additionalLoggers = [],
+        telemetryProperties = {},
+    }: TransportRunnerConfig) {
+        this.userConfig = userConfig;
+        this.createConnectionManager = createConnectionManager;
+        this.connectionErrorHandler = connectionErrorHandler;
+        this.telemetryProperties = telemetryProperties;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger());
+            loggers.push(new ConsoleLogger(Keychain.root));
         }
 
         if (this.userConfig.loggers.includes("disk")) {
             loggers.push(
-                new DiskLogger(this.userConfig.logPath, (err) => {
-                    // If the disk logger fails to initialize, we log the error to stderr and exit
-                    console.error("Error initializing disk logger:", err);
-                    process.exit(1);
-                })
+                new DiskLogger(
+                    this.userConfig.logPath,
+                    (err) => {
+                        // If the disk logger fails to initialize, we log the error to stderr and exit
+                        console.error("Error initializing disk logger:", err);
+                        process.exit(1);
+                    },
+                    Keychain.root
+                )
             );
         }
 
@@ -59,21 +87,25 @@ export abstract class TransportRunnerBase {
             logger,
             exportsManager,
             connectionManager,
+            keychain: Keychain.root,
         });
 
-        const telemetry = Telemetry.create(session, this.userConfig, this.deviceId);
+        const telemetry = Telemetry.create(session, this.userConfig, this.deviceId, {
+            commonProperties: this.telemetryProperties,
+        });
 
         const result = new Server({
             mcpServer,
             session,
             telemetry,
             userConfig: this.userConfig,
+            connectionErrorHandler: this.connectionErrorHandler,
         });
 
         // We need to create the MCP logger after the server is constructed
         // because it needs the server instance
         if (this.userConfig.loggers.includes("mcp")) {
-            logger.addLogger(new McpLogger(result));
+            logger.addLogger(new McpLogger(result, Keychain.root));
         }
 
         return result;

@@ -149,7 +149,7 @@ export abstract class ToolBase {
         let errorClarification: string | undefined;
 
         // Check read-only mode first
-        if (this.config.readOnly && !["read", "metadata"].includes(this.operationType)) {
+        if (this.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
             errorClarification = `read-only mode is enabled, its operation type, \`${this.operationType}\`,`;
         } else if (this.config.disabledTools.includes(this.category)) {
             errorClarification = `its category, \`${this.category}\`,`;
