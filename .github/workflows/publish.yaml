@@ -12,6 +12,7 @@ jobs:
     outputs:
       VERSION_EXISTS: ${{ steps.check-version.outputs.VERSION_EXISTS }}
       VERSION: ${{ steps.get-version.outputs.VERSION }}
+      RELEASE_CHANNEL: ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
@@ -42,6 +43,20 @@ jobs:
           else
             echo "VERSION_EXISTS=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Get npm tag
+        id: npm-tag
+        run: |
+          $regex = "^v?(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:[^.]*)))?"
+          $version = "${{ steps.get-version.outputs.VERSION }}"
+          $releaseChannel = $groups["prerelease"][0].value
+
+          if ([string]::IsNullOrEmpty($releaseChannel)) {
+              $releaseChannel = "latest"
+          }
+          Write-Output "RELEASE_CHANNEL=$releaseChannel" >> $Env:GITHUB_OUTPUT
+      - name: Output deployment info
+        run: echo "::notice title=Deployment Info::Deploying version ${{ steps.get-version.outputs.VERSION }} to channel ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}"
+
   publish:
     runs-on: ubuntu-latest
     environment: Production
@@ -58,16 +73,17 @@ jobs:
           node-version-file: package.json
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
+
       - name: Build package
         run: |
           npm ci
           npm run build
       - name: Publish to NPM
-        run: npm publish
+        run: npm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish git release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }}
+          gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }} ${{ (steps.npm-tag.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
