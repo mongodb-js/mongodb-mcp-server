@@ -55,7 +55,7 @@ export class ListProjectsTool extends AtlasToolBase {
 ----------------| ----------------| ----------------| ----------------| ----------------
 ${rows}`;
         return {
-            content: formatUntrustedData(`Found ${rows.length} projects`, formattedProjects),
+            content: formatUntrustedData(`Found ${data.results.length} projects`, formattedProjects),
         };
     }
 }
