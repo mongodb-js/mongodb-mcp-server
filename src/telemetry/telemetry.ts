@@ -94,21 +94,23 @@ export class Telemetry {
         });
 
         // Wait up to 5 seconds for events to be sent before closing, but don't throw if it times out
-        const flushTimeout = 5000;
+        const flushMaxWaitTime = 5000;
+        let flushTimeout: NodeJS.Timeout | undefined;
         await Promise.race([
             new Promise<void>((resolve) => {
-                const timeout = setTimeout(() => {
+                flushTimeout = setTimeout(() => {
                     this.session.logger.debug({
                         id: LogId.telemetryClose,
-                        message: `Failed to flush remaining events within ${flushTimeout}ms timeout`,
+                        message: `Failed to flush remaining events within ${flushMaxWaitTime}ms timeout`,
                         context: "telemetry",
                     });
                     resolve();
-                }, flushTimeout);
-                timeout.unref();
+                }, flushMaxWaitTime);
             }),
             this.emit([]),
         ]);
+
+        flushTimeout?.unref();
     }
 
     /**
