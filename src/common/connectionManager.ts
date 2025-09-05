@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import type { MongoClientOptions } from "mongodb";
-import ConnectionString from "mongodb-connection-string-url";
+import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { type ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
@@ -199,19 +199,15 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         try {
-            const connectionType = MCPConnectionManager.inferConnectionTypeFromSettings(
-                this.userConfig,
-                connectionInfo
-            );
-            if (connectionType.startsWith("oidc")) {
+            if (connectionStringAuthType.startsWith("oidc")) {
                 void this.pingAndForget(serviceProvider);
 
                 return this.changeState("connection-request", {
                     tag: "connecting",
                     connectedAtlasCluster: settings.atlas,
                     serviceProvider,
-                    connectionStringAuthType: connectionType,
-                    oidcConnectionType: connectionType as OIDCConnectionAuthType,
+                    connectionStringAuthType,
+                    oidcConnectionType: connectionStringAuthType as OIDCConnectionAuthType,
                 });
             }
 
@@ -221,7 +217,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 tag: "connected",
                 connectedAtlasCluster: settings.atlas,
                 serviceProvider,
-                connectionStringAuthType: connectionType,
+                connectionStringAuthType,
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;

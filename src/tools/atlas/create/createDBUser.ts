@@ -78,6 +78,11 @@ export class CreateDBUserTool extends AtlasToolBase {
             body: input,
         });
 
+        this.session.keychain.register(username, "user");
+        if (password) {
+            this.session.keychain.register(password, "password");
+        }
+
         return {
             content: [
                 {

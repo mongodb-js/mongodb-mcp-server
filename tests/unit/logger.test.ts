@@ -8,10 +8,12 @@ import * as fs from "fs/promises";
 import { once } from "events";
 import type { Server } from "../../src/server.js";
 import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 describe("Logger", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
     let consoleLogger: ConsoleLogger;
+    let keychain: Keychain;
 
     let mcpLoggerSpy: MockInstance;
     let mcpLogger: McpLogger;
@@ -20,25 +22,30 @@ describe("Logger", () => {
     beforeEach(() => {
         // Mock console.error before creating the ConsoleLogger
         consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        keychain = Keychain.root;
 
-        consoleLogger = new ConsoleLogger();
+        consoleLogger = new ConsoleLogger(keychain);
 
         mcpLoggerSpy = vi.fn();
         minimumMcpLogLevel = "debug";
-        mcpLogger = new McpLogger({
-            mcpServer: {
-                server: {
-                    sendLoggingMessage: mcpLoggerSpy,
+        mcpLogger = new McpLogger(
+            {
+                mcpServer: {
+                    server: {
+                        sendLoggingMessage: mcpLoggerSpy,
+                    },
+                    isConnected: () => true,
                 },
-                isConnected: () => true,
-            },
-            get mcpLogLevel() {
-                return minimumMcpLogLevel;
-            },
-        } as unknown as Server);
+                get mcpLogLevel() {
+                    return minimumMcpLogLevel;
+                },
+            } as unknown as Server,
+            keychain
+        );
     });
 
     afterEach(() => {
+        keychain.clearAllSecrets();
         vi.restoreAllMocks();
     });
 
@@ -79,6 +86,16 @@ describe("Logger", () => {
             expect(mcpLoggerSpy).toHaveBeenCalledOnce();
 
             expectLogMessageRedaction(getLastMcpLogMessage(), false);
+        });
+
+        it("redacts sensitive information from the keychain", () => {
+            keychain.register("123456", "password");
+            consoleLogger.info({ id: LogId.serverInitialized, context: "test", message: "Your password is 123456." });
+
+            expect(consoleErrorSpy).toHaveBeenCalledOnce();
+
+            expect(getLastConsoleMessage()).to.contain("Your password is <password>");
+            expect(getLastConsoleMessage()).to.not.contain("123456");
         });
 
         it("allows disabling redaction for all loggers", () => {
@@ -196,9 +213,13 @@ describe("Logger", () => {
         };
 
         it("buffers messages during initialization", async () => {
-            const diskLogger = new DiskLogger(logPath, (err) => {
-                expect.fail(`Disk logger should not fail to initialize: ${err}`);
-            });
+            const diskLogger = new DiskLogger(
+                logPath,
+                (err) => {
+                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
+                },
+                keychain
+            );
 
             diskLogger.info({ id: LogId.serverInitialized, context: "test", message: "Test message" });
             await assertNoLogs();
@@ -212,9 +233,13 @@ describe("Logger", () => {
         });
 
         it("includes attributes in the logs", async () => {
-            const diskLogger = new DiskLogger(logPath, (err) => {
-                expect.fail(`Disk logger should not fail to initialize: ${err}`);
-            });
+            const diskLogger = new DiskLogger(
+                logPath,
+                (err) => {
+                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
+                },
+                keychain
+            );
 
             diskLogger.info({
                 id: LogId.serverInitialized,

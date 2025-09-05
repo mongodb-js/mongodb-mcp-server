@@ -1,13 +1,14 @@
 import { ApiClient } from "../../src/common/atlas/apiClient.js";
 import type { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
-import type { BaseEvent, TelemetryResult } from "../../src/telemetry/types.js";
+import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { config } from "../../src/common/config.js";
 import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
 import { NullLogger } from "../../src/common/logger.js";
 import type { MockedFunction } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
+import { expectDefined } from "../integration/helpers.js";
 
 // Mock the ApiClient to avoid real API calls
 vi.mock("../../src/common/atlas/apiClient.js");
@@ -29,6 +30,7 @@ describe("Telemetry", () => {
     };
     let session: Session;
     let telemetry: Telemetry;
+    let mockDeviceId: DeviceId;
 
     // Helper function to create properly typed test events
     function createTestEvent(options?: {
@@ -115,7 +117,7 @@ describe("Telemetry", () => {
         mockEventCache.appendEvents = vi.fn().mockResolvedValue(undefined);
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
-        const mockDeviceId = {
+        mockDeviceId = {
             get: vi.fn().mockResolvedValue("test-device-id"),
         } as unknown as DeviceId;
 
@@ -137,183 +139,200 @@ describe("Telemetry", () => {
         config.telemetry = "enabled";
     });
 
-    describe("sending events", () => {
-        describe("when telemetry is enabled", () => {
-            it("should send events successfully", async () => {
-                const testEvent = createTestEvent();
+    describe("when telemetry is enabled", () => {
+        it("should send events successfully", async () => {
+            const testEvent = createTestEvent();
 
-                await telemetry.setupPromise;
+            await telemetry.setupPromise;
 
-                await telemetry.emitEvents([testEvent]);
+            await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls({
-                    sendEventsCalls: 1,
-                    clearEventsCalls: 1,
-                    sendEventsCalledWith: [testEvent],
-                });
-            });
-
-            it("should cache events when sending fails", async () => {
-                mockApiClient.sendEvents.mockRejectedValueOnce(new Error("API error"));
-
-                const testEvent = createTestEvent();
-
-                await telemetry.setupPromise;
-
-                await telemetry.emitEvents([testEvent]);
-
-                verifyMockCalls({
-                    sendEventsCalls: 1,
-                    appendEventsCalls: 1,
-                    appendEventsCalledWith: [testEvent],
-                });
-            });
-
-            it("should include cached events when sending", async () => {
-                const cachedEvent = createTestEvent({
-                    command: "cached-command",
-                    component: "cached-component",
-                });
-
-                const newEvent = createTestEvent({
-                    command: "new-command",
-                    component: "new-component",
-                });
-
-                // Set up mock to return cached events
-                mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
-
-                await telemetry.setupPromise;
-
-                await telemetry.emitEvents([newEvent]);
-
-                verifyMockCalls({
-                    sendEventsCalls: 1,
-                    clearEventsCalls: 1,
-                    sendEventsCalledWith: [cachedEvent, newEvent],
-                });
-            });
-
-            it("should correctly add common properties to events", async () => {
-                await telemetry.setupPromise;
-
-                const commonProps = telemetry.getCommonProperties();
-
-                // Use explicit type assertion
-                const expectedProps: Record<string, string> = {
-                    mcp_client_version: "1.0.0",
-                    mcp_client_name: "test-agent",
-                    session_id: "test-session-id",
-                    config_atlas_auth: "true",
-                    config_connection_string: expect.any(String) as unknown as string,
-                    device_id: "test-device-id",
-                };
-
-                expect(commonProps).toMatchObject(expectedProps);
-            });
-
-            describe("device ID resolution", () => {
-                beforeEach(() => {
-                    vi.clearAllMocks();
-                });
-
-                afterEach(() => {
-                    vi.clearAllMocks();
-                });
-
-                it("should successfully resolve the device ID", async () => {
-                    const mockDeviceId = {
-                        get: vi.fn().mockResolvedValue("test-device-id"),
-                    } as unknown as DeviceId;
-
-                    telemetry = Telemetry.create(session, config, mockDeviceId);
-
-                    expect(telemetry["isBufferingEvents"]).toBe(true);
-                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
-
-                    await telemetry.setupPromise;
-
-                    expect(telemetry["isBufferingEvents"]).toBe(false);
-                    expect(telemetry.getCommonProperties().device_id).toBe("test-device-id");
-                });
-
-                it("should handle device ID resolution failure gracefully", async () => {
-                    const mockDeviceId = {
-                        get: vi.fn().mockResolvedValue("unknown"),
-                    } as unknown as DeviceId;
-
-                    telemetry = Telemetry.create(session, config, mockDeviceId);
-
-                    expect(telemetry["isBufferingEvents"]).toBe(true);
-                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
-
-                    await telemetry.setupPromise;
-
-                    expect(telemetry["isBufferingEvents"]).toBe(false);
-                    // Should use "unknown" as fallback when device ID resolution fails
-                    expect(telemetry.getCommonProperties().device_id).toBe("unknown");
-                });
-
-                it("should handle device ID timeout gracefully", async () => {
-                    const mockDeviceId = {
-                        get: vi.fn().mockResolvedValue("unknown"),
-                    } as unknown as DeviceId;
-
-                    telemetry = Telemetry.create(session, config, mockDeviceId);
-
-                    expect(telemetry["isBufferingEvents"]).toBe(true);
-                    expect(telemetry.getCommonProperties().device_id).toBe(undefined);
-
-                    await telemetry.setupPromise;
-
-                    expect(telemetry["isBufferingEvents"]).toBe(false);
-                    // Should use "unknown" as fallback when device ID times out
-                    expect(telemetry.getCommonProperties().device_id).toBe("unknown");
-                });
+            verifyMockCalls({
+                sendEventsCalls: 1,
+                clearEventsCalls: 1,
+                sendEventsCalledWith: [testEvent],
             });
         });
 
-        describe("when telemetry is disabled", () => {
-            beforeEach(() => {
-                config.telemetry = "disabled";
-            });
+        it("should cache events when sending fails", async () => {
+            mockApiClient.sendEvents.mockRejectedValueOnce(new Error("API error"));
 
-            afterEach(() => {
-                config.telemetry = "enabled";
-            });
+            const testEvent = createTestEvent();
 
-            it("should not send events", async () => {
-                const testEvent = createTestEvent();
+            await telemetry.setupPromise;
 
-                await telemetry.emitEvents([testEvent]);
+            await telemetry.emitEvents([testEvent]);
 
-                verifyMockCalls();
+            verifyMockCalls({
+                sendEventsCalls: 1,
+                appendEventsCalls: 1,
+                appendEventsCalledWith: [testEvent],
             });
         });
 
-        describe("when DO_NOT_TRACK environment variable is set", () => {
-            let originalEnv: string | undefined;
+        it("should include cached events when sending", async () => {
+            const cachedEvent = createTestEvent({
+                command: "cached-command",
+                component: "cached-component",
+            });
 
+            const newEvent = createTestEvent({
+                command: "new-command",
+                component: "new-component",
+            });
+
+            // Set up mock to return cached events
+            mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
+
+            await telemetry.setupPromise;
+
+            await telemetry.emitEvents([newEvent]);
+
+            verifyMockCalls({
+                sendEventsCalls: 1,
+                clearEventsCalls: 1,
+                sendEventsCalledWith: [cachedEvent, newEvent],
+            });
+        });
+
+        it("should correctly add common properties to events", async () => {
+            await telemetry.setupPromise;
+
+            const commonProps = telemetry.getCommonProperties();
+
+            // Use explicit type assertion
+            const expectedProps: Record<string, string> = {
+                mcp_client_version: "1.0.0",
+                mcp_client_name: "test-agent",
+                session_id: "test-session-id",
+                config_atlas_auth: "true",
+                config_connection_string: expect.any(String) as unknown as string,
+                device_id: "test-device-id",
+            };
+
+            expect(commonProps).toMatchObject(expectedProps);
+        });
+
+        it("should add hostingMode to events if set", async () => {
+            telemetry = Telemetry.create(session, config, mockDeviceId, {
+                eventCache: mockEventCache as unknown as EventCache,
+                commonProperties: { hosting_mode: "vscode-extension" },
+            });
+            await telemetry.setupPromise;
+
+            const commonProps = telemetry.getCommonProperties();
+            expect(commonProps.hosting_mode).toBe("vscode-extension");
+
+            await telemetry.emitEvents([createTestEvent()]);
+
+            const calls = mockApiClient.sendEvents.mock.calls;
+            expect(calls).toHaveLength(1);
+            const event = calls[0]?.[0][0];
+            expectDefined(event);
+            expect((event as TelemetryEvent<CommonProperties>).properties.hosting_mode).toBe("vscode-extension");
+        });
+
+        describe("device ID resolution", () => {
             beforeEach(() => {
-                originalEnv = process.env.DO_NOT_TRACK;
-                process.env.DO_NOT_TRACK = "1";
+                vi.clearAllMocks();
             });
 
             afterEach(() => {
-                if (originalEnv) {
-                    process.env.DO_NOT_TRACK = originalEnv;
-                } else {
-                    delete process.env.DO_NOT_TRACK;
-                }
+                vi.clearAllMocks();
             });
 
-            it("should not send events", async () => {
-                const testEvent = createTestEvent();
+            it("should successfully resolve the device ID", async () => {
+                const mockDeviceId = {
+                    get: vi.fn().mockResolvedValue("test-device-id"),
+                } as unknown as DeviceId;
 
-                await telemetry.emitEvents([testEvent]);
+                telemetry = Telemetry.create(session, config, mockDeviceId);
 
-                verifyMockCalls();
+                expect(telemetry["isBufferingEvents"]).toBe(true);
+                expect(telemetry.getCommonProperties().device_id).toBe(undefined);
+
+                await telemetry.setupPromise;
+
+                expect(telemetry["isBufferingEvents"]).toBe(false);
+                expect(telemetry.getCommonProperties().device_id).toBe("test-device-id");
             });
+
+            it("should handle device ID resolution failure gracefully", async () => {
+                const mockDeviceId = {
+                    get: vi.fn().mockResolvedValue("unknown"),
+                } as unknown as DeviceId;
+
+                telemetry = Telemetry.create(session, config, mockDeviceId);
+
+                expect(telemetry["isBufferingEvents"]).toBe(true);
+                expect(telemetry.getCommonProperties().device_id).toBe(undefined);
+
+                await telemetry.setupPromise;
+
+                expect(telemetry["isBufferingEvents"]).toBe(false);
+                // Should use "unknown" as fallback when device ID resolution fails
+                expect(telemetry.getCommonProperties().device_id).toBe("unknown");
+            });
+
+            it("should handle device ID timeout gracefully", async () => {
+                const mockDeviceId = {
+                    get: vi.fn().mockResolvedValue("unknown"),
+                } as unknown as DeviceId;
+
+                telemetry = Telemetry.create(session, config, mockDeviceId);
+
+                expect(telemetry["isBufferingEvents"]).toBe(true);
+                expect(telemetry.getCommonProperties().device_id).toBe(undefined);
+
+                await telemetry.setupPromise;
+
+                expect(telemetry["isBufferingEvents"]).toBe(false);
+                // Should use "unknown" as fallback when device ID times out
+                expect(telemetry.getCommonProperties().device_id).toBe("unknown");
+            });
+        });
+    });
+
+    describe("when telemetry is disabled", () => {
+        beforeEach(() => {
+            config.telemetry = "disabled";
+        });
+
+        afterEach(() => {
+            config.telemetry = "enabled";
+        });
+
+        it("should not send events", async () => {
+            const testEvent = createTestEvent();
+
+            await telemetry.emitEvents([testEvent]);
+
+            verifyMockCalls();
+        });
+    });
+
+    describe("when DO_NOT_TRACK environment variable is set", () => {
+        let originalEnv: string | undefined;
+
+        beforeEach(() => {
+            originalEnv = process.env.DO_NOT_TRACK;
+            process.env.DO_NOT_TRACK = "1";
+        });
+
+        afterEach(() => {
+            if (originalEnv) {
+                process.env.DO_NOT_TRACK = originalEnv;
+            } else {
+                delete process.env.DO_NOT_TRACK;
+            }
+        });
+
+        it("should not send events", async () => {
+            const testEvent = createTestEvent();
+
+            await telemetry.emitEvents([testEvent]);
+
+            verifyMockCalls();
         });
     });
 });

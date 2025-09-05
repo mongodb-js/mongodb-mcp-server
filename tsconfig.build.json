@@ -17,7 +17,12 @@
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "noImplicitReturns": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "paths": {
+      "mongodb-connection-string-url": [
+        "./node_modules/mongodb-connection-string-url/lib/index.d.ts"
+      ]
+    }
   },
   "include": ["src/**/*.ts"]
 }
