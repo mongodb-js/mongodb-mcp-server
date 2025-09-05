@@ -9,6 +9,8 @@ import { describe, expect, it } from "vitest";
 
 const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
 
+// Docker is not available on macOS in GitHub Actions
+// That's why we skip the tests on macOS in GitHub Actions
 describe("atlas-local-list-deployments", () => {
     const integration = setupIntegrationTest(
         () => defaultTestConfig,

@@ -3,6 +3,7 @@ import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { Deployment } from "@mongodb-js-preview/atlas-local";
+import type { Client } from "@mongodb-js-preview/atlas-local";
 
 export class ListDeploymentsTool extends AtlasLocalToolBase {
     public name = "atlas-local-list-deployments";
@@ -10,17 +11,7 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
     public operationType: OperationType = "read";
     protected argsShape = {};
 
-    protected async execute(): Promise<CallToolResult> {
-        // Get the client
-        const client = this.client;
-
-        // If the client is not found, throw an error
-        // This should never happen, because the tool should have been disabled.
-        // verifyAllowed in the base class returns false if the client is not found
-        if (!client) {
-            throw new Error("Atlas Local client not found, tool should have been disabled.");
-        }
-
+    protected async executeWithAtlasLocalClient(client: Client): Promise<CallToolResult> {
         // List the deployments
         const deployments = await client.listDeployments();
 

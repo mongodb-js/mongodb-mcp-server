@@ -15,6 +15,7 @@ import type {
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
+import type { Client } from "@mongodb-js-preview/atlas-local";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -42,6 +43,7 @@ export class Session extends EventEmitter<SessionEvents> {
         version?: string;
         title?: string;
     };
+    atlasLocalClient?: Client;
 
     public logger: CompositeLogger;
 
@@ -91,6 +93,10 @@ export class Session extends EventEmitter<SessionEvents> {
 
         // Set the client name on the connection manager for appName generation
         this.connectionManager.setClientName(this.mcpClient.name || "unknown");
+    }
+
+    setAtlasLocalClient(atlasLocalClient: Client): void {
+        this.atlasLocalClient = atlasLocalClient;
     }
 
     async disconnect(): Promise<void> {
