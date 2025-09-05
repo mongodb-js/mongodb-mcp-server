@@ -1,9 +1,31 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { ToolArgs, ToolCategory } from "../tool.js";
+import type { TelemetryToolMetadata, ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
+import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Client } from "@mongodb-js-preview/atlas-local";
 
 export abstract class AtlasLocalToolBase extends ToolBase {
     public category: ToolCategory = "atlas-local";
+
+    protected verifyAllowed(): boolean {
+        return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
+    }
+
+    protected async execute(): Promise<CallToolResult> {
+        // Get the client
+        const client = this.session.atlasLocalClient;
+
+        // If the client is not found, throw an error
+        // This should never happen, because the tool should have been disabled.
+        // verifyAllowed in the base class returns false if the client is not found
+        if (!client) {
+            throw new Error("Atlas Local client not found, tool should have been disabled.");
+        }
+
+        return this.executeWithAtlasLocalClient(client);
+    }
+
+    protected abstract executeWithAtlasLocalClient(client: Client): Promise<CallToolResult>;
 
     protected handleError(
         error: unknown,
@@ -13,5 +35,13 @@ export abstract class AtlasLocalToolBase extends ToolBase {
 
         // For other types of errors, use the default error handling from the base class
         return super.handleError(error, args);
+    }
+
+    protected resolveTelemetryMetadata(
+        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+    ): TelemetryToolMetadata {
+        // TODO: include deployment id in the metadata where possible
+        void args; // this shuts up the eslint rule until we implement the TODO above
+        return {};
     }
 }
