@@ -7,16 +7,12 @@ import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
 import type { DeviceId } from "../helpers/deviceId.js";
-import { EventEmitter } from "stream";
+import { EventEmitter } from "events";
 
 type EventResult = {
     success: boolean;
     error?: Error;
 };
-
-async function timeout(promise: Promise<unknown>, ms: number): Promise<void> {
-    await Promise.race([new Promise((resolve) => setTimeout(resolve, ms)), promise]);
-}
 
 export interface TelemetryEvents {
     "events-emitted": [];
@@ -90,7 +86,9 @@ export class Telemetry {
 
     public async close(): Promise<void> {
         this.isBufferingEvents = false;
-        await timeout(this.emit([]), 5_000);
+
+        // Wait up to 5 seconds for events to be sent before closing, but don't throw if it times out
+        await Promise.race([new Promise((resolve) => setTimeout(resolve, 5000)), this.emit([])]);
     }
 
     /**
