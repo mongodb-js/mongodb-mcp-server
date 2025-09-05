@@ -106,11 +106,12 @@ export class Telemetry {
                     });
                     resolve();
                 }, flushMaxWaitTime);
+                flushTimeout.unref();
             }),
             this.emit([]),
         ]);
 
-        flushTimeout?.unref();
+        clearTimeout(flushTimeout);
     }
 
     /**
