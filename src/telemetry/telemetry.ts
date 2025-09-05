@@ -87,8 +87,27 @@ export class Telemetry {
     public async close(): Promise<void> {
         this.isBufferingEvents = false;
 
+        this.session.logger.debug({
+            id: LogId.telemetryClose,
+            message: `Closing telemetry and flushing ${this.eventCache.size} events`,
+            context: "telemetry",
+        });
+
         // Wait up to 5 seconds for events to be sent before closing, but don't throw if it times out
-        await Promise.race([new Promise((resolve) => setTimeout(resolve, 5000)), this.emit([])]);
+        const flushTimeout = 5000;
+        await Promise.race([
+            new Promise<void>((resolve) =>
+                setTimeout(() => {
+                    this.session.logger.debug({
+                        id: LogId.telemetryClose,
+                        message: `Failed to flush remaining events within ${flushTimeout}ms timeout`,
+                        context: "telemetry",
+                    });
+                    resolve();
+                }, flushTimeout)
+            ),
+            this.emit([]),
+        ]);
     }
 
     /**
@@ -151,7 +170,7 @@ export class Telemetry {
 
         try {
             const cachedEvents = this.eventCache.getEvents();
-            const allEvents = [...cachedEvents, ...events];
+            const allEvents = [...cachedEvents.map((e) => e.event), ...events];
 
             this.session.logger.debug({
                 id: LogId.telemetryEmitStart,
@@ -161,11 +180,11 @@ export class Telemetry {
 
             const result = await this.sendEvents(this.session.apiClient, allEvents);
             if (result.success) {
-                this.eventCache.clearEvents();
+                this.eventCache.removeEvents(cachedEvents.map((e) => e.id));
                 this.session.logger.debug({
                     id: LogId.telemetryEmitSuccess,
                     context: "telemetry",
-                    message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`,
+                    message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
                 });
                 this.events.emit("events-emitted");
                 return;

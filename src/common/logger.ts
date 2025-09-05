@@ -35,6 +35,7 @@ export const LogId = {
     telemetryMetadataError: mongoLogId(1_002_005),
     deviceIdResolutionError: mongoLogId(1_002_006),
     deviceIdTimeout: mongoLogId(1_002_007),
+    telemetryClose: mongoLogId(1_002_008),
 
     toolExecute: mongoLogId(1_003_001),
     toolExecuteFailure: mongoLogId(1_003_002),
