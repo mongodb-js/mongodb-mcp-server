@@ -5,6 +5,8 @@ import type { ToolArgs, OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
+import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
+import { UserConfig } from "../../../common/config.js";
 
 export const AggregateArgs = {
     pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
@@ -26,6 +28,8 @@ export class AggregateTool extends MongoDBToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
+        this.assertOnlyUsesPermittedStages(pipeline);
+
         // Check if aggregate operation uses an index if enabled
         if (this.config.indexCheck) {
             await checkIndexUsage(provider, database, collection, "aggregate", async () => {
@@ -43,5 +47,20 @@ export class AggregateTool extends MongoDBToolBase {
                 documents.length > 0 ? EJSON.stringify(documents) : undefined
             ),
         };
+    }
+
+    private assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): void {
+        if (!this.config.readOnly) {
+            return;
+        }
+
+        for (const stage of pipeline) {
+            if (stage.$out || stage.$merge) {
+                throw new MongoDBError(
+                    ErrorCodes.ForbiddenWriteOperation,
+                    "In readOnly mode you can not run pipelines with $out or $merge stages."
+                );
+            }
+        }
     }
 }

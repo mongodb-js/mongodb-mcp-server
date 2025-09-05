@@ -95,6 +95,40 @@ describeWithMongoDB("aggregate tool", (integration) => {
         );
     });
 
+    it("can not run $out stages in readOnly mode", async () => {
+        await integration.connectMcpClient();
+        integration.mcpServer().userConfig.readOnly = true;
+        const response = await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $out: "outpeople" }],
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toEqual(
+            "Error running aggregate: In readOnly mode you can not run pipelines with $out or $merge stages."
+        );
+    });
+
+    it("can not run $merge stages in readOnly mode", async () => {
+        await integration.connectMcpClient();
+        integration.mcpServer().userConfig.readOnly = true;
+        const response = await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $merge: "outpeople" }],
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toEqual(
+            "Error running aggregate: In readOnly mode you can not run pipelines with $out or $merge stages."
+        );
+    });
+
     validateAutoConnectBehavior(integration, "aggregate", () => {
         return {
             args: {
