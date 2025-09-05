@@ -7,16 +7,29 @@ import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
 import type { DeviceId } from "../helpers/deviceId.js";
+import { EventEmitter } from "stream";
 
 type EventResult = {
     success: boolean;
     error?: Error;
 };
 
+async function timeout(promise: Promise<unknown>, ms: number): Promise<void> {
+    await Promise.race([new Promise((resolve) => setTimeout(resolve, ms)), promise]);
+}
+
+export interface TelemetryEvents {
+    "events-emitted": [];
+    "events-send-failed": [];
+    "events-skipped": [];
+}
+
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
+    public readonly events: EventEmitter<TelemetryEvents> = new EventEmitter();
+
     private eventCache: EventCache;
     private deviceId: DeviceId;
 
@@ -57,6 +70,12 @@ export class Telemetry {
 
     private async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
+            this.session.logger.info({
+                id: LogId.telemetryEmitFailure,
+                context: "telemetry",
+                message: "Telemetry is disabled.",
+                noRedaction: true,
+            });
             return;
         }
 
@@ -71,34 +90,22 @@ export class Telemetry {
 
     public async close(): Promise<void> {
         this.isBufferingEvents = false;
-        await this.emitEvents(this.eventCache.getEvents());
+        await timeout(this.emit([]), 5_000);
     }
 
     /**
      * Emits events through the telemetry pipeline
      * @param events - The events to emit
      */
-    public async emitEvents(events: BaseEvent[]): Promise<void> {
-        try {
-            if (!this.isTelemetryEnabled()) {
-                this.session.logger.info({
-                    id: LogId.telemetryEmitFailure,
-                    context: "telemetry",
-                    message: "Telemetry is disabled.",
-                    noRedaction: true,
-                });
-                return;
-            }
-
-            await this.emit(events);
-        } catch {
-            this.session.logger.debug({
-                id: LogId.telemetryEmitFailure,
-                context: "telemetry",
-                message: "Error emitting telemetry events.",
-                noRedaction: true,
-            });
+    public emitEvents(events: BaseEvent[]): void {
+        if (!this.isTelemetryEnabled()) {
+            this.events.emit("events-skipped");
+            return;
         }
+
+        // Don't wait for events to be sent - we should not block regular server
+        // operations on telemetry
+        void this.emit(events);
     }
 
     /**
@@ -144,32 +151,44 @@ export class Telemetry {
             return;
         }
 
-        const cachedEvents = this.eventCache.getEvents();
-        const allEvents = [...cachedEvents, ...events];
+        try {
+            const cachedEvents = this.eventCache.getEvents();
+            const allEvents = [...cachedEvents, ...events];
 
-        this.session.logger.debug({
-            id: LogId.telemetryEmitStart,
-            context: "telemetry",
-            message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
-        });
-
-        const result = await this.sendEvents(this.session.apiClient, allEvents);
-        if (result.success) {
-            this.eventCache.clearEvents();
             this.session.logger.debug({
-                id: LogId.telemetryEmitSuccess,
+                id: LogId.telemetryEmitStart,
                 context: "telemetry",
-                message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`,
+                message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
             });
-            return;
-        }
 
-        this.session.logger.debug({
-            id: LogId.telemetryEmitFailure,
-            context: "telemetry",
-            message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
-        });
-        this.eventCache.appendEvents(events);
+            const result = await this.sendEvents(this.session.apiClient, allEvents);
+            if (result.success) {
+                this.eventCache.clearEvents();
+                this.session.logger.debug({
+                    id: LogId.telemetryEmitSuccess,
+                    context: "telemetry",
+                    message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`,
+                });
+                this.events.emit("events-emitted");
+                return;
+            }
+
+            this.session.logger.debug({
+                id: LogId.telemetryEmitFailure,
+                context: "telemetry",
+                message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
+            });
+            this.eventCache.appendEvents(events);
+            this.events.emit("events-send-failed");
+        } catch (error) {
+            this.session.logger.debug({
+                id: LogId.telemetryEmitFailure,
+                context: "telemetry",
+                message: `Error emitting telemetry events: ${error instanceof Error ? error.message : String(error)}`,
+                noRedaction: true,
+            });
+            this.events.emit("events-send-failed");
+        }
     }
 
     /**

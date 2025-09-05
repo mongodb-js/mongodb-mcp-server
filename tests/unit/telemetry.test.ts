@@ -61,6 +61,16 @@ describe("Telemetry", () => {
         };
     }
 
+    function emitEventsForTest(events: BaseEvent[]): Promise<void> {
+        return new Promise((resolve) => {
+            telemetry.events.once("events-emitted", resolve);
+            telemetry.events.once("events-send-failed", resolve);
+            telemetry.events.once("events-skipped", resolve);
+
+            telemetry.emitEvents(events);
+        });
+    }
+
     // Helper function to verify mock calls to reduce duplication
     function verifyMockCalls({
         sendEventsCalls = 0,
@@ -145,7 +155,7 @@ describe("Telemetry", () => {
 
             await telemetry.setupPromise;
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls({
                 sendEventsCalls: 1,
@@ -161,7 +171,7 @@ describe("Telemetry", () => {
 
             await telemetry.setupPromise;
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls({
                 sendEventsCalls: 1,
@@ -186,7 +196,7 @@ describe("Telemetry", () => {
 
             await telemetry.setupPromise;
 
-            await telemetry.emitEvents([newEvent]);
+            await emitEventsForTest([newEvent]);
 
             verifyMockCalls({
                 sendEventsCalls: 1,
@@ -223,7 +233,7 @@ describe("Telemetry", () => {
             const commonProps = telemetry.getCommonProperties();
             expect(commonProps.hosting_mode).toBe("vscode-extension");
 
-            await telemetry.emitEvents([createTestEvent()]);
+            await emitEventsForTest([createTestEvent()]);
 
             const calls = mockApiClient.sendEvents.mock.calls;
             expect(calls).toHaveLength(1);
@@ -305,7 +315,7 @@ describe("Telemetry", () => {
         it("should not send events", async () => {
             const testEvent = createTestEvent();
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls();
         });
@@ -330,7 +340,7 @@ describe("Telemetry", () => {
         it("should not send events", async () => {
             const testEvent = createTestEvent();
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls();
         });

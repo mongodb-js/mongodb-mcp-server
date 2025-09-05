@@ -124,7 +124,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                         // eslint-disable-next-line @typescript-eslint/no-misused-promises
                         keepAliveLoop = setInterval(async () => {
                             try {
-                                this.logger.debug({
+                                server.session.logger.debug({
                                     id: LogId.streamableHttpTransportKeepAlive,
                                     context: "streamableHttpTransport",
                                     message: "Sending ping",
@@ -138,7 +138,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                             } catch (err) {
                                 try {
                                     failedPings++;
-                                    this.logger.warning({
+                                    server.session.logger.warning({
                                         id: LogId.streamableHttpTransportKeepAliveFailure,
                                         context: "streamableHttpTransport",
                                         message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
@@ -162,7 +162,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                             this.logger.error({
                                 id: LogId.streamableHttpTransportSessionCloseFailure,
                                 context: "streamableHttpTransport",
-                                message: `Error closing session: ${error instanceof Error ? error.message : String(error)}`,
+                                message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                             });
                         }
                     },
