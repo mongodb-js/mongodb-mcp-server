@@ -655,12 +655,14 @@ describe("CLI arguments", () => {
         describe(`deprecation behaviour of ${cliArg}`, () => {
             let cliArgs: CliOptions & UserConfig & { _?: string[] };
             let warn: (msg: string) => void;
+            let exit: (status: number) => void | never;
 
             beforeEach(() => {
                 cliArgs = { [cliArg]: "RandomString" } as unknown as CliOptions & UserConfig & { _?: string[] };
                 warn = vi.fn();
+                exit = vi.fn();
 
-                warnAboutDeprecatedOrUnknownCliArgs(cliArgs as unknown as Record<string, unknown>, warn);
+                warnAboutDeprecatedOrUnknownCliArgs(cliArgs as unknown as Record<string, unknown>, { warn, exit });
             });
 
             it(`warns the usage of ${cliArg} as it is deprecated`, () => {
@@ -670,14 +672,20 @@ describe("CLI arguments", () => {
             it(`shows the reference message when ${cliArg} was passed`, () => {
                 expect(warn).toHaveBeenCalledWith(referDocMessage);
             });
+
+            it(`should not exit the process`, () => {
+                expect(exit).not.toHaveBeenCalled();
+            });
         });
     }
 
     describe("invalid arguments", () => {
         let warn: (msg: string) => void;
+        let exit: (status: number) => void | never;
 
         beforeEach(() => {
             warn = vi.fn();
+            exit = vi.fn();
         });
 
         it("should show a warning when an argument is not known", () => {
@@ -685,7 +693,7 @@ describe("CLI arguments", () => {
                 {
                     wakanda: "",
                 },
-                warn
+                { warn, exit }
             );
 
             expect(warn).toHaveBeenCalledWith("Invalid command line argument 'wakanda'.");
@@ -694,12 +702,23 @@ describe("CLI arguments", () => {
             );
         });
 
+        it("should exit the process on unknown cli args", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    wakanda: "",
+                },
+                { warn, exit }
+            );
+
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+
         it("should show a suggestion when is a simple typo", () => {
             warnAboutDeprecatedOrUnknownCliArgs(
                 {
                     readonli: "",
                 },
-                warn
+                { warn, exit }
             );
 
             expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonli'. Did you mean 'readOnly'?");
@@ -713,7 +732,7 @@ describe("CLI arguments", () => {
                 {
                     readonly: "",
                 },
-                warn
+                { warn, exit }
             );
 
             expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonly'. Did you mean 'readOnly'?");

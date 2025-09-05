@@ -306,7 +306,13 @@ function parseCliConfig(args: string[]): CliOptions {
     // so we don't have a logger. For stdio, the warning will be received as a string in
     // the client and IDEs like VSCode do show the message in the log window. For HTTP,
     // it will be in the stdout of the process.
-    warnAboutDeprecatedOrUnknownCliArgs({ ...parsed, _: positionalArguments }, console.warn);
+    warnAboutDeprecatedOrUnknownCliArgs(
+        { ...parsed, _: positionalArguments },
+        {
+            warn: console.warn,
+            exit: process.exit,
+        }
+    );
 
     // if we have a positional argument that matches a connection string
     // store it as the connection specifier and remove it from the argument
@@ -319,7 +325,10 @@ function parseCliConfig(args: string[]): CliOptions {
     return parsed;
 }
 
-export function warnAboutDeprecatedOrUnknownCliArgs(args: Record<string, unknown>, warn: (msg: string) => void): void {
+export function warnAboutDeprecatedOrUnknownCliArgs(
+    args: Record<string, unknown>,
+    { warn, exit }: { warn: (msg: string) => void; exit: (status: number) => void | never }
+): void {
     let usedDeprecatedArgument = false;
     let usedInvalidArgument = false;
 
@@ -352,6 +361,10 @@ export function warnAboutDeprecatedOrUnknownCliArgs(args: Record<string, unknown
 
     if (usedInvalidArgument || usedDeprecatedArgument) {
         warn("Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
+    }
+
+    if (usedInvalidArgument) {
+        exit(1);
     }
 }
 
