@@ -309,8 +309,8 @@ function parseCliConfig(args: string[]): CliOptions {
     warnAboutDeprecatedOrUnknownCliArgs(
         { ...parsed, _: positionalArguments },
         {
-            warn: console.warn,
-            exit: process.exit,
+            warn: (msg) => console.warn(msg),
+            exit: (status) => process.exit(status),
         }
     );
 
