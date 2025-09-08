@@ -201,6 +201,11 @@ export class Server {
     }
 
     private async registerAtlasLocalTools(): Promise<void> {
+        // If Atlas Local tools are disabled, don't attempt to connect to the client
+        if (this.userConfig.disabledTools.includes("atlas-local")) {
+            return;
+        }
+
         try {
             // Import Atlas Local client asyncronously
             // This will fail on unsupported platforms
@@ -216,11 +221,6 @@ export class Server {
             // Register Atlas Local tools
             this.registerToolInstances(AtlasLocalTools);
         } catch (error) {
-            // If Atlas Local tools are disabled, don't log an error
-            if (this.userConfig.disabledTools.includes("atlas-local")) {
-                return;
-            }
-
             console.warn(
                 "Failed to initialize Atlas Local client, atlas-local tools will be disabled (error: ",
                 error,
