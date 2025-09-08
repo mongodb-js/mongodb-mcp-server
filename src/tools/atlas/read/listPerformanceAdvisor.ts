@@ -21,7 +21,9 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
         operations: z
             .array(z.nativeEnum(PerformanceAdvisorOperation))
             .describe("Operations to list performance advisor recommendations"),
-        since: z.string().describe("Date to list performance advisor recommendations since"),
+        since: z.number().describe("Date to list slow query logs since").optional(),
+        processId: z.string().describe("Process ID to list slow query logs").optional(),
+        namespaces: z.array(z.string()).describe("Namespaces to list slow query logs").optional(),
     };
 
     protected async execute({
@@ -29,6 +31,8 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
         clusterName,
         operations,
         since,
+        processId,
+        namespaces,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const data: PerformanceAdvisorData = {
             suggestedIndexes: [],
@@ -57,7 +61,14 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
             }
 
             if (operationsToExecute.includes(PerformanceAdvisorOperation.SLOW_QUERY_LOGS)) {
-                const { slowQueryLogs } = await getSlowQueries(this.session.apiClient, projectId, clusterName, since);
+                const { slowQueryLogs } = await getSlowQueries(
+                    this.session.apiClient,
+                    projectId,
+                    clusterName,
+                    since,
+                    processId,
+                    namespaces
+                );
                 data.slowQueryLogs = slowQueryLogs;
             }
 

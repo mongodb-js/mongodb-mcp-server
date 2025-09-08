@@ -178,8 +178,9 @@ export async function getSlowQueries(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    since: string,
-    processId?: string
+    since?: number,
+    processId?: string,
+    namespaces?: string[]
 ): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
         // If processId is not provided, get it from inspecting the cluster
@@ -195,12 +196,13 @@ export async function getSlowQueries(
                     processId: actualProcessId,
                 },
                 query: {
-                    since: Number(since),
+                    ...(since && { since: Number(since) }),
+                    ...(namespaces && { namespaces: namespaces }),
                 },
             },
         });
 
-        return { slowQueryLogs: response?.content?.slowQueries ?? [] };
+        return { slowQueryLogs: response?.slowQueries ?? [] };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSlowQueryLogsFailure,
