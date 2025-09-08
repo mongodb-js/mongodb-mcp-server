@@ -2,7 +2,8 @@
 # ----- Build Stage -----
 FROM node:lts-alpine AS builder
 
-RUN addgroup -S mcp && adduser -S mcp -G mcp
+RUN addgroup -S mcp && adduser -S mcp -G mcp -s /sbin/nologin
+RUN chown -R mcp:mcp /home/mcp
 USER mcp
 
 WORKDIR /home/mcp
