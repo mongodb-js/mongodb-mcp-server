@@ -18,6 +18,30 @@ interface SuggestedIndex {
     weight?: number;
 }
 
+interface SuggestedIndexesResponse {
+    content: {
+        suggestedIndexes?: SuggestedIndex[];
+    };
+}
+
+interface DropIndexesResponse {
+    content: {
+        hiddenIndexes?: DropIndexSuggestion[];
+        redundantIndexes?: DropIndexSuggestion[];
+        unusedIndexes?: DropIndexSuggestion[];
+    };
+}
+
+interface SchemaAdviceResponse {
+    content: {
+        recommendations?: SchemaRecommendation[];
+    };
+}
+
+interface SlowQueriesResponse {
+    slowQueries?: SlowQueryLog[];
+}
+
 interface DropIndexSuggestion {
     accessCount?: number;
     index?: Array<{ [key: string]: 1 | -1 }>;
@@ -105,7 +129,9 @@ export async function getSuggestedIndexes(
                 },
             },
         });
-        return { suggestedIndexes: response?.content?.suggestedIndexes ?? [] };
+        return {
+            suggestedIndexes: (response as SuggestedIndexesResponse).content.suggestedIndexes ?? [],
+        };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSuggestedIndexesFailure,
@@ -135,9 +161,9 @@ export async function getDropIndexSuggestions(
             },
         });
         return {
-            hiddenIndexes: response?.content?.hiddenIndexes ?? [],
-            redundantIndexes: response?.content?.redundantIndexes ?? [],
-            unusedIndexes: response?.content?.unusedIndexes ?? [],
+            hiddenIndexes: (response as DropIndexesResponse).content.hiddenIndexes ?? [],
+            redundantIndexes: (response as DropIndexesResponse).content.redundantIndexes ?? [],
+            unusedIndexes: (response as DropIndexesResponse).content.unusedIndexes ?? [],
         };
     } catch (err) {
         apiClient.logger.debug({
@@ -163,7 +189,7 @@ export async function getSchemaAdvice(
                 },
             },
         });
-        return { recommendations: response?.content?.recommendations ?? [] };
+        return { recommendations: (response as SchemaAdviceResponse).content.recommendations ?? [] };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSchemaAdviceFailure,
@@ -202,7 +228,7 @@ export async function getSlowQueries(
             },
         });
 
-        return { slowQueryLogs: response?.slowQueries ?? [] };
+        return { slowQueryLogs: (response as SlowQueriesResponse).slowQueries ?? [] };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSlowQueryLogsFailure,
