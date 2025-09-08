@@ -29,7 +29,9 @@ describe("atlas-local-list-deployments", () => {
     it.skipIf(!isMacOSInGitHubActions)(
         "[MacOS in GitHub Actions] should not have the atlas-local-list-deployments tool",
         async ({ signal }) => {
-            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+            // This should throw an error because the client is not set within the timeout of 5 seconds (default)
+            await expect(waitUntilMcpClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
+
             const { tools } = await integration.mcpClient().listTools();
             const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
             expect(listDeployments).toBeUndefined();
