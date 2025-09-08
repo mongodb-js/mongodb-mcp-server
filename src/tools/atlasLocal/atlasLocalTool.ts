@@ -16,8 +16,12 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         const client = this.session.atlasLocalClient;
 
         // If the client is not found, throw an error
-        // This should never happen, because the tool should have been disabled.
-        // verifyAllowed in the base class returns false if the client is not found
+        // This should never happen:
+        // - atlas-local tools are only added after the client is set
+        //   this means that if we were unable to get the client, the tool will not be registered
+        // - in case the tool was registered by accident
+        //   verifyAllowed in the base class would still return false preventing the tool from being registered,
+        //   preventing the tool from being executed
         if (!client) {
             throw new Error("Atlas Local client not found, tool should have been disabled.");
         }
