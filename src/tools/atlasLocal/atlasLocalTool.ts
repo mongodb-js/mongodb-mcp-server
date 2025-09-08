@@ -23,7 +23,16 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         //   verifyAllowed in the base class would still return false preventing the tool from being registered,
         //   preventing the tool from being executed
         if (!client) {
-            throw new Error("Atlas Local client not found, tool should have been disabled.");
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Something went wrong on our end, this tool should have been disabled but it was not.
+please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issues/new?template=bug_report.yml`,
+                    },
+                ],
+                isError: true,
+            };
         }
 
         return this.executeWithAtlasLocalClient(client);
