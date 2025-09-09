@@ -89,14 +89,21 @@ export class FindTool extends MongoDBToolBase {
                 iterateCursorUntilMaxBytes(findCursor, this.config.maxBytesPerQuery),
             ]);
 
-            const messageDescription = `\
-Query on collection "${collection}" resulted in ${queryResultsCount === undefined ? "indeterminable number of" : queryResultsCount} documents. \
+            let messageDescription = `\
+Query on collection "${collection}" resulted in ${queryResultsCount === undefined ? "indeterminable number of" : queryResultsCount} documents.\
+`;
+            if (documents.length) {
+                messageDescription += ` \
 Returning ${documents.length} documents while respecting the applied limits. \
 Note to LLM: If entire query result is needed then use "export" tool to export the query results.\
 `;
+            }
 
             return {
-                content: formatUntrustedData(messageDescription, EJSON.stringify(documents)),
+                content: formatUntrustedData(
+                    messageDescription,
+                    documents.length > 0 ? EJSON.stringify(documents) : undefined
+                ),
             };
         } finally {
             await findCursor?.close();

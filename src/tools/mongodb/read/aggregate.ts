@@ -60,14 +60,21 @@ export class AggregateTool extends MongoDBToolBase {
                 iterateCursorUntilMaxBytes(aggregationCursor, this.config.maxBytesPerQuery),
             ]);
 
-            const messageDescription = `\
-    The aggregation resulted in ${totalDocuments === undefined ? "indeterminable number of" : totalDocuments} documents. \
-    Returning ${documents.length} documents while respecting the applied limits. \
-    Note to LLM: If entire aggregation result is needed then use "export" tool to export the aggregation results.\
-    `;
+            let messageDescription = `\
+The aggregation resulted in ${totalDocuments === undefined ? "indeterminable number of" : totalDocuments} documents.\
+`;
+            if (documents.length) {
+                messageDescription += ` \
+Returning ${documents.length} documents while respecting the applied limits. \
+Note to LLM: If entire aggregation result is needed then use "export" tool to export the aggregation results.\
+`;
+            }
 
             return {
-                content: formatUntrustedData(messageDescription, EJSON.stringify(documents)),
+                content: formatUntrustedData(
+                    messageDescription,
+                    documents.length > 0 ? EJSON.stringify(documents) : undefined
+                ),
             };
         } finally {
             await aggregationCursor?.close();
@@ -114,7 +121,7 @@ export class AggregateTool extends MongoDBToolBase {
                 "totalDocuments" in documentWithCount &&
                 typeof documentWithCount.totalDocuments === "number"
                     ? documentWithCount.totalDocuments
-                    : undefined;
+                    : 0;
 
             return totalDocuments;
         }, undefined);

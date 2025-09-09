@@ -56,7 +56,7 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "foos".');
+        expect(content).toEqual('Query on collection "foos" resulted in 0 documents.');
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -68,7 +68,7 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "non-existent".');
+        expect(content).toEqual('Query on collection "non-existent" resulted in 0 documents.');
     });
 
     describe("with existing database", () => {
@@ -148,7 +148,7 @@ describeWithMongoDB("find tool", (integration) => {
                     },
                 });
                 const content = getResponseContent(response);
-                expect(content).toContain(`Found ${expected.length} documents in the collection "foo".`);
+                expect(content).toContain(`Query on collection "foo" resulted in ${expected.length} documents.`);
 
                 const docs = getDocsFromUntrustedContent(content);
 
@@ -165,7 +165,7 @@ describeWithMongoDB("find tool", (integration) => {
                 arguments: { database: integration.randomDbName(), collection: "foo" },
             });
             const content = getResponseContent(response);
-            expect(content).toContain('Found 10 documents in the collection "foo".');
+            expect(content).toContain('Query on collection "foo" resulted in 10 documents.');
 
             const docs = getDocsFromUntrustedContent(content);
             expect(docs.length).toEqual(10);
@@ -195,7 +195,7 @@ describeWithMongoDB("find tool", (integration) => {
             });
 
             const content = getResponseContent(response);
-            expect(content).toContain('Found 1 documents in the collection "foo".');
+            expect(content).toContain('Query on collection "foo" resulted in 1 documents.');
 
             const docs = getDocsFromUntrustedContent(content);
             expect(docs.length).toEqual(1);
@@ -207,7 +207,7 @@ describeWithMongoDB("find tool", (integration) => {
     validateAutoConnectBehavior(integration, "find", () => {
         return {
             args: { database: integration.randomDbName(), collection: "coll1" },
-            expectedResponse: 'Found 0 documents in the collection "coll1"',
+            expectedResponse: 'Query on collection "coll1" resulted in 0 documents.',
         };
     });
 });
