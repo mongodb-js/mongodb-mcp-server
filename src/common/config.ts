@@ -161,6 +161,8 @@ export interface UserConfig extends CliOptions {
     loggers: Array<"stderr" | "disk" | "mcp">;
     idleTimeoutMs: number;
     notificationTimeoutMs: number;
+    maxDocumentsPerQuery: number;
+    maxBytesPerQuery: number;
 }
 
 export const defaultUserConfig: UserConfig = {
@@ -180,6 +182,8 @@ export const defaultUserConfig: UserConfig = {
     idleTimeoutMs: 600000, // 10 minutes
     notificationTimeoutMs: 540000, // 9 minutes
     httpHeaders: {},
+    maxDocumentsPerQuery: 50,
+    maxBytesPerQuery: 1 * 1000 * 1000, // 1 mb
 };
 
 export const config = setupUserConfig({
