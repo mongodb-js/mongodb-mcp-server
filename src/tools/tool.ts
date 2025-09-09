@@ -18,6 +18,8 @@ export type TelemetryToolMetadata = {
     orgId?: string;
 };
 
+export type ToolConstructor = new (session: Session, config: UserConfig, telemetry: Telemetry) => ToolBase;
+
 export abstract class ToolBase {
     public abstract name: string;
 

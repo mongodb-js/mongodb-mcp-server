@@ -19,7 +19,7 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import type { ToolBase } from "./tools/tool.js";
+import type { ToolBase, ToolConstructor } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -68,6 +68,9 @@ export class Server {
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
+
+        // Atlas Local tools are optional and require async initialization
+        void this.registerAtlasLocalTools();
 
         // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
@@ -197,8 +200,41 @@ export class Server {
         this.telemetry.emitEvents([event]).catch(() => {});
     }
 
+    private async registerAtlasLocalTools(): Promise<void> {
+        // If Atlas Local tools are disabled, don't attempt to connect to the client
+        if (this.userConfig.disabledTools.includes("atlas-local")) {
+            return;
+        }
+
+        try {
+            // Import Atlas Local client asyncronously
+            // This will fail on unsupported platforms
+            const { Client: AtlasLocalClient } = await import("@mongodb-js-preview/atlas-local");
+
+            // Connect to Atlas Local client
+            // This will fail if docker is not running
+            const client = AtlasLocalClient.connect();
+
+            // Set Atlas Local client
+            this.session.setAtlasLocalClient(client);
+
+            // Register Atlas Local tools
+            this.registerToolInstances(AtlasLocalTools);
+        } catch (error) {
+            console.warn(
+                "Failed to initialize Atlas Local client, atlas-local tools will be disabled (error: ",
+                error,
+                ")"
+            );
+        }
+    }
+
     private registerTools(): void {
-        for (const toolConstructor of [...AtlasTools, ...AtlasLocalTools, ...MongoDbTools]) {
+        this.registerToolInstances([...AtlasTools, ...MongoDbTools]);
+    }
+
+    private registerToolInstances(tools: Array<ToolConstructor>): void {
+        for (const toolConstructor of tools) {
             const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
             if (tool.register(this)) {
                 this.tools.push(tool);
