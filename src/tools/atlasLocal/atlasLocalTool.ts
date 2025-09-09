@@ -11,7 +11,7 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
     }
 
-    protected async execute(): Promise<CallToolResult> {
+    protected async execute(...args: Parameters<ToolCallback<typeof this.argsShape>>): Promise<CallToolResult> {
         // Get the client
         const client = this.session.atlasLocalClient;
 
@@ -35,10 +35,13 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
             };
         }
 
-        return this.executeWithAtlasLocalClient(client);
+        return this.executeWithAtlasLocalClient(client, ...args);
     }
 
-    protected abstract executeWithAtlasLocalClient(client: Client): Promise<CallToolResult>;
+    protected abstract executeWithAtlasLocalClient(
+        client: Client,
+        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+    ): Promise<CallToolResult>;
 
     protected handleError(
         error: unknown,
