@@ -50,9 +50,9 @@ jobs:
           VERSION="${{ steps.get-version.outputs.VERSION }}"
 
           # Extract the release channel (latest, alpha, beta, rc)
-          if [[ $VERSION =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(.+))?$ ]]; then
-            if [[ -n "${BASH_REMATCH[5]}" ]]; then
-              CAPTURED_CHANNEL="${BASH_REMATCH[5]}"
+          if [[ $VERSION =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-(.+))?$ ]]; then
+            if [[ -n "${BASH_REMATCH[2]}" ]]; then
+              CAPTURED_CHANNEL="${BASH_REMATCH[2]}"
               # The captured channel might have more dots, cases like
               # v1.2.3-alpha.1 For such cases we only want the channel relevant
               # part which is alpha.
