@@ -47,6 +47,7 @@ jobs:
         id: npm-tag
         shell: bash
         run: |
+          set -e
           VERSION="${{ steps.get-version.outputs.VERSION }}"
 
           # Extract the release channel (latest, alpha, beta, rc)
@@ -61,7 +62,8 @@ jobs:
               RELEASE_CHANNEL="latest"
             fi
           else
-            RELEASE_CHANNEL="latest"
+            echo "::error title=Invalid Version::Encountered unexpected version ${{ steps.get-version.outputs.VERSION }}, cannot proceed!"
+            exit 1
           fi
 
           echo "RELEASE_CHANNEL=${RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
