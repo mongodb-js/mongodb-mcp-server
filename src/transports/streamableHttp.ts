@@ -205,6 +205,17 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             message: `Server started on ${this.serverAddress}`,
             noRedaction: true,
         });
+
+        if (this.userConfig.httpHost === "0.0.0.0") {
+            this.logger.warning({
+                id: LogId.streamableHttpTransportHttpHostWarning,
+                context: "streamableHttpTransport",
+                message: `Binding to \`0.0.0.0\` exposes the MCP Server to the entire local
+   network, which allows other devices on the same network to
+   potentially access the MCP Server. This is a security risk and could
+   allow unauthorized access to your database context. `,
+            });
+        }
     }
 
     async closeTransport(): Promise<void> {
