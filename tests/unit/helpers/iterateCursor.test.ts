@@ -21,7 +21,6 @@ describe("iterateCursorUntilMaxBytes", () => {
         const cursor = createMockCursor(docs);
         const maxBytes = 10000;
         const result = await iterateCursorUntilMaxBytes(cursor, maxBytes);
-        console.log("test result", result);
         expect(result).toEqual(docs);
     });
 
