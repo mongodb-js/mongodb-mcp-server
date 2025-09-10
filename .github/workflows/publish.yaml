@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
           registry-url: "https://registry.npmjs.org"
@@ -45,15 +45,28 @@ jobs:
           fi
       - name: Get npm tag
         id: npm-tag
+        shell: bash
         run: |
-          $regex = "^v?(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:[^.]*)))?"
-          $version = "${{ steps.get-version.outputs.VERSION }}"
-          $releaseChannel = $groups["prerelease"][0].value
+          set -e
+          VERSION="${{ steps.get-version.outputs.VERSION }}"
 
-          if ([string]::IsNullOrEmpty($releaseChannel)) {
-              $releaseChannel = "latest"
-          }
-          Write-Output "RELEASE_CHANNEL=$releaseChannel" >> $Env:GITHUB_OUTPUT
+          # Extract the release channel (latest, alpha, beta, rc)
+          if [[ $VERSION =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-(.+))?$ ]]; then
+            if [[ -n "${BASH_REMATCH[2]}" ]]; then
+              CAPTURED_CHANNEL="${BASH_REMATCH[2]}"
+              # The captured channel might have more dots, cases like
+              # v1.2.3-alpha.1 For such cases we only want the channel relevant
+              # part which is alpha.
+              RELEASE_CHANNEL="${CAPTURED_CHANNEL%%.*}"
+            else
+              RELEASE_CHANNEL="latest"
+            fi
+          else
+            echo "::error title=Invalid Version::Encountered unexpected version ${{ steps.get-version.outputs.VERSION }}, cannot proceed!"
+            exit 1
+          fi
+
+          echo "RELEASE_CHANNEL=${RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
       - name: Output deployment info
         run: echo "::notice title=Deployment Info::Deploying version ${{ steps.get-version.outputs.VERSION }} to channel ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}"
 
@@ -68,7 +81,7 @@ jobs:
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
           registry-url: "https://registry.npmjs.org"
