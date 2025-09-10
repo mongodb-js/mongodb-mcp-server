@@ -111,4 +111,31 @@ describeAccuracyTests([
             },
         ],
     },
+    {
+        prompt: "I want a COMPLETE list of all the movies only from 'mflix.movies' namespace.",
+        expectedToolCalls: [
+            {
+                toolName: "find",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    filter: Matcher.emptyObjectOrUndefined,
+                },
+            },
+            {
+                toolName: "export",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: Matcher.emptyObjectOrUndefined,
+                        },
+                    ],
+                },
+            },
+        ],
+    },
 ]);
