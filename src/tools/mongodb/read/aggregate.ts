@@ -10,12 +10,7 @@ import { type Document, EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { iterateCursorUntilMaxBytes } from "../../../helpers/iterateCursor.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-
-/**
- * A cap for the maxTimeMS used for counting resulting documents of an
- * aggregation.
- */
-const AGG_COUNT_MAX_TIME_MS_CAP = 60_000;
+import { AGG_COUNT_MAX_TIME_MS_CAP } from "../../../helpers/constants.js";
 
 export const AggregateArgs = {
     pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),

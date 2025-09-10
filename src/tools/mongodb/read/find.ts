@@ -8,15 +8,7 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { iterateCursorUntilMaxBytes } from "../../../helpers/iterateCursor.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-
-/**
- * A cap for the maxTimeMS used for FindCursor.countDocuments.
- *
- * The number is relatively smaller because we expect the count documents query
- * to be finished sooner if not by the time the batch of documents is retrieved
- * so that count documents query don't hold the final response back.
- */
-const QUERY_COUNT_MAX_TIME_MS_CAP = 10_000;
+import { QUERY_COUNT_MAX_TIME_MS_CAP } from "../../../helpers/constants.js";
 
 export const FindArgs = {
     filter: z
