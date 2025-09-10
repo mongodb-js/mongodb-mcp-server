@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor, SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
@@ -40,14 +40,10 @@ export class FindTool extends MongoDBToolBase {
     };
     public operationType: OperationType = "read";
 
-    protected async execute({
-        database,
-        collection,
-        filter,
-        projection,
-        limit,
-        sort,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection, filter, projection, limit, sort }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         let findCursor: FindCursor<unknown> | undefined;
         try {
             const provider = await this.ensureConnected();
@@ -82,7 +78,11 @@ export class FindTool extends MongoDBToolBase {
                         }),
                     undefined
                 ),
-                iterateCursorUntilMaxBytes(findCursor, this.config.maxBytesPerQuery),
+                iterateCursorUntilMaxBytes({
+                    cursor: findCursor,
+                    maxBytesPerQuery: this.config.maxBytesPerQuery,
+                    abortSignal: signal,
+                }),
             ]);
 
             let messageDescription = `\

@@ -8,10 +8,15 @@ import type { AggregationCursor, FindCursor } from "mongodb";
  * The cursor is iterated until we can predict that fetching next doc won't
  * exceed the maxBytesPerQuery limit.
  */
-export async function iterateCursorUntilMaxBytes(
-    cursor: FindCursor<unknown> | AggregationCursor<unknown>,
-    maxBytesPerQuery: number
-): Promise<unknown[]> {
+export async function iterateCursorUntilMaxBytes({
+    cursor,
+    maxBytesPerQuery,
+    abortSignal,
+}: {
+    cursor: FindCursor<unknown> | AggregationCursor<unknown>;
+    maxBytesPerQuery: number;
+    abortSignal?: AbortSignal;
+}): Promise<unknown[]> {
     // Setting configured limit to zero or negative is equivalent to disabling
     // the max bytes limit applied on tool responses.
     if (maxBytesPerQuery <= 0) {
@@ -22,6 +27,10 @@ export async function iterateCursorUntilMaxBytes(
     let totalBytes = 0;
     const bufferedDocuments: unknown[] = [];
     while (true) {
+        if (abortSignal?.aborted) {
+            break;
+        }
+
         if (totalBytes + biggestDocSizeSoFar >= maxBytesPerQuery) {
             break;
         }

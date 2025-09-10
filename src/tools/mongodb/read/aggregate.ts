@@ -3,7 +3,7 @@ import type { AggregationCursor } from "mongodb";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { type Document, EJSON } from "bson";
@@ -25,11 +25,10 @@ export class AggregateTool extends MongoDBToolBase {
     };
     public operationType: OperationType = "read";
 
-    protected async execute({
-        database,
-        collection,
-        pipeline,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection, pipeline }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         let aggregationCursor: AggregationCursor | undefined;
         try {
             const provider = await this.ensureConnected();
@@ -53,7 +52,11 @@ export class AggregateTool extends MongoDBToolBase {
 
             const [totalDocuments, documents] = await Promise.all([
                 this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
-                iterateCursorUntilMaxBytes(aggregationCursor, this.config.maxBytesPerQuery),
+                iterateCursorUntilMaxBytes({
+                    cursor: aggregationCursor,
+                    maxBytesPerQuery: this.config.maxDocumentsPerQuery,
+                    abortSignal: signal,
+                }),
             ]);
 
             let messageDescription = `\
