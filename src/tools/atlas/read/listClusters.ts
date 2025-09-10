@@ -9,14 +9,18 @@ import type {
     PaginatedFlexClusters20241113,
 } from "../../../common/atlas/openapi.js";
 import { formatCluster, formatFlexCluster } from "../../../common/atlas/cluster.js";
-import { AtlasArgs } from "../validators.js";
+import { AtlasArgs } from "../../args.js";
+
+export const ListClustersArgs = {
+    projectId: AtlasArgs.projectId().describe("Atlas project ID to filter clusters").optional(),
+};
 
 export class ListClustersTool extends AtlasToolBase {
     public name = "atlas-list-clusters";
     protected description = "List MongoDB Atlas clusters";
     public operationType: OperationType = "read";
     protected argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID to filter clusters").optional(),
+        ...ListClustersArgs,
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {

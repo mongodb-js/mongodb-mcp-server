@@ -1,6 +1,5 @@
-import type { ToolCategory, TelemetryToolMetadata, ToolArgs } from "../tool.js";
-import { ToolBase } from "../tool.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ToolBase, type ToolArgs, type ToolCategory, type TelemetryToolMetadata } from "../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../../common/logger.js";
 import { z } from "zod";

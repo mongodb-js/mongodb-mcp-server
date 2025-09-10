@@ -1,9 +1,9 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { type ToolArgs, type OperationType } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
-import { AtlasArgs } from "../validators.js";
+import { AtlasArgs } from "../../args.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {
     public name = "atlas-create-free-cluster";

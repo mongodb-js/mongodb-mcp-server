@@ -1,13 +1,13 @@
-import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { type OperationType, type ToolArgs } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { LogId } from "../../../common/logger.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
+import { AtlasArgs } from "../../args.js";
 
 const EXPIRY_MS = 1000 * 60 * 60 * 12; // 12 hours
 const addedIpAccessListMessage =
@@ -20,13 +20,17 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export const ConnectClusterArgs = {
+    projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+    clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
+};
+
 export class ConnectClusterTool extends AtlasToolBase {
     public name = "atlas-connect-cluster";
     protected description = "Connect to MongoDB Atlas cluster";
     public operationType: OperationType = "connect";
     protected argsShape = {
-        projectId: z.string().describe("Atlas project ID"),
-        clusterName: z.string().describe("Atlas cluster name"),
+        ...ConnectClusterArgs,
     };
 
     private queryConnection(
