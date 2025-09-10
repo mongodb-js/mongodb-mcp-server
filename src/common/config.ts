@@ -183,7 +183,7 @@ export const defaultUserConfig: UserConfig = {
     notificationTimeoutMs: 540000, // 9 minutes
     httpHeaders: {},
     maxDocumentsPerQuery: 10, // By default, we only fetch a maximum 10 documents per query / aggregation
-    maxBytesPerQuery: 1 * 1000 * 1000, // By default, we only return ~1 mb of data per query / aggregation
+    maxBytesPerQuery: 1 * 1024 * 1024, // By default, we only return ~1 mb of data per query / aggregation
 };
 
 export const config = setupUserConfig({

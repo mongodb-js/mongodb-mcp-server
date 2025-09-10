@@ -61,12 +61,12 @@ export class FindTool extends MongoDBToolBase {
                 });
             }
 
-            const limitOnFindCursor = Math.min(limit ?? Number.POSITIVE_INFINITY, this.config.maxDocumentsPerQuery);
+            const limitOnFindCursor = this.getLimitForFindCursor(limit);
+
             findCursor = provider.find(database, collection, filter, {
                 projection,
                 limit: limitOnFindCursor,
                 sort,
-                batchSize: limitOnFindCursor,
             });
 
             const [queryResultsCount, documents] = await Promise.all([
@@ -75,7 +75,8 @@ export class FindTool extends MongoDBToolBase {
                         provider.countDocuments(database, collection, filter, {
                             // We should be counting documents that the original
                             // query would have yielded which is why we don't
-                            // use `limitOnFindCursor` calculated above.
+                            // use `limitOnFindCursor` calculated above, only
+                            // the limit provided to the tool.
                             limit,
                             maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
                         }),
@@ -103,5 +104,18 @@ Note to LLM: If entire query result is needed then use "export" tool to export t
         } finally {
             await findCursor?.close();
         }
+    }
+
+    private getLimitForFindCursor(providedLimit: number | undefined): number | undefined {
+        const configuredLimit = this.config.maxDocumentsPerQuery;
+        // Setting configured limit to negative or zero is equivalent to
+        // disabling the max limit applied on documents
+        if (configuredLimit <= 0) {
+            return providedLimit;
+        }
+
+        return providedLimit === null || providedLimit === undefined
+            ? configuredLimit
+            : Math.min(providedLimit, configuredLimit);
     }
 }

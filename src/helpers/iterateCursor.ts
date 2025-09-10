@@ -12,6 +12,12 @@ export async function iterateCursorUntilMaxBytes(
     cursor: FindCursor<unknown> | AggregationCursor<unknown>,
     maxBytesPerQuery: number
 ): Promise<unknown[]> {
+    // Setting configured limit to zero or negative is equivalent to disabling
+    // the max bytes limit applied on tool responses.
+    if (maxBytesPerQuery <= 0) {
+        return await cursor.toArray();
+    }
+
     let biggestDocSizeSoFar = 0;
     let totalBytes = 0;
     const bufferedDocuments: unknown[] = [];

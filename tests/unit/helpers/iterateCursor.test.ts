@@ -13,8 +13,27 @@ describe("iterateCursorUntilMaxBytes", () => {
                 }
                 return Promise.resolve(null);
             }),
+            toArray: vi.fn(() => {
+                return Promise.resolve(docs);
+            }),
         } as unknown as FindCursor<unknown>;
     }
+
+    it("returns all docs if maxBytesPerQuery is -1", async () => {
+        const docs = Array.from({ length: 1000 }).map((_, idx) => ({ value: idx }));
+        const cursor = createMockCursor(docs);
+        const maxBytes = -1;
+        const result = await iterateCursorUntilMaxBytes(cursor, maxBytes);
+        expect(result).toEqual(docs);
+    });
+
+    it("returns all docs if maxBytesPerQuery is 0", async () => {
+        const docs = Array.from({ length: 1000 }).map((_, idx) => ({ value: idx }));
+        const cursor = createMockCursor(docs);
+        const maxBytes = 0;
+        const result = await iterateCursorUntilMaxBytes(cursor, maxBytes);
+        expect(result).toEqual(docs);
+    });
 
     it("returns all docs if under maxBytesPerQuery", async () => {
         const docs = [{ a: 1 }, { b: 2 }];
