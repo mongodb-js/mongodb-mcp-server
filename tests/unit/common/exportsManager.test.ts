@@ -25,14 +25,10 @@ const exportsManagerConfig: ExportsManagerConfig = {
 function getExportNameAndPath({
     uniqueExportsId = new ObjectId().toString(),
     uniqueFileId = new ObjectId().toString(),
-    database = "foo",
-    collection = "bar",
 }:
     | {
           uniqueExportsId?: string;
           uniqueFileId?: string;
-          database?: string;
-          collection?: string;
       }
     | undefined = {}): {
     sessionExportsPath: string;
@@ -41,7 +37,7 @@ function getExportNameAndPath({
     exportURI: string;
     uniqueExportsId: string;
 } {
-    const exportName = `${database}.${collection}.${uniqueFileId}.json`;
+    const exportName = `${uniqueFileId}.json`;
     // This is the exports directory for a session.
     const sessionExportsPath = path.join(exportsPath, uniqueExportsId);
     const exportPath = path.join(sessionExportsPath, exportName);
@@ -243,7 +239,7 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should handle encoded name", async () => {
-            const { exportName, exportURI } = getExportNameAndPath({ database: "some database", collection: "coll" });
+            const { exportName, exportURI } = getExportNameAndPath({ uniqueFileId: "1FOO 2BAR" });
             const { cursor } = createDummyFindCursor([]);
             const exportAvailableNotifier = getExportAvailableNotifier(encodeURI(exportURI), manager);
             await manager.createJSONExport({
