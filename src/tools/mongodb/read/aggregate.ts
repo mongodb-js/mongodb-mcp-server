@@ -54,7 +54,7 @@ export class AggregateTool extends MongoDBToolBase {
                 this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
                 iterateCursorUntilMaxBytes({
                     cursor: aggregationCursor,
-                    maxBytesPerQuery: this.config.maxDocumentsPerQuery,
+                    maxBytesPerQuery: this.config.maxBytesPerQuery,
                     abortSignal: signal,
                 }),
             ]);

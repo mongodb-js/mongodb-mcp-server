@@ -158,7 +158,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
             vi.resetAllMocks();
         });
 
-        it("should abort discard count operation and respond with indeterminable count", async () => {
+        it("should abort count operation and respond with indeterminable count", async () => {
             vi.spyOn(constants, "AGG_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
             await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
