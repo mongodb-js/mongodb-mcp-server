@@ -2,15 +2,15 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import { z } from "zod";
 import type { ToolArgs } from "../../tool.js";
+import { AtlasArgs } from "../validators.js";
 
 export class ListProjectsTool extends AtlasToolBase {
     public name = "atlas-list-projects";
     protected description = "List MongoDB Atlas projects";
     public operationType: OperationType = "read";
     protected argsShape = {
-        orgId: z.string().describe("Atlas organization ID to filter projects").optional(),
+        orgId: AtlasArgs.organizationId().describe("Atlas organization ID to filter projects").optional(),
     };
 
     protected async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {

@@ -5,13 +5,14 @@ import type { ToolArgs, OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { Cluster } from "../../../common/atlas/cluster.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
+import { AtlasArgs } from "../validators.js";
 
 export class InspectClusterTool extends AtlasToolBase {
     public name = "atlas-inspect-cluster";
     protected description = "Inspect MongoDB Atlas cluster";
     public operationType: OperationType = "read";
     protected argsShape = {
-        projectId: z.string().describe("Atlas project ID"),
+        projectId: AtlasArgs.projectId().describe("Atlas project ID"),
         clusterName: z.string().describe("Atlas cluster name"),
     };
 

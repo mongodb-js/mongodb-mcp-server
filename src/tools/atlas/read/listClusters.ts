@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
@@ -10,13 +9,14 @@ import type {
     PaginatedFlexClusters20241113,
 } from "../../../common/atlas/openapi.js";
 import { formatCluster, formatFlexCluster } from "../../../common/atlas/cluster.js";
+import { AtlasArgs } from "../validators.js";
 
 export class ListClustersTool extends AtlasToolBase {
     public name = "atlas-list-clusters";
     protected description = "List MongoDB Atlas clusters";
     public operationType: OperationType = "read";
     protected argsShape = {
-        projectId: z.string().describe("Atlas project ID to filter clusters").optional(),
+        projectId: AtlasArgs.projectId().describe("Atlas project ID to filter clusters").optional(),
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
