@@ -1,0 +1,67 @@
+import {
+    defaultDriverOptions,
+    defaultTestConfig,
+    expectDefined,
+    getResponseElements,
+    setupIntegrationTest,
+    waitUntilMcpClientIsSet,
+} from "../../helpers.js";
+import { describe, expect, it } from "vitest";
+
+const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
+
+// Docker is not available on macOS in GitHub Actions
+// That's why we skip the tests on macOS in GitHub Actions
+describe("atlas-local-delete-deployment", () => {
+    const integration = setupIntegrationTest(
+        () => defaultTestConfig,
+        () => defaultDriverOptions
+    );
+
+    it.skipIf(isMacOSInGitHubActions)("should have the atlas-local-delete-deployment tool", async ({ signal }) => {
+        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+
+        const { tools } = await integration.mcpClient().listTools();
+        const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
+        expectDefined(deleteDeployment);
+    });
+
+    it.skipIf(!isMacOSInGitHubActions)(
+        "[MacOS in GitHub Actions] should not have the atlas-local-delete-deployment tool",
+        async ({ signal }) => {
+            // This should throw an error because the client is not set within the timeout of 5 seconds (default)
+            await expect(waitUntilMcpClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
+
+            const { tools } = await integration.mcpClient().listTools();
+            const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
+            expect(deleteDeployment).toBeUndefined();
+        }
+    );
+
+    it.skipIf(isMacOSInGitHubActions)("should have correct metadata", async ({ signal }) => {
+        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        const { tools } = await integration.mcpClient().listTools();
+        const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
+        expectDefined(deleteDeployment);
+        expect(deleteDeployment.inputSchema.type).toBe("object");
+        expectDefined(deleteDeployment.inputSchema.properties);
+        expect(deleteDeployment.inputSchema.properties).toHaveProperty("deploymentName");
+    });
+
+    it.skipIf(isMacOSInGitHubActions)(
+        "should return 'no such container' error when deployment to delete does not exist",
+        async ({ signal }) => {
+            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+
+            const response = await integration.mcpClient().callTool({
+                name: "atlas-local-delete-deployment",
+                arguments: { deploymentName: "non-existent" },
+            });
+            const elements = getResponseElements(response.content);
+            expect(elements.length).toBeGreaterThanOrEqual(1);
+            expect(elements[0]?.text).toContain(
+                "Docker responded with status code 404: No such container: non-existent"
+            );
+        }
+    );
+});
