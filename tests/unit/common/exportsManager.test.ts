@@ -5,12 +5,7 @@ import type { FindCursor } from "mongodb";
 import { Long } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js";
-import {
-    ensureExtension,
-    isExportExpired,
-    ExportsManager,
-    validateExportName,
-} from "../../../src/common/exportsManager.js";
+import { ensureExtension, isExportExpired, ExportsManager } from "../../../src/common/exportsManager.js";
 import type { AvailableExport } from "../../../src/common/exportsManager.js";
 import { config } from "../../../src/common/config.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
@@ -608,16 +603,6 @@ describe("#ensureExtension", () => {
         expect(ensureExtension("random.json", "json")).toEqual("random.json");
         expect(ensureExtension("random.1234.json", "json")).toEqual("random.1234.json");
         expect(ensureExtension("/random/random-file.json", "json")).toEqual("/random/random-file.json");
-    });
-});
-
-describe("#validateExportName", () => {
-    it("should return decoded name when name is valid", () => {
-        expect(validateExportName(encodeURIComponent("Test Name.json"))).toEqual("Test Name.json");
-    });
-    it("should throw when name is invalid", () => {
-        expect(() => validateExportName("NoExtension")).toThrow("Provided export name has no extension");
-        expect(() => validateExportName("../something.json")).toThrow("Invalid export name: path traversal hinted");
     });
 });
 

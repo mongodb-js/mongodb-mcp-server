@@ -163,7 +163,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): Promise<AvailableExport> {
         try {
             this.assertIsNotShuttingDown();
-            const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
+            const exportNameWithExtension = ensureExtension(exportName, "json");
             if (this.storedExports[exportNameWithExtension]) {
                 return Promise.reject(
                     new Error("Export with same name is either already available or being generated.")
@@ -371,22 +371,6 @@ export function ensureExtension(pathOrName: string, extension: string): string {
         return pathOrName;
     }
     return `${pathOrName}${extWithDot}`;
-}
-
-/**
- * Small utility to decoding and validating provided export name for path
- * traversal or no extension */
-export function validateExportName(nameWithExtension: string): string {
-    const decodedName = decodeURIComponent(nameWithExtension);
-    if (!path.extname(decodedName)) {
-        throw new Error("Provided export name has no extension");
-    }
-
-    if (decodedName.includes("..") || decodedName.includes("/") || decodedName.includes("\\")) {
-        throw new Error("Invalid export name: path traversal hinted");
-    }
-
-    return decodedName;
 }
 
 export function isExportExpired(createdAt: number, exportTimeoutMs: number): boolean {

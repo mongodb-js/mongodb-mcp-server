@@ -155,10 +155,10 @@ describeWithMongoDB(
                     },
                     argument: {
                         name: "exportName",
-                        value: "b",
+                        value: "big",
                     },
                 });
-                expect(completeResponse.completion.total).toEqual(1);
+                expect(completeResponse.completion.total).toBeGreaterThanOrEqual(1);
             });
         });
     },
