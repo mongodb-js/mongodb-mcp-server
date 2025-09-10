@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AtlasArgs, CommonArgs } from "../../src/tools/args.js";
 
-describe("Atlas Validators", () => {
+describe("Tool args", () => {
     describe("CommonArgs", () => {
         describe("string", () => {
             it("should return a ZodString schema", () => {
@@ -19,9 +19,24 @@ describe("Atlas Validators", () => {
 
             it("should not allow special characters and unicode symbols", () => {
                 const schema = CommonArgs.string();
+
+                // Unicode characters
                 expect(() => schema.parse("héllo")).toThrow();
                 expect(() => schema.parse("测试")).toThrow();
+                expect(() => schema.parse("café")).toThrow();
+
+                // Emojis
                 expect(() => schema.parse("🚀")).toThrow();
+                expect(() => schema.parse("hello😀")).toThrow();
+
+                // Control characters (below ASCII 32)
+                expect(() => schema.parse("hello\nworld")).toThrow();
+                expect(() => schema.parse("hello\tworld")).toThrow();
+                expect(() => schema.parse("hello\0world")).toThrow();
+
+                // Extended ASCII characters (above ASCII 126)
+                expect(() => schema.parse("hello\x80")).toThrow();
+                expect(() => schema.parse("hello\xFF")).toThrow();
             });
 
             it("should reject non-string values", () => {
@@ -246,8 +261,21 @@ describe("Atlas Validators", () => {
                 });
             });
 
+            it("should accept exactly 50 characters", () => {
+                const schema = AtlasArgs.region();
+                const maxLengthRegion = "a".repeat(50);
+                expect(schema.parse(maxLengthRegion)).toBe(maxLengthRegion);
+            });
+
             it("should reject invalid region names", () => {
                 const schema = AtlasArgs.region();
+
+                // Empty string
+                expect(() => schema.parse("")).toThrow("Region is required");
+
+                // Too long (over 50 characters)
+                const longRegion = "a".repeat(51);
+                expect(() => schema.parse(longRegion)).toThrow("Region must be 50 characters or less");
 
                 // Invalid characters
                 expect(() => schema.parse("US EAST 1")).toThrow(

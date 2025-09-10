@@ -41,8 +41,8 @@ export const AtlasArgs = {
     cidrBlock: (): z.ZodString => CommonArgs.string().cidr(),
 
     region: (): z.ZodString =>
-        CommonArgs.string().regex(
-            /^[a-zA-Z0-9_-]+$/,
-            "Region can only contain letters, numbers, hyphens, and underscores"
-        ),
+        CommonArgs.string()
+            .min(1, "Region is required")
+            .max(50, "Region must be 50 characters or less")
+            .regex(/^[a-zA-Z0-9_-]+$/, "Region can only contain letters, numbers, hyphens, and underscores"),
 };
