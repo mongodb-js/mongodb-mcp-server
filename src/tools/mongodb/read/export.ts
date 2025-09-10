@@ -24,7 +24,7 @@ export class ExportTool extends MongoDBToolBase {
                         arguments: z
                             .object({
                                 ...FindArgs,
-                                limit: FindArgs.limit.removeDefault(),
+                                limit: FindArgs.limit,
                             })
                             .describe("The arguments for 'find' operation."),
                     }),

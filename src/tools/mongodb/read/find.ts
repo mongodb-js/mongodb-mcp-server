@@ -21,7 +21,7 @@ export const FindArgs = {
         .passthrough()
         .optional()
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
-    limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
+    limit: z.number().optional().describe("The maximum number of documents to return"),
     sort: z
         .object({})
         .catchall(z.custom<SortDirection>())
@@ -61,18 +61,21 @@ export class FindTool extends MongoDBToolBase {
                 });
             }
 
-            const appliedLimit = Math.min(limit, this.config.maxDocumentsPerQuery);
+            const limitOnFindCursor = Math.min(limit ?? Number.POSITIVE_INFINITY, this.config.maxDocumentsPerQuery);
             findCursor = provider.find(database, collection, filter, {
                 projection,
-                limit: appliedLimit,
+                limit: limitOnFindCursor,
                 sort,
-                batchSize: appliedLimit,
+                batchSize: limitOnFindCursor,
             });
 
             const [queryResultsCount, documents] = await Promise.all([
                 operationWithFallback(
                     () =>
                         provider.countDocuments(database, collection, filter, {
+                            // We should be counting documents that the original
+                            // query would have yielded which is why we don't
+                            // use `limitOnFindCursor` calculated above.
                             limit,
                             maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
                         }),
