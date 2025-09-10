@@ -2,8 +2,8 @@ import { calculateObjectSize } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
 
 /**
- * This function attempts to put a guard rail against accidental memory over
- * flow on the MCP server.
+ * This function attempts to put a guard rail against accidental memory overflow
+ * on the MCP server.
  *
  * The cursor is iterated until we can predict that fetching next doc won't
  * exceed the maxBytesPerQuery limit.
