@@ -56,6 +56,7 @@ export const LogId = {
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
     streamableHttpTransportKeepAliveFailure: mongoLogId(1_006_007),
     streamableHttpTransportKeepAlive: mongoLogId(1_006_008),
+    streamableHttpTransportHttpHostWarning: mongoLogId(1_006_009),
 
     exportCleanupError: mongoLogId(1_007_001),
     exportCreationError: mongoLogId(1_007_002),
