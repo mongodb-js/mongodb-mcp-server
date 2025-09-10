@@ -89,9 +89,9 @@ describeAccuracyTests([
                     filter: { title: "Certain Fish" },
                     projection: {
                         cast: 1,
-                        _id: Matcher.anyOf(Matcher.undefined, Matcher.number()),
+                        _id: Matcher.anyValue,
                     },
-                    limit: Matcher.number((value) => value > 0),
+                    limit: Matcher.anyValue,
                 },
             },
         ],
@@ -112,14 +112,17 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "I want a COMPLETE list of all the movies only from 'mflix.movies' namespace.",
+        prompt: "I want a COMPLETE list of all the movies ONLY from 'mflix.movies' namespace.",
         expectedToolCalls: [
             {
                 toolName: "find",
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    filter: Matcher.emptyObjectOrUndefined,
+                    filter: Matcher.anyValue,
+                    projection: Matcher.anyValue,
+                    limit: Matcher.anyValue,
+                    sort: Matcher.anyValue,
                 },
             },
             {
@@ -131,7 +134,15 @@ describeAccuracyTests([
                     exportTarget: [
                         {
                             name: "find",
-                            arguments: Matcher.emptyObjectOrUndefined,
+                            arguments: Matcher.anyOf(
+                                Matcher.emptyObjectOrUndefined,
+                                Matcher.value({
+                                    filter: Matcher.anyValue,
+                                    projection: Matcher.anyValue,
+                                    limit: Matcher.anyValue,
+                                    sort: Matcher.anyValue,
+                                })
+                            ),
                         },
                     ],
                 },

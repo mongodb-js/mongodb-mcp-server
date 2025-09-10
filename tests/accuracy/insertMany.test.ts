@@ -33,7 +33,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "Add three empty documents in collection 'movies' inside database 'mflix'",
+        prompt: "Add three empty documents in one go in collection 'movies' inside database 'mflix'",
         expectedToolCalls: [
             {
                 toolName: "insert-many",
