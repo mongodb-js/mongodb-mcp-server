@@ -180,8 +180,8 @@ export const defaultUserConfig: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",
     logPath: getLogPath(),
     exportsPath: getExportsPath(),
-    exportTimeoutMs: 300000, // 5 minutes
-    exportCleanupIntervalMs: 120000, // 2 minutes
+    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
     disabledTools: [],
     telemetry: "enabled",
     readOnly: false,
@@ -190,10 +190,10 @@ export const defaultUserConfig: UserConfig = {
     httpPort: 3000,
     httpHost: "127.0.0.1",
     loggers: ["disk", "mcp"],
-    idleTimeoutMs: 600000, // 10 minutes
-    notificationTimeoutMs: 540000, // 9 minutes
+    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
     httpHeaders: {},
-    atlasTemporaryDatabaseUserLifetimeMs: 14400000, // 4 hours
+    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
 };
 
 export const config = setupUserConfig({
