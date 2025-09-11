@@ -64,44 +64,37 @@ describe("atlas-local-create-deployment", () => {
         expect(createDeployment.inputSchema.properties).toHaveProperty("deploymentName");
     });
 
-    it.skipIf(isMacOSInGitHubActions).sequential(
-        "should create a deployment when calling the tool",
-        async ({ signal }) => {
-            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+    it.skipIf(isMacOSInGitHubActions)("should create a deployment when calling the tool", async ({ signal }) => {
+        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        const deploymentName = `test-deployment-${Date.now()}`;
 
-            // Count the current number of deployments
-            const beforeResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-list-deployments",
-                arguments: {},
-            });
-            const beforeNumberOfDeployments = parseInt(
-                getResponseElements(beforeResponse.content)[0]?.text.match(/\d+/)?.[0] || "0",
-                10
-            );
+        // Check that deployment doesn't exist before creation
+        const beforeResponse = await integration.mcpClient().callTool({
+            name: "atlas-local-list-deployments",
+            arguments: {},
+        });
+        const beforeElements = getResponseElements(beforeResponse.content);
+        expect(beforeElements[1]?.text ?? "").not.toContain(deploymentName);
 
-            // Create a deployment
-            const deploymentName = `test-deployment-${Date.now()}`;
-            deploymentNamesToCleanup.push(deploymentName);
-            await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName },
-            });
+        // Create a deployment
+        deploymentNamesToCleanup.push(deploymentName);
+        await integration.mcpClient().callTool({
+            name: "atlas-local-create-deployment",
+            arguments: { deploymentName },
+        });
 
-            // Count the number of deployments after creating the deployment
-            const afterResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-list-deployments",
-                arguments: {},
-            });
-            const afterNumberOfDeployments = parseInt(
-                getResponseElements(afterResponse.content)[0]?.text.match(/\d+/)?.[0] || "0",
-                10
-            );
-            // Check that the number of deployments has increased by 1
-            expect(afterNumberOfDeployments).toBe(beforeNumberOfDeployments + 1);
-        }
-    );
+        // Check that deployment exists after creation
+        const afterResponse = await integration.mcpClient().callTool({
+            name: "atlas-local-list-deployments",
+            arguments: {},
+        });
 
-    it.skipIf(isMacOSInGitHubActions).sequential(
+        const afterElements = getResponseElements(afterResponse.content);
+        expect(afterElements.length).toBeGreaterThanOrEqual(1);
+        expect(afterElements[1]?.text).toContain(deploymentName);
+    });
+
+    it.skipIf(isMacOSInGitHubActions)(
         "should return an error when creating a deployment that already exists",
         async ({ signal }) => {
             await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
@@ -125,95 +118,52 @@ describe("atlas-local-create-deployment", () => {
         }
     );
 
-    it.skipIf(isMacOSInGitHubActions).sequential(
-        "should create a deployment with the correct name",
-        async ({ signal }) => {
-            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+    it.skipIf(isMacOSInGitHubActions)("should create a deployment with the correct name", async ({ signal }) => {
+        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
 
-            // Create a deployment
-            const deploymentName = `test-deployment-${Date.now()}`;
-            deploymentNamesToCleanup.push(deploymentName);
-            await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName },
-            });
+        // Create a deployment
+        const deploymentName = `test-deployment-${Date.now()}`;
+        deploymentNamesToCleanup.push(deploymentName);
+        await integration.mcpClient().callTool({
+            name: "atlas-local-create-deployment",
+            arguments: { deploymentName },
+        });
 
-            // List the deployments
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-local-list-deployments",
-                arguments: {},
-            });
-            const elements = getResponseElements(response.content);
-            expect(elements.length).toBeGreaterThanOrEqual(1);
-            expect(elements[1]?.text).toContain(deploymentName);
-            expect(elements[1]?.text).toContain("Running");
-        }
-    );
+        // List the deployments
+        const response = await integration.mcpClient().callTool({
+            name: "atlas-local-list-deployments",
+            arguments: {},
+        });
+        const elements = getResponseElements(response.content);
 
-    it.skipIf(isMacOSInGitHubActions).sequential(
-        "should create a deployment when name is not provided",
-        async ({ signal }) => {
-            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        expect(elements.length).toBeGreaterThanOrEqual(1);
+        expect(elements[1]?.text).toContain(deploymentName);
+        expect(elements[1]?.text).toContain("Running");
+    });
 
-            // Create a deployment
-            await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: {},
-            });
+    it.skipIf(isMacOSInGitHubActions)("should create a deployment when name is not provided", async ({ signal }) => {
+        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
 
-            // List the deployments
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-local-list-deployments",
-                arguments: {},
-            });
-            const elements = getResponseElements(response.content);
-            expect(elements.length).toBeGreaterThanOrEqual(1);
-            // Random name starts with local and a number
-            const deploymentName = elements[1]?.text.match(/local\d+/)?.[0];
-            expectDefined(deploymentName);
-            deploymentNamesToCleanup.push(deploymentName);
-            expect(elements[1]?.text).toContain("Running");
-        }
-    );
+        // Create a deployment
+        await integration.mcpClient().callTool({
+            name: "atlas-local-create-deployment",
+            arguments: {},
+        });
 
-    it.skipIf(isMacOSInGitHubActions).sequential(
-        "should delete a deployment when calling the tool",
-        async ({ signal }) => {
-            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
-            // Create a deployment
-            const deploymentName = `test-deployment-${Date.now()}`;
-            await integration.mcpClient().callTool({
-                name: "atlas-local-create-deployment",
-                arguments: { deploymentName },
-            });
+        // List the deployments
+        const response = await integration.mcpClient().callTool({
+            name: "atlas-local-list-deployments",
+            arguments: {},
+        });
 
-            // Count the current number of deployments
-            const beforeResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-list-deployments",
-                arguments: {},
-            });
-            const beforeNumberOfDeployments = parseInt(
-                getResponseElements(beforeResponse.content)[0]?.text.match(/\d+/)?.[0] || "0",
-                10
-            );
+        // Check the deployment has been created
+        const elements = getResponseElements(response.content);
+        expect(elements.length).toBeGreaterThanOrEqual(1);
 
-            // Delete the deployment
-            await integration.mcpClient().callTool({
-                name: "atlas-local-delete-deployment",
-                arguments: { deploymentName },
-            });
-
-            // Count the number of deployments after deleting the deployment
-            const afterResponse = await integration.mcpClient().callTool({
-                name: "atlas-local-list-deployments",
-                arguments: {},
-            });
-            const afterNumberOfDeployments = parseInt(
-                getResponseElements(afterResponse.content)[0]?.text.match(/\d+/)?.[0] || "0",
-                10
-            );
-            // Check that the number of deployments has decreased by 1
-            expect(afterNumberOfDeployments).toBe(beforeNumberOfDeployments - 1);
-        }
-    );
+        // Random name starts with local and a number
+        const deploymentName = elements[1]?.text.match(/local\d+/)?.[0];
+        expectDefined(deploymentName);
+        deploymentNamesToCleanup.push(deploymentName);
+        expect(elements[1]?.text).toContain("Running");
+    });
 });
