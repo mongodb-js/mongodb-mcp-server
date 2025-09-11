@@ -4,7 +4,8 @@ const NO_UNICODE_REGEX = /^[\x20-\x7E]*$/;
 export const NO_UNICODE_ERROR = "String cannot contain special characters or Unicode symbols";
 
 const ALLOWED_USERNAME_CHARACTERS_REGEX = /^[a-zA-Z0-9._-]+$/;
-export const ALLOWED_USERNAME_CHARACTERS_ERROR = " can only contain letters, numbers, dots, hyphens, and underscores";
+export const ALLOWED_USERNAME_CHARACTERS_ERROR =
+    "Username can only contain letters, numbers, dots, hyphens, and underscores";
 
 const ALLOWED_REGION_CHARACTERS_REGEX = /^[a-zA-Z0-9_-]+$/;
 export const ALLOWED_REGION_CHARACTERS_ERROR = "Region can only contain letters, numbers, hyphens, and underscores";
@@ -37,7 +38,7 @@ export const AtlasArgs = {
             .string()
             .min(1, "Cluster name is required")
             .max(64, "Cluster name must be 64 characters or less")
-            .regex(ALLOWED_CLUSTER_NAME_CHARACTERS_REGEX, "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR),
+            .regex(ALLOWED_CLUSTER_NAME_CHARACTERS_REGEX, ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR),
 
     projectName: (): z.ZodString =>
         z
@@ -51,7 +52,7 @@ export const AtlasArgs = {
             .string()
             .min(1, "Username is required")
             .max(100, "Username must be 100 characters or less")
-            .regex(ALLOWED_USERNAME_CHARACTERS_REGEX, "Username " + ALLOWED_USERNAME_CHARACTERS_ERROR),
+            .regex(ALLOWED_USERNAME_CHARACTERS_REGEX, ALLOWED_USERNAME_CHARACTERS_ERROR),
 
     ipAddress: (): z.ZodString => z.string().ip({ version: "v4" }),
 

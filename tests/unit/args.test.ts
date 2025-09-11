@@ -402,7 +402,9 @@ describe("Tool args", () => {
             expect(() => AtlasArgs.username().parse("a".repeat(101))).toThrow(
                 "Username must be 100 characters or less"
             );
-            expect(() => AtlasArgs.username().parse("invalid name")).toThrow("Username " + ALLOWED_USERNAME_CHARACTERS_ERROR);
+            expect(() => AtlasArgs.username().parse("invalid name")).toThrow(
+                "Username " + ALLOWED_USERNAME_CHARACTERS_ERROR
+            );
         });
     });
 });
