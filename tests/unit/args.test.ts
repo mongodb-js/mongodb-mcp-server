@@ -152,19 +152,10 @@ describe("Tool args", () => {
                 expect(() => schema.parse(longName)).toThrow("Cluster name must be 64 characters or less");
 
                 // Invalid characters
-                expect(() => schema.parse("cluster@name")).toThrow(
-                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
-                );
-                expect(() => schema.parse("cluster name")).toThrow(
-                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
-                );
-                expect(() => schema.parse("cluster.name")).toThrow(
-                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
-                );
-
-                expect(() => schema.parse("cluster/name")).toThrow(
-                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
-                );
+                expect(() => schema.parse("cluster@name")).toThrow(ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("cluster name")).toThrow(ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("cluster.name")).toThrow(ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("cluster/name")).toThrow(ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR);
             });
 
             it("should accept exactly 64 characters", () => {
@@ -195,8 +186,8 @@ describe("Tool args", () => {
                 expect(() => schema.parse(longUsername)).toThrow("Username must be 100 characters or less");
 
                 // Invalid characters
-                expect(() => schema.parse("user@name")).toThrow("Username " + ALLOWED_USERNAME_CHARACTERS_ERROR);
-                expect(() => schema.parse("user name")).toThrow("Username " + ALLOWED_USERNAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("user@name")).toThrow(ALLOWED_USERNAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("user name")).toThrow(ALLOWED_USERNAME_CHARACTERS_ERROR);
             });
 
             it("should accept exactly 100 characters", () => {
@@ -394,17 +385,13 @@ describe("Tool args", () => {
             expect(() => AtlasArgs.clusterName().parse("a".repeat(65))).toThrow(
                 "Cluster name must be 64 characters or less"
             );
-            expect(() => AtlasArgs.clusterName().parse("invalid@name")).toThrow(
-                "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
-            );
+            expect(() => AtlasArgs.clusterName().parse("invalid@name")).toThrow(ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR);
 
             expect(() => AtlasArgs.username().parse("")).toThrow("Username is required");
             expect(() => AtlasArgs.username().parse("a".repeat(101))).toThrow(
                 "Username must be 100 characters or less"
             );
-            expect(() => AtlasArgs.username().parse("invalid name")).toThrow(
-                "Username " + ALLOWED_USERNAME_CHARACTERS_ERROR
-            );
+            expect(() => AtlasArgs.username().parse("invalid name")).toThrow(ALLOWED_USERNAME_CHARACTERS_ERROR);
         });
     });
 });
