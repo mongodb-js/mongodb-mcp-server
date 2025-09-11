@@ -1,8 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
-import type { Client } from "@mongodb-js-preview/atlas-local";
-import type { CreateDeploymentOptions, CreationSourceType } from "@mongodb-js-preview/atlas-local";
+import type { Client, CreateDeploymentOptions, CreationSourceType } from "@mongodb-js-preview/atlas-local";
 import z from "zod";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
@@ -10,7 +9,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
     protected description = "Create a MongoDB Atlas local deployment";
     public operationType: OperationType = "create";
     protected argsShape = {
-        deploymentName: z.string().describe("Name of the deployment to create"),
+        deploymentName: z.string().describe("Name of the deployment to create").optional(),
     };
 
     protected async executeWithAtlasLocalClient(
@@ -19,13 +18,21 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
     ): Promise<CallToolResult> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,
-            creationSource: "MCPServer",
+            creationSource: {
+                type: "MCPServer" as CreationSourceType,
+                source: "MCPServer",
+            },
         };
         // Create the deployment
         await client.createDeployment(deploymentOptions);
 
+        if (deploymentName) {
+            return {
+                content: [{ type: "text", text: `Deployment "${deploymentName}" created.` }],
+            };
+        }
         return {
-            content: [{ type: "text", text: `Deployment ${deploymentName} created.` }],
+            content: [{ type: "text", text: `Deployment created.` }],
         };
     }
 }
