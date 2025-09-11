@@ -19,6 +19,9 @@ RUN npm ci && npm run build
 
 # ----- Production Stage -----
 FROM node:lts-alpine
+RUN addgroup -S mcp && adduser -S mcp -G mcp -s /sbin/nologin
+RUN chown -R mcp:mcp /dist
+USER mcp
 
 # Copy built artifacts
 COPY --from=builder /home/mcp/dist ./dist
