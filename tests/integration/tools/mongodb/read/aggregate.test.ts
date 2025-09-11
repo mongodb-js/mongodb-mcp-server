@@ -4,10 +4,15 @@ import {
     validateThrowsForInvalidArguments,
     getResponseContent,
 } from "../../../helpers.js";
-import { expect, it } from "vitest";
+import { expect, it, afterEach } from "vitest";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
+    afterEach(() => {
+        integration.mcpServer().userConfig.readOnly = false;
+        integration.mcpServer().userConfig.disabledTools = [];
+    });
+
     validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
         ...databaseCollectionParameters,
         {
@@ -128,6 +133,42 @@ describeWithMongoDB("aggregate tool", (integration) => {
             "Error running aggregate: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
     });
+
+    for (const disabledOpType of ["create", "update", "delete"] as const) {
+        it(`can not run $out stages when ${disabledOpType} operation is disabled`, async () => {
+            await integration.connectMcpClient();
+            integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $out: "outpeople" }],
+                },
+            });
+            const content = getResponseContent(response);
+            expect(content).toEqual(
+                "Error running aggregate: When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages."
+            );
+        });
+
+        it(`can not run $merge stages when ${disabledOpType} operation is disabled`, async () => {
+            await integration.connectMcpClient();
+            integration.mcpServer().userConfig.disabledTools = [disabledOpType];
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $merge: "outpeople" }],
+                },
+            });
+            const content = getResponseContent(response);
+            expect(content).toEqual(
+                "Error running aggregate: When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages."
+            );
+        });
+    }
 
     validateAutoConnectBehavior(integration, "aggregate", () => {
         return {
