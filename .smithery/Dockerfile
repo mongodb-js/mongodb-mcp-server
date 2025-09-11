@@ -8,7 +8,7 @@ USER mcpuser
 WORKDIR /app
 
 # Copy package and configuration
-COPY ../package.json ../package-lock.json ../tsconfig.json ../tsconfig.build.json ./
+COPY ../package.json ../package-lock.json ../tsconfig.*.json ./
 
 # Copy source code
 COPY ../src ./src
