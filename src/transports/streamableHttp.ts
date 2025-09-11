@@ -6,6 +6,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import cors from "cors";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -43,6 +44,14 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
+        app.use(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            cors({
+                origin: "*",
+                exposedHeaders: ["mcp-Session-Id", "mcp-protocol-version"],
+                allowedHeaders: ["Content-Type", "mcp-session-id"],
+            })
+        );
         app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];

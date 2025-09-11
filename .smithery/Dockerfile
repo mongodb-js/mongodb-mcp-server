@@ -28,7 +28,12 @@ COPY ../package.json ../package-lock.json ./
 # Install only production dependencies
 RUN npm ci --production --ignore-scripts
 
-# Expose no ports (stdio only)
+# Smithery sets the PORT env variable to some value - typically 8081. We map it to
+# MDB_MCP_HTTP_PORT used by the MCP server.
+ENV PORT=8081
+ENV MDB_MCP_HTTP_PORT=${PORT}
+
+EXPOSE ${PORT}
 
 # Default command
-CMD ["node", "dist/esm/index.js"]
+CMD ["node", "dist/esm/index.js", "--transport", "http"]
