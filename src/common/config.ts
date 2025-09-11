@@ -99,8 +99,11 @@ const MCP_SERVER_OPTIONS = {
 } as const;
 
 const OPTIONS = {
-    ...MONGOSH_OPTIONS,
-    ...MCP_SERVER_OPTIONS,
+    string: { ...MONGOSH_OPTIONS.string, ...MCP_SERVER_OPTIONS.string },
+    boolean: { ...MONGOSH_OPTIONS.boolean },
+    array: { ...MONGOSH_OPTIONS.array },
+    alias: { ...MONGOSH_OPTIONS.alias },
+    configuration: { ...MONGOSH_OPTIONS.configuration },
 } as const;
 
 const ALL_CONFIG_KEYS = new Set(
