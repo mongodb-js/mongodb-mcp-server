@@ -47,7 +47,9 @@ node -v
 
 ### Quick Start
 
-**Note:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
+> **🔒 Security Recommendation 1:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
+
+> **🔒 Security Recommendation 2:** For enhanced security, we strongly recommend using environment variables to pass sensitive configuration such as connection strings and API credentials instead of command line arguments. Command line arguments can be visible in process lists and logged in various system locations, potentially exposing your secrets. Environment variables provide a more secure way to handle sensitive information.
 
 Most MCP clients require a configuration file to be created or modified to add the MCP server.
 
@@ -60,22 +62,19 @@ Note: The configuration file syntax can be different across clients. Please refe
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
-#### Option 1: Connection String args
+#### Option 1: Connection String
 
-You can pass your connection string via args, make sure to use a valid username and password.
+You can pass your connection string via environment variables, make sure to use a valid username and password.
 
 ```json
 {
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mongodb-mcp-server",
-        "--connectionString",
-        "mongodb://localhost:27017/myDatabase",
-        "--readOnly"
-      ]
+      "args": ["-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
+      }
     }
   }
 }
@@ -83,7 +82,7 @@ You can pass your connection string via args, make sure to use a valid username 
 
 NOTE: The connection string can be configured to connect to any MongoDB cluster, whether it's a local instance or an Atlas cluster.
 
-#### Option 2: Atlas API credentials args
+#### Option 2: Atlas API Credentials
 
 Use your Atlas API Service Accounts credentials. Must follow all the steps in [Atlas API Access](#atlas-api-access) section.
 
@@ -92,43 +91,35 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mongodb-mcp-server",
-        "--apiClientId",
-        "your-atlas-service-accounts-client-id",
-        "--apiClientSecret",
-        "your-atlas-service-accounts-client-secret",
-        "--readOnly"
-      ]
+      "args": ["-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "env": {
+        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-accounts-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-accounts-client-secret"
+      }
     }
   }
 }
 ```
 
-#### Option 3: Standalone Service using command arguments
+#### Option 3: Standalone Service using environment variables and command line arguments
 
-Start Server using npx command:
+You can source environment variables defined in a config file or explicitly set them like we do in the example below and run the server via npx.
 
 ```shell
- npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
+# Set your credentials as environment variables first
+export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+
+# Then start the server
+npx -y mongodb-mcp-server@latest --readOnly
 ```
 
-- For a complete list of arguments see [Configuration Options](#configuration-options)
+- For a complete list of configuration options see [Configuration Options](#configuration-options)
 - To configure your Atlas Service Accounts credentials please refer to [Atlas API Access](#atlas-api-access)
-
-#### Option 4: Standalone Service using environment variables
-
-```shell
- npx -y mongodb-mcp-server@latest --readOnly
-```
-
-You can use environment variables in the config file or set them and run the server via npx.
-
 - Connection String via environment variables in the MCP file [example](#connection-string-with-environment-variables)
 - Atlas API credentials via environment variables in the MCP file [example](#atlas-api-credentials-with-environment-variables)
 
-#### Option 5: Using Docker
+#### Option 4: Using Docker
 
 You can run the MongoDB MCP Server in a Docker container, which provides isolation and doesn't require a local Node.js installation.
 
@@ -146,8 +137,12 @@ docker run --rm -i \
 ##### Option B: With MongoDB connection string
 
 ```shell
+# Set your credentials as environment variables first
+export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+# Then start the docker container
 docker run --rm -i \
-  -e MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" \
+  -e MDB_MCP_CONNECTION_STRING \
   -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
@@ -155,9 +150,14 @@ docker run --rm -i \
 ##### Option C: With Atlas API credentials
 
 ```shell
+# Set your credentials as environment variables first
+export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+
+# Then start the docker container
 docker run --rm -i \
-  -e MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id" \
-  -e MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret" \
+  -e MDB_MCP_API_CLIENT_ID \
+  -e MDB_MCP_API_CLIENT_SECRET \
   -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
@@ -196,11 +196,14 @@ With connection string:
         "--rm",
         "-i",
         "-e",
-        "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
+        "MDB_MCP_CONNECTION_STRING",
         "-e",
         "MDB_MCP_READ_ONLY=true",
         "mongodb/mongodb-mcp-server:latest"
-      ]
+      ],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+      }
     }
   }
 }
@@ -220,17 +223,21 @@ With Atlas API credentials:
         "-e",
         "MDB_MCP_READ_ONLY=true",
         "-e",
-        "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id",
+        "MDB_MCP_API_CLIENT_ID",
         "-e",
-        "MDB_MCP_API_CLIENT_SECRET=your-atlas-service-accounts-client-secret",
+        "MDB_MCP_API_CLIENT_SECRET",
         "mongodb/mongodb-mcp-server:latest"
-      ]
+      ],
+      "env": {
+        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-accounts-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-accounts-client-secret"
+      }
     }
   }
 }
 ```
 
-#### Option 6: Running as an HTTP Server
+#### Option 5: Running as an HTTP Server
 
 > **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.**
 
@@ -315,6 +322,8 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `exported-data` - A resource template to access the data exported using the export tool. The template can be accessed under URI `exported-data://{exportName}` where `exportName` is the unique name for an export generated by the export tool.
 
 ## Configuration
+
+> **🔒 Security Best Practice:** We strongly recommend using environment variables for sensitive configuration such as API credentials (`MDB_MCP_API_CLIENT_ID`, `MDB_MCP_API_CLIENT_SECRET`) and connection strings (`MDB_MCP_CONNECTION_STRING`) instead of command-line arguments. Environment variables are not visible in process lists and provide better security for your sensitive data.
 
 The MongoDB MCP Server can be configured using multiple methods, with the following precedence (highest to lowest):
 
@@ -551,47 +560,48 @@ export MDB_MCP_LOG_PATH="/path/to/logs"
 
 Pass configuration options as command-line arguments when starting the server:
 
+> **🔒 Security Note:** For sensitive configuration like API credentials and connection strings, use environment variables instead of command-line arguments.
+
 ```shell
-npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs --readOnly --indexCheck
+# Set sensistive data as environment variable
+export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+# Start the server with command line arguments
+npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 ```
 
 #### MCP configuration file examples
 
-##### Connection String with command-line arguments
+##### Connection String with environment variables
 
 ```json
 {
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mongodb-mcp-server",
-        "--connectionString",
-        "mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
-        "--readOnly"
-      ]
+      "args": ["-y", "mongodb-mcp-server", "--readOnly"],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+      }
     }
   }
 }
 ```
 
-##### Atlas API credentials with command-line arguments
+##### Atlas API credentials with environment variables
 
 ```json
 {
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mongodb-mcp-server",
-        "--apiClientId",
-        "your-atlas-service-accounts-client-id",
-        "--apiClientSecret",
-        "your-atlas-service-accounts-client-secret",
-        "--readOnly"
-      ]
+      "args": ["-y", "mongodb-mcp-server", "--readOnly"],
+      "env": {
+        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-accounts-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-accounts-client-secret"
+      }
     }
   }
 }
