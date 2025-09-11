@@ -81,7 +81,7 @@ describe("Tool args", () => {
                 );
             });
 
-            it("should not faile if the value is optional", () => {
+            it("should not fail if the value is optional", () => {
                 const schema = AtlasArgs.objectId("Custom Field").optional();
                 expect(schema.parse(undefined)).toBeUndefined();
             });

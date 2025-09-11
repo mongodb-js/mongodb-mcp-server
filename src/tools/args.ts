@@ -1,5 +1,9 @@
 import { z, type ZodString } from "zod";
 
+// Shared validation constants
+const NO_SLASH_REGEX = /^[^/]*$/;
+const NO_SLASH_ERROR = "String cannot contain '/'";
+
 export const CommonArgs = {
     string: (): ZodString =>
         z.string().regex(/^[\x20-\x7E]*$/, "String cannot contain special characters or Unicode symbols"),
@@ -19,21 +23,21 @@ export const AtlasArgs = {
         CommonArgs.string()
             .min(1, "Cluster name is required")
             .max(64, "Cluster name must be 64 characters or less")
-            .regex(/^[^/]*$/, "String cannot contain '/'")
+            .regex(NO_SLASH_REGEX, NO_SLASH_ERROR)
             .regex(/^[a-zA-Z0-9_-]+$/, "Cluster name can only contain letters, numbers, hyphens, and underscores"),
 
     projectName: (): z.ZodString =>
         CommonArgs.string()
             .min(1, "Project name is required")
             .max(64, "Project name must be 64 characters or less")
-            .regex(/^[^/]*$/, "String cannot contain '/'")
+            .regex(NO_SLASH_REGEX, NO_SLASH_ERROR)
             .regex(/^[a-zA-Z0-9_-]+$/, "Project name can only contain letters, numbers, hyphens, and underscores"),
 
     username: (): z.ZodString =>
         CommonArgs.string()
             .min(1, "Username is required")
             .max(100, "Username must be 100 characters or less")
-            .regex(/^[^/]*$/, "String cannot contain '/'")
+            .regex(NO_SLASH_REGEX, NO_SLASH_ERROR)
             .regex(/^[a-zA-Z0-9._-]+$/, "Username can only contain letters, numbers, dots, hyphens, and underscores"),
 
     ipAddress: (): z.ZodString => CommonArgs.string().ip({ version: "v4" }),
@@ -50,6 +54,6 @@ export const AtlasArgs = {
         CommonArgs.string()
             .min(1, "Password is required")
             .max(100, "Password must be 100 characters or less")
-            .regex(/^[^/]*$/, "String cannot contain '/'")
+            .regex(NO_SLASH_REGEX, NO_SLASH_ERROR)
             .regex(/^[a-zA-Z0-9._-]+$/, "Password can only contain letters, numbers, dots, hyphens, and underscores"),
 };
