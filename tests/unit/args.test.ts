@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { AtlasArgs, CommonArgs } from "../../src/tools/args.js";
+import {
+    AtlasArgs,
+    CommonArgs,
+    ALLOWED_PROJECT_NAME_CHARACTERS_ERROR,
+    ALLOWED_CHARACTERS_ERROR,
+    ALLOWED_REGION_CHARACTERS_ERROR,
+    ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
+} from "../../src/tools/args.js";
 
 describe("Tool args", () => {
     describe("CommonArgs", () => {
@@ -104,6 +111,13 @@ describe("Tool args", () => {
                 expect(() => schema.parse("invalid")).toThrow(
                     "projectId must be a valid 24-character hexadecimal string"
                 );
+                expect(() => schema.parse("507f1f77bc*86cd79943901")).toThrow(
+                    "projectId must be a valid 24-character hexadecimal string"
+                );
+                expect(() => schema.parse("")).toThrow("projectId is required");
+                expect(() => schema.parse("507f1f77/bcf86cd799439011")).toThrow(
+                    "projectId must be a valid 24-character hexadecimal string"
+                );
             });
         });
 
@@ -144,13 +158,17 @@ describe("Tool args", () => {
 
                 // Invalid characters
                 expect(() => schema.parse("cluster@name")).toThrow(
-                    "Cluster name can only contain letters, numbers, hyphens, and underscores"
+                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
                 );
                 expect(() => schema.parse("cluster name")).toThrow(
-                    "Cluster name can only contain letters, numbers, hyphens, and underscores"
+                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
                 );
                 expect(() => schema.parse("cluster.name")).toThrow(
-                    "Cluster name can only contain letters, numbers, hyphens, and underscores"
+                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
+                );
+
+                expect(() => schema.parse("cluster/name")).toThrow(
+                    "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
                 );
             });
 
@@ -182,12 +200,8 @@ describe("Tool args", () => {
                 expect(() => schema.parse(longUsername)).toThrow("Username must be 100 characters or less");
 
                 // Invalid characters
-                expect(() => schema.parse("user@name")).toThrow(
-                    "Username can only contain letters, numbers, dots, hyphens, and underscores"
-                );
-                expect(() => schema.parse("user name")).toThrow(
-                    "Username can only contain letters, numbers, dots, hyphens, and underscores"
-                );
+                expect(() => schema.parse("user@name")).toThrow("Username " + ALLOWED_CHARACTERS_ERROR);
+                expect(() => schema.parse("user name")).toThrow("Username " + ALLOWED_CHARACTERS_ERROR);
             });
 
             it("should accept exactly 100 characters", () => {
@@ -278,22 +292,32 @@ describe("Tool args", () => {
                 expect(() => schema.parse(longRegion)).toThrow("Region must be 50 characters or less");
 
                 // Invalid characters
-                expect(() => schema.parse("US EAST 1")).toThrow(
-                    "Region can only contain letters, numbers, hyphens, and underscores"
-                );
-                expect(() => schema.parse("US.EAST.1")).toThrow(
-                    "Region can only contain letters, numbers, hyphens, and underscores"
-                );
-                expect(() => schema.parse("US@EAST#1")).toThrow(
-                    "Region can only contain letters, numbers, hyphens, and underscores"
-                );
+                expect(() => schema.parse("US EAST 1")).toThrow(ALLOWED_REGION_CHARACTERS_ERROR);
+                expect(() => schema.parse("US.EAST.1")).toThrow(ALLOWED_REGION_CHARACTERS_ERROR);
+                expect(() => schema.parse("US@EAST#1")).toThrow(ALLOWED_REGION_CHARACTERS_ERROR);
             });
         });
 
         describe("projectName", () => {
             it("should validate valid project names", () => {
                 const schema = AtlasArgs.projectName();
-                const validNames = ["my-project", "project_1", "Project123", "test-project-2", "my_project_name"];
+                const validNames = [
+                    "my-project",
+                    "project_1",
+                    "Project123",
+                    "test-project-2",
+                    "my_project_name",
+                    "project with spaces",
+                    "project(with)parentheses",
+                    "project@with@at",
+                    "project&with&ampersand",
+                    "project+with+plus",
+                    "project:with:colon",
+                    "project.with.dots",
+                    "project'with'apostrophe",
+                    "project,with,comma",
+                    "complex project (with) @all &symbols+here:test.name'value,",
+                ];
 
                 validNames.forEach((name) => {
                     expect(schema.parse(name)).toBe(name);
@@ -302,11 +326,24 @@ describe("Tool args", () => {
 
             it("should reject invalid project names", () => {
                 const schema = AtlasArgs.projectName();
+
+                // Empty string
                 expect(() => schema.parse("")).toThrow("Project name is required");
+
+                // Too long (over 64 characters)
                 expect(() => schema.parse("a".repeat(65))).toThrow("Project name must be 64 characters or less");
-                expect(() => schema.parse("invalid@name")).toThrow(
-                    "Project name can only contain letters, numbers, hyphens, and underscores"
-                );
+
+                // Invalid characters not in the allowed set
+                expect(() => schema.parse("project#with#hash")).toThrow(ALLOWED_PROJECT_NAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("project$with$dollar")).toThrow(ALLOWED_PROJECT_NAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("project!with!exclamation")).toThrow(ALLOWED_PROJECT_NAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("project[with]brackets")).toThrow(ALLOWED_PROJECT_NAME_CHARACTERS_ERROR);
+            });
+
+            it("should accept exactly 64 characters", () => {
+                const schema = AtlasArgs.projectName();
+                const maxLengthName = "a".repeat(64);
+                expect(schema.parse(maxLengthName)).toBe(maxLengthName);
             });
         });
 
@@ -324,9 +361,6 @@ describe("Tool args", () => {
                 const schema = AtlasArgs.password();
                 expect(() => schema.parse("")).toThrow("Password is required");
                 expect(() => schema.parse("a".repeat(101))).toThrow("Password must be 100 characters or less");
-                expect(() => schema.parse("invalid password")).toThrow(
-                    "Password can only contain letters, numbers, dots, hyphens, and underscores"
-                );
             });
         });
     });
@@ -366,16 +400,14 @@ describe("Tool args", () => {
                 "Cluster name must be 64 characters or less"
             );
             expect(() => AtlasArgs.clusterName().parse("invalid@name")).toThrow(
-                "Cluster name can only contain letters, numbers, hyphens, and underscores"
+                "Cluster name " + ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR
             );
 
             expect(() => AtlasArgs.username().parse("")).toThrow("Username is required");
             expect(() => AtlasArgs.username().parse("a".repeat(101))).toThrow(
                 "Username must be 100 characters or less"
             );
-            expect(() => AtlasArgs.username().parse("invalid name")).toThrow(
-                "Username can only contain letters, numbers, dots, hyphens, and underscores"
-            );
+            expect(() => AtlasArgs.username().parse("invalid name")).toThrow("Username " + ALLOWED_CHARACTERS_ERROR);
         });
     });
 });
