@@ -8,7 +8,7 @@ import type { Secret } from "./keychain.js";
 import levenshtein from "ts-levenshtein";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
-const OPTIONS = {
+const MONGOSH_OPTIONS = {
     string: [
         "apiBaseUrl",
         "apiClientId",
@@ -47,8 +47,7 @@ const OPTIONS = {
         "tlsCertificateKeyFilePassword",
         "tlsCertificateSelector",
         "tlsDisabledProtocols",
-        "username",
-        "atlasTemporaryDatabaseUserLifetimeMs",
+        "username"
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -91,6 +90,17 @@ const OPTIONS = {
         "greedy-arrays": true,
         "short-option-groups": false,
     },
+} as const;
+
+const MCP_SERVER_OPTIONS = {
+    string: [
+        "atlasTemporaryDatabaseUserLifetimeMs",
+    ],
+} as const;
+
+const OPTIONS = {
+    ...MONGOSH_OPTIONS,
+    ...MCP_SERVER_OPTIONS,
 } as const;
 
 const ALL_CONFIG_KEYS = new Set(
