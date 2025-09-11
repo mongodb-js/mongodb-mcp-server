@@ -13,8 +13,7 @@ export const CreateDBUserArgs = {
     // Models will generate overly simplistic passwords like SecurePassword123 or
     // AtlasPassword123, which are easily guessable and exploitable. We're instructing
     // the model not to try and generate anything and instead leave the field unset.
-    password: z
-        .string()
+    password: AtlasArgs.password()
         .optional()
         .nullable()
         .describe(

@@ -45,4 +45,11 @@ export const AtlasArgs = {
             .min(1, "Region is required")
             .max(50, "Region must be 50 characters or less")
             .regex(/^[a-zA-Z0-9_-]+$/, "Region can only contain letters, numbers, hyphens, and underscores"),
+
+    password: (): z.ZodString =>
+        CommonArgs.string()
+            .min(1, "Password is required")
+            .max(100, "Password must be 100 characters or less")
+            .regex(/^[^/]*$/, "String cannot contain '/'")
+            .regex(/^[a-zA-Z0-9._-]+$/, "Password can only contain letters, numbers, dots, hyphens, and underscores"),
 };

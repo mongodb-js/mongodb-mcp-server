@@ -309,6 +309,26 @@ describe("Tool args", () => {
                 );
             });
         });
+
+        describe("password", () => {
+            it("should validate valid passwords", () => {
+                const schema = AtlasArgs.password().optional();
+                const validPasswords = ["password123", "password_123", "Password123", "test-password-123"];
+                validPasswords.forEach((password) => {
+                    expect(schema.parse(password)).toBe(password);
+                });
+                expect(schema.parse(undefined)).toBeUndefined();
+            });
+
+            it("should reject invalid passwords", () => {
+                const schema = AtlasArgs.password();
+                expect(() => schema.parse("")).toThrow("Password is required");
+                expect(() => schema.parse("a".repeat(101))).toThrow("Password must be 100 characters or less");
+                expect(() => schema.parse("invalid password")).toThrow(
+                    "Password can only contain letters, numbers, dots, hyphens, and underscores"
+                );
+            });
+        });
     });
 
     describe("Edge Cases and Security", () => {
