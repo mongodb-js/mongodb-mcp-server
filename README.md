@@ -574,34 +574,45 @@ npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 
 #### MCP configuration file examples
 
-##### Connection String with environment variables
+##### Connection String with command-line arguments
+
+> **🔒 Security Note:** We do not recommend passing connection string as command line argument. Connection string might contain credentials which can be visible in process lists and logged in various system locations, potentially exposing your credentials. Instead configure [connection string through environment variables](#connection-string-with-environment-variables)
 
 ```json
 {
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": ["-y", "mongodb-mcp-server", "--readOnly"],
-      "env": {
-        "MDB_MCP_CONNECTION_STRING": "mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
-      }
+      "args": [
+        "-y",
+        "mongodb-mcp-server",
+        "--connectionString",
+        "mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
+        "--readOnly"
+      ]
     }
   }
 }
 ```
 
-##### Atlas API credentials with environment variables
+##### Atlas API credentials with command-line arguments
+
+> **🔒 Security Note:** We do not recommend passing Atlas API credentials as command line argument. The provided credentials can be visible in process lists and logged in various system locations, potentially exposing your credentials. Instead configure [Atlas API credentials through environment variables](#atlas-api-credentials-with-environment-variables)
 
 ```json
 {
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": ["-y", "mongodb-mcp-server", "--readOnly"],
-      "env": {
-        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-accounts-client-id",
-        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-accounts-client-secret"
-      }
+      "args": [
+        "-y",
+        "mongodb-mcp-server",
+        "--apiClientId",
+        "your-atlas-service-accounts-client-id",
+        "--apiClientSecret",
+        "your-atlas-service-accounts-client-secret",
+        "--readOnly"
+      ]
     }
   }
 }
