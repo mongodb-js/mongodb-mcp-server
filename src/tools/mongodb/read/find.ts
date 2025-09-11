@@ -1,11 +1,14 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import type { SortDirection } from "mongodb";
+import type { FindCursor, SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
+import { iterateCursorUntilMaxBytes } from "../../../helpers/iterateCursor.js";
+import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
+import { QUERY_COUNT_MAX_TIME_MS_CAP } from "../../../helpers/constants.js";
 
 export const FindArgs = {
     filter: z
@@ -18,7 +21,7 @@ export const FindArgs = {
         .passthrough()
         .optional()
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
-    limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
+    limit: z.number().optional().describe("The maximum number of documents to return"),
     sort: z
         .object({})
         .catchall(z.custom<SortDirection>())
@@ -37,30 +40,82 @@ export class FindTool extends MongoDBToolBase {
     };
     public operationType: OperationType = "read";
 
-    protected async execute({
-        database,
-        collection,
-        filter,
-        projection,
-        limit,
-        sort,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const provider = await this.ensureConnected();
+    protected async execute(
+        { database, collection, filter, projection, limit, sort }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        let findCursor: FindCursor<unknown> | undefined;
+        try {
+            const provider = await this.ensureConnected();
 
-        // Check if find operation uses an index if enabled
-        if (this.config.indexCheck) {
-            await checkIndexUsage(provider, database, collection, "find", async () => {
-                return provider.find(database, collection, filter, { projection, limit, sort }).explain("queryPlanner");
+            // Check if find operation uses an index if enabled
+            if (this.config.indexCheck) {
+                await checkIndexUsage(provider, database, collection, "find", async () => {
+                    return provider
+                        .find(database, collection, filter, { projection, limit, sort })
+                        .explain("queryPlanner");
+                });
+            }
+
+            const limitOnFindCursor = this.getLimitForFindCursor(limit);
+
+            findCursor = provider.find(database, collection, filter, {
+                projection,
+                limit: limitOnFindCursor,
+                sort,
             });
+
+            const [queryResultsCount, documents] = await Promise.all([
+                operationWithFallback(
+                    () =>
+                        provider.countDocuments(database, collection, filter, {
+                            // We should be counting documents that the original
+                            // query would have yielded which is why we don't
+                            // use `limitOnFindCursor` calculated above, only
+                            // the limit provided to the tool.
+                            limit,
+                            maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
+                        }),
+                    undefined
+                ),
+                iterateCursorUntilMaxBytes({
+                    cursor: findCursor,
+                    maxBytesPerQuery: this.config.maxBytesPerQuery,
+                    abortSignal: signal,
+                }),
+            ]);
+
+            let messageDescription = `\
+Query on collection "${collection}" resulted in ${queryResultsCount === undefined ? "indeterminable number of" : queryResultsCount} documents.\
+`;
+            if (documents.length) {
+                messageDescription += ` \
+Returning ${documents.length} documents while respecting the applied limits. \
+Note to LLM: If entire query result is needed then use "export" tool to export the query results.\
+`;
+            }
+
+            return {
+                content: formatUntrustedData(
+                    messageDescription,
+                    documents.length > 0 ? EJSON.stringify(documents) : undefined
+                ),
+            };
+        } finally {
+            await findCursor?.close();
+        }
+    }
+
+    private getLimitForFindCursor(providedLimit: number | undefined): number | undefined {
+        const configuredLimit = this.config.maxDocumentsPerQuery;
+        // Setting configured limit to negative or zero is equivalent to
+        // disabling the max limit applied on documents
+        if (configuredLimit <= 0) {
+            return providedLimit;
         }
 
-        const documents = await provider.find(database, collection, filter, { projection, limit, sort }).toArray();
-
-        return {
-            content: formatUntrustedData(
-                `Found ${documents.length} documents in the collection "${collection}".`,
-                documents.length > 0 ? EJSON.stringify(documents) : undefined
-            ),
-        };
+        return providedLimit === null || providedLimit === undefined
+            ? configuredLimit
+            : Math.min(providedLimit, configuredLimit);
     }
 }

@@ -3,9 +3,12 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     getResponseContent,
+    defaultTestConfig,
 } from "../../../helpers.js";
-import { expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import * as constants from "../../../../../src/helpers/constants.js";
+import { freshInsertDocuments } from "./find.test.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
@@ -27,7 +30,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         { database: 123, collection: "foo", pipeline: [] },
     ]);
 
-    it("can run aggragation on non-existent database", async () => {
+    it("can run aggregation on non-existent database", async () => {
         await integration.connectMcpClient();
         const response = await integration.mcpClient().callTool({
             name: "aggregate",
@@ -38,7 +41,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(content).toEqual("The aggregation resulted in 0 documents.");
     });
 
-    it("can run aggragation on an empty collection", async () => {
+    it("can run aggregation on an empty collection", async () => {
         await integration.mongoClient().db(integration.randomDbName()).createCollection("people");
 
         await integration.connectMcpClient();
@@ -55,7 +58,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(content).toEqual("The aggregation resulted in 0 documents.");
     });
 
-    it("can run aggragation on an existing collection", async () => {
+    it("can run aggregation on an existing collection", async () => {
         const mongoClient = integration.mongoClient();
         await mongoClient
             .db(integration.randomDbName())
@@ -139,4 +142,153 @@ describeWithMongoDB("aggregate tool", (integration) => {
             expectedResponse: "The aggregation resulted in 0 documents",
         };
     });
+
+    describe("when counting documents exceed the configured count maxTimeMS", () => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                count: 1000,
+                documentMapper(index) {
+                    return { name: `Person ${index}`, age: index };
+                },
+            });
+        });
+
+        afterEach(() => {
+            vi.resetAllMocks();
+        });
+
+        it("should abort count operation and respond with indeterminable count", async () => {
+            vi.spyOn(constants, "AGG_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                },
+            });
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in indeterminable number of documents");
+            expect(content).toContain(`Returning 10 documents while respecting the applied limits.`);
+            const docs = getDocsFromUntrustedContent(content);
+            expect(docs[0]).toEqual(
+                expect.objectContaining({
+                    _id: expect.any(Object) as object,
+                    name: "Person 999",
+                    age: 999,
+                })
+            );
+            expect(docs[1]).toEqual(
+                expect.objectContaining({
+                    _id: expect.any(Object) as object,
+                    name: "Person 998",
+                    age: 998,
+                })
+            );
+        });
+    });
 });
+
+describeWithMongoDB(
+    "aggregate tool with configured max documents per query",
+    (integration) => {
+        it("should return documents limited to the configured limit", async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                count: 1000,
+                documentMapper(index) {
+                    return { name: `Person ${index}`, age: index };
+                },
+            });
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in 990 documents");
+            expect(content).toContain(`Returning 20 documents while respecting the applied limits.`);
+            const docs = getDocsFromUntrustedContent(content);
+            expect(docs[0]).toEqual(
+                expect.objectContaining({
+                    _id: expect.any(Object) as object,
+                    name: "Person 999",
+                    age: 999,
+                })
+            );
+            expect(docs[1]).toEqual(
+                expect.objectContaining({
+                    _id: expect.any(Object) as object,
+                    name: "Person 998",
+                    age: 998,
+                })
+            );
+        });
+    },
+    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 20 })
+);
+
+describeWithMongoDB(
+    "aggregate tool with configured max bytes per query",
+    (integration) => {
+        it("should return only the documents that could fit in maxBytesPerQuery limit", async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                count: 1000,
+                documentMapper(index) {
+                    return { name: `Person ${index}`, age: index };
+                },
+            });
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in 990 documents");
+            expect(content).toContain(`Returning 1 documents while respecting the applied limits.`);
+        });
+    },
+    () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 })
+);
+
+describeWithMongoDB(
+    "aggregate tool with disabled max documents and max bytes per query",
+    (integration) => {
+        it("should return all the documents", async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                count: 1000,
+                documentMapper(index) {
+                    return { name: `Person ${index}`, age: index };
+                },
+            });
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in 990 documents");
+            expect(content).toContain(`Returning 990 documents while respecting the applied limits.`);
+        });
+    },
+    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 })
+);
