@@ -3,7 +3,7 @@ import {
     AtlasArgs,
     CommonArgs,
     ALLOWED_PROJECT_NAME_CHARACTERS_ERROR,
-    ALLOWED_CHARACTERS_ERROR,
+    ALLOWED_NAME_CHARACTERS_ERROR,
     ALLOWED_REGION_CHARACTERS_ERROR,
     ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
     NO_UNICODE_ERROR,
@@ -195,8 +195,8 @@ describe("Tool args", () => {
                 expect(() => schema.parse(longUsername)).toThrow("Username must be 100 characters or less");
 
                 // Invalid characters
-                expect(() => schema.parse("user@name")).toThrow("Username " + ALLOWED_CHARACTERS_ERROR);
-                expect(() => schema.parse("user name")).toThrow("Username " + ALLOWED_CHARACTERS_ERROR);
+                expect(() => schema.parse("user@name")).toThrow("Username " + ALLOWED_NAME_CHARACTERS_ERROR);
+                expect(() => schema.parse("user name")).toThrow("Username " + ALLOWED_NAME_CHARACTERS_ERROR);
             });
 
             it("should accept exactly 100 characters", () => {
@@ -402,7 +402,7 @@ describe("Tool args", () => {
             expect(() => AtlasArgs.username().parse("a".repeat(101))).toThrow(
                 "Username must be 100 characters or less"
             );
-            expect(() => AtlasArgs.username().parse("invalid name")).toThrow("Username " + ALLOWED_CHARACTERS_ERROR);
+            expect(() => AtlasArgs.username().parse("invalid name")).toThrow("Username " + ALLOWED_NAME_CHARACTERS_ERROR);
         });
     });
 });
