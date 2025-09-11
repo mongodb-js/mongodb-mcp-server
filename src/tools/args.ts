@@ -18,19 +18,19 @@ export const ALLOWED_PROJECT_NAME_CHARACTERS_ERROR =
     "Project names can't be longer than 64 characters and can only contain letters, numbers, spaces, and the following symbols: ( ) @ & + : . _ - ' ,";
 export const CommonArgs = {
     string: (): ZodString => z.string().regex(NO_UNICODE_REGEX, NO_UNICODE_ERROR),
-};
 
-export const AtlasArgs = {
     objectId: (fieldName: string): z.ZodString =>
         z
             .string()
             .min(1, `${fieldName} is required`)
             .length(24, `${fieldName} must be exactly 24 characters`)
             .regex(/^[0-9a-fA-F]+$/, `${fieldName} must contain only hexadecimal characters`),
+};
 
-    projectId: (): z.ZodString => AtlasArgs.objectId("projectId"),
+export const AtlasArgs = {
+    projectId: (): z.ZodString => CommonArgs.objectId("projectId"),
 
-    organizationId: (): z.ZodString => AtlasArgs.objectId("organizationId"),
+    organizationId: (): z.ZodString => CommonArgs.objectId("organizationId"),
 
     clusterName: (): z.ZodString =>
         z

@@ -54,18 +54,16 @@ describe("Tool args", () => {
                 expect(() => schema.parse({})).toThrow();
             });
         });
-    });
 
-    describe("AtlasArgs", () => {
         describe("objectId", () => {
             it("should validate 24-character hexadecimal strings", () => {
-                const schema = AtlasArgs.objectId("Test ID");
+                const schema = CommonArgs.objectId("Test ID");
                 const validId = "507f1f77bcf86cd799439011";
                 expect(schema.parse(validId)).toBe(validId);
             });
 
             it("should reject invalid ObjectId formats", () => {
-                const schema = AtlasArgs.objectId("Test ID");
+                const schema = CommonArgs.objectId("Test ID");
 
                 // Too short
                 expect(() => schema.parse("507f1f77bcf86cd79943901")).toThrow();
@@ -82,21 +80,23 @@ describe("Tool args", () => {
             });
 
             it("should provide custom field name in error messages", () => {
-                const schema = AtlasArgs.objectId("Custom Field");
+                const schema = CommonArgs.objectId("Custom Field");
                 expect(() => schema.parse("invalid")).toThrow("Custom Field must be exactly 24 characters");
             });
 
             it("should not fail if the value is optional", () => {
-                const schema = AtlasArgs.objectId("Custom Field").optional();
+                const schema = CommonArgs.objectId("Custom Field").optional();
                 expect(schema.parse(undefined)).toBeUndefined();
             });
 
             it("should not fail if the value is empty", () => {
-                const schema = AtlasArgs.objectId("Custom Field");
+                const schema = CommonArgs.objectId("Custom Field");
                 expect(() => schema.parse(undefined)).toThrow("Required");
             });
         });
+    });
 
+    describe("AtlasArgs", () => {
         describe("projectId", () => {
             it("should validate project IDs", () => {
                 const schema = AtlasArgs.projectId();
