@@ -83,9 +83,7 @@ describe("Tool args", () => {
 
             it("should provide custom field name in error messages", () => {
                 const schema = AtlasArgs.objectId("Custom Field");
-                expect(() => schema.parse("invalid")).toThrow(
-                    "Custom Field must be a valid 24-character hexadecimal string"
-                );
+                expect(() => schema.parse("invalid")).toThrow("Custom Field must be exactly 24 characters");
             });
 
             it("should not fail if the value is optional", () => {
@@ -108,15 +106,13 @@ describe("Tool args", () => {
 
             it("should reject invalid project IDs", () => {
                 const schema = AtlasArgs.projectId();
-                expect(() => schema.parse("invalid")).toThrow(
-                    "projectId must be a valid 24-character hexadecimal string"
-                );
+                expect(() => schema.parse("invalid")).toThrow("projectId must be exactly 24 characters");
                 expect(() => schema.parse("507f1f77bc*86cd79943901")).toThrow(
-                    "projectId must be a valid 24-character hexadecimal string"
+                    "projectId must contain only hexadecimal characters"
                 );
                 expect(() => schema.parse("")).toThrow("projectId is required");
                 expect(() => schema.parse("507f1f77/bcf86cd799439011")).toThrow(
-                    "projectId must be a valid 24-character hexadecimal string"
+                    "projectId must contain only hexadecimal characters"
                 );
             });
         });
@@ -130,9 +126,7 @@ describe("Tool args", () => {
 
             it("should reject invalid organization IDs", () => {
                 const schema = AtlasArgs.organizationId();
-                expect(() => schema.parse("invalid")).toThrow(
-                    "organizationId must be a valid 24-character hexadecimal string"
-                );
+                expect(() => schema.parse("invalid")).toThrow("organizationId must be exactly 24 characters");
             });
         });
 

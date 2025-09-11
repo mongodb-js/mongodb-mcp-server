@@ -25,7 +25,8 @@ export const AtlasArgs = {
         z
             .string()
             .min(1, `${fieldName} is required`)
-            .regex(/^[0-9a-fA-F]{24}$/, `${fieldName} must be a valid 24-character hexadecimal string`),
+            .length(24, `${fieldName} must be exactly 24 characters`)
+            .regex(/^[0-9a-fA-F]+$/, `${fieldName} must contain only hexadecimal characters`),
 
     projectId: (): z.ZodString => AtlasArgs.objectId("projectId"),
 
