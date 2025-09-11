@@ -13,6 +13,8 @@ COPY ../package.json ../package-lock.json ../tsconfig.*.json ./
 # Copy source code
 COPY ../src ./src
 
+COPY ../scripts ./scripts
+
 # Install dependencies and build
 RUN npm ci && npm run build
 
