@@ -1,12 +1,12 @@
 import { z, type ZodString } from "zod";
 
 const NO_UNICODE_REGEX = /^[\x20-\x7E]*$/;
-const NO_UNICODE_ERROR = "String cannot contain special characters or Unicode symbols";
+export const NO_UNICODE_ERROR = "String cannot contain special characters or Unicode symbols";
 
 const ALLOWED_NAME_CHARACTERS_REGEX = /^[a-zA-Z0-9._-]+$/;
 export const ALLOWED_CHARACTERS_ERROR = " can only contain letters, numbers, dots, hyphens, and underscores";
 
-const ALLLOWED_REGION_CHARACTERS_REGEX = /^[a-zA-Z0-9_-]+$/;
+const ALLOWED_REGION_CHARACTERS_REGEX = /^[a-zA-Z0-9_-]+$/;
 export const ALLOWED_REGION_CHARACTERS_ERROR = "Region can only contain letters, numbers, hyphens, and underscores";
 
 const ALLOWED_CLUSTER_NAME_CHARACTERS_REGEX = /^[a-zA-Z0-9_-]+$/;
@@ -62,7 +62,7 @@ export const AtlasArgs = {
             .string()
             .min(1, "Region is required")
             .max(50, "Region must be 50 characters or less")
-            .regex(ALLLOWED_REGION_CHARACTERS_REGEX, ALLOWED_REGION_CHARACTERS_ERROR),
+            .regex(ALLOWED_REGION_CHARACTERS_REGEX, ALLOWED_REGION_CHARACTERS_ERROR),
 
     password: (): z.ZodString =>
         z.string().min(1, "Password is required").max(100, "Password must be 100 characters or less"),

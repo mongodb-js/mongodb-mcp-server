@@ -6,6 +6,7 @@ import {
     ALLOWED_CHARACTERS_ERROR,
     ALLOWED_REGION_CHARACTERS_ERROR,
     ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR,
+    NO_UNICODE_ERROR,
 } from "../../src/tools/args.js";
 
 describe("Tool args", () => {
@@ -28,22 +29,22 @@ describe("Tool args", () => {
                 const schema = CommonArgs.string();
 
                 // Unicode characters
-                expect(() => schema.parse("héllo")).toThrow();
-                expect(() => schema.parse("测试")).toThrow();
-                expect(() => schema.parse("café")).toThrow();
+                expect(() => schema.parse("héllo")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("测试")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("café")).toThrow(NO_UNICODE_ERROR);
 
                 // Emojis
-                expect(() => schema.parse("🚀")).toThrow();
-                expect(() => schema.parse("hello😀")).toThrow();
+                expect(() => schema.parse("🚀")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("hello😀")).toThrow(NO_UNICODE_ERROR);
 
                 // Control characters (below ASCII 32)
-                expect(() => schema.parse("hello\nworld")).toThrow();
-                expect(() => schema.parse("hello\tworld")).toThrow();
-                expect(() => schema.parse("hello\0world")).toThrow();
+                expect(() => schema.parse("hello\nworld")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("hello\tworld")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("hello\0world")).toThrow(NO_UNICODE_ERROR);
 
                 // Extended ASCII characters (above ASCII 126)
-                expect(() => schema.parse("hello\x80")).toThrow();
-                expect(() => schema.parse("hello\xFF")).toThrow();
+                expect(() => schema.parse("hello\x80")).toThrow(NO_UNICODE_ERROR);
+                expect(() => schema.parse("hello\xFF")).toThrow(NO_UNICODE_ERROR);
             });
 
             it("should reject non-string values", () => {
