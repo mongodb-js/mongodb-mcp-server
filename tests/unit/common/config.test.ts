@@ -42,8 +42,8 @@ describe("config", () => {
                 { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
                 { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
                 {
-                    envVar: "MDB_MCP_TEMPORARY_DATABASE_USER_LIFETIME_SECONDS",
-                    property: "temporaryDatabaseUserLifetimeSeconds",
+                    envVar: "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
+                    property: "atlasTemporaryDatabaseUserLifetimeMs",
                     value: 12345,
                 },
             ] as const;
@@ -135,8 +135,8 @@ describe("config", () => {
                     expected: { notificationTimeoutMs: "42" },
                 },
                 {
-                    cli: ["--temporaryDatabaseUserLifetimeSeconds", "12345"],
-                    expected: { temporaryDatabaseUserLifetimeSeconds: "12345" },
+                    cli: ["--atlasTemporaryDatabaseUserLifetimeMs", "12345"],
+                    expected: { atlasTemporaryDatabaseUserLifetimeMs: "12345" },
                 },
                 {
                     cli: ["--telemetry", "enabled"],

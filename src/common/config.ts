@@ -48,7 +48,7 @@ const OPTIONS = {
         "tlsCertificateSelector",
         "tlsDisabledProtocols",
         "username",
-        "temporaryDatabaseUserLifetimeSeconds",
+        "atlasTemporaryDatabaseUserLifetimeMs",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -162,7 +162,7 @@ export interface UserConfig extends CliOptions {
     loggers: Array<"stderr" | "disk" | "mcp">;
     idleTimeoutMs: number;
     notificationTimeoutMs: number;
-    temporaryDatabaseUserLifetimeSeconds: number;
+    atlasTemporaryDatabaseUserLifetimeMs: number;
 }
 
 export const defaultUserConfig: UserConfig = {
@@ -182,7 +182,7 @@ export const defaultUserConfig: UserConfig = {
     idleTimeoutMs: 600000, // 10 minutes
     notificationTimeoutMs: 540000, // 9 minutes
     httpHeaders: {},
-    temporaryDatabaseUserLifetimeSeconds: 14400, // 4 hours
+    atlasTemporaryDatabaseUserLifetimeMs: 14400000, // 4 hours
 };
 
 export const config = setupUserConfig({

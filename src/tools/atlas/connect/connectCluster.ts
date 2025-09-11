@@ -76,7 +76,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
         const password = await generateSecurePassword();
 
-        const expiryDate = new Date(Date.now() + this.config.temporaryDatabaseUserLifetimeSeconds * 1000);
+        const expiryDate = new Date(Date.now() + this.config.atlasTemporaryDatabaseUserLifetimeMs);
         const role = getDefaultRoleFromConfig(this.config);
 
         await this.session.apiClient.createDatabaseUser({
