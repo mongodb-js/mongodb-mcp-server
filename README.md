@@ -114,6 +114,8 @@ export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
 npx -y mongodb-mcp-server@latest --readOnly
 ```
 
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
 - For a complete list of configuration options see [Configuration Options](#configuration-options)
 - To configure your Atlas Service Accounts credentials please refer to [Atlas API Access](#atlas-api-access)
 - Connection String via environment variables in the MCP file [example](#connection-string-with-environment-variables)
@@ -147,6 +149,8 @@ docker run --rm -i \
   mongodb/mongodb-mcp-server:latest
 ```
 
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
 ##### Option C: With Atlas API credentials
 
 ```shell
@@ -161,6 +165,8 @@ docker run --rm -i \
   -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
+
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 ##### Docker in MCP Configuration File
 
@@ -370,6 +376,8 @@ You can combine multiple loggers, e.g. `--loggers disk stderr` or `export MDB_MC
 export MDB_MCP_LOGGERS="disk,stderr"
 ```
 
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
 ##### Example: Set logger via command-line argument
 
 ```shell
@@ -420,6 +428,8 @@ You can enable read-only mode using:
 - **Environment variable**: `export MDB_MCP_READ_ONLY=true`
 - **Command-line argument**: `--readOnly`
 
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
 When read-only mode is active, you'll see a message in the server logs indicating which tools were prevented from registering due to this restriction.
 
 #### Index Check Mode
@@ -432,6 +442,8 @@ You can enable index check mode using:
 
 - **Environment variable**: `export MDB_MCP_INDEX_CHECK=true`
 - **Command-line argument**: `--indexCheck`
+
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 When index check mode is active, you'll see an error message if a query is rejected due to not using an index.
 
@@ -455,6 +467,8 @@ You can disable telemetry using:
 - **Environment variable**: `export MDB_MCP_TELEMETRY=disabled`
 - **Command-line argument**: `--telemetry disabled`
 - **DO_NOT_TRACK environment variable**: `export DO_NOT_TRACK=1`
+
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 ### Atlas API Access
 
@@ -509,7 +523,9 @@ For a full list of roles and their privileges, see the [Atlas User Roles documen
 
 Set environment variables with the prefix `MDB_MCP_` followed by the option name in uppercase with underscores:
 
-```shell
+**Linux/macOS (bash/zsh):**
+
+```bash
 # Set Atlas API credentials (via Service Accounts)
 export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
 export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
@@ -517,8 +533,33 @@ export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
 # Set a custom MongoDB connection string
 export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
 
+# Set log path
 export MDB_MCP_LOG_PATH="/path/to/logs"
+```
 
+**Windows Command Prompt (cmd):**
+
+```cmd
+set "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id"
+set "MDB_MCP_API_CLIENT_SECRET=your-atlas-service-accounts-client-secret"
+
+set "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+set "MDB_MCP_LOG_PATH=C:\path\to\logs"
+```
+
+**Windows PowerShell:**
+
+```powershell
+# Set Atlas API credentials (via Service Accounts)
+$env:MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+$env:MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+
+# Set a custom MongoDB connection string
+$env:MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+# Set log path
+$env:MDB_MCP_LOG_PATH="C:\path\to\logs"
 ```
 
 #### MCP configuration file examples
@@ -571,6 +612,8 @@ export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongod
 # Start the server with command line arguments
 npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 ```
+
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 #### MCP configuration file examples
 
