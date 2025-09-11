@@ -90,19 +90,34 @@ const MONGOSH_OPTIONS = {
         "greedy-arrays": true,
         "short-option-groups": false,
     },
-} as const;
+} as Readonly<Options>;
 
 const MCP_SERVER_OPTIONS = {
     string: ["atlasTemporaryDatabaseUserLifetimeMs"],
-} as const;
+} as Readonly<Partial<Options>>;
 
-const OPTIONS = {
-    string: [...MONGOSH_OPTIONS.string, ...MCP_SERVER_OPTIONS.string],
-    boolean: [...MONGOSH_OPTIONS.boolean],
-    array: [...MONGOSH_OPTIONS.array],
-    alias: { ...MONGOSH_OPTIONS.alias },
-    configuration: { ...MONGOSH_OPTIONS.configuration },
-} as const;
+interface Options {
+    string: string[];
+    boolean: string[];
+    array: string[];
+    alias: Record<string, string>;
+    configuration: Record<string, boolean>;
+}
+
+function mergeOptions(...optionSources: Array<Partial<Options>>): Readonly<Options> {
+    return {
+        string: optionSources.flatMap((opts) => opts.string ?? []),
+        boolean: optionSources.flatMap((opts) => opts.boolean ?? []),
+        array: optionSources.flatMap((opts) => opts.array ?? []),
+        alias: Object.assign({}, ...optionSources.map((opts) => opts.alias ?? {})) as Record<string, string>,
+        configuration: Object.assign({}, ...optionSources.map((opts) => opts.configuration ?? {})) as Record<
+            string,
+            boolean
+        >,
+    };
+}
+
+const OPTIONS = mergeOptions(MONGOSH_OPTIONS, MCP_SERVER_OPTIONS);
 
 const ALL_CONFIG_KEYS = new Set(
     (OPTIONS.string as readonly string[])
