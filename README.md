@@ -563,7 +563,7 @@ Pass configuration options as command-line arguments when starting the server:
 > **🔒 Security Note:** For sensitive configuration like API credentials and connection strings, use environment variables instead of command-line arguments.
 
 ```shell
-# Set sensistive data as environment variable
+# Set sensitive data as environment variable
 export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
 export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
 export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
