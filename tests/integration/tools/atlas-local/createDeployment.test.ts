@@ -74,6 +74,7 @@ describe("atlas-local-create-deployment", () => {
             arguments: {},
         });
         const beforeElements = getResponseElements(beforeResponse.content);
+        expect(beforeElements.length).toBeGreaterThanOrEqual(1);
         expect(beforeElements[1]?.text ?? "").not.toContain(deploymentName);
 
         // Create a deployment
@@ -91,7 +92,7 @@ describe("atlas-local-create-deployment", () => {
 
         const afterElements = getResponseElements(afterResponse.content);
         expect(afterElements.length).toBeGreaterThanOrEqual(1);
-        expect(afterElements[1]?.text).toContain(deploymentName);
+        expect(afterElements[1]?.text ?? "").toContain(deploymentName);
     });
 
     it.skipIf(isMacOSInGitHubActions)(
@@ -137,8 +138,8 @@ describe("atlas-local-create-deployment", () => {
         const elements = getResponseElements(response.content);
 
         expect(elements.length).toBeGreaterThanOrEqual(1);
-        expect(elements[1]?.text).toContain(deploymentName);
-        expect(elements[1]?.text).toContain("Running");
+        expect(elements[1]?.text ?? "").toContain(deploymentName);
+        expect(elements[1]?.text ?? "").toContain("Running");
     });
 
     it.skipIf(isMacOSInGitHubActions)("should create a deployment when name is not provided", async ({ signal }) => {
@@ -164,6 +165,6 @@ describe("atlas-local-create-deployment", () => {
         const deploymentName = elements[1]?.text.match(/local\d+/)?.[0];
         expectDefined(deploymentName);
         deploymentNamesToCleanup.push(deploymentName);
-        expect(elements[1]?.text).toContain("Running");
+        expect(elements[1]?.text ?? "").toContain("Running");
     });
 });

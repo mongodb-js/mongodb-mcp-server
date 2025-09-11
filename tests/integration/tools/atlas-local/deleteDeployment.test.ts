@@ -80,7 +80,8 @@ describe("atlas-local-delete-deployment", () => {
             arguments: {},
         });
         const beforeElements = getResponseElements(beforeResponse.content);
-        expect(beforeElements[1]?.text).toContain(deploymentName);
+        expect(beforeElements.length).toBeGreaterThanOrEqual(1);
+        expect(beforeElements[1]?.text ?? "").toContain(deploymentName);
 
         // Delete the deployment
         await integration.mcpClient().callTool({
