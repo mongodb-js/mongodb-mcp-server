@@ -47,7 +47,7 @@ const MONGOSH_OPTIONS = {
         "tlsCertificateKeyFilePassword",
         "tlsCertificateSelector",
         "tlsDisabledProtocols",
-        "username"
+        "username",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -93,15 +93,13 @@ const MONGOSH_OPTIONS = {
 } as const;
 
 const MCP_SERVER_OPTIONS = {
-    string: [
-        "atlasTemporaryDatabaseUserLifetimeMs",
-    ],
+    string: ["atlasTemporaryDatabaseUserLifetimeMs"],
 } as const;
 
 const OPTIONS = {
-    string: { ...MONGOSH_OPTIONS.string, ...MCP_SERVER_OPTIONS.string },
-    boolean: { ...MONGOSH_OPTIONS.boolean },
-    array: { ...MONGOSH_OPTIONS.array },
+    string: [...MONGOSH_OPTIONS.string, ...MCP_SERVER_OPTIONS.string],
+    boolean: [...MONGOSH_OPTIONS.boolean],
+    array: [...MONGOSH_OPTIONS.array],
     alias: { ...MONGOSH_OPTIONS.alias },
     configuration: { ...MONGOSH_OPTIONS.configuration },
 } as const;
