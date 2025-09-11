@@ -29,7 +29,7 @@ export const CreateDBUserArgs = {
         )
         .describe("Roles for the new user"),
     clusters: z
-        .array(CommonArgs.string())
+        .array(AtlasArgs.clusterName())
         .describe("Clusters to assign the user to, leave empty for access to all clusters")
         .optional(),
 };
