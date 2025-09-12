@@ -127,7 +127,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     public async readExport(exportName: string): Promise<string> {
         try {
             this.assertIsNotShuttingDown();
-            exportName = decodeURIComponent(exportName);
+            exportName = decodeAndNormalize(exportName);
             const exportHandle = this.storedExports[exportName];
             if (!exportHandle) {
                 throw new Error("Requested export has either expired or does not exist.");
@@ -163,7 +163,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): Promise<AvailableExport> {
         try {
             this.assertIsNotShuttingDown();
-            const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
+            const exportNameWithExtension = decodeAndNormalize(ensureExtension(exportName, "json"));
             if (this.storedExports[exportNameWithExtension]) {
                 return Promise.reject(
                     new Error("Export with same name is either already available or being generated.")
@@ -363,6 +363,10 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 }
 
+export function decodeAndNormalize(text: string): string {
+    return decodeURIComponent(text).normalize("NFKC");
+}
+
 /**
  * Ensures the path ends with the provided extension */
 export function ensureExtension(pathOrName: string, extension: string): string {
@@ -371,22 +375,6 @@ export function ensureExtension(pathOrName: string, extension: string): string {
         return pathOrName;
     }
     return `${pathOrName}${extWithDot}`;
-}
-
-/**
- * Small utility to decoding and validating provided export name for path
- * traversal or no extension */
-export function validateExportName(nameWithExtension: string): string {
-    const decodedName = decodeURIComponent(nameWithExtension);
-    if (!path.extname(decodedName)) {
-        throw new Error("Provided export name has no extension");
-    }
-
-    if (decodedName.includes("..") || decodedName.includes("/") || decodedName.includes("\\")) {
-        throw new Error("Invalid export name: path traversal hinted");
-    }
-
-    return decodedName;
 }
 
 export function isExportExpired(createdAt: number, exportTimeoutMs: number): boolean {

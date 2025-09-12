@@ -49,16 +49,23 @@ export class AggregateTool extends MongoDBToolBase {
     }
 
     private assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): void {
-        if (!this.config.readOnly) {
+        const writeOperations: OperationType[] = ["update", "create", "delete"];
+        let writeStageForbiddenError = "";
+
+        if (this.config.readOnly) {
+            writeStageForbiddenError = "In readOnly mode you can not run pipelines with $out or $merge stages.";
+        } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
+            writeStageForbiddenError =
+                "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
+        }
+
+        if (!writeStageForbiddenError) {
             return;
         }
 
         for (const stage of pipeline) {
             if (stage.$out || stage.$merge) {
-                throw new MongoDBError(
-                    ErrorCodes.ForbiddenWriteOperation,
-                    "In readOnly mode you can not run pipelines with $out or $merge stages."
-                );
+                throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
             }
         }
     }

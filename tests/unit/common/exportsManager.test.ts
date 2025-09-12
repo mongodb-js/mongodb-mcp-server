@@ -5,12 +5,7 @@ import type { FindCursor } from "mongodb";
 import { Long } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js";
-import {
-    ensureExtension,
-    isExportExpired,
-    ExportsManager,
-    validateExportName,
-} from "../../../src/common/exportsManager.js";
+import { ensureExtension, isExportExpired, ExportsManager } from "../../../src/common/exportsManager.js";
 import type { AvailableExport } from "../../../src/common/exportsManager.js";
 import { config } from "../../../src/common/config.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
@@ -30,14 +25,10 @@ const exportsManagerConfig: ExportsManagerConfig = {
 function getExportNameAndPath({
     uniqueExportsId = new ObjectId().toString(),
     uniqueFileId = new ObjectId().toString(),
-    database = "foo",
-    collection = "bar",
 }:
     | {
           uniqueExportsId?: string;
           uniqueFileId?: string;
-          database?: string;
-          collection?: string;
       }
     | undefined = {}): {
     sessionExportsPath: string;
@@ -46,7 +37,7 @@ function getExportNameAndPath({
     exportURI: string;
     uniqueExportsId: string;
 } {
-    const exportName = `${database}.${collection}.${uniqueFileId}.json`;
+    const exportName = `${uniqueFileId}.json`;
     // This is the exports directory for a session.
     const sessionExportsPath = path.join(exportsPath, uniqueExportsId);
     const exportPath = path.join(sessionExportsPath, exportName);
@@ -248,7 +239,7 @@ describe("ExportsManager unit test", () => {
         });
 
         it("should handle encoded name", async () => {
-            const { exportName, exportURI } = getExportNameAndPath({ database: "some database", collection: "coll" });
+            const { exportName, exportURI } = getExportNameAndPath({ uniqueFileId: "1FOO 2BAR" });
             const { cursor } = createDummyFindCursor([]);
             const exportAvailableNotifier = getExportAvailableNotifier(encodeURI(exportURI), manager);
             await manager.createJSONExport({
@@ -608,16 +599,6 @@ describe("#ensureExtension", () => {
         expect(ensureExtension("random.json", "json")).toEqual("random.json");
         expect(ensureExtension("random.1234.json", "json")).toEqual("random.1234.json");
         expect(ensureExtension("/random/random-file.json", "json")).toEqual("/random/random-file.json");
-    });
-});
-
-describe("#validateExportName", () => {
-    it("should return decoded name when name is valid", () => {
-        expect(validateExportName(encodeURIComponent("Test Name.json"))).toEqual("Test Name.json");
-    });
-    it("should throw when name is invalid", () => {
-        expect(() => validateExportName("NoExtension")).toThrow("Provided export name has no extension");
-        expect(() => validateExportName("../something.json")).toThrow("Invalid export name: path traversal hinted");
     });
 });
 

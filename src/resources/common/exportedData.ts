@@ -72,7 +72,12 @@ export class ExportedData {
     private autoCompleteExportName: CompleteResourceTemplateCallback = (value) => {
         try {
             return this.session.exportsManager.availableExports
-                .filter(({ exportName }) => exportName.startsWith(value))
+                .filter(({ exportName, exportTitle }) => {
+                    const lcExportName = exportName.toLowerCase();
+                    const lcExportTitle = exportTitle.toLowerCase();
+                    const lcValue = value.toLowerCase();
+                    return lcExportName.startsWith(lcValue) || lcExportTitle.includes(lcValue);
+                })
                 .map(({ exportName }) => exportName);
         } catch (error) {
             this.session.logger.error({
