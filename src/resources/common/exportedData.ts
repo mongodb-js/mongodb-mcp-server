@@ -7,6 +7,7 @@ import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../server.js";
 import { LogId } from "../../common/logger.js";
 import type { Session } from "../../common/session.js";
+import { formatUntrustedData } from "../../tools/tool.js";
 
 export class ExportedData {
     private readonly name = "exported-data";
@@ -95,13 +96,17 @@ export class ExportedData {
                 throw new Error("Cannot retrieve exported data, exportName not provided.");
             }
 
-            const content = await this.session.exportsManager.readExport(exportName);
+            const { content, docsTransformed } = await this.session.exportsManager.readExport(exportName);
+
+            const text = formatUntrustedData(`The exported data contains ${docsTransformed} documents.`, content)
+                .map((t) => t.text)
+                .join("\n");
 
             return {
                 contents: [
                     {
                         uri: url.href,
-                        text: content,
+                        text,
                         mimeType: "application/json",
                     },
                 ],

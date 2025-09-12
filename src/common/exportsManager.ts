@@ -27,6 +27,7 @@ interface CommonExportData {
 interface ReadyExport extends CommonExportData {
     exportStatus: "ready";
     exportCreatedAt: number;
+    docsTransformed: number;
 }
 
 interface InProgressExport extends CommonExportData {
@@ -124,7 +125,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    public async readExport(exportName: string): Promise<string> {
+    public async readExport(exportName: string): Promise<{ content: string; docsTransformed: number }> {
         try {
             this.assertIsNotShuttingDown();
             exportName = decodeAndNormalize(exportName);
@@ -137,9 +138,12 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 throw new Error("Requested export is still being generated. Try again later.");
             }
 
-            const { exportPath } = exportHandle;
+            const { exportPath, docsTransformed } = exportHandle;
 
-            return fs.readFile(exportPath, { encoding: "utf8", signal: this.shutdownController.signal });
+            return {
+                content: await fs.readFile(exportPath, { encoding: "utf8", signal: this.shutdownController.signal }),
+                docsTransformed,
+            };
         } catch (error) {
             this.logger.error({
                 id: LogId.exportReadError,
@@ -202,17 +206,15 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): Promise<void> {
         try {
             let pipeSuccessful = false;
+            let docsTransformed = 0;
             try {
                 await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
                 const outputStream = createWriteStream(inProgressExport.exportPath);
-                await pipeline(
-                    [
-                        input.stream(),
-                        this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)),
-                        outputStream,
-                    ],
-                    { signal: this.shutdownController.signal }
-                );
+                const ejsonTransofrm = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
+                await pipeline([input.stream(), ejsonTransofrm, outputStream], {
+                    signal: this.shutdownController.signal,
+                });
+                docsTransformed = ejsonTransofrm.docsTransformed;
                 pipeSuccessful = true;
             } catch (error) {
                 // If the pipeline errors out then we might end up with
@@ -231,6 +233,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                         ...inProgressExport,
                         exportCreatedAt: Date.now(),
                         exportStatus: "ready",
+                        docsTransformed,
                     };
                     this.emit("export-available", inProgressExport.exportURI);
                 }
@@ -256,33 +259,39 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    private docToEJSONStream(ejsonOptions: EJSONOptions | undefined): Transform {
+    private docToEJSONStream(ejsonOptions: EJSONOptions | undefined): Transform & { docsTransformed: number } {
         let docsTransformed = 0;
-        return new Transform({
-            objectMode: true,
-            transform(chunk: unknown, encoding, callback): void {
-                try {
-                    const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
-                    if (docsTransformed === 0) {
-                        this.push("[" + doc);
-                    } else {
-                        this.push(",\n" + doc);
+        const result = Object.assign(
+            new Transform({
+                objectMode: true,
+                transform(chunk: unknown, encoding, callback): void {
+                    try {
+                        const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
+                        if (docsTransformed === 0) {
+                            this.push("[" + doc);
+                        } else {
+                            this.push(",\n" + doc);
+                        }
+                        docsTransformed++;
+                        callback();
+                    } catch (err) {
+                        callback(err as Error);
                     }
-                    docsTransformed++;
+                },
+                flush(callback): void {
+                    if (docsTransformed === 0) {
+                        this.push("[]");
+                    } else {
+                        this.push("]");
+                    }
+                    result.docsTransformed = docsTransformed;
                     callback();
-                } catch (err) {
-                    callback(err as Error);
-                }
-            },
-            flush(callback): void {
-                if (docsTransformed === 0) {
-                    this.push("[]");
-                } else {
-                    this.push("]");
-                }
-                callback();
-            },
-        });
+                },
+            }),
+            { docsTransformed }
+        );
+
+        return result;
     }
 
     private async cleanupExpiredExports(): Promise<void> {
