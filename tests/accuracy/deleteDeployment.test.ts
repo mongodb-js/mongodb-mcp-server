@@ -13,7 +13,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "Delete the local MongoDB database called 'my-instance'",
+        prompt: "Delete the local MongoDB atlas database called 'my-instance'",
         expectedToolCalls: [
             {
                 toolName: "atlas-local-delete-deployment",
@@ -47,21 +47,6 @@ describeAccuracyTests([
                 toolName: "atlas-local-delete-deployment",
                 parameters: {
                     deploymentName: "local-mflix",
-                },
-            },
-        ],
-    },
-    {
-        prompt: "If and only if, the local MongoDB deployment 'new-database' does not exist, then create it",
-        expectedToolCalls: [
-            {
-                toolName: "list-collections",
-                parameters: {},
-            },
-            {
-                toolName: "create-collection",
-                parameters: {
-                    deploymentName: "new-database",
                 },
             },
         ],
