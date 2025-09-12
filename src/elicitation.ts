@@ -1,4 +1,4 @@
-import type { PrimitiveSchemaDefinition } from "@modelcontextprotocol/sdk/types.js";
+import type { ElicitRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export class Elicitation {
@@ -37,7 +37,7 @@ export class Elicitation {
      * The schema for the confirmation question.
      * TODO: In the future would be good to use Zod 4's toJSONSchema() to generate the schema.
      */
-    public static CONFIRMATION_SCHEMA: MCPElicitationSchema = {
+    public static CONFIRMATION_SCHEMA: ElicitRequest["params"]["requestedSchema"] = {
         type: "object",
         properties: {
             confirmation: {
@@ -51,9 +51,3 @@ export class Elicitation {
         required: ["confirmation"],
     };
 }
-
-export type MCPElicitationSchema = {
-    type: "object";
-    properties: Record<string, PrimitiveSchemaDefinition>;
-    required?: string[];
-};

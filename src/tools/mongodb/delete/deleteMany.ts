@@ -59,12 +59,12 @@ export class DeleteManyTool extends MongoDBToolBase {
 
     protected getConfirmationMessage({ database, collection, filter }: ToolArgs<typeof this.argsShape>): string {
         const filterDescription =
-            filter && Object.keys(filter).length > 0 ? EJSON.stringify(filter) : "All documents (No filter)";
+            filter && Object.keys(filter).length > 0
+                ? "```json\n" + `{ "filter": ${EJSON.stringify(filter)} }\n` + "```\n\n"
+                : "- **All documents** (No filter)\n\n";
         return (
             `You are about to delete documents from the \`${collection}\` collection in the \`${database}\` database:\n\n` +
-            "```json\n" +
-            `{ "filter": ${filterDescription} }\n` +
-            "```\n\n" +
+            filterDescription +
             "This operation will permanently remove all documents matching the filter.\n\n" +
             "**Do you confirm the execution of the action?**"
         );

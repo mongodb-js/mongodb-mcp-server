@@ -25,7 +25,7 @@ describe("Elicitation Integration Tests", () => {
             { elicitInput: mockElicitInput }
         );
 
-        describe("tools requiring confirmation", () => {
+        describe("tools requiring confirmation by default", () => {
             it("should request confirmation for drop-database tool and proceed when confirmed", async () => {
                 mockElicitInput.confirmYes();
 
@@ -37,19 +37,7 @@ describe("Elicitation Integration Tests", () => {
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                 expect(mockElicitInput.mock).toHaveBeenCalledWith({
                     message: expect.stringContaining("You are about to drop the `test-db` database"),
-                    requestedSchema: {
-                        type: "object",
-                        properties: {
-                            confirmation: {
-                                type: "string",
-                                title: "Would you like to confirm?",
-                                description: "Would you like to confirm?",
-                                enum: ["Yes", "No"],
-                                enumNames: ["Yes, I confirm", "No, I do not confirm"],
-                            },
-                        },
-                        required: ["confirmation"],
-                    },
+                    requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                 });
 
                 // Should attempt to execute (will fail due to no connection, but confirms flow worked)
@@ -154,7 +142,7 @@ describe("Elicitation Integration Tests", () => {
             });
         });
 
-        describe("tools not requiring confirmation", () => {
+        describe("tools not requiring confirmation by default", () => {
             it("should not request confirmation for read operations", async () => {
                 const result = await integration.mcpClient().callTool({
                     name: "list-databases",
@@ -189,7 +177,7 @@ describe("Elicitation Integration Tests", () => {
             { getClientCapabilities: () => ({}) }
         );
 
-        it("should proceed without confirmation for destructive tools when client lacks elicitation support", async () => {
+        it("should proceed without confirmation for default confirmation-required tools when client lacks elicitation support", async () => {
             const result = await integration.mcpClient().callTool({
                 name: "drop-database",
                 arguments: { database: "test-db" },
@@ -217,7 +205,7 @@ describe("Elicitation Integration Tests", () => {
             { elicitInput: mockElicitInput }
         );
 
-        it("should respect custom confirmationRequiredTools configuration", async () => {
+        it("should confirm with a generic message with custom configurations for other tools", async () => {
             mockElicitInput.confirmYes();
 
             await integration.mcpClient().callTool({
@@ -226,6 +214,12 @@ describe("Elicitation Integration Tests", () => {
             });
 
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+            expect(mockElicitInput.mock).toHaveBeenCalledWith({
+                message: expect.stringMatching(
+                    /You are about to execute the `list-databases` tool which requires additional confirmation. Would you like to proceed\?/
+                ),
+                requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+            });
         });
 
         it("should not request confirmation when tool is removed from default confirmationRequiredTools", async () => {
