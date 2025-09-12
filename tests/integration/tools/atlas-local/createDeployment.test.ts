@@ -125,10 +125,15 @@ describe("atlas-local-create-deployment", () => {
         // Create a deployment
         const deploymentName = `test-deployment-${Date.now()}`;
         deploymentNamesToCleanup.push(deploymentName);
-        await integration.mcpClient().callTool({
+        const createResponse = await integration.mcpClient().callTool({
             name: "atlas-local-create-deployment",
             arguments: { deploymentName },
         });
+
+        // Check the response contains the deployment name
+        const createElements = getResponseElements(createResponse.content);
+        expect(createElements.length).toBeGreaterThanOrEqual(1);
+        expect(createElements[0]?.text).toContain(deploymentName);
 
         // List the deployments
         const response = await integration.mcpClient().callTool({
@@ -146,10 +151,20 @@ describe("atlas-local-create-deployment", () => {
         await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
 
         // Create a deployment
-        await integration.mcpClient().callTool({
+        const createResponse = await integration.mcpClient().callTool({
             name: "atlas-local-create-deployment",
             arguments: {},
         });
+
+        // Check the response contains the deployment name
+        const createElements = getResponseElements(createResponse.content);
+        expect(createElements.length).toBeGreaterThanOrEqual(1);
+
+        // Extract the deployment name from the response
+        // The name should be in the format local<number>
+        const deploymentName = createElements[0]?.text.match(/local\d+/)?.[0];
+        expectDefined(deploymentName);
+        deploymentNamesToCleanup.push(deploymentName);
 
         // List the deployments
         const response = await integration.mcpClient().callTool({
@@ -160,11 +175,7 @@ describe("atlas-local-create-deployment", () => {
         // Check the deployment has been created
         const elements = getResponseElements(response.content);
         expect(elements.length).toBeGreaterThanOrEqual(1);
-
-        // Random name starts with local and a number
-        const deploymentName = elements[1]?.text.match(/local\d+/)?.[0];
-        expectDefined(deploymentName);
-        deploymentNamesToCleanup.push(deploymentName);
+        expect(elements[1]?.text ?? "").toContain(deploymentName);
         expect(elements[1]?.text ?? "").toContain("Running");
     });
 });

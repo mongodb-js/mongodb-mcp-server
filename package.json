@@ -121,7 +121,7 @@
     "node": "^20.19.0 || ^22.12.0 || >= 23.0.0"
   },
   "optionalDependencies": {
-    "@mongodb-js-preview/atlas-local": "^0.0.0-preview.2",
+    "@mongodb-js-preview/atlas-local": "^0.0.0-preview.3",
     "kerberos": "^2.2.2"
   }
 }

@@ -24,15 +24,15 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             },
         };
         // Create the deployment
-        await client.createDeployment(deploymentOptions);
+        const deployment = await client.createDeployment(deploymentOptions);
 
-        if (deploymentName) {
-            return {
-                content: [{ type: "text", text: `Deployment "${deploymentName}" created.` }],
-            };
-        }
         return {
-            content: [{ type: "text", text: `Deployment created.` }],
+            content: [
+                {
+                    type: "text",
+                    text: `Deployment with container ID "${deployment.containerId}" and name "${deployment.name}" created.`,
+                },
+            ],
         };
     }
 }
