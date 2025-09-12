@@ -64,4 +64,37 @@ describe("atlas-local-delete-deployment", () => {
             );
         }
     );
+
+    it.skipIf(isMacOSInGitHubActions)("should delete a deployment when calling the tool", async ({ signal }) => {
+        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        // Create a deployment
+        const deploymentName = `test-deployment-${Date.now()}`;
+        await integration.mcpClient().callTool({
+            name: "atlas-local-create-deployment",
+            arguments: { deploymentName },
+        });
+
+        // Check that deployment exists before deletion
+        const beforeResponse = await integration.mcpClient().callTool({
+            name: "atlas-local-list-deployments",
+            arguments: {},
+        });
+        const beforeElements = getResponseElements(beforeResponse.content);
+        expect(beforeElements.length).toBeGreaterThanOrEqual(1);
+        expect(beforeElements[1]?.text ?? "").toContain(deploymentName);
+
+        // Delete the deployment
+        await integration.mcpClient().callTool({
+            name: "atlas-local-delete-deployment",
+            arguments: { deploymentName },
+        });
+
+        // Count the number of deployments after deleting the deployment
+        const afterResponse = await integration.mcpClient().callTool({
+            name: "atlas-local-list-deployments",
+            arguments: {},
+        });
+        const afterElements = getResponseElements(afterResponse.content);
+        expect(afterElements[1]?.text ?? "").not.toContain(deploymentName);
+    });
 });
