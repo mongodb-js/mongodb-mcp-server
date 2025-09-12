@@ -228,7 +228,7 @@ describe("Elicitation Integration Tests", () => {
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
         });
 
-        it("should not request confirmation when tool is removed from confirmationRequiredTools", async () => {
+        it("should not request confirmation when tool is removed from default confirmationRequiredTools", async () => {
             const result = await integration.mcpClient().callTool({
                 name: "drop-database",
                 arguments: { database: "test-db" },
