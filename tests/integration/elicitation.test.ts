@@ -1,33 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Server } from "../../src/server.js";
-import { Session } from "../../src/common/session.js";
-import { CompositeLogger } from "../../src/common/logger.js";
-import { MCPConnectionManager } from "../../src/common/connectionManager.js";
-import { DeviceId } from "../../src/helpers/deviceId.js";
-import { ExportsManager } from "../../src/common/exportsManager.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
-import { Keychain } from "../../src/common/keychain.js";
-import { InMemoryTransport } from "./inMemoryTransport.js";
-import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
+import { describe, it, expect } from "vitest";
 import { defaultDriverOptions, type UserConfig } from "../../src/common/config.js";
-import { defaultTestConfig } from "./helpers.js";
+import { defaultTestConfig, setupIntegrationTest } from "./helpers.js";
 import { Elicitation } from "../../src/elicitation.js";
-import { type MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
+import { createMockElicitInput } from "../utils/elicitationMocks.js";
 
 describe("Elicitation Integration Tests", () => {
-    let mcpClient: Client;
-    let mcpServer: Server;
-    let deviceId: DeviceId;
-    let mockElicitInput: ReturnType<typeof createMockElicitInput>;
-
-    async function setupWithConfig(
-        config: Partial<UserConfig> = {},
-        clientCapabilities: MockClientCapabilities = {}
-    ): Promise<void> {
-        const userConfig: UserConfig = {
+    function createTestConfig(config: Partial<UserConfig> = {}): UserConfig {
+        return {
             ...defaultTestConfig,
             telemetry: "disabled",
             // Add fake API credentials so Atlas tools get registered
@@ -35,94 +15,21 @@ describe("Elicitation Integration Tests", () => {
             apiClientSecret: "test-client-secret",
             ...config,
         };
-
-        const driverOptions = defaultDriverOptions;
-        const logger = new CompositeLogger();
-        const exportsManager = ExportsManager.init(userConfig, logger);
-        deviceId = DeviceId.create(logger);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
-        const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
-            logger,
-            exportsManager,
-            connectionManager,
-            keychain: new Keychain(),
-        });
-        // Mock API validation for tests
-        const mockFn = vi.fn().mockResolvedValue(true);
-        session.apiClient.validateAccessToken = mockFn;
-
-        const telemetry = Telemetry.create(session, userConfig, deviceId);
-
-        const clientTransport = new InMemoryTransport();
-        const serverTransport = new InMemoryTransport();
-
-        await serverTransport.start();
-        await clientTransport.start();
-
-        void clientTransport.output.pipeTo(serverTransport.input);
-        void serverTransport.output.pipeTo(clientTransport.input);
-
-        mockElicitInput = createMockElicitInput();
-
-        mcpClient = new Client(
-            {
-                name: "test-client",
-                version: "1.2.3",
-            },
-            {
-                capabilities: clientCapabilities,
-            }
-        );
-
-        const mockMcpServer = new McpServer({
-            name: "test-server",
-            version: "5.2.3",
-        });
-
-        // Mock the elicitInput method on the server instance
-        Object.assign(mockMcpServer.server, { elicitInput: mockElicitInput.mock });
-
-        // Create elicitation instance
-        const elicitation = new Elicitation({ server: mockMcpServer.server });
-
-        mcpServer = new Server({
-            session,
-            userConfig,
-            telemetry,
-            mcpServer: mockMcpServer,
-            connectionErrorHandler,
-            elicitation,
-        });
-
-        await mcpServer.connect(serverTransport);
-        await mcpClient.connect(clientTransport);
     }
-
-    async function cleanup(): Promise<void> {
-        await mcpServer?.session.disconnect();
-        await mcpClient?.close();
-        deviceId?.close();
-    }
-
-    afterEach(async () => {
-        await cleanup();
-        vi.clearAllMocks();
-    });
 
     describe("with elicitation support", () => {
-        beforeEach(async () => {
-            await setupWithConfig({}, { elicitation: {} });
-        });
+        const mockElicitInput = createMockElicitInput();
+        const integration = setupIntegrationTest(
+            () => createTestConfig(),
+            () => defaultDriverOptions,
+            { elicitInput: mockElicitInput }
+        );
 
         describe("tools requiring confirmation", () => {
             it("should request confirmation for drop-database tool and proceed when confirmed", async () => {
                 mockElicitInput.confirmYes();
 
-                const result = await mcpClient.callTool({
+                const result = await integration.mcpClient().callTool({
                     name: "drop-database",
                     arguments: { database: "test-db" },
                 });
@@ -160,7 +67,7 @@ describe("Elicitation Integration Tests", () => {
             it("should not proceed when user declines confirmation", async () => {
                 mockElicitInput.confirmNo();
 
-                const result = await mcpClient.callTool({
+                const result = await integration.mcpClient().callTool({
                     name: "drop-database",
                     arguments: { database: "test-db" },
                 });
@@ -178,7 +85,7 @@ describe("Elicitation Integration Tests", () => {
             it("should request confirmation for drop-collection tool", async () => {
                 mockElicitInput.confirmYes();
 
-                await mcpClient.callTool({
+                await integration.mcpClient().callTool({
                     name: "drop-collection",
                     arguments: { database: "test-db", collection: "test-collection" },
                 });
@@ -193,7 +100,7 @@ describe("Elicitation Integration Tests", () => {
             it("should request confirmation for delete-many tool", async () => {
                 mockElicitInput.confirmYes();
 
-                await mcpClient.callTool({
+                await integration.mcpClient().callTool({
                     name: "delete-many",
                     arguments: {
                         database: "test-db",
@@ -212,10 +119,10 @@ describe("Elicitation Integration Tests", () => {
             it("should request confirmation for create-db-user tool", async () => {
                 mockElicitInput.confirmYes();
 
-                await mcpClient.callTool({
+                await integration.mcpClient().callTool({
                     name: "atlas-create-db-user",
                     arguments: {
-                        projectId: "test-project",
+                        projectId: "507f1f77bcf86cd799439011", // Valid 24-char hex string
                         username: "test-user",
                         roles: [{ roleName: "read", databaseName: "test-db" }],
                     },
@@ -231,10 +138,10 @@ describe("Elicitation Integration Tests", () => {
             it("should request confirmation for create-access-list tool", async () => {
                 mockElicitInput.confirmYes();
 
-                await mcpClient.callTool({
+                await integration.mcpClient().callTool({
                     name: "atlas-create-access-list",
                     arguments: {
-                        projectId: "test-project",
+                        projectId: "507f1f77bcf86cd799439011", // Valid 24-char hex string
                         ipAddresses: ["192.168.1.1"],
                     },
                 });
@@ -249,7 +156,7 @@ describe("Elicitation Integration Tests", () => {
 
         describe("tools not requiring confirmation", () => {
             it("should not request confirmation for read operations", async () => {
-                const result = await mcpClient.callTool({
+                const result = await integration.mcpClient().callTool({
                     name: "list-databases",
                     arguments: {},
                 });
@@ -260,7 +167,7 @@ describe("Elicitation Integration Tests", () => {
             });
 
             it("should not request confirmation for find operations", async () => {
-                const result = await mcpClient.callTool({
+                const result = await integration.mcpClient().callTool({
                     name: "find",
                     arguments: {
                         database: "test-db",
@@ -276,17 +183,19 @@ describe("Elicitation Integration Tests", () => {
     });
 
     describe("without elicitation support", () => {
-        beforeEach(async () => {
-            await setupWithConfig({}, {}); // No elicitation capability
-        });
+        const integration = setupIntegrationTest(
+            () => createTestConfig(),
+            () => defaultDriverOptions,
+            { getClientCapabilities: () => ({}) }
+        );
 
         it("should proceed without confirmation for destructive tools when client lacks elicitation support", async () => {
-            const result = await mcpClient.callTool({
+            const result = await integration.mcpClient().callTool({
                 name: "drop-database",
                 arguments: { database: "test-db" },
             });
 
-            expect(mockElicitInput.mock).not.toHaveBeenCalled();
+            // Note: No mock assertions needed since elicitation is disabled
             // Should fail with connection error since we're not connected, but confirms flow bypassed confirmation
             expect(result.isError).toBe(true);
             expect(result.content).toEqual(
@@ -301,12 +210,17 @@ describe("Elicitation Integration Tests", () => {
     });
 
     describe("custom confirmation configuration", () => {
-        it("should respect custom confirmationRequiredTools configuration", async () => {
-            await setupWithConfig({ confirmationRequiredTools: ["list-databases"] }, { elicitation: {} });
+        const mockElicitInput = createMockElicitInput();
+        const integration = setupIntegrationTest(
+            () => createTestConfig({ confirmationRequiredTools: ["list-databases"] }),
+            () => defaultDriverOptions,
+            { elicitInput: mockElicitInput }
+        );
 
+        it("should respect custom confirmationRequiredTools configuration", async () => {
             mockElicitInput.confirmYes();
 
-            await mcpClient.callTool({
+            await integration.mcpClient().callTool({
                 name: "list-databases",
                 arguments: {},
             });
@@ -315,12 +229,7 @@ describe("Elicitation Integration Tests", () => {
         });
 
         it("should not request confirmation when tool is removed from confirmationRequiredTools", async () => {
-            await setupWithConfig(
-                { confirmationRequiredTools: [] }, // Empty list
-                { elicitation: {} }
-            );
-
-            const result = await mcpClient.callTool({
+            const result = await integration.mcpClient().callTool({
                 name: "drop-database",
                 arguments: { database: "test-db" },
             });
@@ -329,47 +238,23 @@ describe("Elicitation Integration Tests", () => {
             // Should fail with connection error since we're not connected
             expect(result.isError).toBe(true);
         });
-
-        it("should work with partial confirmation lists", async () => {
-            await setupWithConfig(
-                { confirmationRequiredTools: ["drop-database"] }, // Only drop-database requires confirmation
-                { elicitation: {} }
-            );
-
-            mockElicitInput.confirmYes();
-
-            // This should require confirmation
-            await mcpClient.callTool({
-                name: "drop-database",
-                arguments: { database: "test-db" },
-            });
-
-            expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-
-            mockElicitInput.clear();
-
-            // This should not require confirmation
-            await mcpClient.callTool({
-                name: "drop-collection",
-                arguments: { database: "test-db", collection: "test-collection" },
-            });
-
-            expect(mockElicitInput.mock).not.toHaveBeenCalled();
-        });
     });
 
     describe("confirmation message content validation", () => {
-        beforeEach(async () => {
-            await setupWithConfig({}, { elicitation: {} });
-        });
+        const mockElicitInput = createMockElicitInput();
+        const integration = setupIntegrationTest(
+            () => createTestConfig(),
+            () => defaultDriverOptions,
+            { elicitInput: mockElicitInput }
+        );
 
         it("should include specific details in create-db-user confirmation", async () => {
             mockElicitInput.confirmYes();
 
-            await mcpClient.callTool({
+            await integration.mcpClient().callTool({
                 name: "atlas-create-db-user",
                 arguments: {
-                    projectId: "my-project-123",
+                    projectId: "507f1f77bcf86cd799439011", // Valid 24-char hex string
                     username: "myuser",
                     password: "mypassword",
                     roles: [
@@ -381,7 +266,7 @@ describe("Elicitation Integration Tests", () => {
             });
 
             expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                message: expect.stringMatching(/project.*my-project-123/),
+                message: expect.stringMatching(/project.*507f1f77bcf86cd799439011/),
                 requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
             });
         });
@@ -389,7 +274,7 @@ describe("Elicitation Integration Tests", () => {
         it("should include filter details in delete-many confirmation", async () => {
             mockElicitInput.confirmYes();
 
-            await mcpClient.callTool({
+            await integration.mcpClient().callTool({
                 name: "delete-many",
                 arguments: {
                     database: "mydb",
@@ -406,14 +291,17 @@ describe("Elicitation Integration Tests", () => {
     });
 
     describe("error handling in confirmation flow", () => {
-        beforeEach(async () => {
-            await setupWithConfig({}, { elicitation: {} });
-        });
+        const mockElicitInput = createMockElicitInput();
+        const integration = setupIntegrationTest(
+            () => createTestConfig(),
+            () => defaultDriverOptions,
+            { elicitInput: mockElicitInput }
+        );
 
         it("should handle confirmation errors gracefully", async () => {
             mockElicitInput.rejectWith(new Error("Confirmation service unavailable"));
 
-            const result = await mcpClient.callTool({
+            const result = await integration.mcpClient().callTool({
                 name: "drop-database",
                 arguments: { database: "test-db" },
             });

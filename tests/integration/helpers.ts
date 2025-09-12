@@ -16,6 +16,7 @@ import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
+import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 
 interface ParameterInfo {
     name: string;
@@ -42,7 +43,14 @@ export const defaultDriverOptions: DriverOptions = {
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
-    getDriverOptions: () => DriverOptions
+    getDriverOptions: () => DriverOptions,
+    {
+        elicitInput,
+        getClientCapabilities,
+    }: {
+        elicitInput?: ReturnType<typeof createMockElicitInput>;
+        getClientCapabilities?: () => MockClientCapabilities;
+    } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
@@ -51,6 +59,7 @@ export function setupIntegrationTest(
     beforeAll(async () => {
         const userConfig = getUserConfig();
         const driverOptions = getDriverOptions();
+        const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
@@ -68,7 +77,7 @@ export function setupIntegrationTest(
                 version: "1.2.3",
             },
             {
-                capabilities: {},
+                capabilities: clientCapabilities,
             }
         );
 
@@ -102,6 +111,11 @@ export function setupIntegrationTest(
             version: "5.2.3",
         });
 
+        // Mock elicitation if provided
+        if (elicitInput) {
+            Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
+        }
+
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
         mcpServer = new Server({
@@ -121,6 +135,8 @@ export function setupIntegrationTest(
         if (mcpServer) {
             await mcpServer.session.disconnect();
         }
+
+        vi.clearAllMocks();
     });
 
     afterAll(async () => {
