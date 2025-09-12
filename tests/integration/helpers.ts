@@ -15,6 +15,7 @@ import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
+import { Elicitation } from "../../src/elicitation.js";
 
 interface ParameterInfo {
     name: string;
@@ -96,14 +97,19 @@ export function setupIntegrationTest(
 
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 
+        const mcpServerInstance = new McpServer({
+            name: "test-server",
+            version: "5.2.3",
+        });
+
+        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+
         mcpServer = new Server({
             session,
             userConfig,
             telemetry,
-            mcpServer: new McpServer({
-                name: "test-server",
-                version: "5.2.3",
-            }),
+            mcpServer: mcpServerInstance,
+            elicitation,
             connectionErrorHandler,
         });
 
