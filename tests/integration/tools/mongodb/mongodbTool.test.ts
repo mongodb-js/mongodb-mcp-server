@@ -113,18 +113,20 @@ describe("MongoDBTool implementations", () => {
             }
         );
 
+        const internalMcpServer = new McpServer({
+            name: "test-server",
+            version: "5.2.3",
+        });
+        const elicitation = new Elicitation({ server: internalMcpServer.server });
+
         mcpServer = new Server({
             session,
             userConfig,
             telemetry,
-            mcpServer: new McpServer({
-                name: "test-server",
-                version: "5.2.3",
-            }),
+            mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
+            elicitation,
         });
-
-        const elicitation = new Elicitation({ server: mcpServer.server });
 
         tool = new RandomTool({
             session,
