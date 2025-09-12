@@ -8,7 +8,7 @@ import type { Secret } from "./keychain.js";
 import levenshtein from "ts-levenshtein";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
-const MONGOSH_OPTIONS = {
+const OPTIONS = {
     string: [
         "apiBaseUrl",
         "apiClientId",
@@ -48,6 +48,7 @@ const MONGOSH_OPTIONS = {
         "tlsCertificateSelector",
         "tlsDisabledProtocols",
         "username",
+        "atlasTemporaryDatabaseUserLifetimeMs",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -92,10 +93,6 @@ const MONGOSH_OPTIONS = {
     },
 } as Readonly<Options>;
 
-const MCP_SERVER_OPTIONS = {
-    string: ["atlasTemporaryDatabaseUserLifetimeMs"],
-} as Readonly<Partial<Options>>;
-
 interface Options {
     string: string[];
     boolean: string[];
@@ -103,21 +100,6 @@ interface Options {
     alias: Record<string, string>;
     configuration: Record<string, boolean>;
 }
-
-function mergeOptions(...optionSources: Array<Partial<Options>>): Readonly<Options> {
-    return {
-        string: optionSources.flatMap((opts) => opts.string ?? []),
-        boolean: optionSources.flatMap((opts) => opts.boolean ?? []),
-        array: optionSources.flatMap((opts) => opts.array ?? []),
-        alias: Object.assign({}, ...optionSources.map((opts) => opts.alias ?? {})) as Record<string, string>,
-        configuration: Object.assign({}, ...optionSources.map((opts) => opts.configuration ?? {})) as Record<
-            string,
-            boolean
-        >,
-    };
-}
-
-const OPTIONS = mergeOptions(MONGOSH_OPTIONS, MCP_SERVER_OPTIONS);
 
 const ALL_CONFIG_KEYS = new Set(
     (OPTIONS.string as readonly string[])
