@@ -198,7 +198,7 @@ export class Server {
             }
         }
 
-        void this.telemetry.emitEvents([event]);
+        this.telemetry.emitEvents([event]);
     }
 
     private registerTools(): void {

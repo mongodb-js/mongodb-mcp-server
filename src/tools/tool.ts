@@ -284,7 +284,7 @@ export abstract class ToolBase {
             event.properties.project_id = metadata.projectId;
         }
 
-        void this.telemetry.emitEvents([event]);
+        this.telemetry.emitEvents([event]);
     }
 }
 
