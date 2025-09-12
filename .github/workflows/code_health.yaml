@@ -28,10 +28,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run tests
-        if: runner.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: npm test
       - name: Run tests
-        if: runner.os != 'ubuntu-latest'
+        if: matrix.os != 'ubuntu-latest'
         run: npm test
         env:
           SKIP_ATLAS_LOCAL_TESTS: "true"
