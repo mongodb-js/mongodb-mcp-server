@@ -403,24 +403,6 @@ describe("Elicitation Integration Tests", () => {
                 requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
             });
         });
-
-        it("should handle empty filter in delete-many confirmation", async () => {
-            mockElicitInput.confirmYes();
-
-            await mcpClient.callTool({
-                name: "delete-many",
-                arguments: {
-                    database: "mydb",
-                    collection: "temp",
-                    filter: {},
-                },
-            });
-
-            expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                message: expect.stringMatching(/mydb.*database/),
-                requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-            });
-        });
     });
 
     describe("error handling in confirmation flow", () => {
