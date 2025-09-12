@@ -210,11 +210,11 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             try {
                 await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
                 const outputStream = createWriteStream(inProgressExport.exportPath);
-                const ejsonTransofrm = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
-                await pipeline([input.stream(), ejsonTransofrm, outputStream], {
+                const ejsonTransform = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
+                await pipeline([input.stream(), ejsonTransform, outputStream], {
                     signal: this.shutdownController.signal,
                 });
-                docsTransformed = ejsonTransofrm.docsTransformed;
+                docsTransformed = ejsonTransform.docsTransformed;
                 pipeSuccessful = true;
             } catch (error) {
                 // If the pipeline errors out then we might end up with
