@@ -76,4 +76,31 @@ export class CreateAccessListTool extends AtlasToolBase {
             ],
         };
     }
+
+    protected getConfirmationMessage({
+        projectId,
+        ipAddresses,
+        cidrBlocks,
+        comment,
+        currentIpAddress,
+    }: ToolArgs<typeof this.argsShape>): string {
+        const accessDescription = [];
+        if (ipAddresses?.length) {
+            accessDescription.push(`- **IP addresses**: ${ipAddresses.join(", ")}`);
+        }
+        if (cidrBlocks?.length) {
+            accessDescription.push(`- **CIDR blocks**: ${cidrBlocks.join(", ")}`);
+        }
+        if (currentIpAddress) {
+            accessDescription.push("- **Current IP address**");
+        }
+
+        return (
+            `You are about to add the following entries to the access list for Atlas project "${projectId}":\n\n` +
+            accessDescription.join("\n") +
+            `\n\n**Comment**: ${comment || DEFAULT_ACCESS_LIST_COMMENT}\n\n` +
+            "This will allow network access to your MongoDB Atlas clusters from these IP addresses/ranges. " +
+            "Do you want to proceed?"
+        );
+    }
 }

@@ -346,6 +346,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `loggers`                              | `MDB_MCP_LOGGERS`                                   | disk,mcp   | Comma separated values, possible values are `mcp`, `disk` and `stderr`. See [Logger Options](#logger-options) for details.                                    |
 | `logPath`                              | `MDB_MCP_LOG_PATH`                                  | see note\* | Folder to store logs.                                                                                                                                         |
 | `disabledTools`                        | `MDB_MCP_DISABLED_TOOLS`                            | <not set>  | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
+| `confirmationRequiredTools` | `MDB_MCP_CONFIRMATION_REQUIRED_TOOLS` | create-access-list,create-db-user,drop-database,drop-collection,delete-many  | An array of tool names that require user confirmation before execution. **Requires the client to support [elicitation](https://modelcontextprotocol.io/specification/draft/client/elicitation)**.                                                                                      |
 | `readOnly`                             | `MDB_MCP_READ_ONLY`                                 | false      | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
 | `indexCheck`                           | `MDB_MCP_INDEX_CHECK`                               | false      | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
 | `telemetry`                            | `MDB_MCP_TELEMETRY`                                 | enabled    | When set to disabled, disables telemetry collection.                                                                                                          |
@@ -417,6 +418,14 @@ Operation types:
 - `read` - Tools that read resources, such as find, aggregate, list clusters, etc.
 - `metadata` - Tools that read metadata, such as list databases, list collections, collection schema, etc.
 - `connect` - Tools that allow you to connect or switch the connection to a MongoDB instance. If this is disabled, you will need to provide a connection string through the config when starting the server.
+
+#### Require Confirmation
+
+If your client supports [elicitation](https://modelcontextprotocol.io/specification/draft/client/elicitation), you can set the MongoDB MCP server to request user confirmation before executing certain tools.
+
+When a tool is marked as requiring confirmation, the server will send an elicitation request to the client. The client with elicitation support will then prompt the user for confirmation and send the response back to the server. If the client does not support elicitation, the tool will execute without confirmation.
+
+You can set the `confirmationRequiredTools` configuration option to specify the names of tools which require confirmation. By default, the following tools have this setting enabled: `drop-database`, `drop-collection`, `delete-many`, `atlas-create-db-user`, `atlas-create-access-list`.
 
 #### Read-Only Mode
 

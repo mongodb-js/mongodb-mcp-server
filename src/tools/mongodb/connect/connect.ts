@@ -1,11 +1,8 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.js";
 import assert from "assert";
-import type { UserConfig } from "../../../common/config.js";
-import type { Telemetry } from "../../../telemetry/telemetry.js";
-import type { Session } from "../../../common/session.js";
 import type { Server } from "../../../server.js";
 
 const disconnectedSchema = z
@@ -44,8 +41,8 @@ export class ConnectTool extends MongoDBToolBase {
 
     public operationType: OperationType = "connect";
 
-    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
-        super(session, config, telemetry);
+    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
+        super({ session, config, telemetry, elicitation });
         session.on("connect", () => {
             this.updateMetadata();
         });

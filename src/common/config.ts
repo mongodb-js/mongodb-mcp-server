@@ -160,7 +160,9 @@ export interface UserConfig extends CliOptions {
     exportTimeoutMs: number;
     exportCleanupIntervalMs: number;
     connectionString?: string;
+    // TODO: Use a type tracking all tool names.
     disabledTools: Array<string>;
+    confirmationRequiredTools: Array<string>;
     readOnly?: boolean;
     indexCheck?: boolean;
     transport: "stdio" | "http";
@@ -183,6 +185,13 @@ export const defaultUserConfig: UserConfig = {
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    confirmationRequiredTools: [
+        "atlas-create-access-list",
+        "atlas-create-db-user",
+        "drop-database",
+        "drop-collection",
+        "delete-many",
+    ],
     transport: "stdio",
     httpPort: 3000,
     httpHost: "127.0.0.1",
@@ -442,6 +451,7 @@ export function setupUserConfig({
 
     userConfig.disabledTools = commaSeparatedToArray(userConfig.disabledTools);
     userConfig.loggers = commaSeparatedToArray(userConfig.loggers);
+    userConfig.confirmationRequiredTools = commaSeparatedToArray(userConfig.confirmationRequiredTools);
 
     if (userConfig.connectionString && userConfig.connectionSpecifier) {
         const connectionInfo = generateConnectionInfoFromCliArgs(userConfig);

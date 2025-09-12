@@ -96,4 +96,22 @@ export class CreateDBUserTool extends AtlasToolBase {
             ],
         };
     }
+
+    protected getConfirmationMessage({
+        projectId,
+        username,
+        password,
+        roles,
+        clusters,
+    }: ToolArgs<typeof this.argsShape>): string {
+        return (
+            `You are about to create a database user in Atlas project \`${projectId}\`:\n\n` +
+            `**Username**: \`${username}\`\n\n` +
+            `**Password**: ${password ? "(User-provided password)" : "(Auto-generated secure password)"}\n\n` +
+            `**Roles**: ${roles.map((role) => `${role.roleName}${role.collectionName ? ` on ${role.databaseName}.${role.collectionName}` : ` on ${role.databaseName}`}`).join(", ")}\n\n` +
+            `**Cluster Access**: ${clusters?.length ? clusters.join(", ") : "All clusters in the project"}\n\n` +
+            "This will create a new database user with the specified permissions. " +
+            "**Do you confirm the execution of the action?**"
+        );
+    }
 }
