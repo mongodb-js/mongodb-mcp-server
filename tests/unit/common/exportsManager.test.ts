@@ -235,7 +235,9 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
             await exportAvailableNotifier;
-            expect(await manager.readExport(exportName)).toEqual("[]");
+            const { content, docsTransformed } = await manager.readExport(exportName);
+            expect(content).toEqual("[]");
+            expect(docsTransformed).toEqual(0);
         });
 
         it("should handle encoded name", async () => {
@@ -249,7 +251,9 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
             await exportAvailableNotifier;
-            expect(await manager.readExport(encodeURIComponent(exportName))).toEqual("[]");
+            const { content, docsTransformed } = await manager.readExport(encodeURIComponent(exportName));
+            expect(content).toEqual("[]");
+            expect(docsTransformed).toEqual(0);
         });
     });
 
@@ -332,7 +336,7 @@ describe("ExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", exportURI);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(exportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(exportName)).content) as unknown[];
                 expect(jsonData).toEqual([]);
             });
         });
@@ -366,7 +370,7 @@ describe("ExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "foo", longNumber: 12 }));
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "bar", longNumber: 123456 }));
             });
@@ -401,7 +405,7 @@ describe("ExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
                 expect(jsonData).toContainEqual(
                     expect.objectContaining({ name: "foo", longNumber: { $numberLong: "12" } })
                 );

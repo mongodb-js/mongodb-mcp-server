@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs/promises";
-import type { ObjectId } from "bson";
-import { EJSON, Long } from "bson";
+import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "../helpers.js";
@@ -16,17 +15,20 @@ const userConfig: UserConfig = {
     exportCleanupIntervalMs: 300,
 };
 
-const docs = [
-    { name: "foo", longNumber: new Long(1234) },
-    { name: "bar", bigInt: new Long(123412341234) },
-];
-
 describeWithMongoDB(
     "exported-data resource",
     (integration) => {
+        let docs: { _id: ObjectId; name: string; longNumber?: Long; bigInt?: Long }[];
+        let collection: string;
+
         beforeEach(async () => {
             const mongoClient = integration.mongoClient();
-            await mongoClient.db("db").collection("coll").insertMany(docs);
+            collection = new ObjectId().toString();
+            docs = [
+                { name: "foo", longNumber: new Long(1234), _id: new ObjectId() },
+                { name: "bar", bigInt: new Long(123412341234), _id: new ObjectId() },
+            ];
+            await mongoClient.db("db").collection(collection).insertMany(docs);
         });
 
         afterAll(async () => {
@@ -67,7 +69,7 @@ describeWithMongoDB(
                     name: "export",
                     arguments: {
                         database: "db",
-                        collection: "coll",
+                        collection,
                         exportTitle: "Export for db.coll",
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
@@ -106,7 +108,7 @@ describeWithMongoDB(
                     name: "export",
                     arguments: {
                         database: "db",
-                        collection: "coll",
+                        collection,
                         exportTitle: "Export for db.coll",
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
@@ -143,7 +145,7 @@ describeWithMongoDB(
                     name: "export",
                     arguments: {
                         database: "big",
-                        collection: "coll",
+                        collection,
                         exportTitle: "Export for big.coll",
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
