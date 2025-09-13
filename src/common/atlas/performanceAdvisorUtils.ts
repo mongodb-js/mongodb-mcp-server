@@ -9,7 +9,7 @@ export enum PerformanceAdvisorOperation {
     SCHEMA_SUGGESTIONS = "schemaSuggestions",
 }
 
-interface SuggestedIndex {
+export interface SuggestedIndex {
     avgObjSize?: number;
     id?: string;
     impact?: Array<string>;
@@ -20,29 +20,29 @@ interface SuggestedIndex {
 
 interface SuggestedIndexesResponse {
     content: {
-        suggestedIndexes?: SuggestedIndex[];
+        suggestedIndexes?: Array<SuggestedIndex>;
     };
 }
 
 interface DropIndexesResponse {
     content: {
-        hiddenIndexes?: DropIndexSuggestion[];
-        redundantIndexes?: DropIndexSuggestion[];
-        unusedIndexes?: DropIndexSuggestion[];
+        hiddenIndexes?: Array<DropIndexSuggestion>;
+        redundantIndexes?: Array<DropIndexSuggestion>;
+        unusedIndexes?: Array<DropIndexSuggestion>;
     };
 }
 
 interface SchemaAdviceResponse {
     content: {
-        recommendations?: SchemaRecommendation[];
+        recommendations?: Array<SchemaRecommendation>;
     };
 }
 
 interface SlowQueriesResponse {
-    slowQueries?: SlowQueryLog[];
+    slowQueries?: Array<SlowQueryLog>;
 }
 
-interface DropIndexSuggestion {
+export interface DropIndexSuggestion {
     accessCount?: number;
     index?: Array<{ [key: string]: 1 | -1 }>;
     name?: string;
@@ -52,7 +52,7 @@ interface DropIndexSuggestion {
     sizeBytes?: number;
 }
 
-type SchemaTriggerType =
+export type SchemaTriggerType =
     | "PERCENT_QUERIES_USE_LOOKUP"
     | "NUMBER_OF_QUERIES_USE_LOOKUP"
     | "DOCS_CONTAIN_UNBOUNDED_ARRAY"
@@ -60,6 +60,16 @@ type SchemaTriggerType =
     | "DOC_SIZE_TOO_LARGE"
     | "NUM_INDEXES"
     | "QUERIES_CONTAIN_CASE_INSENSITIVE_REGEX";
+
+export const SCHEMA_TRIGGER_DESCRIPTIONS: Record<SchemaTriggerType, string> = {
+    PERCENT_QUERIES_USE_LOOKUP: "High percentage of queries (>50%) use $lookup operations",
+    NUMBER_OF_QUERIES_USE_LOOKUP: "High number of queries (>100) use $lookup operations",
+    DOCS_CONTAIN_UNBOUNDED_ARRAY: "Arrays with over 10000 entries detected in the collection(s)",
+    NUMBER_OF_NAMESPACES: "Too many namespaces (collections) in the database (>100)",
+    DOC_SIZE_TOO_LARGE: "Documents larger than 2 MB found in the collection(s)",
+    NUM_INDEXES: "More than 30 indexes detected in the collection(s) scanned",
+    QUERIES_CONTAIN_CASE_INSENSITIVE_REGEX: "Queries use case-insensitive regular expressions",
+};
 
 type SchemaRecommedationType =
     | "REDUCE_LOOKUP_OPS"
@@ -70,7 +80,17 @@ type SchemaRecommedationType =
     | "OPTIMIZE_CASE_INSENSITIVE_REGEX_QUERIES"
     | "OPTIMIZE_TEXT_QUERIES";
 
-interface SchemaRecommendation {
+export const SCHEMA_RECOMMENDATION_DESCRIPTIONS: Record<SchemaRecommedationType, string> = {
+    REDUCE_LOOKUP_OPS: "Reduce the use of $lookup operations",
+    AVOID_UNBOUNDED_ARRAY: "Avoid using unbounded arrays in documents",
+    REDUCE_DOCUMENT_SIZE: "Reduce the size of documents",
+    REMOVE_UNNECESSARY_INDEXES: "Remove unnecessary indexes",
+    REDUCE_NUMBER_OF_NAMESPACES: "Reduce the number of collections in the database",
+    OPTIMIZE_CASE_INSENSITIVE_REGEX_QUERIES: "Optimize case-insensitive regex queries",
+    OPTIMIZE_TEXT_QUERIES: "Optimize text search queries",
+};
+
+export interface SchemaRecommendation {
     affectedNamespaces?: Array<{
         namespace?: string | null;
         triggers?: Array<{
@@ -96,7 +116,7 @@ interface SlowQueryLogMetrics {
     responseLength?: number;
 }
 
-interface SlowQueryLog {
+export interface SlowQueryLog {
     line?: string;
     metrics?: SlowQueryLogMetrics;
     namespace?: string;
@@ -204,9 +224,9 @@ export async function getSlowQueries(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    since?: number,
+    since?: Date,
     processId?: string,
-    namespaces?: string[]
+    namespaces?: Array<string>
 ): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
         // If processId is not provided, get it from inspecting the cluster
@@ -222,7 +242,7 @@ export async function getSlowQueries(
                     processId: actualProcessId,
                 },
                 query: {
-                    ...(since && { since: Number(since) }),
+                    ...(since && { since: since.getTime() }),
                     ...(namespaces && { namespaces: namespaces }),
                 },
             },
