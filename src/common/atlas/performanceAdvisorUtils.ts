@@ -283,9 +283,9 @@ export function formatDropIndexesTable(dropIndexSuggestions: {
     unusedIndexes: Array<DropIndexSuggestion>;
 }): string {
     const allIndexes = [
-        ...dropIndexSuggestions.hiddenIndexes.map((idx) => ({ ...idx, type: "Hidden" })),
-        ...dropIndexSuggestions.redundantIndexes.map((idx) => ({ ...idx, type: "Redundant" })),
-        ...dropIndexSuggestions.unusedIndexes.map((idx) => ({ ...idx, type: "Unused" })),
+        ...dropIndexSuggestions.hiddenIndexes.map((index) => ({ ...index, type: "Hidden" })),
+        ...dropIndexSuggestions.redundantIndexes.map((index) => ({ ...index, type: "Redundant" })),
+        ...dropIndexSuggestions.unusedIndexes.map((index) => ({ ...index, type: "Unused" })),
     ];
 
     if (allIndexes.length === 0) return "No drop index suggestions found.";
