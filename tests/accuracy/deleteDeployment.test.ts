@@ -30,10 +30,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-list-deployments",
                 parameters: {},
             },
-            {
-                toolName: "atlas-local-delete-deployment",
-                parameters: {},
-            },
+            // There is none, so no delete call
         ],
     },
     {
@@ -42,6 +39,18 @@ describeAccuracyTests([
             {
                 toolName: "atlas-local-list-deployments",
                 parameters: {},
+            },
+            // There doesn't exist one so no delete call
+        ],
+    },
+    {
+        prompt: "Create a local MongoDB cluster named 'local-mflix' then delete it immediately",
+        expectedToolCalls: [
+            {
+                toolName: "atlas-local-create-deployment",
+                parameters: {
+                    deploymentName: "local-mflix",
+                },
             },
             {
                 toolName: "atlas-local-delete-deployment",

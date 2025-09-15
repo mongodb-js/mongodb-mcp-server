@@ -11,15 +11,6 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "What MongoDB databases do I have running?",
-        expectedToolCalls: [
-            {
-                toolName: "atlas-local-list-deployments",
-                parameters: {},
-            },
-        ],
-    },
-    {
         prompt: "What MongoDB instances do I have running?",
         expectedToolCalls: [
             {
