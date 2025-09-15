@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 describeAccuracyTests([
     {
@@ -55,6 +56,26 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "new-database",
                 },
+            },
+        ],
+    },
+    {
+        prompt: "If and only if, the local MongoDB deployment 'existing-database' does not exist, then create it",
+        mockedTools: {
+            "atlas-local-list-deployments": (): CallToolResult => ({
+                content: [
+                    { type: "text", text: "Found 1 deployment:" },
+                    {
+                        type: "text",
+                        text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nexisting-database | Running | 6.0",
+                    },
+                ],
+            }),
+        },
+        expectedToolCalls: [
+            {
+                toolName: "atlas-local-list-deployments",
+                parameters: {},
             },
         ],
     },

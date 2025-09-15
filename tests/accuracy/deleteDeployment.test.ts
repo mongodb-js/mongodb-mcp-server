@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 describeAccuracyTests([
     {
@@ -25,22 +26,60 @@ describeAccuracyTests([
     },
     {
         prompt: "Delete all my local MongoDB instances",
+        mockedTools: {
+            "atlas-local-list-deployments": (): CallToolResult => ({
+                content: [
+                    { type: "text", text: "Found 1 deployment:" },
+                    {
+                        type: "text",
+                        text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nlocal-mflix | Running | 6.0\nlocal-comics | Running | 6.0",
+                    },
+                ],
+            }),
+        },
         expectedToolCalls: [
             {
                 toolName: "atlas-local-list-deployments",
                 parameters: {},
             },
-            // There is none, so no delete call
+            {
+                toolName: "atlas-local-delete-deployment",
+                parameters: {
+                    deploymentName: "local-mflix",
+                },
+            },
+            {
+                toolName: "atlas-local-delete-deployment",
+                parameters: {
+                    deploymentName: "local-comics",
+                },
+            },
         ],
     },
     {
         prompt: "If and only if, the local MongoDB deployment 'local-mflix' exists, then delete it",
+        mockedTools: {
+            "atlas-local-list-deployments": (): CallToolResult => ({
+                content: [
+                    { type: "text", text: "Found 1 deployment:" },
+                    {
+                        type: "text",
+                        text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nlocal-mflix | Running | 6.0",
+                    },
+                ],
+            }),
+        },
         expectedToolCalls: [
             {
                 toolName: "atlas-local-list-deployments",
                 parameters: {},
             },
-            // There doesn't exist one so no delete call
+            {
+                toolName: "atlas-local-delete-deployment",
+                parameters: {
+                    deploymentName: "local-mflix",
+                },
+            },
         ],
     },
     {
