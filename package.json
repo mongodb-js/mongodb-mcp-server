@@ -1,7 +1,7 @@
 {
   "name": "mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
-  "version": "0.3.1-prerelease.1",
+  "version": "1.0.0-prerelease.1",
   "type": "module",
   "exports": {
     ".": {
