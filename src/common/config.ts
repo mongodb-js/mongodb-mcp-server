@@ -101,7 +101,7 @@ interface Options {
     configuration: Record<string, boolean>;
 }
 
-const ALL_CONFIG_KEYS = new Set(
+export const ALL_CONFIG_KEYS = new Set(
     (OPTIONS.string as readonly string[])
         .concat(OPTIONS.array)
         .concat(OPTIONS.boolean)
