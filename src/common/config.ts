@@ -49,6 +49,9 @@ const OPTIONS = {
         "tlsDisabledProtocols",
         "username",
         "atlasTemporaryDatabaseUserLifetimeMs",
+        "exportsPath",
+        "exportTimeoutMs",
+        "exportCleanupIntervalMs",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -72,7 +75,7 @@ const OPTIONS = {
         "tlsFIPSMode",
         "version",
     ],
-    array: ["disabledTools", "loggers"],
+    array: ["disabledTools", "loggers", "confirmationRequiredTools"],
     alias: {
         h: "help",
         p: "password",
@@ -91,12 +94,14 @@ const OPTIONS = {
         "greedy-arrays": true,
         "short-option-groups": false,
     },
+    object: ["httpHeaders"],
 } as Readonly<Options>;
 
 interface Options {
     string: string[];
     boolean: string[];
     array: string[];
+    object: string[];
     alias: Record<string, string>;
     configuration: Record<string, boolean>;
 }
@@ -104,6 +109,7 @@ interface Options {
 export const ALL_CONFIG_KEYS = new Set(
     (OPTIONS.string as readonly string[])
         .concat(OPTIONS.array)
+        .concat(OPTIONS.object)
         .concat(OPTIONS.boolean)
         .concat(Object.keys(OPTIONS.alias))
 );
