@@ -225,21 +225,16 @@ export async function getSlowQueries(
     projectId: string,
     clusterName: string,
     since?: Date,
-    processId?: string,
     namespaces?: Array<string>
 ): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
-        // If processId is not provided, get it from inspecting the cluster
-        let actualProcessId = processId;
-        if (!actualProcessId) {
-            actualProcessId = await getProcessIdFromCluster(apiClient, projectId, clusterName);
-        }
+        const processId = await getProcessIdFromCluster(apiClient, projectId, clusterName);
 
         const response = await apiClient.listSlowQueries({
             params: {
                 path: {
                     groupId: projectId,
-                    processId: actualProcessId,
+                    processId,
                 },
                 query: {
                     ...(since && { since: since.getTime() }),

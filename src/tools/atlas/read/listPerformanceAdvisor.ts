@@ -28,7 +28,6 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
             .default(Object.values(PerformanceAdvisorOperation))
             .describe("Operations to list performance advisor recommendations"),
         since: z.date().describe("Date to list slow query logs since").optional(),
-        processId: z.string().describe("Process ID to list slow query logs").optional(),
         namespaces: z.array(z.string()).describe("Namespaces to list slow query logs").optional(),
     };
 
@@ -37,7 +36,6 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
         clusterName,
         operations,
         since,
-        processId,
         namespaces,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const data: PerformanceAdvisorData = {
@@ -70,7 +68,7 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
 
             if (operations.includes(PerformanceAdvisorOperation.SLOW_QUERY_LOGS)) {
                 performanceAdvisorPromises.push(
-                    getSlowQueries(this.session.apiClient, projectId, clusterName, since, processId, namespaces).then(
+                    getSlowQueries(this.session.apiClient, projectId, clusterName, since, namespaces).then(
                         ({ slowQueryLogs }) => {
                             data.slowQueryLogs = slowQueryLogs;
                         }
