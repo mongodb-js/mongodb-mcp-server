@@ -97,17 +97,17 @@ ${rows}`,
         }
         const formattedClusters = clusters?.results?.map((cluster) => formatCluster(cluster)) || [];
         const formattedFlexClusters = flexClusters?.results?.map((cluster) => formatFlexCluster(cluster)) || [];
-        const rows = [...formattedClusters, ...formattedFlexClusters]
-            .map((formattedCluster) => {
-                return `${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionString || "N/A"}`;
-            })
-            .join("\n");
+        const allClusters = [...formattedClusters, ...formattedFlexClusters];
         return {
             content: formatUntrustedData(
-                `Found ${rows.length} clusters in project "${project.name}" (${project.id}):`,
+                `Found ${allClusters.length} clusters in project "${project.name}" (${project.id}):`,
                 `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Connection String
 ----------------|----------------|----------------|----------------|----------------|----------------
-${rows}`
+${allClusters
+    .map((formattedCluster) => {
+        return `${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionString || "N/A"}`;
+    })
+    .join("\n")}`
             ),
         };
     }
