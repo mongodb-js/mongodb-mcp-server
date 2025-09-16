@@ -25,7 +25,6 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
         clusterName: z.string().describe("Atlas cluster name to list performance advisor recommendations"),
         operations: z
             .array(z.nativeEnum(PerformanceAdvisorOperation))
-            .default(Object.values(PerformanceAdvisorOperation))
             .describe("Operations to list performance advisor recommendations"),
         since: z.date().describe("Date to list slow query logs since").optional(),
         namespaces: z.array(z.string()).describe("Namespaces to list slow query logs").optional(),
