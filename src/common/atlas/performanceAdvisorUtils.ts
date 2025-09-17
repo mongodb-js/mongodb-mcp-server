@@ -1,22 +1,15 @@
 import { LogId } from "../logger.js";
 import type { ApiClient } from "./apiClient.js";
 import { getProcessIdFromCluster } from "./cluster.js";
+import type { components } from "./openapi.js";
 
-export enum PerformanceAdvisorOperation {
-    SUGGESTED_INDEXES = "suggestedIndexes",
-    DROP_INDEX_SUGGESTIONS = "dropIndexSuggestions",
-    SLOW_QUERY_LOGS = "slowQueryLogs",
-    SCHEMA_SUGGESTIONS = "schemaSuggestions",
-}
+export type SuggestedIndex = components["schemas"]["PerformanceAdvisorIndex"];
 
-export interface SuggestedIndex {
-    avgObjSize?: number;
-    id?: string;
-    impact?: Array<string>;
-    index?: Array<{ [key: string]: 1 | -1 }>;
-    namespace?: string;
-    weight?: number;
-}
+export type DropIndexSuggestion = components["schemas"]["DropIndexSuggestionsIndex"];
+
+export type SlowQueryLogMetrics = components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
+
+export type SlowQueryLog = components["schemas"]["PerformanceAdvisorSlowQuery"];
 
 interface SuggestedIndexesResponse {
     content: {
@@ -40,16 +33,6 @@ interface SchemaAdviceResponse {
 
 interface SlowQueriesResponse {
     slowQueries?: Array<SlowQueryLog>;
-}
-
-export interface DropIndexSuggestion {
-    accessCount?: number;
-    index?: Array<{ [key: string]: 1 | -1 }>;
-    name?: string;
-    namespace?: string;
-    shards?: Array<string>;
-    since?: string;
-    sizeBytes?: number;
 }
 
 export type SchemaTriggerType =
@@ -100,28 +83,6 @@ export interface SchemaRecommendation {
     }>;
     description?: string;
     recommendation?: SchemaRecommedationType;
-}
-
-interface SlowQueryLogMetrics {
-    docsExamined?: number;
-    docsExaminedReturnedRatio?: number;
-    docsReturned?: number;
-    fromUserConnection?: boolean;
-    hasIndexCoverage?: boolean;
-    hasSort?: boolean;
-    keysExamined?: number;
-    keysExaminedReturnedRatio?: number;
-    numYields?: number;
-    operationExecutionTime?: number;
-    responseLength?: number;
-}
-
-export interface SlowQueryLog {
-    line?: string;
-    metrics?: SlowQueryLogMetrics;
-    namespace?: string;
-    opType?: string;
-    replicaState?: string;
 }
 
 export interface PerformanceAdvisorData {
@@ -252,107 +213,4 @@ export async function getSlowQueries(
         });
         throw new Error(`Failed to list slow query logs: ${err instanceof Error ? err.message : String(err)}`);
     }
-}
-
-export function formatSuggestedIndexesTable(suggestedIndexes: Array<SuggestedIndex>): string {
-    if (suggestedIndexes.length === 0) return "No suggested indexes found.";
-
-    const rows = suggestedIndexes
-        .map((index, i) => {
-            const namespace = index.namespace ?? "N/A";
-            const weight = index.weight ?? "N/A";
-            const avgObjSize = index.avgObjSize ?? "N/A";
-            const indexKeys = index.index ? index.index.map((key) => Object.keys(key)[0]).join(", ") : "N/A";
-            return `${i + 1} | ${namespace} | ${weight} | ${avgObjSize} | ${indexKeys}`;
-        })
-        .join("\n");
-
-    return `# | Namespace | Weight | Avg Obj Size | Index Keys
----|-----------|--------|--------------|------------
-${rows}`;
-}
-
-export function formatDropIndexesTable(dropIndexSuggestions: {
-    hiddenIndexes: Array<DropIndexSuggestion>;
-    redundantIndexes: Array<DropIndexSuggestion>;
-    unusedIndexes: Array<DropIndexSuggestion>;
-}): string {
-    const allIndexes = [
-        ...dropIndexSuggestions.hiddenIndexes.map((index) => ({ ...index, type: "Hidden" })),
-        ...dropIndexSuggestions.redundantIndexes.map((index) => ({ ...index, type: "Redundant" })),
-        ...dropIndexSuggestions.unusedIndexes.map((index) => ({ ...index, type: "Unused" })),
-    ];
-
-    if (allIndexes.length === 0) return "No drop index suggestions found.";
-
-    const rows = allIndexes
-        .map((index, i) => {
-            const name = index.name ?? "N/A";
-            const namespace = index.namespace ?? "N/A";
-            const type = index.type ?? "N/A";
-            const sizeBytes = index.sizeBytes ?? "N/A";
-            const accessCount = index.accessCount ?? "N/A";
-            return `${i + 1} | ${name} | ${namespace} | ${type} | ${sizeBytes} | ${accessCount}`;
-        })
-        .join("\n");
-
-    return `# | Index Name | Namespace | Type | Size (bytes) | Access Count
----|------------|-----------|------|--------------|-------------
-${rows}`;
-}
-
-export function formatSlowQueriesTable(slowQueryLogs: Array<SlowQueryLog>): string {
-    if (slowQueryLogs.length === 0) return "No slow query logs found.";
-
-    const rows = slowQueryLogs
-        .map((log, i) => {
-            const namespace = log.namespace ?? "N/A";
-            const opType = log.opType ?? "N/A";
-            const executionTime = log.metrics?.operationExecutionTime ?? "N/A";
-            const docsExamined = log.metrics?.docsExamined ?? "N/A";
-            const docsReturned = log.metrics?.docsReturned ?? "N/A";
-            return `${i + 1} | ${namespace} | ${opType} | ${executionTime}ms | ${docsExamined} | ${docsReturned}`;
-        })
-        .join("\n");
-
-    return `# | Namespace | Operation | Execution Time | Docs Examined | Docs Returned
----|-----------|-----------|---------------|---------------|---------------
-${rows}`;
-}
-
-function getTriggerDescription(triggerType: SchemaTriggerType | undefined): string {
-    if (!triggerType) return "N/A";
-    return SCHEMA_TRIGGER_DESCRIPTIONS[triggerType] ?? triggerType;
-}
-
-function getNamespaceTriggerDescriptions(namespace: { triggers?: Array<{ triggerType?: SchemaTriggerType }> }): string {
-    if (!namespace.triggers) return "N/A";
-
-    return namespace.triggers.map((trigger) => getTriggerDescription(trigger.triggerType)).join(", ");
-}
-
-function getTriggerDescriptions(suggestion: SchemaRecommendation): string {
-    if (!suggestion.affectedNamespaces) return "N/A";
-
-    return suggestion.affectedNamespaces.map((namespace) => getNamespaceTriggerDescriptions(namespace)).join(", ");
-}
-
-export function formatSchemaSuggestionsTable(schemaSuggestions: Array<SchemaRecommendation>): string {
-    if (schemaSuggestions.length === 0) return "No schema suggestions found.";
-
-    const rows = schemaSuggestions
-        .map((suggestion: SchemaRecommendation, i) => {
-            const recommendation = suggestion.recommendation
-                ? (SCHEMA_RECOMMENDATION_DESCRIPTIONS[suggestion.recommendation] ?? suggestion.recommendation)
-                : "N/A";
-            const description = suggestion.description ?? "N/A";
-            const triggeredBy = getTriggerDescriptions(suggestion);
-            const affectedNamespaces = suggestion.affectedNamespaces?.length ?? 0;
-            return `${i + 1} | ${recommendation} | ${description} | ${triggeredBy} | ${affectedNamespaces} namespaces`;
-        })
-        .join("\n");
-
-    return `# | Recommendation | Description | Triggered By | Affected Namespaces
----|---------------|-------------|----------|-------------------
-${rows}`;
 }
