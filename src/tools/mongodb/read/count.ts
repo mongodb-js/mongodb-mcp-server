@@ -5,7 +5,7 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 
 export const CountArgs = {
-    query: zEJSON()
+    query: zEJSON
         .optional()
         .describe(
             "A filter/query parameter. Allows users to filter the documents to count. Matches the syntax of the filter argument of db.collection.count()."

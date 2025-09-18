@@ -10,12 +10,12 @@ export class UpdateManyTool extends MongoDBToolBase {
     protected description = "Updates all documents that match the specified filter for a collection";
     protected argsShape = {
         ...DbOperationArgs,
-        filter: zEJSON()
+        filter: zEJSON
             .optional()
             .describe(
                 "The selection criteria for the update, matching the syntax of the filter argument of db.collection.updateOne()"
             ),
-        update: zEJSON().describe(
+        update: zEJSON.describe(
             "An update document describing the modifications to apply using update operator expressions"
         ),
         upsert: z
