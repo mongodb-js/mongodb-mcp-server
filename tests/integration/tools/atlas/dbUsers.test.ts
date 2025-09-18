@@ -1,10 +1,21 @@
 import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
-import { expectDefined, getResponseElements } from "../../helpers.js";
+import {
+    expectDefined,
+    getResponseElements,
+    projectIdInvalidArgs,
+    validateThrowsForInvalidArguments,
+    validateToolMetadata,
+} from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Keychain } from "../../../../src/common/keychain.js";
 
 describeWithAtlas("db users", (integration) => {
+    describe("should have correct metadata and validate invalid arguments", () => {
+        validateToolMetadata(integration, "atlas-create-db-user", "Create a database user", createDbUserParameters);
+        validateThrowsForInvalidArguments(integration, "atlas-create-db-user", projectIdInvalidArgs);
+    });
+
     withProject(integration, ({ getProjectId }) => {
         let userName: string;
         beforeEach(() => {

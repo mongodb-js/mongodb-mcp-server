@@ -1,15 +1,24 @@
-import { expectDefined, getResponseElements } from "../../helpers.js";
+import {
+    getResponseElements,
+    projectIdInvalidArgs,
+    validateThrowsForInvalidArguments,
+    validateToolMetadata,
+} from "../../helpers.js";
 import { parseTable, describeWithAtlas, withProject } from "./atlasHelpers.js";
-import { expect, it } from "vitest";
+import { expect, it, describe } from "vitest";
 
 describeWithAtlas("atlas-list-alerts", (integration) => {
-    it("should have correct metadata", async () => {
-        const { tools } = await integration.mcpClient().listTools();
-        const listAlerts = tools.find((tool) => tool.name === "atlas-list-alerts");
-        expectDefined(listAlerts);
-        expect(listAlerts.inputSchema.type).toBe("object");
-        expectDefined(listAlerts.inputSchema.properties);
-        expect(listAlerts.inputSchema.properties).toHaveProperty("projectId");
+    describe("should have correct metadata and validate invalid arguments", () => {
+        validateToolMetadata(integration, "atlas-list-alerts", "List MongoDB Atlas alerts", [
+            {
+                name: "projectId",
+                type: "string",
+                description: "Atlas project ID to list alerts for",
+                required: true,
+            },
+        ]);
+
+        validateThrowsForInvalidArguments(integration, "atlas-list-alerts", projectIdInvalidArgs);
     });
 
     withProject(integration, ({ getProjectId }) => {

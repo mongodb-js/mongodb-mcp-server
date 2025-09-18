@@ -9,11 +9,7 @@ import { afterAll, beforeAll, describe } from "vitest";
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
 export function describeWithAtlas(name: string, fn: IntegrationTestFunction): void {
-    const describeFn =
-        !process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length
-            ? describe.skip
-            : describe;
-    describeFn(name, () => {
+    describe(name, () => {
         const integration = setupIntegrationTest(
             () => ({
                 ...defaultTestConfig,
@@ -34,8 +30,23 @@ interface ProjectTestArgs {
 
 type ProjectTestFunction = (args: ProjectTestArgs) => void;
 
+export function withCredentials(integration: IntegrationTest, fn: IntegrationTestFunction): SuiteCollector<object> {
+    const describeFn =
+        !process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length
+            ? describe.skip
+            : describe;
+    return describeFn("with credentials", () => {
+        fn(integration);
+    });
+}
+
 export function withProject(integration: IntegrationTest, fn: ProjectTestFunction): SuiteCollector<object> {
-    return describe("with project", () => {
+    const describeFn =
+        !process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length
+            ? describe.skip
+            : describe;
+
+    return describeFn("with project", () => {
         let projectId: string = "";
         let ipAddress: string = "";
 
