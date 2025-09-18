@@ -10,7 +10,7 @@ export class DeleteManyTool extends MongoDBToolBase {
     protected description = "Removes all documents that match the filter from a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
-        filter: zEJSON
+        filter: zEJSON()
             .optional()
             .describe(
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"

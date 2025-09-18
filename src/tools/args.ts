@@ -78,4 +78,6 @@ function toEJSON<T extends object | undefined>(value: T): T {
     return EJSON.deserialize(value, { relaxed: false }) as T;
 }
 
-export const zEJSON = z.object({}).passthrough().transform(toEJSON);
+export function zEJSON(): z.AnyZodObject {
+    return z.object({}).passthrough().transform(toEJSON) as unknown as z.AnyZodObject;
+}
