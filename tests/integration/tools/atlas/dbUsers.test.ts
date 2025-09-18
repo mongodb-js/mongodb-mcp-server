@@ -5,6 +5,7 @@ import {
     projectIdInvalidArgs,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
+    createDbUserParameters,
 } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

@@ -6,11 +6,10 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "../../common/logger.js";
 import type { Server } from "../../server.js";
-import { CommonArgs } from "../args.js";
 
 export const DbOperationArgs = {
-    database: CommonArgs.string().describe("Database name"),
-    collection: CommonArgs.string().describe("Collection name"),
+    database: z.string().describe("Database name"),
+    collection: z.string().describe("Collection name"),
 };
 
 export abstract class MongoDBToolBase extends ToolBase {
