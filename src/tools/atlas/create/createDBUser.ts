@@ -8,7 +8,7 @@ import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUti
 import { AtlasArgs, CommonArgs } from "../../args.js";
 
 export const CreateDBUserArgs = {
-    projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+    projectId: AtlasArgs.projectId(),
     username: AtlasArgs.username().describe("Username for the new user"),
     // Models will generate overly simplistic passwords like SecurePassword123 or
     // AtlasPassword123, which are easily guessable and exploitable. We're instructing
@@ -26,7 +26,7 @@ export const CreateDBUserArgs = {
                 collectionName: CommonArgs.string().describe("Collection name").optional(),
             })
         )
-        .describe("Roles for the new user"),
+        .describe("Roles for the new database user"),
     clusters: z
         .array(AtlasArgs.clusterName())
         .describe("Clusters to assign the user to, leave empty for access to all clusters")
@@ -35,7 +35,7 @@ export const CreateDBUserArgs = {
 
 export class CreateDBUserTool extends AtlasToolBase {
     public name = "atlas-create-db-user";
-    protected description = "Create an MongoDB Atlas database user";
+    protected description = "Create a MongoDB Atlas database user";
     public operationType: OperationType = "create";
     protected argsShape = {
         ...CreateDBUserArgs,

@@ -3,10 +3,10 @@ import { type OperationType, type ToolArgs } from "../../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../../common/atlas/accessListUtils.js";
-import { AtlasArgs, CommonArgs } from "../../args.js";
+import { AtlasArgs, CommonArgs, ProjectArgs } from "../../args.js";
 
 export const CreateAccessListArgs = {
-    projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+    ...ProjectArgs,
     ipAddresses: z.array(AtlasArgs.ipAddress()).describe("IP addresses to allow access from").optional(),
     cidrBlocks: z.array(AtlasArgs.cidrBlock()).describe("CIDR blocks to allow access from").optional(),
     currentIpAddress: z.boolean().describe("Add the current IP address").default(false),

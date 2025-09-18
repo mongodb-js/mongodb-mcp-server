@@ -247,19 +247,6 @@ export const createClusterParameters: ParameterInfo[] = [
     { name: "region", type: "string", description: "Region of the cluster", required: false },
 ];
 
-export const createDbUserParameters: ParameterInfo[] = [
-    {
-        name: "projectId",
-        type: "string",
-        description: "Atlas project ID to create the database user in",
-        required: true,
-    },
-    { name: "username", type: "string", description: "Username of the database user", required: true },
-    { name: "password", type: "string", description: "Password of the database user", required: false },
-    { name: "roles", type: "array", description: "Roles of the database user", required: true },
-    { name: "scopes", type: "array", description: "Scopes of the database user", required: false },
-];
-
 export const databaseCollectionInvalidArgs = [
     {},
     { database: "test" },

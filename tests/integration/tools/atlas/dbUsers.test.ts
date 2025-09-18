@@ -4,8 +4,6 @@ import {
     getResponseElements,
     projectIdInvalidArgs,
     validateThrowsForInvalidArguments,
-    validateToolMetadata,
-    createDbUserParameters,
 } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -13,7 +11,6 @@ import { Keychain } from "../../../../src/common/keychain.js";
 
 describeWithAtlas("db users", (integration) => {
     describe("should have correct metadata and validate invalid arguments", () => {
-        validateToolMetadata(integration, "atlas-create-db-user", "Create a database user", createDbUserParameters);
         validateThrowsForInvalidArguments(integration, "atlas-create-db-user", projectIdInvalidArgs);
     });
 

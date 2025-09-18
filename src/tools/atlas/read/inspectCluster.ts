@@ -3,19 +3,14 @@ import { type OperationType, type ToolArgs, formatUntrustedData } from "../../to
 import { AtlasToolBase } from "../atlasTool.js";
 import type { Cluster } from "../../../common/atlas/cluster.js";
 import { inspectCluster } from "../../../common/atlas/cluster.js";
-import { AtlasArgs } from "../../args.js";
-
-export const InspectClusterArgs = {
-    projectId: AtlasArgs.projectId().describe("Atlas project ID"),
-    clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
-};
+import { ProjectAndClusterArgs } from "../../args.js";
 
 export class InspectClusterTool extends AtlasToolBase {
     public name = "atlas-inspect-cluster";
     protected description = "Inspect MongoDB Atlas cluster";
     public operationType: OperationType = "read";
     protected argsShape = {
-        ...InspectClusterArgs,
+        ...ProjectAndClusterArgs,
     };
 
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
