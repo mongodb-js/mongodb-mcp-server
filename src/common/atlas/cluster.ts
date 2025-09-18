@@ -109,8 +109,7 @@ export async function getProcessIdFromCluster(
             throw new Error("No connection string available for cluster");
         }
         const url = new URL(cluster.connectionString);
-        const processId = `${url.hostname}:${url.port || DEFAULT_PORT}`;
-        return processId;
+        return `${url.hostname}:${url.port || DEFAULT_PORT}`;
     } catch (error) {
         throw new Error(
             `Failed to get processId from cluster: ${error instanceof Error ? error.message : String(error)}`
