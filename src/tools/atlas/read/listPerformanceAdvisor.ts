@@ -8,7 +8,10 @@ import {
     getDropIndexSuggestions,
     getSchemaAdvice,
     getSlowQueries,
-    type PerformanceAdvisorData,
+    type SuggestedIndex,
+    type DropIndexSuggestion,
+    type SlowQueryLog,
+    type SchemaRecommendation,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
 
 const PerformanceAdvisorOperationType = z.enum([
@@ -17,9 +20,21 @@ const PerformanceAdvisorOperationType = z.enum([
     "slowQueryLogs",
     "schemaSuggestions",
 ]);
+
+interface PerformanceAdvisorData {
+    suggestedIndexes?: Array<SuggestedIndex>;
+    dropIndexSuggestions?: {
+        hiddenIndexes?: Array<DropIndexSuggestion>;
+        redundantIndexes?: Array<DropIndexSuggestion>;
+        unusedIndexes?: Array<DropIndexSuggestion>;
+    };
+    slowQueryLogs?: Array<SlowQueryLog>;
+    schemaSuggestions?: Array<SchemaRecommendation>;
+}
 export class ListPerformanceAdvisorTool extends AtlasToolBase {
     public name = "atlas-list-performance-advisor";
-    protected description = "List MongoDB Atlas performance advisor recommendations";
+    protected description =
+        "List MongoDB Atlas performance advisor recommendations, which includes the operations: suggested indexes, drop index suggestions, slow query logs, and schema suggestions";
     public operationType: OperationType = "read";
     protected argsShape = {
         projectId: z.string().describe("Atlas project ID to list performance advisor recommendations"),
@@ -29,7 +44,10 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
             .default(PerformanceAdvisorOperationType.options)
             .describe("Operations to list performance advisor recommendations"),
         since: z.date().describe("Date to list slow query logs since").optional(),
-        namespaces: z.array(z.string()).describe("Namespaces to list slow query logs").optional(),
+        namespaces: z
+            .array(z.string())
+            .describe("Namespaces to list slow query logs. Only relevant for the slowQueryLogs operation.")
+            .optional(),
     };
 
     protected async execute({
@@ -60,8 +78,8 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
             if (operations.includes("dropIndexSuggestions")) {
                 performanceAdvisorPromises.push(
                     getDropIndexSuggestions(this.session.apiClient, projectId, clusterName).then(
-                        ({ hiddenIndexes, redundantIndexes, unusedIndexes }) => {
-                            data.dropIndexSuggestions = { hiddenIndexes, redundantIndexes, unusedIndexes };
+                        (dropIndexSuggestions) => {
+                            data.dropIndexSuggestions = dropIndexSuggestions;
                         }
                     )
                 );
@@ -99,23 +117,19 @@ export class ListPerformanceAdvisorTool extends AtlasToolBase {
 
         let formattedOutput = "";
 
-        if (data.suggestedIndexes.length > 0) {
+        if (data.suggestedIndexes && data.suggestedIndexes.length > 0) {
             formattedOutput += `\n## Suggested Indexes\n${JSON.stringify(data.suggestedIndexes)}\n`;
         }
 
-        if (
-            data.dropIndexSuggestions.hiddenIndexes.length > 0 ||
-            data.dropIndexSuggestions.redundantIndexes.length > 0 ||
-            data.dropIndexSuggestions.unusedIndexes.length > 0
-        ) {
+        if (data.dropIndexSuggestions) {
             formattedOutput += `\n## Drop Index Suggestions\n${JSON.stringify(data.dropIndexSuggestions)}\n`;
         }
 
-        if (data.slowQueryLogs.length > 0) {
+        if (data.slowQueryLogs && data.slowQueryLogs.length > 0) {
             formattedOutput += `\n## Slow Query Logs\n${JSON.stringify(data.slowQueryLogs)}\n`;
         }
 
-        if (data.schemaSuggestions.length > 0) {
+        if (data.schemaSuggestions && data.schemaSuggestions.length > 0) {
             formattedOutput += `\n## Schema Suggestions\n${JSON.stringify(data.schemaSuggestions)}\n`;
         }
 
