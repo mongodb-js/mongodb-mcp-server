@@ -6,11 +6,10 @@ import { formatUntrustedData } from "../../tool.js";
 import type { SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
+import { zEJSON } from "../../args.js";
 
 export const FindArgs = {
-    filter: z
-        .object({})
-        .passthrough()
+    filter: zEJSON()
         .optional()
         .describe("The query filter, matching the syntax of the query argument of db.collection.find()"),
     projection: z

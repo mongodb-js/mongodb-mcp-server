@@ -80,7 +80,7 @@ describe("IndexCheck integration tests", () => {
                             arguments: {
                                 database: integration.randomDbName(),
                                 collection: "find-test-collection",
-                                filter: { _id: docs[0]?._id }, // Uses _id index (IDHACK)
+                                filter: { _id: { $oid: docs[0]?._id } }, // Uses _id index (IDHACK)
                             },
                         });
 

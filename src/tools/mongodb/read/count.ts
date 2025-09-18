@@ -1,13 +1,11 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
-import { z } from "zod";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+import { zEJSON } from "../../args.js";
 
 export const CountArgs = {
-    query: z
-        .object({})
-        .passthrough()
+    query: zEJSON()
         .optional()
         .describe(
             "A filter/query parameter. Allows users to filter the documents to count. Matches the syntax of the filter argument of db.collection.count()."

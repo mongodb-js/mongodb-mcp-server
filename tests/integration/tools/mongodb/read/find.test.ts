@@ -190,7 +190,7 @@ describeWithMongoDB("find tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "foo",
-                    filter: { _id: fooObject._id },
+                    filter: { _id: { $oid: fooObject._id } },
                 },
             });
 
@@ -201,6 +201,36 @@ describeWithMongoDB("find tool", (integration) => {
             expect(docs.length).toEqual(1);
 
             expect((docs[0] as { value: number }).value).toEqual(fooObject.value);
+        });
+
+        it("can find objects by date", async () => {
+            await integration.connectMcpClient();
+
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("foo_with_dates")
+                .insertMany([
+                    { date: new Date("2025-05-10"), idx: 0 },
+                    { date: new Date("2025-05-11"), idx: 1 },
+                ]);
+
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo_with_dates",
+                    filter: { date: { $gt: { $date: "2025-05-10" } } }, // only 2025-05-11 will match
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain('Found 1 documents in the collection "foo_with_dates".');
+
+            const docs = getDocsFromUntrustedContent<{ date: Date }>(content);
+            expect(docs.length).toEqual(1);
+
+            expect(docs[0]?.date.toISOString()).toContain("2025-05-11");
         });
     });
 
