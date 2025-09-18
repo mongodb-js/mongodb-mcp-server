@@ -1,5 +1,13 @@
 import type { Session } from "../../../../src/common/session.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import {
+    expectDefined,
+    getResponseElements,
+    getDataFromUntrustedContent,
+    createClusterParameters,
+    projectIdInvalidArgs,
+    validateThrowsForInvalidArguments,
+    validateToolMetadata,
+} from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId, parseTable } from "./atlasHelpers.js";
 import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -57,6 +65,19 @@ async function waitCluster(
 }
 
 describeWithAtlas("clusters", (integration) => {
+    describe("should have correct metadata and validate invalid arguments", () => {
+        validateToolMetadata(
+            integration,
+            "atlas-create-free-cluster",
+            "Create a free MongoDB Atlas cluster",
+            createClusterParameters
+        );
+
+        expect(() => {
+            validateThrowsForInvalidArguments(integration, "atlas-create-free-cluster", projectIdInvalidArgs);
+        }).not.toThrow();
+    });
+
     withProject(integration, ({ getProjectId, getIpAddress }) => {
         const clusterName = "ClusterTest-" + randomId;
 

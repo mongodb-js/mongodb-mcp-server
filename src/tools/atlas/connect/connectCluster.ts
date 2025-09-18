@@ -20,7 +20,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export const ConnectClusterArgs = {
-    projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+    projectId: AtlasArgs.projectId(),
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
 };
 
