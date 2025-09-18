@@ -1,4 +1,3 @@
-import { PerformanceAdvisorOperation } from "../../src/common/atlas/performanceAdvisorUtils.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
@@ -56,7 +55,7 @@ describeAccuracyTests([
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
-                    operations: [PerformanceAdvisorOperation.SUGGESTED_INDEXES],
+                    operations: ["suggestedIndexes"],
                 },
             },
         ],
@@ -81,7 +80,7 @@ describeAccuracyTests([
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
-                    operations: [PerformanceAdvisorOperation.DROP_INDEX_SUGGESTIONS],
+                    operations: ["dropIndexSuggestions"],
                 },
             },
         ],
@@ -89,7 +88,7 @@ describeAccuracyTests([
     },
     // Test for Slow Query Logs operation
     {
-        prompt: "Show me the slow query logs for the 'mflix' project and 'mflix-cluster' cluster?",
+        prompt: "Show me the slow query logs for the 'mflix' project and 'mflix-cluster' cluster for the namespaces 'mflix.movies' and 'mflix.shows' since January 1st, 2025.",
         expectedToolCalls: [
             {
                 toolName: "atlas-list-projects",
@@ -106,7 +105,9 @@ describeAccuracyTests([
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
-                    operations: [PerformanceAdvisorOperation.SLOW_QUERY_LOGS],
+                    operations: ["slowQueryLogs"],
+                    namespaces: ["mflix.movies", "mflix.shows"],
+                    since: "2025-01-01T00:00:00Z",
                 },
             },
         ],
@@ -131,7 +132,7 @@ describeAccuracyTests([
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
-                    operations: [PerformanceAdvisorOperation.SCHEMA_SUGGESTIONS],
+                    operations: ["schemaSuggestions"],
                 },
             },
         ],
@@ -156,12 +157,6 @@ describeAccuracyTests([
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
-                    operations: [
-                        PerformanceAdvisorOperation.SUGGESTED_INDEXES,
-                        PerformanceAdvisorOperation.DROP_INDEX_SUGGESTIONS,
-                        PerformanceAdvisorOperation.SLOW_QUERY_LOGS,
-                        PerformanceAdvisorOperation.SCHEMA_SUGGESTIONS,
-                    ],
                 },
             },
         ],
