@@ -3,6 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+import { EJSON } from "bson";
 
 export class DeleteManyTool extends MongoDBToolBase {
     public name = "delete-many";
@@ -54,5 +55,18 @@ export class DeleteManyTool extends MongoDBToolBase {
                 },
             ],
         };
+    }
+
+    protected getConfirmationMessage({ database, collection, filter }: ToolArgs<typeof this.argsShape>): string {
+        const filterDescription =
+            filter && Object.keys(filter).length > 0
+                ? "```json\n" + `{ "filter": ${EJSON.stringify(filter)} }\n` + "```\n\n"
+                : "- **All documents** (No filter)\n\n";
+        return (
+            `You are about to delete documents from the \`${collection}\` collection in the \`${database}\` database:\n\n` +
+            filterDescription +
+            "This operation will permanently remove all documents matching the filter.\n\n" +
+            "**Do you confirm the execution of the action?**"
+        );
     }
 }

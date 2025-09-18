@@ -8,8 +8,10 @@ import type { Telemetry } from "../telemetry/telemetry.js";
 import { type ToolEvent } from "../telemetry/types.js";
 import type { UserConfig } from "../common/config.js";
 import type { Server } from "../server.js";
+import type { Elicitation } from "../elicitation.js";
 
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
+export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback<Args>>;
 
 export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
 
@@ -18,6 +20,13 @@ export type ToolCategory = "mongodb" | "atlas";
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;
+};
+
+export type ToolConstructorParams = {
+    session: Session;
+    config: UserConfig;
+    telemetry: Telemetry;
+    elicitation: Elicitation;
 };
 
 export abstract class ToolBase {
@@ -60,13 +69,35 @@ export abstract class ToolBase {
         return annotations;
     }
 
-    protected abstract execute(...args: Parameters<ToolCallback<typeof this.argsShape>>): Promise<CallToolResult>;
+    protected abstract execute(...args: ToolCallbackArgs<typeof this.argsShape>): Promise<CallToolResult>;
 
-    constructor(
-        protected readonly session: Session,
-        protected readonly config: UserConfig,
-        protected readonly telemetry: Telemetry
-    ) {}
+    /** Get the confirmation message for the tool. Can be overridden to provide a more specific message. */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected getConfirmationMessage(...args: ToolCallbackArgs<typeof this.argsShape>): string {
+        return `You are about to execute the \`${this.name}\` tool which requires additional confirmation. Would you like to proceed?`;
+    }
+
+    /** Check if the user has confirmed the tool execution, if required by the configuration.
+     *  Always returns true if confirmation is not required.
+     */
+    public async verifyConfirmed(args: ToolCallbackArgs<typeof this.argsShape>): Promise<boolean> {
+        if (!this.config.confirmationRequiredTools.includes(this.name)) {
+            return true;
+        }
+
+        return this.elicitation.requestConfirmation(this.getConfirmationMessage(...args));
+    }
+
+    protected readonly session: Session;
+    protected readonly config: UserConfig;
+    protected readonly telemetry: Telemetry;
+    protected readonly elicitation: Elicitation;
+    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
+        this.session = session;
+        this.config = config;
+        this.telemetry = telemetry;
+        this.elicitation = elicitation;
+    }
 
     public register(server: Server): boolean {
         if (!this.verifyAllowed()) {
@@ -76,6 +107,22 @@ export abstract class ToolBase {
         const callback: ToolCallback<typeof this.argsShape> = async (...args) => {
             const startTime = Date.now();
             try {
+                if (!(await this.verifyConfirmed(args))) {
+                    this.session.logger.debug({
+                        id: LogId.toolExecute,
+                        context: "tool",
+                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                        noRedaction: true,
+                    });
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                            },
+                        ],
+                    };
+                }
                 this.session.logger.debug({
                     id: LogId.toolExecute,
                     context: "tool",

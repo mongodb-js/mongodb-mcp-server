@@ -41,6 +41,11 @@ describe("config", () => {
                 { envVar: "MDB_MCP_HTTP_HOST", property: "httpHost", value: "localhost" },
                 { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
                 { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
+                {
+                    envVar: "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
+                    property: "atlasTemporaryDatabaseUserLifetimeMs",
+                    value: 12345,
+                },
             ] as const;
 
             for (const { envVar, property, value } of testCases) {
@@ -128,6 +133,10 @@ describe("config", () => {
                 {
                     cli: ["--notificationTimeoutMs", "42"],
                     expected: { notificationTimeoutMs: "42" },
+                },
+                {
+                    cli: ["--atlasTemporaryDatabaseUserLifetimeMs", "12345"],
+                    expected: { atlasTemporaryDatabaseUserLifetimeMs: "12345" },
                 },
                 {
                     cli: ["--telemetry", "enabled"],
@@ -647,7 +656,7 @@ describe("CLI arguments", () => {
         {
             cliArg: "connectionString",
             warning:
-                "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable.",
+                "The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
         },
     ] as TestCase[];
 

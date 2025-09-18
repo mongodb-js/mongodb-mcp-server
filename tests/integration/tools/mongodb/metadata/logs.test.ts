@@ -1,5 +1,10 @@
 import { expect, it } from "vitest";
-import { validateToolMetadata, validateThrowsForInvalidArguments, getResponseElements } from "../../../helpers.js";
+import {
+    validateToolMetadata,
+    validateThrowsForInvalidArguments,
+    getResponseElements,
+    getDataFromUntrustedContent,
+} from "../../../helpers.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("logs tool", (integration) => {
@@ -36,13 +41,27 @@ describeWithMongoDB("logs tool", (integration) => {
 
         const elements = getResponseElements(response);
 
-        // Default limit is 50
-        expect(elements.length).toBeLessThanOrEqual(51);
-        expect(elements[0]?.text).toMatch(/Found: \d+ messages/);
+        expect(elements).toHaveLength(2);
+        expect(elements[1]?.text).toContain("<untrusted-user-data-");
 
-        for (let i = 1; i < elements.length; i++) {
+        const logs = getDataFromUntrustedContent(elements[1]?.text ?? "").split("\n");
+        // Default limit is 50
+        expect(logs.length).toBeLessThanOrEqual(50);
+
+        // Expect at least one log entry
+        expect(logs.length).toBeGreaterThan(1);
+
+        expect(elements[0]?.text).toMatch(/Found: \d+ messages/);
+        const totalMessages = parseInt(elements[0]?.text.match(/Found: (\d+) messages/)?.[1] ?? "0", 10);
+        expect(totalMessages).toBeGreaterThanOrEqual(logs.length);
+
+        if (totalMessages > logs.length) {
+            expect(elements[0]?.text).toContain(`(showing only the first ${logs.length})`);
+        }
+
+        for (const message of logs) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const log = JSON.parse(elements[i]?.text ?? "{}");
+            const log = JSON.parse(message ?? "{}");
             expect(log).toHaveProperty("t");
             expect(log).toHaveProperty("msg");
         }
@@ -58,9 +77,18 @@ describeWithMongoDB("logs tool", (integration) => {
         });
 
         const elements = getResponseElements(response);
-        expect(elements.length).toBeLessThanOrEqual(51);
-        for (let i = 1; i < elements.length; i++) {
-            const log = JSON.parse(elements[i]?.text ?? "{}") as { tags: string[] };
+        expect(elements).toHaveLength(2);
+        expect(elements[1]?.text).toContain("<untrusted-user-data-");
+
+        const logs = getDataFromUntrustedContent(elements[1]?.text ?? "").split("\n");
+        // Default limit is 50
+        expect(logs.length).toBeLessThanOrEqual(50);
+
+        // Expect at least one log entry
+        expect(logs.length).toBeGreaterThan(1);
+
+        for (const message of logs) {
+            const log = JSON.parse(message ?? "{}") as { tags: string[] };
             expect(log).toHaveProperty("t");
             expect(log).toHaveProperty("msg");
             expect(log).toHaveProperty("tags");

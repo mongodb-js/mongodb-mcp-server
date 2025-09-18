@@ -48,6 +48,10 @@ const OPTIONS = {
         "tlsCertificateSelector",
         "tlsDisabledProtocols",
         "username",
+        "atlasTemporaryDatabaseUserLifetimeMs",
+        "exportsPath",
+        "exportTimeoutMs",
+        "exportCleanupIntervalMs",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -71,7 +75,7 @@ const OPTIONS = {
         "tlsFIPSMode",
         "version",
     ],
-    array: ["disabledTools", "loggers"],
+    array: ["disabledTools", "loggers", "confirmationRequiredTools"],
     alias: {
         h: "help",
         p: "password",
@@ -90,9 +94,17 @@ const OPTIONS = {
         "greedy-arrays": true,
         "short-option-groups": false,
     },
-} as const;
+} as Readonly<Options>;
 
-const ALL_CONFIG_KEYS = new Set(
+interface Options {
+    string: string[];
+    boolean: string[];
+    array: string[];
+    alias: Record<string, string>;
+    configuration: Record<string, boolean>;
+}
+
+export const ALL_CONFIG_KEYS = new Set(
     (OPTIONS.string as readonly string[])
         .concat(OPTIONS.array)
         .concat(OPTIONS.boolean)
@@ -151,7 +163,9 @@ export interface UserConfig extends CliOptions {
     exportTimeoutMs: number;
     exportCleanupIntervalMs: number;
     connectionString?: string;
+    // TODO: Use a type tracking all tool names.
     disabledTools: Array<string>;
+    confirmationRequiredTools: Array<string>;
     readOnly?: boolean;
     indexCheck?: boolean;
     transport: "stdio" | "http";
@@ -163,27 +177,36 @@ export interface UserConfig extends CliOptions {
     notificationTimeoutMs: number;
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
+    atlasTemporaryDatabaseUserLifetimeMs: number;
 }
 
 export const defaultUserConfig: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",
     logPath: getLogPath(),
     exportsPath: getExportsPath(),
-    exportTimeoutMs: 300000, // 5 minutes
-    exportCleanupIntervalMs: 120000, // 2 minutes
+    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
     disabledTools: [],
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    confirmationRequiredTools: [
+        "atlas-create-access-list",
+        "atlas-create-db-user",
+        "drop-database",
+        "drop-collection",
+        "delete-many",
+    ],
     transport: "stdio",
     httpPort: 3000,
     httpHost: "127.0.0.1",
     loggers: ["disk", "mcp"],
-    idleTimeoutMs: 600000, // 10 minutes
-    notificationTimeoutMs: 540000, // 9 minutes
+    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
     httpHeaders: {},
     maxDocumentsPerQuery: 10, // By default, we only fetch a maximum 10 documents per query / aggregation
     maxBytesPerQuery: 1 * 1024 * 1024, // By default, we only return ~1 mb of data per query / aggregation
+    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
 };
 
 export const config = setupUserConfig({
@@ -342,7 +365,7 @@ export function warnAboutDeprecatedOrUnknownCliArgs(
     if (knownArgs.connectionString) {
         usedDeprecatedArgument = true;
         warn(
-            "The --connectionString argument is deprecated. Prefer using the first positional argument for the connection string or the MDB_MCP_CONNECTION_STRING environment variable."
+            "The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
         );
     }
 
@@ -435,6 +458,7 @@ export function setupUserConfig({
 
     userConfig.disabledTools = commaSeparatedToArray(userConfig.disabledTools);
     userConfig.loggers = commaSeparatedToArray(userConfig.loggers);
+    userConfig.confirmationRequiredTools = commaSeparatedToArray(userConfig.confirmationRequiredTools);
 
     if (userConfig.connectionString && userConfig.connectionSpecifier) {
         const connectionInfo = generateConnectionInfoFromCliArgs(userConfig);

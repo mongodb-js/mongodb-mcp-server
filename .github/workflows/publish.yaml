@@ -99,4 +99,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }} ${{ (steps.npm-tag.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
+          gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }} ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}

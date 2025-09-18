@@ -2,10 +2,11 @@
 # ----- Build Stage -----
 FROM node:lts-alpine AS builder
 
-RUN adduser -D mcpuser
-USER mcpuser
+RUN addgroup -S mcp && adduser -S mcp -G mcp -s /sbin/nologin
+RUN chown -R mcp:mcp /home/mcp
+USER mcp
 
-WORKDIR /app
+WORKDIR /home/mcp
 
 # Copy package and configuration
 COPY ../package.json ../package-lock.json ../tsconfig.json ../tsconfig.build.json ./
@@ -18,9 +19,12 @@ RUN npm ci && npm run build
 
 # ----- Production Stage -----
 FROM node:lts-alpine
+RUN addgroup -S mcp && adduser -S mcp -G mcp -s /sbin/nologin
+RUN chown -R mcp:mcp /dist
+USER mcp
 
 # Copy built artifacts
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /home/mcp/dist ./dist
 
 # Copy package.json for production install
 COPY ../package.json ../package-lock.json ./

@@ -5,12 +5,7 @@ import type { FindCursor } from "mongodb";
 import { Long } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js";
-import {
-    ensureExtension,
-    isExportExpired,
-    ExportsManager,
-    validateExportName,
-} from "../../../src/common/exportsManager.js";
+import { ensureExtension, isExportExpired, ExportsManager } from "../../../src/common/exportsManager.js";
 import type { AvailableExport } from "../../../src/common/exportsManager.js";
 import { config } from "../../../src/common/config.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
@@ -30,14 +25,10 @@ const exportsManagerConfig: ExportsManagerConfig = {
 function getExportNameAndPath({
     uniqueExportsId = new ObjectId().toString(),
     uniqueFileId = new ObjectId().toString(),
-    database = "foo",
-    collection = "bar",
 }:
     | {
           uniqueExportsId?: string;
           uniqueFileId?: string;
-          database?: string;
-          collection?: string;
       }
     | undefined = {}): {
     sessionExportsPath: string;
@@ -46,7 +37,7 @@ function getExportNameAndPath({
     exportURI: string;
     uniqueExportsId: string;
 } {
-    const exportName = `${database}.${collection}.${uniqueFileId}.json`;
+    const exportName = `${uniqueFileId}.json`;
     // This is the exports directory for a session.
     const sessionExportsPath = path.join(exportsPath, uniqueExportsId);
     const exportPath = path.join(sessionExportsPath, exportName);
@@ -244,11 +235,13 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
             await exportAvailableNotifier;
-            expect(await manager.readExport(exportName)).toEqual("[]");
+            const { content, docsTransformed } = await manager.readExport(exportName);
+            expect(content).toEqual("[]");
+            expect(docsTransformed).toEqual(0);
         });
 
         it("should handle encoded name", async () => {
-            const { exportName, exportURI } = getExportNameAndPath({ database: "some database", collection: "coll" });
+            const { exportName, exportURI } = getExportNameAndPath({ uniqueFileId: "1FOO 2BAR" });
             const { cursor } = createDummyFindCursor([]);
             const exportAvailableNotifier = getExportAvailableNotifier(encodeURI(exportURI), manager);
             await manager.createJSONExport({
@@ -258,7 +251,9 @@ describe("ExportsManager unit test", () => {
                 jsonExportFormat: "relaxed",
             });
             await exportAvailableNotifier;
-            expect(await manager.readExport(encodeURIComponent(exportName))).toEqual("[]");
+            const { content, docsTransformed } = await manager.readExport(encodeURIComponent(exportName));
+            expect(content).toEqual("[]");
+            expect(docsTransformed).toEqual(0);
         });
     });
 
@@ -341,7 +336,7 @@ describe("ExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", exportURI);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(exportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(exportName)).content) as unknown[];
                 expect(jsonData).toEqual([]);
             });
         });
@@ -375,7 +370,7 @@ describe("ExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "foo", longNumber: 12 }));
                 expect(jsonData).toContainEqual(expect.objectContaining({ name: "bar", longNumber: 123456 }));
             });
@@ -410,7 +405,7 @@ describe("ExportsManager unit test", () => {
                 expect(emitSpy).toHaveBeenCalledWith("export-available", `exported-data://${expectedExportName}`);
 
                 // Exports relaxed json
-                const jsonData = JSON.parse(await manager.readExport(expectedExportName)) as unknown[];
+                const jsonData = JSON.parse((await manager.readExport(expectedExportName)).content) as unknown[];
                 expect(jsonData).toContainEqual(
                     expect.objectContaining({ name: "foo", longNumber: { $numberLong: "12" } })
                 );
@@ -608,16 +603,6 @@ describe("#ensureExtension", () => {
         expect(ensureExtension("random.json", "json")).toEqual("random.json");
         expect(ensureExtension("random.1234.json", "json")).toEqual("random.1234.json");
         expect(ensureExtension("/random/random-file.json", "json")).toEqual("/random/random-file.json");
-    });
-});
-
-describe("#validateExportName", () => {
-    it("should return decoded name when name is valid", () => {
-        expect(validateExportName(encodeURIComponent("Test Name.json"))).toEqual("Test Name.json");
-    });
-    it("should throw when name is invalid", () => {
-        expect(() => validateExportName("NoExtension")).toThrow("Provided export name has no extension");
-        expect(() => validateExportName("../something.json")).toThrow("Invalid export name: path traversal hinted");
     });
 });
 

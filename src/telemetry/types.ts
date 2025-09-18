@@ -45,6 +45,7 @@ export type ServerEventProperties = {
     runtime_duration_ms?: number;
     read_only_mode?: boolean;
     disabled_tools?: string[];
+    confirmation_required_tools?: string[];
 };
 
 export type ServerEvent = TelemetryEvent<ServerEventProperties>;

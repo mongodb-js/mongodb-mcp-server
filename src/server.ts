@@ -22,12 +22,14 @@ import type { ToolBase } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
+import type { Elicitation } from "./elicitation.js";
 
 export interface ServerOptions {
     session: Session;
     userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
+    elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
 }
 
@@ -36,6 +38,7 @@ export class Server {
     public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
+    public readonly elicitation: Elicitation;
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
 
@@ -48,12 +51,13 @@ export class Server {
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    constructor({ session, mcpServer, userConfig, telemetry, connectionErrorHandler }: ServerOptions) {
+    constructor({ session, mcpServer, userConfig, telemetry, connectionErrorHandler, elicitation }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.userConfig = userConfig;
+        this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
     }
 
@@ -184,6 +188,7 @@ export class Server {
             event.properties.startup_time_ms = commandDuration;
             event.properties.read_only_mode = this.userConfig.readOnly || false;
             event.properties.disabled_tools = this.userConfig.disabledTools || [];
+            event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
@@ -198,7 +203,12 @@ export class Server {
 
     private registerTools(): void {
         for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
-            const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
+            const tool = new toolConstructor({
+                session: this.session,
+                config: this.userConfig,
+                telemetry: this.telemetry,
+                elicitation: this.elicitation,
+            });
             if (tool.register(this)) {
                 this.tools.push(tool);
             }

@@ -23,4 +23,12 @@ export class DropDatabaseTool extends MongoDBToolBase {
             ],
         };
     }
+
+    protected getConfirmationMessage({ database }: ToolArgs<typeof this.argsShape>): string {
+        return (
+            `You are about to drop the \`${database}\` database:\n\n` +
+            "This operation will permanently remove the database and ALL its collections, documents, and indexes.\n\n" +
+            "**Do you confirm the execution of the action?**"
+        );
+    }
 }

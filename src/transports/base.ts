@@ -15,6 +15,7 @@ import {
     connectionErrorHandler as defaultConnectionErrorHandler,
 } from "../common/connectionErrorHandler.js";
 import type { CommonProperties } from "../telemetry/types.js";
+import { Elicitation } from "../elicitation.js";
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
@@ -94,12 +95,15 @@ export abstract class TransportRunnerBase {
             commonProperties: this.telemetryProperties,
         });
 
+        const elicitation = new Elicitation({ server: mcpServer.server });
+
         const result = new Server({
             mcpServer,
             session,
             telemetry,
             userConfig: this.userConfig,
             connectionErrorHandler: this.connectionErrorHandler,
+            elicitation,
         });
 
         // We need to create the MCP logger after the server is constructed
