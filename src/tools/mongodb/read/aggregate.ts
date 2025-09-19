@@ -8,12 +8,16 @@ import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { type Document, EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
-import { iterateCursorUntilMaxBytes } from "../../../helpers/iterateCursor.js";
+import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { AGG_COUNT_MAX_TIME_MS_CAP } from "../../../helpers/constants.js";
+import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 
 export const AggregateArgs = {
     pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
+    responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
+The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. \
+Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\
+`),
 };
 
 export class AggregateTool extends MongoDBToolBase {
@@ -26,7 +30,7 @@ export class AggregateTool extends MongoDBToolBase {
     public operationType: OperationType = "read";
 
     protected async execute(
-        { database, collection, pipeline }: ToolArgs<typeof this.argsShape>,
+        { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
         let aggregationCursor: AggregationCursor | undefined;
@@ -50,29 +54,36 @@ export class AggregateTool extends MongoDBToolBase {
             }
             aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
 
-            const [totalDocuments, documents] = await Promise.all([
+            const [totalDocuments, cursorResults] = await Promise.all([
                 this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
-                iterateCursorUntilMaxBytes({
+                collectCursorUntilMaxBytesLimit({
                     cursor: aggregationCursor,
-                    maxBytesPerQuery: this.config.maxBytesPerQuery,
+                    configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                    toolResponseBytesLimit: responseBytesLimit,
                     abortSignal: signal,
                 }),
             ]);
 
-            let messageDescription = `\
-The aggregation resulted in ${totalDocuments === undefined ? "indeterminable number of" : totalDocuments} documents.\
-`;
-            if (documents.length) {
-                messageDescription += ` \
-Returning ${documents.length} documents while respecting the applied limits. \
-Note to LLM: If entire aggregation result is needed then use "export" tool to export the aggregation results.\
-`;
-            }
+            // If the total number of documents that the aggregation would've
+            // resulted in would be greater than the configured
+            // maxDocumentsPerQuery then we know for sure that the results were
+            // capped.
+            const aggregationResultsCappedByMaxDocumentsLimit =
+                this.config.maxDocumentsPerQuery > 0 &&
+                !!totalDocuments &&
+                totalDocuments > this.config.maxDocumentsPerQuery;
 
             return {
                 content: formatUntrustedData(
-                    messageDescription,
-                    documents.length > 0 ? EJSON.stringify(documents) : undefined
+                    this.generateMessage({
+                        aggResultsCount: totalDocuments,
+                        documents: cursorResults.documents,
+                        appliedLimits: [
+                            aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                            cursorResults.cappedBy,
+                        ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
+                    }),
+                    cursorResults.documents.length > 0 ? EJSON.stringify(cursorResults.documents) : undefined
                 ),
             };
         } finally {
@@ -131,5 +142,27 @@ Note to LLM: If entire aggregation result is needed then use "export" tool to ex
 
             return totalDocuments;
         }, undefined);
+    }
+
+    private generateMessage({
+        aggResultsCount,
+        documents,
+        appliedLimits,
+    }: {
+        aggResultsCount: number | undefined;
+        documents: unknown[];
+        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
+    }): string {
+        const appliedLimitText = appliedLimits.length
+            ? `\
+while respecting the applied limits of ${appliedLimits.map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit]).join(", ")}. \
+Note to LLM: If the entire query result is required then use "export" tool to export the query results.\
+`
+            : "";
+
+        return `\
+The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents. \
+Returning ${documents.length} documents${appliedLimitText ? ` ${appliedLimitText}` : "."}\
+`;
     }
 }

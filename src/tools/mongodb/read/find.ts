@@ -6,9 +6,9 @@ import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor, SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
-import { iterateCursorUntilMaxBytes } from "../../../helpers/iterateCursor.js";
+import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
-import { QUERY_COUNT_MAX_TIME_MS_CAP } from "../../../helpers/constants.js";
+import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 
 export const FindArgs = {
     filter: z
@@ -21,7 +21,7 @@ export const FindArgs = {
         .passthrough()
         .optional()
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
-    limit: z.number().optional().describe("The maximum number of documents to return"),
+    limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
     sort: z
         .object({})
         .catchall(z.custom<SortDirection>())
@@ -29,6 +29,10 @@ export const FindArgs = {
         .describe(
             "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort(). The keys of the object are the fields to sort on, while the values are the sort directions (1 for ascending, -1 for descending)."
         ),
+    responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
+The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. \
+Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
+`),
 };
 
 export class FindTool extends MongoDBToolBase {
@@ -41,7 +45,7 @@ export class FindTool extends MongoDBToolBase {
     public operationType: OperationType = "read";
 
     protected async execute(
-        { database, collection, filter, projection, limit, sort }: ToolArgs<typeof this.argsShape>,
+        { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
         let findCursor: FindCursor<unknown> | undefined;
@@ -61,11 +65,11 @@ export class FindTool extends MongoDBToolBase {
 
             findCursor = provider.find(database, collection, filter, {
                 projection,
-                limit: limitOnFindCursor,
+                limit: limitOnFindCursor.limit,
                 sort,
             });
 
-            const [queryResultsCount, documents] = await Promise.all([
+            const [queryResultsCount, cursorResults] = await Promise.all([
                 operationWithFallback(
                     () =>
                         provider.countDocuments(database, collection, filter, {
@@ -78,27 +82,23 @@ export class FindTool extends MongoDBToolBase {
                         }),
                     undefined
                 ),
-                iterateCursorUntilMaxBytes({
+                collectCursorUntilMaxBytesLimit({
                     cursor: findCursor,
-                    maxBytesPerQuery: this.config.maxBytesPerQuery,
+                    configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                    toolResponseBytesLimit: responseBytesLimit,
                     abortSignal: signal,
                 }),
             ]);
 
-            let messageDescription = `\
-Query on collection "${collection}" resulted in ${queryResultsCount === undefined ? "indeterminable number of" : queryResultsCount} documents.\
-`;
-            if (documents.length) {
-                messageDescription += ` \
-Returning ${documents.length} documents while respecting the applied limits. \
-Note to LLM: If entire query result is needed then use "export" tool to export the query results.\
-`;
-            }
-
             return {
                 content: formatUntrustedData(
-                    messageDescription,
-                    documents.length > 0 ? EJSON.stringify(documents) : undefined
+                    this.generateMessage({
+                        collection,
+                        queryResultsCount,
+                        documents: cursorResults.documents,
+                        appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter((limit) => !!limit),
+                    }),
+                    cursorResults.documents.length > 0 ? EJSON.stringify(cursorResults.documents) : undefined
                 ),
             };
         } finally {
@@ -106,16 +106,51 @@ Note to LLM: If entire query result is needed then use "export" tool to export t
         }
     }
 
-    private getLimitForFindCursor(providedLimit: number | undefined): number | undefined {
-        const configuredLimit = this.config.maxDocumentsPerQuery;
-        // Setting configured limit to negative or zero is equivalent to
-        // disabling the max limit applied on documents
-        if (configuredLimit <= 0) {
-            return providedLimit;
+    private generateMessage({
+        collection,
+        queryResultsCount,
+        documents,
+        appliedLimits,
+    }: {
+        collection: string;
+        queryResultsCount: number | undefined;
+        documents: unknown[];
+        appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
+    }): string {
+        const appliedLimitsText = appliedLimits.length
+            ? `\
+while respecting the applied limits of ${appliedLimits.map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit]).join(", ")}. \
+Note to LLM: If the entire query result is required then use "export" tool to export the query results.\
+`
+            : "";
+
+        return `\
+Query on collection "${collection}" resulted in ${queryResultsCount === undefined ? "indeterminable number of" : queryResultsCount} documents. \
+Returning ${documents.length} documents${appliedLimitsText ? ` ${appliedLimitsText}` : "."}\
+`;
+    }
+
+    private getLimitForFindCursor(providedLimit: number | undefined | null): {
+        cappedBy: "config.maxDocumentsPerQuery" | undefined;
+        limit: number | undefined;
+    } {
+        const configuredLimit: number = parseInt(String(this.config.maxDocumentsPerQuery), 10);
+
+        // Setting configured maxDocumentsPerQuery to negative, zero or nullish
+        // is equivalent to disabling the max limit applied on documents
+        const configuredLimitIsNotApplicable = Number.isNaN(configuredLimit) || configuredLimit <= 0;
+        if (configuredLimitIsNotApplicable) {
+            return { cappedBy: undefined, limit: providedLimit ?? undefined };
         }
 
-        return providedLimit === null || providedLimit === undefined
-            ? configuredLimit
-            : Math.min(providedLimit, configuredLimit);
+        const providedLimitIsNotApplicable = providedLimit === null || providedLimit === undefined;
+        if (providedLimitIsNotApplicable) {
+            return { cappedBy: "config.maxDocumentsPerQuery", limit: configuredLimit };
+        }
+
+        return {
+            cappedBy: configuredLimit < providedLimit ? "config.maxDocumentsPerQuery" : undefined,
+            limit: Math.min(providedLimit, configuredLimit),
+        };
     }
 }

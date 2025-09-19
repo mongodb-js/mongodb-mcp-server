@@ -54,6 +54,13 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             type: "object",
             required: false,
         },
+        {
+            name: "responseBytesLimit",
+            description:
+                'The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.',
+            type: "number",
+            required: false,
+        },
     ]);
 
     validateThrowsForInvalidArguments(integration, "find", [
@@ -73,7 +80,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             arguments: { database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Query on collection "foos" resulted in 0 documents.');
+        expect(content).toEqual('Query on collection "foos" resulted in 0 documents. Returning 0 documents.');
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -85,7 +92,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             arguments: { database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Query on collection "non-existent" resulted in 0 documents.');
+        expect(content).toEqual('Query on collection "non-existent" resulted in 0 documents. Returning 0 documents.');
     });
 
     describe("with existing database", () => {
@@ -280,7 +287,7 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain(`Query on collection "foo" resulted in 8 documents.`);
-            expect(content).toContain(`Returning 8 documents while respecting the applied limits.`);
+            expect(content).toContain(`Returning 8 documents.`);
         });
 
         it("should return documents limited to the configured max limit when provided limit > configured limit", async () => {
@@ -297,7 +304,9 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(`Returning 10 documents while respecting the applied limits.`);
+            expect(content).toContain(
+                `Returning 10 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
+            );
         });
     },
     () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 10 })
@@ -312,7 +321,7 @@ describeWithMongoDB(
                 count: 1000,
             });
         });
-        it("should return only the documents that could fit in maxBytesPerQuery limit", async () => {
+        it("should return only the documents that could fit in configured maxBytesPerQuery limit", async () => {
             await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
@@ -326,10 +335,31 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(`Returning 1 documents while respecting the applied limits.`);
+            expect(content).toContain(
+                `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery`
+            );
+        });
+        it("should return only the documents that could fit in provided responseBytesLimit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 1000,
+                    responseBytesLimit: 50,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
+            expect(content).toContain(
+                `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
+            );
         });
     },
-    () => ({ ...defaultTestConfig, maxBytesPerQuery: 50 })
+    () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 })
 );
 
 describeWithMongoDB(
@@ -356,10 +386,10 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain(`Query on collection "foo" resulted in 8 documents.`);
-            expect(content).toContain(`Returning 8 documents while respecting the applied limits.`);
+            expect(content).toContain(`Returning 8 documents.`);
         });
 
-        it("should return all the documents when there is no limit provided", async () => {
+        it("should return documents limited to the responseBytesLimit", async () => {
             await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
@@ -367,12 +397,16 @@ describeWithMongoDB(
                     database: integration.randomDbName(),
                     collection: "foo",
                     filter: {},
+                    limit: 1000,
+                    responseBytesLimit: 50,
                 },
             });
 
             const content = getResponseContent(response);
             expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
-            expect(content).toContain(`Returning 1000 documents while respecting the applied limits.`);
+            expect(content).toContain(
+                `Returning 1 documents while respecting the applied limits of tool's parameter - responseBytesLimit.`
+            );
         });
     },
     () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 })
