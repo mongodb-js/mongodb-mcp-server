@@ -52,16 +52,16 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                 await Promise.all([
                     operations.includes("suggestedIndexes")
                         ? getSuggestedIndexes(this.session.apiClient, projectId, clusterName)
-                        : undefined,
+                        : Promise.resolve(undefined),
                     operations.includes("dropIndexSuggestions")
                         ? getDropIndexSuggestions(this.session.apiClient, projectId, clusterName)
-                        : undefined,
+                        : Promise.resolve(undefined),
                     operations.includes("slowQueryLogs")
                         ? getSlowQueries(this.session.apiClient, projectId, clusterName, since, namespaces)
-                        : undefined,
+                        : Promise.resolve(undefined),
                     operations.includes("schemaSuggestions")
                         ? getSchemaAdvice(this.session.apiClient, projectId, clusterName)
-                        : undefined,
+                        : Promise.resolve(undefined),
                 ]);
 
             const performanceAdvisorData = [
