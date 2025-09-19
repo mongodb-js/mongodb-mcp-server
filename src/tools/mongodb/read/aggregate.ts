@@ -92,7 +92,6 @@ export class AggregateTool extends MongoDBToolBase {
             if (aggregationCursor) {
                 void this.safeCloseCursor(aggregationCursor);
             }
-            await aggregationCursor?.close();
         }
     }
 
