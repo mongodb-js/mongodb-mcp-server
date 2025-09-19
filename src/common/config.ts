@@ -9,6 +9,7 @@ import levenshtein from "ts-levenshtein";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
+    number: ["maxDocumentsPerQuery", "maxBytesPerQuery"],
     string: [
         "apiBaseUrl",
         "apiClientId",
@@ -98,6 +99,7 @@ const OPTIONS = {
 
 interface Options {
     string: string[];
+    number: string[];
     boolean: string[];
     array: string[];
     alias: Record<string, string>;
@@ -106,6 +108,7 @@ interface Options {
 
 export const ALL_CONFIG_KEYS = new Set(
     (OPTIONS.string as readonly string[])
+        .concat(OPTIONS.number)
         .concat(OPTIONS.array)
         .concat(OPTIONS.boolean)
         .concat(Object.keys(OPTIONS.alias))
@@ -175,6 +178,8 @@ export interface UserConfig extends CliOptions {
     loggers: Array<"stderr" | "disk" | "mcp">;
     idleTimeoutMs: number;
     notificationTimeoutMs: number;
+    maxDocumentsPerQuery: number;
+    maxBytesPerQuery: number;
     atlasTemporaryDatabaseUserLifetimeMs: number;
 }
 
@@ -202,6 +207,8 @@ export const defaultUserConfig: UserConfig = {
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
     httpHeaders: {},
+    maxDocumentsPerQuery: 100, // By default, we only fetch a maximum 100 documents per query / aggregation
+    maxBytesPerQuery: 16 * 1024 * 1024, // By default, we only return ~16 mb of data per query / aggregation
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
 };
 

@@ -89,9 +89,9 @@ describeAccuracyTests([
                     filter: { title: "Certain Fish" },
                     projection: {
                         cast: 1,
-                        _id: Matcher.anyOf(Matcher.undefined, Matcher.number()),
+                        _id: Matcher.anyValue,
                     },
-                    limit: Matcher.number((value) => value > 0),
+                    limit: Matcher.anyValue,
                 },
             },
         ],
@@ -107,6 +107,44 @@ describeAccuracyTests([
                     filter: { genres: "Horror" },
                     sort: { runtime: 1 },
                     limit: 2,
+                },
+            },
+        ],
+    },
+    {
+        prompt: "I want a COMPLETE list of all the movies ONLY from 'mflix.movies' namespace.",
+        expectedToolCalls: [
+            {
+                toolName: "find",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    filter: Matcher.anyValue,
+                    projection: Matcher.anyValue,
+                    limit: Matcher.anyValue,
+                    sort: Matcher.anyValue,
+                },
+            },
+            {
+                toolName: "export",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    exportTitle: Matcher.string(),
+                    exportTarget: [
+                        {
+                            name: "find",
+                            arguments: Matcher.anyOf(
+                                Matcher.emptyObjectOrUndefined,
+                                Matcher.value({
+                                    filter: Matcher.anyValue,
+                                    projection: Matcher.anyValue,
+                                    limit: Matcher.anyValue,
+                                    sort: Matcher.anyValue,
+                                })
+                            ),
+                        },
+                    ],
                 },
             },
         ],
