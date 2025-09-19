@@ -1,6 +1,7 @@
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { Session } from "../../src/common/session.js";
-import { config, driverOptions } from "../../src/common/config.js";
+import { config } from "../../src/common/config.js";
+import { driverOptions } from "./helpers.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";

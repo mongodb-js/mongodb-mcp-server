@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import type { ApiClient } from "../../src/common/atlas/apiClient.js";
 import { ensureCurrentIpInAccessList, DEFAULT_ACCESS_LIST_COMMENT } from "../../src/common/atlas/accessListUtils.js";
 import { ApiClientError } from "../../src/common/atlas/apiClientError.js";
-import { NullLogger } from "../../src/common/logger.js";
+import { NullLogger } from "../../tests/utils/index.js";
 
 describe("accessListUtils", () => {
     it("should add the current IP to the access list", async () => {

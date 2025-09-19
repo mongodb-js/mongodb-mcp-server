@@ -1,0 +1,11 @@
+{
+  "entry": [
+    "src/index.ts!",
+    "src/lib.ts!",
+    "tests/**/*.ts",
+    "scripts/**/*.ts",
+    "eslint-rules/*.js"
+  ],
+  "ignore": ["tests/integration/fixtures/curl.mjs", "tests/vitest.d.ts"],
+  "ignoreExportsUsedInFile": true
+}

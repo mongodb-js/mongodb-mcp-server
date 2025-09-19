@@ -9,11 +9,6 @@ export type MockClientCapabilities = {
     elicitation?: { [x: string]: unknown };
 };
 
-export type MockElicitInput = {
-    message: string;
-    requestedSchema: unknown;
-};
-
 export type MockElicitResult = {
     action: string;
     content?: {

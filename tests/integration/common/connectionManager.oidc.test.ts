@@ -5,16 +5,13 @@ import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
-import type {
-    ConnectionStateConnected,
-    ConnectionStateConnecting,
-    TestConnectionManager,
-} from "../../../src/common/connectionManager.js";
+import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
 import { setupDriverConfig } from "../../../src/common/config.js";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
+import { type TestConnectionManager } from "../../utils/index.js";
 
 const DEFAULT_TIMEOUT = 10000;
 
