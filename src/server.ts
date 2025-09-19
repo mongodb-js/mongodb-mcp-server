@@ -241,7 +241,7 @@ export class Server {
             try {
                 if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
                     const message =
-                        "Failed to validate MongoDB Atlas the credentials from the config: API URL must be HTTPS";
+                        "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";
                     console.error(message);
                     throw new Error(message);
                 }
