@@ -48,7 +48,7 @@ export class FindTool extends MongoDBToolBase {
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
-        let findCursor: FindCursor<unknown> | undefined;
+        let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
 

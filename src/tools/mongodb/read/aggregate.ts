@@ -35,7 +35,7 @@ export class AggregateTool extends MongoDBToolBase {
         { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
-        let aggregationCursor: AggregationCursor | undefined;
+        let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
 
