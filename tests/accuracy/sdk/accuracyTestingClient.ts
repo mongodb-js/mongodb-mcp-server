@@ -84,15 +84,13 @@ export class AccuracyTestingClient {
         atlasApiClientId?: string,
         atlasApiClientSecret?: string
     ): Promise<AccuracyTestingClient> {
-        const args = [MCP_SERVER_CLI_SCRIPT, "--connectionString", mdbConnectionString];
-
-        // Add Atlas API credentials if provided
-        if (atlasApiClientId) {
-            args.push("--apiClientId", atlasApiClientId);
-        }
-        if (atlasApiClientSecret) {
-            args.push("--apiClientSecret", atlasApiClientSecret);
-        }
+        const args = [
+            MCP_SERVER_CLI_SCRIPT,
+            "--connectionString",
+            mdbConnectionString,
+            ...(atlasApiClientId ? ["--apiClientId", atlasApiClientId] : []),
+            ...(atlasApiClientSecret ? ["--apiClientSecret", atlasApiClientSecret] : []),
+        ];
 
         const clientTransport = new StdioClientTransport({
             command: process.execPath,
