@@ -1,6 +1,6 @@
 import type { Session } from "../../../../src/common/session.js";
-import { expectDefined, getResponseElements } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import { describeWithAtlas, withProject, randomId, parseTable } from "./atlasHelpers.js";
 import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -152,9 +152,12 @@ describeWithAtlas("clusters", (integration) => {
 
                 const elements = getResponseElements(response);
                 expect(elements).toHaveLength(2);
-                expect(elements[0]?.text).toMatch(/Found \d+ clusters in project/);
+
                 expect(elements[1]?.text).toContain("<untrusted-user-data-");
                 expect(elements[1]?.text).toContain(`${clusterName} | `);
+                const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
+                expect(data.length).toBeGreaterThanOrEqual(1);
+                expect(elements[0]?.text).toMatch(`Found ${data.length} clusters in project`);
             });
         });
 

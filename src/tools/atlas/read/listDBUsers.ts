@@ -1,16 +1,20 @@
-import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { DatabaseUserRole, UserScope } from "../../../common/atlas/openapi.js";
+import { AtlasArgs } from "../../args.js";
+
+export const ListDBUsersArgs = {
+    projectId: AtlasArgs.projectId().describe("Atlas project ID to filter DB users"),
+};
 
 export class ListDBUsersTool extends AtlasToolBase {
     public name = "atlas-list-db-users";
     protected description = "List MongoDB Atlas database users";
     public operationType: OperationType = "read";
     protected argsShape = {
-        projectId: z.string().describe("Atlas project ID to filter DB users"),
+        ...ListDBUsersArgs,
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {

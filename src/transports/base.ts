@@ -14,12 +14,15 @@ import {
     type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
 } from "../common/connectionErrorHandler.js";
+import type { CommonProperties } from "../telemetry/types.js";
+import { Elicitation } from "../elicitation.js";
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
     createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
     additionalLoggers?: LoggerBase[];
+    telemetryProperties?: Partial<CommonProperties>;
 };
 
 export abstract class TransportRunnerBase {
@@ -28,16 +31,19 @@ export abstract class TransportRunnerBase {
     protected readonly userConfig: UserConfig;
     private readonly createConnectionManager: ConnectionManagerFactoryFn;
     private readonly connectionErrorHandler: ConnectionErrorHandler;
+    private readonly telemetryProperties: Partial<CommonProperties>;
 
     protected constructor({
         userConfig,
         createConnectionManager = createMCPConnectionManager,
         connectionErrorHandler = defaultConnectionErrorHandler,
         additionalLoggers = [],
+        telemetryProperties = {},
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
+        this.telemetryProperties = telemetryProperties;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -85,7 +91,11 @@ export abstract class TransportRunnerBase {
             keychain: Keychain.root,
         });
 
-        const telemetry = Telemetry.create(session, this.userConfig, this.deviceId);
+        const telemetry = Telemetry.create(session, this.userConfig, this.deviceId, {
+            commonProperties: this.telemetryProperties,
+        });
+
+        const elicitation = new Elicitation({ server: mcpServer.server });
 
         const result = new Server({
             mcpServer,
@@ -93,6 +103,7 @@ export abstract class TransportRunnerBase {
             telemetry,
             userConfig: this.userConfig,
             connectionErrorHandler: this.connectionErrorHandler,
+            elicitation,
         });
 
         // We need to create the MCP logger after the server is constructed

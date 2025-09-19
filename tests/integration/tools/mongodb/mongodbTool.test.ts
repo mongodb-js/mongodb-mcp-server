@@ -18,6 +18,7 @@ import { defaultTestConfig } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
+import { Elicitation } from "../../../../src/elicitation.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -112,18 +113,27 @@ describe("MongoDBTool implementations", () => {
             }
         );
 
+        const internalMcpServer = new McpServer({
+            name: "test-server",
+            version: "5.2.3",
+        });
+        const elicitation = new Elicitation({ server: internalMcpServer.server });
+
         mcpServer = new Server({
             session,
             userConfig,
             telemetry,
-            mcpServer: new McpServer({
-                name: "test-server",
-                version: "5.2.3",
-            }),
+            mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
+            elicitation,
         });
 
-        tool = new RandomTool(session, userConfig, telemetry);
+        tool = new RandomTool({
+            session,
+            config: userConfig,
+            telemetry,
+            elicitation,
+        });
         tool.register(mcpServer);
 
         await mcpServer.connect(serverTransport);

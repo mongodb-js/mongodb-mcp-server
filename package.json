@@ -1,7 +1,7 @@
 {
   "name": "mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "type": "module",
   "exports": {
     ".": {
@@ -114,7 +114,8 @@
     "node-machine-id": "1.1.12",
     "oauth4webapi": "^3.8.0",
     "openapi-fetch": "^0.14.0",
-    "yargs-parser": "^22.0.0",
+    "ts-levenshtein": "^1.0.7",
+    "yargs-parser": "^21.1.1",
     "zod": "^3.25.76"
   },
   "engines": {

@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
@@ -10,13 +9,18 @@ import type {
     PaginatedFlexClusters20241113,
 } from "../../../common/atlas/openapi.js";
 import { formatCluster, formatFlexCluster } from "../../../common/atlas/cluster.js";
+import { AtlasArgs } from "../../args.js";
+
+export const ListClustersArgs = {
+    projectId: AtlasArgs.projectId().describe("Atlas project ID to filter clusters").optional(),
+};
 
 export class ListClustersTool extends AtlasToolBase {
     public name = "atlas-list-clusters";
     protected description = "List MongoDB Atlas clusters";
     public operationType: OperationType = "read";
     protected argsShape = {
-        projectId: z.string().describe("Atlas project ID to filter clusters").optional(),
+        ...ListClustersArgs,
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
@@ -93,17 +97,17 @@ ${rows}`,
         }
         const formattedClusters = clusters?.results?.map((cluster) => formatCluster(cluster)) || [];
         const formattedFlexClusters = flexClusters?.results?.map((cluster) => formatFlexCluster(cluster)) || [];
-        const rows = [...formattedClusters, ...formattedFlexClusters]
-            .map((formattedCluster) => {
-                return `${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionString || "N/A"}`;
-            })
-            .join("\n");
+        const allClusters = [...formattedClusters, ...formattedFlexClusters];
         return {
             content: formatUntrustedData(
-                `Found ${rows.length} clusters in project "${project.name}" (${project.id}):`,
+                `Found ${allClusters.length} clusters in project "${project.name}" (${project.id}):`,
                 `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Connection String
 ----------------|----------------|----------------|----------------|----------------|----------------
-${rows}`
+${allClusters
+    .map((formattedCluster) => {
+        return `${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionString || "N/A"}`;
+    })
+    .join("\n")}`
             ),
         };
     }
