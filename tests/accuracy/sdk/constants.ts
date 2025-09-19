@@ -11,8 +11,6 @@ export const RESOURCES_DIR = path.join(ROOT_DIR, "resources");
 
 export const MCP_SERVER_CLI_SCRIPT = path.join(DIST_DIR, "index.js");
 
-export const TEST_DATA_DUMPS_DIR = path.join(__dirname, "test-data-dumps");
-
 export const GENERATED_ASSETS_DIR = path.join(ROOT_DIR, ".accuracy");
 
 export const ACCURACY_RESULTS_DIR = path.join(GENERATED_ASSETS_DIR, "results");

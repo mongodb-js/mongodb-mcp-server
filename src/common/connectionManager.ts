@@ -68,18 +68,6 @@ export interface ConnectionManagerEvents {
     "connection-error": [ConnectionStateErrored];
 }
 
-/**
- * For a few tests, we need the changeState method to force a connection state
- * which is we have this type to typecast the actual ConnectionManager with
- * public changeState (only to make TS happy).
- */
-export type TestConnectionManager = ConnectionManager & {
-    changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(
-        event: Event,
-        newState: State
-    ): State;
-};
-
 export abstract class ConnectionManager {
     protected clientName: string;
     protected readonly _events: EventEmitter<ConnectionManagerEvents>;
