@@ -11,9 +11,10 @@ import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import { zEJSON } from "../../args.js";
 
 export const AggregateArgs = {
-    pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
+    pipeline: z.array(zEJSON()).describe("An array of aggregation stages to execute"),
     responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
 The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. \
 Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\

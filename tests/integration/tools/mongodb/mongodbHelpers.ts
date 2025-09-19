@@ -15,6 +15,7 @@ import {
 } from "../../helpers.js";
 import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { EJSON } from "bson";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -267,10 +268,9 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
     };
 }
 
-export function getDocsFromUntrustedContent(content: string): unknown[] {
+export function getDocsFromUntrustedContent<T = unknown>(content: string): T[] {
     const data = getDataFromUntrustedContent(content);
-
-    return JSON.parse(data) as unknown[];
+    return EJSON.parse(data, { relaxed: true }) as T[];
 }
 
 export async function isCommunityServer(integration: MongoDBIntegrationTestCase): Promise<boolean> {

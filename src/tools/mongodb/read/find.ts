@@ -9,11 +9,10 @@ import { EJSON } from "bson";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
+import { zEJSON } from "../../args.js";
 
 export const FindArgs = {
-    filter: z
-        .object({})
-        .passthrough()
+    filter: zEJSON()
         .optional()
         .describe("The query filter, matching the syntax of the query argument of db.collection.find()"),
     projection: z

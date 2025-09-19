@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
+import { zEJSON } from "../../args.js";
 
 export class InsertManyTool extends MongoDBToolBase {
     public name = "insert-many";
@@ -9,7 +10,7 @@ export class InsertManyTool extends MongoDBToolBase {
     protected argsShape = {
         ...DbOperationArgs,
         documents: z
-            .array(z.object({}).passthrough().describe("An individual MongoDB document"))
+            .array(zEJSON().describe("An individual MongoDB document"))
             .describe(
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()"
             ),

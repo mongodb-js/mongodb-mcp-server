@@ -1,18 +1,16 @@
-import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
+import { zEJSON } from "../../args.js";
 
 export class DeleteManyTool extends MongoDBToolBase {
     public name = "delete-many";
     protected description = "Removes all documents that match the filter from a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
-        filter: z
-            .object({})
-            .passthrough()
+        filter: zEJSON()
             .optional()
             .describe(
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
