@@ -21,7 +21,12 @@ export class ExportTool extends MongoDBToolBase {
                         name: z
                             .literal("find")
                             .describe("The literal name 'find' to represent a find cursor as target."),
-                        arguments: z.object(FindArgs).describe("The arguments for 'find' operation."),
+                        arguments: z
+                            .object({
+                                ...FindArgs,
+                                limit: FindArgs.limit.removeDefault(),
+                            })
+                            .describe("The arguments for 'find' operation."),
                     }),
                     z.object({
                         name: z
