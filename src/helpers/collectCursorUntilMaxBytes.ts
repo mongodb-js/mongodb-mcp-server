@@ -74,17 +74,9 @@ export async function collectCursorUntilMaxBytesLimit<T = unknown>({
 
     let wasCapped: boolean = false;
     let totalBytes = 0;
-    let biggestDocSizeSoFar = 0;
     const bufferedDocuments: T[] = [];
     while (true) {
         if (abortSignal?.aborted) {
-            break;
-        }
-
-        // This is an eager attempt to validate that fetching the next document
-        // won't exceed the applicable limit.
-        if (totalBytes + biggestDocSizeSoFar >= maxBytesPerQuery) {
-            wasCapped = true;
             break;
         }
 
@@ -101,7 +93,6 @@ export async function collectCursorUntilMaxBytesLimit<T = unknown>({
         }
 
         totalBytes += nextDocumentSize;
-        biggestDocSizeSoFar = Math.max(biggestDocSizeSoFar, nextDocumentSize);
         bufferedDocuments.push(nextDocument);
     }
 
