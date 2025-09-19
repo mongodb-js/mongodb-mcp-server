@@ -112,7 +112,6 @@ export abstract class ConnectionManager {
     }
 
     abstract connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
-
     abstract disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
 }
 
@@ -130,6 +129,7 @@ export class MCPConnectionManager extends ConnectionManager {
         super();
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
         this.deviceId = deviceId;
     }
