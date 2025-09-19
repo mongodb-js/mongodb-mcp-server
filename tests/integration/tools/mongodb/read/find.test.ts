@@ -245,7 +245,9 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             });
 
             const content = getResponseContent(response);
-            expect(content).toContain('Found 1 documents in the collection "foo_with_dates".');
+            expect(content).toContain(
+                'Query on collection "foo_with_dates" resulted in 1 documents. Returning 1 documents.'
+            );
 
             const docs = getDocsFromUntrustedContent<{ date: Date }>(content);
             expect(docs.length).toEqual(1);
