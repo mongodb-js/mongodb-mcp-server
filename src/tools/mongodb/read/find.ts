@@ -10,6 +10,7 @@ import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorU
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
+import { LogId } from "../../../common/logger.js";
 
 export const FindArgs = {
     filter: zEJSON()
@@ -101,7 +102,21 @@ export class FindTool extends MongoDBToolBase {
                 ),
             };
         } finally {
-            await findCursor?.close();
+            if (findCursor) {
+                void this.safeCloseCursor(findCursor);
+            }
+        }
+    }
+
+    private async safeCloseCursor(cursor: FindCursor<unknown>): Promise<void> {
+        try {
+            await cursor.close();
+        } catch (error) {
+            this.session.logger.warning({
+                id: LogId.mongodbCursorCloseError,
+                context: "find tool",
+                message: `Error when closing the cursor - ${error instanceof Error ? error.message : String(error)}`,
+            });
         }
     }
 

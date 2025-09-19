@@ -12,6 +12,7 @@ import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorU
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
+import { LogId } from "../../../common/logger.js";
 
 export const AggregateArgs = {
     pipeline: z.array(zEJSON()).describe("An array of aggregation stages to execute"),
@@ -88,7 +89,22 @@ export class AggregateTool extends MongoDBToolBase {
                 ),
             };
         } finally {
+            if (aggregationCursor) {
+                void this.safeCloseCursor(aggregationCursor);
+            }
             await aggregationCursor?.close();
+        }
+    }
+
+    private async safeCloseCursor(cursor: AggregationCursor<unknown>): Promise<void> {
+        try {
+            await cursor.close();
+        } catch (error) {
+            this.session.logger.warning({
+                id: LogId.mongodbCursorCloseError,
+                context: "aggregate tool",
+                message: `Error when closing the cursor - ${error instanceof Error ? error.message : String(error)}`,
+            });
         }
     }
 
