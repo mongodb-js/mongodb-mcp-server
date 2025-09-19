@@ -1,4 +1,5 @@
 import { z, type ZodString } from "zod";
+import { EJSON } from "bson";
 
 const NO_UNICODE_REGEX = /^[\x20-\x7E]*$/;
 export const NO_UNICODE_ERROR = "String cannot contain special characters or Unicode symbols";
@@ -68,3 +69,15 @@ export const AtlasArgs = {
     password: (): z.ZodString =>
         z.string().min(1, "Password is required").max(100, "Password must be 100 characters or less"),
 };
+
+function toEJSON<T extends object | undefined>(value: T): T {
+    if (!value) {
+        return value;
+    }
+
+    return EJSON.deserialize(value, { relaxed: false }) as T;
+}
+
+export function zEJSON(): z.AnyZodObject {
+    return z.object({}).passthrough().transform(toEJSON) as unknown as z.AnyZodObject;
+}

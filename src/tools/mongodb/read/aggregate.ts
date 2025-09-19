@@ -6,9 +6,10 @@ import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
+import { zEJSON } from "../../args.js";
 
 export const AggregateArgs = {
-    pipeline: z.array(z.object({}).passthrough()).describe("An array of aggregation stages to execute"),
+    pipeline: z.array(zEJSON()).describe("An array of aggregation stages to execute"),
 };
 
 export class AggregateTool extends MongoDBToolBase {
