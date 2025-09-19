@@ -1,7 +1,7 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, expect, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import { config } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
@@ -157,6 +157,28 @@ describe("StreamableHttpRunner", () => {
             expect(serverStartedMessage?.payload.message).toContain("Server started on");
             expect(serverStartedMessage?.payload.context).toBe("streamableHttpTransport");
             expect(serverStartedMessage?.level).toBe("info");
+        });
+    });
+
+    describe("with telemetry properties", () => {
+        afterEach(async () => {
+            await runner.close();
+            config.telemetry = oldTelemetry;
+            config.loggers = oldLoggers;
+            config.httpHeaders = {};
+        });
+
+        it("merges them with the base properties", async () => {
+            config.telemetry = "enabled";
+            runner = new StreamableHttpRunner({
+                userConfig: config,
+                telemetryProperties: { hosting_mode: "vscode-extension" },
+            });
+            await runner.start();
+
+            const server = await runner["setupServer"]();
+            const properties = server["telemetry"].getCommonProperties();
+            expect(properties.hosting_mode).toBe("vscode-extension");
         });
     });
 });

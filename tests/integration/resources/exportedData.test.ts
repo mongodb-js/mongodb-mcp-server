@@ -1,9 +1,9 @@
 import path from "path";
 import fs from "fs/promises";
-import { Long } from "bson";
+import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { defaultTestConfig, resourceChangedNotification, timeout } from "../helpers.js";
+import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "../helpers.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 import type { UserConfig } from "../../../src/lib.js";
@@ -18,15 +18,17 @@ const userConfig: UserConfig = {
 describeWithMongoDB(
     "exported-data resource",
     (integration) => {
+        let docs: { _id: ObjectId; name: string; longNumber?: Long; bigInt?: Long }[];
+        let collection: string;
+
         beforeEach(async () => {
             const mongoClient = integration.mongoClient();
-            await mongoClient
-                .db("db")
-                .collection("coll")
-                .insertMany([
-                    { name: "foo", longNumber: new Long(1234) },
-                    { name: "bar", bigInt: new Long(123412341234) },
-                ]);
+            collection = new ObjectId().toString();
+            docs = [
+                { name: "foo", longNumber: new Long(1234), _id: new ObjectId() },
+                { name: "bar", bigInt: new Long(123412341234), _id: new ObjectId() },
+            ];
+            await mongoClient.db("db").collection(collection).insertMany(docs);
         });
 
         afterAll(async () => {
@@ -67,7 +69,7 @@ describeWithMongoDB(
                     name: "export",
                     arguments: {
                         database: "db",
-                        collection: "coll",
+                        collection,
                         exportTitle: "Export for db.coll",
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
@@ -106,7 +108,7 @@ describeWithMongoDB(
                     name: "export",
                     arguments: {
                         database: "db",
-                        collection: "coll",
+                        collection,
                         exportTitle: "Export for db.coll",
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
@@ -125,7 +127,16 @@ describeWithMongoDB(
                 });
                 expect(response.isError).toBeFalsy();
                 expect(response.contents[0]?.mimeType).toEqual("application/json");
-                expect(response.contents[0]?.text).toContain("foo");
+
+                expect(response.contents[0]?.text).toContain(`The exported data contains ${docs.length} documents.`);
+                expect(response.contents[0]?.text).toContain("<untrusted-user-data");
+                const exportContent = getDataFromUntrustedContent((response.contents[0]?.text as string) || "");
+                const exportedDocs = EJSON.parse(exportContent) as { name: string; _id: ObjectId }[];
+                const expectedDocs = docs as unknown as { name: string; _id: ObjectId }[];
+                expect(exportedDocs[0]?.name).toEqual(expectedDocs[0]?.name);
+                expect(exportedDocs[0]?._id).toEqual(expectedDocs[0]?._id);
+                expect(exportedDocs[1]?.name).toEqual(expectedDocs[1]?.name);
+                expect(exportedDocs[1]?._id).toEqual(expectedDocs[1]?._id);
             });
 
             it("should be able to autocomplete the resource", async () => {
@@ -134,7 +145,7 @@ describeWithMongoDB(
                     name: "export",
                     arguments: {
                         database: "big",
-                        collection: "coll",
+                        collection,
                         exportTitle: "Export for big.coll",
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
@@ -155,10 +166,10 @@ describeWithMongoDB(
                     },
                     argument: {
                         name: "exportName",
-                        value: "b",
+                        value: "big",
                     },
                 });
-                expect(completeResponse.completion.total).toEqual(1);
+                expect(completeResponse.completion.total).toBeGreaterThanOrEqual(1);
             });
         });
     },

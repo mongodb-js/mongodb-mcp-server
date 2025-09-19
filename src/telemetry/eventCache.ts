@@ -34,11 +34,18 @@ export class EventCache {
     }
 
     /**
-     * Gets a copy of the currently cached events
+     * Gets the number of currently cached events
+     */
+    public get size(): number {
+        return this.cache.size;
+    }
+
+    /**
+     * Gets a copy of the currently cached events along with their ids
      * @returns Array of cached BaseEvent objects
      */
-    public getEvents(): BaseEvent[] {
-        return Array.from(this.cache.values());
+    public getEvents(): { id: number; event: BaseEvent }[] {
+        return Array.from(this.cache.entries()).map(([id, event]) => ({ id, event }));
     }
 
     /**
@@ -53,10 +60,11 @@ export class EventCache {
     }
 
     /**
-     * Clears all cached events
+     * Removes cached events by their ids
      */
-    public clearEvents(): void {
-        this.cache.clear();
-        this.nextId = 0;
+    public removeEvents(ids: number[]): void {
+        for (const id of ids) {
+            this.cache.delete(id);
+        }
     }
 }

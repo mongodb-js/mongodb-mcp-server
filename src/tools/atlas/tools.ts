@@ -10,7 +10,7 @@ import { CreateProjectTool } from "./create/createProject.js";
 import { ListOrganizationsTool } from "./read/listOrgs.js";
 import { ConnectClusterTool } from "./connect/connectCluster.js";
 import { ListAlertsTool } from "./read/listAlerts.js";
-import { ListPerformanceAdvisorTool } from "./read/listPerformanceAdvisor.js";
+import { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
 
 export const AtlasTools = [
     ListClustersTool,
@@ -25,5 +25,5 @@ export const AtlasTools = [
     ListOrganizationsTool,
     ConnectClusterTool,
     ListAlertsTool,
-    ListPerformanceAdvisorTool,
+    GetPerformanceAdvisorTool,
 ];

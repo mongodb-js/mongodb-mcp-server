@@ -82,7 +82,7 @@ export type TestConnectionManager = ConnectionManager & {
 
 export abstract class ConnectionManager {
     protected clientName: string;
-    protected readonly _events;
+    protected readonly _events: EventEmitter<ConnectionManagerEvents>;
     readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
     private state: AnyConnectionState;
 
