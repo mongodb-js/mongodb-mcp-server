@@ -9,6 +9,7 @@ import {
     getSchemaAdvice,
     getSlowQueries,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
+import { AtlasArgs } from "../../args.js";
 
 const PerformanceAdvisorOperationType = z.enum([
     "suggestedIndexes",
@@ -23,13 +24,16 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         "Get MongoDB Atlas performance advisor recommendations, which includes the operations: suggested indexes, drop index suggestions, slow query logs, and schema suggestions";
     public operationType: OperationType = "read";
     protected argsShape = {
-        projectId: z.string().describe("Atlas project ID to get performance advisor recommendations"),
-        clusterName: z.string().describe("Atlas cluster name to get performance advisor recommendations"),
+        projectId: AtlasArgs.projectId().describe("Atlas project ID to get performance advisor recommendations"),
+        clusterName: AtlasArgs.clusterName().describe("Atlas cluster name to get performance advisor recommendations"),
         operations: z
             .array(PerformanceAdvisorOperationType)
             .default(PerformanceAdvisorOperationType.options)
             .describe("Operations to get performance advisor recommendations"),
-        since: z.date().describe("Date to get slow query logs since").optional(),
+        since: z
+            .date()
+            .describe("Date to get slow query logs since. Only relevant for the slowQueryLogs operation.")
+            .optional(),
         namespaces: z
             .array(z.string())
             .describe("Namespaces to get slow query logs. Only relevant for the slowQueryLogs operation.")
@@ -48,29 +52,29 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                 await Promise.all([
                     operations.includes("suggestedIndexes")
                         ? getSuggestedIndexes(this.session.apiClient, projectId, clusterName)
-                        : { suggestedIndexes: [] },
+                        : undefined,
                     operations.includes("dropIndexSuggestions")
                         ? getDropIndexSuggestions(this.session.apiClient, projectId, clusterName)
-                        : { hiddenIndexes: [], redundantIndexes: [], unusedIndexes: [] },
+                        : undefined,
                     operations.includes("slowQueryLogs")
                         ? getSlowQueries(this.session.apiClient, projectId, clusterName, since, namespaces)
-                        : { slowQueryLogs: [] },
+                        : undefined,
                     operations.includes("schemaSuggestions")
                         ? getSchemaAdvice(this.session.apiClient, projectId, clusterName)
-                        : { recommendations: [] },
+                        : undefined,
                 ]);
 
             const performanceAdvisorData = [
-                suggestedIndexesResult?.suggestedIndexes?.length > 0
+                suggestedIndexesResult && suggestedIndexesResult?.suggestedIndexes?.length > 0
                     ? `## Suggested Indexes\n${JSON.stringify(suggestedIndexesResult.suggestedIndexes)}`
                     : "No suggested indexes found.",
                 dropIndexSuggestionsResult
                     ? `## Drop Index Suggestions\n${JSON.stringify(dropIndexSuggestionsResult)}`
                     : "No drop index suggestions found.",
-                slowQueryLogsResult?.slowQueryLogs?.length > 0
+                slowQueryLogsResult && slowQueryLogsResult?.slowQueryLogs?.length > 0
                     ? `## Slow Query Logs\n${JSON.stringify(slowQueryLogsResult.slowQueryLogs)}`
                     : "No slow query logs found.",
-                schemaSuggestionsResult?.recommendations?.length > 0
+                schemaSuggestionsResult && schemaSuggestionsResult?.recommendations?.length > 0
                     ? `## Schema Suggestions\n${JSON.stringify(schemaSuggestionsResult.recommendations)}`
                     : "No schema suggestions found.",
             ];
