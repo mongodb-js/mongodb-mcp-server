@@ -19,7 +19,21 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
         integration,
         "collection-schema",
         "Describe the schema for a collection",
-        databaseCollectionParameters
+        [
+            ...databaseCollectionParameters,
+            {
+                name: "sampleSize",
+                type: "number",
+                description: "Number of documents to sample for schema inference",
+                required: false, 
+            },
+            {
+                name: "responseBytesLimit",
+                type: "number",
+                description: `The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded.`,
+                required: false, 
+            }
+        ]
     );
 
     validateThrowsForInvalidArguments(integration, "collection-schema", databaseCollectionInvalidArgs);
