@@ -6,6 +6,7 @@ import { getSimplifiedSchema } from "mongodb-schema";
 import z from "zod";
 import { ONE_MB } from "../../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
+import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
 
 export class CollectionSchemaTool extends MongoDBToolBase {
     public name = "collection-schema";
@@ -32,8 +33,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         });
         const schema = await getSimplifiedSchema(documents);
 
-        const fieldsCount = Object.entries(schema).length;
-        if (fieldsCount === 0) {
+        if (isObjectEmpty(schema)) {
             return {
                 content: [
                     {
