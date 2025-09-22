@@ -13,7 +13,9 @@ export class CollectionSchemaTool extends MongoDBToolBase {
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
-        const documents = await provider.find(database, collection, {}, { limit: 5 }).toArray();
+        const documents = await provider.aggregate(database, collection, [
+            { $sample: { size: 50 } },
+        ]).toArray();
         const schema = await getSimplifiedSchema(documents);
 
         const fieldsCount = Object.entries(schema).length;
