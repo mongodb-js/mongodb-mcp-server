@@ -5,7 +5,7 @@ describe("isObjectEmpty", () => {
     it("returns true for null", () => {
         expect(isObjectEmpty(null)).toBe(true);
     });
-    
+
     it("returns true for undefined", () => {
         expect(isObjectEmpty(undefined)).toBe(true);
     });
