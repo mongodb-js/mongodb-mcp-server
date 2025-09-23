@@ -223,7 +223,7 @@ export class MCPConnectionManager extends ConnectionManager {
             return this.currentConnectionState;
         }
 
-        return { tag: "disconnected" };
+        return Promise.resolve({ tag: "disconnected" });
     }
 
     private onOidcAuthFailed(error: unknown): void {
