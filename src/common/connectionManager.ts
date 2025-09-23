@@ -177,16 +177,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 undefined,
                 this.bus
             );
-
-            if (isOidcConnection) {
-                this.changeState("connection-request", {
-                    tag: "connecting",
-                    serviceProvider,
-                    connectedAtlasCluster: settings.atlas,
-                    connectionStringAuthType,
-                    oidcConnectionType: connectionStringAuthType as OIDCConnectionAuthType,
-                });
-            }
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-error", {
@@ -207,6 +197,13 @@ export class MCPConnectionManager extends ConnectionManager {
                     connectionStringAuthType,
                 });
             } else {
+                this.changeState("connection-request", {
+                    tag: "connecting",
+                    serviceProvider,
+                    connectedAtlasCluster: settings.atlas,
+                    connectionStringAuthType,
+                    oidcConnectionType: connectionStringAuthType as OIDCConnectionAuthType,
+                });
                 return this.currentConnectionState;
             }
         } catch (error: unknown) {
@@ -224,22 +221,6 @@ export class MCPConnectionManager extends ConnectionManager {
     async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
         if (this.currentConnectionState.tag === "disconnected" || this.currentConnectionState.tag === "errored") {
             return this.currentConnectionState;
-        }
-
-        if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
-            try {
-                if (this.currentConnectionState.tag === "connected") {
-                    await this.currentConnectionState.serviceProvider?.close();
-                }
-                if (this.currentConnectionState.tag === "connecting") {
-                    const serviceProvider = await this.currentConnectionState.serviceProvider;
-                    await serviceProvider.close();
-                }
-            } finally {
-                this.changeState("connection-close", {
-                    tag: "disconnected",
-                });
-            }
         }
 
         return { tag: "disconnected" };
