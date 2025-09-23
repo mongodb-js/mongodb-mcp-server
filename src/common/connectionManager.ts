@@ -223,7 +223,23 @@ export class MCPConnectionManager extends ConnectionManager {
             return this.currentConnectionState;
         }
 
-        return Promise.resolve({ tag: "disconnected" });
+        if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
+            try {
+                if (this.currentConnectionState.tag === "connected") {
+                    await this.currentConnectionState.serviceProvider?.close();
+                }
+                if (this.currentConnectionState.tag === "connecting") {
+                    const serviceProvider = await this.currentConnectionState.serviceProvider;
+                    await serviceProvider.close();
+                }
+            } finally {
+                this.changeState("connection-close", {
+                    tag: "disconnected",
+                });
+            }
+        }
+
+        return { tag: "disconnected" };
     }
 
     private onOidcAuthFailed(error: unknown): void {
