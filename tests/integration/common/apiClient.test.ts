@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { AccessToken } from "../../../src/common/atlas/apiClient.js";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import { HTTPServerProxyTestSetup } from "../fixtures/httpsServerProxyTest.js";
-import { NullLogger } from "../../../src/common/logger.js";
+import { NullLogger } from "../../../tests/utils/index.js";
 
 describe("ApiClient integration test", () => {
     describe(`atlas API proxy integration`, () => {
