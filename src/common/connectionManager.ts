@@ -132,7 +132,6 @@ export class MCPConnectionManager extends ConnectionManager {
         let serviceProvider: Promise<NodeDriverServiceProvider>;
         let connectionInfo: ConnectionInfo;
         let connectionStringAuthType: ConnectionStringAuthType = "scram";
-        let isOidcConnection: boolean = false;
 
         try {
             settings = { ...settings };
@@ -166,7 +165,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 connectionInfo
             );
 
-            isOidcConnection = connectionStringAuthType.startsWith("oidc");
             serviceProvider = NodeDriverServiceProvider.connect(
                 connectionInfo.connectionString,
                 {
@@ -189,23 +187,22 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         try {
-            if (!isOidcConnection) {
-                return this.changeState("connection-success", {
-                    tag: "connected",
-                    connectedAtlasCluster: settings.atlas,
-                    serviceProvider: await serviceProvider,
-                    connectionStringAuthType,
-                });
-            } else {
-                this.changeState("connection-request", {
+            if (connectionStringAuthType.startsWith("oidc")) {
+                return this.changeState("connection-request", {
                     tag: "connecting",
                     serviceProvider,
                     connectedAtlasCluster: settings.atlas,
                     connectionStringAuthType,
                     oidcConnectionType: connectionStringAuthType as OIDCConnectionAuthType,
                 });
-                return this.currentConnectionState;
             }
+
+            return this.changeState("connection-success", {
+                tag: "connected",
+                connectedAtlasCluster: settings.atlas,
+                serviceProvider: await serviceProvider,
+                connectionStringAuthType,
+            });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-error", {
