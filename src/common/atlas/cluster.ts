@@ -8,7 +8,7 @@ function extractProcessIds(connectionString: string): Array<string> {
     if (!connectionString || connectionString === "") return [];
 
     // Extract host:port pairs from connection string
-    const matches = connectionString.match(/^mongodb:\/\/([^\/]+)/);
+    const matches = connectionString.match(/^mongodb:\/\/([^/]+)/);
     if (!matches) {
         return [];
     }

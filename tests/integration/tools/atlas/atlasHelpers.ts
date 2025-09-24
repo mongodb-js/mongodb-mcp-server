@@ -5,7 +5,7 @@ import type { IntegrationTest } from "../../helpers.js";
 import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
-import { Session } from "../../../../src/common/session.js";
+import type { Session } from "../../../../src/common/session.js";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
