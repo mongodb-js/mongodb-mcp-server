@@ -1,10 +1,11 @@
 import { ObjectId } from "mongodb";
-import type { Group } from "../../../../src/common/atlas/openapi.js";
+import type { ClusterDescription20240805, Group } from "../../../../src/common/atlas/openapi.js";
 import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
 import type { IntegrationTest } from "../../helpers.js";
 import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
+import { Session } from "../../../../src/common/session.js";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -142,4 +143,62 @@ async function createProject(apiClient: ApiClient): Promise<Group & Required<Pic
     });
 
     return group as Group & Required<Pick<Group, "id">>;
+}
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function deleteAndWaitCluster(
+    session: Session,
+    projectId: string,
+    clusterName: string,
+    pollingInterval: number = 1000
+): Promise<void> {
+    await session.apiClient.deleteCluster({
+        params: {
+            path: {
+                groupId: projectId,
+                clusterName,
+            },
+        },
+    });
+    while (true) {
+        try {
+            await session.apiClient.getCluster({
+                params: {
+                    path: {
+                        groupId: projectId,
+                        clusterName,
+                    },
+                },
+            });
+            await sleep(pollingInterval);
+        } catch {
+            break;
+        }
+    }
+}
+
+export async function waitCluster(
+    session: Session,
+    projectId: string,
+    clusterName: string,
+    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,
+    pollingInterval: number = 1000
+): Promise<void> {
+    while (true) {
+        const cluster = await session.apiClient.getCluster({
+            params: {
+                path: {
+                    groupId: projectId,
+                    clusterName,
+                },
+            },
+        });
+        if (await check(cluster)) {
+            return;
+        }
+        await sleep(pollingInterval);
+    }
 }

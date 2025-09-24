@@ -1,6 +1,6 @@
 import { LogId } from "../logger.js";
 import type { ApiClient } from "./apiClient.js";
-import { getProcessIdFromCluster } from "./cluster.js";
+import { getProcessIdsFromCluster } from "./cluster.js";
 import type { components } from "./openapi.js";
 
 export type SuggestedIndex = components["schemas"]["PerformanceAdvisorIndex"];
@@ -112,22 +112,36 @@ export async function getSlowQueries(
     namespaces?: Array<string>
 ): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
-        const processId = await getProcessIdFromCluster(apiClient, projectId, clusterName);
+        const processIds = await getProcessIdsFromCluster(apiClient, projectId, clusterName);
 
-        const response = await apiClient.listSlowQueries({
-            params: {
-                path: {
-                    groupId: projectId,
-                    processId,
-                },
-                query: {
-                    ...(since && { since: since.getTime() }),
-                    ...(namespaces && { namespaces: namespaces }),
-                },
-            },
-        });
+        if (processIds.length === 0) {
+            return { slowQueryLogs: [] };
+        }
 
-        return { slowQueryLogs: response.slowQueries ?? [] };
+        // Make parallel API calls for each process ID
+        const slowQueryPromises = processIds.map((processId) =>
+            apiClient.listSlowQueries({
+                params: {
+                    path: {
+                        groupId: projectId,
+                        processId,
+                    },
+                    query: {
+                        ...(since && { since: since.getTime() }),
+                        ...(namespaces && { namespaces: namespaces }),
+                    },
+                },
+            })
+        );
+
+        const responses = await Promise.all(slowQueryPromises);
+
+        // Combine all slow query logs from all process IDs
+        const allSlowQueryLogs = responses.reduce((acc, response) => {
+            return acc.concat(response.slowQueries ?? []);
+        }, [] as Array<SlowQueryLog>);
+
+        return { slowQueryLogs: allSlowQueryLogs };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSlowQueryLogsFailure,

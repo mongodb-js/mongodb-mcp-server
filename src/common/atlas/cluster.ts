@@ -3,6 +3,25 @@ import type { ApiClient } from "./apiClient.js";
 import { LogId } from "../logger.js";
 
 const DEFAULT_PORT = "27017";
+
+function extractProcessIds(connectionString: string): Array<string> {
+    if (!connectionString || connectionString === "") return [];
+
+    // Extract host:port pairs from connection string
+    const matches = connectionString.match(/^mongodb:\/\/([^\/]+)/);
+    if (!matches) {
+        return [];
+    }
+
+    // matches[1] gives us the host:port pairs
+    const hostsString = matches[1];
+    const hosts = hostsString?.split(",") ?? [];
+
+    return hosts?.map((host) => {
+        const [hostname, port] = host.split(":");
+        return `${hostname}:${port || DEFAULT_PORT}`;
+    });
+}
 export interface Cluster {
     name?: string;
     instanceType: "FREE" | "DEDICATED" | "FLEX";
@@ -10,16 +29,19 @@ export interface Cluster {
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionString?: string;
+    processIds?: string[];
 }
 
 export function formatFlexCluster(cluster: FlexClusterDescription20241113): Cluster {
+    const connectionString = cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard;
     return {
         name: cluster.name,
         instanceType: "FLEX",
         instanceSize: undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
-        connectionString: cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard,
+        connectionString,
+        processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
 }
 
@@ -53,6 +75,7 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
 
     const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
     const clusterInstanceType = instanceSize === "M0" ? "FREE" : "DEDICATED";
+    const connectionString = cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard;
 
     return {
         name: cluster.name,
@@ -60,7 +83,8 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
-        connectionString: cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard,
+        connectionString,
+        processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
 }
 
@@ -98,21 +122,17 @@ export async function inspectCluster(apiClient: ApiClient, projectId: string, cl
     }
 }
 
-export async function getProcessIdFromCluster(
+export async function getProcessIdsFromCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string
-): Promise<string> {
+): Promise<string[]> {
     try {
         const cluster = await inspectCluster(apiClient, projectId, clusterName);
-        if (!cluster.connectionString) {
-            throw new Error("No connection string available for cluster");
-        }
-        const url = new URL(cluster.connectionString);
-        return `${url.hostname}:${url.port || DEFAULT_PORT}`;
+        return cluster.processIds || [];
     } catch (error) {
         throw new Error(
-            `Failed to get processId from cluster: ${error instanceof Error ? error.message : String(error)}`
+            `Failed to get processIds from cluster: ${error instanceof Error ? error.message : String(error)}`
         );
     }
 }
