@@ -33,6 +33,12 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                         name: clusterName,
                         clusterType: "REPLICASET",
                         backupEnabled: true,
+                        configServerManagementMode: "ATLAS_MANAGED",
+                        diskWarmingMode: "FULLY_WARMED",
+                        replicaSetScalingStrategy: "WORKLOAD_TYPE",
+                        rootCertType: "ISRGROOTX1",
+                        terminationProtectionEnabled: false,
+                        versionReleaseSystem: "LTS",
                         replicationSpecs: [
                             {
                                 zoneName: "Zone 1",
