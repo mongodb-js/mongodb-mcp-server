@@ -118,7 +118,6 @@ export async function getSlowQueries(
             return { slowQueryLogs: [] };
         }
 
-        // Make parallel API calls for each process ID
         const slowQueryPromises = processIds.map((processId) =>
             apiClient.listSlowQueries({
                 params: {
@@ -136,7 +135,6 @@ export async function getSlowQueries(
 
         const responses = await Promise.all(slowQueryPromises);
 
-        // Combine all slow query logs from all process IDs
         const allSlowQueryLogs = responses.reduce((acc, response) => {
             return acc.concat(response.slowQueries ?? []);
         }, [] as Array<SlowQueryLog>);

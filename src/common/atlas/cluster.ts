@@ -29,7 +29,7 @@ export interface Cluster {
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionString?: string;
-    processIds?: string[];
+    processIds?: Array<string>;
 }
 
 export function formatFlexCluster(cluster: FlexClusterDescription20241113): Cluster {
@@ -126,7 +126,7 @@ export async function getProcessIdsFromCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string
-): Promise<string[]> {
+): Promise<Array<string>> {
     try {
         const cluster = await inspectCluster(apiClient, projectId, clusterName);
         return cluster.processIds || [];
