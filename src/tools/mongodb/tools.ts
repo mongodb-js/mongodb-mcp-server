@@ -19,6 +19,8 @@ import { ExplainTool } from "./metadata/explain.js";
 import { CreateCollectionTool } from "./create/createCollection.js";
 import { LogsTool } from "./metadata/logs.js";
 import { ExportTool } from "./read/export.js";
+import { VectorSearchV1Tool } from "./read/vectorSearchv1.js";
+import { VectorSearchV2Tool } from "./read/vectorSearchv2.js";
 
 export const MongoDbTools = [
     ConnectTool,
@@ -42,4 +44,6 @@ export const MongoDbTools = [
     CreateCollectionTool,
     LogsTool,
     ExportTool,
+    VectorSearchV1Tool,
+    VectorSearchV2Tool
 ];

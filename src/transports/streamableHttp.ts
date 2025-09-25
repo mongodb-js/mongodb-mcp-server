@@ -6,6 +6,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import { azureManagedIdentityAuthMiddleware } from "./azureManagedIdentityAuth.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -43,6 +44,10 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
+        // Managed Identity auth (optional)
+        if (this.userConfig.httpAuthMode === "azure-managed-identity") {
+            app.use(azureManagedIdentityAuthMiddleware(this.logger, this.userConfig));
+        }
         app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
