@@ -165,7 +165,7 @@ export class Server {
 
     public sendResourceUpdated(uri: string): void {
         this.session.logger.info({
-            id: LogId.serverInitialized,
+            id: LogId.resourceUpdateFailure,
             context: "resources",
             message: `Resource updated: ${uri}`,
         });
@@ -271,13 +271,13 @@ export class Server {
             This is the MongoDB MCP server.
         `;
         if (this.userConfig.connectionString) {
-            instructions = `
+            instructions += `
             This MCP server was configured with a MongoDB connection string, and you can assume that you are connected to a MongoDB cluster.
             `;
         }
 
         if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
-            instructions = `
+            instructions += `
             This MCP server was configured with MongoDB Atlas API credentials.`;
         }
 

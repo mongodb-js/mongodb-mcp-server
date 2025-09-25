@@ -107,9 +107,9 @@ export class ConnectTool extends MongoDBToolBase {
         });
 
         this.update?.({
-            name: name,
-            description: description,
-            inputSchema: inputSchema,
+            name,
+            description,
+            inputSchema,
         });
     }
 }
