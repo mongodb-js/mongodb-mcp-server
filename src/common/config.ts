@@ -191,9 +191,11 @@ export interface UserConfig extends CliOptions {
     httpPort: number;
     httpHost: string;
     httpHeaders: Record<string, string>;
+    
     // httpAuthMode: none | azure-managed-identity (env: MDB_MCP_HTTP_AUTH_MODE)
     httpAuthMode?: "none" | "azure-managed-identity";
-    // Azure Managed Identity configuration (only used when httpAuthMode=azure-managed-identity)
+    
+     // Azure Managed Identity configuration (only used when httpAuthMode=azure-managed-identity)
     azureManagedIdentityTenantId?: string; // MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID
     azureManagedIdentityClientId?: string; // optional; target app/client id to validate aud if audience not provided
     azureManagedIdentityAudience?: string; // optional explicit audience to validate token 'aud'

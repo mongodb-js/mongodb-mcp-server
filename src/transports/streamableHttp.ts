@@ -6,7 +6,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
-import { azureManagedIdentityAuthMiddleware } from "./azureManagedIdentityAuth.js";
+import { createAuthMiddleware } from "./auth/authMiddlewareFactory.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -44,11 +44,11 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
-        // Managed Identity auth (optional)
-        if (this.userConfig.httpAuthMode === "azure-managed-identity") {
-            app.use(azureManagedIdentityAuthMiddleware(this.logger, this.userConfig));
-        }
-        app.use((req, res, next) => {
+        
+        // HTTP auth middleware (factory-selected based on config)
+        app.use(createAuthMiddleware(this.logger, this.userConfig));
+
+        app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
                 if (!header || header !== value) {
@@ -117,10 +117,10 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 }
 
                 const server = await this.setupServer();
-                let keepAliveLoop: NodeJS.Timeout;
+                let keepAliveLoop: ReturnType<typeof setInterval>;
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: (): string => randomUUID().toString(),
-                    onsessioninitialized: (sessionId): void => {
+                    onsessioninitialized: (sessionId: string): void => {
                         server.session.logger.setAttribute("sessionId", sessionId);
 
                         this.sessionStore.setSession(sessionId, transport, server.session.logger);
@@ -160,7 +160,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                             }
                         }, 30_000);
                     },
-                    onsessionclosed: async (sessionId): Promise<void> => {
+                    onsessionclosed: async (sessionId: string): Promise<void> => {
                         try {
                             await this.sessionStore.closeSession(sessionId, false);
                         } catch (error) {
@@ -225,7 +225,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         await Promise.all([
             this.sessionStore.closeAllSessions(),
             new Promise<void>((resolve, reject) => {
-                this.httpServer?.close((err) => {
+                this.httpServer?.close((err: Error | undefined) => {
                     if (err) {
                         reject(err);
                         return;

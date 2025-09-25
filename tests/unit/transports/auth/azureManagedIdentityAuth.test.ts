@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { Request, Response } from "express";
-import type { UserConfig } from "../../../src/common/config.js";
-import { LoggerBase, LogId } from "../../../src/common/logger.js";
+import type { UserConfig } from "../../../../src/common/config.js";
+import { LoggerBase, LogId } from "../../../../src/common/logger.js";
 
 // --- Module mocks (must be declared before importing code under test) ---
 const jwtVerifyMock = vi.fn();
@@ -12,7 +12,7 @@ vi.mock("jose", () => ({
 }));
 
 // Import AFTER mocks so middleware picks them up
-import { azureManagedIdentityAuthMiddleware } from "../../../src/transports/azureManagedIdentityAuth.js";
+import { azureManagedIdentityAuthMiddleware } from "../../../../src/transports/auth/azureManagedIdentityAuth.js";
 
 class TestLogger extends LoggerBase {
   protected readonly type = "mcp" as const;

@@ -12,6 +12,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
   - [Prerequisites](#prerequisites)
   - [Setup](#setup)
     - [Quick Start](#quick-start)
+    - [HTTP Transport Authentication](#http-authentication)
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
@@ -277,6 +278,103 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 > **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
 
+### HTTP Authentication Middleware
+
+<a name="http-authentication"></a>
+
+The HTTP transport supports pluggable authentication strategies selected via the `httpAuthMode` configuration option.
+
+Current modes:
+
+- `none` (default) – No authentication. Every request is accepted. Only use this in local / trusted network environments. Do **NOT** expose an unauthenticated instance to the public internet.
+- `azure-managed-identity` – Validates Azure Entra ID (Managed Identity / Service Principal) issued **access tokens** presented via `Authorization: Bearer <token>`.
+
+This setting is ONLY evaluated when `transport` is `http`; it is ignored for the default `stdio` transport.
+
+#### Azure Managed Identity / Entra ID Options
+
+Environment variables map 1:1 to the camelCase keys with the `MDB_MCP_` prefix:
+
+| Key | Env Var | Required | Description |
+| --- | ------- | -------- | ----------- |
+| `httpAuthMode` | `MDB_MCP_HTTP_AUTH_MODE` | No (defaults to `none`) | Set to `azure-managed-identity` to enable Azure token validation. |
+| `azureManagedIdentityTenantId` | `MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID` | Yes (when `httpAuthMode=azure-managed-identity`) | Azure Entra tenant ID used to resolve OpenID configuration and signing keys. |
+| `azureManagedIdentityClientId` | `MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID` | No | Fallback expected audience (token `aud`) if `azureManagedIdentityAudience` is not supplied. Typically your application (service principal) client ID. |
+| `azureManagedIdentityAudience` | `MDB_MCP_AZURE_MANAGED_IDENTITY_AUDIENCE` | No | Explicit audience override. If set, token `aud` must match this value (takes precedence over clientId). |
+| `azureManagedIdentityAllowedAppIds` | `MDB_MCP_AZURE_MANAGED_IDENTITY_ALLOWED_APP_IDS` | No | Comma-separated allow‑list of `appid`/`azp` claim values. If provided, token must match one. |
+| `azureManagedIdentityRequiredRoles` | `MDB_MCP_AZURE_MANAGED_IDENTITY_REQUIRED_ROLES` | No | Comma-separated list of application roles (in the `roles` claim) that must be present. |
+| `azureManagedIdentityRoleMatchMode` | `MDB_MCP_AZURE_MANAGED_IDENTITY_ROLE_MATCH_MODE` | No (defaults to `all`) | Whether **all** or **any** of the required roles must be present. |
+
+#### Quick Start: No Auth (default)
+
+```bash
+npx -y mongodb-mcp-server@latest --transport http
+# httpAuthMode defaults to 'none'
+```
+
+#### Quick Start: Azure Managed Identity Auth
+
+Using environment variables (recommended):
+
+```bash
+export MDB_MCP_HTTP_AUTH_MODE=azure-managed-identity
+export MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID="<tenant-id>"
+# Optional audience controls
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID="<app-client-id>"
+# OR explicit audience override:
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_AUDIENCE="api://your-app-resource-id"
+
+# Optional constraints
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_ALLOWED_APP_IDS="<appId1>,<appId2>"
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_REQUIRED_ROLES="Reader,Query"
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_ROLE_MATCH_MODE=any
+
+npx -y mongodb-mcp-server@latest --transport http
+```
+
+Using CLI flags (non-secret values only):
+
+```bash
+npx -y mongodb-mcp-server@latest \
+  --transport http \
+  --httpAuthMode azure-managed-identity \
+  --azureManagedIdentityTenantId <tenant-id>
+```
+
+#### Obtaining an Access Token (Example)
+
+Acquire a token for your application (service principal or managed identity) using the Azure CLI; then send it on each request:
+
+```bash
+# Interactive login or ensure your automation identity is already authenticated
+az login --tenant <tenant-id>
+
+# If using an application (service principal) audience
+TOKEN=$(az account get-access-token --tenant <tenant-id> --resource <audience-or-clientId> --query accessToken -o tsv)
+
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/
+```
+
+> The actual HTTP path structure follows the MCP Streamable HTTP transport spec. For simple readiness checks you can hit the root path; authenticated RPC calls must include the Bearer token header.
+
+#### Role & App ID Enforcement
+
+- If `azureManagedIdentityAllowedAppIds` is set, the token must contain an `appid` (or `azp`) claim matching one of the values.
+- If `azureManagedIdentityRequiredRoles` is set, the token `roles` claim must contain roles based on `azureManagedIdentityRoleMatchMode` (`all` vs `any`).
+
+#### Adding New Auth Modes
+
+You can introduce additional HTTP auth strategies (e.g. API keys, other OIDC providers) by:
+
+1. Creating a new provider/middleware under `src/transports/auth/` implementing the required interface.
+2. Extending the factory (`createAuthMiddleware`) to map a new `httpAuthMode` string to your middleware.
+3. Adding any new configuration keys (environment variables should follow the `MDB_MCP_` + SNAKE_CASE pattern).
+4. Documenting the new mode (update this section & configuration table) and adding tests.
+
+This design keeps the core transport decoupled from auth specifics.
+
+Authentication for the HTTP transport is selected via the `httpAuthMode` configuration option. The server uses a factory function (`createAuthMiddleware` in `src/transports/auth/authMiddlewareFactory.ts`) to resolve and attach the proper Express middleware. All auth strategies live under `src/transports/auth/` which keeps the transport implementation decoupled from individual authentication strategies so new modes can be added with minimal changes.
+
 ## 🛠️ Supported Tools
 
 ### Tool List
@@ -355,6 +453,13 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `transport`                            | `MDB_MCP_TRANSPORT`                                 | stdio                                                                       | Either 'stdio' or 'http'.                                                                                                                                                                               |
 | `httpPort`                             | `MDB_MCP_HTTP_PORT`                                 | 3000                                                                        | Port number.                                                                                                                                                                                            |
 | `httpHost`                             | `MDB_MCP_HTTP_HOST`                                 | 127.0.0.1                                                                   | Host to bind the http server.                                                                                                                                                                           |
+| `httpAuthMode`                         | `MDB_MCP_HTTP_AUTH_MODE`                            | none                                                                        | HTTP auth strategy when `transport=http`. Supported: `none`, `azure-managed-identity`. Ignored for `stdio` transport.                                                                                   |
+| `azureManagedIdentityTenantId`         | `MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID`          | <not set>                                                                   | Required when `httpAuthMode=azure-managed-identity`. Azure Entra tenant used to fetch OpenID configuration & signing keys.                                                                              |
+| `azureManagedIdentityClientId`         | `MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID`          | <not set>                                                                   | Optional expected audience/client id if `azureManagedIdentityAudience` not provided.                                                                                                                    |
+| `azureManagedIdentityAudience`         | `MDB_MCP_AZURE_MANAGED_IDENTITY_AUDIENCE`           | <not set>                                                                   | Optional explicit audience override for access token `aud` claim (takes precedence over client id fallback).                                                                                           |
+| `azureManagedIdentityAllowedAppIds`    | `MDB_MCP_AZURE_MANAGED_IDENTITY_ALLOWED_APP_IDS`    | <not set>                                                                   | Optional comma-separated allow-list of `appid` / `azp` claim values; if set the token must match one.                                                                                                   |
+| `azureManagedIdentityRequiredRoles`    | `MDB_MCP_AZURE_MANAGED_IDENTITY_REQUIRED_ROLES`     | <not set>                                                                   | Optional comma-separated list of application roles the token must include (in `roles` claim).                                                                                                           |
+| `azureManagedIdentityRoleMatchMode`    | `MDB_MCP_AZURE_MANAGED_IDENTITY_ROLE_MATCH_MODE`    | all                                                                         | Whether `all` or `any` of the listed required roles must be present.                                                                                                                                    |
 | `idleTimeoutMs`                        | `MDB_MCP_IDLE_TIMEOUT_MS`                           | 600000                                                                      | Idle timeout for a client to disconnect (only applies to http transport).                                                                                                                               |
 | `maxBytesPerQuery`                     | `MDB_MCP_MAX_BYTES_PER_QUERY`                       | 16777216 (16MiB)                                                            | The maximum size in bytes for results from a `find` or `aggregate` tool call. This serves as an upper bound for the `responseBytesLimit` parameter in those tools.                                      |
 | `maxDocumentsPerQuery`                 | `MDB_MCP_MAX_DOCUMENTS_PER_QUERY`                   | 100                                                                         | The maximum number of documents that can be returned by a `find` or `aggregate` tool call. For the `find` tool, the effective limit will be the smaller of this value and the tool's `limit` parameter. |
