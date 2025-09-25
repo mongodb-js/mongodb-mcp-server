@@ -1,0 +1,87 @@
+###
+# Optimized multi-stage Dockerfile for mongodb-mcp-server
+#
+# Build args:
+#   NODE_VERSION       Node.js version (default 22-alpine)
+#   INSTALL_DEV        Keep dev dependencies (true|false, default: false)
+#   RUNTIME_IMAGE      Base runtime image (default: node:22-alpine)
+#
+# Typical build:
+#   docker build -t mongodb-mcp-server:local -f Dockerfile.dev .
+#   docker build --build-arg INSTALL_DEV=true -t mongodb-mcp-server:dev -f Dockerfile.dev .
+#
+# Runtime (stdio transport):
+#   docker run --rm -it mongodb-mcp-server:local --transport stdio
+#
+# Runtime (http transport):
+#   docker run --rm -p 3000:3000 mongodb-mcp-server:local --transport http --httpHost 0.0.0.0
+#   curl -s -X POST http://localhost:3000/mcp -H 'Content-Type: application/json' \
+#     -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{}}}'
+#
+# Optional HTTP auth (Azure Managed Identity):
+#   docker run --rm -p 3000:3000 \
+#     -e MDB_MCP_HTTP_AUTH_MODE=azure-managed-identity \
+#     -e MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID=<tenant-guid> \
+#     -e MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID=<app-client-id> \
+#     mongodb-mcp-server:local --transport http --httpHost 0.0.0.0
+###
+
+# syntax=docker/dockerfile:1.7-labs
+
+ARG NODE_VERSION=22-alpine
+ARG RUNTIME_IMAGE=node:${NODE_VERSION}
+ARG INSTALL_DEV=false
+
+#############################################
+# Builder Stage
+#############################################
+FROM node:${NODE_VERSION} AS builder
+WORKDIR /app
+
+# Leverage Docker layer caching: copy only dependency manifests + tsconfigs first (needed by build scripts)
+COPY package.json package-lock.json* .npmrc* tsconfig*.json eslint.config.js vitest.config.ts ./
+
+# Install dependencies without running lifecycle scripts (avoid premature build via prepare)
+RUN --mount=type=cache,target=/root/.npm \
+	npm ci --ignore-scripts
+
+# Copy application sources
+COPY src ./src
+COPY scripts ./scripts
+
+# Now run the build explicitly (includes prepare sequence tasks)
+RUN npm run build
+
+# Optionally prune dev dependencies for slimmer runtime
+ARG INSTALL_DEV
+RUN if [ "${INSTALL_DEV}" != "true" ]; then npm prune --omit=dev; fi
+
+#############################################
+# Runtime Stage
+#############################################
+FROM ${RUNTIME_IMAGE} AS runtime
+ENV NODE_ENV=production \
+	MDB_MCP_LOGGERS=stderr,mcp
+
+# Create non-root user
+RUN addgroup -S mcp && adduser -S mcp -G mcp
+WORKDIR /home/mcp
+
+# Copy only required artifacts (preserve ownership in a single layer)
+COPY --chown=mcp:mcp --from=builder /app/package*.json ./
+COPY --chown=mcp:mcp --from=builder /app/node_modules ./node_modules
+COPY --chown=mcp:mcp --from=builder /app/dist ./dist
+
+USER mcp
+
+# Expose default HTTP port (matches default config httpPort=3000)
+EXPOSE 3000
+
+LABEL maintainer="MongoDB Inc <info@mongodb.com>" \
+	  org.opencontainers.image.title="mongodb-mcp-server" \
+	  org.opencontainers.image.description="MongoDB MCP Server" \
+	  org.opencontainers.image.source="https://github.com/mongodb-js/mongodb-mcp-server"
+
+# Use exec form for clarity; default command may be overridden at runtime
+ENTRYPOINT ["node", "dist/index.js"]
+CMD ["--transport", "http"]
