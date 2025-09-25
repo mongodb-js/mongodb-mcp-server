@@ -22,13 +22,13 @@ const OPTIONS = {
         "notificationTimeoutMs",
         "telemetry",
         "transport",
-    "httpAuthMode",
-    "azureManagedIdentityTenantId",
-    "azureManagedIdentityClientId",
-    "azureManagedIdentityAudience",
-    "azureManagedIdentityRequiredRoles",
-    "azureManagedIdentityAllowedAppIds",
-    "azureManagedIdentityRoleMatchMode",
+        "httpAuthMode",
+        "azureManagedIdentityTenantId",
+        "azureManagedIdentityClientId",
+        "azureManagedIdentityAudience",
+        "azureManagedIdentityRequiredRoles",
+        "azureManagedIdentityAllowedAppIds",
+        "azureManagedIdentityRoleMatchMode",
         "apiVersion",
         "authenticationDatabase",
         "authenticationMechanism",
@@ -69,7 +69,6 @@ const OPTIONS = {
         "embeddingModelDimension",
         "embeddingModelDeploymentName",
         "embeddingModelProvider",
-    // Removed retry tunables (maxRetries & retryInitialDelayMs) now fixed internally
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -219,7 +218,7 @@ export interface UserConfig extends CliOptions {
     embeddingModelEndpoint?: string; // MDB_MCP_EMBEDDING_MODEL_ENDPOINT
     embeddingModelApikey?: string; // MDB_MCP_EMBEDDING_MODEL_APIKEY
     embeddingModelDeploymentName?: string; // MDB_MCP_EMBEDDING_MODEL_DEPLOYMENT_NAME
-    embeddingModelDimension?: number; // MDB_MCP_EMBEDDING_MODEL_DIMENSION
+    embeddingModelDimension?: number; // [Optional] MDB_MCP_EMBEDDING_MODEL_DIMENSION
 }
 
 export const defaultUserConfig: UserConfig = {

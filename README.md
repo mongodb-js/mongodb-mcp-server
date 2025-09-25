@@ -18,6 +18,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 - [📄 Supported Resources](#supported-resources)
 - [⚙️ Configuration](#configuration)
   - [Configuration Options](#configuration-options)
+  - [Vector Search & Embeddings](#vector-search-and-embeddings)
   - [Atlas API Access](#atlas-api-access)
   - [Configuration Methods](#configuration-methods)
     - [Environment Variables](#environment-variables)
@@ -320,6 +321,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `collection-storage-size` - Get the size of a collection in MB
 - `db-stats` - Return statistics about a MongoDB database
 - `export` - Export query or aggregation results to EJSON format. Creates a uniquely named export accessible via the `exported-data` resource.
+- `vector-search` - Execute a vector similarity search ($vectorSearch) over a collection. See [Vector Search & Embeddings](#vector-search--embeddings).
 
 ## 📄 Supported Resources
 
@@ -361,6 +363,13 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `exportTimeoutMs`                      | `MDB_MCP_EXPORT_TIMEOUT_MS`                         | 300000                                                                      | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                                                              |
 | `exportCleanupIntervalMs`              | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS`                | 120000                                                                      | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                    |
 | `atlasTemporaryDatabaseUserLifetimeMs` | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` | 14400000                                                                    | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                             |
+| `vectorSearchPath`                     | `MDB_MCP_VECTOR_SEARCH_PATH`                        | <not set>                                                                   | Default vector field path used by `vector-search` (V2 mode). If set together with `vectorSearchIndex`, the V2 vector search tool variant is enabled.                                                    |
+| `vectorSearchIndex`                    | `MDB_MCP_VECTOR_SEARCH_INDEX`                       | <not set>                                                                   | Default vector search index name used by `vector-search` (V2 mode). Must be set with `vectorSearchPath` to enable V2 mode.                                                                              |
+| `embeddingModelProvider`               | `MDB_MCP_EMBEDDING_MODEL_PROVIDER`                  | azure-ai-inference                                                          | Embedding model provider identifier. Currently only `azure-ai-inference` is supported.                                                                            |
+| `embeddingModelEndpoint`               | `MDB_MCP_EMBEDDING_MODEL_ENDPOINT`                  | <not set>                                                                   | Endpoint for the embedding model provider. Required for vector search.                                                                                |
+| `embeddingModelApikey`                 | `MDB_MCP_EMBEDDING_MODEL_APIKEY`                    | <not set>                                                                   | API key/credential for the embedding model provider. Required for vector search.                                                                                 |
+| `embeddingModelDeploymentName`         | `MDB_MCP_EMBEDDING_MODEL_DEPLOYMENT_NAME`           | <not set>                                                                   | Deployment/model name to use when requesting embeddings. Required for vector search.                                                                             |
+| `embeddingModelDimension`              | `MDB_MCP_EMBEDDING_MODEL_DIMENSION`                 | <not set>                                                                   | (Optional) Expected embedding dimension for validation (provider specific).                                                                                      |
 
 #### Logger Options
 
@@ -481,6 +490,140 @@ You can disable telemetry using:
 - **DO_NOT_TRACK environment variable**: `export DO_NOT_TRACK=1`
 
 > **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
+### Vector Search and Embeddings
+
+The `vector-search` tool lets you run semantic similarity queries against a MongoDB collection using the `$vectorSearch` aggregation stage. This capability is disabled unless a valid embedding configuration is supplied (see below).
+
+#### Overview
+
+Two internal variants of the `vector-search` tool may register depending on configuration:
+
+1. V1 (argument-driven): You supply `path` and optionally `index` as tool arguments each call.
+2. V2 (config-driven): You preconfigure both `vectorSearchPath` and `vectorSearchIndex` in server config; the tool omits those arguments and always searches that path/index.
+
+Variant selection rules:
+
+- If BOTH `MDB_MCP_VECTOR_SEARCH_PATH` and `MDB_MCP_VECTOR_SEARCH_INDEX` are set at startup → V2 registers.
+- If NEITHER (or only one) of those is set → V1 registers, and you must provide a `path` argument per invocation (and may provide `index`).
+- If embedding config is incomplete, the tool is not registered (you will see a warning in logs).
+
+#### Required MongoDB Setup
+
+1. A collection with a vector field (array of float/number values) containing stored embeddings.
+2. A vector search index created on that field (e.g. Atlas Search vector index) when you want to leverage indexing for performance/recall.
+
+#### Embedding Configuration (Required)
+
+You must configure an embedding provider so the server can transform the `queryText` you pass in into a numeric embedding vector. Current provider support:
+
+- `azure-ai-inference` (default if none specified)
+
+Set the following environment variables (or CLI args) for Azure AI Inference:
+
+```bash
+export MDB_MCP_EMBEDDING_MODEL_ENDPOINT="https://your-azure-resource.services.ai.azure.com/models/embeddings?api-version=2024-05-01-preview"
+export MDB_MCP_EMBEDDING_MODEL_APIKEY="<azure-api-key>"
+export MDB_MCP_EMBEDDING_MODEL_DEPLOYMENT_NAME="text-embedding-3-large" # or your deployed embedding model
+# (Optional) if you want to assert embedding size
+export MDB_MCP_EMBEDDING_MODEL_DIMENSION=3072
+```
+
+Without these, `vector-search` will not register.
+
+#### Optional Vector Search Defaults (Enable V2 Mode)
+
+To eliminate passing `path` (and optionally `index`) each call, set both:
+
+```bash
+export MDB_MCP_VECTOR_SEARCH_PATH="embedding"          # e.g. field path storing embeddings
+export MDB_MCP_VECTOR_SEARCH_INDEX="myVectorIndex"     # name of the Atlas Search vector index
+```
+
+If both are present at startup, the V2 variant is loaded and you no longer pass `path`/`index` arguments at call time. Remove one or both to revert to V1.
+
+#### Usage Examples
+
+##### Example 1: V1 Variant (no defaults configured)
+
+Tool invocation arguments:
+
+```json
+{
+  "name": "vector-search",
+  "arguments": {
+    "database": "mydb",
+    "collection": "articles",
+    "queryText": "vector databases for personalization",
+    "path": "embedding",        
+    "limit": 5,
+    "numCandidates": 200,
+    "includeVector": false
+  }
+}
+```
+
+##### Example 2: V2 Variant (defaults configured)
+
+With `MDB_MCP_VECTOR_SEARCH_PATH=embedding` and `MDB_MCP_VECTOR_SEARCH_INDEX=myVectorIndex` set at startup:
+
+```json
+{
+  "name": "vector-search",
+  "arguments": {
+    "database": "mydb",
+    "collection": "articles",
+    "queryText": "vector databases for personalization",
+    "limit": 5,
+    "numCandidates": 200
+  }
+}
+```
+
+#### Returned Data
+
+The tool returns an array of matched documents. By default the raw embedding field is excluded (set `includeVector: true` if you need it). Standard result size safeguards (`maxDocumentsPerQuery`, `maxBytesPerQuery`) still apply.
+
+#### Adding a Custom Embedding Provider
+
+You can extend the server to support additional embedding services (e.g. OpenAI, Hugging Face, Vertex AI) by implementing the `EmbeddingProvider` interface:
+
+`src/embedding/embeddingProvider.ts`:
+
+```ts
+export interface EmbeddingProvider {
+  name: string;
+  embed(input: string[]): Promise<number[][]>;
+}
+```
+
+Steps:
+
+1. Create a new file under `src/embedding/`, e.g. `myProviderEmbeddingProvider.ts`, implementing the interface.
+2. Add a new case in `EmbeddingProviderFactory.create()` & `isEmbeddingConfigValid()` matching a unique `embeddingModelProvider` string (e.g. `my-provider`).
+3. Document required env vars (e.g. `MDB_MCP_EMBEDDING_MODEL_ENDPOINT`, `MDB_MCP_EMBEDDING_MODEL_APIKEY`, etc. or new ones) and update README.
+4. (Optional) Support provider‑specific validation (dimension, model name) in `assertEmbeddingConfigValid`.
+5. Provide tests (unit + integration if vector search depends on it) ensuring your provider returns deterministic dimensionality.
+
+After adding your provider, users enable it by setting:
+
+```bash
+export MDB_MCP_EMBEDDING_MODEL_PROVIDER=my-provider
+# plus any provider-specific variables you defined
+```
+
+If your provider requires different variable names, follow the existing naming convention: prefix with `MDB_MCP_` and document them.
+
+#### Troubleshooting
+
+| Symptom | Likely Cause | Action |
+| ------- | ------------ | ------ |
+| `vector-search` tool missing | Incomplete embedding config | Set endpoint, api key, deployment name env vars. Restart client. |
+| Error: "Embedding provider returned empty embedding" | Provider/network issue | Check credentials & network; verify model supports embeddings. |
+| Error requiring 'path' even though I set env vars | Only one of PATH/INDEX set | Set BOTH `MDB_MCP_VECTOR_SEARCH_PATH` and `MDB_MCP_VECTOR_SEARCH_INDEX` or remove both. |
+| High latency | Large `numCandidates` or remote model slowness | Lower `numCandidates`; verify model region proximity. |
+
+---
 
 ### Atlas API Access
 
@@ -680,6 +823,6 @@ connecting to the Atlas API, your MongoDB Cluster, or any other external calls
 to third-party services like OID Providers. The behaviour is the same as what
 `mongosh` does, so the same settings will work in the MCP Server.
 
-## 🤝Contributing
+## Contributing
 
 Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
