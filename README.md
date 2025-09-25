@@ -12,7 +12,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
   - [Prerequisites](#prerequisites)
   - [Setup](#setup)
     - [Quick Start](#quick-start)
-    - [HTTP Transport Authentication](#http-authentication)
+    - [HTTP Transport Authentication](#http-authentication-middleware)
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
@@ -419,7 +419,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `collection-storage-size` - Get the size of a collection in MB
 - `db-stats` - Return statistics about a MongoDB database
 - `export` - Export query or aggregation results to EJSON format. Creates a uniquely named export accessible via the `exported-data` resource.
-- `vector-search` - Execute a vector similarity search ($vectorSearch) over a collection. See [Vector Search & Embeddings](#vector-search--embeddings).
+- `vector-search` - Execute a vector similarity search ($vectorSearch) over a collection. See [Vector Search & Embeddings](#vector-search-and-embeddings).
 
 ## 📄 Supported Resources
 
