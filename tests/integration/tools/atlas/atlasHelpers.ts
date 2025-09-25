@@ -149,11 +149,32 @@ export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export async function assertClusterIsAvailable(
+    session: Session,
+    projectId: string,
+    clusterName: string
+): Promise<boolean> {
+    try {
+        await session.apiClient.getCluster({
+            params: {
+                path: {
+                    groupId: projectId,
+                    clusterName,
+                },
+            },
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export async function deleteAndWaitCluster(
     session: Session,
     projectId: string,
     clusterName: string,
-    pollingInterval: number = 1000
+    pollingInterval: number = 1000,
+    maxPollingIterations: number = 300
 ): Promise<void> {
     await session.apiClient.deleteCluster({
         params: {
@@ -163,21 +184,17 @@ export async function deleteAndWaitCluster(
             },
         },
     });
-    while (true) {
-        try {
-            await session.apiClient.getCluster({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        clusterName,
-                    },
-                },
-            });
-            await sleep(pollingInterval);
-        } catch {
-            break;
+
+    for (let i = 0; i < maxPollingIterations; i++) {
+        const isAvailable = await assertClusterIsAvailable(session, projectId, clusterName);
+        if (!isAvailable) {
+            return;
         }
+        await sleep(pollingInterval);
     }
+    throw new Error(
+        `Cluster deletion timeout: ${clusterName} did not delete within ${maxPollingIterations} iterations`
+    );
 }
 
 export async function waitCluster(
@@ -185,9 +202,10 @@ export async function waitCluster(
     projectId: string,
     clusterName: string,
     check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,
-    pollingInterval: number = 1000
+    pollingInterval: number = 1000,
+    maxPollingIterations: number = 300
 ): Promise<void> {
-    while (true) {
+    for (let i = 0; i < maxPollingIterations; i++) {
         const cluster = await session.apiClient.getCluster({
             params: {
                 path: {
@@ -201,4 +219,8 @@ export async function waitCluster(
         }
         await sleep(pollingInterval);
     }
+
+    throw new Error(
+        `Cluster wait timeout: ${clusterName} did not meet condition within ${maxPollingIterations} iterations`
+    );
 }

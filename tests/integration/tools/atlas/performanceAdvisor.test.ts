@@ -14,7 +14,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session: Session = integration.mcpServer().session;
-                await deleteAndWaitCluster(session, projectId, clusterName, 1000);
+                await deleteAndWaitCluster(session, projectId, clusterName, 1000, 1200);
             }
         }, 1200000);
 
@@ -62,7 +62,8 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                     (cluster) => {
                         return cluster.stateName === "IDLE";
                     },
-                    10000
+                    10000,
+                    120
                 );
 
                 await sleep(10000);

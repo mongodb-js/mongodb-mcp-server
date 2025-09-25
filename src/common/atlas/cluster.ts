@@ -1,26 +1,16 @@
 import type { ClusterDescription20240805, FlexClusterDescription20241113 } from "./openapi.js";
 import type { ApiClient } from "./apiClient.js";
 import { LogId } from "../logger.js";
+import { ConnectionString } from "mongodb-connection-string-url";
 
-const DEFAULT_PORT = "27017";
+type AtlasProcessId = `${string}:${number}`;
 
-function extractProcessIds(connectionString: string): Array<string> {
-    if (!connectionString || connectionString === "") return [];
-
-    // Extract host:port pairs from connection string
-    const matches = connectionString.match(/^mongodb:\/\/([^/]+)/);
-    if (!matches) {
+function extractProcessIds(connectionString: string): Array<AtlasProcessId> {
+    if (!connectionString) {
         return [];
     }
-
-    // matches[1] gives us the host:port pairs
-    const hostsString = matches[1];
-    const hosts = hostsString?.split(",") ?? [];
-
-    return hosts?.map((host) => {
-        const [hostname, port] = host.split(":");
-        return `${hostname}:${port || DEFAULT_PORT}`;
-    });
+    const connectionStringUrl = new ConnectionString(connectionString);
+    return connectionStringUrl.hosts as Array<AtlasProcessId>;
 }
 export interface Cluster {
     name?: string;
