@@ -17,7 +17,7 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # specified in the command line. Such as:
 # npm run test:accuracy -- tests/accuracy/some-test.test.ts
 echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID'"
-vitest --config vitest.config.ts --project=accuracy --coverage=false --run "$@"
+vitest --config vitest.config.ts --project=accuracy --coverage=false --no-file-parallelism --run "$@"
 
 # Preserving the exit code from test run to correctly notify in the CI
 # environments when the tests fail.
