@@ -38,6 +38,21 @@ For more information on setting up API keys, visit: https://www.mongodb.com/docs
                 };
             }
 
+            if (statusCode === 402) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Received a Payment Required API Error: ${error.message}
+
+Payment setup is required to perform this action in MongoDB Atlas
+Please ensure that your payment method for your organization has been set up and is active.
+For more information on setting up payment, visit: https://www.mongodb.com/docs/atlas/billing/`,
+                        },
+                    ],
+                };
+            }
+
             if (statusCode === 403) {
                 return {
                     content: [
