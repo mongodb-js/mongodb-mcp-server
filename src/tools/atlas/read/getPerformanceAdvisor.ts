@@ -64,19 +64,22 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                         : Promise.resolve(undefined),
                 ]);
 
+            const hasSuggestedIndexes = suggestedIndexesResult && suggestedIndexesResult?.suggestedIndexes?.length > 0;
+            const hasDropIndexSuggestions =
+                dropIndexSuggestionsResult &&
+                dropIndexSuggestionsResult?.hiddenIndexes?.length > 0 &&
+                dropIndexSuggestionsResult?.redundantIndexes?.length > 0 &&
+                dropIndexSuggestionsResult?.unusedIndexes?.length > 0;
+            const hasSlowQueryLogs = slowQueryLogsResult && slowQueryLogsResult?.slowQueryLogs?.length > 0;
+            const hasSchemaSuggestions =
+                schemaSuggestionsResult && schemaSuggestionsResult?.recommendations?.length > 0;
+
+            // Inserts the performance advisor data with the relevant section header if it exists
             const performanceAdvisorData = [
-                suggestedIndexesResult && suggestedIndexesResult?.suggestedIndexes?.length > 0
-                    ? `## Suggested Indexes\n${JSON.stringify(suggestedIndexesResult.suggestedIndexes)}`
-                    : "No suggested indexes found.",
-                dropIndexSuggestionsResult
-                    ? `## Drop Index Suggestions\n${JSON.stringify(dropIndexSuggestionsResult)}`
-                    : "No drop index suggestions found.",
-                slowQueryLogsResult && slowQueryLogsResult?.slowQueryLogs?.length > 0
-                    ? `## Slow Query Logs\n${JSON.stringify(slowQueryLogsResult.slowQueryLogs)}`
-                    : "No slow query logs found.",
-                schemaSuggestionsResult && schemaSuggestionsResult?.recommendations?.length > 0
-                    ? `## Schema Suggestions\n${JSON.stringify(schemaSuggestionsResult.recommendations)}`
-                    : "No schema suggestions found.",
+                `## Suggested Indexes\n${hasSuggestedIndexes ? JSON.stringify(suggestedIndexesResult.suggestedIndexes) : "No suggested indexes found."}`,
+                `## Drop Index Suggestions\n${hasDropIndexSuggestions ? JSON.stringify(dropIndexSuggestionsResult) : "No drop index suggestions found."}`,
+                `## Slow Query Logs\n${hasSlowQueryLogs ? JSON.stringify(slowQueryLogsResult.slowQueryLogs) : "No slow query logs found."}`,
+                `## Schema Suggestions\n${hasSchemaSuggestions ? JSON.stringify(schemaSuggestionsResult.recommendations) : "No schema suggestions found."}`,
             ];
 
             if (performanceAdvisorData.length === 0) {
