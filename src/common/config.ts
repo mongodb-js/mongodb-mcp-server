@@ -160,6 +160,7 @@ export interface UserConfig extends CliOptions {
     apiBaseUrl: string;
     apiClientId?: string;
     apiClientSecret?: string;
+    assistantBaseUrl: string;
     telemetry: "enabled" | "disabled";
     logPath: string;
     exportsPath: string;
@@ -185,6 +186,7 @@ export interface UserConfig extends CliOptions {
 
 export const defaultUserConfig: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",
+    assistantBaseUrl: "https://knowledge.mongodb.com/api/v1/",
     logPath: getLogPath(),
     exportsPath: getExportsPath(),
     exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
