@@ -8,11 +8,26 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import type { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { config, driverOptions } from "../../src/common/config.js";
+import {
+    config,
+    setupDriverConfig,
+    defaultDriverOptions as defaultDriverOptionsFromConfig,
+} from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ConnectionState } from "../../src/common/connectionManager.js";
-import { ConnectionManager } from "../../src/common/connectionManager.js";
+import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
+import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
+import { Keychain } from "../../src/common/keychain.js";
+import { Elicitation } from "../../src/elicitation.js";
+import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
+
+export const driverOptions = setupDriverConfig({
+    config,
+    defaults: defaultDriverOptionsFromConfig,
+});
+
+export const defaultDriverOptions: DriverOptions = { ...driverOptions };
 
 interface ParameterInfo {
     name: string;
@@ -33,13 +48,16 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-export const defaultDriverOptions: DriverOptions = {
-    ...driverOptions,
-};
-
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
-    getDriverOptions: () => DriverOptions
+    getDriverOptions: () => DriverOptions,
+    {
+        elicitInput,
+        getClientCapabilities,
+    }: {
+        elicitInput?: ReturnType<typeof createMockElicitInput>;
+        getClientCapabilities?: () => MockClientCapabilities;
+    } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
@@ -48,6 +66,7 @@ export function setupIntegrationTest(
     beforeAll(async () => {
         const userConfig = getUserConfig();
         const driverOptions = getDriverOptions();
+        const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
@@ -65,14 +84,14 @@ export function setupIntegrationTest(
                 version: "1.2.3",
             },
             {
-                capabilities: {},
+                capabilities: clientCapabilities,
             }
         );
 
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new ConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
@@ -81,10 +100,11 @@ export function setupIntegrationTest(
             logger,
             exportsManager,
             connectionManager,
+            keychain: new Keychain(),
         });
 
         // Mock hasValidAccessToken for tests
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
+        if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
@@ -93,14 +113,25 @@ export function setupIntegrationTest(
 
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 
+        const mcpServerInstance = new McpServer({
+            name: "test-server",
+            version: "5.2.3",
+        });
+
+        // Mock elicitation if provided
+        if (elicitInput) {
+            Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
+        }
+
+        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+
         mcpServer = new Server({
             session,
             userConfig,
             telemetry,
-            mcpServer: new McpServer({
-                name: "test-server",
-                version: "5.2.3",
-            }),
+            mcpServer: mcpServerInstance,
+            elicitation,
+            connectionErrorHandler,
         });
 
         await mcpServer.connect(serverTransport);
@@ -111,6 +142,8 @@ export function setupIntegrationTest(
         if (mcpServer) {
             await mcpServer.session.disconnect();
         }
+
+        vi.clearAllMocks();
     });
 
     afterAll(async () => {

@@ -1,18 +1,18 @@
-import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { type ToolArgs, type OperationType } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
 import type { ClusterDescription20240805 } from "../../../common/atlas/openapi.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
+import { AtlasArgs } from "../../args.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {
     public name = "atlas-create-free-cluster";
     protected description = "Create a free MongoDB Atlas cluster";
     public operationType: OperationType = "create";
     protected argsShape = {
-        projectId: z.string().describe("Atlas project ID to create the cluster in"),
-        name: z.string().describe("Name of the cluster"),
-        region: z.string().describe("Region of the cluster").default("US_EAST_1"),
+        projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),
+        name: AtlasArgs.clusterName().describe("Name of the cluster"),
+        region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
     };
 
     protected async execute({ projectId, name, region }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {

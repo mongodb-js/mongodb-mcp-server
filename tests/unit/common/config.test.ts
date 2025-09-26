@@ -1,9 +1,31 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { UserConfig } from "../../../src/common/config.js";
-import { setupUserConfig, defaultUserConfig } from "../../../src/common/config.js";
+import {
+    setupUserConfig,
+    defaultUserConfig,
+    registerKnownSecretsInRootKeychain,
+    warnAboutDeprecatedOrUnknownCliArgs,
+} from "../../../src/common/config.js";
+import type { CliOptions } from "@mongosh/arg-parser";
+import { Keychain } from "../../../src/common/keychain.js";
+import type { Secret } from "../../../src/common/keychain.js";
 
 describe("config", () => {
     describe("env var parsing", () => {
+        describe("mongodb urls", () => {
+            it("should not try to parse a multiple-host urls", () => {
+                const actual = setupUserConfig({
+                    env: {
+                        MDB_MCP_CONNECTION_STRING: "mongodb://user:password@host1,host2,host3/",
+                    },
+                    cli: [],
+                    defaults: defaultUserConfig,
+                });
+
+                expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+            });
+        });
+
         describe("string cases", () => {
             const testCases = [
                 { envVar: "MDB_MCP_API_BASE_URL", property: "apiBaseUrl", value: "http://test.com" },
@@ -19,6 +41,11 @@ describe("config", () => {
                 { envVar: "MDB_MCP_HTTP_HOST", property: "httpHost", value: "localhost" },
                 { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
                 { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
+                {
+                    envVar: "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
+                    property: "atlasTemporaryDatabaseUserLifetimeMs",
+                    value: 12345,
+                },
             ] as const;
 
             for (const { envVar, property, value } of testCases) {
@@ -59,6 +86,16 @@ describe("config", () => {
     });
 
     describe("cli parsing", () => {
+        it("should not try to parse a multiple-host urls", () => {
+            const actual = setupUserConfig({
+                cli: ["myself", "--", "--connectionString", "mongodb://user:password@host1,host2,host3/"],
+                env: {},
+                defaults: defaultUserConfig,
+            });
+
+            expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+        });
+
         describe("string use cases", () => {
             const testCases = [
                 {
@@ -96,6 +133,10 @@ describe("config", () => {
                 {
                     cli: ["--notificationTimeoutMs", "42"],
                     expected: { notificationTimeoutMs: "42" },
+                },
+                {
+                    cli: ["--atlasTemporaryDatabaseUserLifetimeMs", "12345"],
+                    expected: { atlasTemporaryDatabaseUserLifetimeMs: "12345" },
                 },
                 {
                     cli: ["--telemetry", "enabled"],
@@ -603,5 +644,146 @@ describe("config", () => {
                 expect(actual.loggers).toEqual(["stderr"]);
             });
         });
+    });
+});
+
+describe("CLI arguments", () => {
+    const referDocMessage =
+        "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
+
+    type TestCase = { readonly cliArg: keyof (CliOptions & UserConfig); readonly warning: string };
+    const testCases = [
+        {
+            cliArg: "connectionString",
+            warning:
+                "The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
+        },
+    ] as TestCase[];
+
+    for (const { cliArg, warning } of testCases) {
+        describe(`deprecation behaviour of ${cliArg}`, () => {
+            let cliArgs: CliOptions & UserConfig & { _?: string[] };
+            let warn: (msg: string) => void;
+            let exit: (status: number) => void | never;
+
+            beforeEach(() => {
+                cliArgs = { [cliArg]: "RandomString" } as unknown as CliOptions & UserConfig & { _?: string[] };
+                warn = vi.fn();
+                exit = vi.fn();
+
+                warnAboutDeprecatedOrUnknownCliArgs(cliArgs as unknown as Record<string, unknown>, { warn, exit });
+            });
+
+            it(`warns the usage of ${cliArg} as it is deprecated`, () => {
+                expect(warn).toHaveBeenCalledWith(warning);
+            });
+
+            it(`shows the reference message when ${cliArg} was passed`, () => {
+                expect(warn).toHaveBeenCalledWith(referDocMessage);
+            });
+
+            it(`should not exit the process`, () => {
+                expect(exit).not.toHaveBeenCalled();
+            });
+        });
+    }
+
+    describe("invalid arguments", () => {
+        let warn: (msg: string) => void;
+        let exit: (status: number) => void | never;
+
+        beforeEach(() => {
+            warn = vi.fn();
+            exit = vi.fn();
+        });
+
+        it("should show a warning when an argument is not known", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    wakanda: "",
+                },
+                { warn, exit }
+            );
+
+            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'wakanda'.");
+            expect(warn).toHaveBeenCalledWith(
+                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            );
+        });
+
+        it("should exit the process on unknown cli args", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    wakanda: "",
+                },
+                { warn, exit }
+            );
+
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+
+        it("should show a suggestion when is a simple typo", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    readonli: "",
+                },
+                { warn, exit }
+            );
+
+            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonli'. Did you mean 'readOnly'?");
+            expect(warn).toHaveBeenCalledWith(
+                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            );
+        });
+
+        it("should show a suggestion when the only change is on the case", () => {
+            warnAboutDeprecatedOrUnknownCliArgs(
+                {
+                    readonly: "",
+                },
+                { warn, exit }
+            );
+
+            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonly'. Did you mean 'readOnly'?");
+            expect(warn).toHaveBeenCalledWith(
+                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            );
+        });
+    });
+
+    describe("keychain management", () => {
+        type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
+        const testCases = [
+            { cliArg: "apiClientId", secretKind: "user" },
+            { cliArg: "apiClientSecret", secretKind: "password" },
+            { cliArg: "awsAccessKeyId", secretKind: "password" },
+            { cliArg: "awsIamSessionToken", secretKind: "password" },
+            { cliArg: "awsSecretAccessKey", secretKind: "password" },
+            { cliArg: "awsSessionToken", secretKind: "password" },
+            { cliArg: "password", secretKind: "password" },
+            { cliArg: "tlsCAFile", secretKind: "url" },
+            { cliArg: "tlsCRLFile", secretKind: "url" },
+            { cliArg: "tlsCertificateKeyFile", secretKind: "url" },
+            { cliArg: "tlsCertificateKeyFilePassword", secretKind: "password" },
+            { cliArg: "username", secretKind: "user" },
+        ] as TestCase[];
+        let keychain: Keychain;
+
+        beforeEach(() => {
+            keychain = Keychain.root;
+            keychain.clearAllSecrets();
+        });
+
+        afterEach(() => {
+            keychain.clearAllSecrets();
+        });
+
+        for (const { cliArg, secretKind } of testCases) {
+            it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
+                registerKnownSecretsInRootKeychain({ [cliArg]: cliArg });
+
+                expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
+            });
+        }
     });
 });

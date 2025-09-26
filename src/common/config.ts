@@ -3,9 +3,13 @@ import os from "os";
 import argv from "yargs-parser";
 import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import { Keychain } from "./keychain.js";
+import type { Secret } from "./keychain.js";
+import levenshtein from "ts-levenshtein";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
+    number: ["maxDocumentsPerQuery", "maxBytesPerQuery"],
     string: [
         "apiBaseUrl",
         "apiClientId",
@@ -45,6 +49,10 @@ const OPTIONS = {
         "tlsCertificateSelector",
         "tlsDisabledProtocols",
         "username",
+        "atlasTemporaryDatabaseUserLifetimeMs",
+        "exportsPath",
+        "exportTimeoutMs",
+        "exportCleanupIntervalMs",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -68,7 +76,7 @@ const OPTIONS = {
         "tlsFIPSMode",
         "version",
     ],
-    array: ["disabledTools", "loggers"],
+    array: ["disabledTools", "loggers", "confirmationRequiredTools"],
     alias: {
         h: "help",
         p: "password",
@@ -87,7 +95,55 @@ const OPTIONS = {
         "greedy-arrays": true,
         "short-option-groups": false,
     },
-};
+} as Readonly<Options>;
+
+interface Options {
+    string: string[];
+    number: string[];
+    boolean: string[];
+    array: string[];
+    alias: Record<string, string>;
+    configuration: Record<string, boolean>;
+}
+
+export const ALL_CONFIG_KEYS = new Set(
+    (OPTIONS.string as readonly string[])
+        .concat(OPTIONS.number)
+        .concat(OPTIONS.array)
+        .concat(OPTIONS.boolean)
+        .concat(Object.keys(OPTIONS.alias))
+);
+
+export function validateConfigKey(key: string): { valid: boolean; suggestion?: string } {
+    if (ALL_CONFIG_KEYS.has(key)) {
+        return { valid: true };
+    }
+
+    let minLev = Number.MAX_VALUE;
+    let suggestion = "";
+
+    // find the closest match for a suggestion
+    for (const validKey of ALL_CONFIG_KEYS) {
+        // check if there is an exact case-insensitive match
+        if (validKey.toLowerCase() === key.toLowerCase()) {
+            return { valid: false, suggestion: validKey };
+        }
+
+        // else, infer something using levenshtein so we suggest a valid key
+        const lev = levenshtein.get(key, validKey);
+        if (lev < minLev) {
+            minLev = lev;
+            suggestion = validKey;
+        }
+    }
+
+    if (minLev <= 2) {
+        // accept up to 2 typos
+        return { valid: false, suggestion };
+    }
+
+    return { valid: false };
+}
 
 function isConnectionSpecifier(arg: string | undefined): boolean {
     return (
@@ -111,15 +167,21 @@ export interface UserConfig extends CliOptions {
     exportTimeoutMs: number;
     exportCleanupIntervalMs: number;
     connectionString?: string;
+    // TODO: Use a type tracking all tool names.
     disabledTools: Array<string>;
+    confirmationRequiredTools: Array<string>;
     readOnly?: boolean;
     indexCheck?: boolean;
     transport: "stdio" | "http";
     httpPort: number;
     httpHost: string;
+    httpHeaders: Record<string, string>;
     loggers: Array<"stderr" | "disk" | "mcp">;
     idleTimeoutMs: number;
     notificationTimeoutMs: number;
+    maxDocumentsPerQuery: number;
+    maxBytesPerQuery: number;
+    atlasTemporaryDatabaseUserLifetimeMs: number;
 }
 
 export const defaultUserConfig: UserConfig = {
@@ -127,18 +189,29 @@ export const defaultUserConfig: UserConfig = {
     assistantBaseUrl: "https://knowledge.mongodb.com/api/v1/",
     logPath: getLogPath(),
     exportsPath: getExportsPath(),
-    exportTimeoutMs: 300000, // 5 minutes
-    exportCleanupIntervalMs: 120000, // 2 minutes
+    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
     disabledTools: [],
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    confirmationRequiredTools: [
+        "atlas-create-access-list",
+        "atlas-create-db-user",
+        "drop-database",
+        "drop-collection",
+        "delete-many",
+    ],
     transport: "stdio",
     httpPort: 3000,
     httpHost: "127.0.0.1",
     loggers: ["disk", "mcp"],
-    idleTimeoutMs: 600000, // 10 minutes
-    notificationTimeoutMs: 540000, // 9 minutes
+    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+    httpHeaders: {},
+    maxDocumentsPerQuery: 100, // By default, we only fetch a maximum 100 documents per query / aggregation
+    maxBytesPerQuery: 16 * 1024 * 1024, // By default, we only return ~16 mb of data per query / aggregation
+    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
 };
 
 export const config = setupUserConfig({
@@ -167,11 +240,6 @@ export const defaultDriverOptions: DriverOptions = {
     applyProxyToOIDC: true,
 };
 
-export const driverOptions = setupDriverConfig({
-    config,
-    defaults: defaultDriverOptions,
-});
-
 function getLogPath(): string {
     const logPath = path.join(getLocalDataPath(), "mongodb-mcp", ".app-logs");
     return logPath;
@@ -185,12 +253,19 @@ function getExportsPath(): string {
 // are prefixed with `MDB_MCP_` and the keys match the UserConfig keys, but are converted
 // to SNAKE_UPPER_CASE.
 function parseEnvConfig(env: Record<string, unknown>): Partial<UserConfig> {
+    const CONFIG_WITH_URLS: Set<string> = new Set<(typeof OPTIONS)["string"][number]>(["connectionString"]);
+
     function setValue(obj: Record<string, unknown>, path: string[], value: string): void {
         const currentField = path.shift();
         if (!currentField) {
             return;
         }
         if (path.length === 0) {
+            if (CONFIG_WITH_URLS.has(currentField)) {
+                obj[currentField] = value;
+                return;
+            }
+
             const numberValue = Number(value);
             if (!isNaN(numberValue)) {
                 obj[currentField] = numberValue;
@@ -247,12 +322,25 @@ function SNAKE_CASE_toCamelCase(str: string): string {
 // whatever is in mongosh.
 function parseCliConfig(args: string[]): CliOptions {
     const programArgs = args.slice(2);
-    const parsed = argv(programArgs, OPTIONS) as unknown as CliOptions &
+    const parsed = argv(programArgs, OPTIONS as unknown as argv.Options) as unknown as CliOptions &
         UserConfig & {
             _?: string[];
         };
 
     const positionalArguments = parsed._ ?? [];
+
+    // we use console.warn here because we still don't have our logging system configured
+    // so we don't have a logger. For stdio, the warning will be received as a string in
+    // the client and IDEs like VSCode do show the message in the log window. For HTTP,
+    // it will be in the stdout of the process.
+    warnAboutDeprecatedOrUnknownCliArgs(
+        { ...parsed, _: positionalArguments },
+        {
+            warn: (msg) => console.warn(msg),
+            exit: (status) => process.exit(status),
+        }
+    );
+
     // if we have a positional argument that matches a connection string
     // store it as the connection specifier and remove it from the argument
     // list, so it doesn't get misunderstood by the mongosh args-parser
@@ -262,6 +350,49 @@ function parseCliConfig(args: string[]): CliOptions {
 
     delete parsed._;
     return parsed;
+}
+
+export function warnAboutDeprecatedOrUnknownCliArgs(
+    args: Record<string, unknown>,
+    { warn, exit }: { warn: (msg: string) => void; exit: (status: number) => void | never }
+): void {
+    let usedDeprecatedArgument = false;
+    let usedInvalidArgument = false;
+
+    const knownArgs = args as unknown as UserConfig & CliOptions;
+    // the first position argument should be used
+    // instead of --connectionString, as it's how the mongosh works.
+    if (knownArgs.connectionString) {
+        usedDeprecatedArgument = true;
+        warn(
+            "The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
+        );
+    }
+
+    for (const providedKey of Object.keys(args)) {
+        if (providedKey === "_") {
+            // positional argument
+            continue;
+        }
+
+        const { valid, suggestion } = validateConfigKey(providedKey);
+        if (!valid) {
+            usedInvalidArgument = true;
+            if (suggestion) {
+                warn(`Invalid command line argument '${providedKey}'. Did you mean '${suggestion}'?`);
+            } else {
+                warn(`Invalid command line argument '${providedKey}'.`);
+            }
+        }
+    }
+
+    if (usedInvalidArgument || usedDeprecatedArgument) {
+        warn("Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
+    }
+
+    if (usedInvalidArgument) {
+        exit(1);
+    }
 }
 
 function commaSeparatedToArray<T extends string[]>(str: string | string[] | undefined): T {
@@ -287,6 +418,29 @@ function commaSeparatedToArray<T extends string[]>(str: string | string[] | unde
     return str as T;
 }
 
+export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): void {
+    const keychain = Keychain.root;
+
+    const maybeRegister = (value: string | undefined, kind: Secret["kind"]): void => {
+        if (value) {
+            keychain.register(value, kind);
+        }
+    };
+
+    maybeRegister(userConfig.apiClientId, "user");
+    maybeRegister(userConfig.apiClientSecret, "password");
+    maybeRegister(userConfig.awsAccessKeyId, "password");
+    maybeRegister(userConfig.awsIamSessionToken, "password");
+    maybeRegister(userConfig.awsSecretAccessKey, "password");
+    maybeRegister(userConfig.awsSessionToken, "password");
+    maybeRegister(userConfig.password, "password");
+    maybeRegister(userConfig.tlsCAFile, "url");
+    maybeRegister(userConfig.tlsCRLFile, "url");
+    maybeRegister(userConfig.tlsCertificateKeyFile, "url");
+    maybeRegister(userConfig.tlsCertificateKeyFilePassword, "password");
+    maybeRegister(userConfig.username, "user");
+}
+
 export function setupUserConfig({
     cli,
     env,
@@ -304,6 +458,7 @@ export function setupUserConfig({
 
     userConfig.disabledTools = commaSeparatedToArray(userConfig.disabledTools);
     userConfig.loggers = commaSeparatedToArray(userConfig.loggers);
+    userConfig.confirmationRequiredTools = commaSeparatedToArray(userConfig.confirmationRequiredTools);
 
     if (userConfig.connectionString && userConfig.connectionSpecifier) {
         const connectionInfo = generateConnectionInfoFromCliArgs(userConfig);
@@ -340,6 +495,7 @@ export function setupUserConfig({
         }
     }
 
+    registerKnownSecretsInRootKeychain(userConfig);
     return userConfig;
 }
 

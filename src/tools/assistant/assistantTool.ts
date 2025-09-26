@@ -1,4 +1,10 @@
-import { TelemetryToolMetadata, ToolArgs, ToolBase, ToolCategory } from "../tool.js";
+import {
+    ToolBase,
+    type TelemetryToolMetadata,
+    type ToolArgs,
+    type ToolCategory,
+    type ToolConstructorParams,
+} from "../tool.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Server } from "../../server.js";
 import { Session } from "../../common/session.js";
@@ -12,12 +18,8 @@ export abstract class AssistantToolBase extends ToolBase {
     protected baseUrl: URL;
     protected requiredHeaders: Record<string, string>;
 
-    constructor(
-        protected readonly session: Session,
-        protected readonly config: UserConfig,
-        protected readonly telemetry: Telemetry
-    ) {
-        super(session, config, telemetry);
+    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
+        super({ session, config, telemetry, elicitation });
         this.baseUrl = new URL(config.assistantBaseUrl);
         const serverVersion = packageInfo.version;
         this.requiredHeaders = {

@@ -3,23 +3,21 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
+import { zEJSON } from "../../args.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
     public name = "update-many";
     protected description = "Updates all documents that match the specified filter for a collection";
     protected argsShape = {
         ...DbOperationArgs,
-        filter: z
-            .object({})
-            .passthrough()
+        filter: zEJSON()
             .optional()
             .describe(
                 "The selection criteria for the update, matching the syntax of the filter argument of db.collection.updateOne()"
             ),
-        update: z
-            .object({})
-            .passthrough()
-            .describe("An update document describing the modifications to apply using update operator expressions"),
+        update: zEJSON().describe(
+            "An update document describing the modifications to apply using update operator expressions"
+        ),
         upsert: z
             .boolean()
             .optional()

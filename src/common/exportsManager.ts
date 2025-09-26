@@ -27,6 +27,7 @@ interface CommonExportData {
 interface ReadyExport extends CommonExportData {
     exportStatus: "ready";
     exportCreatedAt: number;
+    docsTransformed: number;
 }
 
 interface InProgressExport extends CommonExportData {
@@ -56,7 +57,7 @@ type StoredExport = ReadyExport | InProgressExport;
  *
  * Ref Cursor: https://forum.cursor.com/t/cursor-mcp-resource-feature-support/50987
  * JIRA: https://jira.mongodb.org/browse/MCP-104 */
-type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
+export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
 export type ExportsManagerConfig = Pick<UserConfig, "exportsPath" | "exportTimeoutMs" | "exportCleanupIntervalMs">;
 
@@ -124,10 +125,10 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    public async readExport(exportName: string): Promise<string> {
+    public async readExport(exportName: string): Promise<{ content: string; docsTransformed: number }> {
         try {
             this.assertIsNotShuttingDown();
-            exportName = decodeURIComponent(exportName);
+            exportName = decodeAndNormalize(exportName);
             const exportHandle = this.storedExports[exportName];
             if (!exportHandle) {
                 throw new Error("Requested export has either expired or does not exist.");
@@ -137,9 +138,12 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 throw new Error("Requested export is still being generated. Try again later.");
             }
 
-            const { exportPath } = exportHandle;
+            const { exportPath, docsTransformed } = exportHandle;
 
-            return fs.readFile(exportPath, { encoding: "utf8", signal: this.shutdownController.signal });
+            return {
+                content: await fs.readFile(exportPath, { encoding: "utf8", signal: this.shutdownController.signal }),
+                docsTransformed,
+            };
         } catch (error) {
             this.logger.error({
                 id: LogId.exportReadError,
@@ -163,7 +167,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): Promise<AvailableExport> {
         try {
             this.assertIsNotShuttingDown();
-            const exportNameWithExtension = validateExportName(ensureExtension(exportName, "json"));
+            const exportNameWithExtension = decodeAndNormalize(ensureExtension(exportName, "json"));
             if (this.storedExports[exportNameWithExtension]) {
                 return Promise.reject(
                     new Error("Export with same name is either already available or being generated.")
@@ -202,17 +206,15 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }): Promise<void> {
         try {
             let pipeSuccessful = false;
+            let docsTransformed = 0;
             try {
                 await fs.mkdir(this.exportsDirectoryPath, { recursive: true });
                 const outputStream = createWriteStream(inProgressExport.exportPath);
-                await pipeline(
-                    [
-                        input.stream(),
-                        this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat)),
-                        outputStream,
-                    ],
-                    { signal: this.shutdownController.signal }
-                );
+                const ejsonTransform = this.docToEJSONStream(this.getEJSONOptionsForFormat(jsonExportFormat));
+                await pipeline([input.stream(), ejsonTransform, outputStream], {
+                    signal: this.shutdownController.signal,
+                });
+                docsTransformed = ejsonTransform.docsTransformed;
                 pipeSuccessful = true;
             } catch (error) {
                 // If the pipeline errors out then we might end up with
@@ -231,6 +233,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                         ...inProgressExport,
                         exportCreatedAt: Date.now(),
                         exportStatus: "ready",
+                        docsTransformed,
                     };
                     this.emit("export-available", inProgressExport.exportURI);
                 }
@@ -256,33 +259,39 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    private docToEJSONStream(ejsonOptions: EJSONOptions | undefined): Transform {
+    private docToEJSONStream(ejsonOptions: EJSONOptions | undefined): Transform & { docsTransformed: number } {
         let docsTransformed = 0;
-        return new Transform({
-            objectMode: true,
-            transform(chunk: unknown, encoding, callback): void {
-                try {
-                    const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
-                    if (docsTransformed === 0) {
-                        this.push("[" + doc);
-                    } else {
-                        this.push(",\n" + doc);
+        const result = Object.assign(
+            new Transform({
+                objectMode: true,
+                transform(chunk: unknown, encoding, callback): void {
+                    try {
+                        const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
+                        if (docsTransformed === 0) {
+                            this.push("[" + doc);
+                        } else {
+                            this.push(",\n" + doc);
+                        }
+                        docsTransformed++;
+                        callback();
+                    } catch (err) {
+                        callback(err as Error);
                     }
-                    docsTransformed++;
+                },
+                flush(callback): void {
+                    if (docsTransformed === 0) {
+                        this.push("[]");
+                    } else {
+                        this.push("]");
+                    }
+                    result.docsTransformed = docsTransformed;
                     callback();
-                } catch (err) {
-                    callback(err as Error);
-                }
-            },
-            flush(callback): void {
-                if (docsTransformed === 0) {
-                    this.push("[]");
-                } else {
-                    this.push("]");
-                }
-                callback();
-            },
-        });
+                },
+            }),
+            { docsTransformed }
+        );
+
+        return result;
     }
 
     private async cleanupExpiredExports(): Promise<void> {
@@ -363,6 +372,10 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 }
 
+export function decodeAndNormalize(text: string): string {
+    return decodeURIComponent(text).normalize("NFKC");
+}
+
 /**
  * Ensures the path ends with the provided extension */
 export function ensureExtension(pathOrName: string, extension: string): string {
@@ -371,22 +384,6 @@ export function ensureExtension(pathOrName: string, extension: string): string {
         return pathOrName;
     }
     return `${pathOrName}${extWithDot}`;
-}
-
-/**
- * Small utility to decoding and validating provided export name for path
- * traversal or no extension */
-export function validateExportName(nameWithExtension: string): string {
-    const decodedName = decodeURIComponent(nameWithExtension);
-    if (!path.extname(decodedName)) {
-        throw new Error("Provided export name has no extension");
-    }
-
-    if (decodedName.includes("..") || decodedName.includes("/") || decodedName.includes("\\")) {
-        throw new Error("Invalid export name: path traversal hinted");
-    }
-
-    return decodedName;
 }
 
 export function isExportExpired(createdAt: number, exportTimeoutMs: number): boolean {

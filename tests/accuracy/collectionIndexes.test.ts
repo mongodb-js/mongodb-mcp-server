@@ -26,7 +26,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: `Is the following query: ${JSON.stringify({ runtime: { $lt: 100 } })} on the namespace 'mflix.movies' indexed?`,
+        prompt: `Is there an index covering the following query: ${JSON.stringify({ runtime: { $lt: 100 } })} on the namespace 'mflix.movies'?`,
         expectedToolCalls: [
             {
                 toolName: "collection-indexes",

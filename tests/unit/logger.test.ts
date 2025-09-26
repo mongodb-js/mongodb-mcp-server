@@ -1,36 +1,51 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
-import type { LoggerType } from "../../src/common/logger.js";
+import type { LoggerType, LogLevel } from "../../src/common/logger.js";
 import { CompositeLogger, ConsoleLogger, DiskLogger, LogId, McpLogger } from "../../src/common/logger.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import os from "os";
 import * as path from "path";
 import * as fs from "fs/promises";
 import { once } from "events";
+import type { Server } from "../../src/server.js";
+import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 describe("Logger", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
     let consoleLogger: ConsoleLogger;
+    let keychain: Keychain;
 
     let mcpLoggerSpy: MockInstance;
     let mcpLogger: McpLogger;
+    let minimumMcpLogLevel: LogLevel;
 
     beforeEach(() => {
         // Mock console.error before creating the ConsoleLogger
         consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        keychain = Keychain.root;
 
-        consoleLogger = new ConsoleLogger();
+        consoleLogger = new ConsoleLogger(keychain);
 
         mcpLoggerSpy = vi.fn();
-        mcpLogger = new McpLogger({
-            server: {
-                sendLoggingMessage: mcpLoggerSpy,
-            },
-            isConnected: () => true,
-        } as unknown as McpServer);
+        minimumMcpLogLevel = "debug";
+        mcpLogger = new McpLogger(
+            {
+                mcpServer: {
+                    server: {
+                        sendLoggingMessage: mcpLoggerSpy,
+                    },
+                    isConnected: () => true,
+                },
+                get mcpLogLevel() {
+                    return minimumMcpLogLevel;
+                },
+            } as unknown as Server,
+            keychain
+        );
     });
 
     afterEach(() => {
+        keychain.clearAllSecrets();
         vi.restoreAllMocks();
     });
 
@@ -71,6 +86,16 @@ describe("Logger", () => {
             expect(mcpLoggerSpy).toHaveBeenCalledOnce();
 
             expectLogMessageRedaction(getLastMcpLogMessage(), false);
+        });
+
+        it("redacts sensitive information from the keychain", () => {
+            keychain.register("123456", "password");
+            consoleLogger.info({ id: LogId.serverInitialized, context: "test", message: "Your password is 123456." });
+
+            expect(consoleErrorSpy).toHaveBeenCalledOnce();
+
+            expect(getLastConsoleMessage()).to.contain("Your password is <password>");
+            expect(getLastConsoleMessage()).to.not.contain("123456");
         });
 
         it("allows disabling redaction for all loggers", () => {
@@ -188,9 +213,13 @@ describe("Logger", () => {
         };
 
         it("buffers messages during initialization", async () => {
-            const diskLogger = new DiskLogger(logPath, (err) => {
-                expect.fail(`Disk logger should not fail to initialize: ${err}`);
-            });
+            const diskLogger = new DiskLogger(
+                logPath,
+                (err) => {
+                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
+                },
+                keychain
+            );
 
             diskLogger.info({ id: LogId.serverInitialized, context: "test", message: "Test message" });
             await assertNoLogs();
@@ -204,9 +233,13 @@ describe("Logger", () => {
         });
 
         it("includes attributes in the logs", async () => {
-            const diskLogger = new DiskLogger(logPath, (err) => {
-                expect.fail(`Disk logger should not fail to initialize: ${err}`);
-            });
+            const diskLogger = new DiskLogger(
+                logPath,
+                (err) => {
+                    expect.fail(`Disk logger should not fail to initialize: ${err}`);
+                },
+                keychain
+            );
 
             diskLogger.info({
                 id: LogId.serverInitialized,
@@ -304,6 +337,30 @@ describe("Logger", () => {
                 expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
                 expect(getLastConsoleMessage()).not.toContain("foo=bar");
             });
+        });
+    });
+
+    describe("mcp logger", () => {
+        it("filters out messages below the minimum log level", () => {
+            minimumMcpLogLevel = "debug";
+            mcpLogger.log("debug", { id: LogId.serverInitialized, context: "test", message: "Debug message" });
+
+            expect(mcpLoggerSpy).toHaveBeenCalledOnce();
+            expect(getLastMcpLogMessage()).toContain("Debug message");
+
+            minimumMcpLogLevel = "info";
+            mcpLogger.log("debug", { id: LogId.serverInitialized, context: "test", message: "Debug message 2" });
+
+            expect(mcpLoggerSpy).toHaveBeenCalledTimes(1);
+
+            mcpLogger.log("alert", { id: LogId.serverInitialized, context: "test", message: "Alert message" });
+
+            expect(mcpLoggerSpy).toHaveBeenCalledTimes(2);
+            expect(getLastMcpLogMessage()).toContain("Alert message");
+        });
+
+        it("MCPLogger.LOG_LEVELS contains all possible levels", () => {
+            expect(McpLogger.LOG_LEVELS).toEqual(LoggingMessageNotificationSchema.shape.params.shape.level.options);
         });
     });
 });

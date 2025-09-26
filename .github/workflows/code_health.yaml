@@ -19,9 +19,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'ubuntu-latest'
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
           cache: "npm"
@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
           cache: "npm"
@@ -54,7 +54,7 @@ jobs:
           MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
           MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
-        run: npm test -- --exclude "tests/unit/**" --exclude "tests/integration/tools/mongodb/**" --exclude "tests/integration/*.ts"
+        run: npm test -- tests/integration/tools/atlas
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
@@ -69,7 +69,7 @@ jobs:
     needs: [run-tests, run-atlas-tests]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
           cache: "npm"

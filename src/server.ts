@@ -4,7 +4,8 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { AtlasTools } from "./tools/atlas/tools.js";
 import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
-import { LogId } from "./common/logger.js";
+import type { LogLevel } from "./common/logger.js";
+import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
 import type { UserConfig } from "./common/config.js";
 import { type ServerEvent } from "./telemetry/types.js";
@@ -12,6 +13,7 @@ import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     CallToolRequestSchema,
+    SetLevelRequestSchema,
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -19,12 +21,17 @@ import assert from "assert";
 import type { ToolBase } from "./tools/tool.js";
 import { AssistantTools } from "./tools/assistant/tools.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
+import { packageInfo } from "./common/packageInfo.js";
+import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
+import type { Elicitation } from "./elicitation.js";
 
 export interface ServerOptions {
     session: Session;
     userConfig: UserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
+    elicitation: Elicitation;
+    connectionErrorHandler: ConnectionErrorHandler;
 }
 
 export class Server {
@@ -32,25 +39,39 @@ export class Server {
     public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
+    public readonly elicitation: Elicitation;
     public readonly tools: ToolBase[] = [];
+    public readonly connectionErrorHandler: ConnectionErrorHandler;
+
+    private _mcpLogLevel: LogLevel = "debug";
+
+    public get mcpLogLevel(): LogLevel {
+        return this._mcpLogLevel;
+    }
+
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    constructor({ session, mcpServer, userConfig, telemetry }: ServerOptions) {
+    constructor({ session, mcpServer, userConfig, telemetry, connectionErrorHandler, elicitation }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.userConfig = userConfig;
+        this.elicitation = elicitation;
+        this.connectionErrorHandler = connectionErrorHandler;
     }
 
     async connect(transport: Transport): Promise<void> {
-        // Resources are now reactive, so we register them ASAP so they can listen to events like
+        await this.validateConfig();
+        // Register resources after the server is initialized so they can listen to events like
         // connection events.
         this.registerResources();
-        await this.validateConfig();
-
-        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true, subscribe: true } });
+        this.mcpServer.server.registerCapabilities({
+            logging: {},
+            resources: { listChanged: true, subscribe: true },
+            instructions: this.getInstructions(),
+        });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
@@ -98,28 +119,36 @@ export class Server {
             return {};
         });
 
+        this.mcpServer.server.setRequestHandler(SetLevelRequestSchema, ({ params }) => {
+            if (!McpLogger.LOG_LEVELS.includes(params.level)) {
+                throw new Error(`Invalid log level: ${params.level}`);
+            }
+
+            this._mcpLogLevel = params.level;
+            return {};
+        });
+
         this.mcpServer.server.oninitialized = (): void => {
             this.session.setMcpClient(this.mcpServer.server.getClientVersion());
             // Placed here to start the connection to the config connection string as soon as the server is initialized.
             void this.connectToConfigConnectionString();
-
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server started with transport ${transport.constructor.name} and agent runner ${this.session.mcpClient?.name}`,
+                message: `Server with version ${packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
             });
 
-            this.emitServerEvent("start", Date.now() - this.startTime);
+            this.emitServerTelemetryEvent("start", Date.now() - this.startTime);
         };
 
         this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
-            this.emitServerEvent("stop", Date.now() - closeTime);
+            this.emitServerTelemetryEvent("stop", Date.now() - closeTime);
         };
 
         this.mcpServer.server.onerror = (error: Error): void => {
             const closeTime = Date.now();
-            this.emitServerEvent("stop", Date.now() - closeTime, error);
+            this.emitServerTelemetryEvent("stop", Date.now() - closeTime, error);
         };
 
         await this.mcpServer.connect(transport);
@@ -136,17 +165,18 @@ export class Server {
     }
 
     public sendResourceUpdated(uri: string): void {
+        this.session.logger.info({
+            id: LogId.resourceUpdateFailure,
+            context: "resources",
+            message: `Resource updated: ${uri}`,
+        });
+
         if (this.subscriptions.has(uri)) {
             void this.mcpServer.server.sendResourceUpdated({ uri });
         }
     }
 
-    /**
-     * Emits a server event
-     * @param command - The server command (e.g., "start", "stop", "register", "deregister")
-     * @param additionalProperties - Additional properties specific to the event
-     */
-    private emitServerEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
+    private emitServerTelemetryEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
         const event: ServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
@@ -163,6 +193,7 @@ export class Server {
             event.properties.startup_time_ms = commandDuration;
             event.properties.read_only_mode = this.userConfig.readOnly || false;
             event.properties.disabled_tools = this.userConfig.disabledTools || [];
+            event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
@@ -172,12 +203,17 @@ export class Server {
             }
         }
 
-        this.telemetry.emitEvents([event]).catch(() => {});
+        this.telemetry.emitEvents([event]);
     }
 
     private registerTools(): void {
         for (const toolConstructor of [...AtlasTools, ...MongoDbTools, ...AssistantTools]) {
-            const tool = new toolConstructor(this.session, this.userConfig, this.telemetry);
+            const tool = new toolConstructor({
+                session: this.session,
+                config: this.userConfig,
+                telemetry: this.telemetry,
+                elicitation: this.elicitation,
+            });
             if (tool.register(this)) {
                 this.tools.push(tool);
             }
@@ -208,6 +244,13 @@ export class Server {
         // Validate API client credentials
         if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
             try {
+                if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
+                    const message =
+                        "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";
+                    console.error(message);
+                    throw new Error(message);
+                }
+
                 await this.session.apiClient.validateAccessToken();
             } catch (error) {
                 if (this.userConfig.connectionString === undefined) {
@@ -224,18 +267,43 @@ export class Server {
         }
     }
 
+    private getInstructions(): string {
+        let instructions = `
+            This is the MongoDB MCP server.
+        `;
+        if (this.userConfig.connectionString) {
+            instructions += `
+            This MCP server was configured with a MongoDB connection string, and you can assume that you are connected to a MongoDB cluster.
+            `;
+        }
+
+        if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
+            instructions += `
+            This MCP server was configured with MongoDB Atlas API credentials.`;
+        }
+
+        return instructions;
+    }
+
     private async connectToConfigConnectionString(): Promise<void> {
         if (this.userConfig.connectionString) {
             try {
+                this.session.logger.info({
+                    id: LogId.mongodbConnectTry,
+                    context: "server",
+                    message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
+                });
                 await this.session.connectToMongoDB({
                     connectionString: this.userConfig.connectionString,
                 });
             } catch (error) {
-                console.error(
-                    "Failed to connect to MongoDB instance using the connection string from the config: ",
-                    error
-                );
-                throw new Error("Failed to connect to MongoDB instance using the connection string from the config");
+                // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
+                this.session.logger.error({
+                    id: LogId.mongodbConnectFailure,
+                    context: "server",
+                    message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
+                });
+                j;
             }
         }
     }

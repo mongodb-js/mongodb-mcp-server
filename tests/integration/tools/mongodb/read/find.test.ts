@@ -1,14 +1,31 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Document, Collection } from "mongodb";
 import {
     getResponseContent,
     databaseCollectionParameters,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
+    defaultTestConfig,
 } from "../../../helpers.js";
+import * as constants from "../../../../../src/helpers/constants.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
-describeWithMongoDB("find tool", (integration) => {
+export async function freshInsertDocuments({
+    collection,
+    count,
+    documentMapper = (index): Document => ({ value: index }),
+}: {
+    collection: Collection<Document>;
+    count: number;
+    documentMapper?: (index: number) => Document;
+}): Promise<void> {
+    await collection.drop();
+    const documents = Array.from({ length: count }).map((_, idx) => documentMapper(idx));
+    await collection.insertMany(documents);
+}
+
+describeWithMongoDB("find tool with default configuration", (integration) => {
     validateToolMetadata(integration, "find", "Run a find query against a MongoDB collection", [
         ...databaseCollectionParameters,
 
@@ -37,6 +54,13 @@ describeWithMongoDB("find tool", (integration) => {
             type: "object",
             required: false,
         },
+        {
+            name: "responseBytesLimit",
+            description:
+                'The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.',
+            type: "number",
+            required: false,
+        },
     ]);
 
     validateThrowsForInvalidArguments(integration, "find", [
@@ -56,7 +80,7 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "foos".');
+        expect(content).toEqual('Query on collection "foos" resulted in 0 documents. Returning 0 documents.');
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -68,19 +92,15 @@ describeWithMongoDB("find tool", (integration) => {
             arguments: { database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "non-existent".');
+        expect(content).toEqual('Query on collection "non-existent" resulted in 0 documents. Returning 0 documents.');
     });
 
     describe("with existing database", () => {
         beforeEach(async () => {
-            const mongoClient = integration.mongoClient();
-            const items = Array(10)
-                .fill(0)
-                .map((_, index) => ({
-                    value: index,
-                }));
-
-            await mongoClient.db(integration.randomDbName()).collection("foo").insertMany(items);
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 10,
+            });
         });
 
         const testCases: {
@@ -148,7 +168,7 @@ describeWithMongoDB("find tool", (integration) => {
                     },
                 });
                 const content = getResponseContent(response);
-                expect(content).toContain(`Found ${expected.length} documents in the collection "foo".`);
+                expect(content).toContain(`Query on collection "foo" resulted in ${expected.length} documents.`);
 
                 const docs = getDocsFromUntrustedContent(content);
 
@@ -165,7 +185,7 @@ describeWithMongoDB("find tool", (integration) => {
                 arguments: { database: integration.randomDbName(), collection: "foo" },
             });
             const content = getResponseContent(response);
-            expect(content).toContain('Found 10 documents in the collection "foo".');
+            expect(content).toContain('Query on collection "foo" resulted in 10 documents.');
 
             const docs = getDocsFromUntrustedContent(content);
             expect(docs.length).toEqual(10);
@@ -190,24 +210,236 @@ describeWithMongoDB("find tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "foo",
-                    filter: { _id: fooObject._id },
+                    filter: { _id: { $oid: fooObject._id } },
                 },
             });
 
             const content = getResponseContent(response);
-            expect(content).toContain('Found 1 documents in the collection "foo".');
+            expect(content).toContain('Query on collection "foo" resulted in 1 documents.');
 
             const docs = getDocsFromUntrustedContent(content);
             expect(docs.length).toEqual(1);
 
             expect((docs[0] as { value: number }).value).toEqual(fooObject.value);
         });
+
+        it("can find objects by date", async () => {
+            await integration.connectMcpClient();
+
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("foo_with_dates")
+                .insertMany([
+                    { date: new Date("2025-05-10"), idx: 0 },
+                    { date: new Date("2025-05-11"), idx: 1 },
+                ]);
+
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo_with_dates",
+                    filter: { date: { $gt: { $date: "2025-05-10" } } }, // only 2025-05-11 will match
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(
+                'Query on collection "foo_with_dates" resulted in 1 documents. Returning 1 documents.'
+            );
+
+            const docs = getDocsFromUntrustedContent<{ date: Date }>(content);
+            expect(docs.length).toEqual(1);
+
+            expect(docs[0]?.date.toISOString()).toContain("2025-05-11");
+        });
     });
 
     validateAutoConnectBehavior(integration, "find", () => {
         return {
             args: { database: integration.randomDbName(), collection: "coll1" },
-            expectedResponse: 'Found 0 documents in the collection "coll1"',
+            expectedResponse: 'Query on collection "coll1" resulted in 0 documents.',
         };
     });
+
+    describe("when counting documents exceed the configured count maxTimeMS", () => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 10,
+            });
+        });
+
+        afterEach(() => {
+            vi.resetAllMocks();
+        });
+
+        it("should abort count operation and respond with indeterminable count", async () => {
+            vi.spyOn(constants, "QUERY_COUNT_MAX_TIME_MS_CAP", "get").mockReturnValue(0.1);
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: { database: integration.randomDbName(), collection: "foo" },
+            });
+            const content = getResponseContent(response);
+            expect(content).toContain('Query on collection "foo" resulted in indeterminable number of documents.');
+
+            const docs = getDocsFromUntrustedContent(content);
+            expect(docs.length).toEqual(10);
+        });
+    });
 });
+
+describeWithMongoDB(
+    "find tool with configured max documents per query",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 1000,
+            });
+        });
+
+        afterEach(() => {
+            vi.resetAllMocks();
+        });
+
+        it("should return documents limited to the provided limit when provided limit < configured limit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 8,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(`Query on collection "foo" resulted in 8 documents.`);
+            expect(content).toContain(`Returning 8 documents.`);
+        });
+
+        it("should return documents limited to the configured max limit when provided limit > configured limit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 10000,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
+            expect(content).toContain(
+                `Returning 10 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
+            );
+        });
+    },
+    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 10 })
+);
+
+describeWithMongoDB(
+    "find tool with configured max bytes per query",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 1000,
+            });
+        });
+        it("should return only the documents that could fit in configured maxBytesPerQuery limit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 1000,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
+            expect(content).toContain(
+                `Returning 3 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, server's configured - maxBytesPerQuery`
+            );
+        });
+        it("should return only the documents that could fit in provided responseBytesLimit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 1000,
+                    responseBytesLimit: 50,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
+            expect(content).toContain(
+                `Returning 1 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery, tool's parameter - responseBytesLimit.`
+            );
+        });
+    },
+    () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 })
+);
+
+describeWithMongoDB(
+    "find tool with disabled max limit and max bytes per query",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 1000,
+            });
+        });
+
+        it("should return documents limited to the provided limit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 8,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(`Query on collection "foo" resulted in 8 documents.`);
+            expect(content).toContain(`Returning 8 documents.`);
+        });
+
+        it("should return documents limited to the responseBytesLimit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 1000,
+                    responseBytesLimit: 50,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
+            expect(content).toContain(
+                `Returning 1 documents while respecting the applied limits of tool's parameter - responseBytesLimit.`
+            );
+        });
+    },
+    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 })
+);

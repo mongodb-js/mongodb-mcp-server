@@ -10,12 +10,14 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
+                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
                             arguments: {},
                         },
                     ],
+                    jsonExportFormat: Matcher.anyValue,
                 },
             },
         ],
@@ -28,6 +30,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
+                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
@@ -38,6 +41,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
+                    jsonExportFormat: Matcher.anyValue,
                 },
             },
         ],
@@ -50,6 +54,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
+                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
@@ -65,6 +70,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
+                    jsonExportFormat: Matcher.anyValue,
                 },
             },
         ],
@@ -77,6 +83,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
+                    exportTitle: Matcher.string(),
                     exportTarget: [
                         {
                             name: "find",
@@ -87,6 +94,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
+                    jsonExportFormat: Matcher.anyValue,
                 },
             },
         ],
@@ -117,6 +125,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
+                    jsonExportFormat: Matcher.anyValue,
                 },
             },
         ],

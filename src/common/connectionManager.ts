@@ -1,17 +1,14 @@
-import type { UserConfig, DriverOptions } from "./config.js";
-import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import EventEmitter from "events";
-import { setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
-import { packageInfo } from "./packageInfo.js";
-import ConnectionString from "mongodb-connection-string-url";
+import { EventEmitter } from "events";
 import type { MongoClientOptions } from "mongodb";
-import { ErrorCodes, MongoDBError } from "./errors.js";
+import { ConnectionString } from "mongodb-connection-string-url";
+import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { type ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import type { AppNameComponents } from "../helpers/connectionOptions.js";
-import type { CompositeLogger } from "./logger.js";
-import { LogId } from "./logger.js";
-import type { ConnectionInfo } from "@mongosh/arg-parser";
-import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import { defaultDriverOptions, setupDriverConfig, type DriverOptions, type UserConfig } from "./config.js";
+import { MongoDBError, ErrorCodes } from "./errors.js";
+import { type LoggerBase, LogId } from "./logger.js";
+import { packageInfo } from "./packageInfo.js";
+import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 
 export interface AtlasClusterConnectionInfo {
     username: string;
@@ -42,7 +39,7 @@ export interface ConnectionStateConnected extends ConnectionState {
 
 export interface ConnectionStateConnecting extends ConnectionState {
     tag: "connecting";
-    serviceProvider: NodeDriverServiceProvider;
+    serviceProvider: Promise<NodeDriverServiceProvider>;
     oidcConnectionType: OIDCConnectionAuthType;
     oidcLoginUrl?: string;
     oidcUserCode?: string;
@@ -64,51 +61,79 @@ export type AnyConnectionState =
     | ConnectionStateErrored;
 
 export interface ConnectionManagerEvents {
-    "connection-requested": [AnyConnectionState];
-    "connection-succeeded": [ConnectionStateConnected];
-    "connection-timed-out": [ConnectionStateErrored];
-    "connection-closed": [ConnectionStateDisconnected];
-    "connection-errored": [ConnectionStateErrored];
+    "connection-request": [AnyConnectionState];
+    "connection-success": [ConnectionStateConnected];
+    "connection-time-out": [ConnectionStateErrored];
+    "connection-close": [ConnectionStateDisconnected];
+    "connection-error": [ConnectionStateErrored];
+    close: [AnyConnectionState];
 }
 
-export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
+export abstract class ConnectionManager {
+    public clientName: string;
+    protected readonly _events: EventEmitter<ConnectionManagerEvents>;
+    readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
     private state: AnyConnectionState;
-    private deviceId: DeviceId;
-    private clientName: string;
-    private bus: EventEmitter;
 
-    constructor(
-        private userConfig: UserConfig,
-        private driverOptions: DriverOptions,
-        private logger: CompositeLogger,
-        deviceId: DeviceId,
-        bus?: EventEmitter
-    ) {
-        super();
-
-        this.bus = bus ?? new EventEmitter();
-        this.state = { tag: "disconnected" };
-
-        this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
-        this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
-
-        this.deviceId = deviceId;
+    constructor() {
         this.clientName = "unknown";
+        this.events = this._events = new EventEmitter<ConnectionManagerEvents>();
+        this.state = { tag: "disconnected" };
+    }
+
+    get currentConnectionState(): AnyConnectionState {
+        return this.state;
+    }
+
+    protected changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(
+        event: Event,
+        newState: State
+    ): State {
+        this.state = newState;
+        // TypeScript doesn't seem to be happy with the spread operator and generics
+        // eslint-disable-next-line
+        this._events.emit(event, ...([newState] as any));
+        return newState;
     }
 
     setClientName(clientName: string): void {
         this.clientName = clientName;
     }
 
-    async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
-        this.emit("connection-requested", this.state);
+    abstract connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
+    abstract disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
+    abstract close(): Promise<void>;
+}
 
-        if (this.state.tag === "connected" || this.state.tag === "connecting") {
+export class MCPConnectionManager extends ConnectionManager {
+    private deviceId: DeviceId;
+    private bus: EventEmitter;
+
+    constructor(
+        private userConfig: UserConfig,
+        private driverOptions: DriverOptions,
+        private logger: LoggerBase,
+        deviceId: DeviceId,
+        bus?: EventEmitter
+    ) {
+        super();
+        this.bus = bus ?? new EventEmitter();
+        this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        this.bus.on("mongodb-oidc-plugin:auth-succeeded", this.onOidcAuthSucceeded.bind(this));
+        this.deviceId = deviceId;
+    }
+
+    override async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
+        this._events.emit("connection-request", this.currentConnectionState);
+
+        if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
             await this.disconnect();
         }
 
-        let serviceProvider: NodeDriverServiceProvider;
+        let serviceProvider: Promise<NodeDriverServiceProvider>;
         let connectionInfo: ConnectionInfo;
+        let connectionStringAuthType: ConnectionStringAuthType = "scram";
 
         try {
             settings = { ...settings };
@@ -137,7 +162,12 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             connectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
-            serviceProvider = await NodeDriverServiceProvider.connect(
+            connectionStringAuthType = MCPConnectionManager.inferConnectionTypeFromSettings(
+                this.userConfig,
+                connectionInfo
+            );
+
+            serviceProvider = NodeDriverServiceProvider.connect(
                 connectionInfo.connectionString,
                 {
                     productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
@@ -149,57 +179,60 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
             );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
-            this.changeState("connection-errored", {
+            this.changeState("connection-error", {
                 tag: "errored",
                 errorReason,
+                connectionStringAuthType,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
 
         try {
-            const connectionType = ConnectionManager.inferConnectionTypeFromSettings(this.userConfig, connectionInfo);
-            if (connectionType.startsWith("oidc")) {
-                void this.pingAndForget(serviceProvider);
-
-                return this.changeState("connection-requested", {
+            if (connectionStringAuthType.startsWith("oidc")) {
+                return this.changeState("connection-request", {
                     tag: "connecting",
-                    connectedAtlasCluster: settings.atlas,
                     serviceProvider,
-                    connectionStringAuthType: connectionType,
-                    oidcConnectionType: connectionType as OIDCConnectionAuthType,
+                    connectedAtlasCluster: settings.atlas,
+                    connectionStringAuthType,
+                    oidcConnectionType: connectionStringAuthType as OIDCConnectionAuthType,
                 });
             }
 
-            await serviceProvider?.runCommand?.("admin", { hello: 1 });
-
-            return this.changeState("connection-succeeded", {
+            return this.changeState("connection-success", {
                 tag: "connected",
                 connectedAtlasCluster: settings.atlas,
-                serviceProvider,
-                connectionStringAuthType: connectionType,
+                serviceProvider: await serviceProvider,
+                connectionStringAuthType,
             });
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
-            this.changeState("connection-errored", {
+            this.changeState("connection-error", {
                 tag: "errored",
                 errorReason,
+                connectionStringAuthType,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
         }
     }
 
-    async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
-        if (this.state.tag === "disconnected" || this.state.tag === "errored") {
-            return this.state;
+    override async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
+        if (this.currentConnectionState.tag === "disconnected" || this.currentConnectionState.tag === "errored") {
+            return this.currentConnectionState;
         }
 
-        if (this.state.tag === "connected" || this.state.tag === "connecting") {
+        if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
             try {
-                await this.state.serviceProvider?.close(true);
+                if (this.currentConnectionState.tag === "connected") {
+                    await this.currentConnectionState.serviceProvider?.close();
+                }
+                if (this.currentConnectionState.tag === "connecting") {
+                    const serviceProvider = await this.currentConnectionState.serviceProvider;
+                    await serviceProvider.close();
+                }
             } finally {
-                this.changeState("connection-closed", {
+                this.changeState("connection-close", {
                     tag: "disconnected",
                 });
             }
@@ -208,30 +241,40 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         return { tag: "disconnected" };
     }
 
-    get currentConnectionState(): AnyConnectionState {
-        return this.state;
-    }
-
-    changeState<Event extends keyof ConnectionManagerEvents, State extends ConnectionManagerEvents[Event][0]>(
-        event: Event,
-        newState: State
-    ): State {
-        this.state = newState;
-        // TypeScript doesn't seem to be happy with the spread operator and generics
-        // eslint-disable-next-line
-        this.emit(event, ...([newState] as any));
-        return newState;
+    override async close(): Promise<void> {
+        try {
+            await this.disconnect();
+        } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            this.logger.error({
+                id: LogId.mongodbDisconnectFailure,
+                context: "ConnectionManager",
+                message: `Error when closing ConnectionManager: ${error.message}`,
+            });
+        } finally {
+            this._events.emit("close", this.currentConnectionState);
+        }
     }
 
     private onOidcAuthFailed(error: unknown): void {
-        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
+        if (
+            this.currentConnectionState.tag === "connecting" &&
+            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+        ) {
             void this.disconnectOnOidcError(error);
         }
     }
 
-    private onOidcAuthSucceeded(): void {
-        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
-            this.changeState("connection-succeeded", { ...this.state, tag: "connected" });
+    private async onOidcAuthSucceeded(): Promise<void> {
+        if (
+            this.currentConnectionState.tag === "connecting" &&
+            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+        ) {
+            this.changeState("connection-success", {
+                ...this.currentConnectionState,
+                tag: "connected",
+                serviceProvider: await this.currentConnectionState.serviceProvider,
+            });
         }
 
         this.logger.info({
@@ -242,9 +285,12 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
     }
 
     private onOidcNotifyDeviceFlow(flowInfo: { verificationUrl: string; userCode: string }): void {
-        if (this.state.tag === "connecting" && this.state.connectionStringAuthType?.startsWith("oidc")) {
-            this.changeState("connection-requested", {
-                ...this.state,
+        if (
+            this.currentConnectionState.tag === "connecting" &&
+            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+        ) {
+            this.changeState("connection-request", {
+                ...this.currentConnectionState,
                 tag: "connecting",
                 connectionStringAuthType: "oidc-device-flow",
                 oidcLoginUrl: flowInfo.verificationUrl,
@@ -295,18 +341,6 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
         }
     }
 
-    private async pingAndForget(serviceProvider: NodeDriverServiceProvider): Promise<void> {
-        try {
-            await serviceProvider?.runCommand?.("admin", { hello: 1 });
-        } catch (error: unknown) {
-            this.logger.warning({
-                id: LogId.oidcFlow,
-                context: "pingAndForget",
-                message: String(error),
-            });
-        }
-    }
-
     private async disconnectOnOidcError(error: unknown): Promise<void> {
         try {
             await this.disconnect();
@@ -317,7 +351,27 @@ export class ConnectionManager extends EventEmitter<ConnectionManagerEvents> {
                 message: String(error),
             });
         } finally {
-            this.changeState("connection-errored", { tag: "errored", errorReason: String(error) });
+            this.changeState("connection-error", { tag: "errored", errorReason: String(error) });
         }
     }
 }
+
+/**
+ * Consumers of MCP server library have option to bring their own connection
+ * management if they need to. To support that, we enable injecting connection
+ * manager implementation through a factory function.
+ */
+export type ConnectionManagerFactoryFn = (createParams: {
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    userConfig: UserConfig;
+}) => Promise<ConnectionManager>;
+
+export const createMCPConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
+    const driverOptions = setupDriverConfig({
+        config: userConfig,
+        defaults: defaultDriverOptions,
+    });
+
+    return Promise.resolve(new MCPConnectionManager(userConfig, driverOptions, logger, deviceId));
+};

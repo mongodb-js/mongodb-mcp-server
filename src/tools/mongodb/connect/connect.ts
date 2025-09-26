@@ -1,12 +1,10 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.js";
 import assert from "assert";
-import type { UserConfig } from "../../../common/config.js";
-import type { Telemetry } from "../../../telemetry/telemetry.js";
-import type { Session } from "../../../common/session.js";
 import type { Server } from "../../../server.js";
+import { LogId } from "../../../common/logger.js";
 
 const disconnectedSchema = z
     .object({
@@ -30,7 +28,8 @@ const disconnectedName = "connect" as const;
 
 const connectedDescription =
     "Switch to a different MongoDB connection. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new instance.";
-const disconnectedDescription = "Connect to a MongoDB instance";
+const disconnectedDescription =
+    "Connect to a MongoDB instance. The config resource captures if the server is already connected to a MongoDB cluster. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new MongoDB cluster.";
 
 export class ConnectTool extends MongoDBToolBase {
     public name: typeof connectedName | typeof disconnectedName = disconnectedName;
@@ -44,8 +43,8 @@ export class ConnectTool extends MongoDBToolBase {
 
     public operationType: OperationType = "connect";
 
-    constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
-        super(session, config, telemetry);
+    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
+        super({ session, config, telemetry, elicitation });
         session.on("connect", () => {
             this.updateMetadata();
         });
@@ -87,18 +86,30 @@ export class ConnectTool extends MongoDBToolBase {
     }
 
     private updateMetadata(): void {
+        let name: string;
+        let description: string;
+        let inputSchema: z.ZodObject<z.ZodRawShape>;
+
         if (this.session.isConnectedToMongoDB) {
-            this.update?.({
-                name: connectedName,
-                description: connectedDescription,
-                inputSchema: connectedSchema,
-            });
+            name = connectedName;
+            description = connectedDescription;
+            inputSchema = connectedSchema;
         } else {
-            this.update?.({
-                name: disconnectedName,
-                description: disconnectedDescription,
-                inputSchema: disconnectedSchema,
-            });
+            name = disconnectedName;
+            description = disconnectedDescription;
+            inputSchema = disconnectedSchema;
         }
+
+        this.session.logger.info({
+            id: LogId.updateToolMetadata,
+            context: "tool",
+            message: `Updating tool metadata to ${name}`,
+        });
+
+        this.update?.({
+            name,
+            description,
+            inputSchema,
+        });
     }
 }
