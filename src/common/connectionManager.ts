@@ -66,10 +66,11 @@ export interface ConnectionManagerEvents {
     "connection-time-out": [ConnectionStateErrored];
     "connection-close": [ConnectionStateDisconnected];
     "connection-error": [ConnectionStateErrored];
+    close: [AnyConnectionState];
 }
 
 export abstract class ConnectionManager {
-    protected clientName: string;
+    public clientName: string;
     protected readonly _events: EventEmitter<ConnectionManagerEvents>;
     readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
     private state: AnyConnectionState;
@@ -101,6 +102,7 @@ export abstract class ConnectionManager {
 
     abstract connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
     abstract disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored>;
+    abstract close(): Promise<void>;
 }
 
 export class MCPConnectionManager extends ConnectionManager {
@@ -122,7 +124,7 @@ export class MCPConnectionManager extends ConnectionManager {
         this.deviceId = deviceId;
     }
 
-    async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
+    override async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         this._events.emit("connection-request", this.currentConnectionState);
 
         if (this.currentConnectionState.tag === "connected" || this.currentConnectionState.tag === "connecting") {
@@ -215,7 +217,7 @@ export class MCPConnectionManager extends ConnectionManager {
         }
     }
 
-    async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
+    override async disconnect(): Promise<ConnectionStateDisconnected | ConnectionStateErrored> {
         if (this.currentConnectionState.tag === "disconnected" || this.currentConnectionState.tag === "errored") {
             return this.currentConnectionState;
         }
@@ -237,6 +239,21 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         return { tag: "disconnected" };
+    }
+
+    override async close(): Promise<void> {
+        try {
+            await this.disconnect();
+        } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            this.logger.error({
+                id: LogId.mongodbDisconnectFailure,
+                context: "ConnectionManager",
+                message: `Error when closing ConnectionManager: ${error.message}`,
+            });
+        } finally {
+            this._events.emit("close", this.currentConnectionState);
+        }
     }
 
     private onOidcAuthFailed(error: unknown): void {
