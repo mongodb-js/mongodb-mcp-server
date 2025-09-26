@@ -45,7 +45,7 @@ For more information on setting up API keys, visit: https://www.mongodb.com/docs
                             type: "text",
                             text: `Received a Payment Required API Error: ${error.message}
 
-Payment setup is required to perform this action in MongoDB Atlas
+Payment setup is required to perform this action in MongoDB Atlas.
 Please ensure that your payment method for your organization has been set up and is active.
 For more information on setting up payment, visit: https://www.mongodb.com/docs/atlas/billing/`,
                         },
@@ -60,7 +60,7 @@ For more information on setting up payment, visit: https://www.mongodb.com/docs/
                             type: "text",
                             text: `Received a Forbidden API Error: ${error.message}
 
-You don't have sufficient permissions to perform this action in MongoDB Atlas
+You don't have sufficient permissions to perform this action in MongoDB Atlas.
 Please ensure your API key has the necessary roles assigned.
 For more information on Atlas API access roles, visit: https://www.mongodb.com/docs/atlas/api/service-accounts-overview/`,
                         },
