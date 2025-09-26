@@ -31,10 +31,9 @@ export abstract class AssistantToolBase extends ToolBase {
         return super.register(server);
     }
 
-    protected resolveTelemetryMetadata(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        args: ToolArgs<typeof this.argsShape>
-    ): TelemetryToolMetadata {
+    protected resolveTelemetryMetadata(_args: ToolArgs<typeof this.argsShape>): TelemetryToolMetadata {
+        // Assistant tool calls are not associated with a specific project or organization
+        // Therefore, we don't have any values to add to the telemetry metadata
         return {};
     }
 

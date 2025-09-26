@@ -62,6 +62,9 @@ export const LogId = {
     exportLockError: mongoLogId(1_007_008),
 
     oidcFlow: mongoLogId(1_008_001),
+
+    assistantListKnowledgeSourcesError: mongoLogId(1_009_001),
+    assistantSearchKnowledgeError: mongoLogId(1_009_002),
 } as const;
 
 interface LogPayload {

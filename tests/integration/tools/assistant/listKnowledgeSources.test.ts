@@ -3,12 +3,12 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { expectDefined, validateToolMetadata, getResponseElements } from "../../helpers.js";
 import { describeWithAssistant, makeMockAssistantAPI } from "./assistantHelpers.js";
 
-describeWithAssistant("list_knowledge_sources", (integration) => {
+describeWithAssistant("list-knowledge-sources", (integration) => {
     const { mockListSources, mockAPIError, mockNetworkError } = makeMockAssistantAPI();
 
     validateToolMetadata(
         integration,
-        "list_knowledge_sources",
+        "list-knowledge-sources",
         "List available data sources in the MongoDB Assistant knowledge base",
         []
     );
@@ -38,7 +38,7 @@ describeWithAssistant("list_knowledge_sources", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "list_knowledge_sources", arguments: {} })) as CallToolResult;
+                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -72,7 +72,7 @@ describeWithAssistant("list_knowledge_sources", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "list_knowledge_sources", arguments: {} })) as CallToolResult;
+                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -86,7 +86,7 @@ describeWithAssistant("list_knowledge_sources", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "list_knowledge_sources", arguments: {} })) as CallToolResult;
+                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);
@@ -99,7 +99,7 @@ describeWithAssistant("list_knowledge_sources", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "list_knowledge_sources", arguments: {} })) as CallToolResult;
+                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);
@@ -113,7 +113,7 @@ describeWithAssistant("list_knowledge_sources", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "list_knowledge_sources", arguments: {} })) as CallToolResult;
+                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);

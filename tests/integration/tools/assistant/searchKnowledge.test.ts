@@ -8,12 +8,12 @@ import {
 } from "../../helpers.js";
 import { describeWithAssistant, makeMockAssistantAPI } from "./assistantHelpers.js";
 
-describeWithAssistant("search_knowledge", (integration) => {
+describeWithAssistant("search-knowledge", (integration) => {
     const { mockSearchResults, mockAPIError, mockNetworkError } = makeMockAssistantAPI();
 
     validateToolMetadata(
         integration,
-        "search_knowledge",
+        "search-knowledge",
         "Search for information in the MongoDB Assistant knowledge base",
         [
             {
@@ -38,7 +38,7 @@ describeWithAssistant("search_knowledge", (integration) => {
         ]
     );
 
-    validateThrowsForInvalidArguments(integration, "search_knowledge", [
+    validateThrowsForInvalidArguments(integration, "search-knowledge", [
         {}, // missing required query
         { query: 123 }, // invalid query type
         { query: "test", limit: -1 }, // invalid limit
@@ -74,7 +74,7 @@ describeWithAssistant("search_knowledge", (integration) => {
             mockSearchResults(mockResults);
 
             const response = (await integration.mcpClient().callTool({
-                name: "search_knowledge",
+                name: "search-knowledge",
                 arguments: { query: "aggregation pipeline" },
             })) as CallToolResult;
 
@@ -117,7 +117,7 @@ describeWithAssistant("search_knowledge", (integration) => {
             mockSearchResults(mockResults);
 
             const response = (await integration.mcpClient().callTool({
-                name: "search_knowledge",
+                name: "search-knowledge",
                 arguments: {
                     query: "node.js driver",
                     limit: 1,
@@ -144,7 +144,7 @@ describeWithAssistant("search_knowledge", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "search_knowledge", arguments: { query: "nonexistent topic" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "nonexistent topic" } })) as CallToolResult;
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -165,7 +165,7 @@ describeWithAssistant("search_knowledge", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "search_knowledge", arguments: { query: "test query" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toHaveLength(5);
@@ -178,7 +178,7 @@ describeWithAssistant("search_knowledge", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "search_knowledge", arguments: { query: "test query" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);
@@ -191,7 +191,7 @@ describeWithAssistant("search_knowledge", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "search_knowledge", arguments: { query: "test query" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);
@@ -205,7 +205,7 @@ describeWithAssistant("search_knowledge", (integration) => {
 
             const response = (await integration
                 .mcpClient()
-                .callTool({ name: "search_knowledge", arguments: { query: "test query" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);

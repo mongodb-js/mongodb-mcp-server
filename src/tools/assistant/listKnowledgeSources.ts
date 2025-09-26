@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationType } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
+import { LogId } from "../../common/logger.js";
 
 export const dataSourceMetadataSchema = z.object({
     id: z.string().describe("The name of the data source"),
@@ -21,7 +22,7 @@ export const listDataSourcesResponseSchema = z.object({
 });
 
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
-    public name = "list_knowledge_sources";
+    public name = "list-knowledge-sources";
     protected description = "List available data sources in the MongoDB Assistant knowledge base";
     protected argsShape = {};
     public operationType: OperationType = "read";
@@ -33,7 +34,21 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
             headers: this.requiredHeaders,
         });
         if (!response.ok) {
-            throw new Error(`Failed to list knowledge sources: ${response.statusText}`);
+            const message = `Failed to list knowledge sources: ${response.statusText}`;
+            this.session.logger.debug({
+                id: LogId.assistantListKnowledgeSourcesError,
+                context: "assistant-list-knowledge-sources",
+                message,
+            });
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: message,
+                    },
+                ],
+                isError: true,
+            };
         }
         const { dataSources } = listDataSourcesResponseSchema.parse(await response.json());
 

@@ -1,4 +1,4 @@
-import { ListKnowledgeSourcesTool } from "./list_knowledge_sources.js";
-import { SearchKnowledgeTool } from "./search_knowledge.js";
+import { ListKnowledgeSourcesTool } from "./listKnowledgeSources.js";
+import { SearchKnowledgeTool } from "./searchKnowledge.js";
 
 export const AssistantTools = [ListKnowledgeSourcesTool, SearchKnowledgeTool];
