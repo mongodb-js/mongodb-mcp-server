@@ -1,11 +1,42 @@
 dist
 node_modules
-.vscode
-.github
-.git
-# Environment variables
-.env
 
+### VCS / metadata
+.git
+.github
+.smithery
+
+### Tool / editor configs
+.vscode
+*.swp
+*.tmp
+*.DS_Store
+Thumbs.db
+
+### Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Temp
+tmp
+**/tmp
+
+### Environment variables & secrets
+.env
+.env.*
+env.list
+
+### Tests & coverage (not needed in runtime image)
 tests
 coverage
-scripts
+scripts/accuracy
+**/test-data-dumps
+.vitest
+
+### Local certificates (copy explicitly if needed)
+certs
+
+### Misc local exports
+exports
