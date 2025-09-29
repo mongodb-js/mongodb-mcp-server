@@ -1,4 +1,4 @@
-import { setupIntegrationTest, IntegrationTest, defaultTestConfig } from "../../helpers.js";
+import { setupIntegrationTest, IntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import { describe, SuiteCollector } from "vitest";
 import { vi, beforeAll, afterAll } from "vitest";
 
@@ -6,10 +6,15 @@ export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
 export function describeWithAssistant(name: string, fn: IntegrationTestFunction): SuiteCollector<object> {
     const testDefinition = (): void => {
-        const integration = setupIntegrationTest(() => ({
-            ...defaultTestConfig,
-            assistantBaseUrl: "https://knowledge.test.mongodb.com/api/", // Use test URL
-        }));
+        const integration = setupIntegrationTest(
+            () => ({
+                ...defaultTestConfig,
+                assistantBaseUrl: "https://knowledge.test.mongodb.com/api/", // Use test URL
+            }),
+            () => ({
+                ...defaultDriverOptions,
+            })
+        );
 
         describe(name, () => {
             fn(integration);

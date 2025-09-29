@@ -28,10 +28,9 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
     public operationType: OperationType = "read";
 
     protected async execute(): Promise<CallToolResult> {
-        const searchEndpoint = new URL("content/sources", this.baseUrl);
-        const response = await fetch(searchEndpoint, {
+        const response = await this.callAssistantApi({
             method: "GET",
-            headers: this.requiredHeaders,
+            endpoint: "content/sources",
         });
         if (!response.ok) {
             const message = `Failed to list knowledge sources: ${response.statusText}`;

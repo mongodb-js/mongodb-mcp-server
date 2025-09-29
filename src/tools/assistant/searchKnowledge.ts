@@ -46,11 +46,10 @@ export class SearchKnowledgeTool extends AssistantToolBase {
     public operationType: OperationType = "read";
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const searchEndpoint = new URL("content/search", this.baseUrl);
-        const response = await fetch(searchEndpoint, {
+        const response = await this.callAssistantApi({
             method: "POST",
-            headers: new Headers({ ...this.requiredHeaders, "Content-Type": "application/json" }),
-            body: JSON.stringify(args),
+            endpoint: "content/search",
+            body: args,
         });
         if (!response.ok) {
             const message = `Failed to search knowledge base: ${response.statusText}`;
