@@ -20,22 +20,24 @@ export const SearchKnowledgeToolArgs = {
         ),
 };
 
-export const knowledgeChunkSchema = z
-    .object({
-        url: z.string().describe("The URL of the search result"),
-        title: z.string().describe("Title of the search result"),
-        text: z.string().describe("Chunk text"),
-        metadata: z
-            .object({
-                tags: z.array(z.string()).describe("The tags of the source"),
-            })
-            .passthrough(),
-    })
-    .passthrough();
-
-export const searchResponseSchema = z.object({
-    results: z.array(knowledgeChunkSchema).describe("A list of search results"),
-});
+export type SearchKnowledgeResponse = {
+    /** A list of search results */
+    results: {
+        /** The URL of the search result */
+        url: string;
+        /** The page title of the search result */
+        title: string;
+        /** The text of the page chunk returned from the search */
+        text: string;
+        /** Metadata for the search result */
+        metadata: {
+            /** A list of tags that describe the page */
+            tags: string[];
+            /** Additional metadata */
+            [key: string]: unknown;
+        };
+    }[];
+};
 
 export class SearchKnowledgeTool extends AssistantToolBase {
     public name = "search-knowledge";
@@ -68,7 +70,7 @@ export class SearchKnowledgeTool extends AssistantToolBase {
                 isError: true,
             };
         }
-        const { results } = searchResponseSchema.parse(await response.json());
+        const { results } = (await response.json()) as SearchKnowledgeResponse;
         return {
             content: results.map(({ text, metadata }) => ({
                 type: "text",

@@ -4,22 +4,21 @@ import { OperationType } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
 
-export const dataSourceMetadataSchema = z.object({
-    id: z.string().describe("The name of the data source"),
-    type: z.string().optional().describe("The type of the data source"),
-    versions: z
-        .array(
-            z.object({
-                label: z.string().describe("The version label of the data source"),
-                isCurrent: z.boolean().describe("Whether this version is current active version"),
-            })
-        )
-        .describe("A list of available versions for this data source"),
-});
-
-export const listDataSourcesResponseSchema = z.object({
-    dataSources: z.array(dataSourceMetadataSchema).describe("A list of data sources"),
-});
+export type ListKnowledgeSourcesResponse = {
+    dataSources: {
+        /** The name of the data source */
+        id: string;
+        /** The type of the data source */
+        type: string;
+        /** A list of available versions for this data source */
+        versions: {
+            /** The version label of the data source */
+            label: string;
+            /** Whether this version is the current/default version */
+            isCurrent: boolean;
+        }[];
+    }[];
+};
 
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
     public name = "list-knowledge-sources";
@@ -49,7 +48,7 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
                 isError: true,
             };
         }
-        const { dataSources } = listDataSourcesResponseSchema.parse(await response.json());
+        const { dataSources } = (await response.json()) as ListKnowledgeSourcesResponse;
 
         return {
             content: dataSources.map(({ id, type, versions }) => ({

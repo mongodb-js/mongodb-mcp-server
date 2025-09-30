@@ -106,20 +106,5 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
             expect(response.content[0]).toHaveProperty("text");
             expect(response.content[0]?.text).toContain("Network connection failed");
         });
-
-        it("handles malformed API response", async () => {
-            // Mock a response that doesn't match the expected schema
-            mockListSources(["invalid-response"]);
-
-            const response = (await integration
-                .mcpClient()
-                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
-
-            expect(response.isError).toBe(true);
-            expectDefined(response.content);
-            expect(response.content[0]).toHaveProperty("text");
-            // Should contain some indication of a parsing/validation error
-            expect(response.content[0]?.text).toMatch(/error/i);
-        });
     });
 });
