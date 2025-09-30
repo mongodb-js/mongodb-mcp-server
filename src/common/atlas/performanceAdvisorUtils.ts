@@ -136,10 +136,10 @@ export async function getSlowQueries(
             })
         );
 
-        const responses = await Promise.all(slowQueryPromises);
+        const responses = await Promise.allSettled(slowQueryPromises);
 
         const allSlowQueryLogs = responses.reduce((acc, response) => {
-            return acc.concat(response.slowQueries ?? []);
+            return acc.concat(response.status === "fulfilled" ? (response.value.slowQueries ?? []) : []);
         }, [] as Array<SlowQueryLog>);
 
         return { slowQueryLogs: allSlowQueryLogs };
