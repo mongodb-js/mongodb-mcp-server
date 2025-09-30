@@ -8,7 +8,7 @@ export type DropIndexSuggestion = components["schemas"]["DropIndexSuggestionsInd
 export type SlowQueryLogMetrics = components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
 export type SlowQueryLog = components["schemas"]["PerformanceAdvisorSlowQuery"];
 
-export const DEFAULT_SLOW_QUERY_LOGS_LIMIT = 100;
+export const DEFAULT_SLOW_QUERY_LOGS_LIMIT = 50;
 
 interface SuggestedIndexesResponse {
     content: components["schemas"]["PerformanceAdvisorResponse"];
