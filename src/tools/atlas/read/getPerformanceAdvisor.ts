@@ -31,8 +31,11 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
             .default(PerformanceAdvisorOperationType.options)
             .describe("Operations to get performance advisor recommendations"),
         since: z
-            .date()
-            .describe("Date to get slow query logs since. Only relevant for the slowQueryLogs operation.")
+            .string()
+            .datetime()
+            .describe(
+                "Date to get slow query logs since. Must be a string in ISO 8601 format. Only relevant for the slowQueryLogs operation."
+            )
             .optional(),
         namespaces: z
             .array(z.string())
@@ -57,7 +60,13 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                         ? getDropIndexSuggestions(this.session.apiClient, projectId, clusterName)
                         : Promise.resolve(undefined),
                     operations.includes("slowQueryLogs")
-                        ? getSlowQueries(this.session.apiClient, projectId, clusterName, since, namespaces)
+                        ? getSlowQueries(
+                              this.session.apiClient,
+                              projectId,
+                              clusterName,
+                              since ? new Date(since) : undefined,
+                              namespaces
+                          )
                         : Promise.resolve(undefined),
                     operations.includes("schemaSuggestions")
                         ? getSchemaAdvice(this.session.apiClient, projectId, clusterName)
