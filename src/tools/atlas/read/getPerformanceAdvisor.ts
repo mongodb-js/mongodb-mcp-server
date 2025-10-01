@@ -76,7 +76,11 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
 
             // Inserts the performance advisor data with the relevant section header if it exists
             const performanceAdvisorData = [
-                `## Suggested Indexes\n${hasSuggestedIndexes ? JSON.stringify(suggestedIndexesResult.suggestedIndexes) : "No suggested indexes found."}`,
+                `## Suggested Indexes\n${
+                    hasSuggestedIndexes
+                        ? `Note: The "Weight" field is measured in bytes, and represents the estimated number of bytes saved in disk reads per executed read query that would be saved by implementing an index suggestion. Please convert this to MB or GB for easier readability.\n${JSON.stringify(suggestedIndexesResult.suggestedIndexes)}`
+                        : "No suggested indexes found."
+                }`,
                 `## Drop Index Suggestions\n${hasDropIndexSuggestions ? JSON.stringify(dropIndexSuggestionsResult) : "No drop index suggestions found."}`,
                 `## Slow Query Logs\n${hasSlowQueryLogs ? JSON.stringify(slowQueryLogsResult.slowQueryLogs) : "No slow query logs found."}`,
                 `## Schema Suggestions\n${hasSchemaSuggestions ? JSON.stringify(schemaSuggestionsResult.recommendations) : "No schema suggestions found."}`,
