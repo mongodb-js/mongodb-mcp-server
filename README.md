@@ -323,8 +323,8 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 
 #### MongoDB Assistant Tools
 
-- `list-knowledge-sources` - List available data sources in the MongoDB Assistant knowledge base
-- `search-knowledge` - Search for information in the MongoDB Assistant knowledge base
+- `list-knowledge-sources` - List available data sources in the MongoDB Assistant knowledge base. Example sources include various MongoDB documentation sites, MongoDB University courses, and other useful learning resources.
+- `search-knowledge` - Search for information in the MongoDB Assistant knowledge base.
 
 ## 📄 Supported Resources
 
