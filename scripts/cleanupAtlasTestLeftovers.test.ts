@@ -57,7 +57,7 @@ async function main(): Promise<void> {
     const apiClient = new ApiClient(
         {
             baseUrl: process.env.MDB_MCP_API_BASE_URL || "https://cloud-dev.mongodb.com",
-            credentials: { 
+            credentials: {
                 clientId: process.env.MDB_MCP_API_CLIENT_ID || "",
                 clientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "",
             },
