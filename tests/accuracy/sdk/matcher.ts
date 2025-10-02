@@ -41,8 +41,6 @@ export abstract class Matcher {
     }
 }
 
-export const PARAMETER_SCORER_SYMBOL = Symbol("parameterScorer");
-
 class EmptyObjectOrUndefinedMatcher extends Matcher {
     public match(actual: unknown): number {
         if (

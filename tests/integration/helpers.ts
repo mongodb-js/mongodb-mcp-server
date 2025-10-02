@@ -8,7 +8,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import type { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { config, driverOptions } from "../../src/common/config.js";
+import {
+    config,
+    setupDriverConfig,
+    defaultDriverOptions as defaultDriverOptionsFromConfig,
+} from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
@@ -17,6 +21,13 @@ import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.
 import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
+
+export const driverOptions = setupDriverConfig({
+    config,
+    defaults: defaultDriverOptionsFromConfig,
+});
+
+export const defaultDriverOptions: DriverOptions = { ...driverOptions };
 
 interface ParameterInfo {
     name: string;
@@ -37,11 +48,6 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-export const defaultDriverOptions: DriverOptions = {
-    ...driverOptions,
-};
-
-// Timeout in milliseconds for long running tests: defaults to 20 minutes
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
 export function setupIntegrationTest(

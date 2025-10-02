@@ -1,15 +1,69 @@
 import type { Session } from "../../../../src/common/session.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
-import {
-    describeWithAtlas,
-    withProject,
-    randomId,
-    parseTable,
-    deleteAndWaitCluster,
-    waitCluster,
-    sleep,
-} from "./atlasHelpers.js";
+import { describeWithAtlas, withProject, randomId, parseTable } from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function deleteCluster(
+    session: Session,
+    projectId: string,
+    clusterName: string,
+    wait: boolean = false
+): Promise<void> {
+    await session.apiClient.deleteCluster({
+        params: {
+            path: {
+                groupId: projectId,
+                clusterName,
+            },
+        },
+    });
+
+    if (!wait) {
+        return;
+    }
+
+    while (true) {
+        try {
+            await session.apiClient.getCluster({
+                params: {
+                    path: {
+                        groupId: projectId,
+                        clusterName,
+                    },
+                },
+            });
+            await sleep(1000);
+        } catch {
+            break;
+        }
+    }
+}
+
+async function waitCluster(
+    session: Session,
+    projectId: string,
+    clusterName: string,
+    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>
+): Promise<void> {
+    while (true) {
+        const cluster = await session.apiClient.getCluster({
+            params: {
+                path: {
+                    groupId: projectId,
+                    clusterName,
+                },
+            },
+        });
+        if (await check(cluster)) {
+            return;
+        }
+        await sleep(1000);
+    }
+}
 
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
@@ -19,7 +73,7 @@ describeWithAtlas("clusters", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session: Session = integration.mcpServer().session;
-                await deleteAndWaitCluster(session, projectId, clusterName);
+                await deleteCluster(session, projectId, clusterName);
             }
         });
 

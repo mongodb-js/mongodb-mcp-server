@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { Matcher } from "./sdk/matcher.js";
 
 /**
  * None of these tests score a parameter match on any of the models, likely
@@ -22,6 +23,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
+                    verbosity: Matcher.string(),
                 },
             },
         ],
@@ -46,6 +48,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
+                    verbosity: Matcher.string(),
                 },
             },
         ],
@@ -66,6 +69,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
+                    verbosity: Matcher.string(),
                 },
             },
         ],
