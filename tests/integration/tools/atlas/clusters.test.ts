@@ -8,6 +8,8 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// keeping it for cleanup scripts if needed
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function deleteAndWaitCluster(session: Session, projectId: string, clusterName: string): Promise<void> {
     await session.apiClient.deleteCluster({
         params: {
@@ -32,6 +34,17 @@ async function deleteAndWaitCluster(session: Session, projectId: string, cluster
             break;
         }
     }
+}
+
+async function deleteCluster(session: Session, projectId: string, clusterName: string): Promise<void> {
+    await session.apiClient.deleteCluster({
+        params: {
+            path: {
+                groupId: projectId,
+                clusterName,
+            },
+        },
+    });
 }
 
 async function waitCluster(
@@ -64,7 +77,7 @@ describeWithAtlas("clusters", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session: Session = integration.mcpServer().session;
-                await deleteAndWaitCluster(session, projectId, clusterName);
+                await deleteCluster(session, projectId, clusterName);
             }
         });
 
