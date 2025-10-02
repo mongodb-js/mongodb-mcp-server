@@ -1,12 +1,14 @@
 import { LogId } from "../logger.js";
 import type { ApiClient } from "./apiClient.js";
-import { getProcessIdFromCluster } from "./cluster.js";
+import { getProcessIdsFromCluster } from "./cluster.js";
 import type { components } from "./openapi.js";
 
 export type SuggestedIndex = components["schemas"]["PerformanceAdvisorIndex"];
 export type DropIndexSuggestion = components["schemas"]["DropIndexSuggestionsIndex"];
 export type SlowQueryLogMetrics = components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
 export type SlowQueryLog = components["schemas"]["PerformanceAdvisorSlowQuery"];
+
+export const DEFAULT_SLOW_QUERY_LOGS_LIMIT = 50;
 
 interface SuggestedIndexesResponse {
     content: components["schemas"]["PerformanceAdvisorResponse"];
@@ -112,22 +114,35 @@ export async function getSlowQueries(
     namespaces?: Array<string>
 ): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
-        const processId = await getProcessIdFromCluster(apiClient, projectId, clusterName);
+        const processIds = await getProcessIdsFromCluster(apiClient, projectId, clusterName);
 
-        const response = await apiClient.listSlowQueries({
-            params: {
-                path: {
-                    groupId: projectId,
-                    processId,
-                },
-                query: {
-                    ...(since && { since: since.getTime() }),
-                    ...(namespaces && { namespaces: namespaces }),
-                },
-            },
-        });
+        if (processIds.length === 0) {
+            return { slowQueryLogs: [] };
+        }
 
-        return { slowQueryLogs: response.slowQueries ?? [] };
+        const slowQueryPromises = processIds.map((processId) =>
+            apiClient.listSlowQueries({
+                params: {
+                    path: {
+                        groupId: projectId,
+                        processId,
+                    },
+                    query: {
+                        ...(since && { since: since.getTime() }),
+                        ...(namespaces && { namespaces: namespaces }),
+                        nLogs: DEFAULT_SLOW_QUERY_LOGS_LIMIT,
+                    },
+                },
+            })
+        );
+
+        const responses = await Promise.allSettled(slowQueryPromises);
+
+        const allSlowQueryLogs = responses.reduce((acc, response) => {
+            return acc.concat(response.status === "fulfilled" ? (response.value.slowQueries ?? []) : []);
+        }, [] as Array<SlowQueryLog>);
+
+        return { slowQueryLogs: allSlowQueryLogs };
     } catch (err) {
         apiClient.logger.debug({
             id: LogId.atlasPaSlowQueryLogsFailure,
