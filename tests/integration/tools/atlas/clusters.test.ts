@@ -16,7 +16,12 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function deleteAndWaitCluster(session: Session, projectId: string, clusterName: string): Promise<void> {
+async function deleteCluster(
+    session: Session,
+    projectId: string,
+    clusterName: string,
+    wait: boolean = false
+): Promise<void> {
     await session.apiClient.deleteCluster({
         params: {
             path: {
@@ -25,6 +30,11 @@ async function deleteAndWaitCluster(session: Session, projectId: string, cluster
             },
         },
     });
+
+    if (!wait) {
+        return;
+    }
+
     while (true) {
         try {
             await session.apiClient.getCluster({
@@ -85,7 +95,7 @@ describeWithAtlas("clusters", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session: Session = integration.mcpServer().session;
-                await deleteAndWaitCluster(session, projectId, clusterName);
+                await deleteCluster(session, projectId, clusterName);
             }
         });
 

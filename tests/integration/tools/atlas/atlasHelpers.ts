@@ -71,18 +71,25 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             }
         });
 
-        afterAll(async () => {
+        afterAll(() => {
+            if (!projectId) {
+                return;
+            }
+
             const apiClient = integration.mcpServer().session.apiClient;
-            if (projectId) {
-                // projectId may be empty if beforeAll failed.
-                await apiClient.deleteProject({
+
+            // send the delete request and ignore errors
+            apiClient
+                .deleteProject({
                     params: {
                         path: {
                             groupId: projectId,
                         },
                     },
+                })
+                .catch((error) => {
+                    console.log("Failed to delete project:", error);
                 });
-            }
         });
 
         const args = {
