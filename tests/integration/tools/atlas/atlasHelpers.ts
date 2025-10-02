@@ -4,7 +4,7 @@ import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
 import type { IntegrationTest } from "../../helpers.js";
 import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
-import { afterAll, beforeAll, describe } from "vitest";
+import { beforeAll, describe } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -57,20 +57,6 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             } catch (error) {
                 console.error("Failed to create project:", error);
                 throw error;
-            }
-        });
-
-        afterAll(async () => {
-            const apiClient = integration.mcpServer().session.apiClient;
-            if (projectId) {
-                // projectId may be empty if beforeAll failed.
-                await apiClient.deleteProject({
-                    params: {
-                        path: {
-                            groupId: projectId,
-                        },
-                    },
-                });
             }
         });
 
