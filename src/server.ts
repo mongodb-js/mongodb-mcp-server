@@ -62,12 +62,15 @@ export class Server {
     }
 
     async connect(transport: Transport): Promise<void> {
-        // Resources are now reactive, so we register them ASAP so they can listen to events like
+        await this.validateConfig();
+        // Register resources after the server is initialized so they can listen to events like
         // connection events.
         this.registerResources();
-        await this.validateConfig();
-
-        this.mcpServer.server.registerCapabilities({ logging: {}, resources: { listChanged: true, subscribe: true } });
+        this.mcpServer.server.registerCapabilities({
+            logging: {},
+            resources: { listChanged: true, subscribe: true },
+            instructions: this.getInstructions(),
+        });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
@@ -134,17 +137,17 @@ export class Server {
                 message: `Server with version ${packageInfo.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
             });
 
-            this.emitServerEvent("start", Date.now() - this.startTime);
+            this.emitServerTelemetryEvent("start", Date.now() - this.startTime);
         };
 
         this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
-            this.emitServerEvent("stop", Date.now() - closeTime);
+            this.emitServerTelemetryEvent("stop", Date.now() - closeTime);
         };
 
         this.mcpServer.server.onerror = (error: Error): void => {
             const closeTime = Date.now();
-            this.emitServerEvent("stop", Date.now() - closeTime, error);
+            this.emitServerTelemetryEvent("stop", Date.now() - closeTime, error);
         };
 
         await this.mcpServer.connect(transport);
@@ -161,17 +164,18 @@ export class Server {
     }
 
     public sendResourceUpdated(uri: string): void {
+        this.session.logger.info({
+            id: LogId.resourceUpdateFailure,
+            context: "resources",
+            message: `Resource updated: ${uri}`,
+        });
+
         if (this.subscriptions.has(uri)) {
             void this.mcpServer.server.sendResourceUpdated({ uri });
         }
     }
 
-    /**
-     * Emits a server event
-     * @param command - The server command (e.g., "start", "stop", "register", "deregister")
-     * @param additionalProperties - Additional properties specific to the event
-     */
-    private emitServerEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
+    private emitServerTelemetryEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
         const event: ServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
@@ -239,6 +243,13 @@ export class Server {
         // Validate API client credentials
         if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
             try {
+                if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
+                    const message =
+                        "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";
+                    console.error(message);
+                    throw new Error(message);
+                }
+
                 await this.session.apiClient.validateAccessToken();
             } catch (error) {
                 if (this.userConfig.connectionString === undefined) {
@@ -253,6 +264,24 @@ export class Server {
                 );
             }
         }
+    }
+
+    private getInstructions(): string {
+        let instructions = `
+            This is the MongoDB MCP server.
+        `;
+        if (this.userConfig.connectionString) {
+            instructions += `
+            This MCP server was configured with a MongoDB connection string, and you can assume that you are connected to a MongoDB cluster.
+            `;
+        }
+
+        if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
+            instructions += `
+            This MCP server was configured with MongoDB Atlas API credentials.`;
+        }
+
+        return instructions;
     }
 
     private async connectToConfigConnectionString(): Promise<void> {

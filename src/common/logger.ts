@@ -44,9 +44,11 @@ export const LogId = {
     mongodbConnectFailure: mongoLogId(1_004_001),
     mongodbDisconnectFailure: mongoLogId(1_004_002),
     mongodbConnectTry: mongoLogId(1_004_003),
+    mongodbCursorCloseError: mongoLogId(1_004_004),
 
     toolUpdateFailure: mongoLogId(1_005_001),
     resourceUpdateFailure: mongoLogId(1_005_002),
+    updateToolMetadata: mongoLogId(1_005_003),
 
     streamableHttpTransportStarted: mongoLogId(1_006_001),
     streamableHttpTransportSessionCloseFailure: mongoLogId(1_006_002),
@@ -337,17 +339,5 @@ export class CompositeLogger extends LoggerBase {
 
     public setAttribute(key: string, value: string): void {
         this.attributes[key] = value;
-    }
-}
-
-export class NullLogger extends LoggerBase {
-    protected type?: LoggerType;
-
-    constructor() {
-        super(undefined);
-    }
-
-    protected logCore(): void {
-        // No-op logger, does not log anything
     }
 }

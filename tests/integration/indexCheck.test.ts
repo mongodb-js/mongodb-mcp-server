@@ -61,8 +61,7 @@ describe("IndexCheck integration tests", () => {
 
                         expect(response.isError).toBeFalsy();
                         const content = getResponseContent(response.content);
-                        expect(content).toContain("Found");
-                        expect(content).toContain("documents");
+                        expect(content).toContain('Query on collection "find-test-collection" resulted in');
                     });
 
                     it("should allow queries using _id (IDHACK)", async () => {
@@ -80,13 +79,15 @@ describe("IndexCheck integration tests", () => {
                             arguments: {
                                 database: integration.randomDbName(),
                                 collection: "find-test-collection",
-                                filter: { _id: docs[0]?._id }, // Uses _id index (IDHACK)
+                                filter: { _id: { $oid: docs[0]?._id } }, // Uses _id index (IDHACK)
                             },
                         });
 
                         expect(response.isError).toBeFalsy();
                         const content = getResponseContent(response.content);
-                        expect(content).toContain("Found 1 documents");
+                        expect(content).toContain(
+                            'Query on collection "find-test-collection" resulted in 1 documents.'
+                        );
                     });
                 });
 
@@ -351,7 +352,7 @@ describe("IndexCheck integration tests", () => {
 
                     expect(findResponse.isError).toBeFalsy();
                     const findContent = getResponseContent(findResponse.content);
-                    expect(findContent).toContain("Found");
+                    expect(findContent).toContain('Query on collection "disabled-test-collection" resulted in');
                     expect(findContent).not.toContain("Index check failed");
                 });
 

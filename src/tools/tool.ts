@@ -13,6 +13,8 @@ import type { Elicitation } from "../elicitation.js";
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
 export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback<Args>>;
 
+export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
+
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
 export type ToolCategory = "mongodb" | "atlas";
 export type TelemetryToolMetadata = {
