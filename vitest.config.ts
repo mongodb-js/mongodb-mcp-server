@@ -25,7 +25,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "unit-and-integration",
-                    include: ["**/*.test.ts"],
+                    include: ["tests/**/*.test.ts"],
                     exclude: [...vitestDefaultExcludes, "tests/accuracy/**"],
                 },
             },
@@ -33,7 +33,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "accuracy",
-                    include: ["**/accuracy/*.test.ts"],
+                    include: ["tests/**/accuracy/*.test.ts"],
                 },
             },
             {
