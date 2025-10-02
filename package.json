@@ -55,7 +55,8 @@
     "generate": "./scripts/generate.sh",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage",
     "pretest:accuracy": "npm run build",
-    "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh"
+    "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
+    "atlas:cleanup": "vitest --project atlas-cleanup"
   },
   "license": "Apache-2.0",
   "devDependencies": {

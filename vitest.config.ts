@@ -25,15 +25,15 @@ export default defineConfig({
                 extends: true,
                 test: {
                     name: "unit-and-integration",
-                    include: ["tests/**/*.test.ts"],
-                    exclude: [...vitestDefaultExcludes, "tests/accuracy/**"],
+                    include: ["**/*.test.ts"],
+                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**"],
                 },
             },
             {
                 extends: true,
                 test: {
                     name: "accuracy",
-                    include: ["tests/**/accuracy/*.test.ts"],
+                    include: ["**/accuracy/*.test.ts"],
                 },
             },
             {
@@ -41,6 +41,13 @@ export default defineConfig({
                 test: {
                     name: "eslint-rules",
                     include: ["eslint-rules/*.test.js"],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "atlas-cleanup",
+                    include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
                 },
             },
         ],
