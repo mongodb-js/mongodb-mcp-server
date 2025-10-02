@@ -2,8 +2,8 @@
 // The timeouts for the beforeAll/afterAll hooks have been modified to account for longer running tests.
 
 import type { Session } from "../../../../src/common/session.js";
-import { expectDefined, getResponseElements } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId, deleteAndWaitCluster, waitCluster, sleep } from "./atlasHelpers.js";
+import { DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS, expectDefined, getResponseElements } from "../../helpers.js";
+import { describeWithAtlas, withProject, randomId, deleteAndWaitCluster, waitCluster } from "./atlasHelpers.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 describeWithAtlas("performanceAdvisor", (integration) => {
@@ -16,7 +16,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                 const session: Session = integration.mcpServer().session;
                 await deleteAndWaitCluster(session, projectId, clusterName, 1000, 1200);
             }
-        }, 1200000);
+        }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);
 
         describe("atlas-get-performance-advisor", () => {
             beforeAll(async () => {
@@ -65,9 +65,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                     10000,
                     120
                 );
-
-                await sleep(10000);
-            }, 1200000);
+            }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);
 
             afterEach(() => {
                 vi.clearAllMocks();
