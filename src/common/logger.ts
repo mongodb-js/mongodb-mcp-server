@@ -70,6 +70,8 @@ export const LogId = {
     exportLockError: mongoLogId(1_007_008),
 
     oidcFlow: mongoLogId(1_008_001),
+
+    azureManagedIdentityAuthError: mongoLogId(1_009_001),
 } as const;
 
 export interface LogPayload {

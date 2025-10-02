@@ -11,12 +11,14 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
   - [Prerequisites](#prerequisites)
   - [Setup](#setup)
     - [Quick Start](#quick-start)
+    - [HTTP Transport Authentication](#http-authentication-middleware)
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
 - [📄 Supported Resources](#supported-resources)
 - [⚙️ Configuration](#configuration)
   - [Configuration Options](#configuration-options)
+  - [Vector Search & Embeddings](#vector-search-and-embeddings)
   - [Atlas API Access](#atlas-api-access)
   - [Configuration Methods](#configuration-methods)
     - [Environment Variables](#environment-variables)
@@ -275,6 +277,103 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 > **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
 
+### HTTP Authentication Middleware
+
+<a name="http-authentication"></a>
+
+The HTTP transport supports pluggable authentication strategies selected via the `httpAuthMode` configuration option.
+
+Current modes:
+
+- `none` (default) – No authentication. Every request is accepted. Only use this in local / trusted network environments. Do **NOT** expose an unauthenticated instance to the public internet.
+- `azure-managed-identity` – Validates Azure Entra ID (Managed Identity / Service Principal) issued **access tokens** presented via `Authorization: Bearer <token>`.
+
+This setting is ONLY evaluated when `transport` is `http`; it is ignored for the default `stdio` transport.
+
+#### Azure Managed Identity / Entra ID Options
+
+Environment variables map 1:1 to the camelCase keys with the `MDB_MCP_` prefix:
+
+| Key | Env Var | Required | Description |
+| --- | ------- | -------- | ----------- |
+| `httpAuthMode` | `MDB_MCP_HTTP_AUTH_MODE` | No (defaults to `none`) | Set to `azure-managed-identity` to enable Azure token validation. |
+| `azureManagedIdentityTenantId` | `MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID` | Yes (when `httpAuthMode=azure-managed-identity`) | Azure Entra tenant ID used to resolve OpenID configuration and signing keys. |
+| `azureManagedIdentityClientId` | `MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID` | No | Fallback expected audience (token `aud`) if `azureManagedIdentityAudience` is not supplied. Typically your application (service principal) client ID. |
+| `azureManagedIdentityAudience` | `MDB_MCP_AZURE_MANAGED_IDENTITY_AUDIENCE` | No | Explicit audience override. If set, token `aud` must match this value (takes precedence over clientId). |
+| `azureManagedIdentityAllowedAppIds` | `MDB_MCP_AZURE_MANAGED_IDENTITY_ALLOWED_APP_IDS` | No | Comma-separated allow‑list of `appid`/`azp` claim values. If provided, token must match one. |
+| `azureManagedIdentityRequiredRoles` | `MDB_MCP_AZURE_MANAGED_IDENTITY_REQUIRED_ROLES` | No | Comma-separated list of application roles (in the `roles` claim) that must be present. |
+| `azureManagedIdentityRoleMatchMode` | `MDB_MCP_AZURE_MANAGED_IDENTITY_ROLE_MATCH_MODE` | No (defaults to `all`) | Whether **all** or **any** of the required roles must be present. |
+
+#### Quick Start: No Auth (default)
+
+```bash
+npx -y mongodb-mcp-server@latest --transport http
+# httpAuthMode defaults to 'none'
+```
+
+#### Quick Start: Azure Managed Identity Auth
+
+Using environment variables (recommended):
+
+```bash
+export MDB_MCP_HTTP_AUTH_MODE=azure-managed-identity
+export MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID="<tenant-id>"
+# Optional audience controls
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID="<app-client-id>"
+# OR explicit audience override:
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_AUDIENCE="api://your-app-resource-id"
+
+# Optional constraints
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_ALLOWED_APP_IDS="<appId1>,<appId2>"
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_REQUIRED_ROLES="Reader,Query"
+# export MDB_MCP_AZURE_MANAGED_IDENTITY_ROLE_MATCH_MODE=any
+
+npx -y mongodb-mcp-server@latest --transport http
+```
+
+Using CLI flags (non-secret values only):
+
+```bash
+npx -y mongodb-mcp-server@latest \
+  --transport http \
+  --httpAuthMode azure-managed-identity \
+  --azureManagedIdentityTenantId <tenant-id>
+```
+
+#### Obtaining an Access Token (Example)
+
+Acquire a token for your application (service principal or managed identity) using the Azure CLI; then send it on each request:
+
+```bash
+# Interactive login or ensure your automation identity is already authenticated
+az login --tenant <tenant-id>
+
+# If using an application (service principal) audience
+TOKEN=$(az account get-access-token --tenant <tenant-id> --resource <audience-or-clientId> --query accessToken -o tsv)
+
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/
+```
+
+> The actual HTTP path structure follows the MCP Streamable HTTP transport spec. For simple readiness checks you can hit the root path; authenticated RPC calls must include the Bearer token header.
+
+#### Role & App ID Enforcement
+
+- If `azureManagedIdentityAllowedAppIds` is set, the token must contain an `appid` (or `azp`) claim matching one of the values.
+- If `azureManagedIdentityRequiredRoles` is set, the token `roles` claim must contain roles based on `azureManagedIdentityRoleMatchMode` (`all` vs `any`).
+
+#### Adding New Auth Modes
+
+You can introduce additional HTTP auth strategies (e.g. API keys, other OIDC providers) by:
+
+1. Creating a new provider/middleware under `src/transports/auth/` implementing the required interface.
+2. Extending the factory (`createAuthMiddleware`) to map a new `httpAuthMode` string to your middleware.
+3. Adding any new configuration keys (environment variables should follow the `MDB_MCP_` + SNAKE_CASE pattern).
+4. Documenting the new mode (update this section & configuration table) and adding tests.
+
+This design keeps the core transport decoupled from auth specifics.
+
+Authentication for the HTTP transport is selected via the `httpAuthMode` configuration option. The server uses a factory function (`createAuthMiddleware` in `src/transports/auth/authMiddlewareFactory.ts`) to resolve and attach the proper Express middleware. All auth strategies live under `src/transports/auth/` which keeps the transport implementation decoupled from individual authentication strategies so new modes can be added with minimal changes.
+
 ## 🛠️ Supported Tools
 
 ### Tool List
@@ -319,6 +418,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `collection-storage-size` - Get the size of a collection in MB
 - `db-stats` - Return statistics about a MongoDB database
 - `export` - Export query or aggregation results to EJSON format. Creates a uniquely named export accessible via the `exported-data` resource.
+- `vector-search` - Execute a vector similarity search ($vectorSearch) over a collection. See [Vector Search & Embeddings](#vector-search-and-embeddings).
 
 ## 📄 Supported Resources
 
@@ -352,6 +452,13 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `transport`                            | `MDB_MCP_TRANSPORT`                                 | stdio                                                                       | Either 'stdio' or 'http'.                                                                                                                                                                               |
 | `httpPort`                             | `MDB_MCP_HTTP_PORT`                                 | 3000                                                                        | Port number.                                                                                                                                                                                            |
 | `httpHost`                             | `MDB_MCP_HTTP_HOST`                                 | 127.0.0.1                                                                   | Host to bind the http server.                                                                                                                                                                           |
+| `httpAuthMode`                         | `MDB_MCP_HTTP_AUTH_MODE`                            | none                                                                        | HTTP auth strategy when `transport=http`. Supported: `none`, `azure-managed-identity`. Ignored for `stdio` transport.                                                                                   |
+| `azureManagedIdentityTenantId`         | `MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID`          | <not set>                                                                   | Required when `httpAuthMode=azure-managed-identity`. Azure Entra tenant used to fetch OpenID configuration & signing keys.                                                                              |
+| `azureManagedIdentityClientId`         | `MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID`          | <not set>                                                                   | Optional expected audience/client id if `azureManagedIdentityAudience` not provided.                                                                                                                    |
+| `azureManagedIdentityAudience`         | `MDB_MCP_AZURE_MANAGED_IDENTITY_AUDIENCE`           | <not set>                                                                   | Optional explicit audience override for access token `aud` claim (takes precedence over client id fallback).                                                                                           |
+| `azureManagedIdentityAllowedAppIds`    | `MDB_MCP_AZURE_MANAGED_IDENTITY_ALLOWED_APP_IDS`    | <not set>                                                                   | Optional comma-separated allow-list of `appid` / `azp` claim values; if set the token must match one.                                                                                                   |
+| `azureManagedIdentityRequiredRoles`    | `MDB_MCP_AZURE_MANAGED_IDENTITY_REQUIRED_ROLES`     | <not set>                                                                   | Optional comma-separated list of application roles the token must include (in `roles` claim).                                                                                                           |
+| `azureManagedIdentityRoleMatchMode`    | `MDB_MCP_AZURE_MANAGED_IDENTITY_ROLE_MATCH_MODE`    | all                                                                         | Whether `all` or `any` of the listed required roles must be present.                                                                                                                                    |
 | `idleTimeoutMs`                        | `MDB_MCP_IDLE_TIMEOUT_MS`                           | 600000                                                                      | Idle timeout for a client to disconnect (only applies to http transport).                                                                                                                               |
 | `maxBytesPerQuery`                     | `MDB_MCP_MAX_BYTES_PER_QUERY`                       | 16777216 (16MiB)                                                            | The maximum size in bytes for results from a `find` or `aggregate` tool call. This serves as an upper bound for the `responseBytesLimit` parameter in those tools.                                      |
 | `maxDocumentsPerQuery`                 | `MDB_MCP_MAX_DOCUMENTS_PER_QUERY`                   | 100                                                                         | The maximum number of documents that can be returned by a `find` or `aggregate` tool call. For the `find` tool, the effective limit will be the smaller of this value and the tool's `limit` parameter. |
@@ -360,6 +467,13 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `exportTimeoutMs`                      | `MDB_MCP_EXPORT_TIMEOUT_MS`                         | 300000                                                                      | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                                                              |
 | `exportCleanupIntervalMs`              | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS`                | 120000                                                                      | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                    |
 | `atlasTemporaryDatabaseUserLifetimeMs` | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` | 14400000                                                                    | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                             |
+| `vectorSearchPath`                     | `MDB_MCP_VECTOR_SEARCH_PATH`                        | <not set>                                                                   | Default vector field path used by `vector-search` (V2 mode). If set together with `vectorSearchIndex`, the V2 vector search tool variant is enabled.                                                    |
+| `vectorSearchIndex`                    | `MDB_MCP_VECTOR_SEARCH_INDEX`                       | <not set>                                                                   | Default vector search index name used by `vector-search` (V2 mode). Must be set with `vectorSearchPath` to enable V2 mode.                                                                              |
+| `embeddingModelProvider`               | `MDB_MCP_EMBEDDING_MODEL_PROVIDER`                  | azure-ai-inference                                                          | Embedding model provider identifier. Currently only `azure-ai-inference` is supported.                                                                            |
+| `embeddingModelEndpoint`               | `MDB_MCP_EMBEDDING_MODEL_ENDPOINT`                  | <not set>                                                                   | Endpoint for the embedding model provider. Required for vector search.                                                                                |
+| `embeddingModelApikey`                 | `MDB_MCP_EMBEDDING_MODEL_APIKEY`                    | <not set>                                                                   | API key/credential for the embedding model provider. Required for vector search.                                                                                 |
+| `embeddingModelDeploymentName`         | `MDB_MCP_EMBEDDING_MODEL_DEPLOYMENT_NAME`           | <not set>                                                                   | Deployment/model name to use when requesting embeddings. Required for vector search.                                                                             |
+| `embeddingModelDimension`              | `MDB_MCP_EMBEDDING_MODEL_DIMENSION`                 | <not set>                                                                   | (Optional) Expected embedding dimension for validation (provider specific).                                                                                      |
 
 #### Logger Options
 
@@ -480,6 +594,140 @@ You can disable telemetry using:
 - **DO_NOT_TRACK environment variable**: `export DO_NOT_TRACK=1`
 
 > **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
+### Vector Search and Embeddings
+
+The `vector-search` tool lets you run semantic similarity queries against a MongoDB collection using the `$vectorSearch` aggregation stage. This capability is disabled unless a valid embedding configuration is supplied (see below).
+
+#### Overview
+
+Two internal variants of the `vector-search` tool may register depending on configuration:
+
+1. V1 (argument-driven): You supply `path` and optionally `index` as tool arguments each call.
+2. V2 (config-driven): You preconfigure both `vectorSearchPath` and `vectorSearchIndex` in server config; the tool omits those arguments and always searches that path/index.
+
+Variant selection rules:
+
+- If BOTH `MDB_MCP_VECTOR_SEARCH_PATH` and `MDB_MCP_VECTOR_SEARCH_INDEX` are set at startup → V2 registers.
+- If NEITHER (or only one) of those is set → V1 registers, and you must provide a `path` argument per invocation (and may provide `index`).
+- If embedding config is incomplete, the tool is not registered (you will see a warning in logs).
+
+#### Required MongoDB Setup
+
+1. A collection with a vector field (array of float/number values) containing stored embeddings.
+2. A vector search index created on that field (e.g. Atlas Search vector index) when you want to leverage indexing for performance/recall.
+
+#### Embedding Configuration (Required)
+
+You must configure an embedding provider so the server can transform the `queryText` you pass in into a numeric embedding vector. Current provider support:
+
+- `azure-ai-inference` (default if none specified)
+
+Set the following environment variables (or CLI args) for Azure AI Inference:
+
+```bash
+export MDB_MCP_EMBEDDING_MODEL_ENDPOINT="https://your-azure-resource.services.ai.azure.com/models/embeddings?api-version=2024-05-01-preview"
+export MDB_MCP_EMBEDDING_MODEL_APIKEY="<azure-api-key>"
+export MDB_MCP_EMBEDDING_MODEL_DEPLOYMENT_NAME="text-embedding-3-large" # or your deployed embedding model
+# (Optional) if you want to assert embedding size
+export MDB_MCP_EMBEDDING_MODEL_DIMENSION=3072
+```
+
+Without these, `vector-search` will not register.
+
+#### Optional Vector Search Defaults (Enable V2 Mode)
+
+To eliminate passing `path` (and optionally `index`) each call, set both:
+
+```bash
+export MDB_MCP_VECTOR_SEARCH_PATH="embedding"          # e.g. field path storing embeddings
+export MDB_MCP_VECTOR_SEARCH_INDEX="myVectorIndex"     # name of the Atlas Search vector index
+```
+
+If both are present at startup, the V2 variant is loaded and you no longer pass `path`/`index` arguments at call time. Remove one or both to revert to V1.
+
+#### Usage Examples
+
+##### Example 1: V1 Variant (no defaults configured)
+
+Tool invocation arguments:
+
+```json
+{
+  "name": "vector-search",
+  "arguments": {
+    "database": "mydb",
+    "collection": "articles",
+    "queryText": "vector databases for personalization",
+    "path": "embedding",        
+    "limit": 5,
+    "numCandidates": 200,
+    "includeVector": false
+  }
+}
+```
+
+##### Example 2: V2 Variant (defaults configured)
+
+With `MDB_MCP_VECTOR_SEARCH_PATH=embedding` and `MDB_MCP_VECTOR_SEARCH_INDEX=myVectorIndex` set at startup:
+
+```json
+{
+  "name": "vector-search",
+  "arguments": {
+    "database": "mydb",
+    "collection": "articles",
+    "queryText": "vector databases for personalization",
+    "limit": 5,
+    "numCandidates": 200
+  }
+}
+```
+
+#### Returned Data
+
+The tool returns an array of matched documents. By default the raw embedding field is excluded (set `includeVector: true` if you need it). Standard result size safeguards (`maxDocumentsPerQuery`, `maxBytesPerQuery`) still apply.
+
+#### Adding a Custom Embedding Provider
+
+You can extend the server to support additional embedding services (e.g. OpenAI, Hugging Face, Vertex AI) by implementing the `EmbeddingProvider` interface:
+
+`src/embedding/embeddingProvider.ts`:
+
+```ts
+export interface EmbeddingProvider {
+  name: string;
+  embed(input: string[]): Promise<number[][]>;
+}
+```
+
+Steps:
+
+1. Create a new file under `src/embedding/`, e.g. `myProviderEmbeddingProvider.ts`, implementing the interface.
+2. Add a new case in `EmbeddingProviderFactory.create()` & `isEmbeddingConfigValid()` matching a unique `embeddingModelProvider` string (e.g. `my-provider`).
+3. Document required env vars (e.g. `MDB_MCP_EMBEDDING_MODEL_ENDPOINT`, `MDB_MCP_EMBEDDING_MODEL_APIKEY`, etc. or new ones) and update README.
+4. (Optional) Support provider‑specific validation (dimension, model name) in `assertEmbeddingConfigValid`.
+5. Provide tests (unit + integration if vector search depends on it) ensuring your provider returns deterministic dimensionality.
+
+After adding your provider, users enable it by setting:
+
+```bash
+export MDB_MCP_EMBEDDING_MODEL_PROVIDER=my-provider
+# plus any provider-specific variables you defined
+```
+
+If your provider requires different variable names, follow the existing naming convention: prefix with `MDB_MCP_` and document them.
+
+#### Troubleshooting
+
+| Symptom | Likely Cause | Action |
+| ------- | ------------ | ------ |
+| `vector-search` tool missing | Incomplete embedding config | Set endpoint, api key, deployment name env vars. Restart client. |
+| Error: "Embedding provider returned empty embedding" | Provider/network issue | Check credentials & network; verify model supports embeddings. |
+| Error requiring 'path' even though I set env vars | Only one of PATH/INDEX set | Set BOTH `MDB_MCP_VECTOR_SEARCH_PATH` and `MDB_MCP_VECTOR_SEARCH_INDEX` or remove both. |
+| High latency | Large `numCandidates` or remote model slowness | Lower `numCandidates`; verify model region proximity. |
+
+---
 
 ### Atlas API Access
 
@@ -679,6 +927,6 @@ connecting to the Atlas API, your MongoDB Cluster, or any other external calls
 to third-party services like OID Providers. The behaviour is the same as what
 `mongosh` does, so the same settings will work in the MCP Server.
 
-## 🤝Contributing
+## Contributing
 
 Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
