@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        if: matrix.os == 'ubuntu-latest'
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
