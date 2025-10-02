@@ -11,14 +11,7 @@ function sleep(ms: number): Promise<void> {
 // keeping it for cleanup scripts if needed
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function deleteAndWaitCluster(session: Session, projectId: string, clusterName: string): Promise<void> {
-    await session.apiClient.deleteCluster({
-        params: {
-            path: {
-                groupId: projectId,
-                clusterName,
-            },
-        },
-    });
+    await deleteCluster(session, projectId, clusterName);
     while (true) {
         try {
             await session.apiClient.getCluster({
