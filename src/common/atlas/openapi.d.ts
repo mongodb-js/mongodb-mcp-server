@@ -194,6 +194,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return All Suggested Indexes to Drop
+         * @description Returns the indexes that the Performance Advisor suggests to drop. The Performance Advisor suggests dropping unused, redundant, and hidden indexes to improve write performance and increase storage space. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         */
+        get: operations["listDropIndexes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return Schema Advice
+         * @description Returns the schema suggestions that the Performance Advisor detects. The Performance Advisor provides holistic schema recommendations for your cluster by sampling documents in your most active collections and collections with slow-running queries. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         */
+        get: operations["listSchemaAdvice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return All Suggested Indexes
+         * @description Returns the indexes that the Performance Advisor suggests. The Performance Advisor monitors queries that MongoDB considers slow and suggests new indexes to improve query performance. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         */
+        get: operations["listClusterSuggestedIndexes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/atlas/v2/groups/{groupId}/databaseUsers": {
         parameters: {
             query?: never;
@@ -281,6 +341,26 @@ export interface paths {
          * @description Removes one flex cluster from the specified project. The flex cluster must have termination protection disabled in order to be deleted. To use this resource, the requesting Service Account or API Key must have the Project Owner role.
          */
         delete: operations["deleteFlexCluster"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return Slow Queries
+         * @description Returns log lines for slow queries that the Performance Advisor and Query Profiler identified. The Performance Advisor monitors queries that MongoDB considers slow and suggests new indexes to improve query performance. MongoDB Cloud bases the threshold for slow queries on the average time of operations on your cluster. This enables workload-relevant recommendations. To use this resource, the requesting Service Account or API Key must have any Project Data Access role or the Project Observability Viewer role.
+         */
+        get: operations["listSlowQueries"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1735,6 +1815,11 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly roleId?: string;
+            /**
+             * @description Provision status of the service account.
+             * @enum {string}
+             */
+            readonly status?: "IN_PROGRESS" | "COMPLETE" | "FAILED" | "NOT_INITIATED";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3113,6 +3198,39 @@ export interface components {
             /** @description Flag that indicates whether this cluster enables disk auto-scaling. The maximum memory allowed for the selected cluster tier and the oplog size can limit storage auto-scaling. */
             enabled?: boolean;
         };
+        DropIndexSuggestionsIndex: {
+            /**
+             * Format: int64
+             * @description Usage count (since last restart) of index.
+             */
+            accessCount?: number;
+            /** @description List that contains documents that specify a key in the index and its sort order. */
+            index?: Record<string, never>[];
+            /** @description Name of index. */
+            name?: string;
+            /** @description Human-readable label that identifies the namespace on the specified host. The resource expresses this parameter value as `<database>.<collection>`. */
+            namespace?: string;
+            /** @description List that contains strings that specifies the shards where the index is found. */
+            shards?: string[];
+            /**
+             * Format: date-time
+             * @description Date of most recent usage of index. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            since?: string;
+            /**
+             * Format: int64
+             * @description Size of index.
+             */
+            sizeBytes?: number;
+        };
+        DropIndexSuggestionsResponse: {
+            /** @description List that contains the documents with information about the hidden indexes that the Performance Advisor suggests to remove. */
+            readonly hiddenIndexes?: components["schemas"]["DropIndexSuggestionsIndex"][];
+            /** @description List that contains the documents with information about the redundant indexes that the Performance Advisor suggests to remove. */
+            readonly redundantIndexes?: components["schemas"]["DropIndexSuggestionsIndex"][];
+            /** @description List that contains the documents with information about the unused indexes that the Performance Advisor suggests to remove. */
+            readonly unusedIndexes?: components["schemas"]["DropIndexSuggestionsIndex"][];
+        };
         /** @description MongoDB employee granted access level and expiration for a cluster. */
         EmployeeAccessGrantView: {
             /**
@@ -4379,6 +4497,156 @@ export interface components {
              */
             readonly totalCount?: number;
         };
+        PerformanceAdvisorIndex: {
+            /**
+             * Format: double
+             * @description The average size of an object in the collection of this index.
+             */
+            readonly avgObjSize?: number;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies this index.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /** @description List that contains unique 24-hexadecimal character string that identifies the query shapes in this response that the Performance Advisor suggests. */
+            readonly impact?: string[];
+            /** @description List that contains documents that specify a key in the index and its sort order. */
+            readonly index?: {
+                [key: string]: 1 | -1;
+            }[];
+            /** @description Human-readable label that identifies the namespace on the specified host. The resource expresses this parameter value as `<database>.<collection>`. */
+            readonly namespace?: string;
+            /**
+             * Format: double
+             * @description Estimated performance improvement that the suggested index provides. This value corresponds to **Impact** in the Performance Advisor user interface.
+             */
+            readonly weight?: number;
+        };
+        /** @description Details that this resource returned about the specified query. */
+        PerformanceAdvisorOpStats: {
+            /**
+             * Format: int64
+             * @description Length of time expressed during which the query finds suggested indexes among the managed namespaces in the cluster. This parameter expresses its value in milliseconds. This parameter relates to the **duration** query parameter.
+             */
+            readonly ms?: number;
+            /**
+             * Format: int64
+             * @description Number of results that the query returns.
+             */
+            readonly nReturned?: number;
+            /**
+             * Format: int64
+             * @description Number of documents that the query read.
+             */
+            readonly nScanned?: number;
+            /**
+             * Format: int64
+             * @description Date and time from which the query retrieves the suggested indexes. This parameter expresses its value in the number of seconds that have elapsed since the UNIX epoch. This parameter relates to the **since** query parameter.
+             */
+            readonly ts?: number;
+        };
+        PerformanceAdvisorOperationView: {
+            /** @description List that contains the search criteria that the query uses. To use the values in key-value pairs in these predicates requires **Project Data Access Read Only** permissions or greater. Otherwise, MongoDB Cloud redacts these values. */
+            readonly predicates?: Record<string, never>[];
+            stats?: components["schemas"]["PerformanceAdvisorOpStats"];
+        };
+        PerformanceAdvisorResponse: {
+            /** @description List of query predicates, sorts, and projections that the Performance Advisor suggests. */
+            readonly shapes?: components["schemas"]["PerformanceAdvisorShape"][];
+            /** @description List that contains the documents with information about the indexes that the Performance Advisor suggests. */
+            readonly suggestedIndexes?: components["schemas"]["PerformanceAdvisorIndex"][];
+        };
+        PerformanceAdvisorShape: {
+            /**
+             * Format: int64
+             * @description Average duration in milliseconds for the queries examined that match this shape.
+             */
+            readonly avgMs?: number;
+            /**
+             * Format: int64
+             * @description Number of queries examined that match this shape.
+             */
+            readonly count?: number;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies this shape. This string exists only for the duration of this API request.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /**
+             * Format: int64
+             * @description Average number of documents read for every document that the query returns.
+             */
+            readonly inefficiencyScore?: number;
+            /** @description Human-readable label that identifies the namespace on the specified host. The resource expresses this parameter value as `<database>.<collection>`. */
+            readonly namespace?: string;
+            /** @description List that contains specific about individual queries. */
+            readonly operations?: components["schemas"]["PerformanceAdvisorOperationView"][];
+        };
+        /** @description Details of one slow query that the Performance Advisor detected. */
+        PerformanceAdvisorSlowQuery: {
+            /** @description Text of the MongoDB log related to this slow query. */
+            readonly line?: string;
+            metrics?: components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
+            /** @description Human-readable label that identifies the namespace on the specified host. The resource expresses this parameter value as `<database>.<collection>`. */
+            readonly namespace?: string;
+            /** @description Operation type (read/write/command) associated with this slow query log. */
+            readonly opType?: string;
+            /** @description Replica state associated with this slow query log. */
+            readonly replicaState?: string;
+        };
+        PerformanceAdvisorSlowQueryList: {
+            /** @description List of operations that the Performance Advisor detected that took longer to execute than a specified threshold. */
+            readonly slowQueries?: components["schemas"]["PerformanceAdvisorSlowQuery"][];
+        };
+        /** @description Metrics from a slow query log. */
+        PerformanceAdvisorSlowQueryMetrics: {
+            /**
+             * Format: int64
+             * @description The number of documents in the collection that MongoDB scanned in order to carry out the operation.
+             */
+            readonly docsExamined?: number;
+            /**
+             * Format: double
+             * @description Ratio of documents examined to documents returned.
+             */
+            readonly docsExaminedReturnedRatio?: number;
+            /**
+             * Format: int64
+             * @description The number of documents returned by the operation.
+             */
+            readonly docsReturned?: number;
+            /** @description This boolean will be true when the server can identfiy the query source as non-server. This field is only available for MDB 8.0+. */
+            readonly fromUserConnection?: boolean;
+            /** @description Indicates if the query has index coverage. */
+            readonly hasIndexCoverage?: boolean;
+            /** @description This boolean will be true when a query cannot use the ordering in the index to return the requested sorted results; i.e. MongoDB must sort the documents after it receives the documents from a cursor. */
+            readonly hasSort?: boolean;
+            /**
+             * Format: int64
+             * @description The number of index keys that MongoDB scanned in order to carry out the operation.
+             */
+            readonly keysExamined?: number;
+            /**
+             * Format: double
+             * @description Ratio of keys examined to documents returned.
+             */
+            readonly keysExaminedReturnedRatio?: number;
+            /**
+             * Format: int64
+             * @description The number of times the operation yielded to allow other operations to complete.
+             */
+            readonly numYields?: number;
+            /**
+             * Format: int64
+             * @description Total execution time of a query in milliseconds.
+             */
+            readonly operationExecutionTime?: number;
+            /**
+             * Format: int64
+             * @description The length in bytes of the operation's result document.
+             */
+            readonly responseLength?: number;
+        };
         /**
          * Periodic Cloud Provider Snapshot Source
          * @description Scheduled Cloud Provider Snapshot as Source for a Data Lake Pipeline.
@@ -4657,6 +4925,36 @@ export interface components {
             key: string;
             /** @description Variable that belongs to the set of the tag. For example, `production` in the `environment : production` tag. */
             value: string;
+        };
+        SchemaAdvisorItemRecommendation: {
+            /** @description List that contains the namespaces and information on why those namespaces triggered the recommendation. */
+            readonly affectedNamespaces?: components["schemas"]["SchemaAdvisorNamespaceTriggers"][];
+            /** @description Description of the specified recommendation. */
+            readonly description?: string;
+            /**
+             * @description Type of recommendation.
+             * @enum {string}
+             */
+            readonly recommendation?: "REDUCE_LOOKUP_OPS" | "AVOID_UNBOUNDED_ARRAY" | "REDUCE_DOCUMENT_SIZE" | "REMOVE_UNNECESSARY_INDEXES" | "REDUCE_NUMBER_OF_NAMESPACES" | "OPTIMIZE_CASE_INSENSITIVE_REGEX_QUERIES" | "OPTIMIZE_TEXT_QUERIES";
+        };
+        SchemaAdvisorNamespaceTriggers: {
+            /** @description Namespace of the affected collection. Will be null for REDUCE_NUMBER_OF_NAMESPACE recommendation. */
+            readonly namespace?: string | null;
+            /** @description List of triggers that specify why the collection activated the recommendation. */
+            readonly triggers?: components["schemas"]["SchemaAdvisorTriggerDetails"][];
+        };
+        SchemaAdvisorResponse: {
+            /** @description List that contains the documents with information about the schema advice that Performance Advisor suggests. */
+            readonly recommendations?: components["schemas"]["SchemaAdvisorItemRecommendation"][];
+        };
+        SchemaAdvisorTriggerDetails: {
+            /** @description Description of the trigger type. */
+            readonly description?: string;
+            /**
+             * @description Type of trigger.
+             * @enum {string}
+             */
+            readonly triggerType?: "PERCENT_QUERIES_USE_LOOKUP" | "NUMBER_OF_QUERIES_USE_LOOKUP" | "DOCS_CONTAIN_UNBOUNDED_ARRAY" | "NUMBER_OF_NAMESPACES" | "DOC_SIZE_TOO_LARGE" | "NUM_INDEXES" | "QUERIES_CONTAIN_CASE_INSENSITIVE_REGEX";
         };
         /** Search Host Status Detail */
         SearchHostStatusDetail: {
@@ -6368,6 +6666,21 @@ export interface components {
                 "application/json": components["schemas"]["ApiError"];
             };
         };
+        /** @description Too Many Requests. */
+        tooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /** @example {
+                 *       "detail": "(This is just an example, the exception may not be related to this endpoint)",
+                 *       "error": 429,
+                 *       "errorCode": "RATE_LIMITED",
+                 *       "reason": "Too Many Requests"
+                 *     } */
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
         /** @description Unauthorized. */
         unauthorized: {
             headers: {
@@ -6524,6 +6837,8 @@ export type DiskBackupSnapshotExportBucketResponse = components['schemas']['Disk
 export type DiskBackupSnapshotGcpExportBucketRequest = components['schemas']['DiskBackupSnapshotGCPExportBucketRequest'];
 export type DiskBackupSnapshotGcpExportBucketResponse = components['schemas']['DiskBackupSnapshotGCPExportBucketResponse'];
 export type DiskGbAutoScaling = components['schemas']['DiskGBAutoScaling'];
+export type DropIndexSuggestionsIndex = components['schemas']['DropIndexSuggestionsIndex'];
+export type DropIndexSuggestionsResponse = components['schemas']['DropIndexSuggestionsResponse'];
 export type EmployeeAccessGrantView = components['schemas']['EmployeeAccessGrantView'];
 export type FieldViolation = components['schemas']['FieldViolation'];
 export type Fields = components['schemas']['Fields'];
@@ -6578,6 +6893,14 @@ export type PaginatedFlexClusters20241113 = components['schemas']['PaginatedFlex
 export type PaginatedNetworkAccessView = components['schemas']['PaginatedNetworkAccessView'];
 export type PaginatedOrgGroupView = components['schemas']['PaginatedOrgGroupView'];
 export type PaginatedOrganizationView = components['schemas']['PaginatedOrganizationView'];
+export type PerformanceAdvisorIndex = components['schemas']['PerformanceAdvisorIndex'];
+export type PerformanceAdvisorOpStats = components['schemas']['PerformanceAdvisorOpStats'];
+export type PerformanceAdvisorOperationView = components['schemas']['PerformanceAdvisorOperationView'];
+export type PerformanceAdvisorResponse = components['schemas']['PerformanceAdvisorResponse'];
+export type PerformanceAdvisorShape = components['schemas']['PerformanceAdvisorShape'];
+export type PerformanceAdvisorSlowQuery = components['schemas']['PerformanceAdvisorSlowQuery'];
+export type PerformanceAdvisorSlowQueryList = components['schemas']['PerformanceAdvisorSlowQueryList'];
+export type PerformanceAdvisorSlowQueryMetrics = components['schemas']['PerformanceAdvisorSlowQueryMetrics'];
 export type PeriodicCpsSnapshotSource = components['schemas']['PeriodicCpsSnapshotSource'];
 export type RawMetricAlertView = components['schemas']['RawMetricAlertView'];
 export type RawMetricUnits = components['schemas']['RawMetricUnits'];
@@ -6586,6 +6909,10 @@ export type ReplicaSetAlertViewForNdsGroup = components['schemas']['ReplicaSetAl
 export type ReplicaSetEventTypeViewForNdsGroupAlertable = components['schemas']['ReplicaSetEventTypeViewForNdsGroupAlertable'];
 export type ReplicationSpec20240805 = components['schemas']['ReplicationSpec20240805'];
 export type ResourceTag = components['schemas']['ResourceTag'];
+export type SchemaAdvisorItemRecommendation = components['schemas']['SchemaAdvisorItemRecommendation'];
+export type SchemaAdvisorNamespaceTriggers = components['schemas']['SchemaAdvisorNamespaceTriggers'];
+export type SchemaAdvisorResponse = components['schemas']['SchemaAdvisorResponse'];
+export type SchemaAdvisorTriggerDetails = components['schemas']['SchemaAdvisorTriggerDetails'];
 export type SearchHostStatusDetail = components['schemas']['SearchHostStatusDetail'];
 export type SearchIndex = components['schemas']['SearchIndex'];
 export type SearchIndexCreateRequest = components['schemas']['SearchIndexCreateRequest'];
@@ -6675,6 +7002,7 @@ export type ResponseForbidden = components['responses']['forbidden'];
 export type ResponseInternalServerError = components['responses']['internalServerError'];
 export type ResponseNotFound = components['responses']['notFound'];
 export type ResponsePaymentRequired = components['responses']['paymentRequired'];
+export type ResponseTooManyRequests = components['responses']['tooManyRequests'];
 export type ResponseUnauthorized = components['responses']['unauthorized'];
 export type ParameterEnvelope = components['parameters']['envelope'];
 export type ParameterGroupId = components['parameters']['groupId'];
@@ -7194,6 +7522,120 @@ export interface operations {
             500: components["responses"]["internalServerError"];
         };
     };
+    listDropIndexes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["DropIndexSuggestionsResponse"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    listSchemaAdvice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["SchemaAdvisorResponse"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    listClusterSuggestedIndexes: {
+        parameters: {
+            query?: {
+                /** @description ProcessIds from which to retrieve suggested indexes. A processId is a combination of host and port that serves the MongoDB process. The host must be the hostname, FQDN, IPv4 address, or IPv6 address of the host that runs the MongoDB process (`mongod` or `mongos`). The port must be the IANA port on which the MongoDB process listens for requests. To include multiple processIds, pass the parameter multiple times delimited with an ampersand (`&`) between each processId. */
+                processIds?: string[];
+                /** @description Namespaces from which to retrieve suggested indexes. A namespace consists of one database and one collection resource written as `.`: `<database>.<collection>`. To include multiple namespaces, pass the parameter multiple times delimited with an ampersand (`&`) between each namespace. Omit this parameter to return results for all namespaces. */
+                namespaces?: string[];
+                /** @description Date and time from which the query retrieves the suggested indexes. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
+                 *
+                 *     - If you don't specify the **until** parameter, the endpoint returns data covering from the **since** value and the current time.
+                 *     - If you specify neither the **since** nor the **until** parameters, the endpoint returns data from the previous 24 hours. */
+                since?: number;
+                /** @description Date and time up until which the query retrieves the suggested indexes. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
+                 *
+                 *     - If you specify the **until** parameter, you must specify the **since** parameter.
+                 *     - If you specify neither the **since** nor the **until** parameters, the endpoint returns data from the previous 24 hours. */
+                until?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["PerformanceAdvisorResponse"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
     listDatabaseUsers: {
         parameters: {
             query?: {
@@ -7482,6 +7924,63 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    listSlowQueries: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+                /** @description Length of time expressed during which the query finds slow queries among the managed namespaces in the cluster. This parameter expresses its value in milliseconds.
+                 *
+                 *     - If you don't specify the **since** parameter, the endpoint returns data covering the duration before the current time.
+                 *     - If you specify neither the **duration** nor **since** parameters, the endpoint returns data from the previous 24 hours. */
+                duration?: number;
+                /** @description Namespaces from which to retrieve slow queries. A namespace consists of one database and one collection resource written as `.`: `<database>.<collection>`. To include multiple namespaces, pass the parameter multiple times delimited with an ampersand (`&`) between each namespace. Omit this parameter to return results for all namespaces. */
+                namespaces?: string[];
+                /** @description Maximum number of lines from the log to return. */
+                nLogs?: number;
+                /** @description Date and time from which the query retrieves the slow queries. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
+                 *
+                 *     - If you don't specify the **duration** parameter, the endpoint returns data covering from the **since** value and the current time.
+                 *     - If you specify neither the **duration** nor the **since** parameters, the endpoint returns data from the previous 24 hours. */
+                since?: number;
+                /** @description Whether or not to include metrics extracted from the slow query log as separate fields. */
+                includeMetrics?: boolean;
+                /** @description Whether or not to include the replica state of the host when the slow query log was generated as a separate field. */
+                includeReplicaState?: boolean;
+                /** @description Whether or not to include the operation type (read/write/command) extracted from the slow query log as a separate field. */
+                includeOpType?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                groupId: components["parameters"]["groupId"];
+                /** @description Combination of host and port that serves the MongoDB process. The host must be the hostname, FQDN, IPv4 address, or IPv6 address of the host that runs the MongoDB process (`mongod` or `mongos`). The port must be the IANA port on which the MongoDB process listens for requests. */
+                processId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["PerformanceAdvisorSlowQueryList"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };

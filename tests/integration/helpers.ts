@@ -48,6 +48,8 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
+export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
+
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
     getDriverOptions: () => DriverOptions,
