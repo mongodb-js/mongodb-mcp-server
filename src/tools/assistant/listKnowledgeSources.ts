@@ -22,8 +22,10 @@ export type ListKnowledgeSourcesResponse = {
     dataSources: KnowledgeSource[];
 };
 
+export const ListKnowledgeSourcesToolName = "list-knowledge-sources";
+
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
-    public name = "list-knowledge-sources";
+    public name = ListKnowledgeSourcesToolName;
     protected description = "List available data sources in the MongoDB Assistant knowledge base";
     protected argsShape = {};
     public operationType: OperationType = "read";

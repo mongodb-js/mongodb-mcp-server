@@ -4,9 +4,14 @@ import { type ToolArgs, type OperationType, formatUntrustedData } from "../tool.
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
 import { stringify as yamlStringify } from "yaml";
+import { ListKnowledgeSourcesToolName } from "./listKnowledgeSources.js";
 
 export const SearchKnowledgeToolArgs = {
-    query: z.string().describe("A natural language query to search for in the knowledge base"),
+    query: z
+        .string()
+        .describe(
+            "A natural language query to search for in the MongoDB Assistant knowledge base. This should be a single question or a topic that is relevant to the user's MongoDB use case."
+        ),
     limit: z.number().min(1).max(100).optional().default(5).describe("The maximum number of results to return"),
     dataSources: z
         .array(
@@ -17,7 +22,7 @@ export const SearchKnowledgeToolArgs = {
         )
         .optional()
         .describe(
-            "A list of one or more data sources to search in. You can specify a specific version of a data source by providing the version label. If not provided, the latest version of all data sources will be searched."
+            `A list of one or more data sources to limit the search to. You can specify a specific version of a data source by providing the version label. If not provided, the latest version of all data sources will be searched. Available data sources and their versions can be listed by calling the ${ListKnowledgeSourcesToolName} tool.`
         ),
 };
 
