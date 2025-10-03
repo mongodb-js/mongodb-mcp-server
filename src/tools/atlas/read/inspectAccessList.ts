@@ -4,7 +4,7 @@ import { AtlasToolBase } from "../atlasTool.js";
 import { AtlasArgs } from "../../args.js";
 
 export const InspectAccessListArgs = {
-    projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+    projectId: AtlasArgs.projectId(),
 };
 
 export class InspectAccessListTool extends AtlasToolBase {

@@ -30,7 +30,7 @@ export const CommonArgs = {
 };
 
 export const AtlasArgs = {
-    projectId: (): z.ZodString => CommonArgs.objectId("projectId"),
+    projectId: (): z.ZodString => CommonArgs.objectId("projectId").describe("Atlas project ID"),
 
     organizationId: (): z.ZodString => CommonArgs.objectId("organizationId"),
 
@@ -70,6 +70,14 @@ export const AtlasArgs = {
         z.string().min(1, "Password is required").max(100, "Password must be 100 characters or less"),
 };
 
+export const ProjectAndClusterArgs = {
+    projectId: AtlasArgs.projectId(),
+    clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
+};
+
+export const ProjectArgs = {
+    projectId: AtlasArgs.projectId(),
+};
 function toEJSON<T extends object | undefined>(value: T): T {
     if (!value) {
         return value;

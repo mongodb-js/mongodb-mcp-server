@@ -103,8 +103,10 @@ export function setupIntegrationTest(
             keychain: new Keychain(),
         });
 
-        // Mock hasValidAccessToken for tests
+        // Mock API Client for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
+            userConfig.apiClientId = "test";
+            userConfig.apiClientSecret = "test";
             const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
@@ -242,6 +244,16 @@ export const databaseCollectionParameters: ParameterInfo[] = [
     { name: "collection", type: "string", description: "Collection name", required: true },
 ];
 
+export const projectIdParameters: ParameterInfo[] = [
+    { name: "projectId", type: "string", description: "Atlas project ID", required: true },
+];
+
+export const createClusterParameters: ParameterInfo[] = [
+    { name: "name", type: "string", description: "Name of the cluster", required: true },
+    { name: "projectId", type: "string", description: "Atlas project ID to create the cluster in", required: true },
+    { name: "region", type: "string", description: "Region of the cluster", required: false },
+];
+
 export const databaseCollectionInvalidArgs = [
     {},
     { database: "test" },
@@ -250,6 +262,14 @@ export const databaseCollectionInvalidArgs = [
     { database: "test", collection: 123 },
     { database: [], collection: "foo" },
     { database: "test", collection: [] },
+];
+
+export const projectIdInvalidArgs = [
+    {},
+    { projectId: 123 },
+    { projectId: [] },
+    { projectId: "!✅invalid" },
+    { projectId: "invalid-test-project-id" },
 ];
 
 export const databaseInvalidArgs = [{}, { database: 123 }, { database: [] }];
