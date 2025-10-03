@@ -1,15 +1,20 @@
-import { setupIntegrationTest, IntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
+import {
+    setupIntegrationTest,
+    IntegrationTest,
+    defaultTestConfig,
+    defaultDriverOptions,
+} from "../../integration/helpers.js";
 import { describe, SuiteCollector } from "vitest";
 import { vi, beforeAll, afterAll, beforeEach } from "vitest";
 
-export type IntegrationTestFunction = (integration: IntegrationTest) => void;
+export type MockIntegrationTestFunction = (integration: IntegrationTest) => void;
 
-export function describeWithAssistant(name: string, fn: IntegrationTestFunction): SuiteCollector<object> {
+export function describeWithAssistant(name: string, fn: MockIntegrationTestFunction): SuiteCollector<object> {
     const testDefinition = (): void => {
         const integration = setupIntegrationTest(
             () => ({
                 ...defaultTestConfig,
-                assistantBaseUrl: "https://knowledge.test.mongodb.com/api/", // Not a real URL
+                assistantBaseUrl: "https://knowledge-mock.mongodb.com/api/v1", // Not a real URL
             }),
             () => ({
                 ...defaultDriverOptions,
@@ -22,7 +27,7 @@ export function describeWithAssistant(name: string, fn: IntegrationTestFunction)
     };
 
     // eslint-disable-next-line vitest/valid-describe-callback
-    return describe("assistant", testDefinition);
+    return describe("assistant (mocked)", testDefinition);
 }
 
 /**

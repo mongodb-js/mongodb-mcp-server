@@ -6,7 +6,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
     getDataFromUntrustedContent,
-} from "../../helpers.js";
+} from "../../integration/helpers.js";
 import { describeWithAssistant, makeMockAssistantAPI } from "./assistantHelpers.js";
 import { parse as yamlParse } from "yaml";
 
