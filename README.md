@@ -14,6 +14,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
+  - [MongoDB Assistant Tools](#mongodb-assistant-tools)
 - [📄 Supported Resources](#supported-resources)
 - [⚙️ Configuration](#configuration)
   - [Configuration Options](#configuration-options)
@@ -319,6 +320,11 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `collection-storage-size` - Get the size of a collection in MB
 - `db-stats` - Return statistics about a MongoDB database
 - `export` - Export query or aggregation results to EJSON format. Creates a uniquely named export accessible via the `exported-data` resource.
+
+#### MongoDB Assistant Tools
+
+- `list-knowledge-sources` - List available data sources in the MongoDB Assistant knowledge base. Example sources include various MongoDB documentation sites, MongoDB University courses, and other useful learning resources.
+- `search-knowledge` - Search for information in the MongoDB Assistant knowledge base.
 
 ## 📄 Supported Resources
 

@@ -16,7 +16,7 @@ export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback
 export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
 
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
-export type ToolCategory = "mongodb" | "atlas";
+export type ToolCategory = "mongodb" | "atlas" | "assistant";
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;
