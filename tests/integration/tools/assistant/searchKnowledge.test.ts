@@ -1,12 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     expectDefined,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     getResponseElements,
+    getDataFromUntrustedContent,
 } from "../../helpers.js";
 import { describeWithAssistant, makeMockAssistantAPI } from "./assistantHelpers.js";
+import { parse as yamlParse } from "yaml";
+
+// Mock the devtools-proxy-support module
+vi.mock("@mongodb-js/devtools-proxy-support", () => ({
+    createFetch: vi.fn(),
+}));
 
 describeWithAssistant("search-knowledge", (integration) => {
     const { mockSearchResults, mockAPIError, mockNetworkError } = makeMockAssistantAPI();
@@ -84,20 +91,34 @@ describeWithAssistant("search-knowledge", (integration) => {
 
             const elements = getResponseElements(response.content);
 
+            // First element is the description
+            expect(elements[0]?.text).toBe("Found 2 results in the MongoDB Assistant knowledge base.");
+
+            // Second element contains the YAML data
+            expect(elements[1]?.text).toContain("<untrusted-user-data-");
+            const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
+            const results = yamlParse(yamlData);
+
             // Check first result
-            expect(elements[0]?.text).toBe(
-                "The aggregation pipeline is a framework for data aggregation modeled on the concept of data processing pipelines."
-            );
-            expect(elements[0]?._meta).toEqual({
-                tags: ["aggregation", "pipeline"],
-                source: "mongodb-manual",
+            expect(results[0]).toMatchObject({
+                url: "https://docs.mongodb.com/manual/aggregation/",
+                title: "Aggregation Pipeline",
+                text: "The aggregation pipeline is a framework for data aggregation modeled on the concept of data processing pipelines.",
+                metadata: {
+                    tags: ["aggregation", "pipeline"],
+                    source: "mongodb-manual",
+                },
             });
 
             // Check second result
-            expect(elements[1]?.text).toBe("Aggregation pipeline operations have an array of operators available.");
-            expect(elements[1]?._meta).toEqual({
-                tags: ["aggregation", "operators"],
-                source: "mongodb-manual",
+            expect(results[1]).toMatchObject({
+                url: "https://docs.mongodb.com/manual/reference/operator/aggregation/",
+                title: "Aggregation Pipeline Operators",
+                text: "Aggregation pipeline operations have an array of operators available.",
+                metadata: {
+                    tags: ["aggregation", "operators"],
+                    source: "mongodb-manual",
+                },
             });
         });
 
@@ -127,15 +148,22 @@ describeWithAssistant("search-knowledge", (integration) => {
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
-            expect(response.content).toHaveLength(1);
+            expect(response.content).toHaveLength(2);
 
             const elements = getResponseElements(response.content);
-            expect(elements[0]?.text).toBe(
-                "The official MongoDB driver for Node.js provides a high-level API on top of mongodb-core."
-            );
-            expect(elements[0]?._meta).toEqual({
-                tags: ["driver", "nodejs"],
-                source: "node-driver",
+            expect(elements[0]?.text).toBe("Found 1 results in the MongoDB Assistant knowledge base.");
+
+            const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
+            const results = yamlParse(yamlData);
+
+            expect(results[0]).toMatchObject({
+                url: "https://mongodb.github.io/node-mongodb-native/",
+                title: "Node.js Driver",
+                text: "The official MongoDB driver for Node.js provides a high-level API on top of mongodb-core.",
+                metadata: {
+                    tags: ["driver", "nodejs"],
+                    source: "node-driver",
+                },
             });
         });
 
@@ -148,7 +176,10 @@ describeWithAssistant("search-knowledge", (integration) => {
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
-            expect(response.content).toHaveLength(0);
+            expect(response.content).toHaveLength(2);
+
+            const elements = getResponseElements(response.content);
+            expect(elements[0]?.text).toBe("Found 0 results in the MongoDB Assistant knowledge base.");
         });
 
         it("uses default limit when not specified", async () => {
@@ -168,7 +199,14 @@ describeWithAssistant("search-knowledge", (integration) => {
                 .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
 
             expect(response.isError).toBeFalsy();
-            expect(response.content).toHaveLength(5);
+            expect(response.content).toHaveLength(2);
+
+            const elements = getResponseElements(response.content);
+            expect(elements[0]?.text).toBe("Found 5 results in the MongoDB Assistant knowledge base.");
+
+            const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
+            const results = yamlParse(yamlData);
+            expect(results).toHaveLength(5);
         });
     });
 

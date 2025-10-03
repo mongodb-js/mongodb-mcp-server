@@ -1,6 +1,6 @@
 import { setupIntegrationTest, IntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
 import { describe, SuiteCollector } from "vitest";
-import { vi, beforeAll, afterAll } from "vitest";
+import { vi, beforeAll, afterAll, beforeEach } from "vitest";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -9,7 +9,7 @@ export function describeWithAssistant(name: string, fn: IntegrationTestFunction)
         const integration = setupIntegrationTest(
             () => ({
                 ...defaultTestConfig,
-                assistantBaseUrl: "https://knowledge.test.mongodb.com/api/", // Use test URL
+                assistantBaseUrl: "https://knowledge.test.mongodb.com/api/", // Not a real URL
             }),
             () => ({
                 ...defaultDriverOptions,
@@ -39,8 +39,13 @@ interface MockedAssistantAPI {
 export function makeMockAssistantAPI(): MockedAssistantAPI {
     const mockFetch = vi.fn();
 
-    beforeAll(() => {
-        global.fetch = mockFetch;
+    beforeAll(async () => {
+        const { createFetch } = await import("@mongodb-js/devtools-proxy-support");
+        vi.mocked(createFetch).mockReturnValue(mockFetch as never);
+    });
+
+    beforeEach(() => {
+        mockFetch.mockClear();
     });
 
     afterAll(() => {
@@ -50,14 +55,14 @@ export function makeMockAssistantAPI(): MockedAssistantAPI {
     const mockListSources: MockedAssistantAPI["mockListSources"] = (sources) => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
-            json: () => Promise.resolve({ dataSources: sources }),
+            json: async () => ({ dataSources: sources }),
         });
     };
 
     const mockSearchResults: MockedAssistantAPI["mockSearchResults"] = (results) => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
-            json: () => Promise.resolve({ results }),
+            json: async () => ({ results }),
         });
     };
 

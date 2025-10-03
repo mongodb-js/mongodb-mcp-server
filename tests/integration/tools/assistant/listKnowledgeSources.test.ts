@@ -1,7 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { expectDefined, validateToolMetadata, getResponseElements } from "../../helpers.js";
+import {
+    expectDefined,
+    validateToolMetadata,
+    getResponseElements,
+    getDataFromUntrustedContent,
+} from "../../helpers.js";
 import { describeWithAssistant, makeMockAssistantAPI } from "./assistantHelpers.js";
+import { parse as yamlParse } from "yaml";
+
+// Mock the devtools-proxy-support module
+vi.mock("@mongodb-js/devtools-proxy-support", () => ({
+    createFetch: vi.fn(),
+}));
 
 describeWithAssistant("list-knowledge-sources", (integration) => {
     const { mockListSources, mockAPIError, mockNetworkError } = makeMockAssistantAPI();
@@ -46,10 +57,19 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
 
             const elements = getResponseElements(response.content);
 
+            // First element is the description
+            expect(elements[0]?.text).toBe("Found 2 data sources in the MongoDB Assistant knowledge base.");
+
+            // Second element contains the YAML data
+            expect(elements[1]?.text).toContain("<untrusted-user-data-");
+            const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
+            const dataSources = yamlParse(yamlData);
+
             // Check first data source
-            expect(elements[0]?.text).toBe("mongodb-manual");
-            expect(elements[0]?._meta).toEqual({
+            expect(dataSources[0]).toMatchObject({
+                id: "mongodb-manual",
                 type: "documentation",
+                currentVersion: "7.0",
                 versions: [
                     { label: "7.0", isCurrent: true },
                     { label: "6.0", isCurrent: false },
@@ -57,9 +77,10 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
             });
 
             // Check second data source
-            expect(elements[1]?.text).toBe("node-driver");
-            expect(elements[1]?._meta).toEqual({
+            expect(dataSources[1]).toMatchObject({
+                id: "node-driver",
                 type: "driver",
+                currentVersion: "6.0",
                 versions: [
                     { label: "6.0", isCurrent: true },
                     { label: "5.0", isCurrent: false },
@@ -76,7 +97,10 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
-            expect(response.content).toHaveLength(0);
+            expect(response.content).toHaveLength(2);
+
+            const elements = getResponseElements(response.content);
+            expect(elements[0]?.text).toBe("Found 0 data sources in the MongoDB Assistant knowledge base.");
         });
     });
 
