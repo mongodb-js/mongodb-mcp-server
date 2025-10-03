@@ -89,3 +89,11 @@ function toEJSON<T extends object | undefined>(value: T): T {
 export function zEJSON(): z.AnyZodObject {
     return z.object({}).passthrough().transform(toEJSON) as unknown as z.AnyZodObject;
 }
+export const ProjectAndClusterArgs = {
+    projectId: AtlasArgs.projectId(),
+    clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
+};
+
+export const ProjectArgs = {
+    projectId: AtlasArgs.projectId(),
+};
