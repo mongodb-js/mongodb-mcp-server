@@ -176,12 +176,11 @@ export async function assertClusterIsAvailable(
     }
 }
 
-export async function deleteAndWaitCluster(
+export async function deleteCluster(
     session: Session,
     projectId: string,
     clusterName: string,
-    pollingInterval: number = 1000,
-    maxPollingIterations: number = 300
+    shouldWaitTillClusterIsDeleted: boolean = false
 ): Promise<void> {
     await session.apiClient.deleteCluster({
         params: {
@@ -192,16 +191,25 @@ export async function deleteAndWaitCluster(
         },
     });
 
-    for (let i = 0; i < maxPollingIterations; i++) {
-        const isAvailable = await assertClusterIsAvailable(session, projectId, clusterName);
-        if (!isAvailable) {
-            return;
-        }
-        await sleep(pollingInterval);
+    if (!shouldWaitTillClusterIsDeleted) {
+        return;
     }
-    throw new Error(
-        `Cluster deletion timeout: ${clusterName} did not delete within ${maxPollingIterations} iterations`
-    );
+
+    while (true) {
+        try {
+            await session.apiClient.getCluster({
+                params: {
+                    path: {
+                        groupId: projectId,
+                        clusterName,
+                    },
+                },
+            });
+            await sleep(1000);
+        } catch {
+            break;
+        }
+    }
 }
 
 export async function waitCluster(

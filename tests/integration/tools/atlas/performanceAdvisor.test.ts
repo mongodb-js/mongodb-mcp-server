@@ -3,7 +3,7 @@
 
 import type { Session } from "../../../../src/common/session.js";
 import { DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS, expectDefined, getResponseElements } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId, deleteAndWaitCluster, waitCluster } from "./atlasHelpers.js";
+import { describeWithAtlas, withProject, randomId, waitCluster, deleteCluster } from "./atlasHelpers.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 describeWithAtlas("performanceAdvisor", (integration) => {
@@ -14,7 +14,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session: Session = integration.mcpServer().session;
-                await deleteAndWaitCluster(session, projectId, clusterName, 1000, 1200);
+                await deleteCluster(session, projectId, clusterName);
             }
         }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);
 
