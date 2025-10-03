@@ -1,23 +1,25 @@
-import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { OperationType } from "../tool.js";
+import { formatUntrustedData, type OperationType } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
+import { stringify as yamlStringify } from "yaml";
+
+export type KnowledgeSource = {
+    /** The name of the data source */
+    id: string;
+    /** The type of the data source */
+    type: string;
+    /** A list of available versions for this data source */
+    versions: {
+        /** The version label of the data source */
+        label: string;
+        /** Whether this version is the current/default version */
+        isCurrent: boolean;
+    }[];
+};
 
 export type ListKnowledgeSourcesResponse = {
-    dataSources: {
-        /** The name of the data source */
-        id: string;
-        /** The type of the data source */
-        type: string;
-        /** A list of available versions for this data source */
-        versions: {
-            /** The version label of the data source */
-            label: string;
-            /** Whether this version is the current/default version */
-            isCurrent: boolean;
-        }[];
-    }[];
+    dataSources: KnowledgeSource[];
 };
 
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
@@ -50,15 +52,21 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
         }
         const { dataSources } = (await response.json()) as ListKnowledgeSourcesResponse;
 
+        const text = yamlStringify(
+            dataSources.map((ds) => {
+                const currentVersion = ds.versions.find(({ isCurrent }) => isCurrent)?.label;
+                if (currentVersion) {
+                    (ds as KnowledgeSource & { currentVersion: string }).currentVersion = currentVersion;
+                }
+                return ds;
+            })
+        );
+
         return {
-            content: dataSources.map(({ id, type, versions }) => ({
-                type: "text",
-                text: id,
-                _meta: {
-                    type,
-                    versions,
-                },
-            })),
+            content: formatUntrustedData(
+                `Found ${dataSources.length} data sources in the MongoDB Assistant knowledge base.`,
+                text
+            ),
         };
     }
 }

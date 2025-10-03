@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ToolArgs, OperationType } from "../tool.js";
+import { type ToolArgs, type OperationType, formatUntrustedData } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
+import { stringify as yamlStringify } from "yaml";
 
 export const SearchKnowledgeToolArgs = {
     query: z.string().describe("A natural language query to search for in the knowledge base"),
@@ -71,14 +72,14 @@ export class SearchKnowledgeTool extends AssistantToolBase {
             };
         }
         const { results } = (await response.json()) as SearchKnowledgeResponse;
+
+        const text = yamlStringify(results);
+
         return {
-            content: results.map(({ text, metadata }) => ({
-                type: "text",
-                text,
-                _meta: {
-                    ...metadata,
-                },
-            })),
+            content: formatUntrustedData(
+                `Found ${results.length} results in the MongoDB Assistant knowledge base.`,
+                text
+            ),
         };
     }
 }

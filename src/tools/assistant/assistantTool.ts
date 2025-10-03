@@ -5,9 +5,10 @@ import {
     type ToolCategory,
     type ToolConstructorParams,
 } from "../tool.js";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Server } from "../../server.js";
 import { packageInfo } from "../../common/packageInfo.js";
+import { formatUntrustedData } from "../tool.js";
 
 export abstract class AssistantToolBase extends ToolBase {
     protected server?: Server;
@@ -18,10 +19,9 @@ export abstract class AssistantToolBase extends ToolBase {
     constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
         super({ session, config, telemetry, elicitation });
         this.baseUrl = new URL(config.assistantBaseUrl);
-        const serverVersion = packageInfo.version;
         this.requiredHeaders = new Headers({
             "x-request-origin": "mongodb-mcp-server",
-            "user-agent": serverVersion ? `mongodb-mcp-server/v${serverVersion}` : "mongodb-mcp-server",
+            "user-agent": packageInfo.version ? `mongodb-mcp-server/v${packageInfo.version}` : "mongodb-mcp-server",
         });
     }
 
@@ -42,7 +42,14 @@ export abstract class AssistantToolBase extends ToolBase {
         if (args.method === "POST") {
             headers.set("Content-Type", "application/json");
         }
-        return await fetch(endpoint, {
+
+        // Use the same custom fetch implementation as the Atlas API client.
+        // We need this to support enterprise proxies.
+        const customFetch = createFetch({
+            useEnvironmentVariableProxies: true,
+        }) as unknown as typeof fetch;
+
+        return await customFetch(endpoint, {
             method: args.method,
             headers,
             body: JSON.stringify(args.body),
