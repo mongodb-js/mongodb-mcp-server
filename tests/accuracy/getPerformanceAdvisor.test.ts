@@ -23,7 +23,7 @@ const mockedTools = {
             ],
         };
     },
-    "atlas-list-performance-advisor": (): CallToolResult => {
+    "atlas-get-performance-advisor": (): CallToolResult => {
         return {
             content: [
                 {
@@ -51,7 +51,7 @@ describeAccuracyTests([
                 },
             },
             {
-                toolName: "atlas-list-performance-advisor",
+                toolName: "atlas-get-performance-advisor",
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
@@ -76,7 +76,7 @@ describeAccuracyTests([
                 },
             },
             {
-                toolName: "atlas-list-performance-advisor",
+                toolName: "atlas-get-performance-advisor",
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
@@ -101,7 +101,7 @@ describeAccuracyTests([
                 },
             },
             {
-                toolName: "atlas-list-performance-advisor",
+                toolName: "atlas-get-performance-advisor",
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
@@ -128,7 +128,7 @@ describeAccuracyTests([
                 },
             },
             {
-                toolName: "atlas-list-performance-advisor",
+                toolName: "atlas-get-performance-advisor",
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
@@ -153,7 +153,7 @@ describeAccuracyTests([
                 },
             },
             {
-                toolName: "atlas-list-performance-advisor",
+                toolName: "atlas-get-performance-advisor",
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",

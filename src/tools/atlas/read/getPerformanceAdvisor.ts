@@ -82,9 +82,9 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                 dropIndexSuggestionsResult.value?.hiddenIndexes &&
                 dropIndexSuggestionsResult.value?.redundantIndexes &&
                 dropIndexSuggestionsResult.value?.unusedIndexes &&
-                dropIndexSuggestionsResult.value.hiddenIndexes.length > 0 &&
-                dropIndexSuggestionsResult.value.redundantIndexes.length > 0 &&
-                dropIndexSuggestionsResult.value.unusedIndexes.length > 0;
+                (dropIndexSuggestionsResult.value.hiddenIndexes.length > 0 ||
+                    dropIndexSuggestionsResult.value.redundantIndexes.length > 0 ||
+                    dropIndexSuggestionsResult.value.unusedIndexes.length > 0);
             const hasSlowQueryLogs =
                 slowQueryLogsResult.status === "fulfilled" &&
                 slowQueryLogsResult.value?.slowQueryLogs &&
