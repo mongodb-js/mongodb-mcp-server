@@ -382,3 +382,7 @@ export function getDataFromUntrustedContent(content: string): string {
     }
     return match.groups.data.trim();
 }
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}

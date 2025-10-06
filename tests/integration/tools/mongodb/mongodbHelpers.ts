@@ -16,6 +16,9 @@ import {
 import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { EJSON } from "bson";
+import { GenericContainer } from "testcontainers";
+import type { StartedTestContainer } from "testcontainers";
+import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -58,15 +61,17 @@ interface MongoDBIntegrationTest {
 export type MongoDBIntegrationTestCase = IntegrationTest &
     MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> };
 
+export type MongoSearchConfiguration = { search: true; image?: string };
+
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
     getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
     getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
-    downloadOptions: MongoClusterOptions["downloadOptions"] = { enterprise: false },
+    downloadOptions: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration = { enterprise: false },
     serverArgs: string[] = []
 ): void {
-    describe(name, () => {
+    describe.skipIf(!isMongoDBEnvSupported(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions, serverArgs);
         const integration = setupIntegrationTest(
             () => ({
@@ -93,11 +98,35 @@ export function describeWithMongoDB(
     });
 }
 
+function isSearchOptions(
+    opt: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration
+): opt is MongoSearchConfiguration {
+    return (opt as MongoSearchConfiguration)?.search === true;
+}
+
+function isTestContainersCluster(
+    cluster: MongoCluster | StartedTestContainer | undefined
+): cluster is StartedTestContainer {
+    return !!(cluster as StartedTestContainer)?.stop;
+}
+
+function isMongoDBEnvSupported(
+    downloadOptions: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration
+): boolean {
+    // on GHA, OSX does not support nested virtualisation and we don't release
+    // windows containers, so for now we can only run these tests in Linux.
+    if (isSearchOptions(downloadOptions) && process.env.GITHUB_ACTIONS === "true") {
+        return process.platform === "linux";
+    }
+
+    return true;
+}
+
 export function setupMongoDBIntegrationTest(
-    downloadOptions: MongoClusterOptions["downloadOptions"],
+    downloadOptions: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration,
     serverArgs: string[]
 ): MongoDBIntegrationTest {
-    let mongoCluster: MongoCluster | undefined;
+    let mongoCluster: MongoCluster | StartedTestContainer | undefined;
     let mongoClient: MongoClient | undefined;
     let randomDbName: string;
 
@@ -111,6 +140,15 @@ export function setupMongoDBIntegrationTest(
     });
 
     beforeAll(async function () {
+        if (isSearchOptions(downloadOptions)) {
+            mongoCluster = await new GenericContainer(downloadOptions.image ?? "mongodb/mongodb-atlas-local:8")
+                .withExposedPorts(27017)
+                .withCommand(["/usr/local/bin/runner", "server"])
+                .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`))
+                .start();
+            return;
+        }
+
         // Downloading Windows executables in CI takes a long time because
         // they include debug symbols...
         const tmpDir = path.join(__dirname, "..", "..", "..", "tmp");
@@ -152,13 +190,22 @@ export function setupMongoDBIntegrationTest(
     }, 120_000);
 
     afterAll(async function () {
-        await mongoCluster?.close();
+        if (isTestContainersCluster(mongoCluster)) {
+            await mongoCluster.stop();
+        } else {
+            await mongoCluster?.close();
+        }
         mongoCluster = undefined;
     });
 
     const getConnectionString = (): string => {
         if (!mongoCluster) {
             throw new Error("beforeAll() hook not ran yet");
+        }
+
+        if (isTestContainersCluster(mongoCluster)) {
+            const mappedPort = mongoCluster.getMappedPort(27017);
+            return `mongodb://${mongoCluster.getHost()}:${mappedPort}`;
         }
 
         return mongoCluster.connectionString;
@@ -266,6 +313,11 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
             );
         },
     };
+}
+
+export function getSingleDocFromUntrustedContent<T = unknown>(content: string): T {
+    const data = getDataFromUntrustedContent(content);
+    return EJSON.parse(data, { relaxed: true }) as T;
 }
 
 export function getDocsFromUntrustedContent<T = unknown>(content: string): T[] {
