@@ -19,6 +19,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
 import type { ToolBase } from "./tools/tool.js";
+import { AssistantTools } from "./tools/assistant/tools.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -206,7 +207,7 @@ export class Server {
     }
 
     private registerTools(): void {
-        for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
+        for (const toolConstructor of [...AtlasTools, ...MongoDbTools, ...AssistantTools]) {
             const tool = new toolConstructor({
                 session: this.session,
                 config: this.userConfig,
@@ -302,6 +303,7 @@ export class Server {
                     context: "server",
                     message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
                 });
+                j;
             }
         }
     }
