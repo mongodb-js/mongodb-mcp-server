@@ -6,13 +6,29 @@ import {
     setupIntegrationTest,
     waitUntilMcpClientIsSet,
 } from "../../helpers.js";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
 
 // Docker is not available on macOS in GitHub Actions
 // That's why we skip the tests on macOS in GitHub Actions
 describe("atlas-local-connect-deployment", () => {
+    let deploymentNamesToCleanup: string[] = [];
+
+    afterEach(async () => {
+        // Clean up any deployments created during the test
+        for (const deploymentName of deploymentNamesToCleanup) {
+            try {
+                await integration.mcpClient().callTool({
+                    name: "atlas-local-delete-deployment",
+                    arguments: { deploymentName },
+                });
+            } catch (error) {
+                console.warn(`Failed to delete deployment ${deploymentName}:`, error);
+            }
+        }
+        deploymentNamesToCleanup = [];
+    });
     const integration = setupIntegrationTest(
         () => defaultTestConfig,
         () => defaultDriverOptions
@@ -69,6 +85,7 @@ describe("atlas-local-connect-deployment", () => {
         await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
         // Create a deployment
         const deploymentName = `test-deployment-${Date.now()}`;
+        deploymentNamesToCleanup.push(deploymentName);
         await integration.mcpClient().callTool({
             name: "atlas-local-create-deployment",
             arguments: { deploymentName },
@@ -84,15 +101,5 @@ describe("atlas-local-connect-deployment", () => {
         expect(elements[0]?.text).toContain(
             'Successfully connected to Atlas Local deployment "' + deploymentName + '".'
         );
-
-        // cleanup
-        try {
-            await integration.mcpClient().callTool({
-                name: "atlas-local-delete-deployment",
-                arguments: { deploymentName },
-            });
-        } catch (error) {
-            console.warn(`Failed to delete deployment ${deploymentName}:`, error);
-        }
     });
 });
