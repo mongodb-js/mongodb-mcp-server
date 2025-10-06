@@ -5,7 +5,6 @@ import type { components } from "./openapi.js";
 
 export type SuggestedIndex = components["schemas"]["PerformanceAdvisorIndex"];
 export type DropIndexSuggestion = components["schemas"]["DropIndexSuggestionsIndex"];
-export type SlowQueryLogMetrics = components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
 export type SlowQueryLog = components["schemas"]["PerformanceAdvisorSlowQuery"];
 
 export const DEFAULT_SLOW_QUERY_LOGS_LIMIT = 50;
