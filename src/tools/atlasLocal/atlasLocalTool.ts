@@ -48,6 +48,20 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         args: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> | CallToolResult {
         // Error Handling for expected Atlas Local errors go here
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes("No such container")) {
+            const deploymentName =
+                "deploymentName" in args ? (args.deploymentName as string) : "the specified deployment";
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `The Atlas Local deployment "${deploymentName}" was not found. Please check the deployment name or use "atlas-local-list-deployments" to see available deployments.`,
+                    },
+                ],
+                isError: true,
+            };
+        }
 
         // For other types of errors, use the default error handling from the base class
         return super.handleError(error, args);
