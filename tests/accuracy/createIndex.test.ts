@@ -11,8 +11,11 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                    keys: {
-                        release_year: 1,
+                    definition: {
+                        type: "classic",
+                        keys: {
+                            release_year: 1,
+                        },
                     },
                 },
             },
@@ -27,8 +30,11 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                    keys: {
-                        title: "text",
+                    definition: {
+                        type: "classic",
+                        keys: {
+                            title: "text",
+                        },
                     },
                 },
             },
