@@ -52,15 +52,16 @@ describe("atlas-local-delete-deployment", () => {
         "should return 'no such container' error when deployment to delete does not exist",
         async ({ signal }) => {
             await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+            const deploymentName = "non-existent";
 
             const response = await integration.mcpClient().callTool({
                 name: "atlas-local-delete-deployment",
-                arguments: { deploymentName: "non-existent" },
+                arguments: { deploymentName },
             });
             const elements = getResponseElements(response.content);
             expect(elements.length).toBeGreaterThanOrEqual(1);
             expect(elements[0]?.text).toContain(
-                "Docker responded with status code 404: No such container: non-existent"
+                `The Atlas Local deployment "${deploymentName}" was not found. Please check the deployment name or use "atlas-local-list-deployments" to see available deployments.`
             );
         }
     );
