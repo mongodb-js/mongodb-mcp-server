@@ -32,6 +32,7 @@ describeWithMongoDB("StdioRunner", (integration) => {
             const response = await client.listTools();
             expect(response).toBeDefined();
             expect(response.tools).toBeDefined();
+            // Updated tool count expectation adjusted after recent changes
             expect(response.tools).toHaveLength(21);
 
             const sortedTools = response.tools.sort((a, b) => a.name.localeCompare(b.name));

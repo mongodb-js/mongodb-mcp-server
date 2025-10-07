@@ -22,6 +22,13 @@ const OPTIONS = {
         "notificationTimeoutMs",
         "telemetry",
         "transport",
+        "httpAuthMode",
+        "azureManagedIdentityTenantId",
+        "azureManagedIdentityClientId",
+        "azureManagedIdentityAudience",
+        "azureManagedIdentityRequiredRoles",
+        "azureManagedIdentityAllowedAppIds",
+        "azureManagedIdentityRoleMatchMode",
         "apiVersion",
         "authenticationDatabase",
         "authenticationMechanism",
@@ -53,6 +60,15 @@ const OPTIONS = {
         "exportsPath",
         "exportTimeoutMs",
         "exportCleanupIntervalMs",
+        
+        // Custom additions for vector search / embeddings
+        "vectorSearchPath",
+        "vectorSearchIndex",
+        "embeddingModelEndpoint",
+        "embeddingModelApikey",
+        "embeddingModelDimension",
+        "embeddingModelDeploymentName",
+        "embeddingModelProvider",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -175,12 +191,36 @@ export interface UserConfig extends CliOptions {
     httpPort: number;
     httpHost: string;
     httpHeaders: Record<string, string>;
+    
+    // httpAuthMode: none | azure-managed-identity (env: MDB_MCP_HTTP_AUTH_MODE)
+    httpAuthMode?: "none" | "azure-managed-identity";
+    
+     // Azure Managed Identity configuration (only used when httpAuthMode=azure-managed-identity)
+    azureManagedIdentityTenantId?: string; // MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID
+    azureManagedIdentityClientId?: string; // optional; target app/client id to validate aud if audience not provided
+    azureManagedIdentityAudience?: string; // optional explicit audience to validate token 'aud'
+    azureManagedIdentityAllowedAppIds?: string[]; // optional allowed list of app (client) IDs (appid/azp) - if set token must match one
+    azureManagedIdentityRequiredRoles?: string[]; // optional list of app roles that must all be present in 'roles'
+    azureManagedIdentityRoleMatchMode?: "all" | "any"; // default all
+
     loggers: Array<"stderr" | "disk" | "mcp">;
     idleTimeoutMs: number;
     notificationTimeoutMs: number;
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     atlasTemporaryDatabaseUserLifetimeMs: number;
+    
+    // Optional default vector field path for vector-search tool (env: MDB_MCP_VECTOR_SEARCH_PATH)
+    vectorSearchPath?: string;
+    // Optional default vector search index name (env: MDB_MCP_VECTOR_SEARCH_INDEX)
+    vectorSearchIndex?: string;
+    
+    // Azure AI embedding model configuration
+    embeddingModelProvider?: string; // MDB_MCP_EMBEDDING_MODEL_PROVIDER (defaults to azure-ai-inference)
+    embeddingModelEndpoint?: string; // MDB_MCP_EMBEDDING_MODEL_ENDPOINT
+    embeddingModelApikey?: string; // MDB_MCP_EMBEDDING_MODEL_APIKEY
+    embeddingModelDeploymentName?: string; // MDB_MCP_EMBEDDING_MODEL_DEPLOYMENT_NAME
+    embeddingModelDimension?: number; // [Optional] MDB_MCP_EMBEDDING_MODEL_DIMENSION
 }
 
 export const defaultUserConfig: UserConfig = {
@@ -210,6 +250,7 @@ export const defaultUserConfig: UserConfig = {
     maxDocumentsPerQuery: 100, // By default, we only fetch a maximum 100 documents per query / aggregation
     maxBytesPerQuery: 16 * 1024 * 1024, // By default, we only return ~16 mb of data per query / aggregation
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+    httpAuthMode: "none",
 };
 
 export const config = setupUserConfig({
@@ -437,6 +478,7 @@ export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfi
     maybeRegister(userConfig.tlsCertificateKeyFile, "url");
     maybeRegister(userConfig.tlsCertificateKeyFilePassword, "password");
     maybeRegister(userConfig.username, "user");
+    maybeRegister(userConfig.embeddingModelApikey, "password");
 }
 
 export function setupUserConfig({
@@ -457,6 +499,19 @@ export function setupUserConfig({
     userConfig.disabledTools = commaSeparatedToArray(userConfig.disabledTools);
     userConfig.loggers = commaSeparatedToArray(userConfig.loggers);
     userConfig.confirmationRequiredTools = commaSeparatedToArray(userConfig.confirmationRequiredTools);
+    userConfig.azureManagedIdentityRequiredRoles = commaSeparatedToArray(
+        userConfig.azureManagedIdentityRequiredRoles
+    );
+    userConfig.azureManagedIdentityAllowedAppIds = commaSeparatedToArray(
+        userConfig.azureManagedIdentityAllowedAppIds
+    );
+
+    // Normalize match modes (default to 'all')
+    const roleMode = userConfig.azureManagedIdentityRoleMatchMode;
+    if (roleMode && roleMode !== "all" && roleMode !== "any") {
+        throw new Error(`Invalid azureManagedIdentityRoleMatchMode: ${roleMode}`);
+    }
+    userConfig.azureManagedIdentityRoleMatchMode = roleMode ?? "all";
 
     if (userConfig.connectionString && userConfig.connectionSpecifier) {
         const connectionInfo = generateConnectionInfoFromCliArgs(userConfig);
@@ -471,6 +526,22 @@ export function setupUserConfig({
     const telemetry = userConfig.telemetry as string;
     if (telemetry !== "enabled" && telemetry !== "disabled") {
         throw new Error(`Invalid telemetry: ${telemetry}`);
+    }
+
+    // Validate httpAuthMode
+    const httpAuthMode = (userConfig.httpAuthMode ?? "none") as string;
+    if (httpAuthMode !== "none" && httpAuthMode !== "azure-managed-identity") {
+        throw new Error(`Invalid httpAuthMode: ${httpAuthMode}`);
+    }
+    userConfig.httpAuthMode = httpAuthMode as UserConfig["httpAuthMode"];
+
+    if (userConfig.transport === "http" && httpAuthMode === "azure-managed-identity") {
+        // Require at least a tenant id to be specified (used to fetch Microsoft openid config) – audience/client optional
+        if (!userConfig.azureManagedIdentityTenantId) {
+            throw new Error(
+                "azure-managed-identity auth requires azureManagedIdentityTenantId (env MDB_MCP_AZURE_MANAGED_IDENTITY_TENANT_ID)"
+            );
+        }
     }
 
     const httpPort = +userConfig.httpPort;
