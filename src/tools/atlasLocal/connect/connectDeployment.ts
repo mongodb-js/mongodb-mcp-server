@@ -9,15 +9,15 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     protected description = "Connect to a MongoDB Atlas Local deployment";
     public operationType: OperationType = "connect";
     protected argsShape = {
-        deploymentIdOrName: z.string().describe("Name or ID of the deployment to connect to"),
+        deploymentName: z.string().describe("Name of the deployment to connect to"),
     };
 
     protected async executeWithAtlasLocalClient(
         client: Client,
-        { deploymentIdOrName }: ToolArgs<typeof this.argsShape>
+        { deploymentName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {
         // Get the connection string for the deployment
-        const connectionString = await client.getConnectionString(deploymentIdOrName);
+        const connectionString = await client.getConnectionString(deploymentName);
 
         // Connect to the deployment
         await this.session.connectToMongoDB({ connectionString });
@@ -26,7 +26,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Successfully connected to Atlas Local deployment "${deploymentIdOrName}".`,
+                    text: `Successfully connected to Atlas Local deployment "${deploymentName}".`,
                 },
             ],
         };
