@@ -322,7 +322,7 @@ describe("MongoDBTool implementations", () => {
             );
             const tools = await mcpClient?.listTools({});
             expect(tools?.tools).toHaveLength(1);
-            expect(tools?.tools.find((tool) => tool.name === "UnusableTool")).toBeUndefined();
+            expect(tools?.tools.find((tool) => tool.name === "UnusableVoyageTool")).toBeUndefined();
         });
     });
 });
