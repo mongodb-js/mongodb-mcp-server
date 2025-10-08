@@ -9,6 +9,7 @@ import { NullLogger } from "../../tests/utils/index.js";
 import type { MockedFunction } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import { expectDefined } from "../integration/helpers.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 // Mock the ApiClient to avoid real API calls
 vi.mock("../../src/common/atlas/apiClient.js");
@@ -140,6 +141,7 @@ describe("Telemetry", () => {
             close: vi.fn().mockResolvedValue(undefined),
             setAgentRunner: vi.fn().mockResolvedValue(undefined),
             logger: new NullLogger(),
+            keychain: new Keychain(),
         } as unknown as Session;
 
         telemetry = Telemetry.create(session, config, mockDeviceId, {
@@ -343,6 +345,92 @@ describe("Telemetry", () => {
             await emitEventsForTest([testEvent]);
 
             verifyMockCalls();
+        });
+    });
+
+    describe("when secrets are registered", () => {
+        describe("comprehensive redaction coverage", () => {
+            it("should redact sensitive data from CommonStaticProperties", async () => {
+                session.keychain.register("secret-server-version", "password");
+                session.keychain.register("secret-server-name", "password");
+                session.keychain.register("secret-password", "password");
+                session.keychain.register("secret-key", "password");
+                session.keychain.register("secret-token", "password");
+                session.keychain.register("secret-password-version", "password");
+
+                const sensitiveStaticProps = {
+                    mcp_server_version: "secret-server-version",
+                    mcp_server_name: "secret-server-name",
+                    platform: "linux-secret-password", // OS info might contain sensitive paths
+                    arch: "x64-secret-key", // Architecture info might contain sensitive details
+                    os_type: "linux-secret-token", // OS type might contain sensitive info
+                    os_version: "secret-password-version", // OS version might contain sensitive details
+                };
+
+                telemetry = Telemetry.create(session, config, mockDeviceId, {
+                    eventCache: mockEventCache as unknown as EventCache,
+                    commonProperties: sensitiveStaticProps,
+                });
+
+                await telemetry.setupPromise;
+
+                telemetry.emitEvents([createTestEvent()]);
+
+                const calls = mockApiClient.sendEvents.mock.calls;
+                expect(calls).toHaveLength(1);
+
+                // get event properties
+                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                expectDefined(sentEvent);
+
+                const eventProps = sentEvent.properties;
+                expect(eventProps.mcp_server_version).toBe("<password>");
+                expect(eventProps.mcp_server_name).toBe("<password>");
+                expect(eventProps.platform).toBe("linux-<password>");
+                expect(eventProps.arch).toBe("x64-<password>");
+                expect(eventProps.os_type).toBe("linux-<password>");
+                expect(eventProps.os_version).toBe("<password>-version");
+            });
+
+            it("should redact sensitive data from CommonProperties", async () => {
+                // register the common properties as sensitive data
+                session.keychain.register("test-device-id", "password");
+                session.keychain.register(session.sessionId, "password");
+
+                telemetry.emitEvents([createTestEvent()]);
+
+                const calls = mockApiClient.sendEvents.mock.calls;
+                expect(calls).toHaveLength(1);
+
+                // get event properties
+                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                expectDefined(sentEvent);
+
+                const eventProps = sentEvent.properties;
+
+                expect(eventProps.device_id).toBe("<password>");
+                expect(eventProps.session_id).toBe("<password>");
+            });
+
+            it("should redact sensitive data that is added to events", () => {
+                session.keychain.register("test-device-id", "password");
+                session.keychain.register(session.sessionId, "password");
+                session.keychain.register("test-component", "password");
+
+                telemetry.emitEvents([createTestEvent()]);
+
+                const calls = mockApiClient.sendEvents.mock.calls;
+                expect(calls).toHaveLength(1);
+
+                // get event properties
+                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                expectDefined(sentEvent);
+
+                const eventProps = sentEvent.properties;
+                expect(eventProps.device_id).toBe("<password>");
+                expect(eventProps.session_id).toBe("<password>");
+                expect(eventProps.component).toBe("<password>");
+            });
         });
     });
 });

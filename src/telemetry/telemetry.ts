@@ -53,8 +53,8 @@ export class Telemetry {
         } = {}
     ): Telemetry {
         const mergedProperties = {
-            ...redact(MACHINE_METADATA, session.keychain.allSecrets),
-            ...redact(commonProperties, session.keychain.allSecrets),
+            ...MACHINE_METADATA,
+            ...commonProperties,
         };
         const instance = new Telemetry(session, userConfig, mergedProperties, {
             eventCache,
@@ -222,7 +222,7 @@ export class Telemetry {
                 events.map((event) => ({
                     ...event,
                     properties: {
-                        ...redact(this.getCommonProperties()),
+                        ...redact(this.getCommonProperties(), this.session.keychain.allSecrets),
                         ...redact(event.properties, this.session.keychain.allSecrets),
                     },
                 }))
