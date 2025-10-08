@@ -21,7 +21,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const input = {
             groupId: projectId,
-            clusterName,
+            name: clusterName,
             clusterType: "REPLICASET",
             replicationSpecs: [
                 {
