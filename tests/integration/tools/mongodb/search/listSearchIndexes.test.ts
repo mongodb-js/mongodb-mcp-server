@@ -118,24 +118,20 @@ describeWithMongoDB(
 );
 
 async function waitUntilSearchIsReady(provider: NodeDriverServiceProvider, abortSignal: AbortSignal): Promise<void> {
-    let success = false;
     let lastError: unknown = null;
 
     for (let i = 0; i < SEARCH_RETRIES && !abortSignal.aborted; i++) {
         try {
             await provider.insertOne("tmp", "test", { field1: "yay" });
             await provider.createSearchIndexes("tmp", "test", [{ definition: { mappings: { dynamic: true } } }]);
-            success = true;
-            break;
+            return;
         } catch (err) {
             lastError = err;
             await sleep(100);
         }
     }
 
-    if (!success) {
-        throw new Error(`Search Management Index is not ready.\nlastError: ${JSON.stringify(lastError)}`);
-    }
+    throw new Error(`Search Management Index is not ready.\nlastError: ${JSON.stringify(lastError)}`);
 }
 
 async function waitUntilIndexIsQueryable(
@@ -145,7 +141,6 @@ async function waitUntilIndexIsQueryable(
     indexName: string,
     abortSignal: AbortSignal
 ): Promise<void> {
-    let success = false;
     let lastIndexStatus: unknown = null;
     let lastError: unknown = null;
 
@@ -155,8 +150,7 @@ async function waitUntilIndexIsQueryable(
             lastIndexStatus = indexStatus;
 
             if (indexStatus?.queryable === true) {
-                success = true;
-                break;
+                return;
             }
         } catch (err) {
             lastError = err;
@@ -164,11 +158,9 @@ async function waitUntilIndexIsQueryable(
         }
     }
 
-    if (!success) {
-        throw new Error(
-            `Index ${indexName} in ${database}.${collection} is not ready:
+    throw new Error(
+        `Index ${indexName} in ${database}.${collection} is not ready:
 lastIndexStatus: ${JSON.stringify(lastIndexStatus)}
 lastError: ${JSON.stringify(lastError)}`
-        );
-    }
+    );
 }
