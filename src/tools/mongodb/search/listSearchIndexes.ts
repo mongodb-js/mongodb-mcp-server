@@ -40,6 +40,11 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
         }
     }
 
+    protected verifyAllowed(): boolean {
+        // Only enable this on tests for now.
+        return process.env.VITEST === "true";
+    }
+
     /**
      * Atlas Search index status contains a lot of information that is not relevant for the agent at this stage.
      * Like for example, the status on each of the dedicated nodes. We only care about the main status, if it's
