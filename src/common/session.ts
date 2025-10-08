@@ -153,4 +153,20 @@ export class Session extends EventEmitter<SessionEvents> {
     get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined {
         return this.connectionManager.currentConnectionState.connectedAtlasCluster;
     }
+
+    async isSearchIndexSupported(): Promise<boolean> {
+        try {
+            const dummyDatabase = `db-${Date.now()}`;
+            const dummyCollection = `coll-${Date.now()}`;
+            // If a cluster supports search indexes, the call below will succeed
+            // with a cursor otherwise will throw a MongoServerError
+            await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);
+            return true;
+        } catch (error) {
+            if (error instanceof Error && "codeName" in error && error.codeName === "SearchNotEnabled") {
+                return false;
+            }
+            throw error;
+        }
+    }
 }
