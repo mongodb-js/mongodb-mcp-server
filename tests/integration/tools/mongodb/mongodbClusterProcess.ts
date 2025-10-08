@@ -83,7 +83,6 @@ export class MongoDBClusterProcess {
 
     async close(): Promise<void> {
         await this.tearDownFunction();
-        return;
     }
 
     static isConfigurationSupportedInCurrentEnv(config: MongoClusterConfiguration): boolean {
