@@ -393,7 +393,7 @@ describe("Telemetry", () => {
                 expect(eventProps.os_version).toBe("<password>-version");
             });
 
-            it("should redact sensitive data from CommonProperties", async () => {
+            it("should redact sensitive data from CommonProperties", () => {
                 // register the common properties as sensitive data
                 session.keychain.register("test-device-id", "password");
                 session.keychain.register(session.sessionId, "password");
