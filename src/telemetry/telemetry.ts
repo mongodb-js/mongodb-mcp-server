@@ -222,7 +222,7 @@ export class Telemetry {
                 events.map((event) => ({
                     ...event,
                     properties: {
-                        ...this.getCommonProperties(),
+                        ...redact(this.getCommonProperties()),
                         ...redact(event.properties, this.session.keychain.allSecrets),
                     },
                 }))
