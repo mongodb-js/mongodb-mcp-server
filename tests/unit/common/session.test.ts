@@ -1,4 +1,4 @@
-import type { Mocked } from "vitest";
+import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
@@ -117,6 +117,32 @@ describe("Session", () => {
 
             // Should use 'unknown' for client name when agent runner is not set
             expect(connectionString).toContain("--test-device-id--unknown");
+        });
+    });
+
+    describe("isSearchIndexSupported", () => {
+        let getSearchIndexesMock: MockedFunction<() => unknown>;
+        beforeEach(() => {
+            getSearchIndexesMock = vi.fn();
+            MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                getSearchIndexes: getSearchIndexesMock,
+            } as unknown as NodeDriverServiceProvider);
+        });
+
+        it("should return true if listing search indexes succeed", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+            expect(await session.isSearchIndexSupported()).toEqual(true);
+        });
+
+        it("should return false if listing search indexes fail with search error", async () => {
+            getSearchIndexesMock.mockRejectedValue(new Error("SearchNotEnabled"));
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+            expect(await session.isSearchIndexSupported()).toEqual(false);
         });
     });
 });

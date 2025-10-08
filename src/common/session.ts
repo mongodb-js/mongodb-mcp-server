@@ -159,14 +159,11 @@ export class Session extends EventEmitter<SessionEvents> {
             const dummyDatabase = `db-${Date.now()}`;
             const dummyCollection = `coll-${Date.now()}`;
             // If a cluster supports search indexes, the call below will succeed
-            // with a cursor otherwise will throw a MongoServerError
+            // with a cursor otherwise will throw an Error
             await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);
             return true;
-        } catch (error) {
-            if (error instanceof Error && "codeName" in error && error.codeName === "SearchNotEnabled") {
-                return false;
-            }
-            throw error;
+        } catch {
+            return false;
         }
     }
 }
