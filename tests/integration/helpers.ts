@@ -105,8 +105,6 @@ export function setupIntegrationTest(
 
         // Mock API Client for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
-            userConfig.apiClientId = "test";
-            userConfig.apiClientSecret = "test";
             const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
         }
