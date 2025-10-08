@@ -43,7 +43,7 @@ export type ServerEventProperties = {
     reason?: string;
     startup_time_ms?: number;
     runtime_duration_ms?: number;
-    read_only_mode?: boolean;
+    read_only_mode?: TelemetryBoolSet;
     disabled_tools?: string[];
     confirmation_required_tools?: string[];
 };
