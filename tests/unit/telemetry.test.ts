@@ -358,13 +358,14 @@ describe("Telemetry", () => {
                 session.keychain.register("secret-token", "password");
                 session.keychain.register("secret-password-version", "password");
 
+                // Simulates sensitive data across random properties
                 const sensitiveStaticProps = {
                     mcp_server_version: "secret-server-version",
                     mcp_server_name: "secret-server-name",
-                    platform: "linux-secret-password", // OS info might contain sensitive paths
-                    arch: "x64-secret-key", // Architecture info might contain sensitive details
-                    os_type: "linux-secret-token", // OS type might contain sensitive info
-                    os_version: "secret-password-version", // OS version might contain sensitive details
+                    platform: "linux-secret-password",
+                    arch: "x64-secret-key",
+                    os_type: "linux-secret-token",
+                    os_version: "secret-password-version",
                 };
 
                 telemetry = Telemetry.create(session, config, mockDeviceId, {
