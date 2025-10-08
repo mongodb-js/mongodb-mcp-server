@@ -18,6 +18,7 @@ export const ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR =
 const ALLOWED_PROJECT_NAME_CHARACTERS_REGEX = /^[a-zA-Z0-9\s()@&+:._',-]+$/;
 export const ALLOWED_PROJECT_NAME_CHARACTERS_ERROR =
     "Project names can't be longer than 64 characters and can only contain letters, numbers, spaces, and the following symbols: ( ) @ & + : . _ - ' ,";
+
 export const CommonArgs = {
     string: (): ZodString => z.string().regex(NO_UNICODE_REGEX, NO_UNICODE_ERROR),
 
@@ -30,7 +31,7 @@ export const CommonArgs = {
 };
 
 export const AtlasArgs = {
-    projectId: (): z.ZodString => CommonArgs.objectId("projectId"),
+    projectId: (): z.ZodString => CommonArgs.objectId("projectId").describe("Atlas project ID"),
 
     organizationId: (): z.ZodString => CommonArgs.objectId("organizationId"),
 
@@ -68,6 +69,15 @@ export const AtlasArgs = {
 
     password: (): z.ZodString =>
         z.string().min(1, "Password is required").max(100, "Password must be 100 characters or less"),
+};
+
+export const ProjectArgs = {
+    projectId: AtlasArgs.projectId(),
+};
+
+export const ProjectAndClusterArgs = {
+    ...ProjectArgs,
+    clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
 };
 
 function toEJSON<T extends object | undefined>(value: T): T {

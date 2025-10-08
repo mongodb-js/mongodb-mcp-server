@@ -1,5 +1,11 @@
 import { describeWithAtlas, withProject } from "./atlasHelpers.js";
-import { expectDefined, getResponseElements } from "../../helpers.js";
+import {
+    expectDefined,
+    getResponseElements,
+    projectIdInvalidArgs,
+    validateThrowsForInvalidArguments,
+    validateToolMetadata,
+} from "../../helpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ensureCurrentIpInAccessList } from "../../../../src/common/atlas/accessListUtils.js";
 
@@ -12,6 +18,25 @@ function generateRandomIp(): string {
 }
 
 describeWithAtlas("ip access lists", (integration) => {
+    describe("should have correct metadata and validate invalid arguments", () => {
+        validateToolMetadata(
+            integration,
+            "atlas-inspect-access-list",
+            "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.",
+            [
+                {
+                    name: "projectId",
+                    type: "string",
+                    description: "Atlas project ID",
+                    required: true,
+                },
+            ]
+        );
+
+        validateThrowsForInvalidArguments(integration, "atlas-inspect-access-list", projectIdInvalidArgs);
+        validateThrowsForInvalidArguments(integration, "atlas-create-access-list", projectIdInvalidArgs);
+    });
+
     withProject(integration, ({ getProjectId }) => {
         const ips = [generateRandomIp(), generateRandomIp()];
         const cidrBlocks = [generateRandomIp() + "/16", generateRandomIp() + "/24"];

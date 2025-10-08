@@ -103,7 +103,7 @@ export function setupIntegrationTest(
             keychain: new Keychain(),
         });
 
-        // Mock hasValidAccessToken for tests
+        // Mock API Client for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(true);
             session.apiClient.validateAccessToken = mockFn;
@@ -242,6 +242,16 @@ export const databaseCollectionParameters: ParameterInfo[] = [
     { name: "collection", type: "string", description: "Collection name", required: true },
 ];
 
+export const projectIdParameters: ParameterInfo[] = [
+    { name: "projectId", type: "string", description: "Atlas project ID", required: true },
+];
+
+export const createClusterParameters: ParameterInfo[] = [
+    { name: "projectId", type: "string", description: "Atlas project ID", required: true },
+    { name: "clusterName", type: "string", description: "Atlas cluster name", required: true },
+    { name: "region", type: "string", description: "Region of the cluster", required: false },
+];
+
 export const databaseCollectionInvalidArgs = [
     {},
     { database: "test" },
@@ -250,6 +260,53 @@ export const databaseCollectionInvalidArgs = [
     { database: "test", collection: 123 },
     { database: [], collection: "foo" },
     { database: "test", collection: [] },
+];
+
+export const projectIdInvalidArgs = [
+    {},
+    { projectId: 123 },
+    { projectId: [] },
+    { projectId: "!✅invalid" },
+    { projectId: "invalid-test-project-id" },
+];
+
+export const clusterNameInvalidArgs = [
+    { clusterName: 123 },
+    { clusterName: [] },
+    { clusterName: "!✅invalid" },
+    { clusterName: "a".repeat(65) }, // too long
+];
+
+export const projectAndClusterInvalidArgs = [
+    {},
+    { projectId: "507f1f77bcf86cd799439011" }, // missing clusterName
+    { clusterName: "testCluster" }, // missing projectId
+    { projectId: 123, clusterName: "testCluster" },
+    { projectId: "507f1f77bcf86cd799439011", clusterName: 123 },
+    { projectId: "invalid", clusterName: "testCluster" },
+    { projectId: "507f1f77bcf86cd799439011", clusterName: "!✅invalid" },
+];
+
+export const organizationIdInvalidArgs = [
+    { organizationId: 123 },
+    { organizationId: [] },
+    { organizationId: "!✅invalid" },
+    { organizationId: "invalid-test-org-id" },
+];
+
+export const orgIdInvalidArgs = [
+    { orgId: 123 },
+    { orgId: [] },
+    { orgId: "!✅invalid" },
+    { orgId: "invalid-test-org-id" },
+];
+
+export const usernameInvalidArgs = [
+    {},
+    { username: 123 },
+    { username: [] },
+    { username: "!✅invalid" },
+    { username: "a".repeat(101) }, // too long
 ];
 
 export const databaseInvalidArgs = [{}, { database: 123 }, { database: [] }];
