@@ -54,7 +54,7 @@ jobs:
 
       - name: Add comment
         if: steps.create.outputs.issue-key
-        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
@@ -104,7 +104,7 @@ jobs:
           transition-id: 61
       - name: Add closure comment
         if: steps.close_jira_ticket.outcome == 'success'
-        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
