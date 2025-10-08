@@ -1,5 +1,5 @@
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { Document } from "bson";
+import { BSON, type Document } from "bson";
 
 type VectorFieldIndexDefinition = {
     type: "vector";
@@ -9,16 +9,12 @@ type VectorFieldIndexDefinition = {
     similarity: "euclidean" | "cosine" | "dotProduct";
 };
 
-type EmbeddingNamespace = "${string}.${string}";
+export type EmbeddingNamespace = `${string}.${string}`;
 export class VectorSearchEmbeddings {
-    private embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]>;
-
-    constructor() {
-        this.embeddings = new Map();
-    }
+    constructor(private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()) {}
 
     cleanupEmbeddingsForNamespace({ database, collection }: { database: string; collection: string }): void {
-        const embeddingDefKey = `${database}.${collection}` as EmbeddingNamespace;
+        const embeddingDefKey: EmbeddingNamespace = `${database}.${collection}`;
         this.embeddings.delete(embeddingDefKey);
     }
 
@@ -31,7 +27,7 @@ export class VectorSearchEmbeddings {
         collection: string;
         provider: NodeDriverServiceProvider;
     }): Promise<VectorFieldIndexDefinition[] | undefined> {
-        const embeddingDefKey = `${database}.${collection}` as EmbeddingNamespace;
+        const embeddingDefKey: EmbeddingNamespace = `${database}.${collection}`;
         const definition = this.embeddings.get(embeddingDefKey);
 
         if (!definition) {
@@ -49,7 +45,71 @@ export class VectorSearchEmbeddings {
         }
     }
 
-    isVectorFieldIndexDefinition(doc: Document): doc is VectorFieldIndexDefinition {
+    async findFieldsWithWrongEmbeddings(
+        {
+            database,
+            collection,
+            provider,
+        }: {
+            database: string;
+            collection: string;
+            provider: NodeDriverServiceProvider;
+        },
+        document: Document
+    ): Promise<VectorFieldIndexDefinition[]> {
+        const embeddings = await this.embeddingsForNamespace({ database, collection, provider });
+
+        if (!embeddings) {
+            return [];
+        }
+
+        return embeddings.filter((emb) => !this.documentPassesEmbeddingValidation(emb, document));
+    }
+
+    private isVectorFieldIndexDefinition(doc: Document): doc is VectorFieldIndexDefinition {
         return doc["type"] === "vector";
+    }
+
+    private documentPassesEmbeddingValidation(definition: VectorFieldIndexDefinition, document: Document): boolean {
+        const fieldPath = definition.path.split(".");
+        let fieldRef: unknown = document;
+
+        for (const field of fieldPath) {
+            if (fieldRef && typeof fieldRef === "object" && field in fieldRef) {
+                fieldRef = (fieldRef as Record<string, unknown>)[field];
+            } else {
+                return true;
+            }
+        }
+
+        switch (definition.quantization) {
+            case "none":
+            case "scalar":
+                if (!Array.isArray(fieldRef)) {
+                    return false;
+                }
+
+                if (fieldRef.length !== definition.numDimensions) {
+                    return false;
+                }
+
+                if (typeof fieldRef[0] !== "number") {
+                    return false;
+                }
+                break;
+            case "binary":
+                if (fieldRef instanceof BSON.Binary) {
+                    try {
+                        const bits = fieldRef.toBits();
+                        return bits.length === definition.numDimensions;
+                    } catch {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+        }
+
+        return true;
     }
 }
