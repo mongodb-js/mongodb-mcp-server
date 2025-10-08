@@ -4,7 +4,7 @@ import {
     getResponseElements,
     getDataFromUntrustedContent,
     createClusterParameters,
-    projectIdInvalidArgs,
+    projectAndClusterInvalidArgs,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
 } from "../../helpers.js";
@@ -84,7 +84,7 @@ describeWithAtlas("clusters", (integration) => {
         );
 
         expect(() => {
-            validateThrowsForInvalidArguments(integration, "atlas-create-free-cluster", projectIdInvalidArgs);
+            validateThrowsForInvalidArguments(integration, "atlas-create-free-cluster", projectAndClusterInvalidArgs);
         }).not.toThrow();
     });
 

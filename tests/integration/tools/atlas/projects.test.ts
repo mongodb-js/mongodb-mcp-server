@@ -1,11 +1,49 @@
 import { ObjectId } from "mongodb";
 import { parseTable, describeWithAtlas, withCredentials } from "./atlasHelpers.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import {
+    expectDefined,
+    getDataFromUntrustedContent,
+    getResponseElements,
+    organizationIdInvalidArgs,
+    orgIdInvalidArgs,
+    validateThrowsForInvalidArguments,
+    validateToolMetadata,
+} from "../../helpers.js";
 import { afterAll, describe, expect, it } from "vitest";
 
 const randomId = new ObjectId().toString();
 
 describeWithAtlas("projects", (integration) => {
+    describe("should have correct metadata and validate invalid arguments", () => {
+        validateToolMetadata(integration, "atlas-create-project", "Create a MongoDB Atlas project", [
+            {
+                name: "projectName",
+                type: "string",
+                description: "Name for the new project",
+                required: false,
+            },
+            {
+                name: "organizationId",
+                type: "string",
+                description: "Organization ID for the new project",
+                required: false,
+            },
+        ]);
+
+        validateThrowsForInvalidArguments(integration, "atlas-create-project", organizationIdInvalidArgs);
+
+        validateToolMetadata(integration, "atlas-list-projects", "List MongoDB Atlas projects", [
+            {
+                name: "orgId",
+                type: "string",
+                description: "Atlas organization ID to filter projects",
+                required: false,
+            },
+        ]);
+
+        validateThrowsForInvalidArguments(integration, "atlas-list-projects", orgIdInvalidArgs);
+    });
+
     withCredentials(integration, () => {
         const projName = "testProj-" + randomId;
 

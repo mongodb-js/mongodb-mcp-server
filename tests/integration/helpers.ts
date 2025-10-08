@@ -249,8 +249,8 @@ export const projectIdParameters: ParameterInfo[] = [
 ];
 
 export const createClusterParameters: ParameterInfo[] = [
-    { name: "name", type: "string", description: "Name of the cluster", required: true },
-    { name: "projectId", type: "string", description: "Atlas project ID to create the cluster in", required: true },
+    { name: "projectId", type: "string", description: "Atlas project ID", required: true },
+    { name: "clusterName", type: "string", description: "Atlas cluster name", required: true },
     { name: "region", type: "string", description: "Region of the cluster", required: false },
 ];
 
@@ -270,6 +270,45 @@ export const projectIdInvalidArgs = [
     { projectId: [] },
     { projectId: "!✅invalid" },
     { projectId: "invalid-test-project-id" },
+];
+
+export const clusterNameInvalidArgs = [
+    { clusterName: 123 },
+    { clusterName: [] },
+    { clusterName: "!✅invalid" },
+    { clusterName: "a".repeat(65) }, // too long
+];
+
+export const projectAndClusterInvalidArgs = [
+    {},
+    { projectId: "507f1f77bcf86cd799439011" }, // missing clusterName
+    { clusterName: "testCluster" }, // missing projectId
+    { projectId: 123, clusterName: "testCluster" },
+    { projectId: "507f1f77bcf86cd799439011", clusterName: 123 },
+    { projectId: "invalid", clusterName: "testCluster" },
+    { projectId: "507f1f77bcf86cd799439011", clusterName: "!✅invalid" },
+];
+
+export const organizationIdInvalidArgs = [
+    { organizationId: 123 },
+    { organizationId: [] },
+    { organizationId: "!✅invalid" },
+    { organizationId: "invalid-test-org-id" },
+];
+
+export const orgIdInvalidArgs = [
+    { orgId: 123 },
+    { orgId: [] },
+    { orgId: "!✅invalid" },
+    { orgId: "invalid-test-org-id" },
+];
+
+export const usernameInvalidArgs = [
+    {},
+    { username: 123 },
+    { username: [] },
+    { username: "!✅invalid" },
+    { username: "a".repeat(101) }, // too long
 ];
 
 export const databaseInvalidArgs = [{}, { database: 123 }, { database: [] }];
