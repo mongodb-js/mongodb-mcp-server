@@ -37,6 +37,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
                         type: "text",
                     },
                 ],
+                isError: true,
             };
         }
 

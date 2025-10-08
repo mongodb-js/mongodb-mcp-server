@@ -18,7 +18,7 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import type { ToolBase } from "./tools/tool.js";
+import type { ToolBase, ToolConstructorParams } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -31,6 +31,7 @@ export interface ServerOptions {
     telemetry: Telemetry;
     elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
+    toolConstructors?: (new (params: ToolConstructorParams) => ToolBase)[];
 }
 
 export class Server {
@@ -39,6 +40,7 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
+    private readonly toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
 
@@ -51,7 +53,15 @@ export class Server {
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    constructor({ session, mcpServer, userConfig, telemetry, connectionErrorHandler, elicitation }: ServerOptions) {
+    constructor({
+        session,
+        mcpServer,
+        userConfig,
+        telemetry,
+        connectionErrorHandler,
+        elicitation,
+        toolConstructors,
+    }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
@@ -59,6 +69,7 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
+        this.toolConstructors = toolConstructors ?? [...AtlasTools, ...MongoDbTools];
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -206,7 +217,7 @@ export class Server {
     }
 
     private registerTools(): void {
-        for (const toolConstructor of [...AtlasTools, ...MongoDbTools]) {
+        for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
                 session: this.session,
                 config: this.userConfig,

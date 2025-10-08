@@ -1,11 +1,15 @@
 import type { Session } from "../../../../src/common/session.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId, parseTable, deleteCluster, waitCluster } from "./atlasHelpers.js";
+import {
+    describeWithAtlas,
+    withProject,
+    randomId,
+    parseTable,
+    deleteCluster,
+    waitCluster,
+    sleep,
+} from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
