@@ -1,5 +1,3 @@
-import type { MongoClusterOptions } from "mongodb-runner";
-import { MongoCluster } from "mongodb-runner";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
@@ -16,9 +14,8 @@ import {
 import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { EJSON } from "bson";
-import { GenericContainer } from "testcontainers";
-import type { StartedTestContainer } from "testcontainers";
-import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
+import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
+import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,6 +49,12 @@ const testDataPaths = [
     },
 ];
 
+const DEFAULT_MONGODB_PROCESS_OPTIONS: MongoClusterConfiguration = {
+    runner: true,
+    downloadOptions: { enterprise: false },
+    serverArgs: [],
+};
+
 interface MongoDBIntegrationTest {
     mongoClient: () => MongoClient;
     connectionString: () => string;
@@ -68,11 +71,10 @@ export function describeWithMongoDB(
     fn: (integration: MongoDBIntegrationTestCase) => void,
     getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
     getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
-    downloadOptions: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration = { enterprise: false },
-    serverArgs: string[] = []
+    downloadOptions: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
 ): void {
-    describe.skipIf(!isMongoDBEnvSupported(downloadOptions))(name, () => {
-        const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions, serverArgs);
+    describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
+        const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
         const integration = setupIntegrationTest(
             () => ({
                 ...getUserConfig(mdbIntegration),
@@ -98,35 +100,10 @@ export function describeWithMongoDB(
     });
 }
 
-function isSearchOptions(
-    opt: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration
-): opt is MongoSearchConfiguration {
-    return (opt as MongoSearchConfiguration)?.search === true;
-}
-
-function isTestContainersCluster(
-    cluster: MongoCluster | StartedTestContainer | undefined
-): cluster is StartedTestContainer {
-    return !!(cluster as StartedTestContainer)?.stop;
-}
-
-function isMongoDBEnvSupported(
-    downloadOptions: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration
-): boolean {
-    // on GHA, OSX does not support nested virtualisation and we don't release
-    // windows containers, so for now we can only run these tests in Linux.
-    if (isSearchOptions(downloadOptions) && process.env.GITHUB_ACTIONS === "true") {
-        return process.platform === "linux";
-    }
-
-    return true;
-}
-
 export function setupMongoDBIntegrationTest(
-    downloadOptions: MongoClusterOptions["downloadOptions"] | MongoSearchConfiguration,
-    serverArgs: string[]
+    configuration: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
 ): MongoDBIntegrationTest {
-    let mongoCluster: MongoCluster | StartedTestContainer | undefined;
+    let mongoCluster: MongoDBClusterProcess | undefined;
     let mongoClient: MongoClient | undefined;
     let randomDbName: string;
 
@@ -140,61 +117,11 @@ export function setupMongoDBIntegrationTest(
     });
 
     beforeAll(async function () {
-        if (isSearchOptions(downloadOptions)) {
-            mongoCluster = await new GenericContainer(downloadOptions.image ?? "mongodb/mongodb-atlas-local:8")
-                .withExposedPorts(27017)
-                .withCommand(["/usr/local/bin/runner", "server"])
-                .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`))
-                .start();
-            return;
-        }
-
-        // Downloading Windows executables in CI takes a long time because
-        // they include debug symbols...
-        const tmpDir = path.join(__dirname, "..", "..", "..", "tmp");
-        await fs.mkdir(tmpDir, { recursive: true });
-
-        // On Windows, we may have a situation where mongod.exe is not fully released by the OS
-        // before we attempt to run it again, so we add a retry.
-        let dbsDir = path.join(tmpDir, "mongodb-runner", "dbs");
-        for (let i = 0; i < 10; i++) {
-            try {
-                mongoCluster = await MongoCluster.start({
-                    tmpDir: dbsDir,
-                    logDir: path.join(tmpDir, "mongodb-runner", "logs"),
-                    topology: "standalone",
-                    version: downloadOptions?.version ?? "8.0.12",
-                    downloadOptions,
-                    args: serverArgs,
-                });
-
-                return;
-            } catch (err) {
-                if (i < 5) {
-                    // Just wait a little bit and retry
-                    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-                    console.error(`Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}`);
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                } else {
-                    // If we still fail after 5 seconds, try another db dir
-                    console.error(
-                        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-                        `Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}. Retrying with a new db dir.`
-                    );
-                    dbsDir = path.join(tmpDir, "mongodb-runner", `dbs${i - 5}`);
-                }
-            }
-        }
-
-        throw new Error("Failed to start cluster after 10 attempts");
+        mongoCluster = await MongoDBClusterProcess.spinUp(configuration);
     }, 120_000);
 
     afterAll(async function () {
-        if (isTestContainersCluster(mongoCluster)) {
-            await mongoCluster.stop();
-        } else {
-            await mongoCluster?.close();
-        }
+        await mongoCluster?.close();
         mongoCluster = undefined;
     });
 
@@ -203,12 +130,7 @@ export function setupMongoDBIntegrationTest(
             throw new Error("beforeAll() hook not ran yet");
         }
 
-        if (isTestContainersCluster(mongoCluster)) {
-            const mappedPort = mongoCluster.getMappedPort(27017);
-            return `mongodb://${mongoCluster.getHost()}:${mappedPort}`;
-        }
-
-        return mongoCluster.connectionString;
+        return mongoCluster.connectionString();
     };
 
     return {
@@ -219,7 +141,6 @@ export function setupMongoDBIntegrationTest(
             return mongoClient;
         },
         connectionString: getConnectionString,
-
         randomDbName: () => randomDbName,
     };
 }

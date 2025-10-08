@@ -144,8 +144,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     defaults: {},
                 }),
             }),
-            { enterprise: true, version: mongodbVersion },
-            serverArgs
+            { runner: true, downloadOptions: { enterprise: true, version: mongodbVersion }, serverArgs }
         );
     }
 

@@ -52,7 +52,7 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 };
 
 describe("MongoDBTool implementations", () => {
-    const mdbIntegration = setupMongoDBIntegrationTest({ enterprise: false }, []);
+    const mdbIntegration = setupMongoDBIntegrationTest();
     const executeStub: MockedFunction<() => Promise<CallToolResult>> = vi
         .fn()
         .mockResolvedValue({ content: [{ type: "text", text: "Something" }] });
