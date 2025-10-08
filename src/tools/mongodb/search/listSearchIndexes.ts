@@ -58,7 +58,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
 
     protected handleError(
         error: unknown,
-        { database, collection }: ToolArgs<typeof DbOperationArgs>
+        args: ToolArgs<typeof DbOperationArgs>
     ): Promise<CallToolResult> | CallToolResult {
         if (error instanceof Error && "codeName" in error && error.codeName === "SearchNotEnabled") {
             return {
@@ -66,11 +66,11 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
                     {
                         text: "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search.",
                         type: "text",
+                        isError: true,
                     },
                 ],
             };
-        } else {
-            return { content: formatUntrustedData("Could not retrieve search indexes", EJSON.stringify(error)) };
         }
+        return super.handleError(error, args);
     }
 }
