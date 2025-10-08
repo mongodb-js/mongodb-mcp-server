@@ -213,7 +213,7 @@ export class Telemetry {
     }
 
     /**
-     * Attempts to send events through the provided API client
+     * Attempts to send events through the provided API client.
      * Events are redacted before being sent to ensure no sensitive data is transmitted
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
