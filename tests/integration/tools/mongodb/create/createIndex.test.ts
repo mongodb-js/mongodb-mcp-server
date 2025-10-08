@@ -14,9 +14,17 @@ describeWithMongoDB("createIndex tool", (integration) => {
     validateToolMetadata(integration, "create-index", "Create an index for a collection", [
         ...databaseCollectionParameters,
         {
-            name: "keys",
-            type: "object",
-            description: "The index definition",
+            name: "definition",
+            anyOf: [
+                {
+                    type: "object",
+                },
+                {
+                    type: "object",
+                },
+            ],
+            description:
+                "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes",
             required: true,
         },
         {
@@ -32,7 +40,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
         { collection: "bar", database: 123, definition: { type: "classic", keys: { foo: 1 } } },
         { collection: [], database: "test", definition: { type: "classic", keys: { foo: 1 } } },
         { collection: "bar", database: "test", definition: { type: "classic", keys: { foo: 1 } }, name: 123 },
-        { collection: "bar", database: "test", definition: { type: "classic", keys: { foo: 1 } }, name: "my-index" },
+        { collection: "bar", database: "test", definition: { type: "unknown", keys: { foo: 1 } }, name: "my-index" },
     ]);
 
     describe("with classic indexes", () => {
