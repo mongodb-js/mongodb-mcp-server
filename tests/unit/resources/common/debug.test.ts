@@ -9,6 +9,7 @@ import { MCPConnectionManager } from "../../../../src/common/connectionManager.j
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
+import { VectorSearchEmbeddings } from "../../../../src/common/search/vectorSearchEmbeddings.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -19,6 +20,7 @@ describe("debug resource", () => {
         exportsManager: ExportsManager.init(config, logger),
         connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
         keychain: new Keychain(),
+        vectorSearchEmbeddings: new VectorSearchEmbeddings(),
     });
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" }, deviceId);
 

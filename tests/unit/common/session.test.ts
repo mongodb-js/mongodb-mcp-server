@@ -9,6 +9,7 @@ import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../src/common/keychain.js";
+import { VectorSearchEmbeddings } from "../../../src/common/search/vectorSearchEmbeddings.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -31,6 +32,7 @@ describe("Session", () => {
             exportsManager: ExportsManager.init(config, logger),
             connectionManager: new MCPConnectionManager(config, driverOptions, logger, mockDeviceId),
             keychain: new Keychain(),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);

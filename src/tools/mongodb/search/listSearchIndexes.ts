@@ -6,7 +6,7 @@ import { EJSON } from "bson";
 
 export type SearchIndexStatus = {
     name: string;
-    type: string;
+    type: "search" | "vectorSearch";
     status: string;
     queryable: boolean;
     latestDefinition: Document;
@@ -54,7 +54,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
     protected pickRelevantInformation(indexes: Record<string, unknown>[]): SearchIndexStatus[] {
         return indexes.map((index) => ({
             name: (index["name"] ?? "default") as string,
-            type: (index["type"] ?? "UNKNOWN") as string,
+            type: (index["type"] ?? "UNKNOWN") as "search" | "vectorSearch",
             status: (index["status"] ?? "UNKNOWN") as string,
             queryable: (index["queryable"] ?? false) as boolean,
             latestDefinition: index["latestDefinition"] as Document,

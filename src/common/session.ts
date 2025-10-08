@@ -16,6 +16,7 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
 import type { Keychain } from "./keychain.js";
+import type { VectorSearchEmbeddings } from "./search/vectorSearchEmbeddings.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -25,6 +26,7 @@ export interface SessionOptions {
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
     keychain: Keychain;
+    vectorSearchEmbeddings: VectorSearchEmbeddings;
 }
 
 export type SessionEvents = {
@@ -40,6 +42,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
     readonly keychain: Keychain;
+    readonly vectorSearchEmbeddings: VectorSearchEmbeddings;
 
     mcpClient?: {
         name?: string;
@@ -57,6 +60,7 @@ export class Session extends EventEmitter<SessionEvents> {
         connectionManager,
         exportsManager,
         keychain,
+        vectorSearchEmbeddings,
     }: SessionOptions) {
         super();
 
@@ -73,6 +77,7 @@ export class Session extends EventEmitter<SessionEvents> {
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
+        this.vectorSearchEmbeddings = vectorSearchEmbeddings;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
         this.connectionManager.events.on("connection-close", () => this.emit("disconnect"));

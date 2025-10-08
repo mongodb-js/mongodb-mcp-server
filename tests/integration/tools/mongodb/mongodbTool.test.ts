@@ -20,6 +20,7 @@ import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import { MongoDbTools } from "../../../../src/tools/mongodb/tools.js";
+import { VectorSearchEmbeddings } from "../../../../src/common/search/vectorSearchEmbeddings.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -108,6 +109,7 @@ describe("MongoDBTool implementations", () => {
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 
