@@ -53,6 +53,7 @@ const OPTIONS = {
         "exportsPath",
         "exportTimeoutMs",
         "exportCleanupIntervalMs",
+        "voyageApiKey",
     ],
     boolean: [
         "apiDeprecationErrors",
@@ -181,6 +182,7 @@ export interface UserConfig extends CliOptions {
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     atlasTemporaryDatabaseUserLifetimeMs: number;
+    voyageApiKey: string;
 }
 
 export const defaultUserConfig: UserConfig = {
@@ -210,6 +212,7 @@ export const defaultUserConfig: UserConfig = {
     maxDocumentsPerQuery: 100, // By default, we only fetch a maximum 100 documents per query / aggregation
     maxBytesPerQuery: 16 * 1024 * 1024, // By default, we only return ~16 mb of data per query / aggregation
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+    voyageApiKey: "",
 };
 
 export const config = setupUserConfig({

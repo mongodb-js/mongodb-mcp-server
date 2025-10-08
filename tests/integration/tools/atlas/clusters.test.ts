@@ -1,12 +1,8 @@
 import type { Session } from "../../../../src/common/session.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements, sleep } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId, parseTable } from "./atlasHelpers.js";
 import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function deleteCluster(
     session: Session,
