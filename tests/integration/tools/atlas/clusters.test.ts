@@ -7,6 +7,7 @@ import {
     projectAndClusterInvalidArgs,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
+    sleep,
 } from "../../helpers.js";
 import { describeWithAtlas, withProject, randomId, parseTable } from "./atlasHelpers.js";
 import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
