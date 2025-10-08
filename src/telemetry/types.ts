@@ -97,7 +97,7 @@ export type CommonProperties = {
     /**
      * A boolean indicating whether the server is running in a container environment.
      */
-    is_container_env?: boolean;
+    is_container_env?: TelemetryBoolSet;
 
     /**
      * The version of the MCP client as reported by the client on session establishment.

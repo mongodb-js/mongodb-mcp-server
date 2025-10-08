@@ -1,5 +1,5 @@
 import type { Session } from "../common/session.js";
-import type { BaseEvent, CommonProperties, TelemetryEvent } from "./types.js";
+import type { BaseEvent, CommonProperties } from "./types.js";
 import type { UserConfig } from "../common/config.js";
 import { LogId } from "../common/logger.js";
 import type { ApiClient } from "../common/atlas/apiClient.js";
@@ -80,7 +80,7 @@ export class Telemetry {
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
         this.commonProperties.device_id = deviceIdValue;
-        this.commonProperties.is_container_env = containerEnv;
+        this.commonProperties.is_container_env = containerEnv ? "true" : "false";
 
         this.isBufferingEvents = false;
     }

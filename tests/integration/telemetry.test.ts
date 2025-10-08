@@ -36,4 +36,32 @@ describe("Telemetry", () => {
         expect(telemetry.getCommonProperties().device_id).toBe(actualDeviceId);
         expect(telemetry["isBufferingEvents"]).toBe(false);
     });
+
+    it("should redact sensitive data", async () => {
+        const logger = new CompositeLogger();
+        const deviceId = DeviceId.create(logger);
+
+        // configure keychain with a secret that would show up in random properties
+        const keychain = new Keychain();
+        keychain.register(process.platform, "url");
+
+        const telemetry = Telemetry.create(
+            new Session({
+                apiBaseUrl: "",
+                logger,
+                exportsManager: ExportsManager.init(config, logger),
+                connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+                keychain: keychain,
+            }),
+            config,
+            deviceId
+        );
+
+        await telemetry.setupPromise;
+
+        // expect the platform to be redacted
+        const commonProperties = telemetry.getCommonProperties();
+        expect(commonProperties.platform).toBe("<url>");
+        expect(telemetry["isBufferingEvents"]).toBe(false);
+    });
 });
