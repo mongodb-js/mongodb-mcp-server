@@ -1,5 +1,5 @@
 import type { Session } from "../common/session.js";
-import type { BaseEvent, CommonProperties } from "./types.js";
+import type { BaseEvent, CommonProperties, TelemetryEvent } from "./types.js";
 import type { UserConfig } from "../common/config.js";
 import { LogId } from "../common/logger.js";
 import type { ApiClient } from "../common/atlas/apiClient.js";
@@ -8,6 +8,7 @@ import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { EventEmitter } from "events";
+import { redact } from "mongodb-redact";
 
 type EventResult = {
     success: boolean;
@@ -52,8 +53,8 @@ export class Telemetry {
         } = {}
     ): Telemetry {
         const mergedProperties = {
-            ...MACHINE_METADATA,
-            ...commonProperties,
+            ...redact(MACHINE_METADATA, session.keychain.allSecrets),
+            ...redact(commonProperties, session.keychain.allSecrets),
         };
         const instance = new Telemetry(session, userConfig, mergedProperties, {
             eventCache,
@@ -123,7 +124,6 @@ export class Telemetry {
             this.events.emit("events-skipped");
             return;
         }
-
         // Don't wait for events to be sent - we should not block regular server
         // operations on telemetry
         void this.emit(events);
@@ -135,11 +135,11 @@ export class Telemetry {
      */
     public getCommonProperties(): CommonProperties {
         return {
-            ...this.commonProperties,
+            ...redact(this.commonProperties, this.session.keychain.allSecrets),
             transport: this.userConfig.transport,
-            mcp_client_version: this.session.mcpClient?.version,
-            mcp_client_name: this.session.mcpClient?.name,
-            session_id: this.session.sessionId,
+            mcp_client_version: redact(this.session.mcpClient?.version, this.session.keychain.allSecrets),
+            mcp_client_name: redact(this.session.mcpClient?.name, this.session.keychain.allSecrets),
+            session_id: redact(this.session.sessionId, this.session.keychain.allSecrets),
             config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",
         };
@@ -214,13 +214,17 @@ export class Telemetry {
 
     /**
      * Attempts to send events through the provided API client
+     * Events are redacted before being sent to ensure no sensitive data is transmitted
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
         try {
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
-                    properties: { ...this.getCommonProperties(), ...event.properties },
+                    properties: {
+                        ...this.getCommonProperties(),
+                        ...redact(event.properties, this.session.keychain.allSecrets),
+                    },
                 }))
             );
             return { success: true };
