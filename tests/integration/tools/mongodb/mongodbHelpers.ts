@@ -1,5 +1,3 @@
-import type { MongoClusterOptions } from "mongodb-runner";
-import { MongoCluster } from "mongodb-runner";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
@@ -16,6 +14,8 @@ import {
 import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { EJSON } from "bson";
+import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
+import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,6 +49,12 @@ const testDataPaths = [
     },
 ];
 
+const DEFAULT_MONGODB_PROCESS_OPTIONS: MongoClusterConfiguration = {
+    runner: true,
+    downloadOptions: { enterprise: false },
+    serverArgs: [],
+};
+
 interface MongoDBIntegrationTest {
     mongoClient: () => MongoClient;
     connectionString: () => string;
@@ -58,16 +64,17 @@ interface MongoDBIntegrationTest {
 export type MongoDBIntegrationTestCase = IntegrationTest &
     MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> };
 
+export type MongoSearchConfiguration = { search: true; image?: string };
+
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
     getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
     getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
-    downloadOptions: MongoClusterOptions["downloadOptions"] = { enterprise: false },
-    serverArgs: string[] = []
+    downloadOptions: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
 ): void {
-    describe(name, () => {
-        const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions, serverArgs);
+    describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
+        const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
         const integration = setupIntegrationTest(
             () => ({
                 ...getUserConfig(mdbIntegration),
@@ -94,10 +101,9 @@ export function describeWithMongoDB(
 }
 
 export function setupMongoDBIntegrationTest(
-    downloadOptions: MongoClusterOptions["downloadOptions"],
-    serverArgs: string[]
+    configuration: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
 ): MongoDBIntegrationTest {
-    let mongoCluster: MongoCluster | undefined;
+    let mongoCluster: MongoDBClusterProcess | undefined;
     let mongoClient: MongoClient | undefined;
     let randomDbName: string;
 
@@ -111,44 +117,7 @@ export function setupMongoDBIntegrationTest(
     });
 
     beforeAll(async function () {
-        // Downloading Windows executables in CI takes a long time because
-        // they include debug symbols...
-        const tmpDir = path.join(__dirname, "..", "..", "..", "tmp");
-        await fs.mkdir(tmpDir, { recursive: true });
-
-        // On Windows, we may have a situation where mongod.exe is not fully released by the OS
-        // before we attempt to run it again, so we add a retry.
-        let dbsDir = path.join(tmpDir, "mongodb-runner", "dbs");
-        for (let i = 0; i < 10; i++) {
-            try {
-                mongoCluster = await MongoCluster.start({
-                    tmpDir: dbsDir,
-                    logDir: path.join(tmpDir, "mongodb-runner", "logs"),
-                    topology: "standalone",
-                    version: downloadOptions?.version ?? "8.0.12",
-                    downloadOptions,
-                    args: serverArgs,
-                });
-
-                return;
-            } catch (err) {
-                if (i < 5) {
-                    // Just wait a little bit and retry
-                    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-                    console.error(`Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}`);
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                } else {
-                    // If we still fail after 5 seconds, try another db dir
-                    console.error(
-                        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-                        `Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}. Retrying with a new db dir.`
-                    );
-                    dbsDir = path.join(tmpDir, "mongodb-runner", `dbs${i - 5}`);
-                }
-            }
-        }
-
-        throw new Error("Failed to start cluster after 10 attempts");
+        mongoCluster = await MongoDBClusterProcess.spinUp(configuration);
     }, 120_000);
 
     afterAll(async function () {
@@ -161,7 +130,7 @@ export function setupMongoDBIntegrationTest(
             throw new Error("beforeAll() hook not ran yet");
         }
 
-        return mongoCluster.connectionString;
+        return mongoCluster.connectionString();
     };
 
     return {
@@ -172,7 +141,6 @@ export function setupMongoDBIntegrationTest(
             return mongoClient;
         },
         connectionString: getConnectionString,
-
         randomDbName: () => randomDbName,
     };
 }
@@ -266,6 +234,11 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
             );
         },
     };
+}
+
+export function getSingleDocFromUntrustedContent<T = unknown>(content: string): T {
+    const data = getDataFromUntrustedContent(content);
+    return EJSON.parse(data, { relaxed: true }) as T;
 }
 
 export function getDocsFromUntrustedContent<T = unknown>(content: string): T[] {

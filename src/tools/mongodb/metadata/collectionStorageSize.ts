@@ -42,6 +42,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
                         type: "text",
                     },
                 ],
+                isError: true,
             };
         }
 

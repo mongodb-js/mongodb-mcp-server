@@ -12,10 +12,6 @@ import { describeWithAtlas, withProject, randomId, parseTable } from "./atlasHel
 import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function deleteCluster(
     session: Session,
     projectId: string,
