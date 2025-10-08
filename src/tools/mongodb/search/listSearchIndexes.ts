@@ -33,6 +33,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
         } else {
             return {
                 content: formatUntrustedData(
+                    "Could not retrieve search indexes",
                     `There are no search or vector search indexes in ${database}.${collection}`
                 ),
             };
@@ -69,14 +70,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
                 ],
             };
         } else {
-            return {
-                content: [
-                    {
-                        text: `Could not retrieve indexes in ${database}.${collection}: ${EJSON.stringify(error)}.`,
-                        type: "text",
-                    },
-                ],
-            };
+            return { content: formatUntrustedData("Could not retrieve search indexes", EJSON.stringify(error)) };
         }
     }
 }

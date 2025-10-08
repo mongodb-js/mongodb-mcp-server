@@ -7,6 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
     sleep,
+    getDataFromUntrustedContent,
 } from "../../../helpers.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { SearchIndexStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
@@ -54,7 +55,9 @@ describeWithMongoDB(
                     name: "list-search-indexes",
                     arguments: { database: "any", collection: "foo" },
                 });
-                const content = getResponseContent(response.content);
+                const responseContent = getResponseContent(response.content);
+                const content = getDataFromUntrustedContent(responseContent);
+                expect(responseContent).toContain("Could not retrieve search indexes");
                 expect(content).toEqual("There are no search or vector search indexes in any.foo");
             });
         });
@@ -65,7 +68,9 @@ describeWithMongoDB(
                     name: "list-search-indexes",
                     arguments: { database: "any", collection: "foo" },
                 });
-                const content = getResponseContent(response.content);
+                const responseContent = getResponseContent(response.content);
+                const content = getDataFromUntrustedContent(responseContent);
+                expect(responseContent).toContain("Could not retrieve search indexes");
                 expect(content).toEqual("There are no search or vector search indexes in any.foo");
             });
         });
