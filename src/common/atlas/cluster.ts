@@ -22,7 +22,7 @@ export interface Cluster {
     instanceSize?: string;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
-    connectionString?: string;
+    standardConnectionString?: string;
     connectionStrings?: ClusterConnectionStrings;
     processIds?: Array<string>;
 }
@@ -35,7 +35,7 @@ export function formatFlexCluster(cluster: FlexClusterDescription20241113): Clus
         instanceSize: undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
-        connectionString,
+        standardConnectionString: connectionString,
         connectionStrings: cluster.connectionStrings,
         processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
@@ -71,13 +71,14 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
 
     const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
     const clusterInstanceType = instanceSize === "M0" ? "FREE" : "DEDICATED";
-
+    const standardConnectionString = cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard;
     return {
         name: cluster.name,
         instanceType: clusterInstanceType,
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
+        standardConnectionString: standardConnectionString,
         connectionStrings: cluster.connectionStrings,
         processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };

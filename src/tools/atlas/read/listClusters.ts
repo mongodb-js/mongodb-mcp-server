@@ -105,7 +105,7 @@ ${rows}`,
 ----------------|----------------|----------------|----------------|----------------|----------------
 ${allClusters
     .map((formattedCluster) => {
-        return `${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionString || "N/A"}`;
+        return `${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.standardConnectionString || "N/A"}`;
     })
     .join("\n")}`
             ),
