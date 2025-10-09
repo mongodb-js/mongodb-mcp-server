@@ -32,7 +32,7 @@ describe("Session", () => {
             exportsManager: ExportsManager.init(config, logger),
             connectionManager: new MCPConnectionManager(config, driverOptions, logger, mockDeviceId),
             keychain: new Keychain(),
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(config),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);

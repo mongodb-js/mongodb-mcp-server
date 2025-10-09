@@ -24,7 +24,7 @@ describe("Telemetry", () => {
                 exportsManager: ExportsManager.init(config, logger),
                 connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
                 keychain: new Keychain(),
-                vectorSearchEmbeddings: new VectorSearchEmbeddings(),
+                vectorSearchEmbeddings: new VectorSearchEmbeddings(config),
             }),
             config,
             deviceId

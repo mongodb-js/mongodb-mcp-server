@@ -1,7 +1,8 @@
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { BSON, type Document } from "bson";
+import type { UserConfig } from "../config.js";
 
-type VectorFieldIndexDefinition = {
+export type VectorFieldIndexDefinition = {
     type: "vector";
     path: string;
     numDimensions: number;
@@ -11,7 +12,10 @@ type VectorFieldIndexDefinition = {
 
 export type EmbeddingNamespace = `${string}.${string}`;
 export class VectorSearchEmbeddings {
-    constructor(private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()) {}
+    constructor(
+        private readonly config: UserConfig,
+        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()
+    ) {}
 
     cleanupEmbeddingsForNamespace({ database, collection }: { database: string; collection: string }): void {
         const embeddingDefKey: EmbeddingNamespace = `${database}.${collection}`;
@@ -71,6 +75,13 @@ export class VectorSearchEmbeddings {
     }
 
     private documentPassesEmbeddingValidation(definition: VectorFieldIndexDefinition, document: Document): boolean {
+        // While we can do our best effort to ensure that the embedding validation is correct
+        // based on https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-quantization/
+        // it's a complex process so we will also give the user the ability to disable this validation
+        if (this.config.disableEmbeddingsValidation) {
+            return true;
+        }
+
         const fieldPath = definition.path.split(".");
         let fieldRef: unknown = document;
 
@@ -84,30 +95,37 @@ export class VectorSearchEmbeddings {
 
         switch (definition.quantization) {
             case "none":
+                return true;
             case "scalar":
-                if (!Array.isArray(fieldRef)) {
-                    return false;
-                }
-
-                if (fieldRef.length !== definition.numDimensions) {
-                    return false;
-                }
-
-                if (typeof fieldRef[0] !== "number") {
-                    return false;
-                }
-                break;
             case "binary":
                 if (fieldRef instanceof BSON.Binary) {
                     try {
-                        const bits = fieldRef.toBits();
-                        return bits.length === definition.numDimensions;
+                        const elements = fieldRef.toFloat32Array();
+                        return elements.length === definition.numDimensions;
                     } catch {
-                        return false;
+                        // bits are also supported
+                        try {
+                            const bits = fieldRef.toBits();
+                            return bits.length === definition.numDimensions;
+                        } catch {
+                            return false;
+                        }
                     }
                 } else {
-                    return false;
+                    if (!Array.isArray(fieldRef)) {
+                        return false;
+                    }
+
+                    if (fieldRef.length !== definition.numDimensions) {
+                        return false;
+                    }
+
+                    if (typeof fieldRef[0] !== "number") {
+                        return false;
+                    }
                 }
+
+                break;
         }
 
         return true;

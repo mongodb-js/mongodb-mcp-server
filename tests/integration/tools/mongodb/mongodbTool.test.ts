@@ -109,7 +109,7 @@ describe("MongoDBTool implementations", () => {
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(userConfig),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 

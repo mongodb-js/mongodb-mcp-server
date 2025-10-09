@@ -90,7 +90,7 @@ export abstract class TransportRunnerBase {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(this.userConfig),
         });
 
         const telemetry = Telemetry.create(session, this.userConfig, this.deviceId, {

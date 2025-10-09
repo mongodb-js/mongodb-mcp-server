@@ -1,15 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { MockedFunction } from "vitest";
 import { VectorSearchEmbeddings } from "../../../../src/common/search/vectorSearchEmbeddings.js";
-import type { EmbeddingNamespace } from "../../../../src/common/search/vectorSearchEmbeddings.js";
+import type {
+    EmbeddingNamespace,
+    VectorFieldIndexDefinition,
+} from "../../../../src/common/search/vectorSearchEmbeddings.js";
 import { BSON } from "bson";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import type { UserConfig } from "../../../../src/lib.js";
 
 type MockedServiceProvider = NodeDriverServiceProvider & {
     getSearchIndexes: MockedFunction<NodeDriverServiceProvider["getSearchIndexes"]>;
 };
 
 describe("VectorSearchEmbeddings", () => {
+    const embeddingValidationEnabled: UserConfig = { disableEmbeddingsValidation: false } as UserConfig;
+    const embeddingValidationDisabled: UserConfig = { disableEmbeddingsValidation: true } as UserConfig;
+
     const database = "my" as const;
     const collection = "collection" as const;
     const mapKey = `${database}.${collection}` as EmbeddingNamespace;
@@ -59,7 +66,7 @@ describe("VectorSearchEmbeddings", () => {
             });
 
             it("retrieves the list of vector search indexes for that collection from the cluster", async () => {
-                const embeddings = new VectorSearchEmbeddings();
+                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled);
                 const result = await embeddings.embeddingsForNamespace({ database, collection, provider });
 
                 expect(result).toContainEqual({
@@ -71,7 +78,7 @@ describe("VectorSearchEmbeddings", () => {
             });
 
             it("ignores any other type of index", async () => {
-                const embeddings = new VectorSearchEmbeddings();
+                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled);
                 const result = await embeddings.embeddingsForNamespace({ database, collection, provider });
 
                 expect(result?.filter((emb) => emb.type !== "vector")).toHaveLength(0);
@@ -81,7 +88,7 @@ describe("VectorSearchEmbeddings", () => {
 
     describe("embedding validation", () => {
         it("when there are no embeddings, all documents are valid", async () => {
-            const embeddings = new VectorSearchEmbeddings(new Map([[mapKey, []]]));
+            const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, new Map([[mapKey, []]]));
             const result = await embeddings.findFieldsWithWrongEmbeddings(
                 { database, collection, provider },
                 { field: "yay" }
@@ -91,123 +98,155 @@ describe("VectorSearchEmbeddings", () => {
         });
 
         describe("when there are embeddings", () => {
-            const embeddings = new VectorSearchEmbeddings(
-                new Map([
+            const embeddingConfig: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map([
+                [
+                    mapKey,
                     [
-                        mapKey,
-                        [
-                            {
-                                type: "vector",
-                                path: "embedding_field",
-                                numDimensions: 8,
-                                quantization: "none",
-                                similarity: "euclidean",
-                            },
-                            {
-                                type: "vector",
-                                path: "embedding_field_binary",
-                                numDimensions: 8,
-                                quantization: "binary",
-                                similarity: "euclidean",
-                            },
-                            {
-                                type: "vector",
-                                path: "a.nasty.scalar.field",
-                                numDimensions: 8,
-                                quantization: "none",
-                                similarity: "euclidean",
-                            },
-                            {
-                                type: "vector",
-                                path: "a.nasty.binary.field",
-                                numDimensions: 8,
-                                quantization: "binary",
-                                similarity: "euclidean",
-                            },
-                        ],
+                        {
+                            type: "vector",
+                            path: "embedding_field",
+                            numDimensions: 8,
+                            quantization: "scalar",
+                            similarity: "euclidean",
+                        },
+                        {
+                            type: "vector",
+                            path: "embedding_field_binary",
+                            numDimensions: 8,
+                            quantization: "binary",
+                            similarity: "euclidean",
+                        },
+                        {
+                            type: "vector",
+                            path: "a.nasty.scalar.field",
+                            numDimensions: 8,
+                            quantization: "scalar",
+                            similarity: "euclidean",
+                        },
+                        {
+                            type: "vector",
+                            path: "a.nasty.binary.field",
+                            numDimensions: 8,
+                            quantization: "binary",
+                            similarity: "euclidean",
+                        },
                     ],
-                ])
-            );
+                ],
+            ]);
 
-            it("documents not inserting the field with embeddings are valid", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { field: "yay" }
-                );
+            describe("when the validation is disabled", () => {
+                let embeddings: VectorSearchEmbeddings;
 
-                expect(result).toHaveLength(0);
+                beforeEach(() => {
+                    embeddings = new VectorSearchEmbeddings(embeddingValidationDisabled, embeddingConfig);
+                });
+
+                it("documents inserting the field with wrong type are valid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field: "some text" }
+                    );
+
+                    expect(result).toHaveLength(0);
+                });
+
+                it("documents inserting the field with wrong dimensions are valid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field: [1, 2, 3] }
+                    );
+
+                    expect(result).toHaveLength(0);
+                });
+
+                it("documents inserting the field with correct dimensions, but wrong type are valid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field: ["1", "2", "3", "4", "5", "6", "7", "8"] }
+                    );
+
+                    expect(result).toHaveLength(0);
+                });
             });
 
-            it("documents inserting the field with wrong type are invalid", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { embedding_field: "some text" }
-                );
+            describe("when the validation is enabled", () => {
+                let embeddings: VectorSearchEmbeddings;
 
-                expect(result).toHaveLength(1);
-            });
+                beforeEach(() => {
+                    embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, embeddingConfig);
+                });
 
-            it("documents inserting the field with wrong dimensions are invalid", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { embedding_field: [1, 2, 3] }
-                );
+                it("documents not inserting the field with embeddings are valid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { field: "yay" }
+                    );
 
-                expect(result).toHaveLength(1);
-            });
+                    expect(result).toHaveLength(0);
+                });
 
-            it("documents inserting the field with correct dimensions, but wrong type are invalid", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { embedding_field: ["1", "2", "3", "4", "5", "6", "7", "8"] }
-                );
+                it("documents inserting the field with wrong type are invalid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field: "some text" }
+                    );
 
-                expect(result).toHaveLength(1);
-            });
+                    expect(result).toHaveLength(1);
+                });
 
-            it("documents inserting the field with correct dimensions, but wrong quantization are invalid", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { embedding_field_binary: [1, 2, 3, 4, 5, 6, 7, 8] }
-                );
+                it("documents inserting the field with wrong dimensions are invalid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field: [1, 2, 3] }
+                    );
 
-                expect(result).toHaveLength(1);
-            });
+                    expect(result).toHaveLength(1);
+                });
 
-            it("documents inserting the field with correct dimensions and quantization in binary are valid", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { embedding_field_binary: BSON.Binary.fromBits([0, 0, 0, 0, 0, 0, 0, 0]) }
-                );
+                it("documents inserting the field with correct dimensions, but wrong type are invalid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field: ["1", "2", "3", "4", "5", "6", "7", "8"] }
+                    );
 
-                expect(result).toHaveLength(0);
-            });
+                    expect(result).toHaveLength(1);
+                });
 
-            it("documents inserting the field with correct dimensions and quantization in scalar/none are valid", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { embedding_field: [1, 2, 3, 4, 5, 6, 7, 8] }
-                );
+                it("documents inserting the field with correct dimensions and quantization in binary are valid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field_binary: BSON.Binary.fromBits([0, 0, 0, 0, 0, 0, 0, 0]) }
+                    );
 
-                expect(result).toHaveLength(0);
-            });
+                    expect(result).toHaveLength(0);
+                });
 
-            it("documents inserting the field with correct dimensions and quantization in scalar/none are valid also on nested fields", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { a: { nasty: { scalar: { field: [1, 2, 3, 4, 5, 6, 7, 8] } } } }
-                );
+                it("documents inserting the field with correct dimensions and quantization in scalar/none are valid", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { embedding_field: [1, 2, 3, 4, 5, 6, 7, 8] }
+                    );
 
-                expect(result).toHaveLength(0);
-            });
+                    expect(result).toHaveLength(0);
+                });
 
-            it("documents inserting the field with correct dimensions and quantization in binary are valid also on nested fields", async () => {
-                const result = await embeddings.findFieldsWithWrongEmbeddings(
-                    { database, collection, provider },
-                    { a: { nasty: { binary: { field: BSON.Binary.fromBits([0, 0, 0, 0, 0, 0, 0, 0]) } } } }
-                );
+                it("documents inserting the field with correct dimensions and quantization in scalar/none are valid also on nested fields", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { a: { nasty: { scalar: { field: [1, 2, 3, 4, 5, 6, 7, 8] } } } }
+                    );
 
-                expect(result).toHaveLength(0);
+                    expect(result).toHaveLength(0);
+                });
+
+                it("documents inserting the field with correct dimensions and quantization in binary are valid also on nested fields", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { a: { nasty: { binary: { field: BSON.Binary.fromBits([0, 0, 0, 0, 0, 0, 0, 0]) } } } }
+                    );
+
+                    expect(result).toHaveLength(0);
+                });
             });
         });
     });
