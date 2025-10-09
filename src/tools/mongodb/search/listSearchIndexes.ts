@@ -19,7 +19,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
     public operationType: OperationType = "metadata";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
-        const provider = await this.ensureConnected();
+        const provider = await this.ensureSearchAvailable();
         const indexes = await provider.getSearchIndexes(database, collection);
         const trimmedIndexDefinitions = this.pickRelevantInformation(indexes);
 
@@ -27,7 +27,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
             return {
                 content: formatUntrustedData(
                     `Found ${trimmedIndexDefinitions.length} search and vector search indexes in ${database}.${collection}`,
-                    trimmedIndexDefinitions.map((index) => EJSON.stringify(index)).join("\n")
+                    ...trimmedIndexDefinitions.map((index) => EJSON.stringify(index))
                 ),
             };
         } else {
@@ -59,23 +59,5 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
             queryable: (index["queryable"] ?? false) as boolean,
             latestDefinition: index["latestDefinition"] as Document,
         }));
-    }
-
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof DbOperationArgs>
-    ): Promise<CallToolResult> | CallToolResult {
-        if (error instanceof Error && "codeName" in error && error.codeName === "SearchNotEnabled") {
-            return {
-                content: [
-                    {
-                        text: "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search.",
-                        type: "text",
-                        isError: true,
-                    },
-                ],
-            };
-        }
-        return super.handleError(error, args);
     }
 }

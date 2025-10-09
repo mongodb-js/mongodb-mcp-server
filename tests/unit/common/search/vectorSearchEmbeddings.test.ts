@@ -23,46 +23,69 @@ describe("VectorSearchEmbeddings", () => {
 
     const provider: MockedServiceProvider = {
         getSearchIndexes: vi.fn(),
+        getURI: () => "mongodb://my-test",
     } as unknown as MockedServiceProvider;
 
     beforeEach(() => {
         provider.getSearchIndexes.mockReset();
     });
 
+    describe("atlas search availability", () => {
+        describe("when it is available", () => {
+            const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled);
+            beforeEach(() => {
+                provider.getSearchIndexes.mockResolvedValue([]);
+            });
+
+            it("returns true", async () => {
+                expect(await embeddings.isAtlasSearchAvailable(provider)).toBeTruthy();
+            });
+        });
+
+        describe("when it is not available", () => {
+            const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled);
+            beforeEach(() => {
+                provider.getSearchIndexes.mockRejectedValue(new Error("Atlas Search not available"));
+            });
+
+            it("returns false", async () => {
+                expect(await embeddings.isAtlasSearchAvailable(provider)).toBeFalsy();
+            });
+        });
+    });
+
     describe("embedding retrieval", () => {
         describe("when the embeddings have not been cached", () => {
             beforeEach(() => {
-                provider.getSearchIndexes.mockImplementation(() => {
-                    return Promise.resolve([
-                        {
-                            id: "65e8c766d0450e3e7ab9855f",
-                            name: "search-test",
-                            type: "search",
-                            status: "READY",
-                            queryable: true,
-                            latestDefinition: { dynamic: true },
+                provider.getSearchIndexes.mockResolvedValue([
+                    {
+                        id: "65e8c766d0450e3e7ab9855f",
+                        name: "search-test",
+                        type: "search",
+                        status: "READY",
+                        queryable: true,
+                        latestDefinition: { dynamic: true },
+                    },
+                    {
+                        id: "65e8c766d0450e3e7ab9855f",
+                        name: "vector-search-test",
+                        type: "vectorSearch",
+                        status: "READY",
+                        queryable: true,
+                        latestDefinition: {
+                            fields: [
+                                {
+                                    type: "vector",
+                                    path: "plot_embedding",
+                                    numDimensions: 1536,
+                                    similarity: "euclidean",
+                                },
+                                { type: "filter", path: "genres" },
+                                { type: "filter", path: "year" },
+                            ],
                         },
-                        {
-                            id: "65e8c766d0450e3e7ab9855f",
-                            name: "vector-search-test",
-                            type: "vectorSearch",
-                            status: "READY",
-                            queryable: true,
-                            latestDefinition: {
-                                fields: [
-                                    {
-                                        type: "vector",
-                                        path: "plot_embedding",
-                                        numDimensions: 1536,
-                                        similarity: "euclidean",
-                                    },
-                                    { type: "filter", path: "genres" },
-                                    { type: "filter", path: "year" },
-                                ],
-                            },
-                        },
-                    ]);
-                });
+                    },
+                ]);
             });
 
             it("retrieves the list of vector search indexes for that collection from the cluster", async () => {
@@ -89,7 +112,8 @@ describe("VectorSearchEmbeddings", () => {
                 const result1 = await embeddings.embeddingsForNamespace({ database, collection, provider });
                 const result2 = await embeddings.embeddingsForNamespace({ database, collection, provider });
 
-                expect(provider.getSearchIndexes).toHaveBeenCalledOnce();
+                // 1 call to check if search is available, another for retrieving the embedding
+                expect(provider.getSearchIndexes).toHaveBeenCalledTimes(2);
                 expect(result1).toEqual(result2);
             });
 
@@ -99,7 +123,8 @@ describe("VectorSearchEmbeddings", () => {
                 embeddings.cleanupEmbeddingsForNamespace({ database, collection });
                 const result2 = await embeddings.embeddingsForNamespace({ database, collection, provider });
 
-                expect(provider.getSearchIndexes).toHaveBeenCalledTimes(2);
+                // 1 call to check if search is available, another 2 for retrieving the embeddings
+                expect(provider.getSearchIndexes).toHaveBeenCalledTimes(3);
                 expect(result1).toEqual(result2);
             });
         });

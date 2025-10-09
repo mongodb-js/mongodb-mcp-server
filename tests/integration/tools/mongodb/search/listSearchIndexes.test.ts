@@ -33,7 +33,7 @@ describeWithMongoDB("list search indexes tool in local MongoDB", (integration) =
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual(
-            "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
+            "Error running list-search-indexes: This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
         );
     });
 });

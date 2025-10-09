@@ -14,7 +14,8 @@ export type EmbeddingNamespace = `${string}.${string}`;
 export class VectorSearchEmbeddings {
     constructor(
         private readonly config: UserConfig,
-        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()
+        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map(),
+        private readonly atlasSearchStatus: Map<string, boolean> = new Map()
     ) {}
 
     cleanupEmbeddingsForNamespace({ database, collection }: { database: string; collection: string }): void {
@@ -31,6 +32,10 @@ export class VectorSearchEmbeddings {
         collection: string;
         provider: NodeDriverServiceProvider;
     }): Promise<VectorFieldIndexDefinition[]> {
+        if (!(await this.isAtlasSearchAvailable(provider))) {
+            return [];
+        }
+
         // We only need the embeddings for validation now, so don't query them if
         // validation is disabled.
         if (this.config.disableEmbeddingsValidation) {
@@ -67,6 +72,10 @@ export class VectorSearchEmbeddings {
         },
         document: Document
     ): Promise<VectorFieldIndexDefinition[]> {
+        if (!(await this.isAtlasSearchAvailable(provider))) {
+            return [];
+        }
+
         // While we can do our best effort to ensure that the embedding validation is correct
         // based on https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-quantization/
         // it's a complex process so we will also give the user the ability to disable this validation
@@ -76,6 +85,23 @@ export class VectorSearchEmbeddings {
 
         const embeddings = await this.embeddingsForNamespace({ database, collection, provider });
         return embeddings.filter((emb) => !this.documentPassesEmbeddingValidation(emb, document));
+    }
+
+    async isAtlasSearchAvailable(provider: NodeDriverServiceProvider): Promise<boolean> {
+        const providerUri = provider.getURI();
+        if (!providerUri) {
+            // no URI? can't be cached
+            return await this.canListAtlasSearchIndexes(provider);
+        }
+
+        if (this.atlasSearchStatus.has(providerUri)) {
+            // has should ensure that get is always defined
+            return this.atlasSearchStatus.get(providerUri) ?? false;
+        }
+
+        const availability = await this.canListAtlasSearchIndexes(provider);
+        this.atlasSearchStatus.set(providerUri, availability);
+        return availability;
     }
 
     private isVectorFieldIndexDefinition(doc: Document): doc is VectorFieldIndexDefinition {
@@ -130,5 +156,14 @@ export class VectorSearchEmbeddings {
         }
 
         return true;
+    }
+
+    private async canListAtlasSearchIndexes(provider: NodeDriverServiceProvider): Promise<boolean> {
+        try {
+            await provider.getSearchIndexes("test", "test");
+            return true;
+        } catch {
+            return false;
+        }
     }
 }
