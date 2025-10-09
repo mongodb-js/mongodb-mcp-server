@@ -16,6 +16,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;
+    atlasLocaldeploymentId?: string;
 };
 
 export type ToolConstructor = new (session: Session, config: UserConfig, telemetry: Telemetry) => ToolBase;
@@ -230,6 +231,10 @@ export abstract class ToolBase {
 
         if (metadata?.projectId) {
             event.properties.project_id = metadata.projectId;
+        }
+
+        if (metadata?.atlasLocaldeploymentId) {
+            event.properties.atlas_local_deployment_id = metadata.atlasLocaldeploymentId;
         }
 
         await this.telemetry.emitEvents([event]);
