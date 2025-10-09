@@ -68,6 +68,12 @@ export const AtlasArgs = {
 
     password: (): z.ZodString =>
         z.string().min(1, "Password is required").max(100, "Password must be 100 characters or less"),
+
+    connectionType: (): z.ZodDefault<z.ZodEnum<["standard", "private"]>> =>
+        z
+            .enum(["standard", "private"])
+            .default("standard")
+            .describe("Desired connection type (standard or private) to an Atlas cluster"),
 };
 
 function toEJSON<T extends object | undefined>(value: T): T {

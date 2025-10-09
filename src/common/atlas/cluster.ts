@@ -1,4 +1,8 @@
-import type { ClusterDescription20240805, FlexClusterDescription20241113 } from "./openapi.js";
+import type {
+    ClusterConnectionStrings,
+    ClusterDescription20240805,
+    FlexClusterDescription20241113,
+} from "./openapi.js";
 import type { ApiClient } from "./apiClient.js";
 import { LogId } from "../logger.js";
 import { ConnectionString } from "mongodb-connection-string-url";
@@ -18,7 +22,8 @@ export interface Cluster {
     instanceSize?: string;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
-    connectionString?: string;
+    standardConnectionString?: string;
+    connectionStrings?: ClusterConnectionStrings;
     processIds?: Array<string>;
 }
 
@@ -30,7 +35,8 @@ export function formatFlexCluster(cluster: FlexClusterDescription20241113): Clus
         instanceSize: undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
-        connectionString,
+        standardConnectionString: connectionString,
+        connectionStrings: cluster.connectionStrings,
         processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
 }
@@ -65,17 +71,30 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
 
     const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
     const clusterInstanceType = instanceSize === "M0" ? "FREE" : "DEDICATED";
-    const connectionString = cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard;
-
+    const standardConnectionString = cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard;
     return {
         name: cluster.name,
         instanceType: clusterInstanceType,
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
-        connectionString,
+        standardConnectionString: standardConnectionString,
+        connectionStrings: cluster.connectionStrings,
         processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
+}
+
+export function getConnectionString(
+    connectionStrings: ClusterConnectionStrings,
+    connectionType: "standard" | "private"
+): string | undefined {
+    if (connectionStrings === undefined) {
+        return undefined;
+    }
+    if (connectionType === "standard") {
+        return connectionStrings.standardSrv || connectionStrings.standard;
+    }
+    return connectionStrings.privateSrv || connectionStrings.private;
 }
 
 export async function inspectCluster(apiClient: ApiClient, projectId: string, clusterName: string): Promise<Cluster> {
