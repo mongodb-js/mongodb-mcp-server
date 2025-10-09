@@ -1,6 +1,6 @@
 import { ConnectTool } from "./connect/connect.js";
 import { ListCollectionsTool } from "./metadata/listCollections.js";
-import { CollectionIndexesTool } from "./read/collectionIndexes.js";
+import { CollectionIndexesTool } from "./metadata/collectionIndexes.js";
 import { ListDatabasesTool } from "./metadata/listDatabases.js";
 import { CreateIndexTool } from "./create/createIndex.js";
 import { CollectionSchemaTool } from "./metadata/collectionSchema.js";
