@@ -53,7 +53,7 @@ export class InsertManyTool extends MongoDBToolBase {
 
         const result = await provider.insertMany(database, collection, documents);
         const content = formatUntrustedData(
-            "Documents where inserted successfuly.",
+            "Documents were inserted successfully.",
             `Inserted \`${result.insertedCount}\` document(s) into ${database}.${collection}.`,
             `Inserted IDs: ${Object.values(result.insertedIds).join(", ")}`
         );
