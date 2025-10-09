@@ -15,14 +15,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
         ...databaseCollectionParameters,
         {
             name: "definition",
-            anyOf: [
-                {
-                    type: "object",
-                },
-                {
-                    type: "object",
-                },
-            ],
+            type: "array",
             description:
                 "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes",
             required: true,
@@ -37,10 +30,10 @@ describeWithMongoDB("createIndex tool", (integration) => {
 
     validateThrowsForInvalidArguments(integration, "create-index", [
         {},
-        { collection: "bar", database: 123, definition: { type: "classic", keys: { foo: 1 } } },
-        { collection: [], database: "test", definition: { type: "classic", keys: { foo: 1 } } },
-        { collection: "bar", database: "test", definition: { type: "classic", keys: { foo: 1 } }, name: 123 },
-        { collection: "bar", database: "test", definition: { type: "unknown", keys: { foo: 1 } }, name: "my-index" },
+        { collection: "bar", database: 123, definition: [{ type: "classic", keys: { foo: 1 } }] },
+        { collection: [], database: "test", definition: [{ type: "classic", keys: { foo: 1 } }] },
+        { collection: "bar", database: "test", definition: [{ type: "classic", keys: { foo: 1 } }], name: 123 },
+        { collection: "bar", database: "test", definition: [{ type: "unknown", keys: { foo: 1 } }], name: "my-index" },
     ]);
 
     describe("with classic indexes", () => {
@@ -66,10 +59,12 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: {
-                        type: "classic",
-                        keys: { prop1: 1 },
-                    },
+                    definition: [
+                        {
+                            type: "classic",
+                            keys: { prop1: 1 },
+                        },
+                    ],
                     name: "my-index",
                 },
             });
@@ -89,7 +84,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: { type: "classic", keys: { prop1: 1 } },
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
                 },
             });
 
@@ -107,7 +102,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: { type: "classic", keys: { prop1: 1 } },
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
                 },
             });
 
@@ -120,7 +115,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: { type: "classic", keys: { prop2: -1 } },
+                    definition: [{ type: "classic", keys: { prop2: -1 } }],
                 },
             });
 
@@ -141,7 +136,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: { type: "classic", keys: { prop1: 1 } },
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
                 },
             });
 
@@ -154,7 +149,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: { type: "classic", keys: { prop1: -1 } },
+                    definition: [{ type: "classic", keys: { prop1: -1 } }],
                 },
             });
 
@@ -175,7 +170,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: { type: "classic", keys: { prop1: 1 } },
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
                 },
             });
 
@@ -188,7 +183,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: { type: "classic", keys: { prop1: 1 } },
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
                 },
             });
 
@@ -216,7 +211,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
                     arguments: {
                         database: integration.randomDbName(),
                         collection: "coll1",
-                        definition: { type: "classic", keys: { prop1: direction } },
+                        definition: [{ type: "classic", keys: { prop1: direction } }],
                     },
                 });
 
@@ -241,7 +236,7 @@ describeWithMongoDB("createIndex tool", (integration) => {
             args: {
                 database: integration.randomDbName(),
                 collection: "coll1",
-                definition: { type: "classic", keys: { prop1: 1 } },
+                definition: [{ type: "classic", keys: { prop1: 1 } }],
             },
             expectedResponse: `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}"`,
         };
