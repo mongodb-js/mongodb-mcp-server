@@ -75,11 +75,6 @@ export class VectorSearchEmbeddings {
         }
 
         const embeddings = await this.embeddingsForNamespace({ database, collection, provider });
-
-        if (!embeddings) {
-            return [];
-        }
-
         return embeddings.filter((emb) => !this.documentPassesEmbeddingValidation(emb, document));
     }
 
