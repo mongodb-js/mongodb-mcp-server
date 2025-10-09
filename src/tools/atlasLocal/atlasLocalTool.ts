@@ -41,7 +41,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
 
     protected async lookupDeploymentIdAndAddToTelemetryMetadata(client: Client, containerId: string): Promise<void> {
         // Don't run if telemetry is disabled
-        if (this.config.telemetry === "disabled") {
+        if (this.telemetry.isTelemetryEnabled()) {
             return;
         }
 
