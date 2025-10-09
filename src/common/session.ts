@@ -108,16 +108,7 @@ export class Session extends EventEmitter<SessionEvents> {
     async disconnect(): Promise<void> {
         const atlasCluster = this.connectedAtlasCluster;
 
-        try {
-            await this.connectionManager.disconnect();
-        } catch (err: unknown) {
-            const error = err instanceof Error ? err : new Error(String(err));
-            this.logger.error({
-                id: LogId.mongodbDisconnectFailure,
-                context: "session",
-                message: `Error closing service provider: ${error.message}`,
-            });
-        }
+        await this.connectionManager.close();
 
         if (atlasCluster?.username && atlasCluster?.projectId) {
             void this.apiClient

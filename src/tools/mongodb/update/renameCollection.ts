@@ -48,6 +48,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
                                 type: "text",
                             },
                         ],
+                        isError: true,
                     };
                 case "NamespaceExists":
                     return {
@@ -57,6 +58,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
                                 type: "text",
                             },
                         ],
+                        isError: true,
                     };
             }
         }

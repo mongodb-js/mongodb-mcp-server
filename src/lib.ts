@@ -1,6 +1,6 @@
 export { Server, type ServerOptions } from "./server.js";
 export { Session, type SessionOptions } from "./common/session.js";
-export { defaultUserConfig, type UserConfig } from "./common/config.js";
+export { defaultUserConfig, type UserConfig, ALL_CONFIG_KEYS as configurableProperties } from "./common/config.js";
 export { LoggerBase, type LogPayload, type LoggerType, type LogLevel } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export {

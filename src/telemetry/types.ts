@@ -44,8 +44,9 @@ export type ServerEventProperties = {
     reason?: string;
     startup_time_ms?: number;
     runtime_duration_ms?: number;
-    read_only_mode?: boolean;
+    read_only_mode?: TelemetryBoolSet;
     disabled_tools?: string[];
+    confirmation_required_tools?: string[];
 };
 
 export type ServerEvent = TelemetryEvent<ServerEventProperties>;
@@ -97,7 +98,7 @@ export type CommonProperties = {
     /**
      * A boolean indicating whether the server is running in a container environment.
      */
-    is_container_env?: boolean;
+    is_container_env?: TelemetryBoolSet;
 
     /**
      * The version of the MCP client as reported by the client on session establishment.

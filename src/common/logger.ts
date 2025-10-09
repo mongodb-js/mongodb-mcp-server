@@ -35,6 +35,7 @@ export const LogId = {
     telemetryMetadataError: mongoLogId(1_002_005),
     deviceIdResolutionError: mongoLogId(1_002_006),
     deviceIdTimeout: mongoLogId(1_002_007),
+    telemetryClose: mongoLogId(1_002_008),
 
     toolExecute: mongoLogId(1_003_001),
     toolExecuteFailure: mongoLogId(1_003_002),
@@ -43,9 +44,11 @@ export const LogId = {
     mongodbConnectFailure: mongoLogId(1_004_001),
     mongodbDisconnectFailure: mongoLogId(1_004_002),
     mongodbConnectTry: mongoLogId(1_004_003),
+    mongodbCursorCloseError: mongoLogId(1_004_004),
 
     toolUpdateFailure: mongoLogId(1_005_001),
     resourceUpdateFailure: mongoLogId(1_005_002),
+    updateToolMetadata: mongoLogId(1_005_003),
 
     streamableHttpTransportStarted: mongoLogId(1_006_001),
     streamableHttpTransportSessionCloseFailure: mongoLogId(1_006_002),
@@ -55,6 +58,7 @@ export const LogId = {
     streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
     streamableHttpTransportKeepAliveFailure: mongoLogId(1_006_007),
     streamableHttpTransportKeepAlive: mongoLogId(1_006_008),
+    streamableHttpTransportHttpHostWarning: mongoLogId(1_006_009),
 
     exportCleanupError: mongoLogId(1_007_001),
     exportCreationError: mongoLogId(1_007_002),
@@ -66,6 +70,11 @@ export const LogId = {
     exportLockError: mongoLogId(1_007_008),
 
     oidcFlow: mongoLogId(1_008_001),
+
+    atlasPaSuggestedIndexesFailure: mongoLogId(1_009_001),
+    atlasPaDropIndexSuggestionsFailure: mongoLogId(1_009_002),
+    atlasPaSchemaAdviceFailure: mongoLogId(1_009_003),
+    atlasPaSlowQueryLogsFailure: mongoLogId(1_009_004),
 } as const;
 
 export interface LogPayload {
@@ -335,17 +344,5 @@ export class CompositeLogger extends LoggerBase {
 
     public setAttribute(key: string, value: string): void {
         this.attributes[key] = value;
-    }
-}
-
-export class NullLogger extends LoggerBase {
-    protected type?: LoggerType;
-
-    constructor() {
-        super(undefined);
-    }
-
-    protected logCore(): void {
-        // No-op logger, does not log anything
     }
 }

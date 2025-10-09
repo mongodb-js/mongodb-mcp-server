@@ -5,10 +5,11 @@ import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } fro
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { config } from "../../src/common/config.js";
 import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
-import { NullLogger } from "../../src/common/logger.js";
+import { NullLogger } from "../../tests/utils/index.js";
 import type { MockedFunction } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import { expectDefined } from "../integration/helpers.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 // Mock the ApiClient to avoid real API calls
 vi.mock("../../src/common/atlas/apiClient.js");
@@ -24,8 +25,8 @@ describe("Telemetry", () => {
         hasCredentials: MockedFunction<() => boolean>;
     };
     let mockEventCache: {
-        getEvents: MockedFunction<() => BaseEvent[]>;
-        clearEvents: MockedFunction<() => Promise<void>>;
+        getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
+        removeEvents: MockedFunction<(ids: number[]) => Promise<void>>;
         appendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
     };
     let session: Session;
@@ -61,26 +62,36 @@ describe("Telemetry", () => {
         };
     }
 
+    function emitEventsForTest(events: BaseEvent[]): Promise<void> {
+        return new Promise((resolve) => {
+            telemetry.events.once("events-emitted", resolve);
+            telemetry.events.once("events-send-failed", resolve);
+            telemetry.events.once("events-skipped", resolve);
+
+            telemetry.emitEvents(events);
+        });
+    }
+
     // Helper function to verify mock calls to reduce duplication
     function verifyMockCalls({
         sendEventsCalls = 0,
-        clearEventsCalls = 0,
+        removeEventsCalls = 0,
         appendEventsCalls = 0,
         sendEventsCalledWith = undefined,
         appendEventsCalledWith = undefined,
     }: {
         sendEventsCalls?: number;
-        clearEventsCalls?: number;
+        removeEventsCalls?: number;
         appendEventsCalls?: number;
         sendEventsCalledWith?: BaseEvent[] | undefined;
         appendEventsCalledWith?: BaseEvent[] | undefined;
     } = {}): void {
         const { calls: sendEvents } = mockApiClient.sendEvents.mock;
-        const { calls: clearEvents } = mockEventCache.clearEvents.mock;
+        const { calls: removeEvents } = mockEventCache.removeEvents.mock;
         const { calls: appendEvents } = mockEventCache.appendEvents.mock;
 
         expect(sendEvents.length).toBe(sendEventsCalls);
-        expect(clearEvents.length).toBe(clearEventsCalls);
+        expect(removeEvents.length).toBe(removeEventsCalls);
         expect(appendEvents.length).toBe(appendEventsCalls);
 
         if (sendEventsCalledWith) {
@@ -113,7 +124,7 @@ describe("Telemetry", () => {
         // Setup mocked EventCache
         mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;
         mockEventCache.getEvents = vi.fn().mockReturnValue([]);
-        mockEventCache.clearEvents = vi.fn().mockResolvedValue(undefined);
+        mockEventCache.removeEvents = vi.fn().mockResolvedValue(undefined);
         mockEventCache.appendEvents = vi.fn().mockResolvedValue(undefined);
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
@@ -130,6 +141,7 @@ describe("Telemetry", () => {
             close: vi.fn().mockResolvedValue(undefined),
             setAgentRunner: vi.fn().mockResolvedValue(undefined),
             logger: new NullLogger(),
+            keychain: new Keychain(),
         } as unknown as Session;
 
         telemetry = Telemetry.create(session, config, mockDeviceId, {
@@ -145,11 +157,11 @@ describe("Telemetry", () => {
 
             await telemetry.setupPromise;
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls({
                 sendEventsCalls: 1,
-                clearEventsCalls: 1,
+                removeEventsCalls: 1,
                 sendEventsCalledWith: [testEvent],
             });
         });
@@ -161,7 +173,7 @@ describe("Telemetry", () => {
 
             await telemetry.setupPromise;
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls({
                 sendEventsCalls: 1,
@@ -182,15 +194,15 @@ describe("Telemetry", () => {
             });
 
             // Set up mock to return cached events
-            mockEventCache.getEvents.mockReturnValueOnce([cachedEvent]);
+            mockEventCache.getEvents.mockReturnValueOnce([{ id: 0, event: cachedEvent }]);
 
             await telemetry.setupPromise;
 
-            await telemetry.emitEvents([newEvent]);
+            await emitEventsForTest([newEvent]);
 
             verifyMockCalls({
                 sendEventsCalls: 1,
-                clearEventsCalls: 1,
+                removeEventsCalls: 1,
                 sendEventsCalledWith: [cachedEvent, newEvent],
             });
         });
@@ -223,7 +235,7 @@ describe("Telemetry", () => {
             const commonProps = telemetry.getCommonProperties();
             expect(commonProps.hosting_mode).toBe("vscode-extension");
 
-            await telemetry.emitEvents([createTestEvent()]);
+            await emitEventsForTest([createTestEvent()]);
 
             const calls = mockApiClient.sendEvents.mock.calls;
             expect(calls).toHaveLength(1);
@@ -305,7 +317,7 @@ describe("Telemetry", () => {
         it("should not send events", async () => {
             const testEvent = createTestEvent();
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls();
         });
@@ -330,9 +342,96 @@ describe("Telemetry", () => {
         it("should not send events", async () => {
             const testEvent = createTestEvent();
 
-            await telemetry.emitEvents([testEvent]);
+            await emitEventsForTest([testEvent]);
 
             verifyMockCalls();
+        });
+    });
+
+    describe("when secrets are registered", () => {
+        describe("comprehensive redaction coverage", () => {
+            it("should redact sensitive data from CommonStaticProperties", async () => {
+                session.keychain.register("secret-server-version", "password");
+                session.keychain.register("secret-server-name", "password");
+                session.keychain.register("secret-password", "password");
+                session.keychain.register("secret-key", "password");
+                session.keychain.register("secret-token", "password");
+                session.keychain.register("secret-password-version", "password");
+
+                // Simulates sensitive data across random properties
+                const sensitiveStaticProps = {
+                    mcp_server_version: "secret-server-version",
+                    mcp_server_name: "secret-server-name",
+                    platform: "linux-secret-password",
+                    arch: "x64-secret-key",
+                    os_type: "linux-secret-token",
+                    os_version: "secret-password-version",
+                };
+
+                telemetry = Telemetry.create(session, config, mockDeviceId, {
+                    eventCache: mockEventCache as unknown as EventCache,
+                    commonProperties: sensitiveStaticProps,
+                });
+
+                await telemetry.setupPromise;
+
+                telemetry.emitEvents([createTestEvent()]);
+
+                const calls = mockApiClient.sendEvents.mock.calls;
+                expect(calls).toHaveLength(1);
+
+                // get event properties
+                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                expectDefined(sentEvent);
+
+                const eventProps = sentEvent.properties;
+                expect(eventProps.mcp_server_version).toBe("<password>");
+                expect(eventProps.mcp_server_name).toBe("<password>");
+                expect(eventProps.platform).toBe("linux-<password>");
+                expect(eventProps.arch).toBe("x64-<password>");
+                expect(eventProps.os_type).toBe("linux-<password>");
+                expect(eventProps.os_version).toBe("<password>-version");
+            });
+
+            it("should redact sensitive data from CommonProperties", () => {
+                // register the common properties as sensitive data
+                session.keychain.register("test-device-id", "password");
+                session.keychain.register(session.sessionId, "password");
+
+                telemetry.emitEvents([createTestEvent()]);
+
+                const calls = mockApiClient.sendEvents.mock.calls;
+                expect(calls).toHaveLength(1);
+
+                // get event properties
+                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                expectDefined(sentEvent);
+
+                const eventProps = sentEvent.properties;
+
+                expect(eventProps.device_id).toBe("<password>");
+                expect(eventProps.session_id).toBe("<password>");
+            });
+
+            it("should redact sensitive data that is added to events", () => {
+                session.keychain.register("test-device-id", "password");
+                session.keychain.register(session.sessionId, "password");
+                session.keychain.register("test-component", "password");
+
+                telemetry.emitEvents([createTestEvent()]);
+
+                const calls = mockApiClient.sendEvents.mock.calls;
+                expect(calls).toHaveLength(1);
+
+                // get event properties
+                const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
+                expectDefined(sentEvent);
+
+                const eventProps = sentEvent.properties;
+                expect(eventProps.device_id).toBe("<password>");
+                expect(eventProps.session_id).toBe("<password>");
+                expect(eventProps.component).toBe("<password>");
+            });
         });
     });
 });

@@ -76,7 +76,7 @@ describeWithMongoDB("insertMany tool", (integration) => {
             arguments: {
                 database: integration.randomDbName(),
                 collection: "coll1",
-                documents: [{ prop1: "value1", _id: insertedIds[0] }],
+                documents: [{ prop1: "value1", _id: { $oid: insertedIds[0] } }],
             },
         });
 

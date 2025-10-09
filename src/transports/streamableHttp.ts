@@ -124,7 +124,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                         // eslint-disable-next-line @typescript-eslint/no-misused-promises
                         keepAliveLoop = setInterval(async () => {
                             try {
-                                this.logger.debug({
+                                server.session.logger.debug({
                                     id: LogId.streamableHttpTransportKeepAlive,
                                     context: "streamableHttpTransport",
                                     message: "Sending ping",
@@ -138,7 +138,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                             } catch (err) {
                                 try {
                                     failedPings++;
-                                    this.logger.warning({
+                                    server.session.logger.warning({
                                         id: LogId.streamableHttpTransportKeepAliveFailure,
                                         context: "streamableHttpTransport",
                                         message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
@@ -162,7 +162,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                             this.logger.error({
                                 id: LogId.streamableHttpTransportSessionCloseFailure,
                                 context: "streamableHttpTransport",
-                                message: `Error closing session: ${error instanceof Error ? error.message : String(error)}`,
+                                message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                             });
                         }
                     },
@@ -205,6 +205,15 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             message: `Server started on ${this.serverAddress}`,
             noRedaction: true,
         });
+
+        if (this.shouldWarnAboutHttpHost(this.userConfig.httpHost)) {
+            this.logger.warning({
+                id: LogId.streamableHttpTransportHttpHostWarning,
+                context: "streamableHttpTransport",
+                message: `Binding to ${this.userConfig.httpHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
+                noRedaction: true,
+            });
+        }
     }
 
     async closeTransport(): Promise<void> {
@@ -242,5 +251,11 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 });
             });
         };
+    }
+
+    private shouldWarnAboutHttpHost(httpHost: string): boolean {
+        const host = httpHost.trim();
+        const safeHosts = new Set(["127.0.0.1", "localhost", "::1"]);
+        return host === "0.0.0.0" || host === "::" || (!safeHosts.has(host) && host !== "");
     }
 }

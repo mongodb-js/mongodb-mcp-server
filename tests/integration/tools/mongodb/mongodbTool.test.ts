@@ -1,9 +1,9 @@
-import { vi, it, describe, beforeEach, afterEach, type MockedFunction, afterAll, expect } from "vitest";
+import { vi, it, describe, beforeEach, afterEach, afterAll, expect } from "vitest";
 import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
-import { type OperationType } from "../../../../src/tools/tool.js";
+import { type ToolBase, type ToolConstructorParams, type OperationType } from "../../../../src/tools/tool.js";
 import { defaultDriverOptions, type UserConfig } from "../../../../src/common/config.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
@@ -18,6 +18,8 @@ import { defaultTestConfig } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
+import { Elicitation } from "../../../../src/elicitation.js";
+import { MongoDbTools } from "../../../../src/tools/mongodb/tools.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -50,29 +52,45 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     }
 };
 
-describe("MongoDBTool implementations", () => {
-    const mdbIntegration = setupMongoDBIntegrationTest({ enterprise: false }, []);
-    const executeStub: MockedFunction<() => Promise<CallToolResult>> = vi
-        .fn()
-        .mockResolvedValue({ content: [{ type: "text", text: "Something" }] });
-    class RandomTool extends MongoDBToolBase {
-        name = "Random";
-        operationType: OperationType = "read";
-        protected description = "This is a tool.";
-        protected argsShape = {};
-        public async execute(): Promise<CallToolResult> {
-            await this.ensureConnected();
-            return executeStub();
-        }
+class RandomTool extends MongoDBToolBase {
+    name = "Random";
+    operationType: OperationType = "read";
+    protected description = "This is a tool.";
+    protected argsShape = {};
+    public async execute(): Promise<CallToolResult> {
+        await this.ensureConnected();
+        return { content: [{ type: "text", text: "Something" }] };
     }
+}
 
-    let tool: RandomTool | undefined;
+class UnusableVoyageTool extends MongoDBToolBase {
+    name = "UnusableVoyageTool";
+    operationType: OperationType = "read";
+    protected description = "This is a Voyage tool.";
+    protected argsShape = {};
+
+    override verifyAllowed(): boolean {
+        if (this.config.voyageApiKey.trim()) {
+            return super.verifyAllowed();
+        }
+        return false;
+    }
+    public async execute(): Promise<CallToolResult> {
+        await this.ensureConnected();
+        return { content: [{ type: "text", text: "Something" }] };
+    }
+}
+
+describe("MongoDBTool implementations", () => {
+    const mdbIntegration = setupMongoDBIntegrationTest();
+
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
     let deviceId: DeviceId | undefined;
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
+        toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[] = [...MongoDbTools, RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();
@@ -112,19 +130,21 @@ describe("MongoDBTool implementations", () => {
             }
         );
 
+        const internalMcpServer = new McpServer({
+            name: "test-server",
+            version: "5.2.3",
+        });
+        const elicitation = new Elicitation({ server: internalMcpServer.server });
+
         mcpServer = new Server({
             session,
             userConfig,
             telemetry,
-            mcpServer: new McpServer({
-                name: "test-server",
-                version: "5.2.3",
-            }),
+            mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
+            elicitation,
+            toolConstructors,
         });
-
-        tool = new RandomTool(session, userConfig, telemetry);
-        tool.register(mcpServer);
 
         await mcpServer.connect(serverTransport);
         await mcpClient.connect(clientTransport);
@@ -140,8 +160,6 @@ describe("MongoDBTool implementations", () => {
 
         deviceId?.close();
         deviceId = undefined;
-
-        tool = undefined;
     }
 
     beforeEach(async () => {
@@ -222,7 +240,7 @@ describe("MongoDBTool implementations", () => {
 
     describe("when MCP is using injected connection error handler", () => {
         beforeEach(async () => {
-            await cleanupAndStartServer(defaultTestConfig, injectedErrorHandler);
+            await cleanupAndStartServer(defaultTestConfig, [...MongoDbTools, RandomTool], injectedErrorHandler);
         });
 
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
@@ -246,7 +264,11 @@ describe("MongoDBTool implementations", () => {
         describe("and comes across a MongoDB Error - MisconfiguredConnectionString", () => {
             it("should handle the error", async () => {
                 // This is a misconfigured connection string
-                await cleanupAndStartServer({ connectionString: "mongodb://localhost:1234" }, injectedErrorHandler);
+                await cleanupAndStartServer(
+                    { connectionString: "mongodb://localhost:1234" },
+                    [...MongoDbTools, RandomTool],
+                    injectedErrorHandler
+                );
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
                     arguments: {},
@@ -268,6 +290,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: mdbIntegration.connectionString(), indexCheck: true },
+                    [...MongoDbTools, RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -287,6 +310,19 @@ describe("MongoDBTool implementations", () => {
                     ])
                 );
             });
+        });
+    });
+
+    describe("when a tool is not usable", () => {
+        it("should not even be registered", async () => {
+            await cleanupAndStartServer(
+                { connectionString: mdbIntegration.connectionString(), indexCheck: true },
+                [RandomTool, UnusableVoyageTool],
+                injectedErrorHandler
+            );
+            const tools = await mcpClient?.listTools({});
+            expect(tools?.tools).toHaveLength(1);
+            expect(tools?.tools.find((tool) => tool.name === "UnusableVoyageTool")).toBeUndefined();
         });
     });
 });

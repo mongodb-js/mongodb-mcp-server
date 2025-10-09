@@ -20,7 +20,12 @@ jobs:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         if: matrix.os == 'ubuntu-latest'
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: docker/setup-docker-action@v4
+        if: matrix.os == 'ubuntu-latest'
+        name: Setup Docker Environment
+        with:
+          set-host: true
+      - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
           cache: "npm"

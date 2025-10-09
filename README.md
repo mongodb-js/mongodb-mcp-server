@@ -1,6 +1,5 @@
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF?logo=data:image/svg%2bxml;base64,PHN2ZyBmaWxsPSIjRkZGRkZGIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciICB2aWV3Qm94PSIwIDAgNDggNDgiIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiPjxwYXRoIGQ9Ik00NC45OTkgMTAuODd2MjYuMjFjMCAxLjAzLS41OSAxLjk3LTEuNTEgMi40Mi0yLjY4IDEuMjktOCAzLjg1LTguMzUgNC4wMS0uMTMuMDctLjM4LjItLjY3LjMxLjM1LS42LjUzLTEuMy41My0yLjAyVjYuMmMwLS43NS0uMi0xLjQ1LS41Ni0yLjA2LjA5LjA0LjE3LjA4LjI0LjExLjIuMSA1Ljk4IDIuODYgOC44IDQuMkM0NC40MDkgOC45IDQ0Ljk5OSA5Ljg0IDQ0Ljk5OSAxMC44N3pNNy40OTkgMjYuMDNjMS42IDEuNDYgMy40MyAzLjEzIDUuMzQgNC44NmwtNC42IDMuNWMtLjc3LjU3LTEuNzguNS0yLjU2LS4wNS0uNS0uMzYtMS44OS0xLjY1LTEuODktMS42NS0xLjAxLS44MS0xLjA2LTIuMzItLjExLTMuMTlDMy42NzkgMjkuNSA1LjE3OSAyOC4xMyA3LjQ5OSAyNi4wM3pNMzEuOTk5IDYuMnYxMC4xMWwtNy42MyA1LjgtNi44NS01LjIxYzQuOTgtNC41MyAxMC4wMS05LjExIDEyLjY1LTExLjUyQzMwLjg2OSA0Ljc0IDMxLjk5OSA1LjI1IDMxLjk5OSA2LjJ6TTMyIDQxLjc5OFYzMS42OUw4LjI0IDEzLjYxYy0uNzctLjU3LTEuNzgtLjUtMi41Ni4wNS0uNS4zNi0xLjg5IDEuNjUtMS44OSAxLjY1LTEuMDEuODEtMS4wNiAyLjMyLS4xMSAzLjE5IDAgMCAyMC4xNDUgMTguMzM4IDI2LjQ4NSAyNC4xMTZDMzAuODcxIDQzLjI2IDMyIDQyLjc1MyAzMiA0MS43OTh6Ii8+PC9zdmc+)](https://insiders.vscode.dev/redirect/mcp/install?name=mongodb&inputs=%5B%7B%22id%22%3A%22connection_string%22%2C%22type%22%3A%22promptString%22%2C%22description%22%3A%22MongoDB%20connection%20string%22%7D%5D&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mongodb-mcp-server%22%2C%22--readOnly%22%5D%2C%22env%22%3A%7B%22MDB_MCP_CONNECTION_STRING%22%3A%22%24%7Binput%3Aconnection_string%7D%22%7D%7D)
 [![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-1e1e1e?logo=data:image/svg%2bxml;base64,PHN2ZyBoZWlnaHQ9IjFlbSIgc3R5bGU9ImZsZXg6bm9uZTtsaW5lLWhlaWdodDoxIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIxZW0iCiAgICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgPHRpdGxlPkN1cnNvcjwvdGl0bGU+CiAgICA8cGF0aCBkPSJNMTEuOTI1IDI0bDEwLjQyNS02LTEwLjQyNS02TDEuNSAxOGwxMC40MjUgNnoiCiAgICAgICAgZmlsbD0idXJsKCNsb2JlLWljb25zLWN1cnNvcnVuZGVmaW5lZC1maWxsLTApIj48L3BhdGg+CiAgICA8cGF0aCBkPSJNMjIuMzUgMThWNkwxMS45MjUgMHYxMmwxMC40MjUgNnoiIGZpbGw9InVybCgjbG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0xKSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTExLjkyNSAwTDEuNSA2djEybDEwLjQyNS02VjB6IiBmaWxsPSJ1cmwoI2xvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMikiPjwvcGF0aD4KICAgIDxwYXRoIGQ9Ik0yMi4zNSA2TDExLjkyNSAyNFYxMkwyMi4zNSA2eiIgZmlsbD0iIzU1NSI+PC9wYXRoPgogICAgPHBhdGggZD0iTTIyLjM1IDZsLTEwLjQyNSA2TDEuNSA2aDIwLjg1eiIgZmlsbD0iI2ZmZiI+PC9wYXRoPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0ibG9iZS1pY29ucy1jdXJzb3J1bmRlZmluZWQtZmlsbC0wIgogICAgICAgICAgICB4MT0iMTEuOTI1IiB4Mj0iMTEuOTI1IiB5MT0iMTIiIHkyPSIyNCI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE2IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4zOSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9Ii42NTgiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjgiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMSIKICAgICAgICAgICAgeDE9IjIyLjM1IiB4Mj0iMTEuOTI1IiB5MT0iNi4wMzciIHkyPSIxMi4xNSI+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0iLjE4MiIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIuMzEiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNzE1IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9IjAiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgaWQ9ImxvYmUtaWNvbnMtY3Vyc29ydW5kZWZpbmVkLWZpbGwtMiIKICAgICAgICAgICAgeDE9IjExLjkyNSIgeDI9IjEuNSIgeTE9IjAiIHkyPSIxOCI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjYiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIuNjY3IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4yMiI+PC9zdG9wPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8L2RlZnM+Cjwvc3ZnPgo=)](https://cursor.com/install-mcp?name=MongoDB&config=eyJjb21tYW5kIjoibnB4IC15IG1vbmdvZGItbWNwLXNlcnZlciAtLXJlYWRPbmx5In0%3D)
-[![View on Smithery](https://smithery.ai/badge/@mongodb-js/mongodb-mcp-server)](https://smithery.ai/server/@mongodb-js/mongodb-mcp-server)
 
 # MongoDB MCP Server
 
@@ -47,7 +46,9 @@ node -v
 
 ### Quick Start
 
-**Note:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
+> **🔒 Security Recommendation 1:** When using Atlas API credentials, be sure to assign only the minimum required permissions to your service account. See [Atlas API Permissions](#atlas-api-permissions) for details.
+
+> **🔒 Security Recommendation 2:** For enhanced security, we strongly recommend using environment variables to pass sensitive configuration such as connection strings and API credentials instead of command line arguments. Command line arguments can be visible in process lists and logged in various system locations, potentially exposing your secrets. Environment variables provide a more secure way to handle sensitive information.
 
 Most MCP clients require a configuration file to be created or modified to add the MCP server.
 
@@ -60,22 +61,19 @@ Note: The configuration file syntax can be different across clients. Please refe
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
-#### Option 1: Connection String args
+#### Option 1: Connection String
 
-You can pass your connection string via args, make sure to use a valid username and password.
+You can pass your connection string via environment variables, make sure to use a valid username and password.
 
 ```json
 {
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mongodb-mcp-server",
-        "--connectionString",
-        "mongodb://localhost:27017/myDatabase",
-        "--readOnly"
-      ]
+      "args": ["-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
+      }
     }
   }
 }
@@ -83,7 +81,7 @@ You can pass your connection string via args, make sure to use a valid username 
 
 NOTE: The connection string can be configured to connect to any MongoDB cluster, whether it's a local instance or an Atlas cluster.
 
-#### Option 2: Atlas API credentials args
+#### Option 2: Atlas API Credentials
 
 Use your Atlas API Service Accounts credentials. Must follow all the steps in [Atlas API Access](#atlas-api-access) section.
 
@@ -92,43 +90,37 @@ Use your Atlas API Service Accounts credentials. Must follow all the steps in [A
   "mcpServers": {
     "MongoDB": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mongodb-mcp-server",
-        "--apiClientId",
-        "your-atlas-service-accounts-client-id",
-        "--apiClientSecret",
-        "your-atlas-service-accounts-client-secret",
-        "--readOnly"
-      ]
+      "args": ["-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "env": {
+        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-accounts-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-accounts-client-secret"
+      }
     }
   }
 }
 ```
 
-#### Option 3: Standalone Service using command arguments
+#### Option 3: Standalone Service using environment variables and command line arguments
 
-Start Server using npx command:
+You can source environment variables defined in a config file or explicitly set them like we do in the example below and run the server via npx.
 
 ```shell
- npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --readOnly
+# Set your credentials as environment variables first
+export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+
+# Then start the server
+npx -y mongodb-mcp-server@latest --readOnly
 ```
 
-- For a complete list of arguments see [Configuration Options](#configuration-options)
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
+- For a complete list of configuration options see [Configuration Options](#configuration-options)
 - To configure your Atlas Service Accounts credentials please refer to [Atlas API Access](#atlas-api-access)
-
-#### Option 4: Standalone Service using environment variables
-
-```shell
- npx -y mongodb-mcp-server@latest --readOnly
-```
-
-You can use environment variables in the config file or set them and run the server via npx.
-
 - Connection String via environment variables in the MCP file [example](#connection-string-with-environment-variables)
 - Atlas API credentials via environment variables in the MCP file [example](#atlas-api-credentials-with-environment-variables)
 
-#### Option 5: Using Docker
+#### Option 4: Using Docker
 
 You can run the MongoDB MCP Server in a Docker container, which provides isolation and doesn't require a local Node.js installation.
 
@@ -146,21 +138,34 @@ docker run --rm -i \
 ##### Option B: With MongoDB connection string
 
 ```shell
+# Set your credentials as environment variables first
+export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+# Then start the docker container
 docker run --rm -i \
-  -e MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" \
+  -e MDB_MCP_CONNECTION_STRING \
   -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
+
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 ##### Option C: With Atlas API credentials
 
 ```shell
+# Set your credentials as environment variables first
+export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+
+# Then start the docker container
 docker run --rm -i \
-  -e MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id" \
-  -e MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret" \
+  -e MDB_MCP_API_CLIENT_ID \
+  -e MDB_MCP_API_CLIENT_SECRET \
   -e MDB_MCP_READ_ONLY="true" \
   mongodb/mongodb-mcp-server:latest
 ```
+
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 ##### Docker in MCP Configuration File
 
@@ -196,11 +201,14 @@ With connection string:
         "--rm",
         "-i",
         "-e",
-        "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
+        "MDB_MCP_CONNECTION_STRING",
         "-e",
         "MDB_MCP_READ_ONLY=true",
         "mongodb/mongodb-mcp-server:latest"
-      ]
+      ],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+      }
     }
   }
 }
@@ -220,17 +228,21 @@ With Atlas API credentials:
         "-e",
         "MDB_MCP_READ_ONLY=true",
         "-e",
-        "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id",
+        "MDB_MCP_API_CLIENT_ID",
         "-e",
-        "MDB_MCP_API_CLIENT_SECRET=your-atlas-service-accounts-client-secret",
+        "MDB_MCP_API_CLIENT_SECRET",
         "mongodb/mongodb-mcp-server:latest"
-      ]
+      ],
+      "env": {
+        "MDB_MCP_API_CLIENT_ID": "your-atlas-service-accounts-client-id",
+        "MDB_MCP_API_CLIENT_SECRET": "your-atlas-service-accounts-client-secret"
+      }
     }
   }
 }
 ```
 
-#### Option 6: Running as an HTTP Server
+#### Option 5: Running as an HTTP Server
 
 > **⚠️ Security Notice:** This server now supports Streamable HTTP transport for remote connections. **HTTP transport is NOT recommended for production use without implementing proper authentication and security measures.**
 
@@ -291,8 +303,8 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 #### MongoDB Database Tools
 
 - `connect` - Connect to a MongoDB instance
-- `find` - Run a find query against a MongoDB collection
-- `aggregate` - Run an aggregation against a MongoDB collection
+- `find` - Run a find query against a MongoDB collection. The number of documents returned is limited by the `limit` parameter and the server's `maxDocumentsPerQuery` configuration, whichever is smaller. The total size of the returned documents is also limited by the `responseBytesLimit` parameter and the server's `maxBytesPerQuery` configuration, whichever is smaller.
+- `aggregate` - Run an aggregation against a MongoDB collection. The number of documents returned is limited by the server's `maxDocumentsPerQuery` configuration. The total size of the returned documents is also limited by the `responseBytesLimit` parameter and the server's `maxBytesPerQuery` configuration, whichever is smaller.
 - `count` - Get the number of documents in a MongoDB collection
 - `insert-one` - Insert a single document into a MongoDB collection
 - `insert-many` - Insert multiple documents into a MongoDB collection
@@ -320,6 +332,8 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 
 ## Configuration
 
+> **🔒 Security Best Practice:** We strongly recommend using environment variables for sensitive configuration such as API credentials (`MDB_MCP_API_CLIENT_ID`, `MDB_MCP_API_CLIENT_SECRET`) and connection strings (`MDB_MCP_CONNECTION_STRING`) instead of command-line arguments. Environment variables are not visible in process lists and provide better security for your sensitive data.
+
 The MongoDB MCP Server can be configured using multiple methods, with the following precedence (highest to lowest):
 
 1. Command-line arguments
@@ -327,25 +341,30 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 
 ### Configuration Options
 
-| CLI Option                | Environment Variable                 | Default    | Description                                                                                                                                                   |
-| ------------------------- | ------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apiClientId`             | `MDB_MCP_API_CLIENT_ID`              | <not set>  | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                     |
-| `apiClientSecret`         | `MDB_MCP_API_CLIENT_SECRET`          | <not set>  | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                 |
-| `connectionString`        | `MDB_MCP_CONNECTION_STRING`          | <not set>  | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data. |
-| `loggers`                 | `MDB_MCP_LOGGERS`                    | disk,mcp   | Comma separated values, possible values are `mcp`, `disk` and `stderr`. See [Logger Options](#logger-options) for details.                                    |
-| `logPath`                 | `MDB_MCP_LOG_PATH`                   | see note\* | Folder to store logs.                                                                                                                                         |
-| `disabledTools`           | `MDB_MCP_DISABLED_TOOLS`             | <not set>  | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                    |
-| `readOnly`                | `MDB_MCP_READ_ONLY`                  | false      | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                         |
-| `indexCheck`              | `MDB_MCP_INDEX_CHECK`                | false      | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                         |
-| `telemetry`               | `MDB_MCP_TELEMETRY`                  | enabled    | When set to disabled, disables telemetry collection.                                                                                                          |
-| `transport`               | `MDB_MCP_TRANSPORT`                  | stdio      | Either 'stdio' or 'http'.                                                                                                                                     |
-| `httpPort`                | `MDB_MCP_HTTP_PORT`                  | 3000       | Port number.                                                                                                                                                  |
-| `httpHost`                | `MDB_MCP_HTTP_HOST`                  | 127.0.0.1  | Host to bind the http server.                                                                                                                                 |
-| `idleTimeoutMs`           | `MDB_MCP_IDLE_TIMEOUT_MS`            | 600000     | Idle timeout for a client to disconnect (only applies to http transport).                                                                                     |
-| `notificationTimeoutMs`   | `MDB_MCP_NOTIFICATION_TIMEOUT_MS`    | 540000     | Notification timeout for a client to be aware of diconnect (only applies to http transport).                                                                  |
-| `exportsPath`             | `MDB_MCP_EXPORTS_PATH`               | see note\* | Folder to store exported data files.                                                                                                                          |
-| `exportTimeoutMs`         | `MDB_MCP_EXPORT_TIMEOUT_MS`          | 300000     | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                    |
-| `exportCleanupIntervalMs` | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS` | 120000     | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                          |
+| CLI Option                             | Environment Variable                                | Default                                                                     | Description                                                                                                                                                                                             |
+| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiClientId`                          | `MDB_MCP_API_CLIENT_ID`                             | <not set>                                                                   | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                                                               |
+| `apiClientSecret`                      | `MDB_MCP_API_CLIENT_SECRET`                         | <not set>                                                                   | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                                                           |
+| `connectionString`                     | `MDB_MCP_CONNECTION_STRING`                         | <not set>                                                                   | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the `connect` tool before interacting with MongoDB data.                                           |
+| `loggers`                              | `MDB_MCP_LOGGERS`                                   | disk,mcp                                                                    | Comma separated values, possible values are `mcp`, `disk` and `stderr`. See [Logger Options](#logger-options) for details.                                                                              |
+| `logPath`                              | `MDB_MCP_LOG_PATH`                                  | see note\*                                                                  | Folder to store logs.                                                                                                                                                                                   |
+| `disabledTools`                        | `MDB_MCP_DISABLED_TOOLS`                            | <not set>                                                                   | An array of tool names, operation types, and/or categories of tools that will be disabled.                                                                                                              |
+| `confirmationRequiredTools`            | `MDB_MCP_CONFIRMATION_REQUIRED_TOOLS`               | create-access-list,create-db-user,drop-database,drop-collection,delete-many | An array of tool names that require user confirmation before execution. **Requires the client to support [elicitation](https://modelcontextprotocol.io/specification/draft/client/elicitation)**.       |
+| `readOnly`                             | `MDB_MCP_READ_ONLY`                                 | false                                                                       | When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.                                                                                   |
+| `indexCheck`                           | `MDB_MCP_INDEX_CHECK`                               | false                                                                       | When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.                                                                                   |
+| `telemetry`                            | `MDB_MCP_TELEMETRY`                                 | enabled                                                                     | When set to disabled, disables telemetry collection.                                                                                                                                                    |
+| `transport`                            | `MDB_MCP_TRANSPORT`                                 | stdio                                                                       | Either 'stdio' or 'http'.                                                                                                                                                                               |
+| `httpPort`                             | `MDB_MCP_HTTP_PORT`                                 | 3000                                                                        | Port number.                                                                                                                                                                                            |
+| `httpHost`                             | `MDB_MCP_HTTP_HOST`                                 | 127.0.0.1                                                                   | Host to bind the http server.                                                                                                                                                                           |
+| `idleTimeoutMs`                        | `MDB_MCP_IDLE_TIMEOUT_MS`                           | 600000                                                                      | Idle timeout for a client to disconnect (only applies to http transport).                                                                                                                               |
+| `maxBytesPerQuery`                     | `MDB_MCP_MAX_BYTES_PER_QUERY`                       | 16777216 (16MiB)                                                            | The maximum size in bytes for results from a `find` or `aggregate` tool call. This serves as an upper bound for the `responseBytesLimit` parameter in those tools.                                      |
+| `maxDocumentsPerQuery`                 | `MDB_MCP_MAX_DOCUMENTS_PER_QUERY`                   | 100                                                                         | The maximum number of documents that can be returned by a `find` or `aggregate` tool call. For the `find` tool, the effective limit will be the smaller of this value and the tool's `limit` parameter. |
+| `notificationTimeoutMs`                | `MDB_MCP_NOTIFICATION_TIMEOUT_MS`                   | 540000                                                                      | Notification timeout for a client to be aware of diconnect (only applies to http transport).                                                                                                            |
+| `exportsPath`                          | `MDB_MCP_EXPORTS_PATH`                              | see note\*                                                                  | Folder to store exported data files.                                                                                                                                                                    |
+| `exportTimeoutMs`                      | `MDB_MCP_EXPORT_TIMEOUT_MS`                         | 300000                                                                      | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                                                              |
+| `exportCleanupIntervalMs`              | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS`                | 120000                                                                      | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                    |
+| `atlasTemporaryDatabaseUserLifetimeMs` | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` | 14400000                                                                    | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                             |
+| `voyageApiKey`                         | `MDB_VOYAGE_API_KEY`                                | <not set>                                                                   | API key for communicating with Voyage AI. Used for generating embeddings for Vector search.                                                                                                             |
 
 #### Logger Options
 
@@ -364,6 +383,8 @@ You can combine multiple loggers, e.g. `--loggers disk stderr` or `export MDB_MC
 ```shell
 export MDB_MCP_LOGGERS="disk,stderr"
 ```
+
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 ##### Example: Set logger via command-line argument
 
@@ -404,6 +425,14 @@ Operation types:
 - `metadata` - Tools that read metadata, such as list databases, list collections, collection schema, etc.
 - `connect` - Tools that allow you to connect or switch the connection to a MongoDB instance. If this is disabled, you will need to provide a connection string through the config when starting the server.
 
+#### Require Confirmation
+
+If your client supports [elicitation](https://modelcontextprotocol.io/specification/draft/client/elicitation), you can set the MongoDB MCP server to request user confirmation before executing certain tools.
+
+When a tool is marked as requiring confirmation, the server will send an elicitation request to the client. The client with elicitation support will then prompt the user for confirmation and send the response back to the server. If the client does not support elicitation, the tool will execute without confirmation.
+
+You can set the `confirmationRequiredTools` configuration option to specify the names of tools which require confirmation. By default, the following tools have this setting enabled: `drop-database`, `drop-collection`, `delete-many`, `atlas-create-db-user`, `atlas-create-access-list`.
+
 #### Read-Only Mode
 
 The `readOnly` configuration option allows you to restrict the MCP server to only use tools with "read", "connect", and "metadata" operation types. When enabled, all tools that have "create", "update" or "delete" operation types will not be registered with the server.
@@ -414,6 +443,8 @@ You can enable read-only mode using:
 
 - **Environment variable**: `export MDB_MCP_READ_ONLY=true`
 - **Command-line argument**: `--readOnly`
+
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 When read-only mode is active, you'll see a message in the server logs indicating which tools were prevented from registering due to this restriction.
 
@@ -427,6 +458,8 @@ You can enable index check mode using:
 
 - **Environment variable**: `export MDB_MCP_INDEX_CHECK=true`
 - **Command-line argument**: `--indexCheck`
+
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 When index check mode is active, you'll see an error message if a query is rejected due to not using an index.
 
@@ -450,6 +483,8 @@ You can disable telemetry using:
 - **Environment variable**: `export MDB_MCP_TELEMETRY=disabled`
 - **Command-line argument**: `--telemetry disabled`
 - **DO_NOT_TRACK environment variable**: `export DO_NOT_TRACK=1`
+
+> **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 ### Atlas API Access
 
@@ -504,7 +539,9 @@ For a full list of roles and their privileges, see the [Atlas User Roles documen
 
 Set environment variables with the prefix `MDB_MCP_` followed by the option name in uppercase with underscores:
 
-```shell
+**Linux/macOS (bash/zsh):**
+
+```bash
 # Set Atlas API credentials (via Service Accounts)
 export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
 export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
@@ -512,8 +549,33 @@ export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
 # Set a custom MongoDB connection string
 export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
 
+# Set log path
 export MDB_MCP_LOG_PATH="/path/to/logs"
+```
 
+**Windows Command Prompt (cmd):**
+
+```cmd
+set "MDB_MCP_API_CLIENT_ID=your-atlas-service-accounts-client-id"
+set "MDB_MCP_API_CLIENT_SECRET=your-atlas-service-accounts-client-secret"
+
+set "MDB_MCP_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+set "MDB_MCP_LOG_PATH=C:\path\to\logs"
+```
+
+**Windows PowerShell:**
+
+```powershell
+# Set Atlas API credentials (via Service Accounts)
+$env:MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+$env:MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+
+# Set a custom MongoDB connection string
+$env:MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+# Set log path
+$env:MDB_MCP_LOG_PATH="C:\path\to\logs"
 ```
 
 #### MCP configuration file examples
@@ -555,13 +617,25 @@ export MDB_MCP_LOG_PATH="/path/to/logs"
 
 Pass configuration options as command-line arguments when starting the server:
 
+> **🔒 Security Note:** For sensitive configuration like API credentials and connection strings, use environment variables instead of command-line arguments.
+
 ```shell
-npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-client-id" --apiClientSecret="your-atlas-service-accounts-client-secret" --connectionString="mongodb+srv://username:password@cluster.mongodb.net/myDatabase" --logPath=/path/to/logs --readOnly --indexCheck
+# Set sensitive data as environment variable
+export MDB_MCP_API_CLIENT_ID="your-atlas-service-accounts-client-id"
+export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
+export MDB_MCP_CONNECTION_STRING="mongodb+srv://username:password@cluster.mongodb.net/myDatabase"
+
+# Start the server with command line arguments
+npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
 ```
+
+> **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 #### MCP configuration file examples
 
 ##### Connection String with command-line arguments
+
+> **🔒 Security Note:** We do not recommend passing connection string as command line argument. Connection string might contain credentials which can be visible in process lists and logged in various system locations, potentially exposing your credentials. Instead configure [connection string through environment variables](#connection-string-with-environment-variables)
 
 ```json
 {
@@ -581,6 +655,8 @@ npx -y mongodb-mcp-server@latest --apiClientId="your-atlas-service-accounts-clie
 ```
 
 ##### Atlas API credentials with command-line arguments
+
+> **🔒 Security Note:** We do not recommend passing Atlas API credentials as command line argument. The provided credentials can be visible in process lists and logged in various system locations, potentially exposing your credentials. Instead configure [Atlas API credentials through environment variables](#atlas-api-credentials-with-environment-variables)
 
 ```json
 {

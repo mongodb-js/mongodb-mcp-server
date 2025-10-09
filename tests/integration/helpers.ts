@@ -8,7 +8,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import type { UserConfig, DriverOptions } from "../../src/common/config.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { config, driverOptions } from "../../src/common/config.js";
+import {
+    config,
+    setupDriverConfig,
+    defaultDriverOptions as defaultDriverOptionsFromConfig,
+} from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
@@ -16,6 +20,15 @@ import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
 import type { Client as AtlasLocalClient } from "@mongodb-js-preview/atlas-local";
+import { Elicitation } from "../../src/elicitation.js";
+import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
+
+export const driverOptions = setupDriverConfig({
+    config,
+    defaults: defaultDriverOptionsFromConfig,
+});
+
+export const defaultDriverOptions: DriverOptions = { ...driverOptions };
 
 interface ParameterInfo {
     name: string;
@@ -36,13 +49,18 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-export const defaultDriverOptions: DriverOptions = {
-    ...driverOptions,
-};
+export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
-    getDriverOptions: () => DriverOptions
+    getDriverOptions: () => DriverOptions,
+    {
+        elicitInput,
+        getClientCapabilities,
+    }: {
+        elicitInput?: ReturnType<typeof createMockElicitInput>;
+        getClientCapabilities?: () => MockClientCapabilities;
+    } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
     let mcpServer: Server | undefined;
@@ -51,6 +69,7 @@ export function setupIntegrationTest(
     beforeAll(async () => {
         const userConfig = getUserConfig();
         const driverOptions = getDriverOptions();
+        const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
         const serverTransport = new InMemoryTransport();
@@ -68,7 +87,7 @@ export function setupIntegrationTest(
                 version: "1.2.3",
             },
             {
-                capabilities: {},
+                capabilities: clientCapabilities,
             }
         );
 
@@ -97,14 +116,24 @@ export function setupIntegrationTest(
 
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 
+        const mcpServerInstance = new McpServer({
+            name: "test-server",
+            version: "5.2.3",
+        });
+
+        // Mock elicitation if provided
+        if (elicitInput) {
+            Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
+        }
+
+        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+
         mcpServer = new Server({
             session,
             userConfig,
             telemetry,
-            mcpServer: new McpServer({
-                name: "test-server",
-                version: "5.2.3",
-            }),
+            mcpServer: mcpServerInstance,
+            elicitation,
             connectionErrorHandler,
         });
 
@@ -116,6 +145,8 @@ export function setupIntegrationTest(
         if (mcpServer) {
             await mcpServer.session.disconnect();
         }
+
+        vi.clearAllMocks();
     });
 
     afterAll(async () => {
@@ -384,4 +415,8 @@ export function getDataFromUntrustedContent(content: string): string {
         throw new Error("Could not find untrusted user data in content");
     }
     return match.groups.data.trim();
+}
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }

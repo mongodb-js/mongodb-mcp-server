@@ -7,16 +7,26 @@ import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
 import type { DeviceId } from "../helpers/deviceId.js";
+import { EventEmitter } from "events";
+import { redact } from "mongodb-redact";
 
 type EventResult = {
     success: boolean;
     error?: Error;
 };
 
+export interface TelemetryEvents {
+    "events-emitted": [];
+    "events-send-failed": [];
+    "events-skipped": [];
+}
+
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
+    public readonly events: EventEmitter<TelemetryEvents> = new EventEmitter();
+
     private eventCache: EventCache;
     private deviceId: DeviceId;
 
@@ -57,6 +67,12 @@ export class Telemetry {
 
     private async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
+            this.session.logger.info({
+                id: LogId.telemetryEmitFailure,
+                context: "telemetry",
+                message: "Telemetry is disabled.",
+                noRedaction: true,
+            });
             return;
         }
 
@@ -64,41 +80,53 @@ export class Telemetry {
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
         this.commonProperties.device_id = deviceIdValue;
-        this.commonProperties.is_container_env = containerEnv;
+        this.commonProperties.is_container_env = containerEnv ? "true" : "false";
 
         this.isBufferingEvents = false;
     }
 
     public async close(): Promise<void> {
         this.isBufferingEvents = false;
-        await this.emitEvents(this.eventCache.getEvents());
+
+        this.session.logger.debug({
+            id: LogId.telemetryClose,
+            message: `Closing telemetry and flushing ${this.eventCache.size} events`,
+            context: "telemetry",
+        });
+
+        // Wait up to 5 seconds for events to be sent before closing, but don't throw if it times out
+        const flushMaxWaitTime = 5000;
+        let flushTimeout: NodeJS.Timeout | undefined;
+        await Promise.race([
+            new Promise<void>((resolve) => {
+                flushTimeout = setTimeout(() => {
+                    this.session.logger.debug({
+                        id: LogId.telemetryClose,
+                        message: `Failed to flush remaining events within ${flushMaxWaitTime}ms timeout`,
+                        context: "telemetry",
+                    });
+                    resolve();
+                }, flushMaxWaitTime);
+                flushTimeout.unref();
+            }),
+            this.emit([]),
+        ]);
+
+        clearTimeout(flushTimeout);
     }
 
     /**
      * Emits events through the telemetry pipeline
      * @param events - The events to emit
      */
-    public async emitEvents(events: BaseEvent[]): Promise<void> {
-        try {
-            if (!this.isTelemetryEnabled()) {
-                this.session.logger.info({
-                    id: LogId.telemetryEmitFailure,
-                    context: "telemetry",
-                    message: "Telemetry is disabled.",
-                    noRedaction: true,
-                });
-                return;
-            }
-
-            await this.emit(events);
-        } catch {
-            this.session.logger.debug({
-                id: LogId.telemetryEmitFailure,
-                context: "telemetry",
-                message: "Error emitting telemetry events.",
-                noRedaction: true,
-            });
+    public emitEvents(events: BaseEvent[]): void {
+        if (!this.isTelemetryEnabled()) {
+            this.events.emit("events-skipped");
+            return;
         }
+        // Don't wait for events to be sent - we should not block regular server
+        // operations on telemetry
+        void this.emit(events);
     }
 
     /**
@@ -144,43 +172,59 @@ export class Telemetry {
             return;
         }
 
-        const cachedEvents = this.eventCache.getEvents();
-        const allEvents = [...cachedEvents, ...events];
+        try {
+            const cachedEvents = this.eventCache.getEvents();
+            const allEvents = [...cachedEvents.map((e) => e.event), ...events];
 
-        this.session.logger.debug({
-            id: LogId.telemetryEmitStart,
-            context: "telemetry",
-            message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
-        });
-
-        const result = await this.sendEvents(this.session.apiClient, allEvents);
-        if (result.success) {
-            this.eventCache.clearEvents();
             this.session.logger.debug({
-                id: LogId.telemetryEmitSuccess,
+                id: LogId.telemetryEmitStart,
                 context: "telemetry",
-                message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents, null, 2)}`,
+                message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
             });
-            return;
-        }
 
-        this.session.logger.debug({
-            id: LogId.telemetryEmitFailure,
-            context: "telemetry",
-            message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
-        });
-        this.eventCache.appendEvents(events);
+            const result = await this.sendEvents(this.session.apiClient, allEvents);
+            if (result.success) {
+                this.eventCache.removeEvents(cachedEvents.map((e) => e.id));
+                this.session.logger.debug({
+                    id: LogId.telemetryEmitSuccess,
+                    context: "telemetry",
+                    message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
+                });
+                this.events.emit("events-emitted");
+                return;
+            }
+
+            this.session.logger.debug({
+                id: LogId.telemetryEmitFailure,
+                context: "telemetry",
+                message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
+            });
+            this.eventCache.appendEvents(events);
+            this.events.emit("events-send-failed");
+        } catch (error) {
+            this.session.logger.debug({
+                id: LogId.telemetryEmitFailure,
+                context: "telemetry",
+                message: `Error emitting telemetry events: ${error instanceof Error ? error.message : String(error)}`,
+                noRedaction: true,
+            });
+            this.events.emit("events-send-failed");
+        }
     }
 
     /**
-     * Attempts to send events through the provided API client
+     * Attempts to send events through the provided API client.
+     * Events are redacted before being sent to ensure no sensitive data is transmitted
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
         try {
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
-                    properties: { ...this.getCommonProperties(), ...event.properties },
+                    properties: {
+                        ...redact(this.getCommonProperties(), this.session.keychain.allSecrets),
+                        ...redact(event.properties, this.session.keychain.allSecrets),
+                    },
                 }))
             );
             return { success: true };

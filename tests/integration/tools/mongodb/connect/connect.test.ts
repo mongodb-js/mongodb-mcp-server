@@ -67,12 +67,12 @@ describeWithMongoDB(
             expect(content).toContain("Successfully connected");
         });
 
-        describe("when the arugment connection string is invalid", () => {
+        describe("when the argument connection string is invalid", () => {
             it("returns error message", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "switch-connection",
                     arguments: {
-                        connectionString: "mongodb://localhost:12345",
+                        connectionString: "mangobd://localhost:12345",
                     },
                 });
 
@@ -91,14 +91,19 @@ describeWithMongoDB(
 describeWithMongoDB(
     "Connect tool",
     (integration) => {
-        validateToolMetadata(integration, "connect", "Connect to a MongoDB instance", [
-            {
-                name: "connectionString",
-                description: "MongoDB connection string (in the mongodb:// or mongodb+srv:// format)",
-                type: "string",
-                required: true,
-            },
-        ]);
+        validateToolMetadata(
+            integration,
+            "connect",
+            "Connect to a MongoDB instance. The config resource captures if the server is already connected to a MongoDB cluster. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new MongoDB cluster.",
+            [
+                {
+                    name: "connectionString",
+                    description: "MongoDB connection string (in the mongodb:// or mongodb+srv:// format)",
+                    type: "string",
+                    required: true,
+                },
+            ]
+        );
 
         validateThrowsForInvalidArguments(integration, "connect", [{}, { connectionString: 123 }]);
 
@@ -125,7 +130,7 @@ describeWithMongoDB(
             it("returns error message", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "connect",
-                    arguments: { connectionString: "mongodb://localhost:12345" },
+                    arguments: { connectionString: "mangodb://localhost:12345" },
                 });
                 const content = getResponseContent(response.content);
                 expect(content).toContain("The configured connection string is not valid.");

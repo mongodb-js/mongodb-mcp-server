@@ -30,7 +30,7 @@ export default defineConfig({
                 test: {
                     name: "unit-and-integration",
                     include: ["**/*.test.ts"],
-                    exclude: [...vitestDefaultExcludes, "tests/accuracy/**"],
+                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**"],
                 },
             },
             {
@@ -45,6 +45,13 @@ export default defineConfig({
                 test: {
                     name: "eslint-rules",
                     include: ["eslint-rules/*.test.js"],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "atlas-cleanup",
+                    include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
                 },
             },
         ],

@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
 export class LogsTool extends MongoDBToolBase {
@@ -33,23 +33,16 @@ export class LogsTool extends MongoDBToolBase {
             getLog: type,
         });
 
-        const logs = (result.log as string[]).slice(0, limit);
+        // Trim ending newlines so that when we join the logs we don't insert empty lines
+        // between messages.
+        const logs = (result.log as string[]).slice(0, limit).map((l) => l.trimEnd());
 
+        let message = `Found: ${result.totalLinesWritten} messages`;
+        if (result.totalLinesWritten > limit) {
+            message += ` (showing only the first ${limit})`;
+        }
         return {
-            content: [
-                {
-                    text: `Found: ${result.totalLinesWritten} messages`,
-                    type: "text",
-                },
-
-                ...logs.map(
-                    (log) =>
-                        ({
-                            text: log,
-                            type: "text",
-                        }) as const
-                ),
-            ],
+            content: formatUntrustedData(message, logs.join("\n")),
         };
     }
 }

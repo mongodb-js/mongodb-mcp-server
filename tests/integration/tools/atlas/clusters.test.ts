@@ -1,60 +1,15 @@
 import type { Session } from "../../../../src/common/session.js";
-import { expectDefined, getResponseElements } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
-import type { ClusterDescription20240805 } from "../../../../src/common/atlas/openapi.js";
+import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
+import {
+    describeWithAtlas,
+    withProject,
+    randomId,
+    parseTable,
+    deleteCluster,
+    waitCluster,
+    sleep,
+} from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function deleteAndWaitCluster(session: Session, projectId: string, clusterName: string): Promise<void> {
-    await session.apiClient.deleteCluster({
-        params: {
-            path: {
-                groupId: projectId,
-                clusterName,
-            },
-        },
-    });
-    while (true) {
-        try {
-            await session.apiClient.getCluster({
-                params: {
-                    path: {
-                        groupId: projectId,
-                        clusterName,
-                    },
-                },
-            });
-            await sleep(1000);
-        } catch {
-            break;
-        }
-    }
-}
-
-async function waitCluster(
-    session: Session,
-    projectId: string,
-    clusterName: string,
-    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>
-): Promise<void> {
-    while (true) {
-        const cluster = await session.apiClient.getCluster({
-            params: {
-                path: {
-                    groupId: projectId,
-                    clusterName,
-                },
-            },
-        });
-        if (await check(cluster)) {
-            return;
-        }
-        await sleep(1000);
-    }
-}
 
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
@@ -64,7 +19,7 @@ describeWithAtlas("clusters", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session: Session = integration.mcpServer().session;
-                await deleteAndWaitCluster(session, projectId, clusterName);
+                await deleteCluster(session, projectId, clusterName);
             }
         });
 
@@ -152,9 +107,12 @@ describeWithAtlas("clusters", (integration) => {
 
                 const elements = getResponseElements(response);
                 expect(elements).toHaveLength(2);
-                expect(elements[0]?.text).toMatch(/Found \d+ clusters in project/);
+
                 expect(elements[1]?.text).toContain("<untrusted-user-data-");
                 expect(elements[1]?.text).toContain(`${clusterName} | `);
+                const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
+                expect(data.length).toBeGreaterThanOrEqual(1);
+                expect(elements[0]?.text).toMatch(`Found ${data.length} clusters in project`);
             });
         });
 
