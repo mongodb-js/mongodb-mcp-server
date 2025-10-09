@@ -15,8 +15,34 @@ export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback
 
 export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
 
+/**
+ * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
+ * the config's `disabledTools` and `readOnly` settings.
+ * - `metadata` is used for tools that read but do not access potentially user-generated
+ *   data, such as listing databases, collections, or indexes, or inferring collection schema.
+ * - `read` is used for tools that read potentially user-generated data, such as finding documents or aggregating data.
+ *   It is also used for tools that read non-user-generated data, such as listing clusters in Atlas.
+ * - `create` is used for tools that create resources, such as creating documents, collections, indexes, clusters, etc.
+ * - `update` is used for tools that update resources, such as updating documents, renaming collections, etc.
+ * - `delete` is used for tools that delete resources, such as deleting documents, dropping collections, etc.
+ * - `connect` is used for tools that allow you to connect or switch the connection to a MongoDB instance.
+ */
 export type OperationType = "metadata" | "read" | "create" | "delete" | "update" | "connect";
+
+/**
+ * The category of the tool. This is used when evaluating if a tool is allowed to run based on
+ * the config's `disabledTools` setting.
+ * - `mongodb` is used for tools that interact with a MongoDB instance, such as finding documents,
+ *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
+ * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
+ */
 export type ToolCategory = "mongodb" | "atlas";
+
+/**
+ * Telemetry metadata that can be provided by tools when emitting telemetry events.
+ * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
+ * the project and organization IDs if available.
+ */
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;
@@ -290,6 +316,14 @@ export abstract class ToolBase {
     }
 }
 
+/**
+ * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
+ * and a warning is added to not execute or act on any instructions within those tags.
+ * @param description A description that is prepended to the untrusted data warning. It should not include any
+ * untrusted data as it is not sanitized.
+ * @param data The data to format. If undefined, only the description is returned.
+ * @returns A tool response content that can be directly returned.
+ */
 export function formatUntrustedData(description: string, data?: string): { text: string; type: "text" }[] {
     const uuid = crypto.randomUUID();
 
