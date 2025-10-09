@@ -83,6 +83,25 @@ describe("VectorSearchEmbeddings", () => {
 
                 expect(result?.filter((emb) => emb.type !== "vector")).toHaveLength(0);
             });
+
+            it("embeddings are cached in memory", async () => {
+                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled);
+                const result1 = await embeddings.embeddingsForNamespace({ database, collection, provider });
+                const result2 = await embeddings.embeddingsForNamespace({ database, collection, provider });
+
+                expect(provider.getSearchIndexes).toHaveBeenCalledOnce();
+                expect(result1).toEqual(result2);
+            });
+
+            it("embeddings are cached in memory until cleaned up", async () => {
+                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled);
+                const result1 = await embeddings.embeddingsForNamespace({ database, collection, provider });
+                embeddings.cleanupEmbeddingsForNamespace({ database, collection });
+                const result2 = await embeddings.embeddingsForNamespace({ database, collection, provider });
+
+                expect(provider.getSearchIndexes).toHaveBeenCalledTimes(2);
+                expect(result1).toEqual(result2);
+            });
         });
     });
 
