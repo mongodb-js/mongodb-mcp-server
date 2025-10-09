@@ -45,7 +45,8 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
             return;
         }
 
-        // Lookup the deployment id and add it to the telemetry metadata
+        // Lookup the deployment id and save it to the deploymentId property.
+        // This property will be added to the telemetry metadata when resolveTelemetryMetadata is called.
         const deploymentId = await client.getDeploymentId(containerId);
         this.deploymentId = deploymentId;
     }
