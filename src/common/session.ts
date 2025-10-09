@@ -156,8 +156,8 @@ export class Session extends EventEmitter<SessionEvents> {
 
     async isSearchIndexSupported(): Promise<boolean> {
         try {
-            const dummyDatabase = `db-${Date.now()}`;
-            const dummyCollection = `coll-${Date.now()}`;
+            const dummyDatabase = `search-index-test-db-${Date.now()}`;
+            const dummyCollection = `search-index-test-coll-${Date.now()}`;
             // If a cluster supports search indexes, the call below will succeed
             // with a cursor otherwise will throw an Error
             await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);
