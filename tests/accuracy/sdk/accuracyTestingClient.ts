@@ -79,10 +79,22 @@ export class AccuracyTestingClient {
         this.llmToolCalls = [];
     }
 
-    static async initializeClient(mdbConnectionString: string): Promise<AccuracyTestingClient> {
+    static async initializeClient(
+        mdbConnectionString: string,
+        atlasApiClientId?: string,
+        atlasApiClientSecret?: string
+    ): Promise<AccuracyTestingClient> {
+        const args = [
+            MCP_SERVER_CLI_SCRIPT,
+            "--connectionString",
+            mdbConnectionString,
+            ...(atlasApiClientId ? ["--apiClientId", atlasApiClientId] : []),
+            ...(atlasApiClientSecret ? ["--apiClientSecret", atlasApiClientSecret] : []),
+        ];
+
         const clientTransport = new StdioClientTransport({
             command: process.execPath,
-            args: [MCP_SERVER_CLI_SCRIPT, "--connectionString", mdbConnectionString],
+            args,
         });
 
         const client = await createMCPClient({

@@ -8,6 +8,11 @@ export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
 # export MDB_AZURE_OPEN_AI_API_KEY=""
 # export MDB_AZURE_OPEN_AI_API_URL=""
 
+# For providing Atlas API credentials (required for Atlas tools)
+# Set dummy values for testing (allows Atlas tools to be registered for mocking)
+export MDB_MCP_API_CLIENT_ID=${MDB_MCP_API_CLIENT_ID:-"test-atlas-client-id"}
+export MDB_MCP_API_CLIENT_SECRET=${MDB_MCP_API_CLIENT_SECRET:-"test-atlas-client-secret"}
+
 # For providing a mongodb based storage to store accuracy result
 # export MDB_ACCURACY_MDB_URL=""
 # export MDB_ACCURACY_MDB_DB=""

@@ -66,6 +66,9 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
         const mdbIntegration = setupMongoDBIntegrationTest();
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
+        const atlasApiClientId = process.env.MDB_MCP_API_CLIENT_ID;
+        const atlasApiClientSecret = process.env.MDB_MCP_API_CLIENT_SECRET;
+
         let commitSHA: string;
         let accuracyResultStorage: AccuracyResultStorage;
         let testMCPClient: AccuracyTestingClient;
@@ -79,7 +82,11 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
             commitSHA = retrievedCommitSHA;
 
             accuracyResultStorage = getAccuracyResultStorage();
-            testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString());
+            testMCPClient = await AccuracyTestingClient.initializeClient(
+                mdbIntegration.connectionString(),
+                atlasApiClientId,
+                atlasApiClientSecret
+            );
             agent = getVercelToolCallingAgent();
         });
 

@@ -418,7 +418,7 @@ Operation types:
 - `update` - Tools that update resources, such as update document, rename collection, etc.
 - `delete` - Tools that delete resources, such as delete document, drop collection, etc.
 - `read` - Tools that read resources, such as find, aggregate, list clusters, etc.
-- `metadata` - Tools that read metadata, such as list databases, list collections, collection schema, etc.
+- `metadata` - Tools that read metadata, such as list databases/collections/indexes, infer collection schema, etc.
 - `connect` - Tools that allow you to connect or switch the connection to a MongoDB instance. If this is disabled, you will need to provide a connection string through the config when starting the server.
 
 #### Require Confirmation

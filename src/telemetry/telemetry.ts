@@ -8,6 +8,7 @@ import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { EventEmitter } from "events";
+import { redact } from "mongodb-redact";
 
 type EventResult = {
     success: boolean;
@@ -79,7 +80,7 @@ export class Telemetry {
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
         this.commonProperties.device_id = deviceIdValue;
-        this.commonProperties.is_container_env = containerEnv;
+        this.commonProperties.is_container_env = containerEnv ? "true" : "false";
 
         this.isBufferingEvents = false;
     }
@@ -123,7 +124,6 @@ export class Telemetry {
             this.events.emit("events-skipped");
             return;
         }
-
         // Don't wait for events to be sent - we should not block regular server
         // operations on telemetry
         void this.emit(events);
@@ -213,14 +213,18 @@ export class Telemetry {
     }
 
     /**
-     * Attempts to send events through the provided API client
+     * Attempts to send events through the provided API client.
+     * Events are redacted before being sent to ensure no sensitive data is transmitted
      */
     private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
         try {
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
-                    properties: { ...this.getCommonProperties(), ...event.properties },
+                    properties: {
+                        ...redact(this.getCommonProperties(), this.session.keychain.allSecrets),
+                        ...redact(event.properties, this.session.keychain.allSecrets),
+                    },
                 }))
             );
             return { success: true };

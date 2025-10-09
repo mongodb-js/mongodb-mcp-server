@@ -201,7 +201,7 @@ export class Server {
 
         if (command === "start") {
             event.properties.startup_time_ms = commandDuration;
-            event.properties.read_only_mode = this.userConfig.readOnly || false;
+            event.properties.read_only_mode = this.userConfig.readOnly ? "true" : "false";
             event.properties.disabled_tools = this.userConfig.disabledTools || [];
             event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
         }
