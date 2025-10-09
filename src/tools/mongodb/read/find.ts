@@ -98,7 +98,7 @@ export class FindTool extends MongoDBToolBase {
                         documents: cursorResults.documents,
                         appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter((limit) => !!limit),
                     }),
-                    cursorResults.documents.length > 0 ? EJSON.stringify(cursorResults.documents) : undefined
+                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
                 ),
             };
         } finally {

@@ -16,11 +16,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         return {
             content: formatUntrustedData(
                 `Found ${indexes.length} indexes in the collection "${collection}":`,
-                indexes.length > 0
-                    ? indexes
-                          .map((index) => `Name: "${index.name}", definition: ${JSON.stringify(index.key)}`)
-                          .join("\n")
-                    : undefined
+                ...indexes.map((index) => `Name: "${index.name}", definition: ${JSON.stringify(index.key)}`)
             ),
         };
     }

@@ -46,6 +46,18 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
+    protected async ensureSearchAvailable(): Promise<NodeDriverServiceProvider> {
+        const provider = await this.ensureConnected();
+        if (!(await this.session.vectorSearchEmbeddings.isAtlasSearchAvailable(provider))) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasSearchNotAvailable,
+                "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
+            );
+        }
+
+        return provider;
+    }
+
     public register(server: Server): boolean {
         this.server = server;
         return super.register(server);

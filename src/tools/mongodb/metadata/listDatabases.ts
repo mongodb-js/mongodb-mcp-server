@@ -17,9 +17,7 @@ export class ListDatabasesTool extends MongoDBToolBase {
         return {
             content: formatUntrustedData(
                 `Found ${dbs.length} databases`,
-                dbs.length > 0
-                    ? dbs.map((db) => `Name: ${db.name}, Size: ${db.sizeOnDisk.toString()} bytes`).join("\n")
-                    : undefined
+                ...dbs.map((db) => `Name: ${db.name}, Size: ${db.sizeOnDisk.toString()} bytes`)
             ),
         };
     }
