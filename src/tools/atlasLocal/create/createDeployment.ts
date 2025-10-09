@@ -27,7 +27,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         const deployment = await client.createDeployment(deploymentOptions);
 
         // Lookup the deployment id and add it to the telemetry metadata
-        await this.lookupDeploymentIdAndAddToTelemetryMetadata(client, deployment.containerId);
+        await this.lookupDeploymentId(client, deployment.containerId);
 
         return {
             content: [

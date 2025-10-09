@@ -17,7 +17,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
         { deploymentName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {
         // Lookup the deployment id and add it to the telemetry metadata
-        await this.lookupDeploymentIdAndAddToTelemetryMetadata(client, deploymentName);
+        await this.lookupDeploymentId(client, deploymentName);
 
         // Delete the deployment
         await client.deleteDeployment(deploymentName);
