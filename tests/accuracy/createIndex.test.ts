@@ -11,12 +11,14 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                    definition: {
-                        type: "classic",
-                        keys: {
-                            release_year: 1,
+                    definition: [
+                        {
+                            type: "classic",
+                            keys: {
+                                release_year: 1,
+                            },
                         },
-                    },
+                    ],
                 },
             },
         ],
@@ -30,12 +32,106 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                    definition: {
-                        type: "classic",
-                        keys: {
-                            title: "text",
+                    definition: [
+                        {
+                            type: "classic",
+                            keys: {
+                                title: "text",
+                            },
                         },
-                    },
+                    ],
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Create a vector search index on 'mydb.movies' namespace with on the 'plotSummary' field. The index should use 1024 dimensions.",
+        expectedToolCalls: [
+            {
+                toolName: "create-index",
+                parameters: {
+                    database: "mydb",
+                    collection: "movies",
+                    name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [
+                                {
+                                    type: "vector",
+                                    path: "plotSummary",
+                                    numDimensions: 1024,
+                                },
+                                {
+                                    type: "filter",
+                                    path: "releaseDate",
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Create a vector search index on 'mydb.movies' namespace with on the 'plotSummary' field and 'genre' field. Pick a sensible number of dimensions for a voyage 3.5 model.",
+        expectedToolCalls: [
+            {
+                toolName: "create-index",
+                parameters: {
+                    database: "mydb",
+                    collection: "movies",
+                    name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [
+                                {
+                                    type: "vector",
+                                    path: "plotSummary",
+                                    numDimensions: Matcher.number(
+                                        (value) => value % 2 === 0 && value >= 256 && value <= 8192
+                                    ),
+                                },
+                                {
+                                    type: "vector",
+                                    path: "genre",
+                                    numDimensions: Matcher.number(
+                                        (value) => value % 2 === 0 && value >= 256 && value <= 8192
+                                    ),
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Create a vector search index on 'mydb.movies' namespace where the 'plotSummary' field is indexed as a 1024-dimensional vector and the 'releaseDate' field is indexed as a regular field.",
+        expectedToolCalls: [
+            {
+                toolName: "create-index",
+                parameters: {
+                    database: "mydb",
+                    collection: "movies",
+                    name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [
+                                {
+                                    type: "vector",
+                                    path: "plotSummary",
+                                    numDimensions: 1024,
+                                },
+                                {
+                                    type: "filter",
+                                    path: "releaseDate",
+                                },
+                            ],
+                        },
+                    ],
                 },
             },
         ],
