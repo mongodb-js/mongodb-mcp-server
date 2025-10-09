@@ -44,6 +44,12 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         containerId: string,
 
     ): Promise<void> {
+        // Don't run if telemetry is disabled
+        if (this.config.telemetry === "disabled") {
+            return;
+        }
+
+        // Lookup the deployment id and add it to the telemetry metadata
         const deploymentId = await client.getDeploymentId(containerId);
         this.deploymentId = deploymentId;
     }
