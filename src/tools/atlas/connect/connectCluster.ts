@@ -119,7 +119,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             expiryDate,
         };
 
-        const cn = new URL(cluster.connectionString);
+        const cn = new URL(connectionString);
         cn.username = username;
         cn.password = password;
         cn.searchParams.set("authSource", "admin");

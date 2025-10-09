@@ -71,7 +71,6 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
 
     const instanceSize = regionConfigs[0]?.instanceSize ?? "UNKNOWN";
     const clusterInstanceType = instanceSize === "M0" ? "FREE" : "DEDICATED";
-    const connectionString = cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard;
 
     return {
         name: cluster.name,
@@ -79,7 +78,6 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
-        connectionString,
         connectionStrings: cluster.connectionStrings,
         processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
@@ -89,6 +87,9 @@ export function getConnectionString(
     connectionStrings: ClusterConnectionStrings,
     connectionType: "standard" | "private"
 ): string | undefined {
+    if (connectionStrings === undefined) {
+        return undefined;
+    }
     if (connectionType === "standard") {
         return connectionStrings.standardSrv || connectionStrings.standard;
     }
