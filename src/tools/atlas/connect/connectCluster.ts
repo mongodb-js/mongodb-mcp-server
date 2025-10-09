@@ -8,6 +8,7 @@ import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUti
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
+import { getConnectionString } from "../../../common/atlas/cluster.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -22,6 +23,7 @@ function sleep(ms: number): Promise<void> {
 export const ConnectClusterArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
+    connectionType: AtlasArgs.connectionType().optional(),
 };
 
 export class ConnectClusterTool extends AtlasToolBase {
@@ -69,12 +71,16 @@ export class ConnectClusterTool extends AtlasToolBase {
 
     private async prepareClusterConnection(
         projectId: string,
-        clusterName: string
+        clusterName: string,
+        connectionType: "standard" | "private"
     ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
         const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
-
-        if (!cluster.connectionString) {
-            throw new Error("Connection string not available");
+        if (cluster.connectionStrings === undefined) {
+            throw new Error("Connection strings not available");
+        }
+        const connectionString = getConnectionString(cluster.connectionStrings, connectionType);
+        if (connectionString === undefined) {
+            throw new Error("Connection string not available for connection type: " + connectionType);
         }
 
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
@@ -200,7 +206,11 @@ export class ConnectClusterTool extends AtlasToolBase {
         });
     }
 
-    protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({
+        projectId,
+        clusterName,
+        connectionType,
+    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
         let createdUser = false;
 
@@ -239,7 +249,11 @@ export class ConnectClusterTool extends AtlasToolBase {
                 case "disconnected":
                 default: {
                     await this.session.disconnect();
-                    const { connectionString, atlas } = await this.prepareClusterConnection(projectId, clusterName);
+                    const { connectionString, atlas } = await this.prepareClusterConnection(
+                        projectId,
+                        clusterName,
+                        connectionType
+                    );
 
                     createdUser = true;
                     // try to connect for about 5 minutes asynchronously
