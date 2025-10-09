@@ -30,7 +30,13 @@ export class VectorSearchEmbeddings {
         database: string;
         collection: string;
         provider: NodeDriverServiceProvider;
-    }): Promise<VectorFieldIndexDefinition[] | undefined> {
+    }): Promise<VectorFieldIndexDefinition[]> {
+        // We only need the embeddings for validation now, so don't query them if
+        // validation is disabled.
+        if (this.config.disableEmbeddingsValidation) {
+            return [];
+        }
+
         const embeddingDefKey: EmbeddingNamespace = `${database}.${collection}`;
         const definition = this.embeddings.get(embeddingDefKey);
 
@@ -61,6 +67,13 @@ export class VectorSearchEmbeddings {
         },
         document: Document
     ): Promise<VectorFieldIndexDefinition[]> {
+        // While we can do our best effort to ensure that the embedding validation is correct
+        // based on https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-quantization/
+        // it's a complex process so we will also give the user the ability to disable this validation
+        if (this.config.disableEmbeddingsValidation) {
+            return [];
+        }
+
         const embeddings = await this.embeddingsForNamespace({ database, collection, provider });
 
         if (!embeddings) {
@@ -75,13 +88,6 @@ export class VectorSearchEmbeddings {
     }
 
     private documentPassesEmbeddingValidation(definition: VectorFieldIndexDefinition, document: Document): boolean {
-        // While we can do our best effort to ensure that the embedding validation is correct
-        // based on https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-quantization/
-        // it's a complex process so we will also give the user the ability to disable this validation
-        if (this.config.disableEmbeddingsValidation) {
-            return true;
-        }
-
         const fieldPath = definition.path.split(".");
         let fieldRef: unknown = document;
 
