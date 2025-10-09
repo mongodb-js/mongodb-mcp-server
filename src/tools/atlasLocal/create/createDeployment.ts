@@ -2,14 +2,14 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client, CreateDeploymentOptions, CreationSourceType } from "@mongodb-js-preview/atlas-local";
-import z from "zod";
+import { CommonArgs } from "../../args.js";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-create-deployment";
     protected description = "Create a MongoDB Atlas local deployment";
     public operationType: OperationType = "create";
     protected argsShape = {
-        deploymentName: z.string().describe("Name of the deployment to create").optional(),
+        deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
     };
 
     protected async executeWithAtlasLocalClient(
