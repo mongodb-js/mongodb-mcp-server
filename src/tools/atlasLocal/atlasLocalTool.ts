@@ -6,6 +6,7 @@ import type { Client } from "@mongodb-js-preview/atlas-local";
 
 export abstract class AtlasLocalToolBase extends ToolBase {
     public category: ToolCategory = "atlas-local";
+    protected deploymentId?: string;
 
     protected verifyAllowed(): boolean {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
@@ -38,6 +39,18 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return this.executeWithAtlasLocalClient(client, ...args);
     }
 
+    protected async lookupDeploymentId(client: Client, containerId: string): Promise<void> {
+        // Don't run if telemetry is disabled
+        if (this.telemetry.isTelemetryEnabled()) {
+            return;
+        }
+
+        // Lookup the deployment id and save it to the deploymentId property.
+        // This property will be added to the telemetry metadata when resolveTelemetryMetadata is called.
+        const deploymentId = await client.getDeploymentId(containerId);
+        this.deploymentId = deploymentId;
+    }
+
     protected abstract executeWithAtlasLocalClient(
         client: Client,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
@@ -67,11 +80,9 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return super.handleError(error, args);
     }
 
-    protected resolveTelemetryMetadata(
-        ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): TelemetryToolMetadata {
-        // TODO: include deployment id in the metadata where possible
-        void args; // this shuts up the eslint rule until we implement the TODO above
-        return {};
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {
+            atlasLocaldeploymentId: this.deploymentId,
+        };
     }
 }

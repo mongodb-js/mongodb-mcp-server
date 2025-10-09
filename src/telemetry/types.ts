@@ -32,6 +32,7 @@ export type ToolEventProperties = {
     org_id?: string;
     cluster_name?: string;
     is_atlas?: boolean;
+    atlas_local_deployment_id?: string;
 };
 
 export type ToolEvent = TelemetryEvent<ToolEventProperties>;
