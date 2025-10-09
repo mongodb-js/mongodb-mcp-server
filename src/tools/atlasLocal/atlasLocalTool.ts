@@ -39,11 +39,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return this.executeWithAtlasLocalClient(client, ...args);
     }
 
-    protected async lookupDeploymentIdAndAddToTelemetryMetadata(
-        client: Client,
-        containerId: string,
-
-    ): Promise<void> {
+    protected async lookupDeploymentIdAndAddToTelemetryMetadata(client: Client, containerId: string): Promise<void> {
         // Don't run if telemetry is disabled
         if (this.config.telemetry === "disabled") {
             return;
