@@ -22,6 +22,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
                 type: "MCPServer" as CreationSourceType,
                 source: "MCPServer",
             },
+            doNotTrack: !this.telemetry.isTelemetryEnabled(),
         };
         // Create the deployment
         const deployment = await client.createDeployment(deploymentOptions);

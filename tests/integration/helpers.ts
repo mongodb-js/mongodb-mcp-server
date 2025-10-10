@@ -377,7 +377,7 @@ export function waitUntil<T extends ConnectionState>(
     });
 }
 
-export function waitUntilMcpClientIsSet(
+export function waitUntilAtlasLocalClientIsSet(
     mcpServer: Server,
     signal: AbortSignal,
     timeout: number = 5000

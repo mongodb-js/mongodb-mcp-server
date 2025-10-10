@@ -101,10 +101,6 @@ export class Session extends EventEmitter<SessionEvents> {
         this.connectionManager.setClientName(this.mcpClient.name || "unknown");
     }
 
-    setAtlasLocalClient(atlasLocalClient: Client): void {
-        this.atlasLocalClient = atlasLocalClient;
-    }
-
     async disconnect(): Promise<void> {
         const atlasCluster = this.connectedAtlasCluster;
 

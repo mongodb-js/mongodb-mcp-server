@@ -4,7 +4,7 @@ import {
     expectDefined,
     getResponseElements,
     setupIntegrationTest,
-    waitUntilMcpClientIsSet,
+    waitUntilAtlasLocalClientIsSet,
 } from "../../helpers.js";
 import { describe, expect, it } from "vitest";
 
@@ -19,7 +19,7 @@ describe("atlas-local-list-deployments", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should have the atlas-local-list-deployments tool", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
         const { tools } = await integration.mcpClient().listTools();
         const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
@@ -30,7 +30,7 @@ describe("atlas-local-list-deployments", () => {
         "[MacOS in GitHub Actions] should not have the atlas-local-list-deployments tool",
         async ({ signal }) => {
             // This should throw an error because the client is not set within the timeout of 5 seconds (default)
-            await expect(waitUntilMcpClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
+            await expect(waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
 
             const { tools } = await integration.mcpClient().listTools();
             const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
@@ -39,7 +39,7 @@ describe("atlas-local-list-deployments", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should have correct metadata", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
         const { tools } = await integration.mcpClient().listTools();
         const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
         expectDefined(listDeployments);
@@ -49,7 +49,7 @@ describe("atlas-local-list-deployments", () => {
     });
 
     it.skipIf(isMacOSInGitHubActions)("should not crash when calling the tool", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
         const response = await integration.mcpClient().callTool({
             name: "atlas-local-list-deployments",

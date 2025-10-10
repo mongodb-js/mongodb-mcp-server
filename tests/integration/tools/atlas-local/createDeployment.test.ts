@@ -4,7 +4,7 @@ import {
     expectDefined,
     getResponseElements,
     setupIntegrationTest,
-    waitUntilMcpClientIsSet,
+    waitUntilAtlasLocalClientIsSet,
 } from "../../helpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -35,7 +35,7 @@ describe("atlas-local-create-deployment", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should have the atlas-local-create-deployment tool", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
         const { tools } = await integration.mcpClient().listTools();
         const createDeployment = tools.find((tool) => tool.name === "atlas-local-create-deployment");
@@ -46,7 +46,7 @@ describe("atlas-local-create-deployment", () => {
         "[MacOS in GitHub Actions] should not have the atlas-local-create-deployment tool",
         async ({ signal }) => {
             // This should throw an error because the client is not set within the timeout of 5 seconds (default)
-            await expect(waitUntilMcpClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
+            await expect(waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
 
             const { tools } = await integration.mcpClient().listTools();
             const createDeployment = tools.find((tool) => tool.name === "atlas-local-create-deployment");
@@ -55,7 +55,7 @@ describe("atlas-local-create-deployment", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should have correct metadata", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
         const { tools } = await integration.mcpClient().listTools();
         const createDeployment = tools.find((tool) => tool.name === "atlas-local-create-deployment");
         expectDefined(createDeployment);
@@ -65,7 +65,7 @@ describe("atlas-local-create-deployment", () => {
     });
 
     it.skipIf(isMacOSInGitHubActions)("should create a deployment when calling the tool", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
         const deploymentName = `test-deployment-${Date.now()}`;
 
         // Check that deployment doesn't exist before creation
@@ -98,7 +98,7 @@ describe("atlas-local-create-deployment", () => {
     it.skipIf(isMacOSInGitHubActions)(
         "should return an error when creating a deployment that already exists",
         async ({ signal }) => {
-            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+            await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
             // Create a deployment
             const deploymentName = `test-deployment-${Date.now()}`;
@@ -120,7 +120,7 @@ describe("atlas-local-create-deployment", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should create a deployment with the correct name", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
         // Create a deployment
         const deploymentName = `test-deployment-${Date.now()}`;
@@ -148,7 +148,7 @@ describe("atlas-local-create-deployment", () => {
     });
 
     it.skipIf(isMacOSInGitHubActions)("should create a deployment when name is not provided", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
         // Create a deployment
         const createResponse = await integration.mcpClient().callTool({

@@ -6,7 +6,7 @@ import {
     getResponseElements,
     setupIntegrationTest,
     validateToolMetadata,
-    waitUntilMcpClientIsSet,
+    waitUntilAtlasLocalClientIsSet,
 } from "../../helpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -20,7 +20,7 @@ const integration = setupIntegrationTest(
 // That's why we skip the tests on macOS in GitHub Actions
 describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment", () => {
     beforeEach(async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
     });
 
     validateToolMetadata(integration, "atlas-local-connect-deployment", "Connect to a MongoDB Atlas Local deployment", [
@@ -57,7 +57,7 @@ describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment with dep
     let deploymentNamesToCleanup: string[] = [];
 
     beforeEach(async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
         // Create deployments
         deploymentName = `test-deployment-1-${Date.now()}`;
@@ -105,7 +105,7 @@ describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment with dep
 describe.skipIf(!isMacOSInGitHubActions)("atlas-local-connect-deployment [MacOS in GitHub Actions]", () => {
     it("should not have the atlas-local-connect-deployment tool", async ({ signal }) => {
         // This should throw an error because the client is not set within the timeout of 5 seconds (default)
-        await expect(waitUntilMcpClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
+        await expect(waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
 
         const { tools } = await integration.mcpClient().listTools();
         const connectDeployment = tools.find((tool) => tool.name === "atlas-local-connect-deployment");

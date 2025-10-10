@@ -236,7 +236,7 @@ export class Server {
             const client = AtlasLocalClient.connect();
 
             // Set Atlas Local client
-            this.session.setAtlasLocalClient(client);
+            this.session.atlasLocalClient = client;
 
             // Register Atlas Local tools
             for (const toolConstructor of AtlasLocalTools) {

@@ -13,7 +13,6 @@ export abstract class AtlasLocalToolBase extends ToolBase {
     }
 
     protected async execute(...args: Parameters<ToolCallback<typeof this.argsShape>>): Promise<CallToolResult> {
-        // Get the client
         const client = this.session.atlasLocalClient;
 
         // If the client is not found, throw an error
@@ -21,7 +20,7 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         // - atlas-local tools are only added after the client is set
         //   this means that if we were unable to get the client, the tool will not be registered
         // - in case the tool was registered by accident
-        //   verifyAllowed in the base class would still return false preventing the tool from being registered,
+        //   verifyAllowed would still return false preventing the tool from being registered,
         //   preventing the tool from being executed
         if (!client) {
             return {

@@ -4,7 +4,7 @@ import {
     expectDefined,
     getResponseElements,
     setupIntegrationTest,
-    waitUntilMcpClientIsSet,
+    waitUntilAtlasLocalClientIsSet,
 } from "../../helpers.js";
 import { describe, expect, it } from "vitest";
 
@@ -19,7 +19,7 @@ describe("atlas-local-delete-deployment", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should have the atlas-local-delete-deployment tool", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
 
         const { tools } = await integration.mcpClient().listTools();
         const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
@@ -30,7 +30,7 @@ describe("atlas-local-delete-deployment", () => {
         "[MacOS in GitHub Actions] should not have the atlas-local-delete-deployment tool",
         async ({ signal }) => {
             // This should throw an error because the client is not set within the timeout of 5 seconds (default)
-            await expect(waitUntilMcpClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
+            await expect(waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
 
             const { tools } = await integration.mcpClient().listTools();
             const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
@@ -39,7 +39,7 @@ describe("atlas-local-delete-deployment", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should have correct metadata", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
         const { tools } = await integration.mcpClient().listTools();
         const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
         expectDefined(deleteDeployment);
@@ -51,7 +51,7 @@ describe("atlas-local-delete-deployment", () => {
     it.skipIf(isMacOSInGitHubActions)(
         "should return 'no such container' error when deployment to delete does not exist",
         async ({ signal }) => {
-            await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+            await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
             const deploymentName = "non-existent";
 
             const response = await integration.mcpClient().callTool({
@@ -67,7 +67,7 @@ describe("atlas-local-delete-deployment", () => {
     );
 
     it.skipIf(isMacOSInGitHubActions)("should delete a deployment when calling the tool", async ({ signal }) => {
-        await waitUntilMcpClientIsSet(integration.mcpServer(), signal);
+        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
         // Create a deployment
         const deploymentName = `test-deployment-${Date.now()}`;
         await integration.mcpClient().callTool({
