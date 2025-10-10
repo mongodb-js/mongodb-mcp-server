@@ -298,7 +298,10 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 
 #### MongoDB Atlas Local Tools
 
--
+- `atlas-local-list-deployments` - Lists MongoDB Atlas Local deployments
+- `atlas-local-create-deployment` - Creates a MongoDB Atlas Local deployment
+- `atlas-local-connect-deployment` - Connects to a MongoDB Atlas Local deployment
+- `atlas-local-delete-deployment` - Deletes a MongoDB Atlas Local deployment
 
 #### MongoDB Database Tools
 
