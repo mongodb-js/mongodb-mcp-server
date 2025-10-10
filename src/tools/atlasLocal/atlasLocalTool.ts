@@ -56,6 +56,25 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     ): Promise<CallToolResult> | CallToolResult {
         // Error Handling for expected Atlas Local errors go here
         const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Check if Docker daemon is not running
+        if (
+            errorMessage.includes("Cannot connect to the Docker daemon") ||
+            errorMessage.includes("Is the docker daemon running") ||
+            errorMessage.includes("connect ENOENT") ||
+            errorMessage.includes("ECONNREFUSED")
+        ) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Docker is not running. Please start Docker and try again. Atlas Local tools require Docker to be running.",
+                    },
+                ],
+                isError: true,
+            };
+        }
+
         if (errorMessage.includes("No such container")) {
             const deploymentName =
                 "deploymentName" in args ? (args.deploymentName as string) : "the specified deployment";

@@ -231,29 +231,37 @@ export class Server {
             // This will fail on unsupported platforms
             const { Client: AtlasLocalClient } = await import("@mongodb-js-preview/atlas-local");
 
-            // Connect to Atlas Local client
-            // This will fail if docker is not running
-            const client = AtlasLocalClient.connect();
+            try {
+                // Connect to Atlas Local client
+                // This will fail if docker is not running
+                const client = AtlasLocalClient.connect();
 
-            // Set Atlas Local client
-            this.session.atlasLocalClient = client;
+                // Set Atlas Local client
+                this.session.atlasLocalClient = client;
 
-            // Register Atlas Local tools
-            for (const toolConstructor of AtlasLocalTools) {
-                const tool = new toolConstructor({
-                    session: this.session,
-                    config: this.userConfig,
-                    telemetry: this.telemetry,
-                    elicitation: this.elicitation,
-                });
-                if (tool.register(this)) {
-                    this.tools.push(tool);
+                // Register Atlas Local tools
+                for (const toolConstructor of AtlasLocalTools) {
+                    const tool = new toolConstructor({
+                        session: this.session,
+                        config: this.userConfig,
+                        telemetry: this.telemetry,
+                        elicitation: this.elicitation,
+                    });
+                    if (tool.register(this)) {
+                        this.tools.push(tool);
+                    }
                 }
+            } catch (dockerError) {
+                console.warn(
+                    "Failed to connect to Atlas Local client (Docker not available or not running), atlas-local tools will be disabled (error: ",
+                    dockerError,
+                    ")"
+                );
             }
-        } catch (error) {
+        } catch (importError) {
             console.warn(
-                "Failed to initialize Atlas Local client, atlas-local tools will be disabled (error: ",
-                error,
+                "Failed to import Atlas Local client (platform not supported), atlas-local tools will be disabled (error: ",
+                importError,
                 ")"
             );
         }
