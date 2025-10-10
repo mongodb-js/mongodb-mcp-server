@@ -36,7 +36,7 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
  */
-export type ToolCategory = "mongodb" | "atlas";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
 
 /**
  * Telemetry metadata that can be provided by tools when emitting telemetry events.
@@ -46,6 +46,7 @@ export type ToolCategory = "mongodb" | "atlas";
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;
+    atlasLocaldeploymentId?: string;
 };
 
 export type ToolConstructorParams = {
@@ -157,7 +158,7 @@ export abstract class ToolBase {
                 });
 
                 const result = await this.execute(...args);
-                this.emitToolEvent(startTime, result, ...args);
+                await this.emitToolEvent(startTime, result, ...args);
 
                 this.session.logger.debug({
                     id: LogId.toolExecute,
@@ -173,7 +174,7 @@ export abstract class ToolBase {
                     message: `Error executing ${this.name}: ${error as string}`,
                 });
                 const toolResult = await this.handleError(error, args[0] as ToolArgs<typeof this.argsShape>);
-                this.emitToolEvent(startTime, toolResult, ...args);
+                await this.emitToolEvent(startTime, toolResult, ...args);
                 return toolResult;
             }
         };
@@ -274,7 +275,7 @@ export abstract class ToolBase {
 
     protected abstract resolveTelemetryMetadata(
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): TelemetryToolMetadata;
+    ): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
 
     /**
      * Creates and emits a tool telemetry event
@@ -282,16 +283,16 @@ export abstract class ToolBase {
      * @param result - Whether the command succeeded or failed
      * @param args - The arguments passed to the tool
      */
-    private emitToolEvent(
+    private async emitToolEvent(
         startTime: number,
         result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): void {
+    ): Promise<void> {
         if (!this.telemetry.isTelemetryEnabled()) {
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = this.resolveTelemetryMetadata(...args);
+        const metadata = await this.resolveTelemetryMetadata(...args);
         const event: ToolEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
@@ -310,6 +311,10 @@ export abstract class ToolBase {
 
         if (metadata?.projectId) {
             event.properties.project_id = metadata.projectId;
+        }
+
+        if (metadata?.atlasLocaldeploymentId) {
+            event.properties.atlas_local_deployment_id = metadata.atlasLocaldeploymentId;
         }
 
         this.telemetry.emitEvents([event]);
