@@ -1,8 +1,9 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs, TelemetryToolMetadata } from "../../tool.js";
 import type { Client, CreateDeploymentOptions, CreationSourceType } from "@mongodb-js-preview/atlas-local";
 import { CommonArgs } from "../../args.js";
+import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-create-deployment";
@@ -11,6 +12,8 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
     protected argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
     };
+
+    private createdDeploymentId?: string;
 
     protected async executeWithAtlasLocalClient(
         client: Client,
@@ -27,8 +30,8 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         // Create the deployment
         const deployment = await client.createDeployment(deploymentOptions);
 
-        // Lookup the deployment id and add it to the telemetry metadata
-        await this.lookupDeploymentId(client, deployment.containerId);
+        // Capture deployment ID for telemetry
+        this.createdDeploymentId = await this.lookupDeploymentId(client, deployment.containerId);
 
         return {
             content: [
@@ -38,5 +41,16 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
                 },
             ],
         };
+    }
+
+    // Create tool needs to override resolveTelemetryMetadata because it doesn't
+    // have the deployment name in the arguments, but rather in the response.
+    protected resolveTelemetryMetadata(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+    ): Promise<TelemetryToolMetadata> {
+        return Promise.resolve({
+            atlasLocaldeploymentId: this.createdDeploymentId,
+        });
     }
 }

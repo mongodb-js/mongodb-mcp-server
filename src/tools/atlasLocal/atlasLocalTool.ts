@@ -3,10 +3,11 @@ import type { TelemetryToolMetadata, ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Client } from "@mongodb-js-preview/atlas-local";
+import { LogId } from "../../common/logger.js";
+import { z } from "zod";
 
 export abstract class AtlasLocalToolBase extends ToolBase {
     public category: ToolCategory = "atlas-local";
-    protected deploymentId?: string;
 
     protected verifyAllowed(): boolean {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
@@ -38,16 +39,10 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return this.executeWithAtlasLocalClient(client, ...args);
     }
 
-    protected async lookupDeploymentId(client: Client, containerId: string): Promise<void> {
-        // Don't run if telemetry is disabled
-        if (this.telemetry.isTelemetryEnabled()) {
-            return;
-        }
-
-        // Lookup the deployment id and save it to the deploymentId property.
-        // This property will be added to the telemetry metadata when resolveTelemetryMetadata is called.
+    protected async lookupDeploymentId(client: Client, containerId: string): Promise<string> {
+        // Lookup and return the deployment id for telemetry metadata.
         const deploymentId = await client.getDeploymentId(containerId);
-        this.deploymentId = deploymentId;
+        return deploymentId;
     }
 
     protected abstract executeWithAtlasLocalClient(
@@ -79,9 +74,37 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return super.handleError(error, args);
     }
 
-    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-        return {
-            atlasLocaldeploymentId: this.deploymentId,
-        };
+    protected async resolveTelemetryMetadata(
+        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+    ): Promise<TelemetryToolMetadata> {
+        const toolMetadata: TelemetryToolMetadata = {};
+
+        const client = this.session.atlasLocalClient;
+        if (!args.length || !client) {
+            return toolMetadata;
+        }
+
+        // Create a typed parser for the exact shape we expect
+        const argsShape = z.object(this.argsShape);
+        const parsedResult = argsShape.safeParse(args[0]);
+
+        if (!parsedResult.success) {
+            this.session.logger.debug({
+                id: LogId.telemetryMetadataError,
+                context: "tool",
+                message: `Error parsing tool arguments: ${parsedResult.error.message}`,
+            });
+            return toolMetadata;
+        }
+
+        const data = parsedResult.data;
+
+        // Extract deploymentName using type guard and lookup deployment ID
+        if ("deploymentName" in data && typeof data.deploymentName === "string" && data.deploymentName.trim() !== "") {
+            const deploymentId = await this.lookupDeploymentId(client, data.deploymentName);
+            toolMetadata.atlasLocaldeploymentId = deploymentId;
+        }
+
+        return toolMetadata;
     }
 }
