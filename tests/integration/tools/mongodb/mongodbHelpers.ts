@@ -10,12 +10,14 @@ import {
     defaultTestConfig,
     defaultDriverOptions,
     getDataFromUntrustedContent,
+    sleep,
 } from "../../helpers.js";
 import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -258,4 +260,58 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
     const client = integration.mongoClient();
     const serverStatus = await client.db("admin").admin().serverStatus();
     return serverStatus.version as string;
+}
+
+const SEARCH_RETRIES = 200;
+
+export async function waitUntilSearchIsReady(
+    provider: NodeDriverServiceProvider,
+    abortSignal: AbortSignal
+): Promise<void> {
+    let lastError: unknown = null;
+
+    for (let i = 0; i < SEARCH_RETRIES && !abortSignal.aborted; i++) {
+        try {
+            await provider.insertOne("tmp", "test", { field1: "yay" });
+            await provider.createSearchIndexes("tmp", "test", [{ definition: { mappings: { dynamic: true } } }]);
+            await provider.dropCollection("tmp", "test");
+            return;
+        } catch (err) {
+            lastError = err;
+            await sleep(100);
+        }
+    }
+
+    throw new Error(`Search Management Index is not ready.\nlastError: ${JSON.stringify(lastError)}`);
+}
+
+export async function waitUntilSearchIndexIsQueryable(
+    provider: NodeDriverServiceProvider,
+    database: string,
+    collection: string,
+    indexName: string,
+    abortSignal: AbortSignal
+): Promise<void> {
+    let lastIndexStatus: unknown = null;
+    let lastError: unknown = null;
+
+    for (let i = 0; i < SEARCH_RETRIES && !abortSignal.aborted; i++) {
+        try {
+            const [indexStatus] = await provider.getSearchIndexes(database, collection, indexName);
+            lastIndexStatus = indexStatus;
+
+            if (indexStatus?.queryable === true) {
+                return;
+            }
+        } catch (err) {
+            lastError = err;
+            await sleep(100);
+        }
+    }
+
+    throw new Error(
+        `Index ${indexName} in ${database}.${collection} is not ready:
+lastIndexStatus: ${JSON.stringify(lastIndexStatus)}
+lastError: ${JSON.stringify(lastError)}`
+    );
 }
