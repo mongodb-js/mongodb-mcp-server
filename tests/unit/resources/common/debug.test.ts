@@ -34,7 +34,9 @@ describe("debug resource", () => {
         debugResource.reduceApply("connect", undefined);
         const output = await debugResource.toOutput();
 
-        expect(output).toContain(`The user is connected to the MongoDB cluster.`);
+        expect(output).toContain(
+            `The user is connected to the MongoDB cluster without any support for search indexes.`
+        );
     });
 
     it("should be disconnected when a disconnect event happens", async () => {
