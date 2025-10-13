@@ -1,7 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import type { Document, SearchIndexDescription } from "mongodb";
+import type { Document } from "mongodb";
 import { MongoClient, ObjectId } from "mongodb";
 import type { IntegrationTest } from "../../helpers.js";
 import {
@@ -17,7 +17,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
-import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -1,5 +1,4 @@
 import {
-    createSearchIndexAndWait,
     createVectorSearchIndexAndWait,
     describeWithMongoDB,
     validateAutoConnectBehavior,
@@ -14,9 +13,8 @@ import {
     expectDefined,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import { beforeEach, expect, it } from "vitest";
-import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { afterEach } from "node:test";
+import { beforeEach, afterEach, expect, it } from "vitest";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ObjectId } from "bson";
 
 describeWithMongoDB("insertMany tool when search is disabled", (integration) => {

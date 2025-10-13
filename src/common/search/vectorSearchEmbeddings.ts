@@ -147,7 +147,7 @@ export class VectorSearchEmbeddings {
                         return false;
                     }
 
-                    if (!fieldRef.every(this.isANumber)) {
+                    if (!fieldRef.every((e) => this.isANumber(e))) {
                         return false;
                     }
                 }
