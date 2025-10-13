@@ -263,6 +263,7 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
 }
 
 const SEARCH_RETRIES = 200;
+const SEARCH_WAITING_TICK = 100;
 
 export async function waitUntilSearchIsReady(
     provider: NodeDriverServiceProvider,
@@ -277,7 +278,7 @@ export async function waitUntilSearchIsReady(
             return;
         } catch (err) {
             lastError = err;
-            await sleep(10);
+            await sleep(SEARCH_WAITING_TICK);
         }
     }
 
@@ -304,7 +305,7 @@ export async function waitUntilIndexIsQueryable(
             }
         } catch (err) {
             lastError = err;
-            await sleep(100);
+            await sleep(SEARCH_WAITING_TICK);
         }
     }
 
