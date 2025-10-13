@@ -102,7 +102,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                         : "No suggested indexes found."
                 }`,
                 `## Drop Index Suggestions\n${hasDropIndexSuggestions ? JSON.stringify(dropIndexSuggestionsResult.value) : "No drop index suggestions found."}`,
-                `## Slow Query Logs\n${hasSlowQueryLogs ? JSON.stringify(slowQueryLogsResult.value?.slowQueryLogs) : "No slow query logs found."}`,
+                `## Slow Query Logs\n${hasSlowQueryLogs ? `Please notify the user that the slow query logs are limited to the most recent ${DEFAULT_SLOW_QUERY_LOGS_LIMIT} slow query logs. This is a limitation of the MCP server tool only.\n${JSON.stringify(slowQueryLogsResult.value?.slowQueryLogs)}` : "No slow query logs found."}`,
                 `## Schema Suggestions\n${hasSchemaSuggestions ? JSON.stringify(schemaSuggestionsResult.value?.recommendations) : "No schema suggestions found."}`,
             ];
 
