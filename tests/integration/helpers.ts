@@ -1,4 +1,4 @@
-import type { Collection, Document } from "mongodb";
+import type { Collection } from "mongodb";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
