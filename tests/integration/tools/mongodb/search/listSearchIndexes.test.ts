@@ -16,7 +16,7 @@ import {
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { SearchIndexStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
-const SEARCH_TIMEOUT = 20_000;
+const SEARCH_TIMEOUT = 60_000;
 describeWithMongoDB("list search indexes tool in local MongoDB", (integration) => {
     validateToolMetadata(
         integration,

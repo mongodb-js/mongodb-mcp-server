@@ -16,10 +16,12 @@ export type MongoClusterConfiguration = MongoRunnerConfiguration | MongoSearchCo
 
 const DOWNLOAD_RETRIES = 10;
 
+const DEFAULT_LOCAL_IMAGE =
+    "mongodb/mongodb-atlas-local@sha256:364c10e8de7fade95be8939fc817d15776f3724459ae689d078725c54a941333";
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
         if (MongoDBClusterProcess.isSearchOptions(config)) {
-            const runningContainer = await new GenericContainer(config.image ?? "mongodb/mongodb-atlas-local:8")
+            const runningContainer = await new GenericContainer(config.image ?? DEFAULT_LOCAL_IMAGE)
                 .withExposedPorts(27017)
                 .withCommand(["/usr/local/bin/runner", "server"])
                 .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`))
