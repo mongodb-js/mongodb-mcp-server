@@ -1,9 +1,5 @@
-import {
-    describeWithMongoDB,
-    getSingleDocFromUntrustedContent,
-    waitUntilSearchIndexIsQueryable,
-    waitUntilSearchIsReady,
-} from "../mongodbHelpers.js";
+import type { Collection } from "mongodb";
+import { describeWithMongoDB, getSingleDocFromUntrustedContent } from "../mongodbHelpers.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
     getResponseContent,
@@ -12,13 +8,14 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
+    waitUntilSearchManagementServiceIsReady,
+    waitUntilSearchIndexIsQueryable,
 } from "../../../helpers.js";
-import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { SearchIndexStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
+import type { SearchIndexWithStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
 const SEARCH_TIMEOUT = 20_000;
 
-describeWithMongoDB("list search indexes tool in local MongoDB", (integration) => {
+describeWithMongoDB("list-search-indexes tool in local MongoDB", (integration) => {
     validateToolMetadata(
         integration,
         "list-search-indexes",
@@ -42,14 +39,14 @@ describeWithMongoDB("list search indexes tool in local MongoDB", (integration) =
 });
 
 describeWithMongoDB(
-    "list search indexes tool in Atlas",
+    "list-search-indexes tool in Atlas",
     (integration) => {
-        let provider: NodeDriverServiceProvider;
+        let fooCollection: Collection;
 
         beforeEach(async ({ signal }) => {
             await integration.connectMcpClient();
-            provider = integration.mcpServer().session.serviceProvider;
-            await waitUntilSearchIsReady(provider, signal);
+            fooCollection = integration.mongoClient().db("any").collection("foo");
+            await waitUntilSearchManagementServiceIsReady(fooCollection, signal);
         });
 
         describe("when the collection does not exist", () => {
@@ -79,9 +76,10 @@ describeWithMongoDB(
         });
 
         describe("when there are indexes", () => {
-            beforeEach(async () => {
-                await provider.insertOne("any", "foo", { field1: "yay" });
-                await provider.createSearchIndexes("any", "foo", [{ definition: { mappings: { dynamic: true } } }]);
+            beforeEach(async ({ signal }) => {
+                await fooCollection.insertOne({ field1: "yay" });
+                await waitUntilSearchManagementServiceIsReady(fooCollection, signal);
+                await fooCollection.createSearchIndexes([{ definition: { mappings: { dynamic: true } } }]);
             });
 
             it("returns the list of existing indexes", { timeout: SEARCH_TIMEOUT }, async () => {
@@ -90,7 +88,7 @@ describeWithMongoDB(
                     arguments: { database: "any", collection: "foo" },
                 });
                 const content = getResponseContent(response.content);
-                const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexStatus>(content);
+                const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexWithStatus>(content);
 
                 expect(indexDefinition?.name).toEqual("default");
                 expect(indexDefinition?.type).toEqual("search");
@@ -101,7 +99,7 @@ describeWithMongoDB(
                 "returns the list of existing indexes and detects if they are queryable",
                 { timeout: SEARCH_TIMEOUT },
                 async ({ signal }) => {
-                    await waitUntilSearchIndexIsQueryable(provider, "any", "foo", "default", signal);
+                    await waitUntilSearchIndexIsQueryable(fooCollection, "default", signal);
 
                     const response = await integration.mcpClient().callTool({
                         name: "list-search-indexes",
@@ -109,7 +107,7 @@ describeWithMongoDB(
                     });
 
                     const content = getResponseContent(response.content);
-                    const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexStatus>(content);
+                    const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexWithStatus>(content);
 
                     expect(indexDefinition?.name).toEqual("default");
                     expect(indexDefinition?.type).toEqual("search");

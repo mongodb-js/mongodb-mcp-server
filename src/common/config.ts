@@ -204,6 +204,7 @@ export const defaultUserConfig: UserConfig = {
         "drop-collection",
         "delete-many",
         "drop-index",
+        "drop-search-index",
     ],
     transport: "stdio",
     httpPort: 3000,

@@ -21,6 +21,7 @@ import { LogsTool } from "./metadata/logs.js";
 import { ExportTool } from "./read/export.js";
 import { ListSearchIndexesTool } from "./search/listSearchIndexes.js";
 import { DropIndexTool } from "./delete/dropIndex.js";
+import { DropSearchIndexTool } from "./delete/dropSearchIndex.js";
 
 export const MongoDbTools = [
     ConnectTool,
@@ -46,4 +47,5 @@ export const MongoDbTools = [
     LogsTool,
     ExportTool,
     ListSearchIndexesTool,
+    DropSearchIndexTool,
 ];
