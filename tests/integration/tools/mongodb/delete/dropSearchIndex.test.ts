@@ -86,7 +86,6 @@ describeWithMongoDB(
         describe("when attempting to delete an existing index", () => {
             let moviesCollection: Collection;
             beforeEach(async ({ signal }) => {
-                await integration.connectMcpClient();
                 const mongoClient = integration.mongoClient();
                 moviesCollection = mongoClient.db("mflix").collection("movies");
                 await moviesCollection.insertMany([
