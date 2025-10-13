@@ -32,6 +32,7 @@ describeWithMongoDB("list-search-indexes tool in local MongoDB", (integration) =
             arguments: { database: "any", collection: "foo" },
         });
         const content = getResponseContent(response.content);
+        expect(response.isError).toBe(true);
         expect(content).toEqual(
             "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
         );

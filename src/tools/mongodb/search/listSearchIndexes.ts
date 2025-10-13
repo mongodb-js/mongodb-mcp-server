@@ -55,9 +55,9 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
                     {
                         text: "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search.",
                         type: "text",
-                        isError: true,
                     },
                 ],
+                isError: true,
             };
         }
         return super.handleError(error, args);
