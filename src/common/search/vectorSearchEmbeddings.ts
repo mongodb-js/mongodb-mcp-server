@@ -147,7 +147,7 @@ export class VectorSearchEmbeddings {
                         return false;
                     }
 
-                    if (typeof fieldRef[0] !== "number") {
+                    if (!fieldRef.every(this.isANumber)) {
                         return false;
                     }
                 }
@@ -165,5 +165,22 @@ export class VectorSearchEmbeddings {
         } catch {
             return false;
         }
+    }
+
+    private isANumber(value: unknown): boolean {
+        if (typeof value === "number") {
+            return true;
+        }
+
+        if (
+            value instanceof BSON.Int32 ||
+            value instanceof BSON.Decimal128 ||
+            value instanceof BSON.Double ||
+            value instanceof BSON.Long
+        ) {
+            return true;
+        }
+
+        return false;
     }
 }

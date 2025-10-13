@@ -283,6 +283,33 @@ describe("VectorSearchEmbeddings", () => {
                     expect(result).toHaveLength(0);
                 });
 
+                it("documents inserting the field with correct dimensions and quantization in scalar/none are valid also on nested fields with bson int", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { a: { nasty: { scalar: { field: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => new BSON.Int32(i)) } } } }
+                    );
+
+                    expect(result).toHaveLength(0);
+                });
+
+                it("documents inserting the field with correct dimensions and quantization in scalar/none are valid also on nested fields with bson long", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { a: { nasty: { scalar: { field: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => new BSON.Long(i)) } } } }
+                    );
+
+                    expect(result).toHaveLength(0);
+                });
+
+                it("documents inserting the field with correct dimensions and quantization in scalar/none are valid also on nested fields with bson double", async () => {
+                    const result = await embeddings.findFieldsWithWrongEmbeddings(
+                        { database, collection, provider },
+                        { a: { nasty: { scalar: { field: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => new BSON.Double(i)) } } } }
+                    );
+
+                    expect(result).toHaveLength(0);
+                });
+
                 it("documents inserting the field with correct dimensions and quantization in binary are valid also on nested fields", async () => {
                     const result = await embeddings.findFieldsWithWrongEmbeddings(
                         { database, collection, provider },
