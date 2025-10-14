@@ -4,11 +4,11 @@ import { ConsoleLogger } from "../src/common/logger.js";
 import { Keychain } from "../src/lib.js";
 import { describe, it } from "vitest";
 
-function isOlderThanADay(date: string): boolean {
-    const oneDayInMs = 24 * 60 * 60 * 1000;
+function isOlderThanTwoHours(date: string): boolean {
+    const twoHoursInMs = 2 * 60 * 60 * 1000;
     const projectDate = new Date(date);
     const currentDate = new Date();
-    return currentDate.getTime() - projectDate.getTime() > oneDayInMs;
+    return currentDate.getTime() - projectDate.getTime() > twoHoursInMs;
 }
 
 async function findTestOrganization(client: ApiClient): Promise<AtlasOrganization> {
@@ -32,7 +32,7 @@ async function findAllTestProjects(client: ApiClient, orgId: string): Promise<Gr
     });
 
     const testProjects = projects?.results?.filter((proj) => proj.name.startsWith("testProj-")) || [];
-    return testProjects.filter((proj) => isOlderThanADay(proj.created));
+    return testProjects.filter((proj) => isOlderThanTwoHours(proj.created));
 }
 
 async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: string): Promise<string[]> {
