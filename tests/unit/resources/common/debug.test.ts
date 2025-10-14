@@ -103,7 +103,7 @@ describe("debug resource", () => {
     });
 
     it("should notify if a cluster supports search indexes", async () => {
-        session.isSearchIndexSupported = vi.fn().mockResolvedValue(true);
+        vi.spyOn(session, "isConnectedToMongot", "get").mockImplementation(() => Promise.resolve(true));
         debugResource.reduceApply("connect", undefined);
         const output = await debugResource.toOutput();
 
