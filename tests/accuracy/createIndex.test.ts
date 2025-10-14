@@ -1,6 +1,8 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 
+process.env.MDB_VOYAGE_API_KEY = "valid-key";
+
 describeAccuracyTests([
     {
         prompt: "Create an index that covers the following query on 'mflix.movies' namespace - { \"release_year\": 1992 }",
