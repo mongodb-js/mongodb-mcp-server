@@ -106,9 +106,9 @@ describeWithMongoDB("drop-index tool", (integration) => {
             });
             expect(response.isError).toBe(undefined);
             const content = getResponseContent(response.content);
-            expect(content).toContain(`Successfully dropped the index.`);
+            expect(content).toContain(`Successfully dropped the index from the provided namespace.`);
             const data = getDataFromUntrustedContent(content);
-            expect(JSON.parse(data)).toMatchObject({ indexName });
+            expect(JSON.parse(data)).toMatchObject({ indexName, namespace: "mflix.movies" });
         });
     });
 });

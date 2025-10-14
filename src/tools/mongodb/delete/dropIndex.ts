@@ -25,9 +25,10 @@ export class DropIndexTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
-                `${result.ok ? "Successfully dropped" : "Failed to drop"} the index.`,
+                `${result.ok ? "Successfully dropped" : "Failed to drop"} the index from the provided namespace.`,
                 JSON.stringify({
                     indexName,
+                    namespace: `${database}.${collection}`,
                 })
             ),
             isError: result.ok ? undefined : true,
