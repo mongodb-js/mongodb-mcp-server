@@ -3,15 +3,12 @@ import type { Collection } from "mongodb";
 import {
     databaseCollectionInvalidArgs,
     databaseCollectionParameters,
-    defaultDriverOptions,
-    defaultTestConfig,
     getDataFromUntrustedContent,
     getResponseContent,
-    setupIntegrationTest,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
 } from "../../../helpers.js";
-import { describeWithMongoDB, setupMongoDBIntegrationTest } from "../mongodbHelpers.js";
+import { defaultTestSuiteConfig, describeWithMongoDB } from "../mongodbHelpers.js";
 import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { Elicitation } from "../../../../../src/elicitation.js";
 
@@ -113,69 +110,71 @@ describeWithMongoDB("drop-index tool", (integration) => {
     });
 });
 
-describe("drop-index tool - when invoked via an elicitation enabled client", () => {
-    const mockElicitInput = createMockElicitInput();
-    const mdbIntegration = setupMongoDBIntegrationTest();
-    const integration = setupIntegrationTest(
-        () => defaultTestConfig,
-        () => defaultDriverOptions,
-        { elicitInput: mockElicitInput }
-    );
-    let moviesCollection: Collection;
-    let indexName: string;
+const mockElicitInput = createMockElicitInput();
 
-    beforeEach(async () => {
-        moviesCollection = mdbIntegration.mongoClient().db("mflix").collection("movies");
-        await moviesCollection.insertMany([
-            { name: "Movie1", year: 1994 },
-            { name: "Movie2", year: 2001 },
-        ]);
-        indexName = await moviesCollection.createIndex({ year: 1 });
-        await integration.mcpClient().callTool({
-            name: "connect",
-            arguments: {
-                connectionString: mdbIntegration.connectionString(),
-            },
-        });
-    });
+describeWithMongoDB(
+    "drop-index tool - when invoked via an elicitation enabled client",
+    (integration) => {
+        let moviesCollection: Collection;
+        let indexName: string;
 
-    afterEach(async () => {
-        await moviesCollection.drop();
-    });
+        beforeEach(async () => {
+            moviesCollection = integration.mongoClient().db("mflix").collection("movies");
+            await moviesCollection.insertMany([
+                { name: "Movie1", year: 1994 },
+                { name: "Movie2", year: 2001 },
+            ]);
+            indexName = await moviesCollection.createIndex({ year: 1 });
+            await integration.mcpClient().callTool({
+                name: "connect",
+                arguments: {
+                    connectionString: integration.connectionString(),
+                },
+            });
+        });
 
-    it("should ask for confirmation before proceeding with tool call", async () => {
-        expect(await moviesCollection.listIndexes().toArray()).toHaveLength(2);
-        mockElicitInput.confirmYes();
-        await integration.mcpClient().callTool({
-            name: "drop-index",
-            arguments: { database: "mflix", collection: "movies", indexName },
+        afterEach(async () => {
+            await moviesCollection.drop();
         });
-        expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-        expect(mockElicitInput.mock).toHaveBeenCalledWith({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            message: expect.stringContaining(
-                "You are about to drop the `year_1` index from the `mflix.movies` namespace"
-            ),
-            requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-        });
-        expect(await moviesCollection.listIndexes().toArray()).toHaveLength(1);
-    });
 
-    it("should not drop the index if the confirmation was not provided", async () => {
-        expect(await moviesCollection.listIndexes().toArray()).toHaveLength(2);
-        mockElicitInput.confirmNo();
-        await integration.mcpClient().callTool({
-            name: "drop-index",
-            arguments: { database: "mflix", collection: "movies", indexName },
+        it("should ask for confirmation before proceeding with tool call", async () => {
+            expect(await moviesCollection.listIndexes().toArray()).toHaveLength(2);
+            mockElicitInput.confirmYes();
+            await integration.mcpClient().callTool({
+                name: "drop-index",
+                arguments: { database: "mflix", collection: "movies", indexName },
+            });
+            expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+            expect(mockElicitInput.mock).toHaveBeenCalledWith({
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining(
+                    "You are about to drop the `year_1` index from the `mflix.movies` namespace"
+                ),
+                requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+            });
+            expect(await moviesCollection.listIndexes().toArray()).toHaveLength(1);
         });
-        expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-        expect(mockElicitInput.mock).toHaveBeenCalledWith({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            message: expect.stringContaining(
-                "You are about to drop the `year_1` index from the `mflix.movies` namespace"
-            ),
-            requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+
+        it("should not drop the index if the confirmation was not provided", async () => {
+            expect(await moviesCollection.listIndexes().toArray()).toHaveLength(2);
+            mockElicitInput.confirmNo();
+            await integration.mcpClient().callTool({
+                name: "drop-index",
+                arguments: { database: "mflix", collection: "movies", indexName },
+            });
+            expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+            expect(mockElicitInput.mock).toHaveBeenCalledWith({
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining(
+                    "You are about to drop the `year_1` index from the `mflix.movies` namespace"
+                ),
+                requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+            });
+            expect(await moviesCollection.listIndexes().toArray()).toHaveLength(2);
         });
-        expect(await moviesCollection.listIndexes().toArray()).toHaveLength(2);
-    });
-});
+    },
+    {
+        ...defaultTestSuiteConfig,
+        getMockElicitationInput: () => mockElicitInput,
+    }
+);
