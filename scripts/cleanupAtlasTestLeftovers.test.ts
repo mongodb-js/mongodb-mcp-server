@@ -38,34 +38,27 @@ async function findAllTestProjects(client: ApiClient, orgId: string): Promise<Gr
 async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: string): Promise<string[]> {
     const errors: string[] = [];
 
-    try {
-        const allClusters = await client
-            .listClusters({
-                params: {
-                    path: {
-                        groupId: projectId || "",
-                    },
+    const allClusters = await client
+        .listClusters({
+            params: {
+                path: {
+                    groupId: projectId || "",
                 },
-            })
-            .then((res) => res.results || []);
+            },
+        })
+        .then((res) => res.results || []);
 
-        const results = await Promise.allSettled(
-            allClusters.map((cluster) =>
-                client.deleteCluster({
+    await Promise.allSettled(
+        allClusters.map(async (cluster) => {
+            try {
+                await client.deleteCluster({
                     params: { path: { groupId: projectId || "", clusterName: cluster.name || "" } },
-                })
-            )
-        );
-
-        results.forEach((result, index) => {
-            if (result.status === "rejected") {
-                const clusterName = allClusters[index]?.name || "unknown";
-                errors.push(`Failed to delete cluster ${clusterName} in project ${projectId}: ${result.reason}`);
+                });
+            } catch (error) {
+                errors.push(`Failed to delete cluster ${cluster.name} in project ${projectId}: ${String(error)}`);
             }
-        });
-    } catch (error) {
-        errors.push(`Failed to list clusters for project ${projectId}: ${String(error)}`);
-    }
+        })
+    );
 
     return errors;
 }
