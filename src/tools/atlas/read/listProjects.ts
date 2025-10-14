@@ -47,19 +47,16 @@ export class ListProjectsTool extends AtlasToolBase {
             };
         }
 
-        // Format projects as a table
-        const rows = data.results
-            .map((project) => {
-                const createdAt = project.created ? new Date(project.created).toLocaleString() : "N/A";
-                const orgName = orgs[project.orgId] ?? "N/A";
-                return `${project.name} | ${project.id} | ${orgName} | ${project.orgId} | ${createdAt}`;
-            })
-            .join("\n");
-        const formattedProjects = `Project Name | Project ID | Organization Name | Organization ID | Created At
-----------------| ----------------| ----------------| ----------------| ----------------
-${rows}`;
+        const projects = data.results.map((project) => ({
+            name: project.name,
+            id: project.id,
+            organizationName: orgs[project.orgId] ?? "N/A",
+            organizationId: project.orgId,
+            createdAt: project.created ? new Date(project.created).toISOString() : "N/A",
+        }));
+
         return {
-            content: formatUntrustedData(`Found ${data.results.length} projects`, formattedProjects),
+            content: formatUntrustedData(`Found ${data.results.length} projects`, JSON.stringify(projects)),
         };
     }
 }
