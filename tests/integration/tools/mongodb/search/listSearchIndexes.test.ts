@@ -1,4 +1,4 @@
-import { describeWithMongoDB, getSingleDocFromUntrustedContent } from "../mongodbHelpers.js";
+import { defaultTestSuiteConfig, describeWithMongoDB, getSingleDocFromUntrustedContent } from "../mongodbHelpers.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
     getResponseContent,
@@ -117,9 +117,10 @@ describeWithMongoDB(
             );
         });
     },
-    undefined, // default user config
-    undefined, // default driver config
-    { search: true } // use a search cluster
+    {
+        ...defaultTestSuiteConfig,
+        downloadOptions: { search: true },
+    }
 );
 
 async function waitUntilSearchIsReady(provider: NodeDriverServiceProvider, abortSignal: AbortSignal): Promise<void> {

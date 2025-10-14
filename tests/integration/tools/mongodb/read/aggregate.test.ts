@@ -6,7 +6,12 @@ import {
     defaultTestConfig,
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import {
+    defaultTestSuiteConfig,
+    describeWithMongoDB,
+    getDocsFromUntrustedContent,
+    validateAutoConnectBehavior,
+} from "../mongodbHelpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
 
@@ -282,7 +287,10 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 20 })
+    {
+        ...defaultTestSuiteConfig,
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 20 }),
+    }
 );
 
 describeWithMongoDB(
@@ -339,7 +347,10 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxBytesPerQuery: 200 })
+    {
+        ...defaultTestSuiteConfig,
+        getUserConfig: () => ({ ...defaultTestConfig, maxBytesPerQuery: 200 }),
+    }
 );
 
 describeWithMongoDB(
@@ -369,5 +380,8 @@ describeWithMongoDB(
             expect(content).toContain(`Returning 990 documents.`);
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 })
+    {
+        ...defaultTestSuiteConfig,
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
+    }
 );

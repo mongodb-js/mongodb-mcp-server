@@ -3,7 +3,12 @@ import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
 import process from "process";
 import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers.js";
-import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
+import {
+    describeWithMongoDB,
+    isCommunityServer,
+    getServerVersion,
+    defaultTestSuiteConfig,
+} from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
 import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
@@ -137,14 +142,20 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
 
                 addCb?.(oidcIt);
             },
-            () => oidcConfig,
-            () => ({
-                ...setupDriverConfig({
-                    config: oidcConfig,
-                    defaults: {},
-                }),
-            }),
-            { runner: true, downloadOptions: { enterprise: true, version: mongodbVersion }, serverArgs }
+            {
+                ...defaultTestSuiteConfig,
+                getUserConfig: () => oidcConfig,
+                getDriverOptions: () =>
+                    setupDriverConfig({
+                        config: oidcConfig,
+                        defaults: {},
+                    }),
+                downloadOptions: {
+                    runner: true,
+                    downloadOptions: { enterprise: true, version: mongodbVersion },
+                    serverArgs,
+                },
+            }
         );
     }
 

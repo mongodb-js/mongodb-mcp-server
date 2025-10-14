@@ -1,5 +1,5 @@
 import { defaultTestConfig, getResponseContent } from "./helpers.js";
-import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { defaultTestSuiteConfig, describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("IndexCheck integration tests", () => {
@@ -313,10 +313,13 @@ describe("IndexCheck integration tests", () => {
                     });
                 });
             },
-            () => ({
-                ...defaultTestConfig,
-                indexCheck: true, // Enable indexCheck
-            })
+            {
+                ...defaultTestSuiteConfig,
+                getUserConfig: () => ({
+                    ...defaultTestConfig,
+                    indexCheck: true, // Enable indexCheck
+                }),
+            }
         );
     });
 
@@ -424,10 +427,13 @@ describe("IndexCheck integration tests", () => {
                     expect(content).not.toContain("Index check failed");
                 });
             },
-            () => ({
-                ...defaultTestConfig,
-                indexCheck: false, // Disable indexCheck
-            })
+            {
+                ...defaultTestSuiteConfig,
+                getUserConfig: () => ({
+                    ...defaultTestConfig,
+                    indexCheck: false, // Disable indexCheck
+                }),
+            }
         );
     });
 
@@ -456,10 +462,13 @@ describe("IndexCheck integration tests", () => {
                     expect(response.isError).toBeFalsy();
                 });
             },
-            () => ({
-                ...defaultTestConfig,
-                // indexCheck not specified, should default to false
-            })
+            {
+                ...defaultTestSuiteConfig,
+                getUserConfig: () => ({
+                    ...defaultTestConfig,
+                    // indexCheck not specified, should default to false
+                }),
+            }
         );
     });
 });

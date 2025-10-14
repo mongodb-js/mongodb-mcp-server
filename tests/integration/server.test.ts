@@ -1,5 +1,5 @@
 import { defaultDriverOptions, defaultTestConfig, expectDefined, setupIntegrationTest } from "./helpers.js";
-import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { defaultTestSuiteConfig, describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
 
 describe("Server integration test", () => {
@@ -15,12 +15,14 @@ describe("Server integration test", () => {
                 expect(atlasTools.length).toBeLessThanOrEqual(0);
             });
         },
-        () => ({
-            ...defaultTestConfig,
-            apiClientId: undefined,
-            apiClientSecret: undefined,
-        }),
-        () => defaultDriverOptions
+        {
+            ...defaultTestSuiteConfig,
+            getUserConfig: () => ({
+                ...defaultTestConfig,
+                apiClientId: undefined,
+                apiClientSecret: undefined,
+            }),
+        }
     );
 
     describe("with atlas", () => {

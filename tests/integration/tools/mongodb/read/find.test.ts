@@ -9,7 +9,12 @@ import {
     defaultTestConfig,
 } from "../../../helpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
-import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import {
+    defaultTestSuiteConfig,
+    describeWithMongoDB,
+    getDocsFromUntrustedContent,
+    validateAutoConnectBehavior,
+} from "../mongodbHelpers.js";
 
 export async function freshInsertDocuments({
     collection,
@@ -341,7 +346,10 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 10 })
+    {
+        ...defaultTestSuiteConfig,
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 10 }),
+    }
 );
 
 describeWithMongoDB(
@@ -391,7 +399,10 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 })
+    {
+        ...defaultTestSuiteConfig,
+        getUserConfig: () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 }),
+    }
 );
 
 describeWithMongoDB(
@@ -441,5 +452,8 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 })
+    {
+        ...defaultTestSuiteConfig,
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
+    }
 );

@@ -66,12 +66,22 @@ export type MongoDBIntegrationTestCase = IntegrationTest &
 
 export type MongoSearchConfiguration = { search: true; image?: string };
 
+export type TestSuiteConfig = {
+    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig;
+    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions;
+    downloadOptions: MongoClusterConfiguration;
+};
+
+export const defaultTestSuiteConfig: TestSuiteConfig = {
+    getUserConfig: () => defaultTestConfig,
+    getDriverOptions: () => defaultDriverOptions,
+    downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
+};
+
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
-    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
-    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
-    downloadOptions: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
+    { getUserConfig, getDriverOptions, downloadOptions }: TestSuiteConfig = defaultTestSuiteConfig
 ): void {
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
