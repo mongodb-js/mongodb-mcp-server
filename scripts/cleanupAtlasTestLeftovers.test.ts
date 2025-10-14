@@ -35,7 +35,9 @@ async function findAllTestProjects(client: ApiClient, orgId: string): Promise<Gr
     return testProjects.filter((proj) => isOlderThanADay(proj.created));
 }
 
-async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: string): Promise<void> {
+async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: string): Promise<string[]> {
+    const errors: string[] = [];
+
     const allClusters = await client
         .listClusters({
             params: {
@@ -47,10 +49,18 @@ async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: str
         .then((res) => res.results || []);
 
     await Promise.allSettled(
-        allClusters.map((cluster) =>
-            client.deleteCluster({ params: { path: { groupId: projectId || "", clusterName: cluster.name || "" } } })
-        )
+        allClusters.map(async (cluster) => {
+            try {
+                await client.deleteCluster({
+                    params: { path: { groupId: projectId || "", clusterName: cluster.name || "" } },
+                });
+            } catch (error) {
+                errors.push(`Failed to delete cluster ${cluster.name} in project ${projectId}: ${String(error)}`);
+            }
+        })
     );
+
+    return errors;
 }
 
 async function main(): Promise<void> {
@@ -70,7 +80,10 @@ async function main(): Promise<void> {
 
     if (testProjects.length === 0) {
         console.log("No stale test projects found for cleanup.");
+        return;
     }
+
+    const allErrors: string[] = [];
 
     for (const project of testProjects) {
         console.log(`Cleaning up project: ${project.name} (${project.id})`);
@@ -79,18 +92,35 @@ async function main(): Promise<void> {
             continue;
         }
 
-        await deleteAllClustersOnStaleProject(apiClient, project.id);
-        await apiClient.deleteProject({
-            params: {
-                path: {
-                    groupId: project.id,
+        // Try to delete all clusters first
+        const clusterErrors = await deleteAllClustersOnStaleProject(apiClient, project.id);
+        allErrors.push(...clusterErrors);
+
+        // Try to delete the project
+        try {
+            await apiClient.deleteProject({
+                params: {
+                    path: {
+                        groupId: project.id,
+                    },
                 },
-            },
-        });
-        console.log(`Deleted project: ${project.name} (${project.id})`);
+            });
+            console.log(`Deleted project: ${project.name} (${project.id})`);
+        } catch (error) {
+            const errorStr = String(error);
+            const errorMessage = `Failed to delete project ${project.name} (${project.id}): ${errorStr}`;
+            console.error(errorMessage);
+            allErrors.push(errorMessage);
+        }
     }
 
-    return;
+    if (allErrors.length > 0) {
+        const errorList = allErrors.map((err, i) => `${i + 1}. ${err}`).join("\n");
+        const errorSummary = `Cleanup completed with ${allErrors.length} error(s):\n${errorList}`;
+        throw new Error(errorSummary);
+    }
+
+    console.log("All stale test projects cleaned up successfully.");
 }
 
 describe("Cleanup Atlas Test Leftovers", () => {
