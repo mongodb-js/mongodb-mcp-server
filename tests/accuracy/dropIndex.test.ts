@@ -40,9 +40,14 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                    keys: {
-                        title: "text",
-                    },
+                    definition: [
+                        {
+                            keys: {
+                                title: "text",
+                            },
+                            type: "classic",
+                        },
+                    ],
                 },
             },
             {
