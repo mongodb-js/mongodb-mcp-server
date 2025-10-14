@@ -1,12 +1,11 @@
 import { defaultTestSuiteConfig, describeWithMongoDB } from "../mongodbHelpers.js";
 import {
-    defaultDriverOptions,
     getResponseContent,
     getResponseElements,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
 } from "../../../helpers.js";
-import { defaultTestConfig, setupIntegrationTest } from "../../../helpers.js";
+import { defaultTestConfig } from "../../../helpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB(
@@ -141,28 +140,30 @@ describeWithMongoDB("Connect tool", (integration) => {
     });
 });
 
-describe("Connect tool when disabled", () => {
-    const integration = setupIntegrationTest(
-        () => ({
+describeWithMongoDB(
+    "Connect tool when disabled",
+    (integration) => {
+        it("is not suggested when querying MongoDB disconnected", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: { database: "some-db", collection: "some-collection" },
+            });
+
+            const elements = getResponseElements(response);
+            expect(elements).toHaveLength(2);
+            expect(elements[0]?.text).toContain(
+                "You need to connect to a MongoDB instance before you can access its data."
+            );
+            expect(elements[1]?.text).toContain(
+                "There are no tools available to connect. Please update the configuration to include a connection string and restart the server."
+            );
+        });
+    },
+    {
+        ...defaultTestSuiteConfig,
+        getUserConfig: () => ({
             ...defaultTestConfig,
             disabledTools: ["connect"],
         }),
-        () => defaultDriverOptions
-    );
-
-    it("is not suggested when querying MongoDB disconnected", async () => {
-        const response = await integration.mcpClient().callTool({
-            name: "find",
-            arguments: { database: "some-db", collection: "some-collection" },
-        });
-
-        const elements = getResponseElements(response);
-        expect(elements).toHaveLength(2);
-        expect(elements[0]?.text).toContain(
-            "You need to connect to a MongoDB instance before you can access its data."
-        );
-        expect(elements[1]?.text).toContain(
-            "There are no tools available to connect. Please update the configuration to include a connection string and restart the server."
-        );
-    });
-});
+    }
+);
