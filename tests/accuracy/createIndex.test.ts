@@ -1,7 +1,19 @@
+import { afterAll, beforeAll } from "vitest";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 
-process.env.MDB_VOYAGE_API_KEY = "valid-key";
+let originalApiKey: string | undefined;
+beforeAll(() => {
+    originalApiKey = process.env.MDB_VOYAGE_API_KEY;
+
+    // We just need a valid key when registering the tool, the actual value is not important
+    if (!originalApiKey) {
+        process.env.MDB_VOYAGE_API_KEY = "valid-key";
+    }
+});
+afterAll(() => {
+    process.env.MDB_VOYAGE_API_KEY = originalApiKey;
+});
 
 describeAccuracyTests([
     {
