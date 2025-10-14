@@ -18,6 +18,7 @@ import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -68,22 +69,40 @@ export type MongoDBIntegrationTestCase = IntegrationTest &
 
 export type MongoSearchConfiguration = { search: true; image?: string };
 
+export type TestSuiteConfig = {
+    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig;
+    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions;
+    downloadOptions: MongoClusterConfiguration;
+    getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
+    getClientCapabilities?: () => MockClientCapabilities;
+};
+
+const defaultTestSuiteConfig: TestSuiteConfig = {
+    getUserConfig: () => defaultTestConfig,
+    getDriverOptions: () => defaultDriverOptions,
+    downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
+};
+
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
-    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
-    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
-    downloadOptions: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
+    partialTestSuiteConfig?: Partial<TestSuiteConfig>
 ): void {
+    const { getUserConfig, getDriverOptions, downloadOptions, getMockElicitationInput, getClientCapabilities } = {
+        ...defaultTestSuiteConfig,
+        ...partialTestSuiteConfig,
+    };
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
+        const mockElicitInput = getMockElicitationInput?.();
         const integration = setupIntegrationTest(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
             () => ({
                 ...getDriverOptions(mdbIntegration),
-            })
+            }),
+            { elicitInput: mockElicitInput, getClientCapabilities }
         );
 
         fn({

@@ -80,11 +80,13 @@ describeWithMongoDB(
             expectDefined(fields.items.anyOf?.[1]?.properties?.similarity);
         });
     },
-    () => {
-        return {
-            ...defaultTestConfig,
-            voyageApiKey: "valid_key",
-        };
+    {
+        getUserConfig: () => {
+            return {
+                ...defaultTestConfig,
+                voyageApiKey: "valid_key",
+            };
+        },
     }
 );
 
@@ -388,11 +390,13 @@ describeWithMongoDB(
             };
         });
     },
-    () => {
-        return {
-            ...defaultTestConfig,
-            voyageApiKey: "valid-key",
-        };
+    {
+        getUserConfig: () => {
+            return {
+                ...defaultTestConfig,
+                voyageApiKey: "valid_key",
+            };
+        },
     }
 );
 
@@ -494,14 +498,15 @@ describeWithMongoDB(
             });
         });
     },
-    () => {
-        return {
-            ...defaultTestConfig,
-            voyageApiKey: "valid_key",
-        };
-    },
-    undefined,
     {
-        search: true,
+        getUserConfig: () => {
+            return {
+                ...defaultTestConfig,
+                voyageApiKey: "valid_key",
+            };
+        },
+        downloadOptions: {
+            search: true,
+        },
     }
 );
