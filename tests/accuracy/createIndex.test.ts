@@ -47,7 +47,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "Create a vector search index on 'mydb.movies' namespace with on the 'plotSummary' field. The index should use 1024 dimensions.",
+        prompt: "Create a vector search index on 'mydb.movies' namespace on the 'plotSummary' field. The index should use 1024 dimensions.",
         expectedToolCalls: [
             {
                 toolName: "create-index",
@@ -64,10 +64,6 @@ describeAccuracyTests([
                                     path: "plotSummary",
                                     numDimensions: 1024,
                                 },
-                                {
-                                    type: "filter",
-                                    path: "releaseDate",
-                                },
                             ],
                         },
                     ],
@@ -76,7 +72,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "Create a vector search index on 'mydb.movies' namespace with on the 'plotSummary' field and 'genre' field. Pick a sensible number of dimensions for a voyage 3.5 model.",
+        prompt: "Create a vector search index on 'mydb.movies' namespace with on the 'plotSummary' field and 'genre' field, both of which contain vector embeddings. Pick a sensible number of dimensions for a voyage 3.5 model.",
         expectedToolCalls: [
             {
                 toolName: "create-index",
@@ -94,6 +90,7 @@ describeAccuracyTests([
                                     numDimensions: Matcher.number(
                                         (value) => value % 2 === 0 && value >= 256 && value <= 8192
                                     ),
+                                    similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                 },
                                 {
                                     type: "vector",
@@ -101,6 +98,7 @@ describeAccuracyTests([
                                     numDimensions: Matcher.number(
                                         (value) => value % 2 === 0 && value >= 256 && value <= 8192
                                     ),
+                                    similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                 },
                             ],
                         },
