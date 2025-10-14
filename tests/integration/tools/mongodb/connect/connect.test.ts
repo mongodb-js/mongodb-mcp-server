@@ -1,4 +1,4 @@
-import { defaultTestSuiteConfig, describeWithMongoDB } from "../mongodbHelpers.js";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
 import {
     getResponseContent,
     getResponseElements,
@@ -81,7 +81,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getUserConfig: (mdbIntegration) => ({
             ...defaultTestConfig,
             connectionString: mdbIntegration.connectionString(),
@@ -160,7 +159,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getUserConfig: () => ({
             ...defaultTestConfig,
             disabledTools: ["connect"],

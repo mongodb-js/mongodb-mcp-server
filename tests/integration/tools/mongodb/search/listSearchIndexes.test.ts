@@ -1,4 +1,4 @@
-import { defaultTestSuiteConfig, describeWithMongoDB, getSingleDocFromUntrustedContent } from "../mongodbHelpers.js";
+import { describeWithMongoDB, getSingleDocFromUntrustedContent } from "../mongodbHelpers.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
     getResponseContent,
@@ -118,7 +118,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         downloadOptions: { search: true },
     }
 );

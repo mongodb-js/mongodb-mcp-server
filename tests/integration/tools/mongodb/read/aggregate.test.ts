@@ -6,12 +6,7 @@ import {
     defaultTestConfig,
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import {
-    defaultTestSuiteConfig,
-    describeWithMongoDB,
-    getDocsFromUntrustedContent,
-    validateAutoConnectBehavior,
-} from "../mongodbHelpers.js";
+import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
 
@@ -288,7 +283,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 20 }),
     }
 );
@@ -348,7 +342,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getUserConfig: () => ({ ...defaultTestConfig, maxBytesPerQuery: 200 }),
     }
 );
@@ -381,7 +374,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
     }
 );

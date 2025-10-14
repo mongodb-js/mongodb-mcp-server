@@ -4,7 +4,7 @@ import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, timeout } from "../helpers.js";
-import { defaultTestSuiteConfig, describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 import type { UserConfig } from "../../../src/lib.js";
 
@@ -174,7 +174,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getUserConfig: () => userConfig,
     }
 );

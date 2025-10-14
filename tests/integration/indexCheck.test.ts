@@ -1,5 +1,5 @@
 import { defaultTestConfig, getResponseContent } from "./helpers.js";
-import { defaultTestSuiteConfig, describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("IndexCheck integration tests", () => {
@@ -314,7 +314,6 @@ describe("IndexCheck integration tests", () => {
                 });
             },
             {
-                ...defaultTestSuiteConfig,
                 getUserConfig: () => ({
                     ...defaultTestConfig,
                     indexCheck: true, // Enable indexCheck
@@ -428,7 +427,6 @@ describe("IndexCheck integration tests", () => {
                 });
             },
             {
-                ...defaultTestSuiteConfig,
                 getUserConfig: () => ({
                     ...defaultTestConfig,
                     indexCheck: false, // Disable indexCheck
@@ -463,7 +461,6 @@ describe("IndexCheck integration tests", () => {
                 });
             },
             {
-                ...defaultTestSuiteConfig,
                 getUserConfig: () => ({
                     ...defaultTestConfig,
                     // indexCheck not specified, should default to false

@@ -4,7 +4,7 @@ import { type UserConfig } from "../../src/common/config.js";
 import { defaultTestConfig } from "./helpers.js";
 import { Elicitation } from "../../src/elicitation.js";
 import { createMockElicitInput } from "../utils/elicitationMocks.js";
-import { defaultTestSuiteConfig, describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 
 function createTestConfig(config: Partial<UserConfig> = {}): UserConfig {
     return {
@@ -173,7 +173,6 @@ describe("Elicitation Integration Tests", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => createTestConfig(),
             getMockElicitationInput: () => mockElicitInput,
         }
@@ -202,7 +201,6 @@ describe("Elicitation Integration Tests", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => createTestConfig(),
             getClientCapabilities: () => ({}),
         }
@@ -240,7 +238,6 @@ describe("Elicitation Integration Tests", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => createTestConfig({ confirmationRequiredTools: ["list-databases"] }),
             getMockElicitationInput: () => mockElicitInput,
         }
@@ -291,7 +288,6 @@ describe("Elicitation Integration Tests", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => createTestConfig(),
             getMockElicitationInput: () => mockElicitInput,
         }
@@ -321,7 +317,6 @@ describe("Elicitation Integration Tests", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => createTestConfig(),
             getMockElicitationInput: () => mockElicitInput,
         }

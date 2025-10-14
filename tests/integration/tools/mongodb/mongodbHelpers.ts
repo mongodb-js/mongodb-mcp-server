@@ -75,7 +75,7 @@ export type TestSuiteConfig = {
     getClientCapabilities?: () => MockClientCapabilities;
 };
 
-export const defaultTestSuiteConfig: TestSuiteConfig = {
+const defaultTestSuiteConfig: TestSuiteConfig = {
     getUserConfig: () => defaultTestConfig,
     getDriverOptions: () => defaultDriverOptions,
     downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
@@ -84,14 +84,12 @@ export const defaultTestSuiteConfig: TestSuiteConfig = {
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
-    {
-        getUserConfig,
-        getDriverOptions,
-        downloadOptions,
-        getMockElicitationInput,
-        getClientCapabilities,
-    }: TestSuiteConfig = defaultTestSuiteConfig
+    partialTestSuiteConfig?: Partial<TestSuiteConfig>
 ): void {
+    const { getUserConfig, getDriverOptions, downloadOptions, getMockElicitationInput, getClientCapabilities } = {
+        ...defaultTestSuiteConfig,
+        ...partialTestSuiteConfig,
+    };
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
         const mockElicitInput = getMockElicitationInput?.();

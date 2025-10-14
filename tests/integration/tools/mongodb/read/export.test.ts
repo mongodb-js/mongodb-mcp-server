@@ -10,7 +10,7 @@ import {
     validateThrowsForInvalidArguments,
     validateToolMetadata,
 } from "../../../helpers.js";
-import { defaultTestSuiteConfig, describeWithMongoDB } from "../mongodbHelpers.js";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
 import type { UserConfig } from "../../../../../src/lib.js";
 
 const userConfig: UserConfig = {
@@ -459,7 +459,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getUserConfig: () => userConfig,
     }
 );

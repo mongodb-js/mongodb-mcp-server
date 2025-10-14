@@ -8,7 +8,7 @@ import {
     validateThrowsForInvalidArguments,
     validateToolMetadata,
 } from "../../../helpers.js";
-import { defaultTestSuiteConfig, describeWithMongoDB } from "../mongodbHelpers.js";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { Elicitation } from "../../../../../src/elicitation.js";
 
@@ -174,7 +174,6 @@ describeWithMongoDB(
         });
     },
     {
-        ...defaultTestSuiteConfig,
         getMockElicitationInput: () => mockElicitInput,
     }
 );

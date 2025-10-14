@@ -1,5 +1,5 @@
 import { defaultTestConfig, expectDefined } from "./helpers.js";
-import { defaultTestSuiteConfig, describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
+import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
 
 describe("Server integration test", () => {
@@ -16,7 +16,6 @@ describe("Server integration test", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => ({
                 ...defaultTestConfig,
                 apiClientId: undefined,
@@ -57,7 +56,6 @@ describe("Server integration test", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => ({
                 ...defaultTestConfig,
                 apiClientId: "test",
@@ -89,7 +87,6 @@ describe("Server integration test", () => {
             });
         },
         {
-            ...defaultTestSuiteConfig,
             getUserConfig: () => ({
                 ...defaultTestConfig,
                 readOnly: true,
