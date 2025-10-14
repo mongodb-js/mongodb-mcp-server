@@ -1,4 +1,3 @@
-import { jsonExportFormat } from "../../src/common/exportsManager.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 
