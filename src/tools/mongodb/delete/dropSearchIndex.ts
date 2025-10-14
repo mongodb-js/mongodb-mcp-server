@@ -1,5 +1,5 @@
+import z from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { CommonArgs } from "../../args.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { formatUntrustedData, type OperationType, type ToolArgs } from "../../tool.js";
 import { ListSearchIndexesTool } from "../search/listSearchIndexes.js";
@@ -9,9 +9,7 @@ export class DropSearchIndexTool extends MongoDBToolBase {
     protected description = "Drop a search index or vector search index for the provided database and collection.";
     protected argsShape = {
         ...DbOperationArgs,
-        indexName: CommonArgs.string()
-            .nonempty()
-            .describe("The name of the search or vector search index to be dropped."),
+        indexName: z.string().nonempty().describe("The name of the search or vector search index to be dropped."),
     };
     public operationType: OperationType = "delete";
 
