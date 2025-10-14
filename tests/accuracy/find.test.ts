@@ -1,3 +1,4 @@
+import { jsonExportFormat } from "../../src/common/exportsManager.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 
@@ -124,6 +125,7 @@ describeAccuracyTests([
                     limit: Matcher.anyValue,
                     sort: Matcher.anyValue,
                 },
+                optional: true,
             },
             {
                 toolName: "export",
@@ -137,7 +139,7 @@ describeAccuracyTests([
                             arguments: Matcher.anyOf(
                                 Matcher.emptyObjectOrUndefined,
                                 Matcher.value({
-                                    filter: Matcher.anyValue,
+                                    filter: Matcher.emptyObjectOrUndefined,
                                     projection: Matcher.anyValue,
                                     limit: Matcher.anyValue,
                                     sort: Matcher.anyValue,
@@ -145,6 +147,11 @@ describeAccuracyTests([
                             ),
                         },
                     ],
+                    jsonExportFormat: Matcher.anyOf(
+                        Matcher.undefined,
+                        Matcher.value("relaxed"),
+                        Matcher.value("canonical")
+                    ),
                 },
             },
         ],

@@ -35,21 +35,27 @@ const mockedTools = {
     },
 };
 
+const listProjectsAndClustersToolCalls = [
+    {
+        toolName: "atlas-list-projects",
+        parameters: {},
+        optional: true,
+    },
+    {
+        toolName: "atlas-list-clusters",
+        parameters: {
+            projectId: "mflix",
+        },
+        optional: true,
+    },
+];
+
 describeAccuracyTests([
     // Test for Suggested Indexes operation
     {
         prompt: "Can you give me index suggestions for the database 'mflix' in the project 'mflix' and cluster 'mflix-cluster'?",
         expectedToolCalls: [
-            {
-                toolName: "atlas-list-projects",
-                parameters: {},
-            },
-            {
-                toolName: "atlas-list-clusters",
-                parameters: {
-                    projectId: "mflix",
-                },
-            },
+            ...listProjectsAndClustersToolCalls,
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
@@ -65,16 +71,7 @@ describeAccuracyTests([
     {
         prompt: "Show me drop index suggestions for the 'mflix' project and 'mflix-cluster' cluster",
         expectedToolCalls: [
-            {
-                toolName: "atlas-list-projects",
-                parameters: {},
-            },
-            {
-                toolName: "atlas-list-clusters",
-                parameters: {
-                    projectId: "mflix",
-                },
-            },
+            ...listProjectsAndClustersToolCalls,
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
@@ -88,18 +85,9 @@ describeAccuracyTests([
     },
     // Test for Slow Query Logs operation
     {
-        prompt: "Show me the slow query logs for the 'mflix' project and 'mflix-cluster' cluster for the namespaces 'mflix.movies' and 'mflix.shows' since January 1st, 2025.",
+        prompt: "Show me the slow query logs for the 'mflix' project and 'mflix-cluster' cluster for the namespaces 'mflix.movies' and 'mflix.shows' since January 1st, 2025 (a date that is certainly in the past!).",
         expectedToolCalls: [
-            {
-                toolName: "atlas-list-projects",
-                parameters: {},
-            },
-            {
-                toolName: "atlas-list-clusters",
-                parameters: {
-                    projectId: "mflix",
-                },
-            },
+            ...listProjectsAndClustersToolCalls,
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
@@ -117,16 +105,7 @@ describeAccuracyTests([
     {
         prompt: "Give me schema suggestions for the 'mflix' project and 'mflix-cluster' cluster",
         expectedToolCalls: [
-            {
-                toolName: "atlas-list-projects",
-                parameters: {},
-            },
-            {
-                toolName: "atlas-list-clusters",
-                parameters: {
-                    projectId: "mflix",
-                },
-            },
+            ...listProjectsAndClustersToolCalls,
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
@@ -142,16 +121,7 @@ describeAccuracyTests([
     {
         prompt: "Show me all performance advisor recommendations for the 'mflix' project and 'mflix-cluster' cluster",
         expectedToolCalls: [
-            {
-                toolName: "atlas-list-projects",
-                parameters: {},
-            },
-            {
-                toolName: "atlas-list-clusters",
-                parameters: {
-                    projectId: "mflix",
-                },
-            },
+            ...listProjectsAndClustersToolCalls,
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
