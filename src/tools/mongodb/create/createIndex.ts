@@ -1,14 +1,8 @@
-import type { ZodDiscriminatedUnionOption } from "zod";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, type ToolConstructorParams, FeatureFlags } from "../../tool.js";
+import { type ToolArgs, type OperationType, FeatureFlags } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
-
-const classicIndexDefinition = z.object({
-    type: z.literal("classic"),
-    keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
-});
 
 const vectorSearchIndexDefinition = z.object({
     type: z.literal("vectorSearch"),
@@ -24,7 +18,8 @@ const vectorSearchIndexDefinition = z.object({
                                 "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
                             ),
                     })
-                    .strict(),
+                    .strict()
+                    .describe("Definition for a field that will be used for pre-filtering results."),
                 z
                     .object({
                         type: z.literal("vector"),
@@ -54,7 +49,8 @@ const vectorSearchIndexDefinition = z.object({
                                 "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
                             ),
                     })
-                    .strict(),
+                    .strict()
+                    .describe("Definition for a field that contains vector embeddings."),
             ])
         )
         .nonempty()
@@ -69,26 +65,23 @@ const vectorSearchIndexDefinition = z.object({
 export class CreateIndexTool extends MongoDBToolBase {
     public name = "create-index";
     protected description = "Create an index for a collection";
-    protected argsShape;
-
-    constructor(params: ToolConstructorParams) {
-        super(params);
-
-        const additionalIndexDefinitions: ZodDiscriminatedUnionOption<"type">[] = [];
-        if (this.isFeatureFlagEnabled(FeatureFlags.VectorSearch)) {
-            additionalIndexDefinitions.push(vectorSearchIndexDefinition);
-        }
-
-        this.argsShape = {
-            ...DbOperationArgs,
-            name: z.string().optional().describe("The name of the index"),
-            definition: z
-                .array(z.discriminatedUnion("type", [classicIndexDefinition, ...additionalIndexDefinitions]))
-                .describe(
-                    "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes"
-                ),
-        };
-    }
+    protected argsShape = {
+        ...DbOperationArgs,
+        name: z.string().optional().describe("The name of the index"),
+        definition: z
+            .array(
+                z.discriminatedUnion("type", [
+                    z.object({
+                        type: z.literal("classic"),
+                        keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
+                    }),
+                    ...(this.isFeatureFlagEnabled(FeatureFlags.VectorSearch) ? [vectorSearchIndexDefinition] : []),
+                ])
+            )
+            .describe(
+                "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes"
+            ),
+    };
 
     public operationType: OperationType = "create";
 
@@ -107,29 +100,23 @@ export class CreateIndexTool extends MongoDBToolBase {
 
         switch (definition.type) {
             case "classic":
-                {
-                    const typedDefinition = definition as z.infer<typeof classicIndexDefinition>;
-                    indexes = await provider.createIndexes(database, collection, [
-                        {
-                            key: typedDefinition.keys,
-                            name,
-                        },
-                    ]);
-                }
+                indexes = await provider.createIndexes(database, collection, [
+                    {
+                        key: definition.keys,
+                        name,
+                    },
+                ]);
                 break;
             case "vectorSearch":
-                {
-                    const typedDefinition = definition as z.infer<typeof vectorSearchIndexDefinition>;
-                    indexes = await provider.createSearchIndexes(database, collection, [
-                        {
-                            name,
-                            definition: {
-                                fields: typedDefinition.fields,
-                            },
-                            type: "vectorSearch",
+                indexes = await provider.createSearchIndexes(database, collection, [
+                    {
+                        name,
+                        definition: {
+                            fields: definition.fields,
                         },
-                    ]);
-                }
+                        type: "vectorSearch",
+                    },
+                ]);
 
                 break;
         }
