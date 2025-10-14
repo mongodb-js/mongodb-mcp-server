@@ -114,9 +114,9 @@ async function main(): Promise<void> {
         }
     }
 
-    // If there were any errors, throw with all accumulated errors
     if (allErrors.length > 0) {
-        const errorSummary = `Cleanup completed with ${allErrors.length} error(s):\n${allErrors.map((err, i) => `${i + 1}. ${err}`).join("\n")}`;
+        const errorList = allErrors.map((err, i) => `${i + 1}. ${err}`).join("\n");
+        const errorSummary = `Cleanup completed with ${allErrors.length} error(s):\n${errorList}`;
         throw new Error(errorSummary);
     }
 
