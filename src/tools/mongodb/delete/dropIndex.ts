@@ -1,14 +1,14 @@
+import z from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
-import { CommonArgs } from "../../args.js";
+import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 
 export class DropIndexTool extends MongoDBToolBase {
     public name = "drop-index";
     protected description = "Drop an index for the provided database and collection.";
     protected argsShape = {
         ...DbOperationArgs,
-        indexName: CommonArgs.string().nonempty().describe("The name of the index to be dropped."),
+        indexName: z.string().nonempty().describe("The name of the index to be dropped."),
     };
     public operationType: OperationType = "delete";
 
@@ -24,12 +24,12 @@ export class DropIndexTool extends MongoDBToolBase {
         });
 
         return {
-            content: [
-                {
-                    text: `${result.ok ? "Successfully dropped" : "Failed to drop"} the index with name "${indexName}" from the provided namespace "${database}.${collection}".`,
-                    type: "text",
-                },
-            ],
+            content: formatUntrustedData(
+                `${result.ok ? "Successfully dropped" : "Failed to drop"} the index.`,
+                JSON.stringify({
+                    indexName,
+                })
+            ),
             isError: result.ok ? undefined : true,
         };
     }
