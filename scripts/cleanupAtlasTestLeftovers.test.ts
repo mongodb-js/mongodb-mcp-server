@@ -76,8 +76,11 @@ async function main(): Promise<void> {
     );
 
     const testOrg = await findTestOrganization(apiClient);
-    const testProjects = await findAllTestProjects(apiClient, testOrg.id || "");
+    if (!testOrg.id) {
+        throw new Error("Test organization ID not found.");
+    }
 
+    const testProjects = await findAllTestProjects(apiClient, testOrg.id);
     if (testProjects.length === 0) {
         console.log("No stale test projects found for cleanup.");
         return;
