@@ -141,6 +141,15 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
+    get isConnectedToMongot(): Promise<boolean> {
+        const state = this.connectionManager.currentConnectionState;
+        if (state.tag === "connected") {
+            return state.isSearchSupported();
+        }
+
+        return Promise.resolve(false);
+    }
+
     get serviceProvider(): NodeDriverServiceProvider {
         if (this.isConnectedToMongoDB) {
             const state = this.connectionManager.currentConnectionState as ConnectionStateConnected;
@@ -152,18 +161,5 @@ export class Session extends EventEmitter<SessionEvents> {
 
     get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined {
         return this.connectionManager.currentConnectionState.connectedAtlasCluster;
-    }
-
-    async isSearchIndexSupported(): Promise<boolean> {
-        try {
-            const dummyDatabase = `search-index-test-db-${Date.now()}`;
-            const dummyCollection = `search-index-test-coll-${Date.now()}`;
-            // If a cluster supports search indexes, the call below will succeed
-            // with a cursor otherwise will throw an Error
-            await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);
-            return true;
-        } catch {
-            return false;
-        }
     }
 }

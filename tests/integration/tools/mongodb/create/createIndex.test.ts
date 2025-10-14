@@ -311,6 +311,36 @@ describeWithMongoDB(
             await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
         });
 
+        it("fails to create a vector search index", async () => {
+            await integration.connectMcpClient();
+            const collection = new ObjectId().toString();
+            await integration
+                .mcpServer()
+                .session.serviceProvider.createCollection(integration.randomDbName(), collection);
+
+            const response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection,
+                    name: "vector_1_vector",
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [
+                                { type: "vector", path: "vector_1", numDimensions: 4 },
+                                { type: "filter", path: "category" },
+                            ],
+                        },
+                    ],
+                },
+            });
+
+            const content = getResponseContent(response.content);
+            expect(content).toContain("The connected MongoDB deployment does not support vector search indexes.");
+            expect(response.isError).toBe(true);
+        });
+
         const testCases: { name: string; direction: IndexDirection }[] = [
             { name: "descending", direction: -1 },
             { name: "ascending", direction: 1 },
