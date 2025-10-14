@@ -422,26 +422,61 @@ export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export async function waitFor(
+    condition: () => boolean | Promise<boolean>,
+    {
+        retries,
+        retryTimeout,
+        abortSignal,
+        shouldRetryOnError,
+    }: {
+        retries: number;
+        retryTimeout: number;
+        abortSignal?: AbortSignal;
+        shouldRetryOnError?: (error: unknown) => boolean | Promise<boolean>;
+    } = {
+        retries: 100,
+        retryTimeout: 100,
+    }
+): Promise<void> {
+    for (let i = 0; i < retries && !abortSignal?.aborted; i++) {
+        try {
+            if (await condition()) {
+                return;
+            }
+
+            await sleep(retryTimeout);
+        } catch (error) {
+            if (shouldRetryOnError && (await shouldRetryOnError(error))) {
+                await sleep(retryTimeout);
+                continue;
+            }
+            throw error;
+        }
+    }
+}
+
 export async function waitUntilSearchManagementServiceIsReady(
     collection: Collection,
     abortSignal?: AbortSignal
 ): Promise<void> {
-    for (let i = 0; i < SEARCH_READY_CHECK_RETRIES && !abortSignal?.aborted; i++) {
-        try {
+    await waitFor(
+        async (): Promise<boolean> => {
             await collection.listSearchIndexes({}).toArray();
-            return;
-        } catch (error) {
-            if (
-                error instanceof Error &&
-                error.message.includes("Error connecting to Search Index Management service")
-            ) {
-                await sleep(100);
-                continue;
-            } else {
-                throw error;
-            }
+            return true;
+        },
+        {
+            retries: SEARCH_READY_CHECK_RETRIES,
+            retryTimeout: 100,
+            abortSignal,
+            shouldRetryOnError: (error: unknown) => {
+                return (
+                    error instanceof Error &&
+                    error.message.includes("Error connecting to Search Index Management service")
+                );
+            },
         }
-    }
+    );
 }
 
 async function waitUntilSearchIndexIs(
@@ -450,29 +485,27 @@ async function waitUntilSearchIndexIs(
     indexValidator: (index: { name: string; queryable: boolean }) => boolean,
     abortSignal?: AbortSignal
 ): Promise<void> {
-    for (let i = 0; i < SEARCH_INDEX_STATUS_CHECK_RETRIES && !abortSignal?.aborted; i++) {
-        try {
+    await waitFor(
+        async (): Promise<boolean> => {
             const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
                 name: string;
                 queryable: boolean;
             }[];
 
-            if (searchIndexes.some((index) => indexValidator(index))) {
-                return;
-            }
-            await sleep(100);
-        } catch (error) {
-            if (
-                error instanceof Error &&
-                error.message.includes("Error connecting to Search Index Management service")
-            ) {
-                await sleep(100);
-                continue;
-            } else {
-                throw error;
-            }
+            return searchIndexes.some((index) => indexValidator(index));
+        },
+        {
+            retries: SEARCH_INDEX_STATUS_CHECK_RETRIES,
+            retryTimeout: 100,
+            abortSignal,
+            shouldRetryOnError: (error: unknown) => {
+                return (
+                    error instanceof Error &&
+                    error.message.includes("Error connecting to Search Index Management service")
+                );
+            },
         }
-    }
+    );
 }
 
 export async function waitUntilSearchIndexIsListed(

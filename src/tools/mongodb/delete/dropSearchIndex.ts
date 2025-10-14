@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CommonArgs } from "../../args.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type OperationType, type ToolArgs } from "../../tool.js";
+import { formatUntrustedData, type OperationType, type ToolArgs } from "../../tool.js";
 import { ListSearchIndexesTool } from "../search/listSearchIndexes.js";
 
 export class DropSearchIndexTool extends MongoDBToolBase {
@@ -30,24 +30,23 @@ export class DropSearchIndexTool extends MongoDBToolBase {
         const indexDoesNotExist = !searchIndexes.find((index) => index.name === indexName);
         if (indexDoesNotExist) {
             return {
-                content: [
-                    {
-                        type: "text",
-                        text: `Index with name "${indexName}" does not exist in the provided namespace "${database}.${collection}".`,
-                    },
-                ],
+                content: formatUntrustedData(
+                    "Index does not exist in the provided namespace.",
+                    JSON.stringify({ indexName, namespace: `${database}.${collection}` })
+                ),
                 isError: true,
             };
         }
 
         await provider.dropSearchIndex(database, collection, indexName);
         return {
-            content: [
-                {
-                    type: "text",
-                    text: `Successfully dropped the index with name "${indexName}" from the provided namespace "${database}.${collection}".`,
-                },
-            ],
+            content: formatUntrustedData(
+                "Successfully dropped the index from the provided namespace.",
+                JSON.stringify({
+                    indexName,
+                    namespace: `${database}.${collection}`,
+                })
+            ),
         };
     }
 
