@@ -16,6 +16,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
+import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -70,6 +71,8 @@ export type TestSuiteConfig = {
     getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig;
     getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions;
     downloadOptions: MongoClusterConfiguration;
+    getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
+    getClientCapabilities?: () => MockClientCapabilities;
 };
 
 export const defaultTestSuiteConfig: TestSuiteConfig = {
@@ -81,17 +84,25 @@ export const defaultTestSuiteConfig: TestSuiteConfig = {
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
-    { getUserConfig, getDriverOptions, downloadOptions }: TestSuiteConfig = defaultTestSuiteConfig
+    {
+        getUserConfig,
+        getDriverOptions,
+        downloadOptions,
+        getMockElicitationInput,
+        getClientCapabilities,
+    }: TestSuiteConfig = defaultTestSuiteConfig
 ): void {
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
+        const mockElicitInput = getMockElicitationInput?.();
         const integration = setupIntegrationTest(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
             () => ({
                 ...getDriverOptions(mdbIntegration),
-            })
+            }),
+            { elicitInput: mockElicitInput, getClientCapabilities }
         );
 
         fn({
