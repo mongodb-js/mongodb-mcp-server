@@ -15,42 +15,46 @@ const vectorSearchIndexDefinition = z.object({
     fields: z
         .array(
             z.discriminatedUnion("type", [
-                z.object({
-                    type: z.literal("filter"),
-                    path: z
-                        .string()
-                        .describe(
-                            "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                        ),
-                }),
-                z.object({
-                    type: z.literal("vector"),
-                    path: z
-                        .string()
-                        .describe(
-                            "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                        ),
-                    numDimensions: z
-                        .number()
-                        .min(1)
-                        .max(8192)
-                        .describe(
-                            "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
-                        ),
-                    similarity: z
-                        .enum(["cosine", "euclidean", "dotProduct"])
-                        .default("cosine")
-                        .describe(
-                            "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
-                        ),
-                    quantization: z
-                        .enum(["none", "scalar", "binary"])
-                        .optional()
-                        .default("none")
-                        .describe(
-                            "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
-                        ),
-                }),
+                z
+                    .object({
+                        type: z.literal("filter"),
+                        path: z
+                            .string()
+                            .describe(
+                                "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                            ),
+                    })
+                    .strict(),
+                z
+                    .object({
+                        type: z.literal("vector"),
+                        path: z
+                            .string()
+                            .describe(
+                                "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                            ),
+                        numDimensions: z
+                            .number()
+                            .min(1)
+                            .max(8192)
+                            .describe(
+                                "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
+                            ),
+                        similarity: z
+                            .enum(["cosine", "euclidean", "dotProduct"])
+                            .default("cosine")
+                            .describe(
+                                "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
+                            ),
+                        quantization: z
+                            .enum(["none", "scalar", "binary"])
+                            .optional()
+                            .default("none")
+                            .describe(
+                                "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
+                            ),
+                    })
+                    .strict(),
             ])
         )
         .nonempty()
