@@ -44,10 +44,10 @@ describeWithMongoDB(
     (integration) => {
         let fooCollection: Collection;
 
-        beforeEach(async ({ signal }) => {
+        beforeEach(async () => {
             await integration.connectMcpClient();
             fooCollection = integration.mongoClient().db("any").collection("foo");
-            await waitUntilSearchManagementServiceIsReady(fooCollection, signal);
+            await waitUntilSearchManagementServiceIsReady(fooCollection, SEARCH_TIMEOUT);
         });
 
         describe("when the collection does not exist", () => {
@@ -77,9 +77,9 @@ describeWithMongoDB(
         });
 
         describe("when there are indexes", () => {
-            beforeEach(async ({ signal }) => {
+            beforeEach(async () => {
                 await fooCollection.insertOne({ field1: "yay" });
-                await waitUntilSearchManagementServiceIsReady(fooCollection, signal);
+                await waitUntilSearchManagementServiceIsReady(fooCollection, SEARCH_TIMEOUT);
                 await fooCollection.createSearchIndexes([{ definition: { mappings: { dynamic: true } } }]);
             });
 
@@ -99,8 +99,8 @@ describeWithMongoDB(
             it(
                 "returns the list of existing indexes and detects if they are queryable",
                 { timeout: SEARCH_TIMEOUT },
-                async ({ signal }) => {
-                    await waitUntilSearchIndexIsQueryable(fooCollection, "default", signal);
+                async () => {
+                    await waitUntilSearchIndexIsQueryable(fooCollection, "default", SEARCH_TIMEOUT);
 
                     const response = await integration.mcpClient().callTool({
                         name: "list-search-indexes",

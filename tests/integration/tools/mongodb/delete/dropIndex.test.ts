@@ -56,7 +56,7 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
 } {
     let moviesCollection: Collection;
     const indexName = "searchIdx";
-    beforeEach(async ({ signal }) => {
+    beforeEach(async () => {
         await integration.connectMcpClient();
         const mongoClient = integration.mongoClient();
         moviesCollection = mongoClient.db("mflix").collection("movies");
@@ -66,12 +66,12 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
                 plot: "This is a horrible movie about a database called BongoDB and how it tried to copy the OG MangoDB.",
             },
         ]);
-        await waitUntilSearchManagementServiceIsReady(moviesCollection, signal);
+        await waitUntilSearchManagementServiceIsReady(moviesCollection, SEARCH_TIMEOUT);
         await moviesCollection.createSearchIndex({
             name: indexName,
             definition: { mappings: { dynamic: true } },
         });
-        await waitUntilSearchIndexIsListed(moviesCollection, indexName, signal);
+        await waitUntilSearchIndexIsListed(moviesCollection, indexName, SEARCH_TIMEOUT);
     });
 
     afterEach(async () => {

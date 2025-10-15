@@ -23,8 +23,8 @@ import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 
-const SEARCH_READY_CHECK_RETRIES = 200;
-const SEARCH_INDEX_STATUS_CHECK_RETRIES = 100;
+export const DEFAULT_WAIT_TIMEOUT = 1000;
+export const DEFAULT_RETRY_INTERVAL = 100;
 
 export const driverOptions = setupDriverConfig({
     config,
@@ -422,88 +422,35 @@ export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function waitFor(
-    condition: () => boolean | Promise<boolean>,
-    {
-        retries,
-        retryTimeout,
-        abortSignal,
-        shouldRetryOnError,
-    }: {
-        retries: number;
-        retryTimeout: number;
-        abortSignal?: AbortSignal;
-        shouldRetryOnError?: (error: unknown) => boolean | Promise<boolean>;
-    } = {
-        retries: 100,
-        retryTimeout: 100,
-    }
-): Promise<void> {
-    for (let i = 0; i < retries && !abortSignal?.aborted; i++) {
-        try {
-            if (await condition()) {
-                return;
-            }
-
-            await sleep(retryTimeout);
-        } catch (error) {
-            if (shouldRetryOnError && (await shouldRetryOnError(error))) {
-                await sleep(retryTimeout);
-                continue;
-            }
-            throw error;
-        }
-    }
-}
-
 export async function waitUntilSearchManagementServiceIsReady(
     collection: Collection,
-    abortSignal?: AbortSignal
+    timeout: number = DEFAULT_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
 ): Promise<void> {
-    await waitFor(
-        async (): Promise<boolean> => {
-            await collection.listSearchIndexes({}).toArray();
-            return true;
-        },
-        {
-            retries: SEARCH_READY_CHECK_RETRIES,
-            retryTimeout: 100,
-            abortSignal,
-            shouldRetryOnError: (error: unknown) => {
-                return (
-                    error instanceof Error &&
-                    error.message.includes("Error connecting to Search Index Management service")
-                );
-            },
-        }
-    );
+    await vi.waitFor(async () => await collection.listSearchIndexes({}).toArray(), { timeout, interval });
 }
 
 async function waitUntilSearchIndexIs(
     collection: Collection,
     searchIndex: string,
     indexValidator: (index: { name: string; queryable: boolean }) => boolean,
-    abortSignal?: AbortSignal
+    timeout: number,
+    interval: number
 ): Promise<void> {
-    await waitFor(
-        async (): Promise<boolean> => {
+    await vi.waitFor(
+        async () => {
             const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
                 name: string;
                 queryable: boolean;
             }[];
 
-            return searchIndexes.some((index) => indexValidator(index));
+            if (!searchIndexes.some((index) => indexValidator(index))) {
+                throw new Error("Search index did not pass validation");
+            }
         },
         {
-            retries: SEARCH_INDEX_STATUS_CHECK_RETRIES,
-            retryTimeout: 100,
-            abortSignal,
-            shouldRetryOnError: (error: unknown) => {
-                return (
-                    error instanceof Error &&
-                    error.message.includes("Error connecting to Search Index Management service")
-                );
-            },
+            timeout,
+            interval,
         }
     );
 }
@@ -511,20 +458,23 @@ async function waitUntilSearchIndexIs(
 export async function waitUntilSearchIndexIsListed(
     collection: Collection,
     searchIndex: string,
-    abortSignal?: AbortSignal
+    timeout: number = DEFAULT_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
 ): Promise<void> {
-    return waitUntilSearchIndexIs(collection, searchIndex, (index) => index.name === searchIndex, abortSignal);
+    return waitUntilSearchIndexIs(collection, searchIndex, (index) => index.name === searchIndex, timeout, interval);
 }
 
 export async function waitUntilSearchIndexIsQueryable(
     collection: Collection,
     searchIndex: string,
-    abortSignal?: AbortSignal
+    timeout: number = DEFAULT_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
 ): Promise<void> {
     return waitUntilSearchIndexIs(
         collection,
         searchIndex,
         (index) => index.name === searchIndex && index.queryable,
-        abortSignal
+        timeout,
+        interval
     );
 }
