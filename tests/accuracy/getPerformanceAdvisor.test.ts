@@ -85,7 +85,7 @@ describeAccuracyTests([
     },
     // Test for Slow Query Logs operation
     {
-        prompt: "Show me the slow query logs for the 'mflix' project and 'mflix-cluster' cluster for the namespaces 'mflix.movies' and 'mflix.shows' since January 1st, 2025 (a date that is certainly in the past!).",
+        prompt: "Show me the slow query logs for the 'mflix' project and 'mflix-cluster' cluster for the namespaces 'mflix.movies' and 'mflix.shows' since January 1st, 2023",
         expectedToolCalls: [
             ...listProjectsAndClustersToolCalls,
             {
@@ -95,7 +95,7 @@ describeAccuracyTests([
                     clusterName: "mflix-cluster",
                     operations: ["slowQueryLogs"],
                     namespaces: ["mflix.movies", "mflix.shows"],
-                    since: "2025-01-01T00:00:00Z",
+                    since: "2023-01-01T00:00:00Z",
                 },
             },
         ],
