@@ -4,7 +4,9 @@ export interface LLMToolCall {
     parameters: Record<string, unknown>;
 }
 
-export type ExpectedToolCall = Omit<LLMToolCall, "toolCallId">;
+export type ExpectedToolCall = Omit<LLMToolCall, "toolCallId"> & {
+    optional?: boolean;
+};
 
 export const AccuracyRunStatus = {
     Done: "done",

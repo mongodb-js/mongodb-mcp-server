@@ -124,6 +124,7 @@ describeAccuracyTests([
                     limit: Matcher.anyValue,
                     sort: Matcher.anyValue,
                 },
+                optional: true,
             },
             {
                 toolName: "export",
@@ -137,7 +138,7 @@ describeAccuracyTests([
                             arguments: Matcher.anyOf(
                                 Matcher.emptyObjectOrUndefined,
                                 Matcher.value({
-                                    filter: Matcher.anyValue,
+                                    filter: Matcher.emptyObjectOrUndefined,
                                     projection: Matcher.anyValue,
                                     limit: Matcher.anyValue,
                                     sort: Matcher.anyValue,
@@ -145,6 +146,11 @@ describeAccuracyTests([
                             ),
                         },
                     ],
+                    jsonExportFormat: Matcher.anyOf(
+                        Matcher.undefined,
+                        Matcher.value("relaxed"),
+                        Matcher.value("canonical")
+                    ),
                 },
             },
         ],
