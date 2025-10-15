@@ -1,7 +1,9 @@
 import z from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
+import { type ToolArgs, type OperationType, formatUntrustedData, FeatureFlags } from "../../tool.js";
+import { ListSearchIndexesTool } from "../search/listSearchIndexes.js";
 
 export class DropIndexTool extends MongoDBToolBase {
     public name = "drop-index";
@@ -9,15 +11,33 @@ export class DropIndexTool extends MongoDBToolBase {
     protected argsShape = {
         ...DbOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
+        type: this.isFeatureFlagEnabled(FeatureFlags.VectorSearch)
+            ? z
+                  .enum(["classic", "search"])
+                  .describe(
+                      "The type of index to be deleted. Use 'classic' for standard indexes and 'search' for atlas search and vector search indexes."
+                  )
+            : z
+                  .literal("classic")
+                  .default("classic")
+                  .describe("The type of index to be deleted. Is always set to 'classic'."),
     };
     public operationType: OperationType = "delete";
 
-    protected async execute({
-        database,
-        collection,
-        indexName,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+        switch (toolArgs.type) {
+            case "classic":
+                return this.dropClassicIndex(provider, toolArgs);
+            case "search":
+                return this.dropSearchIndex(provider, toolArgs);
+        }
+    }
+
+    private async dropClassicIndex(
+        provider: NodeDriverServiceProvider,
+        { database, collection, indexName }: ToolArgs<typeof this.argsShape>
+    ): Promise<CallToolResult> {
         const result = await provider.runCommand(database, {
             dropIndexes: collection,
             index: indexName,
@@ -35,11 +55,57 @@ export class DropIndexTool extends MongoDBToolBase {
         };
     }
 
+    private async dropSearchIndex(
+        provider: NodeDriverServiceProvider,
+        { database, collection, indexName }: ToolArgs<typeof this.argsShape>
+    ): Promise<CallToolResult> {
+        const searchIndexes = await ListSearchIndexesTool.getSearchIndexes(provider, database, collection);
+        const indexDoesNotExist = !searchIndexes.find((index) => index.name === indexName);
+        if (indexDoesNotExist) {
+            return {
+                content: formatUntrustedData(
+                    "Index does not exist in the provided namespace.",
+                    JSON.stringify({ indexName, namespace: `${database}.${collection}` })
+                ),
+                isError: true,
+            };
+        }
+
+        await provider.dropSearchIndex(database, collection, indexName);
+        return {
+            content: formatUntrustedData(
+                "Successfully dropped the index from the provided namespace.",
+                JSON.stringify({
+                    indexName,
+                    namespace: `${database}.${collection}`,
+                })
+            ),
+        };
+    }
+
     protected getConfirmationMessage({ database, collection, indexName }: ToolArgs<typeof this.argsShape>): string {
         return (
             `You are about to drop the \`${indexName}\` index from the \`${database}.${collection}\` namespace:\n\n` +
             "This operation will permanently remove the index and might affect the performance of queries relying on this index.\n\n" +
             "**Do you confirm the execution of the action?**"
         );
+    }
+
+    protected handleError(
+        error: unknown,
+        args: ToolArgs<typeof DbOperationArgs>
+    ): Promise<CallToolResult> | CallToolResult {
+        if (error instanceof Error && "codeName" in error && error.codeName === "SearchNotEnabled") {
+            return {
+                content: [
+                    {
+                        text: "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search.",
+                        type: "text",
+                    },
+                ],
+                isError: true,
+            };
+        }
+        return super.handleError(error, args);
     }
 }

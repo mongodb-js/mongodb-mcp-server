@@ -77,7 +77,7 @@ export type TestSuiteConfig = {
     getClientCapabilities?: () => MockClientCapabilities;
 };
 
-const defaultTestSuiteConfig: TestSuiteConfig = {
+export const defaultTestSuiteConfig: TestSuiteConfig = {
     getUserConfig: () => defaultTestConfig,
     getDriverOptions: () => defaultDriverOptions,
     downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
