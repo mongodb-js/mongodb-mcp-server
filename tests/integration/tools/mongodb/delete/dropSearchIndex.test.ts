@@ -2,17 +2,14 @@ import { beforeEach, afterEach, describe, expect, it, vi, type MockInstance } fr
 import {
     databaseCollectionInvalidArgs,
     databaseCollectionParameters,
-    defaultDriverOptions,
-    defaultTestConfig,
     getResponseContent,
-    setupIntegrationTest,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
     waitUntilSearchManagementServiceIsReady,
     waitUntilSearchIndexIsListed,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import { describeWithMongoDB, setupMongoDBIntegrationTest } from "../mongodbHelpers.js";
+import { describeWithMongoDB } from "../mongodbHelpers.js";
 import type { Collection } from "mongodb";
 import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { Elicitation } from "../../../../../src/elicitation.js";
@@ -122,89 +119,90 @@ describeWithMongoDB(
             });
         });
     },
-    undefined,
-    undefined,
-    { search: true }
+    {
+        downloadOptions: { search: true },
+    }
 );
 
-describe("drop-search-index tool - when invoked via an elicitation enabled client", () => {
-    const mockElicitInput = createMockElicitInput();
-    const mdbIntegration = setupMongoDBIntegrationTest({ search: true });
-    const integration = setupIntegrationTest(
-        () => defaultTestConfig,
-        () => defaultDriverOptions,
-        { elicitInput: mockElicitInput }
-    );
+const mockElicitInput = createMockElicitInput();
+describeWithMongoDB(
+    "drop-search-index tool - when invoked via an elicitation enabled client",
+    (integration) => {
+        let moviesCollection: Collection;
+        let dropSearchIndexSpy: MockInstance;
 
-    let moviesCollection: Collection;
-    let dropSearchIndexSpy: MockInstance;
+        beforeEach(async ({ signal }) => {
+            const mongoClient = integration.mongoClient();
+            moviesCollection = mongoClient.db("mflix").collection("movies");
+            await moviesCollection.insertMany([
+                {
+                    name: "Movie1",
+                    plot: "This is a horrible movie about a database called BongoDB and how it tried to copy the OG MangoDB.",
+                },
+            ]);
+            await waitUntilSearchManagementServiceIsReady(moviesCollection, signal);
+            await moviesCollection.createSearchIndex({
+                name: "searchIdx",
+                definition: { mappings: { dynamic: true } },
+            });
+            await waitUntilSearchIndexIsListed(moviesCollection, "searchIdx", signal);
 
-    beforeEach(async ({ signal }) => {
-        const mongoClient = mdbIntegration.mongoClient();
-        moviesCollection = mongoClient.db("mflix").collection("movies");
-        await moviesCollection.insertMany([
-            {
-                name: "Movie1",
-                plot: "This is a horrible movie about a database called BongoDB and how it tried to copy the OG MangoDB.",
-            },
-        ]);
-        await waitUntilSearchManagementServiceIsReady(moviesCollection, signal);
-        await moviesCollection.createSearchIndex({
-            name: "searchIdx",
-            definition: { mappings: { dynamic: true } },
-        });
-        await waitUntilSearchIndexIsListed(moviesCollection, "searchIdx", signal);
+            await integration.mcpClient().callTool({
+                name: "connect",
+                arguments: {
+                    connectionString: integration.connectionString(),
+                },
+            });
 
-        await integration.mcpClient().callTool({
-            name: "connect",
-            arguments: {
-                connectionString: mdbIntegration.connectionString(),
-            },
-        });
-
-        // Note: Unlike drop-index tool test, we don't test the final state of
-        // indexes because of possible longer wait periods for changes to
-        // reflect, at-times taking >30 seconds.
-        dropSearchIndexSpy = vi.spyOn(integration.mcpServer().session.serviceProvider, "dropSearchIndex");
-    });
-
-    afterEach(async () => {
-        // dropping collection also drops the associated search indexes
-        await moviesCollection.drop();
-    });
-
-    it("should ask for confirmation before proceeding with tool call", async () => {
-        mockElicitInput.confirmYes();
-        await integration.mcpClient().callTool({
-            name: "drop-search-index",
-            arguments: { database: "mflix", collection: "movies", indexName: "searchIdx" },
-        });
-        expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-        expect(mockElicitInput.mock).toHaveBeenCalledWith({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            message: expect.stringContaining(
-                "You are about to drop the `searchIdx` index from the `mflix.movies` namespace"
-            ),
-            requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+            // Note: Unlike drop-index tool test, we don't test the final state of
+            // indexes because of possible longer wait periods for changes to
+            // reflect, at-times taking >30 seconds.
+            dropSearchIndexSpy = vi.spyOn(integration.mcpServer().session.serviceProvider, "dropSearchIndex");
         });
 
-        expect(dropSearchIndexSpy).toHaveBeenCalledExactlyOnceWith("mflix", "movies", "searchIdx");
-    });
+        afterEach(async () => {
+            mockElicitInput.clear();
+            // dropping collection also drops the associated search indexes
+            await moviesCollection.drop();
+        });
 
-    it("should not drop the index if the confirmation was not provided", async () => {
-        mockElicitInput.confirmNo();
-        await integration.mcpClient().callTool({
-            name: "drop-search-index",
-            arguments: { database: "mflix", collection: "movies", indexName: "searchIdx" },
+        it("should ask for confirmation before proceeding with tool call", async () => {
+            mockElicitInput.confirmYes();
+            await integration.mcpClient().callTool({
+                name: "drop-search-index",
+                arguments: { database: "mflix", collection: "movies", indexName: "searchIdx" },
+            });
+            expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+            expect(mockElicitInput.mock).toHaveBeenCalledWith({
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining(
+                    "You are about to drop the `searchIdx` index from the `mflix.movies` namespace"
+                ),
+                requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+            });
+
+            expect(dropSearchIndexSpy).toHaveBeenCalledExactlyOnceWith("mflix", "movies", "searchIdx");
         });
-        expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-        expect(mockElicitInput.mock).toHaveBeenCalledWith({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            message: expect.stringContaining(
-                "You are about to drop the `searchIdx` index from the `mflix.movies` namespace"
-            ),
-            requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+
+        it("should not drop the index if the confirmation was not provided", async () => {
+            mockElicitInput.confirmNo();
+            await integration.mcpClient().callTool({
+                name: "drop-search-index",
+                arguments: { database: "mflix", collection: "movies", indexName: "searchIdx" },
+            });
+            expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+            expect(mockElicitInput.mock).toHaveBeenCalledWith({
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                message: expect.stringContaining(
+                    "You are about to drop the `searchIdx` index from the `mflix.movies` namespace"
+                ),
+                requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+            });
+            expect(dropSearchIndexSpy).not.toHaveBeenCalled();
         });
-        expect(dropSearchIndexSpy).not.toHaveBeenCalled();
-    });
-});
+    },
+    {
+        downloadOptions: { search: true },
+        getMockElicitationInput: () => mockElicitInput,
+    }
+);
