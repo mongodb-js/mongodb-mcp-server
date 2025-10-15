@@ -46,8 +46,8 @@ export class ConnectionStateConnected implements ConnectionState {
     public async isSearchSupported(): Promise<boolean> {
         if (this._isSearchSupported === undefined) {
             try {
-                const dummyDatabase = `search-index-test-db-${Date.now()}`;
-                const dummyCollection = `search-index-test-coll-${Date.now()}`;
+                const dummyDatabase = "test";
+                const dummyCollection = "test";
                 // If a cluster supports search indexes, the call below will succeed
                 // with a cursor otherwise will throw an Error
                 await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);

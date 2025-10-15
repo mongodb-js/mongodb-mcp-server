@@ -141,7 +141,7 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
-    get isConnectedToMongot(): Promise<boolean> {
+    isSearchSupported(): Promise<boolean> {
         const state = this.connectionManager.currentConnectionState;
         if (state.tag === "connected") {
             return state.isSearchSupported();
