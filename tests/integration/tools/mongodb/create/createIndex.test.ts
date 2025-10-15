@@ -491,7 +491,7 @@ describeWithMongoDB(
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toEqual({
                     fields: [
-                        { type: "vector", path: "vector_1", numDimensions: 4, similarity: "cosine" },
+                        { type: "vector", path: "vector_1", numDimensions: 4, similarity: "euclidean" },
                         { type: "filter", path: "category" },
                     ],
                 });
