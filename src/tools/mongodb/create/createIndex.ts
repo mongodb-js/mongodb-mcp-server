@@ -125,6 +125,8 @@ export class CreateIndexTool extends MongoDBToolBase {
 
                     responseClarification =
                         " Since this is a vector search index, it may take a while for the index to build. Use the `list-indexes` tool to check the index status.";
+                    // clean up the embeddings cache so it considers the new index
+                    this.session.vectorSearchEmbeddings.cleanupEmbeddingsForNamespace({ database, collection });
                 }
 
                 break;
