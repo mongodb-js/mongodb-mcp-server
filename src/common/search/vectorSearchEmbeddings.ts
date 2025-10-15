@@ -55,9 +55,9 @@ export class VectorSearchEmbeddings {
 
             this.embeddings.set(embeddingDefKey, vectorFields);
             return vectorFields;
-        } else {
-            return definition;
         }
+
+        return definition;
     }
 
     async findFieldsWithWrongEmbeddings(
@@ -121,6 +121,8 @@ export class VectorSearchEmbeddings {
         }
 
         switch (definition.quantization) {
+            // Because quantization is not defined by the use
+            // we have to trust them in the format they use.
             case "none":
                 return true;
             case "scalar":
