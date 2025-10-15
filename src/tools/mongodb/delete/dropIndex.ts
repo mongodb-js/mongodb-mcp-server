@@ -1,11 +1,12 @@
 import z from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { DbOperationArgs } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, FeatureFlags } from "../../tool.js";
 import { ListSearchIndexesTool } from "../search/listSearchIndexes.js";
+import { MongoDBToolWithSearchErrorHandler } from "../../../helpers/searchErrorHandler.js";
 
-export class DropIndexTool extends MongoDBToolBase {
+export class DropIndexTool extends MongoDBToolWithSearchErrorHandler {
     public name = "drop-index";
     protected description = "Drop an index for the provided database and collection.";
     protected argsShape = {
@@ -89,23 +90,5 @@ export class DropIndexTool extends MongoDBToolBase {
             "This operation will permanently remove the index and might affect the performance of queries relying on this index.\n\n" +
             "**Do you confirm the execution of the action?**"
         );
-    }
-
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof DbOperationArgs>
-    ): Promise<CallToolResult> | CallToolResult {
-        if (error instanceof Error && "codeName" in error && error.codeName === "SearchNotEnabled") {
-            return {
-                content: [
-                    {
-                        text: "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search.",
-                        type: "text",
-                    },
-                ],
-                isError: true,
-            };
-        }
-        return super.handleError(error, args);
     }
 }

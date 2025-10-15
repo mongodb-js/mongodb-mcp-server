@@ -88,7 +88,7 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
 describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
     "drop-index tool",
     ({ vectorSearchEnabled }) => {
-        describe(`when vector search is ${vectorSearchEnabled ? "enabled" : "disabled"}`, () => {
+        describe(`when vector search feature flag is ${vectorSearchEnabled ? "enabled" : "disabled"}`, () => {
             describeWithMongoDB(
                 "tool metadata and parameters",
                 (integration) => {
@@ -322,13 +322,13 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         it("should fail with appropriate error when invoked", async () => {
                             await integration.connectMcpClient();
                             const response = await integration.mcpClient().callTool({
-                                name: "drop-search-index",
-                                arguments: { database: "any", collection: "foo", indexName: "default" },
+                                name: "drop-index",
+                                arguments: { database: "any", collection: "foo", indexName: "default", type: "search" },
                             });
                             const content = getResponseContent(response.content);
                             expect(response.isError).toBe(true);
-                            expect(content).toEqual(
-                                "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
+                            expect(content).toContain(
+                                "The connected MongoDB deployment does not support vector search indexes"
                             );
                         });
                     },
@@ -345,8 +345,13 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         describe("and attempting to delete a non-existent index", () => {
                             it("should fail with appropriate error", async () => {
                                 const response = await integration.mcpClient().callTool({
-                                    name: "drop-search-index",
-                                    arguments: { database: "any", collection: "foo", indexName: "non-existent" },
+                                    name: "drop-index",
+                                    arguments: {
+                                        database: "any",
+                                        collection: "foo",
+                                        indexName: "non-existent",
+                                        type: "search",
+                                    },
                                 });
                                 expect(response.isError).toBe(true);
                                 const content = getResponseContent(response.content);
@@ -363,8 +368,13 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         describe("and attempting to delete an existing index", () => {
                             it("should succeed in deleting the index", { timeout: SEARCH_TIMEOUT }, async () => {
                                 const response = await integration.mcpClient().callTool({
-                                    name: "drop-search-index",
-                                    arguments: { database: "mflix", collection: "movies", indexName: getIndexName() },
+                                    name: "drop-index",
+                                    arguments: {
+                                        database: "mflix",
+                                        collection: "movies",
+                                        indexName: getIndexName(),
+                                        type: "search",
+                                    },
                                 });
                                 const content = getResponseContent(response.content);
                                 expect(content).toContain(
@@ -409,8 +419,13 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         it("should ask for confirmation before proceeding with tool call", async () => {
                             mockElicitInput.confirmYes();
                             await integration.mcpClient().callTool({
-                                name: "drop-search-index",
-                                arguments: { database: "mflix", collection: "movies", indexName: getIndexName() },
+                                name: "drop-index",
+                                arguments: {
+                                    database: "mflix",
+                                    collection: "movies",
+                                    indexName: getIndexName(),
+                                    type: "search",
+                                },
                             });
                             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                             expect(mockElicitInput.mock).toHaveBeenCalledWith({
@@ -431,8 +446,13 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         it("should not drop the index if the confirmation was not provided", async () => {
                             mockElicitInput.confirmNo();
                             await integration.mcpClient().callTool({
-                                name: "drop-search-index",
-                                arguments: { database: "mflix", collection: "movies", indexName: getIndexName() },
+                                name: "drop-index",
+                                arguments: {
+                                    database: "mflix",
+                                    collection: "movies",
+                                    indexName: getIndexName(),
+                                    type: "search",
+                                },
                             });
                             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                             expect(mockElicitInput.mock).toHaveBeenCalledWith({
@@ -446,6 +466,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
                     },
                     {
+                        getUserConfig: () => ({ ...defaultTestConfig, voyageApiKey: "test-api-key" }),
                         downloadOptions: { search: true },
                         getMockElicitationInput: () => mockElicitInput,
                     }
