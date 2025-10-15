@@ -10,7 +10,7 @@ permissions: {}
 jobs:
   run-tests:
     name: Run MongoDB tests
-    if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository
+    if: github.event.pull_request.user.login == 'dependabot[bot]' # || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
