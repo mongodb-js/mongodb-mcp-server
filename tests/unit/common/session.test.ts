@@ -10,6 +10,7 @@ import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { VectorSearchEmbeddings } from "../../../src/common/search/vectorSearchEmbeddings.js";
+import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -24,15 +25,16 @@ describe("Session", () => {
         const logger = new CompositeLogger();
 
         mockDeviceId = MockDeviceId;
+        const connectionManager = new MCPConnectionManager(config, driverOptions, logger, mockDeviceId);
 
         session = new Session({
             apiClientId: "test-client-id",
             apiBaseUrl: "https://api.test.com",
             logger,
             exportsManager: ExportsManager.init(config, logger),
-            connectionManager: new MCPConnectionManager(config, driverOptions, logger, mockDeviceId),
+            connectionManager: connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(config),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(config, connectionManager),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
@@ -122,29 +124,124 @@ describe("Session", () => {
         });
     });
 
-    describe("isSearchIndexSupported", () => {
+    describe("getSearchIndexAvailability", () => {
         let getSearchIndexesMock: MockedFunction<() => unknown>;
+        let createSearchIndexesMock: MockedFunction<() => unknown>;
+        let insertOneMock: MockedFunction<() => unknown>;
+
         beforeEach(() => {
             getSearchIndexesMock = vi.fn();
+            createSearchIndexesMock = vi.fn();
+            insertOneMock = vi.fn();
+
             MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
                 getSearchIndexes: getSearchIndexesMock,
+                createSearchIndexes: createSearchIndexesMock,
+                insertOne: insertOneMock,
+                dropDatabase: vi.fn().mockResolvedValue({}),
             } as unknown as NodeDriverServiceProvider);
         });
 
-        it("should return true if listing search indexes succeed", async () => {
+        it("should return 'available' if listing search indexes succeed and create search indexes succeed", async () => {
             getSearchIndexesMock.mockResolvedValue([]);
+            insertOneMock.mockResolvedValue([]);
+            createSearchIndexesMock.mockResolvedValue([]);
+
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
-            expect(await session.isSearchSupported()).toEqual(true);
+
+            expect(await session.isSearchAvailable()).toEqual("available");
+        });
+
+        it("should return 'available' if listing search indexes succeed and we don't have write permissions", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+            insertOneMock.mockRejectedValue(new Error("Read only mode"));
+            createSearchIndexesMock.mockResolvedValue([]);
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            expect(await session.isSearchAvailable()).toEqual("available");
+        });
+
+        it("should return 'not-available-yet' if listing search indexes work but can not create an index", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+            insertOneMock.mockResolvedValue([]);
+            createSearchIndexesMock.mockRejectedValue(new Error("SearchNotAvailable"));
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+            expect(await session.isSearchAvailable()).toEqual("not-available-yet");
         });
 
         it("should return false if listing search indexes fail with search error", async () => {
             getSearchIndexesMock.mockRejectedValue(new Error("SearchNotEnabled"));
+
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
-            expect(await session.isSearchSupported()).toEqual(false);
+            expect(await session.isSearchAvailable()).toEqual(false);
+        });
+    });
+
+    describe("assertSearchAvailable", () => {
+        let getSearchIndexesMock: MockedFunction<() => unknown>;
+        let createSearchIndexesMock: MockedFunction<() => unknown>;
+
+        beforeEach(() => {
+            getSearchIndexesMock = vi.fn();
+            createSearchIndexesMock = vi.fn();
+
+            MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                getSearchIndexes: getSearchIndexesMock,
+                createSearchIndexes: createSearchIndexesMock,
+                insertOne: vi.fn().mockResolvedValue({}),
+                dropDatabase: vi.fn().mockResolvedValue({}),
+            } as unknown as NodeDriverServiceProvider);
+        });
+
+        it("should not throw if it is available", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+            createSearchIndexesMock.mockResolvedValue([]);
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            await expect(session.assertSearchAvailable()).resolves.not.toThrowError();
+        });
+
+        it("should throw if it is supported but not available", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+            createSearchIndexesMock.mockRejectedValue(new Error("Not ready yet"));
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            await expect(session.assertSearchAvailable()).rejects.toThrowError(
+                new MongoDBError(
+                    ErrorCodes.AtlasSearchNotAvailable,
+                    "Atlas Search is supported in the current cluster but not available yet."
+                )
+            );
+        });
+
+        it("should throw if it is not supported", async () => {
+            getSearchIndexesMock.mockRejectedValue(new Error("Not supported"));
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            await expect(session.assertSearchAvailable()).rejects.toThrowError(
+                new MongoDBError(
+                    ErrorCodes.AtlasSearchNotSupported,
+                    "Atlas Search is not supported in the current cluster."
+                )
+            );
         });
     });
 });

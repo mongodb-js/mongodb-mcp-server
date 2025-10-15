@@ -1,6 +1,7 @@
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { BSON, type Document } from "bson";
 import type { UserConfig } from "../config.js";
+import type { ConnectionManager } from "../connectionManager.js";
 
 export type VectorFieldIndexDefinition = {
     type: "vector";
@@ -14,8 +15,8 @@ export type EmbeddingNamespace = `${string}.${string}`;
 export class VectorSearchEmbeddings {
     constructor(
         private readonly config: UserConfig,
-        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map(),
-        private readonly atlasSearchStatus: Map<string, boolean> = new Map()
+        private readonly connectionManager: ConnectionManager,
+        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()
     ) {}
 
     cleanupEmbeddingsForNamespace({ database, collection }: { database: string; collection: string }): void {
@@ -26,13 +27,12 @@ export class VectorSearchEmbeddings {
     async embeddingsForNamespace({
         database,
         collection,
-        provider,
     }: {
         database: string;
         collection: string;
-        provider: NodeDriverServiceProvider;
     }): Promise<VectorFieldIndexDefinition[]> {
-        if (!(await this.isAtlasSearchAvailable(provider))) {
+        const provider = await this.assertAtlasSearchIsAvailable();
+        if (!provider) {
             return [];
         }
 
@@ -64,15 +64,14 @@ export class VectorSearchEmbeddings {
         {
             database,
             collection,
-            provider,
         }: {
             database: string;
             collection: string;
-            provider: NodeDriverServiceProvider;
         },
         document: Document
     ): Promise<VectorFieldIndexDefinition[]> {
-        if (!(await this.isAtlasSearchAvailable(provider))) {
+        const provider = await this.assertAtlasSearchIsAvailable();
+        if (!provider) {
             return [];
         }
 
@@ -83,25 +82,19 @@ export class VectorSearchEmbeddings {
             return [];
         }
 
-        const embeddings = await this.embeddingsForNamespace({ database, collection, provider });
+        const embeddings = await this.embeddingsForNamespace({ database, collection });
         return embeddings.filter((emb) => !this.documentPassesEmbeddingValidation(emb, document));
     }
 
-    async isAtlasSearchAvailable(provider: NodeDriverServiceProvider): Promise<boolean> {
-        const providerUri = provider.getURI();
-        if (!providerUri) {
-            // no URI? can't be cached
-            return await this.canListAtlasSearchIndexes(provider);
+    private async assertAtlasSearchIsAvailable(): Promise<NodeDriverServiceProvider | null> {
+        const connectionState = this.connectionManager.currentConnectionState;
+        if (connectionState.tag === "connected") {
+            if ((await connectionState.getSearchAvailability()) === "available") {
+                return connectionState.serviceProvider;
+            }
         }
 
-        if (this.atlasSearchStatus.has(providerUri)) {
-            // has should ensure that get is always defined
-            return this.atlasSearchStatus.get(providerUri) ?? false;
-        }
-
-        const availability = await this.canListAtlasSearchIndexes(provider);
-        this.atlasSearchStatus.set(providerUri, availability);
-        return availability;
+        return null;
     }
 
     private isVectorFieldIndexDefinition(doc: Document): doc is VectorFieldIndexDefinition {
@@ -158,15 +151,6 @@ export class VectorSearchEmbeddings {
         }
 
         return true;
-    }
-
-    private async canListAtlasSearchIndexes(provider: NodeDriverServiceProvider): Promise<boolean> {
-        try {
-            await provider.getSearchIndexes("test", "test");
-            return true;
-        } catch {
-            return false;
-        }
     }
 
     private isANumber(value: unknown): boolean {

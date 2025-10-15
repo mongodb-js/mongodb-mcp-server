@@ -28,7 +28,7 @@ export class InsertManyTool extends MongoDBToolBase {
             ...(await Promise.all(
                 documents.flatMap((document) =>
                     this.session.vectorSearchEmbeddings.findFieldsWithWrongEmbeddings(
-                        { database, collection, provider },
+                        { database, collection },
                         document
                     )
                 )

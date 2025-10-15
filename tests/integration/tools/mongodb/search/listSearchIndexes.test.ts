@@ -36,7 +36,7 @@ describeWithMongoDB("list search indexes tool in local MongoDB", (integration) =
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual(
-            "Error running list-search-indexes: This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
+            "The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the Atlas CLI to create and manage a local Atlas deployment."
         );
     });
 });

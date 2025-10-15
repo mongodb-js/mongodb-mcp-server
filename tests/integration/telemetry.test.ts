@@ -16,15 +16,16 @@ describe("Telemetry", () => {
 
         const deviceId = DeviceId.create(logger);
         const actualDeviceId = await deviceId.get();
+        const connectionManager = new MCPConnectionManager(config, driverOptions, logger, deviceId);
 
         const telemetry = Telemetry.create(
             new Session({
                 apiBaseUrl: "",
                 logger,
                 exportsManager: ExportsManager.init(config, logger),
-                connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+                connectionManager: connectionManager,
                 keychain: new Keychain(),
-                vectorSearchEmbeddings: new VectorSearchEmbeddings(config),
+                vectorSearchEmbeddings: new VectorSearchEmbeddings(config, connectionManager),
             }),
             config,
             deviceId

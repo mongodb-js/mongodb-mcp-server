@@ -113,7 +113,7 @@ export function setupIntegrationTest(
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(userConfig),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(userConfig, connectionManager),
         });
 
         // Mock hasValidAccessToken for tests

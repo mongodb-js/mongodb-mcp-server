@@ -19,7 +19,9 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
     public operationType: OperationType = "metadata";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
-        const provider = await this.ensureSearchAvailable();
+        const provider = await this.ensureConnected();
+        await this.session.assertSearchAvailable();
+
         const indexes = await provider.getSearchIndexes(database, collection);
         const trimmedIndexDefinitions = this.pickRelevantInformation(indexes);
 

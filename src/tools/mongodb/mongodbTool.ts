@@ -46,16 +46,8 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
-    protected async ensureSearchAvailable(): Promise<NodeDriverServiceProvider> {
-        const provider = await this.ensureConnected();
-        if (!(await this.session.vectorSearchEmbeddings.isAtlasSearchAvailable(provider))) {
-            throw new MongoDBError(
-                ErrorCodes.AtlasSearchNotAvailable,
-                "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
-            );
-        }
-
-        return provider;
+    protected async ensureSearchIsAvailable(): Promise<void> {
+        return await this.session.assertSearchAvailable();
     }
 
     public register(server: Server): boolean {
@@ -94,6 +86,30 @@ export abstract class MongoDBToolBase extends ToolBase {
                         ],
                         isError: true,
                     };
+                case ErrorCodes.AtlasSearchNotSupported: {
+                    const CTA = this.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
+                        ? "`atlas-local` tools"
+                        : "Atlas CLI";
+                    return {
+                        content: [
+                            {
+                                text: `The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the ${CTA} to create and manage a local Atlas deployment.`,
+                                type: "text",
+                            },
+                        ],
+                        isError: true,
+                    };
+                }
+                case ErrorCodes.AtlasSearchNotAvailable:
+                    return {
+                        content: [
+                            {
+                                text: `The connected MongoDB deployment does support vector search indexes but they are not ready yet. Try again later.`,
+                                type: "text",
+                            },
+                        ],
+                        isError: true,
+                    };
             }
         }
 
@@ -116,5 +132,9 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
 
         return metadata;
+    }
+
+    protected isToolCategoryAvailable(name: ToolCategory): boolean {
+        return (this.server?.tools.filter((t) => t.category === name).length ?? 0) > 0;
     }
 }

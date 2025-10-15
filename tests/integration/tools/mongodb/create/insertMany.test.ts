@@ -195,9 +195,7 @@ describeWithMongoDB(
             expect(oopsieCount).toBe(0);
         });
     },
-    undefined,
-    undefined,
-    { search: true }
+    { downloadOptions: { search: true } }
 );
 
 function extractInsertedIds(content: string): ObjectId[] {

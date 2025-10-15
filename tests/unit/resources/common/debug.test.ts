@@ -14,14 +14,16 @@ import { VectorSearchEmbeddings } from "../../../../src/common/search/vectorSear
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
+    const connectionManager = new MCPConnectionManager(config, driverOptions, logger, deviceId);
+
     const session = vi.mocked(
         new Session({
             apiBaseUrl: "",
             logger,
             exportsManager: ExportsManager.init(config, logger),
-            connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+            connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(config),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(config, connectionManager),
         })
     );
 
@@ -106,7 +108,7 @@ describe("debug resource", () => {
     });
 
     it("should notify if a cluster supports search indexes", async () => {
-        vi.spyOn(session, "isSearchSupported").mockImplementation(() => Promise.resolve(true));
+        vi.spyOn(session, "isSearchAvailable").mockImplementation(() => Promise.resolve("available"));
         debugResource.reduceApply("connect", undefined);
         const output = await debugResource.toOutput();
 

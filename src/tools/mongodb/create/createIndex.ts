@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolCategory } from "../../tool.js";
 import { type ToolArgs, type OperationType, FeatureFlags } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 
@@ -113,25 +112,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 break;
             case "vectorSearch":
                 {
-                    const isVectorSearchSupported = await this.session.isSearchSupported();
-                    if (!isVectorSearchSupported) {
-                        // TODO: remove hacky casts once we merge the local dev tools
-                        const isLocalAtlasAvailable =
-                            (this.server?.tools.filter((t) => t.category === ("atlas-local" as unknown as ToolCategory))
-                                .length ?? 0) > 0;
-
-                        const CTA = isLocalAtlasAvailable ? "`atlas-local` tools" : "Atlas CLI";
-                        return {
-                            content: [
-                                {
-                                    text: `The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the ${CTA} to create and manage a local Atlas deployment.`,
-                                    type: "text",
-                                },
-                            ],
-                            isError: true,
-                        };
-                    }
-
+                    await this.ensureSearchIsAvailable();
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
