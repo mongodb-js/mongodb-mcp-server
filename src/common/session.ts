@@ -146,6 +146,15 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
+    isSearchSupported(): Promise<boolean> {
+        const state = this.connectionManager.currentConnectionState;
+        if (state.tag === "connected") {
+            return state.isSearchSupported();
+        }
+
+        return Promise.resolve(false);
+    }
+
     get serviceProvider(): NodeDriverServiceProvider {
         if (this.isConnectedToMongoDB) {
             const state = this.connectionManager.currentConnectionState as ConnectionStateConnected;

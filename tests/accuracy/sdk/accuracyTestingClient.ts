@@ -7,7 +7,7 @@ import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";
 import type { LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import type { VercelMCPClient, VercelMCPClientTools } from "./agent.js";
 
-type ToolResultGeneratorFn = (...parameters: unknown[]) => CallToolResult | Promise<CallToolResult>;
+type ToolResultGeneratorFn = (parameters: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;
 export type MockedTools = Record<string, ToolResultGeneratorFn>;
 
 /**
@@ -44,7 +44,7 @@ export class AccuracyTestingClient {
                     try {
                         const toolResultGeneratorFn = this.mockedTools[toolName];
                         if (toolResultGeneratorFn) {
-                            return await toolResultGeneratorFn(args);
+                            return await toolResultGeneratorFn(args as Record<string, unknown>);
                         }
 
                         return await tool.execute(args, options);
@@ -82,7 +82,8 @@ export class AccuracyTestingClient {
     static async initializeClient(
         mdbConnectionString: string,
         atlasApiClientId?: string,
-        atlasApiClientSecret?: string
+        atlasApiClientSecret?: string,
+        voyageApiKey?: string
     ): Promise<AccuracyTestingClient> {
         const args = [
             MCP_SERVER_CLI_SCRIPT,
@@ -90,6 +91,7 @@ export class AccuracyTestingClient {
             mdbConnectionString,
             ...(atlasApiClientId ? ["--apiClientId", atlasApiClientId] : []),
             ...(atlasApiClientSecret ? ["--apiClientSecret", atlasApiClientSecret] : []),
+            ...(voyageApiKey ? ["--voyageApiKey", voyageApiKey] : []),
         ];
 
         const clientTransport = new StdioClientTransport({

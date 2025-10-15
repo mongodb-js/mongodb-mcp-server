@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
@@ -14,14 +14,17 @@ import { VectorSearchEmbeddings } from "../../../../src/common/search/vectorSear
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
-    const session = new Session({
-        apiBaseUrl: "",
-        logger,
-        exportsManager: ExportsManager.init(config, logger),
-        connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
-        keychain: new Keychain(),
-        vectorSearchEmbeddings: new VectorSearchEmbeddings(config),
-    });
+    const session = vi.mocked(
+        new Session({
+            apiBaseUrl: "",
+            logger,
+            exportsManager: ExportsManager.init(config, logger),
+            connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+            keychain: new Keychain(),
+            vectorSearchEmbeddings: new VectorSearchEmbeddings(config),
+        })
+    );
+
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" }, deviceId);
 
     let debugResource: DebugResource = new DebugResource(session, config, telemetry);
@@ -30,54 +33,56 @@ describe("debug resource", () => {
         debugResource = new DebugResource(session, config, telemetry);
     });
 
-    it("should be connected when a connected event happens", () => {
+    it("should be connected when a connected event happens", async () => {
         debugResource.reduceApply("connect", undefined);
-        const output = debugResource.toOutput();
+        const output = await debugResource.toOutput();
 
-        expect(output).toContain(`The user is connected to the MongoDB cluster.`);
+        expect(output).toContain(
+            `The user is connected to the MongoDB cluster without any support for search indexes.`
+        );
     });
 
-    it("should be disconnected when a disconnect event happens", () => {
+    it("should be disconnected when a disconnect event happens", async () => {
         debugResource.reduceApply("disconnect", undefined);
-        const output = debugResource.toOutput();
+        const output = await debugResource.toOutput();
 
         expect(output).toContain(`The user is not connected to a MongoDB cluster.`);
     });
 
-    it("should be disconnected when a close event happens", () => {
+    it("should be disconnected when a close event happens", async () => {
         debugResource.reduceApply("close", undefined);
-        const output = debugResource.toOutput();
+        const output = await debugResource.toOutput();
 
         expect(output).toContain(`The user is not connected to a MongoDB cluster.`);
     });
 
-    it("should be disconnected and contain an error when an error event occurred", () => {
+    it("should be disconnected and contain an error when an error event occurred", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
             errorReason: "Error message from the server",
         });
 
-        const output = debugResource.toOutput();
+        const output = await debugResource.toOutput();
 
         expect(output).toContain(`The user is not connected to a MongoDB cluster because of an error.`);
         expect(output).toContain(`<error>Error message from the server</error>`);
     });
 
-    it("should show the inferred authentication type", () => {
+    it("should show the inferred authentication type", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
             connectionStringAuthType: "scram",
             errorReason: "Error message from the server",
         });
 
-        const output = debugResource.toOutput();
+        const output = await debugResource.toOutput();
 
         expect(output).toContain(`The user is not connected to a MongoDB cluster because of an error.`);
         expect(output).toContain(`The inferred authentication mechanism is "scram".`);
         expect(output).toContain(`<error>Error message from the server</error>`);
     });
 
-    it("should show the atlas cluster information when provided", () => {
+    it("should show the atlas cluster information when provided", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
             connectionStringAuthType: "scram",
@@ -90,7 +95,7 @@ describe("debug resource", () => {
             },
         });
 
-        const output = debugResource.toOutput();
+        const output = await debugResource.toOutput();
 
         expect(output).toContain(`The user is not connected to a MongoDB cluster because of an error.`);
         expect(output).toContain(
@@ -98,5 +103,13 @@ describe("debug resource", () => {
         );
         expect(output).toContain(`The inferred authentication mechanism is "scram".`);
         expect(output).toContain(`<error>Error message from the server</error>`);
+    });
+
+    it("should notify if a cluster supports search indexes", async () => {
+        vi.spyOn(session, "isSearchSupported").mockImplementation(() => Promise.resolve(true));
+        debugResource.reduceApply("connect", undefined);
+        const output = await debugResource.toOutput();
+
+        expect(output).toContain(`The user is connected to the MongoDB cluster with support for search indexes.`);
     });
 });

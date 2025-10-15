@@ -15,6 +15,10 @@ export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback
 
 export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
 
+export const enum FeatureFlags {
+    VectorSearch = "vectorSearch",
+}
+
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
  * the config's `disabledTools` and `readOnly` settings.
@@ -313,6 +317,16 @@ export abstract class ToolBase {
         }
 
         this.telemetry.emitEvents([event]);
+    }
+
+    // TODO: Move this to a separate file
+    protected isFeatureFlagEnabled(flag: FeatureFlags): boolean {
+        switch (flag) {
+            case FeatureFlags.VectorSearch:
+                return this.config.voyageApiKey !== "";
+            default:
+                return false;
+        }
     }
 }
 

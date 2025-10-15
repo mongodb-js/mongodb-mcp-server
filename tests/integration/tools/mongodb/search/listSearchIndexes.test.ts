@@ -1,7 +1,7 @@
 import {
     describeWithMongoDB,
     getSingleDocFromUntrustedContent,
-    waitUntilIndexIsQueryable,
+    waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
 import { describe, it, expect, beforeEach } from "vitest";
@@ -17,6 +17,7 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import type { SearchIndexStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
 const SEARCH_TIMEOUT = 60_000;
+
 describeWithMongoDB("list search indexes tool in local MongoDB", (integration) => {
     validateToolMetadata(
         integration,
@@ -100,7 +101,7 @@ describeWithMongoDB(
                 "returns the list of existing indexes and detects if they are queryable",
                 { timeout: SEARCH_TIMEOUT },
                 async ({ signal }) => {
-                    await waitUntilIndexIsQueryable(provider, "any", "foo", "default", signal);
+                    await waitUntilSearchIndexIsQueryable(provider, "any", "foo", "default", signal);
 
                     const response = await integration.mcpClient().callTool({
                         name: "list-search-indexes",
@@ -119,7 +120,7 @@ describeWithMongoDB(
             );
         });
     },
-    undefined, // default user config
-    undefined, // default driver config
-    { search: true } // use a search cluster
+    {
+        downloadOptions: { search: true },
+    }
 );

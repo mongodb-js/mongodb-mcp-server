@@ -56,13 +56,15 @@ export class DebugResource extends ReactiveResource<
         }
     }
 
-    toOutput(): string {
+    async toOutput(): Promise<string> {
         let result = "";
 
         switch (this.current.tag) {
-            case "connected":
-                result += "The user is connected to the MongoDB cluster.";
+            case "connected": {
+                const searchIndexesSupported = await this.session.isSearchSupported();
+                result += `The user is connected to the MongoDB cluster${searchIndexesSupported ? " with support for search indexes" : " without any support for search indexes"}.`;
                 break;
+            }
             case "errored":
                 result += `The user is not connected to a MongoDB cluster because of an error.\n`;
                 if (this.current.connectedAtlasCluster) {

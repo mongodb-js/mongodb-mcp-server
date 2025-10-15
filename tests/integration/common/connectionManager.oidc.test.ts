@@ -137,14 +137,19 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
 
                 addCb?.(oidcIt);
             },
-            () => oidcConfig,
-            () => ({
-                ...setupDriverConfig({
-                    config: oidcConfig,
-                    defaults: {},
-                }),
-            }),
-            { runner: true, downloadOptions: { enterprise: true, version: mongodbVersion }, serverArgs }
+            {
+                getUserConfig: () => oidcConfig,
+                getDriverOptions: () =>
+                    setupDriverConfig({
+                        config: oidcConfig,
+                        defaults: {},
+                    }),
+                downloadOptions: {
+                    runner: true,
+                    downloadOptions: { enterprise: true, version: mongodbVersion },
+                    serverArgs,
+                },
+            }
         );
     }
 

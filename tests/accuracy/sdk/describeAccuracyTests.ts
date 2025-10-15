@@ -68,6 +68,7 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
 
         const atlasApiClientId = process.env.MDB_MCP_API_CLIENT_ID;
         const atlasApiClientSecret = process.env.MDB_MCP_API_CLIENT_SECRET;
+        const voyageApiKey = process.env.MDB_VOYAGE_API_KEY;
 
         let commitSHA: string;
         let accuracyResultStorage: AccuracyResultStorage;
@@ -85,7 +86,8 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
             testMCPClient = await AccuracyTestingClient.initializeClient(
                 mdbIntegration.connectionString(),
                 atlasApiClientId,
-                atlasApiClientSecret
+                atlasApiClientSecret,
+                voyageApiKey
             );
             agent = getVercelToolCallingAgent();
         });

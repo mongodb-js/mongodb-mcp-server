@@ -185,6 +185,8 @@ export interface UserConfig extends CliOptions {
     atlasTemporaryDatabaseUserLifetimeMs: number;
     voyageApiKey: string;
     disableEmbeddingsValidation: boolean;
+    vectorSearchDimensions: number;
+    vectorSearchSimilarityFunction: "cosine" | "euclidean" | "dotProduct";
 }
 
 export const defaultUserConfig: UserConfig = {
@@ -203,6 +205,7 @@ export const defaultUserConfig: UserConfig = {
         "drop-database",
         "drop-collection",
         "delete-many",
+        "drop-index",
     ],
     transport: "stdio",
     httpPort: 3000,
@@ -216,6 +219,8 @@ export const defaultUserConfig: UserConfig = {
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
     voyageApiKey: "",
     disableEmbeddingsValidation: false,
+    vectorSearchDimensions: 1024,
+    vectorSearchSimilarityFunction: "euclidean",
 };
 
 export const config = setupUserConfig({
