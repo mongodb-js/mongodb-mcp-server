@@ -100,6 +100,8 @@ export class CreateIndexTool extends MongoDBToolBase {
             throw new Error("Index definition not provided. Expected one of the following: `classic`, `vectorSearch`");
         }
 
+        let responseClarification = "";
+
         switch (definition.type) {
             case "classic":
                 indexes = await provider.createIndexes(database, collection, [
@@ -139,6 +141,9 @@ export class CreateIndexTool extends MongoDBToolBase {
                             type: "vectorSearch",
                         },
                     ]);
+
+                    responseClarification =
+                        " Since this is a vector search index, it may take a while for the index to build. Use the `list-indexes` tool to check the index status.";
                 }
 
                 break;
@@ -147,7 +152,7 @@ export class CreateIndexTool extends MongoDBToolBase {
         return {
             content: [
                 {
-                    text: `Created the index "${indexes[0]}" on collection "${collection}" in database "${database}"`,
+                    text: `Created the index "${indexes[0]}" on collection "${collection}" in database "${database}".${responseClarification}`,
                     type: "text",
                 },
             ],

@@ -134,7 +134,7 @@ describeWithMongoDB(
             {
                 collection: "bar",
                 database: "test",
-                definition: [{ type: "vectorSearch", fields: [{ type: "vector", path: "foo" }] }],
+                definition: [{ type: "vectorSearch", fields: [{ type: "vector", path: true }] }],
             },
             {
                 collection: "bar",
@@ -190,7 +190,7 @@ describeWithMongoDB(
 
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                `Created the index "my-index" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "my-index" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
             await validateIndex("coll1", [{ name: "my-index", key: { prop1: 1 } }]);
@@ -209,7 +209,7 @@ describeWithMongoDB(
 
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
             await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
         });
@@ -226,7 +226,7 @@ describeWithMongoDB(
             });
 
             expect(getResponseContent(response.content)).toEqual(
-                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
             response = await integration.mcpClient().callTool({
@@ -239,7 +239,7 @@ describeWithMongoDB(
             });
 
             expect(getResponseContent(response.content)).toEqual(
-                `Created the index "prop2_-1" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "prop2_-1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
             await validateIndex("coll1", [
@@ -260,7 +260,7 @@ describeWithMongoDB(
             });
 
             expect(getResponseContent(response.content)).toEqual(
-                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
             response = await integration.mcpClient().callTool({
@@ -273,7 +273,7 @@ describeWithMongoDB(
             });
 
             expect(getResponseContent(response.content)).toEqual(
-                `Created the index "prop1_-1" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "prop1_-1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
             await validateIndex("coll1", [
@@ -294,7 +294,7 @@ describeWithMongoDB(
             });
 
             expect(getResponseContent(response.content)).toEqual(
-                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
             response = await integration.mcpClient().callTool({
@@ -307,7 +307,7 @@ describeWithMongoDB(
             });
 
             expect(getResponseContent(response.content)).toEqual(
-                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}"`
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
             await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
@@ -365,7 +365,7 @@ describeWithMongoDB(
                 });
 
                 expect(getResponseContent(response.content)).toEqual(
-                    `Created the index "prop1_${direction}" on collection "coll1" in database "${integration.randomDbName()}"`
+                    `Created the index "prop1_${direction}" on collection "coll1" in database "${integration.randomDbName()}".`
                 );
 
                 let expectedKey: object = { prop1: direction };
@@ -386,7 +386,7 @@ describeWithMongoDB(
                     collection: "coll1",
                     definition: [{ type: "classic", keys: { prop1: 1 } }],
                 },
-                expectedResponse: `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}"`,
+                expectedResponse: `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`,
             };
         });
     },
@@ -480,7 +480,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "vector_1_vector" on collection "${collection}" in database "${integration.randomDbName()}"`
+                    `Created the index "vector_1_vector" on collection "${collection}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
                 );
 
                 const indexes = await provider.getSearchIndexes(integration.randomDbName(), collection);
