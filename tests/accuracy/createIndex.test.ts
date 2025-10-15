@@ -46,12 +46,12 @@ describeAccuracyTests(
             ],
         },
         {
-            prompt: "Create a vector search index on 'mydb.movies' namespace on the 'plotSummary' field. The index should use 1024 dimensions.",
+            prompt: "Create a vector search index on 'mflix.movies' namespace on the 'plotSummary' field. The index should use 1024 dimensions.",
             expectedToolCalls: [
                 {
                     toolName: "create-index",
                     parameters: {
-                        database: "mydb",
+                        database: "mflix",
                         collection: "movies",
                         name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                         definition: [
@@ -71,12 +71,12 @@ describeAccuracyTests(
             ],
         },
         {
-            prompt: "Create a vector search index on 'mydb.movies' namespace with on the 'plotSummary' field and 'genre' field, both of which contain vector embeddings. Pick a sensible number of dimensions for a voyage 3.5 model.",
+            prompt: "Create a vector search index on 'mflix.movies' namespace with on the 'plotSummary' field and 'genre' field, both of which contain vector embeddings. Pick a sensible number of dimensions for a voyage 3.5 model.",
             expectedToolCalls: [
                 {
                     toolName: "create-index",
                     parameters: {
-                        database: "mydb",
+                        database: "mflix",
                         collection: "movies",
                         name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                         definition: [
@@ -107,12 +107,12 @@ describeAccuracyTests(
             ],
         },
         {
-            prompt: "Create a vector search index on 'mydb.movies' namespace where the 'plotSummary' field is indexed as a 1024-dimensional vector and the 'releaseDate' field is indexed as a regular field.",
+            prompt: "Create a vector search index on 'mflix.movies' namespace where the 'plotSummary' field is indexed as a 1024-dimensional vector and the 'releaseDate' field is indexed as a regular field.",
             expectedToolCalls: [
                 {
                     toolName: "create-index",
                     parameters: {
-                        database: "mydb",
+                        database: "mflix",
                         collection: "movies",
                         name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                         definition: [
