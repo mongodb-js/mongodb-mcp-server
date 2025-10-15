@@ -11,6 +11,7 @@ import type { ConnectionManager, UserConfig } from "../../../../src/lib.js";
 import { ConnectionStateConnected } from "../../../../src/common/connectionManager.js";
 import type { InsertOneResult } from "mongodb";
 import type { DropDatabaseResult } from "@mongosh/service-provider-node-driver/lib/node-driver-service-provider.js";
+import EventEmitter from "events";
 
 type MockedServiceProvider = NodeDriverServiceProvider & {
     getSearchIndexes: MockedFunction<NodeDriverServiceProvider["getSearchIndexes"]>;
@@ -23,13 +24,50 @@ type MockedConnectionManager = ConnectionManager & {
     currentConnectionState: ConnectionStateConnected;
 };
 
+const database = "my" as const;
+const collection = "collection" as const;
+const mapKey = `${database}.${collection}` as EmbeddingNamespace;
+
+const embeddingConfig: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map([
+    [
+        mapKey,
+        [
+            {
+                type: "vector",
+                path: "embedding_field",
+                numDimensions: 8,
+                quantization: "scalar",
+                similarity: "euclidean",
+            },
+            {
+                type: "vector",
+                path: "embedding_field_binary",
+                numDimensions: 8,
+                quantization: "binary",
+                similarity: "euclidean",
+            },
+            {
+                type: "vector",
+                path: "a.nasty.scalar.field",
+                numDimensions: 8,
+                quantization: "scalar",
+                similarity: "euclidean",
+            },
+            {
+                type: "vector",
+                path: "a.nasty.binary.field",
+                numDimensions: 8,
+                quantization: "binary",
+                similarity: "euclidean",
+            },
+        ],
+    ],
+]);
+
 describe("VectorSearchEmbeddings", () => {
     const embeddingValidationEnabled: UserConfig = { disableEmbeddingsValidation: false } as UserConfig;
     const embeddingValidationDisabled: UserConfig = { disableEmbeddingsValidation: true } as UserConfig;
-
-    const database = "my" as const;
-    const collection = "collection" as const;
-    const mapKey = `${database}.${collection}` as EmbeddingNamespace;
+    const eventEmitter = new EventEmitter();
 
     const provider: MockedServiceProvider = {
         getSearchIndexes: vi.fn(),
@@ -41,6 +79,7 @@ describe("VectorSearchEmbeddings", () => {
 
     const connectionManager: MockedConnectionManager = {
         currentConnectionState: new ConnectionStateConnected(provider),
+        events: eventEmitter,
     } as unknown as MockedConnectionManager;
 
     beforeEach(() => {
@@ -49,6 +88,25 @@ describe("VectorSearchEmbeddings", () => {
         provider.createSearchIndexes.mockResolvedValue([]);
         provider.insertOne.mockResolvedValue({} as unknown as InsertOneResult);
         provider.dropDatabase.mockResolvedValue({} as unknown as DropDatabaseResult);
+    });
+
+    describe("embeddings cache", () => {
+        it("the connection is closed gets cleared", async () => {
+            const configCopy = new Map(embeddingConfig);
+            const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, connectionManager, configCopy);
+
+            eventEmitter.emit("connection-close");
+            void embeddings; // we don't need to call it, it's already subscribed by the constructor
+
+            const isEmpty = await vi.waitFor(() => {
+                if (configCopy.size > 0) {
+                    throw new Error("Didn't consume the 'connection-close' event yet");
+                }
+                return true;
+            });
+
+            expect(isEmpty).toBeTruthy();
+        });
     });
 
     describe("embedding retrieval", () => {
@@ -138,42 +196,6 @@ describe("VectorSearchEmbeddings", () => {
         });
 
         describe("when there are embeddings", () => {
-            const embeddingConfig: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map([
-                [
-                    mapKey,
-                    [
-                        {
-                            type: "vector",
-                            path: "embedding_field",
-                            numDimensions: 8,
-                            quantization: "scalar",
-                            similarity: "euclidean",
-                        },
-                        {
-                            type: "vector",
-                            path: "embedding_field_binary",
-                            numDimensions: 8,
-                            quantization: "binary",
-                            similarity: "euclidean",
-                        },
-                        {
-                            type: "vector",
-                            path: "a.nasty.scalar.field",
-                            numDimensions: 8,
-                            quantization: "scalar",
-                            similarity: "euclidean",
-                        },
-                        {
-                            type: "vector",
-                            path: "a.nasty.binary.field",
-                            numDimensions: 8,
-                            quantization: "binary",
-                            similarity: "euclidean",
-                        },
-                    ],
-                ],
-            ]);
-
             describe("when the validation is disabled", () => {
                 let embeddings: VectorSearchEmbeddings;
 

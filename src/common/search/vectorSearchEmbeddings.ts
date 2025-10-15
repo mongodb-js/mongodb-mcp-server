@@ -17,7 +17,11 @@ export class VectorSearchEmbeddings {
         private readonly config: UserConfig,
         private readonly connectionManager: ConnectionManager,
         private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()
-    ) {}
+    ) {
+        connectionManager.events.on("connection-close", () => {
+            this.embeddings.clear();
+        });
+    }
 
     cleanupEmbeddingsForNamespace({ database, collection }: { database: string; collection: string }): void {
         const embeddingDefKey: EmbeddingNamespace = `${database}.${collection}`;
