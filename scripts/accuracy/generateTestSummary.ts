@@ -73,7 +73,8 @@ function formatToolCallsWithTooltip(toolCalls: ExpectedToolCall[] | LLMToolCall[
     return toolCalls
         .map((call) => {
             const params = JSON.stringify(call.parameters, null, 2);
-            return `<span class="tool-call" title="${params.replace(/"/g, "&quot;")}">${call.toolName}</span>`;
+            const isOptional = "optional" in call && call.optional;
+            return `<span class="tool-call" title="${params.replace(/"/g, "&quot;")}">${isOptional ? "(" : ""}${call.toolName}${isOptional ? ")" : ""}</span>`;
         })
         .join(", ");
 }

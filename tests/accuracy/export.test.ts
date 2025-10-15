@@ -114,12 +114,20 @@ describeAccuracyTests([
                             arguments: {
                                 pipeline: [
                                     {
-                                        $group: {
-                                            _id: "$release_year",
-                                            titles: {
-                                                $push: "$title",
-                                            },
-                                        },
+                                        $group: Matcher.anyOf(
+                                            Matcher.value({
+                                                _id: "$release_year",
+                                                titles: {
+                                                    $push: "$title",
+                                                },
+                                            }),
+                                            Matcher.value({
+                                                _id: "$release_year",
+                                                movies: {
+                                                    $push: "$title",
+                                                },
+                                            })
+                                        ),
                                     },
                                 ],
                             },

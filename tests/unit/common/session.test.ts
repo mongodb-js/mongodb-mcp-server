@@ -134,7 +134,7 @@ describe("Session", () => {
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
-            expect(await session.isSearchIndexSupported()).toEqual(true);
+            expect(await session.isSearchSupported()).toEqual(true);
         });
 
         it("should return false if listing search indexes fail with search error", async () => {
@@ -142,7 +142,7 @@ describe("Session", () => {
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
-            expect(await session.isSearchIndexSupported()).toEqual(false);
+            expect(await session.isSearchSupported()).toEqual(false);
         });
     });
 });

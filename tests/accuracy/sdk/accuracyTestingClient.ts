@@ -82,7 +82,8 @@ export class AccuracyTestingClient {
     static async initializeClient(
         mdbConnectionString: string,
         atlasApiClientId?: string,
-        atlasApiClientSecret?: string
+        atlasApiClientSecret?: string,
+        voyageApiKey?: string
     ): Promise<AccuracyTestingClient> {
         const args = [
             MCP_SERVER_CLI_SCRIPT,
@@ -90,6 +91,7 @@ export class AccuracyTestingClient {
             mdbConnectionString,
             ...(atlasApiClientId ? ["--apiClientId", atlasApiClientId] : []),
             ...(atlasApiClientSecret ? ["--apiClientSecret", atlasApiClientSecret] : []),
+            ...(voyageApiKey ? ["--voyageApiKey", voyageApiKey] : []),
         ];
 
         const clientTransport = new StdioClientTransport({

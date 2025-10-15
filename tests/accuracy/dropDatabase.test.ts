@@ -5,6 +5,11 @@ describeAccuracyTests([
         prompt: "Remove mflix database from my cluster.",
         expectedToolCalls: [
             {
+                toolName: "list-databases",
+                parameters: {},
+                optional: true,
+            },
+            {
                 toolName: "drop-database",
                 parameters: {
                     database: "mflix",

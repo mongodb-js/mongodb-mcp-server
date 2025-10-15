@@ -32,9 +32,33 @@ export interface ConnectionState {
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
-export interface ConnectionStateConnected extends ConnectionState {
-    tag: "connected";
-    serviceProvider: NodeDriverServiceProvider;
+export class ConnectionStateConnected implements ConnectionState {
+    public tag = "connected" as const;
+
+    constructor(
+        public serviceProvider: NodeDriverServiceProvider,
+        public connectionStringAuthType?: ConnectionStringAuthType,
+        public connectedAtlasCluster?: AtlasClusterConnectionInfo
+    ) {}
+
+    private _isSearchSupported?: boolean;
+
+    public async isSearchSupported(): Promise<boolean> {
+        if (this._isSearchSupported === undefined) {
+            try {
+                const dummyDatabase = "test";
+                const dummyCollection = "test";
+                // If a cluster supports search indexes, the call below will succeed
+                // with a cursor otherwise will throw an Error
+                await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);
+                this._isSearchSupported = true;
+            } catch {
+                this._isSearchSupported = false;
+            }
+        }
+
+        return this._isSearchSupported;
+    }
 }
 
 export interface ConnectionStateConnecting extends ConnectionState {
@@ -199,12 +223,10 @@ export class MCPConnectionManager extends ConnectionManager {
                 });
             }
 
-            return this.changeState("connection-success", {
-                tag: "connected",
-                connectedAtlasCluster: settings.atlas,
-                serviceProvider: await serviceProvider,
-                connectionStringAuthType,
-            });
+            return this.changeState(
+                "connection-success",
+                new ConnectionStateConnected(await serviceProvider, connectionStringAuthType, settings.atlas)
+            );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-error", {
@@ -270,11 +292,14 @@ export class MCPConnectionManager extends ConnectionManager {
             this.currentConnectionState.tag === "connecting" &&
             this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
         ) {
-            this.changeState("connection-success", {
-                ...this.currentConnectionState,
-                tag: "connected",
-                serviceProvider: await this.currentConnectionState.serviceProvider,
-            });
+            this.changeState(
+                "connection-success",
+                new ConnectionStateConnected(
+                    await this.currentConnectionState.serviceProvider,
+                    this.currentConnectionState.connectionStringAuthType,
+                    this.currentConnectionState.connectedAtlasCluster
+                )
+            );
         }
 
         this.logger.info({

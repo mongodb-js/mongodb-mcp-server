@@ -1,4 +1,9 @@
-import { describeWithMongoDB, getSingleDocFromUntrustedContent } from "../mongodbHelpers.js";
+import {
+    describeWithMongoDB,
+    getSingleDocFromUntrustedContent,
+    waitUntilSearchIndexIsQueryable,
+    waitUntilSearchIsReady,
+} from "../mongodbHelpers.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
     getResponseContent,
@@ -6,13 +11,11 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
-    sleep,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { SearchIndexStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
-const SEARCH_RETRIES = 200;
 const SEARCH_TIMEOUT = 20_000;
 
 describeWithMongoDB("list search indexes tool in local MongoDB", (integration) => {
@@ -98,7 +101,7 @@ describeWithMongoDB(
                 "returns the list of existing indexes and detects if they are queryable",
                 { timeout: SEARCH_TIMEOUT },
                 async ({ signal }) => {
-                    await waitUntilIndexIsQueryable(provider, "any", "foo", "default", signal);
+                    await waitUntilSearchIndexIsQueryable(provider, "any", "foo", "default", signal);
 
                     const response = await integration.mcpClient().callTool({
                         name: "list-search-indexes",
@@ -121,51 +124,3 @@ describeWithMongoDB(
         downloadOptions: { search: true },
     }
 );
-
-async function waitUntilSearchIsReady(provider: NodeDriverServiceProvider, abortSignal: AbortSignal): Promise<void> {
-    let lastError: unknown = null;
-
-    for (let i = 0; i < SEARCH_RETRIES && !abortSignal.aborted; i++) {
-        try {
-            await provider.insertOne("tmp", "test", { field1: "yay" });
-            await provider.createSearchIndexes("tmp", "test", [{ definition: { mappings: { dynamic: true } } }]);
-            return;
-        } catch (err) {
-            lastError = err;
-            await sleep(100);
-        }
-    }
-
-    throw new Error(`Search Management Index is not ready.\nlastError: ${JSON.stringify(lastError)}`);
-}
-
-async function waitUntilIndexIsQueryable(
-    provider: NodeDriverServiceProvider,
-    database: string,
-    collection: string,
-    indexName: string,
-    abortSignal: AbortSignal
-): Promise<void> {
-    let lastIndexStatus: unknown = null;
-    let lastError: unknown = null;
-
-    for (let i = 0; i < SEARCH_RETRIES && !abortSignal.aborted; i++) {
-        try {
-            const [indexStatus] = await provider.getSearchIndexes(database, collection, indexName);
-            lastIndexStatus = indexStatus;
-
-            if (indexStatus?.queryable === true) {
-                return;
-            }
-        } catch (err) {
-            lastError = err;
-            await sleep(100);
-        }
-    }
-
-    throw new Error(
-        `Index ${indexName} in ${database}.${collection} is not ready:
-lastIndexStatus: ${JSON.stringify(lastIndexStatus)}
-lastError: ${JSON.stringify(lastError)}`
-    );
-}
