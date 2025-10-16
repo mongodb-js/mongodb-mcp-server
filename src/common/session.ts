@@ -11,7 +11,6 @@ import type {
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-    SearchAvailability,
 } from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
@@ -147,28 +146,21 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
-    async isSearchAvailable(): Promise<SearchAvailability> {
+    async isSearchSupported(): Promise<boolean> {
         const state = this.connectionManager.currentConnectionState;
         if (state.tag === "connected") {
-            return await state.getSearchAvailability();
+            return await state.isSearchSupported();
         }
 
         return false;
     }
 
-    async assertSearchAvailable(): Promise<void> {
-        const availability = await this.isSearchAvailable();
+    async assertSearchSupported(): Promise<void> {
+        const availability = await this.isSearchSupported();
         if (!availability) {
             throw new MongoDBError(
                 ErrorCodes.AtlasSearchNotSupported,
                 "Atlas Search is not supported in the current cluster."
-            );
-        }
-
-        if (availability === "not-available-yet") {
-            throw new MongoDBError(
-                ErrorCodes.AtlasSearchNotAvailable,
-                "Atlas Search is supported in the current cluster but not available yet."
             );
         }
 

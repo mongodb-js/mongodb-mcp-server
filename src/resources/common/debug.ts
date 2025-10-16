@@ -61,8 +61,7 @@ export class DebugResource extends ReactiveResource<
 
         switch (this.current.tag) {
             case "connected": {
-                const searchAvailability = await this.session.isSearchAvailable();
-                const searchIndexesSupported = searchAvailability !== false;
+                const searchIndexesSupported = await this.session.isSearchSupported();
                 result += `The user is connected to the MongoDB cluster${searchIndexesSupported ? " with support for search indexes" : " without any support for search indexes"}.`;
                 break;
             }

@@ -25,7 +25,6 @@ export interface ConnectionSettings {
 type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
-export type SearchAvailability = false | "not-available-yet" | "available";
 
 export interface ConnectionState {
     tag: ConnectionTag;
@@ -34,7 +33,6 @@ export interface ConnectionState {
 }
 
 const MCP_TEST_DATABASE = "#mongodb-mcp";
-const SEARCH_AVAILABILITY_CHECK_TIMEOUT_MS = 500;
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
@@ -42,30 +40,17 @@ export class ConnectionStateConnected implements ConnectionState {
         public serviceProvider: NodeDriverServiceProvider,
         public connectionStringAuthType?: ConnectionStringAuthType,
         public connectedAtlasCluster?: AtlasClusterConnectionInfo
-    ) {
-        this.#isSearchAvailable = false;
-    }
+    ) {}
 
     #isSearchSupported?: boolean;
-    #isSearchAvailable: boolean;
 
-    public async getSearchAvailability(): Promise<SearchAvailability> {
-        if ((await this.isSearchSupported()) === true) {
-            if ((await this.isSearchAvailable()) === true) {
-                return "available";
-            }
-
-            return "not-available-yet";
-        }
-
-        return false;
-    }
-
-    private async isSearchSupported(): Promise<boolean> {
+    public async isSearchSupported(): Promise<boolean> {
         if (this.#isSearchSupported === undefined) {
             try {
                 // If a cluster supports search indexes, the call below will succeed
-                // with a cursor otherwise will throw an Error
+                // with a cursor otherwise will throw an Error.
+                // the Search Index Management Service might not be ready yet, but
+                // we assume that the agent can retry in that situation.
                 await this.serviceProvider.getSearchIndexes(MCP_TEST_DATABASE, "test");
                 this.#isSearchSupported = true;
             } catch {
@@ -74,57 +59,6 @@ export class ConnectionStateConnected implements ConnectionState {
         }
 
         return this.#isSearchSupported;
-    }
-
-    private async isSearchAvailable(): Promise<boolean> {
-        if (this.#isSearchAvailable === true) {
-            return true;
-        }
-
-        const timeoutPromise = new Promise<boolean>((_resolve, reject) =>
-            setTimeout(
-                () =>
-                    reject(
-                        new MongoDBError(
-                            ErrorCodes.AtlasSearchNotAvailable,
-                            "Atlas Search is supported in your environment but is not available yet. Retry again later."
-                        )
-                    ),
-                SEARCH_AVAILABILITY_CHECK_TIMEOUT_MS
-            )
-        );
-
-        const checkPromise = new Promise<boolean>((resolve) => {
-            void this.doCheckSearchIndexIsAvailable(resolve);
-        });
-
-        return await Promise.race([checkPromise, timeoutPromise]);
-    }
-
-    private async doCheckSearchIndexIsAvailable(resolve: (result: boolean) => void): Promise<void> {
-        for (let i = 0; i < 100; i++) {
-            try {
-                try {
-                    await this.serviceProvider.insertOne(MCP_TEST_DATABASE, "test", { search: "search is available" });
-                } catch (err) {
-                    // if inserting one document fails, it means we are in readOnly mode. We can't verify reliably if
-                    // Search is available, so assume it is.
-                    void err;
-                    resolve(true);
-                    return;
-                }
-                await this.serviceProvider.createSearchIndexes(MCP_TEST_DATABASE, "test", [
-                    { definition: { mappings: { dynamic: true } } },
-                ]);
-                await this.serviceProvider.dropDatabase(MCP_TEST_DATABASE);
-                resolve(true);
-                return;
-            } catch (err) {
-                void err;
-            }
-        }
-
-        resolve(false);
     }
 }
 

@@ -46,8 +46,8 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
-    protected async ensureSearchIsAvailable(): Promise<void> {
-        return await this.session.assertSearchAvailable();
+    protected async ensureSearchIsSupported(): Promise<void> {
+        return await this.session.assertSearchSupported();
     }
 
     public register(server: Server): boolean {

@@ -151,29 +151,7 @@ describe("Session", () => {
                 connectionString: "mongodb://localhost:27017",
             });
 
-            expect(await session.isSearchAvailable()).toEqual("available");
-        });
-
-        it("should return 'available' if listing search indexes succeed and we don't have write permissions", async () => {
-            getSearchIndexesMock.mockResolvedValue([]);
-            insertOneMock.mockRejectedValue(new Error("Read only mode"));
-            createSearchIndexesMock.mockResolvedValue([]);
-
-            await session.connectToMongoDB({
-                connectionString: "mongodb://localhost:27017",
-            });
-
-            expect(await session.isSearchAvailable()).toEqual("available");
-        });
-
-        it("should return 'not-available-yet' if listing search indexes work but can not create an index", async () => {
-            getSearchIndexesMock.mockResolvedValue([]);
-            insertOneMock.mockResolvedValue([]);
-            createSearchIndexesMock.mockRejectedValue(new Error("SearchNotAvailable"));
-            await session.connectToMongoDB({
-                connectionString: "mongodb://localhost:27017",
-            });
-            expect(await session.isSearchAvailable()).toEqual("not-available-yet");
+            expect(await session.isSearchSupported()).toBeTruthy();
         });
 
         it("should return false if listing search indexes fail with search error", async () => {
@@ -182,51 +160,29 @@ describe("Session", () => {
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
-            expect(await session.isSearchAvailable()).toEqual(false);
+            expect(await session.isSearchSupported()).toEqual(false);
         });
     });
 
-    describe("assertSearchAvailable", () => {
+    describe("assertSearchSupported", () => {
         let getSearchIndexesMock: MockedFunction<() => unknown>;
-        let createSearchIndexesMock: MockedFunction<() => unknown>;
 
         beforeEach(() => {
             getSearchIndexesMock = vi.fn();
-            createSearchIndexesMock = vi.fn();
 
             MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
                 getSearchIndexes: getSearchIndexesMock,
-                createSearchIndexes: createSearchIndexesMock,
-                insertOne: vi.fn().mockResolvedValue({}),
-                dropDatabase: vi.fn().mockResolvedValue({}),
             } as unknown as NodeDriverServiceProvider);
         });
 
         it("should not throw if it is available", async () => {
             getSearchIndexesMock.mockResolvedValue([]);
-            createSearchIndexesMock.mockResolvedValue([]);
 
             await session.connectToMongoDB({
                 connectionString: "mongodb://localhost:27017",
             });
 
-            await expect(session.assertSearchAvailable()).resolves.not.toThrowError();
-        });
-
-        it("should throw if it is supported but not available", async () => {
-            getSearchIndexesMock.mockResolvedValue([]);
-            createSearchIndexesMock.mockRejectedValue(new Error("Not ready yet"));
-
-            await session.connectToMongoDB({
-                connectionString: "mongodb://localhost:27017",
-            });
-
-            await expect(session.assertSearchAvailable()).rejects.toThrowError(
-                new MongoDBError(
-                    ErrorCodes.AtlasSearchNotAvailable,
-                    "Atlas Search is supported in the current cluster but not available yet."
-                )
-            );
+            await expect(session.assertSearchSupported()).resolves.not.toThrowError();
         });
 
         it("should throw if it is not supported", async () => {
@@ -236,7 +192,7 @@ describe("Session", () => {
                 connectionString: "mongodb://localhost:27017",
             });
 
-            await expect(session.assertSearchAvailable()).rejects.toThrowError(
+            await expect(session.assertSearchSupported()).rejects.toThrowError(
                 new MongoDBError(
                     ErrorCodes.AtlasSearchNotSupported,
                     "Atlas Search is not supported in the current cluster."

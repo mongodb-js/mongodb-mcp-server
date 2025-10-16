@@ -108,7 +108,7 @@ describe("debug resource", () => {
     });
 
     it("should notify if a cluster supports search indexes", async () => {
-        vi.spyOn(session, "isSearchAvailable").mockImplementation(() => Promise.resolve("available"));
+        vi.spyOn(session, "isSearchSupported").mockImplementation(() => Promise.resolve(true));
         debugResource.reduceApply("connect", undefined);
         const output = await debugResource.toOutput();
 

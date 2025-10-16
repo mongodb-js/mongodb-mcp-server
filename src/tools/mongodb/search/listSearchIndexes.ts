@@ -20,7 +20,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
-        await this.session.assertSearchAvailable();
+        await this.ensureSearchIsSupported();
 
         const indexes = await provider.getSearchIndexes(database, collection);
         const trimmedIndexDefinitions = this.pickRelevantInformation(indexes);

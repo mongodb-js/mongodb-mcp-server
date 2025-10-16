@@ -93,7 +93,7 @@ export class VectorSearchEmbeddings {
     private async assertAtlasSearchIsAvailable(): Promise<NodeDriverServiceProvider | null> {
         const connectionState = this.connectionManager.currentConnectionState;
         if (connectionState.tag === "connected") {
-            if ((await connectionState.getSearchAvailability()) === "available") {
+            if (await connectionState.isSearchSupported()) {
                 return connectionState.serviceProvider;
             }
         }
