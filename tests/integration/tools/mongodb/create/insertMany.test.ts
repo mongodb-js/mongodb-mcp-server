@@ -109,7 +109,6 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
 describeWithMongoDB(
     "insertMany tool when search is enabled",
     (integration) => {
-        // let provider: NodeDriverServiceProvider;
         let collection: Collection;
 
         beforeEach(async () => {

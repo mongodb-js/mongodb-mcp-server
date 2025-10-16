@@ -343,28 +343,45 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                     (integration) => {
                         const { getIndexName } = setupForVectorSearchIndexes(integration);
 
-                        describe("and attempting to delete a non-existent index", () => {
-                            it("should fail with appropriate error", async () => {
-                                const response = await integration.mcpClient().callTool({
-                                    name: "drop-index",
-                                    arguments: {
-                                        database: "any",
-                                        collection: "foo",
-                                        indexName: "non-existent",
-                                        type: "search",
-                                    },
-                                });
-                                expect(response.isError).toBe(true);
-                                const content = getResponseContent(response.content);
-                                expect(content).toContain("Index does not exist in the provided namespace.");
+                        describe.each([
+                            {
+                                title: "an index from non-existent database",
+                                database: "non-existent-db",
+                                collection: "non-existent-coll",
+                                indexName: "non-existent-index",
+                            },
+                            {
+                                title: "an index from non-existent collection",
+                                database: "mflix",
+                                collection: "non-existent-coll",
+                                indexName: "non-existent-index",
+                            },
+                            {
+                                title: "a non-existent index",
+                                database: "mflix",
+                                collection: "movies",
+                                indexName: "non-existent-index",
+                            },
+                        ])(
+                            "and attempting to delete $title (namespace - $database $collection)",
+                            ({ database, collection, indexName }) => {
+                                it("should fail with appropriate error", async () => {
+                                    const response = await integration.mcpClient().callTool({
+                                        name: "drop-index",
+                                        arguments: { database, collection, indexName, type: "search" },
+                                    });
+                                    expect(response.isError).toBe(true);
+                                    const content = getResponseContent(response.content);
+                                    expect(content).toContain("Index does not exist in the provided namespace.");
 
-                                const data = getDataFromUntrustedContent(content);
-                                expect(JSON.parse(data)).toMatchObject({
-                                    indexName: "non-existent",
-                                    namespace: "any.foo",
+                                    const data = getDataFromUntrustedContent(content);
+                                    expect(JSON.parse(data)).toMatchObject({
+                                        indexName,
+                                        namespace: `${database}.${collection}`,
+                                    });
                                 });
-                            });
-                        });
+                            }
+                        );
 
                         describe("and attempting to delete an existing index", () => {
                             it("should succeed in deleting the index", async () => {
