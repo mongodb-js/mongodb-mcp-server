@@ -10,7 +10,9 @@ permissions: {}
 jobs:
   run-tests:
     name: Run MongoDB tests
-    if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository
+    # Code health disabled on forks for now
+    # if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -25,7 +27,7 @@ jobs:
         name: Setup Docker Environment
         with:
           set-host: true
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
           cache: "npm"
