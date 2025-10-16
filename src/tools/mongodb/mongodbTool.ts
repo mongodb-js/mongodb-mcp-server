@@ -100,16 +100,6 @@ export abstract class MongoDBToolBase extends ToolBase {
                         isError: true,
                     };
                 }
-                case ErrorCodes.AtlasSearchNotAvailable:
-                    return {
-                        content: [
-                            {
-                                text: `The connected MongoDB deployment does support vector search indexes but they are not ready yet. Try again later.`,
-                                type: "text",
-                            },
-                        ],
-                        isError: true,
-                    };
             }
         }
 
