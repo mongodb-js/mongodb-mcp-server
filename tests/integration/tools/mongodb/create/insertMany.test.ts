@@ -186,7 +186,7 @@ describeWithMongoDB(
             expect(content).toContain("There were errors when inserting documents. No document was inserted.");
             const untrustedContent = getDataFromUntrustedContent(content);
             expect(untrustedContent).toContain(
-                "- Field embedding is an embedding with 8 dimensions and scalar quantization, and the provided value is not compatible."
+                "- Field embedding is an embedding with 8 dimensions and scalar quantization, and the provided value is not compatible. Actual dimensions: unknown, actual quantization: unknown. Error: not-a-vector"
             );
 
             const oopsieCount = await provider.countDocuments(integration.randomDbName(), "test", {

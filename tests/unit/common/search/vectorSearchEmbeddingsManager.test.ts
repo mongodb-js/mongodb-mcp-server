@@ -4,6 +4,7 @@ import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vec
 import type {
     EmbeddingNamespace,
     VectorFieldIndexDefinition,
+    VectorFieldValidationError,
 } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { BSON } from "bson";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
@@ -275,6 +276,15 @@ describe("VectorSearchEmbeddingsManager", () => {
                     );
 
                     expect(result).toHaveLength(1);
+                    const expectedError: VectorFieldValidationError = {
+                        actualNumDimensions: 3,
+                        actualQuantization: "scalar",
+                        error: "dimension-mismatch",
+                        expectedNumDimensions: 8,
+                        expectedQuantization: "scalar",
+                        path: "embedding_field",
+                    };
+                    expect(result[0]).toEqual(expectedError);
                 });
 
                 it("documents inserting the field with correct dimensions, but wrong type are invalid", async () => {
@@ -284,6 +294,16 @@ describe("VectorSearchEmbeddingsManager", () => {
                     );
 
                     expect(result).toHaveLength(1);
+                    const expectedError: VectorFieldValidationError = {
+                        actualNumDimensions: 8,
+                        actualQuantization: "scalar",
+                        error: "not-numeric",
+                        expectedNumDimensions: 8,
+                        expectedQuantization: "scalar",
+                        path: "embedding_field",
+                    };
+
+                    expect(result[0]).toEqual(expectedError);
                 });
 
                 it("documents inserting the field with correct dimensions and quantization in binary are valid", async () => {
