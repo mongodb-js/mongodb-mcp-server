@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { experimental_createMCPClient as createMCPClient, tool as createVercelTool } from "ai";
+import type { ToolCallOptions } from "ai";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
@@ -36,7 +37,8 @@ export class AccuracyTestingClient {
         for (const [toolName, tool] of Object.entries(vercelTools)) {
             rewrappedVercelTools[toolName] = createVercelTool({
                 ...tool,
-                execute: async (args, options) => {
+                // eslint-disable-next-line
+                execute: (async (args: unknown, options: ToolCallOptions) => {
                     this.llmToolCalls.push({
                         toolCallId: uuid(),
                         toolName: toolName,
@@ -60,8 +62,8 @@ export class AccuracyTestingClient {
                             content: JSON.stringify(error),
                         };
                     }
-                },
-            });
+                }) as any, // eslint-disable-line
+            }) as VercelMCPClientTools[string];
         }
 
         return rewrappedVercelTools;
