@@ -42,23 +42,23 @@ export class ConnectionStateConnected implements ConnectionState {
         public connectedAtlasCluster?: AtlasClusterConnectionInfo
     ) {}
 
-    #isSearchSupported?: boolean;
+    private _isSearchSupported?: boolean;
 
     public async isSearchSupported(): Promise<boolean> {
-        if (this.#isSearchSupported === undefined) {
+        if (this._isSearchSupported === undefined) {
             try {
                 // If a cluster supports search indexes, the call below will succeed
                 // with a cursor otherwise will throw an Error.
                 // the Search Index Management Service might not be ready yet, but
                 // we assume that the agent can retry in that situation.
                 await this.serviceProvider.getSearchIndexes(MCP_TEST_DATABASE, "test");
-                this.#isSearchSupported = true;
+                this._isSearchSupported = true;
             } catch {
-                this.#isSearchSupported = false;
+                this._isSearchSupported = false;
             }
         }
 
-        return this.#isSearchSupported;
+        return this._isSearchSupported;
     }
 }
 
