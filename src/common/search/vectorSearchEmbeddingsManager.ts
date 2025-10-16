@@ -2,13 +2,29 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import { BSON, type Document } from "bson";
 import type { UserConfig } from "../config.js";
 import type { ConnectionManager } from "../connectionManager.js";
+import z from "zod";
+
+export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
+export type Similarity = z.infer<typeof similarityEnum>;
+
+export const quantizationEnum = z.enum(["none", "scalar", "binary"]);
+export type Quantization = z.infer<typeof quantizationEnum>;
 
 export type VectorFieldIndexDefinition = {
     type: "vector";
     path: string;
     numDimensions: number;
-    quantization: "none" | "scalar" | "binary";
-    similarity: "euclidean" | "cosine" | "dotProduct";
+    quantization: Quantization;
+    similarity: Similarity;
+};
+
+export type VectorFieldValidationError = {
+    path: string;
+    expectedNumDimensions: number;
+    expectedQuantization: Quantization;
+    actualNumDimensions: number | "unknown";
+    actualQuantization: Quantization | "unknown";
+    error: "dimension-mismatch" | "quantization-mismatch" | "not-a-vector" | "not-numeric";
 };
 
 export type EmbeddingNamespace = `${string}.${string}`;
@@ -54,7 +70,7 @@ export class VectorSearchEmbeddingsManager {
             const vectorSearchIndexes = allSearchIndexes.filter((index) => index.type === "vectorSearch");
             const vectorFields = vectorSearchIndexes
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                .flatMap<Document>((index) => (index.latestDefinition?.fields as Document) ?? [])
+                .flatMap<Document>((index) => (index.latestDefinition?.fields as Document[]) ?? [])
                 .filter((field) => this.isVectorFieldIndexDefinition(field));
 
             this.embeddings.set(embeddingDefKey, vectorFields);
@@ -73,7 +89,7 @@ export class VectorSearchEmbeddingsManager {
             collection: string;
         },
         document: Document
-    ): Promise<VectorFieldIndexDefinition[]> {
+    ): Promise<VectorFieldValidationError[]> {
         const provider = await this.assertAtlasSearchIsAvailable();
         if (!provider) {
             return [];
@@ -87,15 +103,15 @@ export class VectorSearchEmbeddingsManager {
         }
 
         const embeddings = await this.embeddingsForNamespace({ database, collection });
-        return embeddings.filter((emb) => !this.documentPassesEmbeddingValidation(emb, document));
+        return embeddings
+            .map((emb) => this.getValidationErrorForDocument(emb, document))
+            .filter((e) => e !== undefined);
     }
 
     private async assertAtlasSearchIsAvailable(): Promise<NodeDriverServiceProvider | null> {
         const connectionState = this.connectionManager.currentConnectionState;
-        if (connectionState.tag === "connected") {
-            if (await connectionState.isSearchSupported()) {
-                return connectionState.serviceProvider;
-            }
+        if (connectionState.tag === "connected" && (await connectionState.isSearchSupported())) {
+            return connectionState.serviceProvider;
         }
 
         return null;
@@ -105,15 +121,29 @@ export class VectorSearchEmbeddingsManager {
         return doc["type"] === "vector";
     }
 
-    private documentPassesEmbeddingValidation(definition: VectorFieldIndexDefinition, document: Document): boolean {
+    private getValidationErrorForDocument(
+        definition: VectorFieldIndexDefinition,
+        document: Document
+    ): VectorFieldValidationError | undefined {
         const fieldPath = definition.path.split(".");
         let fieldRef: unknown = document;
+
+        const constructError = (
+            details: Partial<Pick<VectorFieldValidationError, "error" | "actualNumDimensions" | "actualQuantization">>
+        ): VectorFieldValidationError => ({
+            path: definition.path,
+            expectedNumDimensions: definition.numDimensions,
+            expectedQuantization: definition.quantization,
+            actualNumDimensions: details.actualNumDimensions ?? "unknown",
+            actualQuantization: details.actualQuantization ?? "unknown",
+            error: details.error ?? "not-a-vector",
+        });
 
         for (const field of fieldPath) {
             if (fieldRef && typeof fieldRef === "object" && field in fieldRef) {
                 fieldRef = (fieldRef as Record<string, unknown>)[field];
             } else {
-                return true;
+                return undefined;
             }
         }
 
@@ -121,40 +151,69 @@ export class VectorSearchEmbeddingsManager {
             // Because quantization is not defined by the user
             // we have to trust them in the format they use.
             case "none":
-                return true;
+                return undefined;
             case "scalar":
             case "binary":
                 if (fieldRef instanceof BSON.Binary) {
                     try {
                         const elements = fieldRef.toFloat32Array();
-                        return elements.length === definition.numDimensions;
+                        if (elements.length !== definition.numDimensions) {
+                            return constructError({
+                                actualNumDimensions: elements.length,
+                                actualQuantization: "binary",
+                                error: "dimension-mismatch",
+                            });
+                        }
+
+                        return undefined;
                     } catch {
                         // bits are also supported
                         try {
                             const bits = fieldRef.toBits();
-                            return bits.length === definition.numDimensions;
+                            if (bits.length !== definition.numDimensions) {
+                                return constructError({
+                                    actualNumDimensions: bits.length,
+                                    actualQuantization: "binary",
+                                    error: "dimension-mismatch",
+                                });
+                            }
+
+                            return undefined;
                         } catch {
-                            return false;
+                            return constructError({
+                                actualQuantization: "binary",
+                                error: "not-a-vector",
+                            });
                         }
                     }
                 } else {
                     if (!Array.isArray(fieldRef)) {
-                        return false;
+                        return constructError({
+                            error: "not-a-vector",
+                        });
                     }
 
                     if (fieldRef.length !== definition.numDimensions) {
-                        return false;
+                        return constructError({
+                            actualNumDimensions: fieldRef.length,
+                            actualQuantization: "scalar",
+                            error: "dimension-mismatch",
+                        });
                     }
 
                     if (!fieldRef.every((e) => this.isANumber(e))) {
-                        return false;
+                        return constructError({
+                            actualNumDimensions: fieldRef.length,
+                            actualQuantization: "scalar",
+                            error: "not-numeric",
+                        });
                     }
                 }
 
                 break;
         }
 
-        return true;
+        return undefined;
     }
 
     private isANumber(value: unknown): boolean {

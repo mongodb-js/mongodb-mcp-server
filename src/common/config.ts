@@ -6,6 +6,7 @@ import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "./keychain.js";
 import type { Secret } from "./keychain.js";
 import levenshtein from "ts-levenshtein";
+import type { Similarity } from "./search/vectorSearchEmbeddingsManager.js";
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 const OPTIONS = {
@@ -186,7 +187,7 @@ export interface UserConfig extends CliOptions {
     voyageApiKey: string;
     disableEmbeddingsValidation: boolean;
     vectorSearchDimensions: number;
-    vectorSearchSimilarityFunction: "cosine" | "euclidean" | "dotProduct";
+    vectorSearchSimilarityFunction: Similarity;
 }
 
 export const defaultUserConfig: UserConfig = {

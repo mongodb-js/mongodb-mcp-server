@@ -156,15 +156,13 @@ export class Session extends EventEmitter<SessionEvents> {
     }
 
     async assertSearchSupported(): Promise<void> {
-        const availability = await this.isSearchSupported();
-        if (!availability) {
+        const isSearchSupported = await this.isSearchSupported();
+        if (!isSearchSupported) {
             throw new MongoDBError(
                 ErrorCodes.AtlasSearchNotSupported,
                 "Atlas Search is not supported in the current cluster."
             );
         }
-
-        return;
     }
 
     get serviceProvider(): NodeDriverServiceProvider {

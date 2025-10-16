@@ -39,7 +39,9 @@ export class InsertManyTool extends MongoDBToolBase {
             // tell the LLM what happened
             const embeddingValidationMessages = [...embeddingValidations].map(
                 (validation) =>
-                    `- Field ${validation.path} is an embedding with ${validation.numDimensions} dimensions and ${validation.quantization} quantization, and the provided value is not compatible.`
+                    `- Field ${validation.path} is an embedding with ${validation.expectedNumDimensions} dimensions and ${validation.expectedQuantization}` +
+                    ` quantization, and the provided value is not compatible. Actual dimensions: ${validation.actualNumDimensions}, ` +
+                    `actual quantization: ${validation.actualQuantization}. Error: ${validation.error}`
             );
 
             return {
