@@ -49,17 +49,17 @@ type VoyageModels = z.infer<typeof zVoyageModels>;
 class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels> {
     private readonly voyage: VoyageProvider;
 
-    constructor(userConfig: UserConfig, providedFetch?: typeof fetch) {
-        assert(userConfig.voyageApiKey, "voyageApiKey does not exist. This is likely a bug.");
+    constructor({ voyageApiKey }: UserConfig, providedFetch?: typeof fetch) {
+        assert(voyageApiKey, "voyageApiKey does not exist. This is likely a bug.");
 
         const customFetch: typeof fetch = (providedFetch ??
             createFetch({ useEnvironmentVariableProxies: true })) as unknown as typeof fetch;
 
-        this.voyage = createVoyage({ apiKey: userConfig.voyageApiKey, fetch: customFetch });
+        this.voyage = createVoyage({ apiKey: voyageApiKey, fetch: customFetch });
     }
 
-    static isConfiguredIn(userConfig: UserConfig): boolean {
-        return !!userConfig.voyageApiKey;
+    static isConfiguredIn({ voyageApiKey }: UserConfig): boolean {
+        return !!voyageApiKey;
     }
 
     async embed<Model extends VoyageModels>(
