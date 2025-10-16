@@ -315,9 +315,7 @@ describeWithMongoDB(
         it("fails to create a vector search index", async () => {
             await integration.connectMcpClient();
             const collection = new ObjectId().toString();
-            await integration
-                .mcpServer()
-                .session.serviceProvider.createCollection(integration.randomDbName(), collection);
+            await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
 
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
