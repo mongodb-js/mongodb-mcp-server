@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { MockedFunction } from "vitest";
-import { VectorSearchEmbeddings } from "../../../../src/common/search/vectorSearchEmbeddings.js";
+import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import type {
     EmbeddingNamespace,
     VectorFieldIndexDefinition,
-} from "../../../../src/common/search/vectorSearchEmbeddings.js";
+} from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { BSON } from "bson";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { ConnectionManager, UserConfig } from "../../../../src/lib.js";
@@ -64,7 +64,7 @@ const embeddingConfig: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = n
     ],
 ]);
 
-describe("VectorSearchEmbeddings", () => {
+describe("VectorSearchEmbeddingsManager", () => {
     const embeddingValidationEnabled: UserConfig = { disableEmbeddingsValidation: false } as UserConfig;
     const embeddingValidationDisabled: UserConfig = { disableEmbeddingsValidation: true } as UserConfig;
     const eventEmitter = new EventEmitter();
@@ -93,7 +93,11 @@ describe("VectorSearchEmbeddings", () => {
     describe("embeddings cache", () => {
         it("the connection is closed gets cleared", async () => {
             const configCopy = new Map(embeddingConfig);
-            const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, connectionManager, configCopy);
+            const embeddings = new VectorSearchEmbeddingsManager(
+                embeddingValidationEnabled,
+                connectionManager,
+                configCopy
+            );
 
             eventEmitter.emit("connection-close");
             void embeddings; // we don't need to call it, it's already subscribed by the constructor
@@ -144,7 +148,7 @@ describe("VectorSearchEmbeddings", () => {
             });
 
             it("retrieves the list of vector search indexes for that collection from the cluster", async () => {
-                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, connectionManager);
+                const embeddings = new VectorSearchEmbeddingsManager(embeddingValidationEnabled, connectionManager);
                 const result = await embeddings.embeddingsForNamespace({ database, collection });
 
                 expect(result).toContainEqual({
@@ -156,14 +160,14 @@ describe("VectorSearchEmbeddings", () => {
             });
 
             it("ignores any other type of index", async () => {
-                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, connectionManager);
+                const embeddings = new VectorSearchEmbeddingsManager(embeddingValidationEnabled, connectionManager);
                 const result = await embeddings.embeddingsForNamespace({ database, collection });
 
                 expect(result?.filter((emb) => emb.type !== "vector")).toHaveLength(0);
             });
 
             it("embeddings are cached in memory", async () => {
-                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, connectionManager);
+                const embeddings = new VectorSearchEmbeddingsManager(embeddingValidationEnabled, connectionManager);
                 const result1 = await embeddings.embeddingsForNamespace({ database, collection });
                 const result2 = await embeddings.embeddingsForNamespace({ database, collection });
 
@@ -172,7 +176,7 @@ describe("VectorSearchEmbeddings", () => {
             });
 
             it("embeddings are cached in memory until cleaned up", async () => {
-                const embeddings = new VectorSearchEmbeddings(embeddingValidationEnabled, connectionManager);
+                const embeddings = new VectorSearchEmbeddingsManager(embeddingValidationEnabled, connectionManager);
                 const result1 = await embeddings.embeddingsForNamespace({ database, collection });
                 embeddings.cleanupEmbeddingsForNamespace({ database, collection });
                 const result2 = await embeddings.embeddingsForNamespace({ database, collection });
@@ -185,7 +189,7 @@ describe("VectorSearchEmbeddings", () => {
 
     describe("embedding validation", () => {
         it("when there are no embeddings, all documents are valid", async () => {
-            const embeddings = new VectorSearchEmbeddings(
+            const embeddings = new VectorSearchEmbeddingsManager(
                 embeddingValidationEnabled,
                 connectionManager,
                 new Map([[mapKey, []]])
@@ -197,10 +201,10 @@ describe("VectorSearchEmbeddings", () => {
 
         describe("when there are embeddings", () => {
             describe("when the validation is disabled", () => {
-                let embeddings: VectorSearchEmbeddings;
+                let embeddings: VectorSearchEmbeddingsManager;
 
                 beforeEach(() => {
-                    embeddings = new VectorSearchEmbeddings(
+                    embeddings = new VectorSearchEmbeddingsManager(
                         embeddingValidationDisabled,
                         connectionManager,
                         embeddingConfig
@@ -236,10 +240,10 @@ describe("VectorSearchEmbeddings", () => {
             });
 
             describe("when the validation is enabled", () => {
-                let embeddings: VectorSearchEmbeddings;
+                let embeddings: VectorSearchEmbeddingsManager;
 
                 beforeEach(() => {
-                    embeddings = new VectorSearchEmbeddings(
+                    embeddings = new VectorSearchEmbeddingsManager(
                         embeddingValidationEnabled,
                         connectionManager,
                         embeddingConfig

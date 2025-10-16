@@ -21,7 +21,7 @@ import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.
 import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
-import { VectorSearchEmbeddings } from "../../src/common/search/vectorSearchEmbeddings.js";
+import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 export const driverOptions = setupDriverConfig({
     config,
@@ -113,7 +113,7 @@ export function setupIntegrationTest(
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(userConfig, connectionManager),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
         });
 
         // Mock hasValidAccessToken for tests

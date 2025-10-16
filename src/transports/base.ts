@@ -16,7 +16,7 @@ import {
 } from "../common/connectionErrorHandler.js";
 import type { CommonProperties } from "../telemetry/types.js";
 import { Elicitation } from "../elicitation.js";
-import { VectorSearchEmbeddings } from "../common/search/vectorSearchEmbeddings.js";
+import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
@@ -90,7 +90,7 @@ export abstract class TransportRunnerBase {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(this.userConfig, connectionManager),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(this.userConfig, connectionManager),
         });
 
         const telemetry = Telemetry.create(session, this.userConfig, this.deviceId, {

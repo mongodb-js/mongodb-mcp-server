@@ -12,7 +12,7 @@ export type VectorFieldIndexDefinition = {
 };
 
 export type EmbeddingNamespace = `${string}.${string}`;
-export class VectorSearchEmbeddings {
+export class VectorSearchEmbeddingsManager {
     constructor(
         private readonly config: UserConfig,
         private readonly connectionManager: ConnectionManager,

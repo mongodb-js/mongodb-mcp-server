@@ -9,7 +9,7 @@ import { MCPConnectionManager } from "../../../../src/common/connectionManager.j
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
-import { VectorSearchEmbeddings } from "../../../../src/common/search/vectorSearchEmbeddings.js";
+import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -23,7 +23,7 @@ describe("debug resource", () => {
             exportsManager: ExportsManager.init(config, logger),
             connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddings: new VectorSearchEmbeddings(config, connectionManager),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
         })
     );
 
