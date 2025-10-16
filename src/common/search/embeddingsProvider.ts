@@ -19,27 +19,27 @@ const zVoyageSupportedDimensions = z
     .default(1024);
 
 const zVoyageQuantization = z.enum(["float", "int8", "binary", "ubinary"]).default("float");
-const zVoyageInputQuery = z.enum(["query", "document"]);
+const zVoyageInputType = z.enum(["query", "document"]);
 
 export const zVoyageModels = z.enum(["voyage-3-large", "voyage-3.5", "voyage-3.5-lite", "voyage-code-3"]);
 export const zVoyageParameters = {
     "voyage-3-large": z.object({
-        inputType: zVoyageInputQuery,
+        inputType: zVoyageInputType,
         outputDimensions: zVoyageSupportedDimensions,
         outputDtype: zVoyageQuantization,
     }),
     "voyage-3.5": z.object({
-        inputType: zVoyageInputQuery,
+        inputType: zVoyageInputType,
         outputDimensions: zVoyageSupportedDimensions,
         outputDtype: zVoyageQuantization,
     }),
     "voyage-3.5-lite": z.object({
-        inputType: zVoyageInputQuery,
+        inputType: zVoyageInputType,
         outputDimensions: zVoyageSupportedDimensions,
         outputDtype: zVoyageQuantization,
     }),
     "voyage-code-3": z.object({
-        inputType: zVoyageInputQuery,
+        inputType: zVoyageInputType,
         outputDimensions: zVoyageSupportedDimensions,
         outputDtype: zVoyageQuantization,
     }),
