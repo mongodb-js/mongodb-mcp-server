@@ -118,7 +118,7 @@ export class VectorSearchEmbeddingsManager {
         }
 
         switch (definition.quantization) {
-            // Because quantization is not defined by the use
+            // Because quantization is not defined by the user
             // we have to trust them in the format they use.
             case "none":
                 return true;
