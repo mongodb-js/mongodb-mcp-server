@@ -84,9 +84,14 @@ export class DropIndexTool extends MongoDBToolBase {
         };
     }
 
-    protected getConfirmationMessage({ database, collection, indexName }: ToolArgs<typeof this.argsShape>): string {
+    protected getConfirmationMessage({
+        database,
+        collection,
+        indexName,
+        type,
+    }: ToolArgs<typeof this.argsShape>): string {
         return (
-            `You are about to drop the \`${indexName}\` index from the \`${database}.${collection}\` namespace:\n\n` +
+            `You are about to drop the ${type === "search" ? "search index" : "index"} named \`${indexName}\` from the \`${database}.${collection}\` namespace:\n\n` +
             "This operation will permanently remove the index and might affect the performance of queries relying on this index.\n\n" +
             "**Do you confirm the execution of the action?**"
         );

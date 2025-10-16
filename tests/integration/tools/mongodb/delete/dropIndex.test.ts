@@ -275,7 +275,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         expect(mockElicitInput.mock).toHaveBeenCalledWith({
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             message: expect.stringContaining(
-                                "You are about to drop the `year_1` index from the `mflix.movies` namespace"
+                                "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
                             ),
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                         });
@@ -300,7 +300,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         expect(mockElicitInput.mock).toHaveBeenCalledWith({
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             message: expect.stringContaining(
-                                "You are about to drop the `year_1` index from the `mflix.movies` namespace"
+                                "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
                             ),
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                         });
@@ -449,7 +449,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                             expect(mockElicitInput.mock).toHaveBeenCalledWith({
                                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                                 message: expect.stringContaining(
-                                    "You are about to drop the `searchIdx` index from the `mflix.movies` namespace"
+                                    "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
                                 ),
                                 requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             });
@@ -476,7 +476,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                             expect(mockElicitInput.mock).toHaveBeenCalledWith({
                                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                                 message: expect.stringContaining(
-                                    "You are about to drop the `searchIdx` index from the `mflix.movies` namespace"
+                                    "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
                                 ),
                                 requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             });
