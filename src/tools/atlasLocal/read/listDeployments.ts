@@ -2,8 +2,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import type { Deployment } from "@mongodb-js-preview/atlas-local";
-import type { Client } from "@mongodb-js-preview/atlas-local";
+import type { Deployment } from "@mongodb-js/atlas-local";
+import type { Client } from "@mongodb-js/atlas-local";
 
 export class ListDeploymentsTool extends AtlasLocalToolBase {
     public name = "atlas-local-list-deployments";

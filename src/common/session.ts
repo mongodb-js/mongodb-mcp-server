@@ -15,7 +15,7 @@ import type {
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
-import type { Client } from "@mongodb-js-preview/atlas-local";
+import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "./keychain.js";
 
 export interface SessionOptions {

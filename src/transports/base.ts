@@ -18,7 +18,7 @@ import type { CommonProperties } from "../telemetry/types.js";
 import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
-import type { Client } from "@mongodb-js-preview/atlas-local";
+import type { Client } from "@mongodb-js/atlas-local";
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;

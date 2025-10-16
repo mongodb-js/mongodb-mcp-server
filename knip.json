@@ -7,6 +7,6 @@
     "eslint-rules/*.js"
   ],
   "ignore": ["tests/integration/fixtures/curl.mjs", "tests/vitest.d.ts"],
-  "ignoreDependencies": ["@mongodb-js-preview/atlas-local"],
+  "ignoreDependencies": ["@mongodb-js/atlas-local"],
   "ignoreExportsUsedInFile": true
 }

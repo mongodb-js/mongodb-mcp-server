@@ -1,4 +1,4 @@
-import type { Client } from "@mongodb-js-preview/atlas-local";
+import type { Client } from "@mongodb-js/atlas-local";
 
 export type AtlasLocalClientFactoryFn = () => Promise<Client | undefined>;
 
@@ -8,7 +8,7 @@ export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn = async ()
         // Import Atlas Local client asyncronously
         // This will fail on unsupported platforms
         // also measure the time it takes to import the client
-        const { Client: AtlasLocalClient } = await import("@mongodb-js-preview/atlas-local");
+        const { Client: AtlasLocalClient } = await import("@mongodb-js/atlas-local");
 
         try {
             // Connect to Atlas Local client

@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
-import type { Client } from "@mongodb-js-preview/atlas-local";
+import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
 
 export class ConnectDeploymentTool extends AtlasLocalToolBase {

@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs, TelemetryToolMetadata } from "../../tool.js";
-import type { Client, CreateDeploymentOptions, CreationSourceType } from "@mongodb-js-preview/atlas-local";
+import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -22,7 +22,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,
             creationSource: {
-                type: "MCPServer" as CreationSourceType,
+                type: "MCPServer",
                 source: "MCPServer",
             },
             doNotTrack: !this.telemetry.isTelemetryEnabled(),

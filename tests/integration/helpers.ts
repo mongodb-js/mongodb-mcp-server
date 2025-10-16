@@ -19,7 +19,7 @@ import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
-import type { Client as AtlasLocalClient } from "@mongodb-js-preview/atlas-local";
+import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 

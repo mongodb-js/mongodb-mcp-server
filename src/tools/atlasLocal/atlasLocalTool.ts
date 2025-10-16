@@ -2,7 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata, ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Client } from "@mongodb-js-preview/atlas-local";
+import type { Client } from "@mongodb-js/atlas-local";
 import { LogId } from "../../common/logger.js";
 import { z } from "zod";
 
