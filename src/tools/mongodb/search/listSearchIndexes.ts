@@ -60,7 +60,7 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
          **/
         return searchIndexes.map<SearchIndexWithStatus>((index) => ({
             name: (index["name"] ?? "default") as string,
-            type: (index["type"] ?? "UNKNOWN") as string,
+            type: (index["type"] ?? "UNKNOWN") as "search" | "vectorSearch",
             status: (index["status"] ?? "UNKNOWN") as string,
             queryable: (index["queryable"] ?? false) as boolean,
             latestDefinition: index["latestDefinition"] as Document,
