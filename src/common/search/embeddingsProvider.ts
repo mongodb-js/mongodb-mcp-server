@@ -52,6 +52,9 @@ class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels> {
     constructor({ voyageApiKey }: UserConfig, providedFetch?: typeof fetch) {
         assert(voyageApiKey, "voyageApiKey does not exist. This is likely a bug.");
 
+        // We should always use, by default, any enterprise proxy that the user has configured.
+        // Direct requests to VoyageAI might get blocked by the network if they don't go through
+        // the provided proxy.
         const customFetch: typeof fetch = (providedFetch ??
             createFetch({ useEnvironmentVariableProxies: true })) as unknown as typeof fetch;
 
