@@ -87,9 +87,6 @@ export class Server {
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
         this.registerTools();
 
-        // Atlas Local tools are optional and require async initialization
-        void this.registerAtlasLocalTools();
-
         // This is a workaround for an issue we've seen with some models, where they'll see that everything in the `arguments`
         // object is optional, and then not pass it at all. However, the MCP server expects the `arguments` object to be if
         // the tool accepts any arguments, even if they're all optional.
@@ -220,55 +217,8 @@ export class Server {
         this.telemetry.emitEvents([event]);
     }
 
-    private async registerAtlasLocalTools(): Promise<void> {
-        // If Atlas Local tools are disabled, don't attempt to connect to the client
-        if (this.userConfig.disabledTools.includes("atlas-local")) {
-            return;
-        }
-
-        try {
-            // Import Atlas Local client asyncronously
-            // This will fail on unsupported platforms
-            const { Client: AtlasLocalClient } = await import("@mongodb-js-preview/atlas-local");
-
-            try {
-                // Connect to Atlas Local client
-                // This will fail if docker is not running
-                const client = AtlasLocalClient.connect();
-
-                // Set Atlas Local client
-                this.session.atlasLocalClient = client;
-
-                // Register Atlas Local tools
-                for (const toolConstructor of AtlasLocalTools) {
-                    const tool = new toolConstructor({
-                        session: this.session,
-                        config: this.userConfig,
-                        telemetry: this.telemetry,
-                        elicitation: this.elicitation,
-                    });
-                    if (tool.register(this)) {
-                        this.tools.push(tool);
-                    }
-                }
-            } catch (dockerError) {
-                console.warn(
-                    "Failed to connect to Atlas Local client (Docker not available or not running), atlas-local tools will be disabled (error: ",
-                    dockerError,
-                    ")"
-                );
-            }
-        } catch (importError) {
-            console.warn(
-                "Failed to import Atlas Local client (platform not supported), atlas-local tools will be disabled (error: ",
-                importError,
-                ")"
-            );
-        }
-    }
-
     private registerTools(): void {
-        for (const toolConstructor of this.toolConstructors) {
+        for (const toolConstructor of [...this.toolConstructors, ...AtlasLocalTools]) {
             const tool = new toolConstructor({
                 session: this.session,
                 config: this.userConfig,

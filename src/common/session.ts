@@ -26,6 +26,7 @@ export interface SessionOptions {
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
     keychain: Keychain;
+    atlasLocalClient?: Client;
 }
 
 export type SessionEvents = {
@@ -40,6 +41,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
+    readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
 
     mcpClient?: {
@@ -47,7 +49,6 @@ export class Session extends EventEmitter<SessionEvents> {
         version?: string;
         title?: string;
     };
-    atlasLocalClient?: Client;
 
     public logger: CompositeLogger;
 
@@ -59,6 +60,7 @@ export class Session extends EventEmitter<SessionEvents> {
         connectionManager,
         exportsManager,
         keychain,
+        atlasLocalClient,
     }: SessionOptions) {
         super();
 
@@ -73,6 +75,7 @@ export class Session extends EventEmitter<SessionEvents> {
                 : undefined;
 
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
+        this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
