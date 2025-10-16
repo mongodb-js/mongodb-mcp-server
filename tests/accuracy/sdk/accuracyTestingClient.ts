@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { experimental_createMCPClient as createMCPClient, tool as createVercelTool } from "ai";
-import type { ToolCallOptions } from "ai";
+import type { Tool } from "ai";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
@@ -36,9 +36,10 @@ export class AccuracyTestingClient {
         const rewrappedVercelTools: VercelMCPClientTools = {};
         for (const [toolName, tool] of Object.entries(vercelTools)) {
             rewrappedVercelTools[toolName] = createVercelTool({
-                ...tool,
-                // eslint-disable-next-line
-                execute: (async (args: unknown, options: ToolCallOptions) => {
+                // tool is an insantiated tool, while createVercelTool requires a tool definition.
+                // by using this explicit casting, we ensure the type system understands what we are doing.
+                ...(tool as Tool<unknown, unknown>),
+                execute: async (args, options) => {
                     this.llmToolCalls.push({
                         toolCallId: uuid(),
                         toolName: toolName,
@@ -62,7 +63,7 @@ export class AccuracyTestingClient {
                             content: JSON.stringify(error),
                         };
                     }
-                }) as any, // eslint-disable-line
+                },
             }) as VercelMCPClientTools[string];
         }
 
