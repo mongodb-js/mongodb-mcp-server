@@ -1,11 +1,10 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs } from "../mongodbTool.js";
+import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, FeatureFlags } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
-import { MongoDBToolWithSearchErrorHandler } from "../../../helpers/searchErrorHandler.js";
 
-export class CreateIndexTool extends MongoDBToolWithSearchErrorHandler {
+export class CreateIndexTool extends MongoDBToolBase {
     private vectorSearchIndexDefinition = z.object({
         type: z.literal("vectorSearch"),
         fields: z
@@ -113,6 +112,7 @@ export class CreateIndexTool extends MongoDBToolWithSearchErrorHandler {
                 break;
             case "vectorSearch":
                 {
+                    await this.ensureSearchIsSupported();
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -125,6 +125,8 @@ export class CreateIndexTool extends MongoDBToolWithSearchErrorHandler {
 
                     responseClarification =
                         " Since this is a vector search index, it may take a while for the index to build. Use the `list-indexes` tool to check the index status.";
+                    // clean up the embeddings cache so it considers the new index
+                    this.session.vectorSearchEmbeddingsManager.cleanupEmbeddingsForNamespace({ database, collection });
                 }
 
                 break;

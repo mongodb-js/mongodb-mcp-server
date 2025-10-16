@@ -22,6 +22,7 @@ import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.
 import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
+import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
@@ -116,6 +117,7 @@ export function setupIntegrationTest(
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
         });
 
         // Mock hasValidAccessToken for tests

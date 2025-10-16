@@ -282,6 +282,7 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
 }
 
 const SEARCH_RETRIES = 200;
+const SEARCH_WAITING_TICK = 100;
 
 export async function waitUntilSearchIsReady(
     provider: NodeDriverServiceProvider,
@@ -324,7 +325,7 @@ export async function waitUntilSearchIndexIsQueryable(
             }
         } catch (err) {
             lastError = err;
-            await sleep(100);
+            await sleep(SEARCH_WAITING_TICK);
         }
     }
 
@@ -333,4 +334,24 @@ export async function waitUntilSearchIndexIsQueryable(
 lastIndexStatus: ${JSON.stringify(lastIndexStatus)}
 lastError: ${JSON.stringify(lastError)}`
     );
+}
+
+export async function createVectorSearchIndexAndWait(
+    provider: NodeDriverServiceProvider,
+    database: string,
+    collection: string,
+    fields: Document[],
+    abortSignal: AbortSignal
+): Promise<void> {
+    await provider.createSearchIndexes(database, collection, [
+        {
+            name: "default",
+            type: "vectorSearch",
+            definition: {
+                fields,
+            },
+        },
+    ]);
+
+    await waitUntilSearchIndexIsQueryable(provider, database, collection, "default", abortSignal);
 }

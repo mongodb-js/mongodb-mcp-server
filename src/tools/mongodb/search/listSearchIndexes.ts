@@ -7,7 +7,7 @@ import { EJSON } from "bson";
 
 export type SearchIndexWithStatus = {
     name: string;
-    type: string;
+    type: "search" | "vectorSearch";
     status: string;
     queryable: boolean;
     latestDefinition: Document;
@@ -21,13 +21,14 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+        await this.ensureSearchIsSupported();
         const searchIndexes = await ListSearchIndexesTool.getSearchIndexes(provider, database, collection);
 
         if (searchIndexes.length > 0) {
             return {
                 content: formatUntrustedData(
                     `Found ${searchIndexes.length} search and vector search indexes in ${database}.${collection}`,
-                    searchIndexes.map((index) => EJSON.stringify(index)).join("\n")
+                    ...searchIndexes.map((index) => EJSON.stringify(index))
                 ),
             };
         } else {
@@ -43,24 +44,6 @@ export class ListSearchIndexesTool extends MongoDBToolBase {
     protected verifyAllowed(): boolean {
         // Only enable this on tests for now.
         return process.env.VITEST === "true";
-    }
-
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof DbOperationArgs>
-    ): Promise<CallToolResult> | CallToolResult {
-        if (error instanceof Error && "codeName" in error && error.codeName === "SearchNotEnabled") {
-            return {
-                content: [
-                    {
-                        text: "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search.",
-                        type: "text",
-                    },
-                ],
-                isError: true,
-            };
-        }
-        return super.handleError(error, args);
     }
 
     static async getSearchIndexes(

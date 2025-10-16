@@ -46,6 +46,10 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
+    protected async ensureSearchIsSupported(): Promise<void> {
+        return await this.session.assertSearchSupported();
+    }
+
     public register(server: Server): boolean {
         this.server = server;
         return super.register(server);
@@ -82,6 +86,20 @@ export abstract class MongoDBToolBase extends ToolBase {
                         ],
                         isError: true,
                     };
+                case ErrorCodes.AtlasSearchNotSupported: {
+                    const CTA = this.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
+                        ? "`atlas-local` tools"
+                        : "Atlas CLI";
+                    return {
+                        content: [
+                            {
+                                text: `The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the ${CTA} to create and manage a local Atlas deployment.`,
+                                type: "text",
+                            },
+                        ],
+                        isError: true,
+                    };
+                }
             }
         }
 
@@ -104,5 +122,9 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
 
         return metadata;
+    }
+
+    protected isToolCategoryAvailable(name: ToolCategory): boolean {
+        return (this.server?.tools.filter((t) => t.category === name).length ?? 0) > 0;
     }
 }

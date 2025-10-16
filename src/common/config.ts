@@ -58,6 +58,7 @@ const OPTIONS = {
     boolean: [
         "apiDeprecationErrors",
         "apiStrict",
+        "disableEmbeddingsValidation",
         "help",
         "indexCheck",
         "ipv6",
@@ -183,6 +184,7 @@ export interface UserConfig extends CliOptions {
     maxBytesPerQuery: number;
     atlasTemporaryDatabaseUserLifetimeMs: number;
     voyageApiKey: string;
+    disableEmbeddingsValidation: boolean;
     vectorSearchDimensions: number;
     vectorSearchSimilarityFunction: "cosine" | "euclidean" | "dotProduct";
 }
@@ -216,6 +218,7 @@ export const defaultUserConfig: UserConfig = {
     maxBytesPerQuery: 16 * 1024 * 1024, // By default, we only return ~16 mb of data per query / aggregation
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
     voyageApiKey: "",
+    disableEmbeddingsValidation: false,
     vectorSearchDimensions: 1024,
     vectorSearchSimilarityFunction: "euclidean",
 };

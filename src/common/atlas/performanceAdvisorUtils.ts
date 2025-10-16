@@ -9,6 +9,9 @@ export type SlowQueryLog = components["schemas"]["PerformanceAdvisorSlowQuery"];
 
 export const DEFAULT_SLOW_QUERY_LOGS_LIMIT = 50;
 
+export const SUGGESTED_INDEXES_COPY = `Note: The "Weight" field is measured in bytes, and represents the estimated number of bytes saved in disk reads per executed read query that would be saved by implementing an index suggestion. Please convert this to MB or GB for easier readability.`;
+export const SLOW_QUERY_LOGS_COPY = `Please notify the user that the MCP server tool limits slow query logs to the most recent ${DEFAULT_SLOW_QUERY_LOGS_LIMIT} slow query logs. This is a limitation of the MCP server tool only. More slow query logs and performance suggestions can be seen in the Atlas UI. Please give to the user the following docs about the performance advisor: https://www.mongodb.com/docs/atlas/performance-advisor/.`;
+
 interface SuggestedIndexesResponse {
     content: components["schemas"]["PerformanceAdvisorResponse"];
 }

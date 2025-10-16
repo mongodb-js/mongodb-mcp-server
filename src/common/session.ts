@@ -16,6 +16,7 @@ import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-d
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
 import type { Keychain } from "./keychain.js";
+import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -25,6 +26,7 @@ export interface SessionOptions {
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
     keychain: Keychain;
+    vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 }
 
 export type SessionEvents = {
@@ -40,6 +42,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
     readonly keychain: Keychain;
+    readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 
     mcpClient?: {
         name?: string;
@@ -57,6 +60,7 @@ export class Session extends EventEmitter<SessionEvents> {
         connectionManager,
         exportsManager,
         keychain,
+        vectorSearchEmbeddingsManager,
     }: SessionOptions) {
         super();
 
@@ -73,6 +77,7 @@ export class Session extends EventEmitter<SessionEvents> {
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
+        this.vectorSearchEmbeddingsManager = vectorSearchEmbeddingsManager;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
         this.connectionManager.events.on("connection-close", () => this.emit("disconnect"));
@@ -141,13 +146,25 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
-    isSearchSupported(): Promise<boolean> {
+    async isSearchSupported(): Promise<boolean> {
         const state = this.connectionManager.currentConnectionState;
         if (state.tag === "connected") {
-            return state.isSearchSupported();
+            return await state.isSearchSupported();
         }
 
-        return Promise.resolve(false);
+        return false;
+    }
+
+    async assertSearchSupported(): Promise<void> {
+        const availability = await this.isSearchSupported();
+        if (!availability) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasSearchNotSupported,
+                "Atlas Search is not supported in the current cluster."
+            );
+        }
+
+        return;
     }
 
     get serviceProvider(): NodeDriverServiceProvider {

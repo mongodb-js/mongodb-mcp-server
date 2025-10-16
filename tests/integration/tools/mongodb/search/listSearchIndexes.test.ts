@@ -13,7 +13,7 @@ import {
 } from "../../../helpers.js";
 import type { SearchIndexWithStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
-const SEARCH_TIMEOUT = 20_000;
+const SEARCH_TIMEOUT = 60_000;
 
 describeWithMongoDB("list-search-indexes tool in local MongoDB", (integration) => {
     validateToolMetadata(
@@ -34,7 +34,7 @@ describeWithMongoDB("list-search-indexes tool in local MongoDB", (integration) =
         const content = getResponseContent(response.content);
         expect(response.isError).toBe(true);
         expect(content).toEqual(
-            "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
+            "The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the Atlas CLI to create and manage a local Atlas deployment."
         );
     });
 });
