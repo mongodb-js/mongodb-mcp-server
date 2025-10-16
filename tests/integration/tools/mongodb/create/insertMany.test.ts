@@ -1,7 +1,7 @@
 import {
-    createVectorSearchIndexAndWait,
     describeWithMongoDB,
     validateAutoConnectBehavior,
+    createVectorSearchIndexAndWait,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
 
@@ -14,8 +14,8 @@ import {
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
 import { beforeEach, afterEach, expect, it } from "vitest";
-import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ObjectId } from "bson";
+import type { Collection } from "mongodb";
 
 describeWithMongoDB("insertMany tool when search is disabled", (integration) => {
     validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [
@@ -109,35 +109,29 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
 describeWithMongoDB(
     "insertMany tool when search is enabled",
     (integration) => {
-        let provider: NodeDriverServiceProvider;
+        // let provider: NodeDriverServiceProvider;
+        let collection: Collection;
 
-        beforeEach(async ({ signal }) => {
+        beforeEach(async () => {
             await integration.connectMcpClient();
-            provider = integration.mcpServer().session.serviceProvider;
-            await provider.createCollection(integration.randomDbName(), "test");
-            await waitUntilSearchIsReady(provider, signal);
+            collection = await integration.mongoClient().db(integration.randomDbName()).createCollection("test");
+            await waitUntilSearchIsReady(integration.mongoClient());
         });
 
         afterEach(async () => {
-            await provider.dropCollection(integration.randomDbName(), "test");
+            await collection.drop();
         });
 
-        it("inserts a document when the embedding is correct", async ({ signal }) => {
-            await createVectorSearchIndexAndWait(
-                provider,
-                integration.randomDbName(),
-                "test",
-                [
-                    {
-                        type: "vector",
-                        path: "embedding",
-                        numDimensions: 8,
-                        similarity: "euclidean",
-                        quantization: "scalar",
-                    },
-                ],
-                signal
-            );
+        it("inserts a document when the embedding is correct", async () => {
+            await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "test", [
+                {
+                    type: "vector",
+                    path: "embedding",
+                    numDimensions: 8,
+                    similarity: "euclidean",
+                    quantization: "scalar",
+                },
+            ]);
 
             const response = await integration.mcpClient().callTool({
                 name: "insert-many",
@@ -152,26 +146,20 @@ describeWithMongoDB(
             const insertedIds = extractInsertedIds(content);
             expect(insertedIds).toHaveLength(1);
 
-            const docCount = await provider.countDocuments(integration.randomDbName(), "test", { _id: insertedIds[0] });
+            const docCount = await collection.countDocuments({ _id: insertedIds[0] });
             expect(docCount).toBe(1);
         });
 
-        it("returns an error when there is a search index and quantisation is wrong", async ({ signal }) => {
-            await createVectorSearchIndexAndWait(
-                provider,
-                integration.randomDbName(),
-                "test",
-                [
-                    {
-                        type: "vector",
-                        path: "embedding",
-                        numDimensions: 8,
-                        similarity: "euclidean",
-                        quantization: "scalar",
-                    },
-                ],
-                signal
-            );
+        it("returns an error when there is a search index and quantisation is wrong", async () => {
+            await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "test", [
+                {
+                    type: "vector",
+                    path: "embedding",
+                    numDimensions: 8,
+                    similarity: "euclidean",
+                    quantization: "scalar",
+                },
+            ]);
 
             const response = await integration.mcpClient().callTool({
                 name: "insert-many",
@@ -189,7 +177,7 @@ describeWithMongoDB(
                 "- Field embedding is an embedding with 8 dimensions and scalar quantization, and the provided value is not compatible."
             );
 
-            const oopsieCount = await provider.countDocuments(integration.randomDbName(), "test", {
+            const oopsieCount = await collection.countDocuments({
                 embedding: "oopsie",
             });
             expect(oopsieCount).toBe(0);

@@ -1,4 +1,3 @@
-import type { Collection } from "mongodb";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
@@ -23,9 +22,6 @@ import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
-
-export const DEFAULT_WAIT_TIMEOUT = 1000;
-export const DEFAULT_RETRY_INTERVAL = 100;
 
 export const driverOptions = setupDriverConfig({
     config,
@@ -422,61 +418,4 @@ export function getDataFromUntrustedContent(content: string): string {
 
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export async function waitUntilSearchManagementServiceIsReady(
-    collection: Collection,
-    timeout: number = DEFAULT_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
-    await vi.waitFor(async () => await collection.listSearchIndexes({}).toArray(), { timeout, interval });
-}
-
-async function waitUntilSearchIndexIs(
-    collection: Collection,
-    searchIndex: string,
-    indexValidator: (index: { name: string; queryable: boolean }) => boolean,
-    timeout: number,
-    interval: number
-): Promise<void> {
-    await vi.waitFor(
-        async () => {
-            const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
-                name: string;
-                queryable: boolean;
-            }[];
-
-            if (!searchIndexes.some((index) => indexValidator(index))) {
-                throw new Error("Search index did not pass validation");
-            }
-        },
-        {
-            timeout,
-            interval,
-        }
-    );
-}
-
-export async function waitUntilSearchIndexIsListed(
-    collection: Collection,
-    searchIndex: string,
-    timeout: number = DEFAULT_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
-    return waitUntilSearchIndexIs(collection, searchIndex, (index) => index.name === searchIndex, timeout, interval);
-}
-
-export async function waitUntilSearchIndexIsQueryable(
-    collection: Collection,
-    searchIndex: string,
-    timeout: number = DEFAULT_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
-    return waitUntilSearchIndexIs(
-        collection,
-        searchIndex,
-        (index) => index.name === searchIndex && index.queryable,
-        timeout,
-        interval
-    );
 }

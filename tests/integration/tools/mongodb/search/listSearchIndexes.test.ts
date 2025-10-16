@@ -1,5 +1,10 @@
 import type { Collection } from "mongodb";
-import { describeWithMongoDB, getSingleDocFromUntrustedContent } from "../mongodbHelpers.js";
+import {
+    describeWithMongoDB,
+    getSingleDocFromUntrustedContent,
+    waitUntilSearchIndexIsQueryable,
+    waitUntilSearchIsReady,
+} from "../mongodbHelpers.js";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
     getResponseContent,
@@ -8,8 +13,6 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
-    waitUntilSearchManagementServiceIsReady,
-    waitUntilSearchIndexIsQueryable,
 } from "../../../helpers.js";
 import type { SearchIndexWithStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
@@ -47,7 +50,7 @@ describeWithMongoDB(
         beforeEach(async () => {
             await integration.connectMcpClient();
             fooCollection = integration.mongoClient().db("any").collection("foo");
-            await waitUntilSearchManagementServiceIsReady(fooCollection, SEARCH_TIMEOUT);
+            await waitUntilSearchIsReady(integration.mongoClient(), SEARCH_TIMEOUT);
         });
 
         describe("when the collection does not exist", () => {
@@ -79,7 +82,7 @@ describeWithMongoDB(
         describe("when there are indexes", () => {
             beforeEach(async () => {
                 await fooCollection.insertOne({ field1: "yay" });
-                await waitUntilSearchManagementServiceIsReady(fooCollection, SEARCH_TIMEOUT);
+                await waitUntilSearchIsReady(integration.mongoClient(), SEARCH_TIMEOUT);
                 await fooCollection.createSearchIndexes([{ definition: { mappings: { dynamic: true } } }]);
             });
 

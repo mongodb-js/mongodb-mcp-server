@@ -8,14 +8,15 @@ import {
     getResponseContent,
     validateThrowsForInvalidArguments,
     validateToolMetadata,
-    waitUntilSearchIndexIsListed,
-    waitUntilSearchManagementServiceIsReady,
 } from "../../../helpers.js";
-import { describeWithMongoDB, type MongoDBIntegrationTestCase } from "../mongodbHelpers.js";
+import {
+    describeWithMongoDB,
+    waitUntilSearchIndexIsListed,
+    waitUntilSearchIsReady,
+    type MongoDBIntegrationTestCase,
+} from "../mongodbHelpers.js";
 import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { Elicitation } from "../../../../../src/elicitation.js";
-
-const SEARCH_TIMEOUT = 20_000;
 
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
@@ -66,12 +67,12 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
                 plot: "This is a horrible movie about a database called BongoDB and how it tried to copy the OG MangoDB.",
             },
         ]);
-        await waitUntilSearchManagementServiceIsReady(moviesCollection, SEARCH_TIMEOUT);
+        await waitUntilSearchIsReady(mongoClient);
         await moviesCollection.createSearchIndex({
             name: indexName,
             definition: { mappings: { dynamic: true } },
         });
-        await waitUntilSearchIndexIsListed(moviesCollection, indexName, SEARCH_TIMEOUT);
+        await waitUntilSearchIndexIsListed(moviesCollection, indexName);
     });
 
     afterEach(async () => {
@@ -366,7 +367,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
 
                         describe("and attempting to delete an existing index", () => {
-                            it("should succeed in deleting the index", { timeout: SEARCH_TIMEOUT }, async () => {
+                            it("should succeed in deleting the index", async () => {
                                 const response = await integration.mcpClient().callTool({
                                     name: "drop-index",
                                     arguments: {
