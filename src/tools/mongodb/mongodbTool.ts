@@ -87,7 +87,7 @@ export abstract class MongoDBToolBase extends ToolBase {
                         isError: true,
                     };
                 case ErrorCodes.AtlasSearchNotSupported: {
-                    const CTA = this.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
+                    const CTA = this.server?.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
                         ? "`atlas-local` tools"
                         : "Atlas CLI";
                     return {
@@ -122,9 +122,5 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
 
         return metadata;
-    }
-
-    protected isToolCategoryAvailable(name: ToolCategory): boolean {
-        return (this.server?.tools.filter((t) => t.category === name).length ?? 0) > 0;
     }
 }

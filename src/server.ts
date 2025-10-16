@@ -174,10 +174,8 @@ export class Server {
         this.mcpServer.sendResourceListChanged();
     }
 
-    public areLocalAtlasToolsAvailable(): boolean {
-        // TODO: remove hacky casts once we merge the local dev tools
-        const atlasLocalCategory = "atlas-local" as unknown as ToolCategory;
-        return !!this.tools.filter((tool) => tool.category === atlasLocalCategory).length;
+    public isToolCategoryAvailable(name: ToolCategory): boolean {
+        return !!this.tools.filter((t) => t.category === name).length;
     }
 
     public sendResourceUpdated(uri: string): void {
