@@ -3,6 +3,9 @@ import { BSON, type Document } from "bson";
 import type { UserConfig } from "../config.js";
 import type { ConnectionManager } from "../connectionManager.js";
 import z from "zod";
+import { ErrorCodes, MongoDBError } from "../errors.js";
+import { getEmbeddingsProvider } from "./embeddingsProvider.js";
+import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
 
 export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
 export type Similarity = z.infer<typeof similarityEnum>;
@@ -214,6 +217,51 @@ export class VectorSearchEmbeddingsManager {
         }
 
         return undefined;
+    }
+
+    public async generateEmbeddings({
+        database,
+        collection,
+        path,
+        rawValues,
+        embeddingParameters,
+        inputType,
+    }: {
+        database: string;
+        collection: string;
+        path: string;
+        rawValues: string[];
+        embeddingParameters: SupportedEmbeddingParameters;
+        inputType: EmbeddingParameters["inputType"];
+    }): Promise<unknown[]> {
+        const provider = await this.assertAtlasSearchIsAvailable();
+        if (!provider) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasSearchNotSupported,
+                "Atlas Search is not supported in this cluster."
+            );
+        }
+
+        const embeddingsProvider = getEmbeddingsProvider(this.config);
+
+        if (!embeddingsProvider) {
+            throw new MongoDBError(ErrorCodes.NoEmbeddingsProviderConfigured, "No embeddings provider configured.");
+        }
+
+        const embeddingInfoForCollection = await this.embeddingsForNamespace({ database, collection });
+        const embeddingInfoForPath = embeddingInfoForCollection.find((definition) => definition.path === path);
+
+        if (!embeddingInfoForPath) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasVectorSearchIndexNotFound,
+                `No Vector Search index found for path "${path}" in namespace "${database}.${collection}"`
+            );
+        }
+
+        return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {
+            inputType,
+            ...embeddingParameters,
+        });
     }
 
     private isANumber(value: unknown): boolean {
