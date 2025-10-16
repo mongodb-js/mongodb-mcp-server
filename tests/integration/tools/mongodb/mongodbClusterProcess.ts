@@ -28,7 +28,8 @@ export class MongoDBClusterProcess {
 
             return new MongoDBClusterProcess(
                 () => runningContainer.stop(),
-                () => `mongodb://${runningContainer.getHost()}:${runningContainer.getMappedPort(27017)}`
+                () =>
+                    `mongodb://${runningContainer.getHost()}:${runningContainer.getMappedPort(27017)}/?directConnection=true`
             );
         } else if (MongoDBClusterProcess.isMongoRunnerOptions(config)) {
             const { downloadOptions, serverArgs } = config;
