@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasLocalToolBase } from "../atlasLocalTool.js";
+import { AtlasLocalToolBase, AtlasLocalToolMetadataDeploymentIdKey } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
@@ -16,11 +16,16 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
         client: Client,
         { deploymentName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {
+        const deploymentId = await this.lookupDeploymentId(client, deploymentName);
+
         // Delete the deployment
         await client.deleteDeployment(deploymentName);
 
         return {
             content: [{ type: "text", text: `Deployment "${deploymentName}" deleted successfully.` }],
+            _meta: {
+                [AtlasLocalToolMetadataDeploymentIdKey]: deploymentId,
+            },
         };
     }
 }
