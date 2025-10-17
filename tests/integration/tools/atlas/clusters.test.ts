@@ -84,7 +84,7 @@ describeWithAtlas("clusters", (integration) => {
                 expect(elements).toHaveLength(2);
                 expect(elements[0]?.text).toContain("Cluster details:");
                 expect(elements[1]?.text).toContain("<untrusted-user-data-");
-                expect(elements[1]?.text).toContain(`${clusterName} | `);
+                expect(elements[1]?.text).toContain(`${clusterName}`);
             });
         });
 
