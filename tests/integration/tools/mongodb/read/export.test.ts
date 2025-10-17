@@ -458,5 +458,7 @@ describeWithMongoDB(
             });
         });
     },
-    () => userConfig
+    {
+        getUserConfig: () => userConfig,
+    }
 );

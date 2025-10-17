@@ -13,7 +13,7 @@ export const DbOperationArgs = {
 };
 
 export abstract class MongoDBToolBase extends ToolBase {
-    private server?: Server;
+    protected server?: Server;
     public category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
@@ -44,6 +44,10 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
 
         return this.session.serviceProvider;
+    }
+
+    protected ensureSearchIsSupported(): Promise<void> {
+        return this.session.assertSearchSupported();
     }
 
     public register(server: Server): boolean {
@@ -82,6 +86,20 @@ export abstract class MongoDBToolBase extends ToolBase {
                         ],
                         isError: true,
                     };
+                case ErrorCodes.AtlasSearchNotSupported: {
+                    const CTA = this.server?.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
+                        ? "`atlas-local` tools"
+                        : "Atlas CLI";
+                    return {
+                        content: [
+                            {
+                                text: `The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the ${CTA} to create and manage a local Atlas deployment.`,
+                                type: "text",
+                            },
+                        ],
+                        isError: true,
+                    };
+                }
             }
         }
 

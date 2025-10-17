@@ -21,7 +21,7 @@ jobs:
       MDB_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_OPEN_AI_API_KEY }}
       MDB_GEMINI_API_KEY: ${{ secrets.ACCURACY_GEMINI_API_KEY }}
       MDB_AZURE_OPEN_AI_API_KEY: ${{ secrets.ACCURACY_AZURE_OPEN_AI_API_KEY }}
-      MDB_AZURE_OPEN_AI_API_URL: ${{ vars.ACCURACY_AZURE_OPEN_AI_API_URL }}
+      MDB_AZURE_OPEN_AI_API_URL: ${{ vars.ACCURACY_AZURE_OPEN_AI_API_URL_V2 }}
       MDB_ACCURACY_MDB_URL: ${{ secrets.ACCURACY_MDB_CONNECTION_STRING }}
       MDB_ACCURACY_MDB_DB: ${{ vars.ACCURACY_MDB_DB }}
       MDB_ACCURACY_MDB_COLLECTION: ${{ vars.ACCURACY_MDB_COLLECTION }}
@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
           cache: "npm"

@@ -22,6 +22,7 @@ import { Keychain } from "../../src/common/keychain.js";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
+import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 export const driverOptions = setupDriverConfig({
     config,
@@ -30,12 +31,21 @@ export const driverOptions = setupDriverConfig({
 
 export const defaultDriverOptions: DriverOptions = { ...driverOptions };
 
-interface ParameterInfo {
+interface Parameter {
     name: string;
-    type: string;
     description: string;
     required: boolean;
 }
+
+interface SingleValueParameter extends Parameter {
+    type: string;
+}
+
+interface AnyOfParameter extends Parameter {
+    anyOf: { type: string }[];
+}
+
+type ParameterInfo = SingleValueParameter | AnyOfParameter;
 
 type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 
@@ -104,6 +114,7 @@ export function setupIntegrationTest(
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
         });
 
         // Mock hasValidAccessToken for tests
@@ -220,18 +231,38 @@ export function getParameters(tool: ToolInfo): ParameterInfo[] {
 
     return Object.entries(tool.inputSchema.properties)
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([key, value]) => {
-            expect(value).toHaveProperty("type");
+        .map(([name, value]) => {
             expect(value).toHaveProperty("description");
 
-            const typedValue = value as { type: string; description: string };
-            expect(typeof typedValue.type).toBe("string");
-            expect(typeof typedValue.description).toBe("string");
+            const description = (value as { description: string }).description;
+            const required = (tool.inputSchema.required as string[])?.includes(name) ?? false;
+            expect(typeof description).toBe("string");
+
+            if (value && typeof value === "object" && "anyOf" in value) {
+                const typedOptions = new Array<{ type: string }>();
+                for (const option of value.anyOf as { type: string }[]) {
+                    expect(option).toHaveProperty("type");
+
+                    typedOptions.push({ type: option.type });
+                }
+
+                return {
+                    name,
+                    anyOf: typedOptions,
+                    description: description,
+                    required,
+                };
+            }
+
+            expect(value).toHaveProperty("type");
+
+            const type = (value as { type: string }).type;
+            expect(typeof type).toBe("string");
             return {
-                name: key,
-                type: typedValue.type,
-                description: typedValue.description,
-                required: (tool.inputSchema.required as string[])?.includes(key) ?? false,
+                name,
+                type,
+                description,
+                required,
             };
         });
 }

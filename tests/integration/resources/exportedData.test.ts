@@ -173,5 +173,7 @@ describeWithMongoDB(
             });
         });
     },
-    () => userConfig
+    {
+        getUserConfig: () => userConfig,
+    }
 );

@@ -282,7 +282,9 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 20 })
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 20 }),
+    }
 );
 
 describeWithMongoDB(
@@ -339,7 +341,9 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxBytesPerQuery: 200 })
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxBytesPerQuery: 200 }),
+    }
 );
 
 describeWithMongoDB(
@@ -369,5 +373,7 @@ describeWithMongoDB(
             expect(content).toContain(`Returning 990 documents.`);
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 })
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
+    }
 );

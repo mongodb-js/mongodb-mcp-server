@@ -19,6 +19,7 @@ import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import type { Client } from "@mongodb-js/atlas-local";
+import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
@@ -97,6 +98,7 @@ export abstract class TransportRunnerBase {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(this.userConfig, connectionManager),
         });
 
         const telemetry = Telemetry.create(session, this.userConfig, this.deviceId, {

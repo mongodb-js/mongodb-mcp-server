@@ -81,12 +81,15 @@ export function calculateToolCallingAccuracy(
             .sort((a, b) => b.score - a.score || a.index - b.index);
 
         const bestMatch = candidates[0];
-        if (!bestMatch || bestMatch.score === 0) {
-            return 0; // No matching tool call found, return 0
+        if (bestMatch) {
+            checkedActualToolCallIndexes.add(bestMatch.index);
+            currentScore = Math.min(currentScore, bestMatch.score);
+        } else if (expectedCall.optional) {
+            // Optional expected tool call not found, but it's okay, continue
+            continue;
+        } else {
+            return 0; // Required expected tool call not found, return 0
         }
-
-        checkedActualToolCallIndexes.add(bestMatch.index);
-        currentScore = Math.min(currentScore, bestMatch.score);
     }
 
     return currentScore;

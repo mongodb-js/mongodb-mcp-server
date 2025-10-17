@@ -17,6 +17,7 @@ import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "./keychain.js";
+import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
 
 export interface SessionOptions {
     apiBaseUrl: string;
@@ -27,6 +28,7 @@ export interface SessionOptions {
     connectionManager: ConnectionManager;
     keychain: Keychain;
     atlasLocalClient?: Client;
+    vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 }
 
 export type SessionEvents = {
@@ -43,6 +45,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly apiClient: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
+    readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 
     mcpClient?: {
         name?: string;
@@ -61,6 +64,7 @@ export class Session extends EventEmitter<SessionEvents> {
         exportsManager,
         keychain,
         atlasLocalClient,
+        vectorSearchEmbeddingsManager,
     }: SessionOptions) {
         super();
 
@@ -78,6 +82,7 @@ export class Session extends EventEmitter<SessionEvents> {
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
+        this.vectorSearchEmbeddingsManager = vectorSearchEmbeddingsManager;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
         this.connectionManager.events.on("connection-close", () => this.emit("disconnect"));
@@ -146,6 +151,25 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.tag === "connected";
     }
 
+    async isSearchSupported(): Promise<boolean> {
+        const state = this.connectionManager.currentConnectionState;
+        if (state.tag === "connected") {
+            return await state.isSearchSupported();
+        }
+
+        return false;
+    }
+
+    async assertSearchSupported(): Promise<void> {
+        const isSearchSupported = await this.isSearchSupported();
+        if (!isSearchSupported) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasSearchNotSupported,
+                "Atlas Search is not supported in the current cluster."
+            );
+        }
+    }
+
     get serviceProvider(): NodeDriverServiceProvider {
         if (this.isConnectedToMongoDB) {
             const state = this.connectionManager.currentConnectionState as ConnectionStateConnected;
@@ -157,18 +181,5 @@ export class Session extends EventEmitter<SessionEvents> {
 
     get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined {
         return this.connectionManager.currentConnectionState.connectedAtlasCluster;
-    }
-
-    async isSearchIndexSupported(): Promise<boolean> {
-        try {
-            const dummyDatabase = `search-index-test-db-${Date.now()}`;
-            const dummyCollection = `search-index-test-coll-${Date.now()}`;
-            // If a cluster supports search indexes, the call below will succeed
-            // with a cursor otherwise will throw an Error
-            await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);
-            return true;
-        } catch {
-            return false;
-        }
     }
 }

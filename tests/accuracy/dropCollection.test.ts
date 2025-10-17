@@ -5,6 +5,18 @@ describeAccuracyTests([
         prompt: "Remove mflix.movies namespace from my cluster.",
         expectedToolCalls: [
             {
+                toolName: "list-databases",
+                parameters: {},
+                optional: true,
+            },
+            {
+                toolName: "list-collections",
+                parameters: {
+                    database: "mflix",
+                },
+                optional: true,
+            },
+            {
                 toolName: "drop-collection",
                 parameters: {
                     database: "mflix",

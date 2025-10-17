@@ -1,7 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import type { Document } from "mongodb";
+import type { Collection, Document } from "mongodb";
 import { MongoClient, ObjectId } from "mongodb";
 import type { IntegrationTest } from "../../helpers.js";
 import {
@@ -12,10 +12,14 @@ import {
     getDataFromUntrustedContent,
 } from "../../helpers.js";
 import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
+import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
+
+export const DEFAULT_WAIT_TIMEOUT = 1000;
+export const DEFAULT_RETRY_INTERVAL = 100;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -66,22 +70,40 @@ export type MongoDBIntegrationTestCase = IntegrationTest &
 
 export type MongoSearchConfiguration = { search: true; image?: string };
 
+export type TestSuiteConfig = {
+    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig;
+    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions;
+    downloadOptions: MongoClusterConfiguration;
+    getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
+    getClientCapabilities?: () => MockClientCapabilities;
+};
+
+export const defaultTestSuiteConfig: TestSuiteConfig = {
+    getUserConfig: () => defaultTestConfig,
+    getDriverOptions: () => defaultDriverOptions,
+    downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
+};
+
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
-    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
-    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
-    downloadOptions: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
+    partialTestSuiteConfig?: Partial<TestSuiteConfig>
 ): void {
+    const { getUserConfig, getDriverOptions, downloadOptions, getMockElicitationInput, getClientCapabilities } = {
+        ...defaultTestSuiteConfig,
+        ...partialTestSuiteConfig,
+    };
     describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
         const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
+        const mockElicitInput = getMockElicitationInput?.();
         const integration = setupIntegrationTest(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
             () => ({
                 ...getDriverOptions(mdbIntegration),
-            })
+            }),
+            { elicitInput: mockElicitInput, getClientCapabilities }
         );
 
         fn({
@@ -258,4 +280,101 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
     const client = integration.mongoClient();
     const serverStatus = await client.db("admin").admin().serverStatus();
     return serverStatus.version as string;
+}
+export const SEARCH_WAIT_TIMEOUT = 20_000;
+
+export async function waitUntilSearchIsReady(
+    mongoClient: MongoClient,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const testCollection = mongoClient.db("tempDB").collection("tempCollection");
+            await testCollection.insertOne({ field1: "yay" });
+            await testCollection.createSearchIndexes([{ definition: { mappings: { dynamic: true } } }]);
+            await testCollection.drop();
+        },
+        { timeout, interval }
+    );
+}
+
+async function waitUntilSearchIndexIs(
+    collection: Collection,
+    searchIndex: string,
+    indexValidator: (index: { name: string; queryable: boolean }) => boolean,
+    timeout: number,
+    interval: number,
+    getValidationFailedMessage: (searchIndexes: Document[]) => string = () => "Search index did not pass validation"
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
+                name: string;
+                queryable: boolean;
+            }[];
+
+            if (!searchIndexes.some((index) => indexValidator(index))) {
+                throw new Error(getValidationFailedMessage(searchIndexes));
+            }
+        },
+        {
+            timeout,
+            interval,
+        }
+    );
+}
+
+export async function waitUntilSearchIndexIsListed(
+    collection: Collection,
+    searchIndex: string,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    return waitUntilSearchIndexIs(
+        collection,
+        searchIndex,
+        (index) => index.name === searchIndex,
+        timeout,
+        interval,
+        (searchIndexes) =>
+            `Index ${searchIndex} is not yet in the index list (${searchIndexes.map(({ name }) => String(name)).join(", ")})`
+    );
+}
+
+export async function waitUntilSearchIndexIsQueryable(
+    collection: Collection,
+    searchIndex: string,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    return waitUntilSearchIndexIs(
+        collection,
+        searchIndex,
+        (index) => index.name === searchIndex && index.queryable,
+        timeout,
+        interval,
+        (searchIndexes) => {
+            const index = searchIndexes.find((index) => index.name === searchIndex);
+            return `Index ${searchIndex} in ${collection.dbName}.${collection.collectionName} is not ready. Last known status - ${JSON.stringify(index)}`;
+        }
+    );
+}
+
+export async function createVectorSearchIndexAndWait(
+    mongoClient: MongoClient,
+    database: string,
+    collection: string,
+    fields: Document[]
+): Promise<void> {
+    const coll = await mongoClient.db(database).createCollection(collection);
+    await coll.createSearchIndex({
+        name: "default",
+        type: "vectorSearch",
+        definition: {
+            fields,
+        },
+    });
+
+    await waitUntilSearchIndexIsQueryable(coll, "default");
 }

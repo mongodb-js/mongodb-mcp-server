@@ -18,8 +18,8 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): vo
         const integration = setupIntegrationTest(
             () => ({
                 ...defaultTestConfig,
-                apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
-                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
+                apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
                 apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
             }),
             () => defaultDriverOptions
@@ -34,6 +34,16 @@ interface ProjectTestArgs {
 }
 
 type ProjectTestFunction = (args: ProjectTestArgs) => void;
+
+export function withCredentials(integration: IntegrationTest, fn: IntegrationTestFunction): SuiteCollector<object> {
+    const describeFn =
+        !process.env.MDB_MCP_API_CLIENT_ID?.length || !process.env.MDB_MCP_API_CLIENT_SECRET?.length
+            ? describe.skip
+            : describe;
+    return describeFn("with credentials", () => {
+        fn(integration);
+    });
+}
 
 export function withProject(integration: IntegrationTest, fn: ProjectTestFunction): SuiteCollector<object> {
     return describe("with project", () => {

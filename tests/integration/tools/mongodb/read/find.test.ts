@@ -341,7 +341,9 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 10 })
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: 10 }),
+    }
 );
 
 describeWithMongoDB(
@@ -391,7 +393,9 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 })
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxBytesPerQuery: 100 }),
+    }
 );
 
 describeWithMongoDB(
@@ -441,5 +445,7 @@ describeWithMongoDB(
             );
         });
     },
-    () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 })
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
+    }
 );
