@@ -82,6 +82,7 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
      * @returns The tool metadata
      */
     protected resolveTelemetryMetadata(
+        result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
     ): TelemetryToolMetadata {
         const toolMetadata: TelemetryToolMetadata = {};
