@@ -505,12 +505,10 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => {
-            return {
-                ...defaultTestConfig,
-                voyageApiKey: "valid_key",
-            };
-        },
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            voyageApiKey: "valid_key",
+        }),
         downloadOptions: {
             search: true,
         },

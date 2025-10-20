@@ -3,7 +3,6 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, FeatureFlags } from "../../tool.js";
-import { ListSearchIndexesTool } from "../search/listSearchIndexes.js";
 
 export class DropIndexTool extends MongoDBToolBase {
     public name = "drop-index";
@@ -60,9 +59,8 @@ export class DropIndexTool extends MongoDBToolBase {
         { database, collection, indexName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {
         await this.ensureSearchIsSupported();
-        const searchIndexes = await ListSearchIndexesTool.getSearchIndexes(provider, database, collection);
-        const indexDoesNotExist = !searchIndexes.find((index) => index.name === indexName);
-        if (indexDoesNotExist) {
+        const indexes = await provider.getSearchIndexes(database, collection, indexName);
+        if (indexes.length === 0) {
             return {
                 content: formatUntrustedData(
                     "Index does not exist in the provided namespace.",
