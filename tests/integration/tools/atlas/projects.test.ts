@@ -104,9 +104,7 @@ describeWithAtlas("projects", (integration) => {
             it("returns projects for all orgs", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "atlas-list-projects",
-                    arguments: {
-                        orgId,
-                    },
+                    arguments: {},
                 });
 
                 const elements = getResponseElements(response);
