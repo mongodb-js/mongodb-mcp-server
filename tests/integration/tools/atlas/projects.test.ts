@@ -36,7 +36,7 @@ describeWithAtlas("projects", (integration) => {
         });
 
         it("should create a project", async () => {
-            const projName = `test-project-${new ObjectId().toString()}`;
+            const projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
             const response = await integration.mcpClient().callTool({
@@ -54,7 +54,7 @@ describeWithAtlas("projects", (integration) => {
         let projName: string;
         let orgId: string;
         beforeAll(async () => {
-            projName = `list-projects-test-${new ObjectId().toString()}`;
+            projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
             const orgs = await integration.mcpServer().session.apiClient.listOrganizations();
