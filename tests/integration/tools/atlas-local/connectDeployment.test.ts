@@ -6,7 +6,6 @@ import {
     getResponseElements,
     setupIntegrationTest,
     validateToolMetadata,
-    waitUntilAtlasLocalClientIsSet,
 } from "../../helpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -19,10 +18,6 @@ const integration = setupIntegrationTest(
 // Docker is not available on macOS in GitHub Actions
 // That's why we skip the tests on macOS in GitHub Actions
 describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment", () => {
-    beforeEach(async ({ signal }) => {
-        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
-    });
-
     validateToolMetadata(integration, "atlas-local-connect-deployment", "Connect to a MongoDB Atlas Local deployment", [
         {
             name: "deploymentName",
@@ -56,9 +51,7 @@ describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment with dep
     let deploymentName: string = "";
     let deploymentNamesToCleanup: string[] = [];
 
-    beforeEach(async ({ signal }) => {
-        await waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal);
-
+    beforeEach(async () => {
         // Create deployments
         deploymentName = `test-deployment-1-${Date.now()}`;
         deploymentNamesToCleanup.push(deploymentName);
@@ -103,10 +96,8 @@ describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment with dep
 });
 
 describe.skipIf(!isMacOSInGitHubActions)("atlas-local-connect-deployment [MacOS in GitHub Actions]", () => {
-    it("should not have the atlas-local-connect-deployment tool", async ({ signal }) => {
+    it("should not have the atlas-local-connect-deployment tool", async () => {
         // This should throw an error because the client is not set within the timeout of 5 seconds (default)
-        await expect(waitUntilAtlasLocalClientIsSet(integration.mcpServer(), signal)).rejects.toThrow();
-
         const { tools } = await integration.mcpClient().listTools();
         const connectDeployment = tools.find((tool) => tool.name === "atlas-local-connect-deployment");
         expect(connectDeployment).toBeUndefined();

@@ -19,10 +19,10 @@ import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../src/common/keychain.js";
-import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 
 export const driverOptions = setupDriverConfig({
     config,
@@ -115,6 +115,7 @@ export function setupIntegrationTest(
             connectionManager,
             keychain: new Keychain(),
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            atlasLocalClient: await defaultCreateAtlasLocalClient(),
         });
 
         // Mock hasValidAccessToken for tests
@@ -399,37 +400,6 @@ export function waitUntil<T extends ConnectionState>(
                 if (!additionalCondition || (additionalCondition && additionalCondition(status as T))) {
                     return resolve(status as T);
                 }
-            }
-        }, 100);
-    }).finally(() => {
-        if (ts !== undefined) {
-            clearInterval(ts);
-        }
-    });
-}
-
-export function waitUntilAtlasLocalClientIsSet(
-    mcpServer: Server,
-    signal: AbortSignal,
-    timeout: number = 5000
-): Promise<AtlasLocalClient> {
-    let ts: NodeJS.Timeout | undefined;
-
-    const timeoutSignal = AbortSignal.timeout(timeout);
-    const combinedSignal = AbortSignal.any([signal, timeoutSignal]);
-
-    return new Promise<AtlasLocalClient>((resolve, reject) => {
-        ts = setInterval(() => {
-            if (combinedSignal.aborted) {
-                return reject(new Error(`Aborted: ${combinedSignal.reason}`));
-            }
-
-            // wait until session.client != undefined
-            // do not wait more than 1 second, should take a few milliseconds at most
-            // try every 50ms to see if the client is set, if it's not set after 1 second, throw an error
-            const client = mcpServer.session.atlasLocalClient;
-            if (client) {
-                return resolve(client);
             }
         }, 100);
     }).finally(() => {
