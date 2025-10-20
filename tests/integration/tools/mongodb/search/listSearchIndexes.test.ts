@@ -17,6 +17,7 @@ import {
 import type { SearchIndexWithStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
 const SEARCH_TIMEOUT = 60_000;
+const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
 
 describeWithMongoDB("list-search-indexes tool in local MongoDB", (integration) => {
     validateToolMetadata(
@@ -36,8 +37,9 @@ describeWithMongoDB("list-search-indexes tool in local MongoDB", (integration) =
         });
         const content = getResponseContent(response.content);
         expect(response.isError).toBe(true);
+        const CTA = isMacOSInGitHubActions ? "Atlas CLI" : "`atlas-local` tools";
         expect(content).toEqual(
-            "The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the Atlas CLI to create and manage a local Atlas deployment."
+            `The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the ${CTA} to create and manage a local Atlas deployment.`
         );
     });
 });
