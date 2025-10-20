@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { parseTable, describeWithAtlas } from "./atlasHelpers.js";
+import { describeWithAtlas } from "./atlasHelpers.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -63,14 +63,20 @@ describeWithAtlas("projects", (integration) => {
             expect(elements).toHaveLength(2);
             expect(elements[1]?.text).toContain("<untrusted-user-data-");
             expect(elements[1]?.text).toContain(projName);
-            const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
+
+            const raw = getDataFromUntrustedContent(elements[1]?.text ?? "");
+            const data = JSON.parse(raw) as Array<{
+                name: string;
+                id: string;
+                organizationName: string;
+                organizationId: string;
+                createdAt: string;
+            }>;
+
+            expect(Array.isArray(data)).toBe(true);
             expect(data.length).toBeGreaterThan(0);
-            let found = false;
-            for (const project of data) {
-                if (project["Project Name"] === projName) {
-                    found = true;
-                }
-            }
+
+            const found = data.some((project) => project.name === projName);
             expect(found).toBe(true);
 
             expect(elements[0]?.text).toBe(`Found ${data.length} projects`);
