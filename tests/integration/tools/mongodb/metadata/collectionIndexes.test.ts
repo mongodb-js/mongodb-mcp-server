@@ -149,7 +149,7 @@ describeWithMongoDB(
                 await collection.createIndexes([{ key: { foo: 1 } }]);
             });
 
-            it("returns an just the regular indexes", async () => {
+            it("returns just the regular indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "collection-indexes",
                     arguments: { database: integration.randomDbName(), collection: "foo" },
