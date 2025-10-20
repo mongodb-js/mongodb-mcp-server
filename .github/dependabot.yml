@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
+      include:
+        - "*"
     ignore:
       # We are ignoring major updates on yargs-parser because yargs-parser@22
       # does not play nicely when bundled using webpack. Our VSCode extension

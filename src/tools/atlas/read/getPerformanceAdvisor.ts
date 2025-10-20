@@ -9,6 +9,8 @@ import {
     getSchemaAdvice,
     getSlowQueries,
     DEFAULT_SLOW_QUERY_LOGS_LIMIT,
+    SUGGESTED_INDEXES_COPY,
+    SLOW_QUERY_LOGS_COPY,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
 import { AtlasArgs } from "../../args.js";
 
@@ -98,11 +100,11 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
             const performanceAdvisorData = [
                 `## Suggested Indexes\n${
                     hasSuggestedIndexes
-                        ? `Note: The "Weight" field is measured in bytes, and represents the estimated number of bytes saved in disk reads per executed read query that would be saved by implementing an index suggestion. Please convert this to MB or GB for easier readability.\n${JSON.stringify(suggestedIndexesResult.value?.suggestedIndexes)}`
+                        ? `${SUGGESTED_INDEXES_COPY}\n${JSON.stringify(suggestedIndexesResult.value?.suggestedIndexes)}`
                         : "No suggested indexes found."
                 }`,
                 `## Drop Index Suggestions\n${hasDropIndexSuggestions ? JSON.stringify(dropIndexSuggestionsResult.value) : "No drop index suggestions found."}`,
-                `## Slow Query Logs\n${hasSlowQueryLogs ? JSON.stringify(slowQueryLogsResult.value?.slowQueryLogs) : "No slow query logs found."}`,
+                `## Slow Query Logs\n${hasSlowQueryLogs ? `${SLOW_QUERY_LOGS_COPY}\n${JSON.stringify(slowQueryLogsResult.value?.slowQueryLogs)}` : "No slow query logs found."}`,
                 `## Schema Suggestions\n${hasSchemaSuggestions ? JSON.stringify(schemaSuggestionsResult.value?.recommendations) : "No schema suggestions found."}`,
             ];
 

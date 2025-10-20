@@ -1,7 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import type { Document } from "mongodb";
+import type { Collection, Document } from "mongodb";
 import { MongoClient, ObjectId } from "mongodb";
 import type { IntegrationTest } from "../../helpers.js";
 import {
@@ -10,15 +10,16 @@ import {
     defaultTestConfig,
     defaultDriverOptions,
     getDataFromUntrustedContent,
-    sleep,
 } from "../../helpers.js";
 import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
 import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
-import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
+
+export const DEFAULT_WAIT_TIMEOUT = 1000;
+export const DEFAULT_RETRY_INTERVAL = 100;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -77,7 +78,7 @@ export type TestSuiteConfig = {
     getClientCapabilities?: () => MockClientCapabilities;
 };
 
-const defaultTestSuiteConfig: TestSuiteConfig = {
+export const defaultTestSuiteConfig: TestSuiteConfig = {
     getUserConfig: () => defaultTestConfig,
     getDriverOptions: () => defaultDriverOptions,
     downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
@@ -280,57 +281,100 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
     const serverStatus = await client.db("admin").admin().serverStatus();
     return serverStatus.version as string;
 }
-
-const SEARCH_RETRIES = 200;
+export const SEARCH_WAIT_TIMEOUT = 20_000;
 
 export async function waitUntilSearchIsReady(
-    provider: NodeDriverServiceProvider,
-    abortSignal: AbortSignal
+    mongoClient: MongoClient,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
 ): Promise<void> {
-    let lastError: unknown = null;
+    await vi.waitFor(
+        async () => {
+            const testCollection = mongoClient.db("tempDB").collection("tempCollection");
+            await testCollection.insertOne({ field1: "yay" });
+            await testCollection.createSearchIndexes([{ definition: { mappings: { dynamic: true } } }]);
+            await testCollection.drop();
+        },
+        { timeout, interval }
+    );
+}
 
-    for (let i = 0; i < SEARCH_RETRIES && !abortSignal.aborted; i++) {
-        try {
-            await provider.insertOne("tmp", "test", { field1: "yay" });
-            await provider.createSearchIndexes("tmp", "test", [{ definition: { mappings: { dynamic: true } } }]);
-            await provider.dropCollection("tmp", "test");
-            return;
-        } catch (err) {
-            lastError = err;
-            await sleep(100);
+async function waitUntilSearchIndexIs(
+    collection: Collection,
+    searchIndex: string,
+    indexValidator: (index: { name: string; queryable: boolean }) => boolean,
+    timeout: number,
+    interval: number,
+    getValidationFailedMessage: (searchIndexes: Document[]) => string = () => "Search index did not pass validation"
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
+                name: string;
+                queryable: boolean;
+            }[];
+
+            if (!searchIndexes.some((index) => indexValidator(index))) {
+                throw new Error(getValidationFailedMessage(searchIndexes));
+            }
+        },
+        {
+            timeout,
+            interval,
         }
-    }
+    );
+}
 
-    throw new Error(`Search Management Index is not ready.\nlastError: ${JSON.stringify(lastError)}`);
+export async function waitUntilSearchIndexIsListed(
+    collection: Collection,
+    searchIndex: string,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    return waitUntilSearchIndexIs(
+        collection,
+        searchIndex,
+        (index) => index.name === searchIndex,
+        timeout,
+        interval,
+        (searchIndexes) =>
+            `Index ${searchIndex} is not yet in the index list (${searchIndexes.map(({ name }) => String(name)).join(", ")})`
+    );
 }
 
 export async function waitUntilSearchIndexIsQueryable(
-    provider: NodeDriverServiceProvider,
+    collection: Collection,
+    searchIndex: string,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    return waitUntilSearchIndexIs(
+        collection,
+        searchIndex,
+        (index) => index.name === searchIndex && index.queryable,
+        timeout,
+        interval,
+        (searchIndexes) => {
+            const index = searchIndexes.find((index) => index.name === searchIndex);
+            return `Index ${searchIndex} in ${collection.dbName}.${collection.collectionName} is not ready. Last known status - ${JSON.stringify(index)}`;
+        }
+    );
+}
+
+export async function createVectorSearchIndexAndWait(
+    mongoClient: MongoClient,
     database: string,
     collection: string,
-    indexName: string,
-    abortSignal: AbortSignal
+    fields: Document[]
 ): Promise<void> {
-    let lastIndexStatus: unknown = null;
-    let lastError: unknown = null;
+    const coll = await mongoClient.db(database).createCollection(collection);
+    await coll.createSearchIndex({
+        name: "default",
+        type: "vectorSearch",
+        definition: {
+            fields,
+        },
+    });
 
-    for (let i = 0; i < SEARCH_RETRIES && !abortSignal.aborted; i++) {
-        try {
-            const [indexStatus] = await provider.getSearchIndexes(database, collection, indexName);
-            lastIndexStatus = indexStatus;
-
-            if (indexStatus?.queryable === true) {
-                return;
-            }
-        } catch (err) {
-            lastError = err;
-            await sleep(100);
-        }
-    }
-
-    throw new Error(
-        `Index ${indexName} in ${database}.${collection} is not ready:
-lastIndexStatus: ${JSON.stringify(lastIndexStatus)}
-lastError: ${JSON.stringify(lastError)}`
-    );
+    await waitUntilSearchIndexIsQueryable(coll, "default");
 }

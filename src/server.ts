@@ -18,7 +18,7 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import type { ToolBase, ToolConstructorParams } from "./tools/tool.js";
+import type { ToolBase, ToolCategory, ToolConstructorParams } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -172,6 +172,10 @@ export class Server {
 
     public sendResourceListChanged(): void {
         this.mcpServer.sendResourceListChanged();
+    }
+
+    public isToolCategoryAvailable(name: ToolCategory): boolean {
+        return !!this.tools.filter((t) => t.category === name).length;
     }
 
     public sendResourceUpdated(uri: string): void {

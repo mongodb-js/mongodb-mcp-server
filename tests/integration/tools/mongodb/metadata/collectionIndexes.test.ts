@@ -1,4 +1,4 @@
-import type { IndexDirection } from "mongodb";
+import type { Collection, IndexDirection } from "mongodb";
 import {
     databaseCollectionParameters,
     validateToolMetadata,
@@ -17,7 +17,12 @@ import {
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+
+const getIndexesFromContent = (content?: string): Array<unknown> => {
+    const data = getDataFromUntrustedContent(content || "");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return data.split("\n").map((line) => JSON.parse(line));
+};
 
 describeWithMongoDB("collectionIndexes tool", (integration) => {
     validateToolMetadata(
@@ -58,7 +63,7 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
         expect(elements[0]?.text).toEqual('Found 1 indexes in the collection "people":');
-        const indexDefinitions = JSON.parse(getDataFromUntrustedContent(elements[1]?.text || "")) as [];
+        const indexDefinitions = getIndexesFromContent(elements[1]?.text);
         expect(indexDefinitions).toEqual([{ name: "_id_", key: { _id: 1 } }]);
     });
 
@@ -90,7 +95,7 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         expect(elements).toHaveLength(2);
 
         expect(elements[0]?.text).toEqual(`Found ${indexTypes.length + 1} indexes in the collection "people":`);
-        const indexDefinitions = JSON.parse(getDataFromUntrustedContent(elements[1]?.text || "")) as [];
+        const indexDefinitions = getIndexesFromContent(elements[1]?.text);
         expect(indexDefinitions).toContainEqual({ name: "_id_", key: { _id: 1 } });
 
         for (const indexType of indexTypes) {
@@ -118,12 +123,12 @@ const SEARCH_TIMEOUT = 20_000;
 describeWithMongoDB(
     "collection-indexes tool with Search",
     (integration) => {
-        let provider: NodeDriverServiceProvider;
+        let collection: Collection;
 
-        beforeEach(async ({ signal }) => {
+        beforeEach(async () => {
             await integration.connectMcpClient();
-            provider = integration.mcpServer().session.serviceProvider;
-            await waitUntilSearchIsReady(provider, signal);
+            collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
+            await waitUntilSearchIsReady(integration.mongoClient());
         });
 
         describe("when the collection does not exist", () => {
@@ -141,7 +146,7 @@ describeWithMongoDB(
 
         describe("when there are no search indexes", () => {
             beforeEach(async () => {
-                await provider.createIndexes(integration.randomDbName(), "foo", [{ key: { foo: 1 } }]);
+                await collection.createIndexes([{ key: { foo: 1 } }]);
             });
 
             it("returns an just the regular indexes", async () => {
@@ -162,12 +167,12 @@ describeWithMongoDB(
 
         describe("when there are vector search indexes", () => {
             beforeEach(async () => {
-                await provider.insertOne(integration.randomDbName(), "foo", {
+                await collection.insertOne({
                     field1: "yay",
                     age: 1,
                     field1_embeddings: [1, 2, 3, 4],
                 });
-                await provider.createSearchIndexes(integration.randomDbName(), "foo", [
+                await collection.createSearchIndexes([
                     {
                         name: "my-vector-index",
                         definition: {
@@ -210,23 +215,29 @@ describeWithMongoDB(
                     `Found 2 search and vector search indexes in the collection "foo":`
                 );
 
-                const indexDefinitions = JSON.parse(getDataFromUntrustedContent(elements[3]?.text || "")) as {
+                const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
                     name: string;
                     type: string;
                     latestDefinition: { fields: unknown[] };
                 }[];
+
                 expect(indexDefinitions).toHaveLength(2);
-                expect(indexDefinitions[0]).toHaveProperty("name", "my-vector-index");
-                expect(indexDefinitions[0]).toHaveProperty("type", "vectorSearch");
-                const fields0 = indexDefinitions[0]?.latestDefinition.fields;
-                expectDefined(fields0);
+
+                const vectorIndexDefinition = indexDefinitions.find((def) => def.name === "my-vector-index");
+                expectDefined(vectorIndexDefinition);
+                expect(vectorIndexDefinition).toHaveProperty("name", "my-vector-index");
+                expect(vectorIndexDefinition).toHaveProperty("type", "vectorSearch");
+
+                const fields0 = vectorIndexDefinition.latestDefinition.fields;
                 expect(fields0).toHaveLength(1);
                 expect(fields0[0]).toHaveProperty("type", "vector");
                 expect(fields0[0]).toHaveProperty("path", "field1_embeddings");
 
-                expect(indexDefinitions[1]).toHaveProperty("name", "my-mixed-index");
-                expect(indexDefinitions[1]).toHaveProperty("type", "vectorSearch");
-                const fields1 = indexDefinitions[1]?.latestDefinition.fields;
+                const mixedIndexDefinition = indexDefinitions.find((def) => def.name === "my-mixed-index");
+                expectDefined(mixedIndexDefinition);
+                expect(mixedIndexDefinition).toHaveProperty("name", "my-mixed-index");
+                expect(mixedIndexDefinition).toHaveProperty("type", "vectorSearch");
+                const fields1 = mixedIndexDefinition.latestDefinition.fields;
                 expectDefined(fields1);
                 expect(fields1).toHaveLength(2);
                 expect(fields1[0]).toHaveProperty("type", "vector");
@@ -238,21 +249,9 @@ describeWithMongoDB(
             it(
                 "returns the list of existing indexes and detects if they are queryable",
                 { timeout: SEARCH_TIMEOUT },
-                async ({ signal }) => {
-                    await waitUntilSearchIndexIsQueryable(
-                        provider,
-                        integration.randomDbName(),
-                        "foo",
-                        "my-vector-index",
-                        signal
-                    );
-                    await waitUntilSearchIndexIsQueryable(
-                        provider,
-                        integration.randomDbName(),
-                        "foo",
-                        "my-mixed-index",
-                        signal
-                    );
+                async () => {
+                    await waitUntilSearchIndexIsQueryable(collection, "my-vector-index");
+                    await waitUntilSearchIndexIsQueryable(collection, "my-mixed-index");
 
                     const response = await integration.mcpClient().callTool({
                         name: "collection-indexes",
@@ -260,7 +259,7 @@ describeWithMongoDB(
                     });
 
                     const elements = getResponseElements(response.content);
-                    const indexDefinitions = JSON.parse(getDataFromUntrustedContent(elements[3]?.text || "")) as {
+                    const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
                         name: string;
                     }[];
 
@@ -278,8 +277,8 @@ describeWithMongoDB(
 
         describe("when there are Atlas search indexes", () => {
             beforeEach(async () => {
-                await provider.insertOne(integration.randomDbName(), "foo", { field1: "yay", age: 1 });
-                await provider.createSearchIndexes(integration.randomDbName(), "foo", [
+                await collection.insertOne({ field1: "yay", age: 1 });
+                await collection.createSearchIndexes([
                     { name: "my-search-index", definition: { mappings: { dynamic: true } }, type: "search" },
                 ]);
             });
@@ -298,7 +297,7 @@ describeWithMongoDB(
                     `Found 1 search and vector search indexes in the collection "foo":`
                 );
 
-                const indexDefinitions = JSON.parse(getDataFromUntrustedContent(elements[3]?.text || "")) as {
+                const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
                     name: string;
                     type: string;
                     latestDefinition: unknown;
@@ -325,15 +324,15 @@ describeWithMongoDB(
 describeWithMongoDB(
     "collectionIndexes tool without voyage API key",
     (integration) => {
-        let provider: NodeDriverServiceProvider;
+        let collection: Collection;
 
-        beforeEach(async ({ signal }) => {
+        beforeEach(async () => {
             await integration.connectMcpClient();
-            provider = integration.mcpServer().session.serviceProvider;
-            await waitUntilSearchIsReady(provider, signal);
+            collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
+            await waitUntilSearchIsReady(integration.mongoClient());
 
-            await provider.insertOne(integration.randomDbName(), "foo", { field1: "yay", age: 1 });
-            await provider.createSearchIndexes(integration.randomDbName(), "foo", [
+            await collection.insertOne({ field1: "yay", age: 1 });
+            await collection.createSearchIndexes([
                 {
                     name: "my-vector-index",
                     definition: {
@@ -358,7 +357,7 @@ describeWithMongoDB(
             expect(responseContent).not.toContain("search and vector search indexes");
 
             // Ensure that we do have search indexes
-            const searchIndexes = await provider.getSearchIndexes(integration.randomDbName(), "foo");
+            const searchIndexes = await collection.listSearchIndexes().toArray();
             expect(searchIndexes).toHaveLength(1);
             expect(searchIndexes[0]).toHaveProperty("name", "my-vector-index");
         });

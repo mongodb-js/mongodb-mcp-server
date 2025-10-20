@@ -10,6 +10,11 @@ import type { AccuracyResultStorage, ExpectedToolCall, LLMToolCall } from "./acc
 import { getAccuracyResultStorage } from "./accuracyResultStorage/getAccuracyResultStorage.js";
 import { getCommitSHA } from "./gitInfo.js";
 import type { MongoClient } from "mongodb";
+import type { UserConfig } from "../../../src/lib.js";
+import {
+    MongoDBClusterProcess,
+    type MongoClusterConfiguration,
+} from "../../integration/tools/mongodb/mongodbClusterProcess.js";
 
 export interface AccuracyTestConfig {
     /** The prompt to be provided to LLM for evaluation. */
@@ -48,7 +53,13 @@ export interface AccuracyTestConfig {
     ) => Promise<number> | number;
 }
 
-export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[]): void {
+export function describeAccuracyTests(
+    accuracyTestConfigs: AccuracyTestConfig[],
+    {
+        userConfig: partialUserConfig,
+        clusterConfig,
+    }: { userConfig?: Partial<{ [k in keyof UserConfig]: string }>; clusterConfig?: MongoClusterConfiguration } = {}
+): void {
     if (!process.env.MDB_ACCURACY_RUN_ID) {
         throw new Error("MDB_ACCURACY_RUN_ID env variable is required for accuracy test runs!");
     }
@@ -58,17 +69,22 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
         throw new Error("No models available to test. Ensure that the API keys are properly setup!");
     }
 
-    const eachModel = describe.each(models);
+    const shouldSkip = clusterConfig && !MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(clusterConfig);
+
+    const eachModel = describe.skipIf(shouldSkip).each(models);
 
     eachModel(`$displayName`, function (model) {
         const configsWithDescriptions = getConfigsWithDescriptions(accuracyTestConfigs);
         const accuracyRunId = `${process.env.MDB_ACCURACY_RUN_ID}`;
-        const mdbIntegration = setupMongoDBIntegrationTest();
+        const mdbIntegration = setupMongoDBIntegrationTest(clusterConfig);
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
-        const atlasApiClientId = process.env.MDB_MCP_API_CLIENT_ID;
-        const atlasApiClientSecret = process.env.MDB_MCP_API_CLIENT_SECRET;
-        const voyageApiKey = process.env.MDB_VOYAGE_API_KEY;
+        const userConfig: Partial<{ [k in keyof UserConfig]: string }> = {
+            apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
+            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
+            voyageApiKey: process.env.MDB_VOYAGE_API_KEY,
+            ...partialUserConfig,
+        };
 
         let commitSHA: string;
         let accuracyResultStorage: AccuracyResultStorage;
@@ -83,12 +99,7 @@ export function describeAccuracyTests(accuracyTestConfigs: AccuracyTestConfig[])
             commitSHA = retrievedCommitSHA;
 
             accuracyResultStorage = getAccuracyResultStorage();
-            testMCPClient = await AccuracyTestingClient.initializeClient(
-                mdbIntegration.connectionString(),
-                atlasApiClientId,
-                atlasApiClientSecret,
-                voyageApiKey
-            );
+            testMCPClient = await AccuracyTestingClient.initializeClient(mdbIntegration.connectionString(), userConfig);
             agent = getVercelToolCallingAgent();
         });
 

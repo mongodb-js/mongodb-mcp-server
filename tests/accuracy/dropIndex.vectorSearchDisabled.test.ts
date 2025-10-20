@@ -1,3 +1,8 @@
+/**
+ * Accuracy tests for when the vector search feature flag is disabled.
+ *
+ * TODO: Remove this file once we permanently enable the vector search feature.
+ */
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
@@ -29,7 +34,7 @@ describeAccuracyTests(
                         database: "mflix",
                         collection: "movies",
                         indexName: "year_1",
-                        type: "classic",
+                        type: Matcher.anyOf(Matcher.undefined, Matcher.value("classic")),
                     },
                 },
             ],
@@ -67,7 +72,7 @@ describeAccuracyTests(
                         database: "mflix",
                         collection: "movies",
                         indexName: Matcher.string(),
-                        type: "classic",
+                        type: Matcher.anyOf(Matcher.undefined, Matcher.value("classic")),
                     },
                 },
                 {
@@ -76,49 +81,7 @@ describeAccuracyTests(
                         database: "mflix",
                         collection: "movies",
                         indexName: Matcher.string(),
-                        type: "classic",
-                    },
-                },
-            ],
-            mockedTools,
-        },
-        {
-            prompt: "Create a vector search index on 'mflix.movies' namespace on the 'plotSummary' field. The index should use 1024 dimensions. Confirm that its created and then drop the index.",
-            expectedToolCalls: [
-                {
-                    toolName: "create-index",
-                    parameters: {
-                        database: "mflix",
-                        collection: "movies",
-                        name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                        definition: [
-                            {
-                                type: "vectorSearch",
-                                fields: [
-                                    {
-                                        type: "vector",
-                                        path: "plotSummary",
-                                        numDimensions: 1024,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
-                {
-                    toolName: "collection-indexes",
-                    parameters: {
-                        database: "mflix",
-                        collection: "movies",
-                    },
-                },
-                {
-                    toolName: "drop-index",
-                    parameters: {
-                        database: "mflix",
-                        collection: "movies",
-                        indexName: Matcher.string(),
-                        type: "search",
+                        type: Matcher.anyOf(Matcher.undefined, Matcher.value("classic")),
                     },
                 },
             ],
@@ -127,8 +90,7 @@ describeAccuracyTests(
     ],
     {
         userConfig: {
-            voyageApiKey: "voyage-api-key",
+            voyageApiKey: "",
         },
-        clusterConfig: { search: true },
     }
 );

@@ -40,12 +40,12 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             content: [
                 ...formatUntrustedData(
                     `Found ${indexDefinitions.length} indexes in the collection "${collection}":`,
-                    indexDefinitions.length > 0 ? JSON.stringify(indexDefinitions, null, 2) : undefined
+                    ...indexDefinitions.map((i) => JSON.stringify(i))
                 ),
                 ...(searchIndexDefinitions.length > 0
                     ? formatUntrustedData(
                           `Found ${searchIndexDefinitions.length} search and vector search indexes in the collection "${collection}":`,
-                          JSON.stringify(searchIndexDefinitions, null, 2)
+                          ...searchIndexDefinitions.map((i) => JSON.stringify(i))
                       )
                     : []),
             ],

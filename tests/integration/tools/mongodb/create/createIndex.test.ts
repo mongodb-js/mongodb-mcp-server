@@ -8,9 +8,8 @@ import {
     expectDefined,
     defaultTestConfig,
 } from "../../../helpers.js";
-import { ObjectId, type IndexDirection } from "mongodb";
-import { beforeEach, describe, expect, it } from "vitest";
-import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool when search is not enabled", (integration) => {
     it("doesn't allow creating vector search indexes", async () => {
@@ -316,9 +315,7 @@ describeWithMongoDB(
         it("fails to create a vector search index", async () => {
             await integration.connectMcpClient();
             const collection = new ObjectId().toString();
-            await integration
-                .mcpServer()
-                .session.serviceProvider.createCollection(integration.randomDbName(), collection);
+            await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
 
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
@@ -403,12 +400,9 @@ describeWithMongoDB(
 describeWithMongoDB(
     "createIndex tool with vector search indexes",
     (integration) => {
-        let provider: NodeDriverServiceProvider;
-
-        beforeEach(async ({ signal }) => {
+        beforeEach(async () => {
             await integration.connectMcpClient();
-            provider = integration.mcpServer().session.serviceProvider;
-            await waitUntilSearchIsReady(provider, signal);
+            await waitUntilSearchIsReady(integration.mongoClient());
         });
 
         describe("when the collection does not exist", () => {
@@ -457,14 +451,26 @@ describeWithMongoDB(
         });
 
         describe("when the collection exists", () => {
+            let collectionName: string;
+            let collection: Collection;
+            beforeEach(async () => {
+                collectionName = new ObjectId().toString();
+                collection = await integration
+                    .mongoClient()
+                    .db(integration.randomDbName())
+                    .createCollection(collectionName);
+            });
+
+            afterEach(async () => {
+                await collection.drop();
+            });
+
             it("creates the index", async () => {
-                const collection = new ObjectId().toString();
-                await provider.createCollection(integration.randomDbName(), collection);
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
                         database: integration.randomDbName(),
-                        collection,
+                        collection: collectionName,
                         name: "vector_1_vector",
                         definition: [
                             {
@@ -480,10 +486,10 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "vector_1_vector" on collection "${collection}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
                 );
 
-                const indexes = await provider.getSearchIndexes(integration.randomDbName(), collection);
+                const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("vector_1_vector");
                 expect(indexes[0]?.type).toEqual("vectorSearch");
