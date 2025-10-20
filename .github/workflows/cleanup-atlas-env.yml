@@ -3,7 +3,7 @@ name: "Cleanup stale Atlas test environments"
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 * * * *"
 
 permissions: {}
 
