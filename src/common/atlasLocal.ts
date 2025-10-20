@@ -3,7 +3,6 @@ import type { Client } from "@mongodb-js/atlas-local";
 export type AtlasLocalClientFactoryFn = () => Promise<Client | undefined>;
 
 export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn = async () => {
-    console.log("defaultCreateAtlasLocalClient");
     try {
         // Import Atlas Local client asyncronously
         // This will fail on unsupported platforms
