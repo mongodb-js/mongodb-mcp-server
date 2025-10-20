@@ -8,6 +8,7 @@ import { CompositeLogger } from "../../src/common/logger.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Keychain } from "../../src/common/keychain.js";
+import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 describe("Telemetry", () => {
     it("should resolve the actual device ID", async () => {
@@ -15,14 +16,16 @@ describe("Telemetry", () => {
 
         const deviceId = DeviceId.create(logger);
         const actualDeviceId = await deviceId.get();
+        const connectionManager = new MCPConnectionManager(config, driverOptions, logger, deviceId);
 
         const telemetry = Telemetry.create(
             new Session({
                 apiBaseUrl: "",
                 logger,
                 exportsManager: ExportsManager.init(config, logger),
-                connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+                connectionManager: connectionManager,
                 keychain: new Keychain(),
+                vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             }),
             config,
             deviceId

@@ -1,11 +1,13 @@
 import { v4 as uuid } from "uuid";
 import { experimental_createMCPClient as createMCPClient, tool as createVercelTool } from "ai";
+import type { Tool } from "ai";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";
 import type { LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import type { VercelMCPClient, VercelMCPClientTools } from "./agent.js";
+import type { UserConfig } from "../../../src/lib.js";
 
 type ToolResultGeneratorFn = (parameters: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;
 export type MockedTools = Record<string, ToolResultGeneratorFn>;
@@ -34,7 +36,9 @@ export class AccuracyTestingClient {
         const rewrappedVercelTools: VercelMCPClientTools = {};
         for (const [toolName, tool] of Object.entries(vercelTools)) {
             rewrappedVercelTools[toolName] = createVercelTool({
-                ...tool,
+                // tool is an insantiated tool, while createVercelTool requires a tool definition.
+                // by using this explicit casting, we ensure the type system understands what we are doing.
+                ...(tool as Tool<unknown, unknown>),
                 execute: async (args, options) => {
                     this.llmToolCalls.push({
                         toolCallId: uuid(),
@@ -60,7 +64,7 @@ export class AccuracyTestingClient {
                         };
                     }
                 },
-            });
+            }) as VercelMCPClientTools[string];
         }
 
         return rewrappedVercelTools;
@@ -81,18 +85,13 @@ export class AccuracyTestingClient {
 
     static async initializeClient(
         mdbConnectionString: string,
-        atlasApiClientId?: string,
-        atlasApiClientSecret?: string,
-        voyageApiKey?: string
+        userConfig: Partial<{ [k in keyof UserConfig]: string }> = {}
     ): Promise<AccuracyTestingClient> {
-        const args = [
-            MCP_SERVER_CLI_SCRIPT,
-            "--connectionString",
-            mdbConnectionString,
-            ...(atlasApiClientId ? ["--apiClientId", atlasApiClientId] : []),
-            ...(atlasApiClientSecret ? ["--apiClientSecret", atlasApiClientSecret] : []),
-            ...(voyageApiKey ? ["--voyageApiKey", voyageApiKey] : []),
-        ];
+        const additionalArgs = Object.entries(userConfig).flatMap(([key, value]) => {
+            return [`--${key}`, value];
+        });
+
+        const args = [MCP_SERVER_CLI_SCRIPT, "--connectionString", mdbConnectionString, ...additionalArgs];
 
         const clientTransport = new StdioClientTransport({
             command: process.execPath,

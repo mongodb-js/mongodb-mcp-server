@@ -9,19 +9,24 @@ import { MCPConnectionManager } from "../../../../src/common/connectionManager.j
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
+import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
+    const connectionManager = new MCPConnectionManager(config, driverOptions, logger, deviceId);
+
     const session = vi.mocked(
         new Session({
             apiBaseUrl: "",
             logger,
             exportsManager: ExportsManager.init(config, logger),
-            connectionManager: new MCPConnectionManager(config, driverOptions, logger, deviceId),
+            connectionManager,
             keychain: new Keychain(),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
         })
     );
+
     const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" }, deviceId);
 
     let debugResource: DebugResource = new DebugResource(session, config, telemetry);

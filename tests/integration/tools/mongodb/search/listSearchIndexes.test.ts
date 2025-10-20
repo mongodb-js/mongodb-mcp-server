@@ -1,3 +1,4 @@
+import type { Collection } from "mongodb";
 import {
     describeWithMongoDB,
     getSingleDocFromUntrustedContent,
@@ -13,12 +14,11 @@ import {
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { SearchIndexStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
+import type { SearchIndexWithStatus } from "../../../../../src/tools/mongodb/search/listSearchIndexes.js";
 
-const SEARCH_TIMEOUT = 20_000;
+const SEARCH_TIMEOUT = 60_000;
 
-describeWithMongoDB("list search indexes tool in local MongoDB", (integration) => {
+describeWithMongoDB("list-search-indexes tool in local MongoDB", (integration) => {
     validateToolMetadata(
         integration,
         "list-search-indexes",
@@ -35,21 +35,22 @@ describeWithMongoDB("list search indexes tool in local MongoDB", (integration) =
             arguments: { database: "any", collection: "foo" },
         });
         const content = getResponseContent(response.content);
+        expect(response.isError).toBe(true);
         expect(content).toEqual(
-            "This MongoDB cluster does not support Search Indexes. Make sure you are using an Atlas Cluster, either remotely in Atlas or using the Atlas Local image, or your cluster supports MongoDB Search."
+            "The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the Atlas CLI to create and manage a local Atlas deployment."
         );
     });
 });
 
 describeWithMongoDB(
-    "list search indexes tool in Atlas",
+    "list-search-indexes tool in Atlas",
     (integration) => {
-        let provider: NodeDriverServiceProvider;
+        let fooCollection: Collection;
 
-        beforeEach(async ({ signal }) => {
+        beforeEach(async () => {
             await integration.connectMcpClient();
-            provider = integration.mcpServer().session.serviceProvider;
-            await waitUntilSearchIsReady(provider, signal);
+            fooCollection = integration.mongoClient().db("any").collection("foo");
+            await waitUntilSearchIsReady(integration.mongoClient(), SEARCH_TIMEOUT);
         });
 
         describe("when the collection does not exist", () => {
@@ -80,8 +81,9 @@ describeWithMongoDB(
 
         describe("when there are indexes", () => {
             beforeEach(async () => {
-                await provider.insertOne("any", "foo", { field1: "yay" });
-                await provider.createSearchIndexes("any", "foo", [{ definition: { mappings: { dynamic: true } } }]);
+                await fooCollection.insertOne({ field1: "yay" });
+                await waitUntilSearchIsReady(integration.mongoClient(), SEARCH_TIMEOUT);
+                await fooCollection.createSearchIndexes([{ definition: { mappings: { dynamic: true } } }]);
             });
 
             it("returns the list of existing indexes", { timeout: SEARCH_TIMEOUT }, async () => {
@@ -90,7 +92,7 @@ describeWithMongoDB(
                     arguments: { database: "any", collection: "foo" },
                 });
                 const content = getResponseContent(response.content);
-                const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexStatus>(content);
+                const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexWithStatus>(content);
 
                 expect(indexDefinition?.name).toEqual("default");
                 expect(indexDefinition?.type).toEqual("search");
@@ -100,8 +102,8 @@ describeWithMongoDB(
             it(
                 "returns the list of existing indexes and detects if they are queryable",
                 { timeout: SEARCH_TIMEOUT },
-                async ({ signal }) => {
-                    await waitUntilSearchIndexIsQueryable(provider, "any", "foo", "default", signal);
+                async () => {
+                    await waitUntilSearchIndexIsQueryable(fooCollection, "default", SEARCH_TIMEOUT);
 
                     const response = await integration.mcpClient().callTool({
                         name: "list-search-indexes",
@@ -109,7 +111,7 @@ describeWithMongoDB(
                     });
 
                     const content = getResponseContent(response.content);
-                    const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexStatus>(content);
+                    const indexDefinition = getSingleDocFromUntrustedContent<SearchIndexWithStatus>(content);
 
                     expect(indexDefinition?.name).toEqual("default");
                     expect(indexDefinition?.type).toEqual("search");

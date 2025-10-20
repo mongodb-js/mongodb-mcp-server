@@ -26,7 +26,7 @@ jobs:
         name: Setup Docker Environment
         with:
           set-host: true
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
           cache: "npm"
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
           cache: "npm"
@@ -74,7 +74,7 @@ jobs:
     needs: [run-tests, run-atlas-tests]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
           cache: "npm"

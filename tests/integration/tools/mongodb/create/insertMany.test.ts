@@ -1,4 +1,9 @@
-import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import {
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
+    createVectorSearchIndexAndWait,
+    waitUntilSearchIsReady,
+} from "../mongodbHelpers.js";
 
 import {
     getResponseContent,
@@ -6,10 +11,13 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
+    getDataFromUntrustedContent,
 } from "../../../helpers.js";
-import { expect, it } from "vitest";
+import { beforeEach, afterEach, expect, it } from "vitest";
+import { ObjectId } from "bson";
+import type { Collection } from "mongodb";
 
-describeWithMongoDB("insertMany tool", (integration) => {
+describeWithMongoDB("insertMany tool when search is disabled", (integration) => {
     validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [
         ...databaseCollectionParameters,
         {
@@ -58,7 +66,7 @@ describeWithMongoDB("insertMany tool", (integration) => {
         });
 
         const content = getResponseContent(response.content);
-        expect(content).toContain('Inserted `1` document(s) into collection "coll1"');
+        expect(content).toContain(`Inserted \`1\` document(s) into ${integration.randomDbName()}.coll1.`);
 
         await validateDocuments("coll1", [{ prop1: "value1" }]);
     });
@@ -93,7 +101,100 @@ describeWithMongoDB("insertMany tool", (integration) => {
                 collection: "coll1",
                 documents: [{ prop1: "value1" }],
             },
-            expectedResponse: 'Inserted `1` document(s) into collection "coll1"',
+            expectedResponse: `Inserted \`1\` document(s) into ${integration.randomDbName()}.coll1.`,
         };
     });
 });
+
+describeWithMongoDB(
+    "insertMany tool when search is enabled",
+    (integration) => {
+        let collection: Collection;
+
+        beforeEach(async () => {
+            await integration.connectMcpClient();
+            collection = await integration.mongoClient().db(integration.randomDbName()).createCollection("test");
+            await waitUntilSearchIsReady(integration.mongoClient());
+        });
+
+        afterEach(async () => {
+            await collection.drop();
+        });
+
+        it("inserts a document when the embedding is correct", async () => {
+            await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "test", [
+                {
+                    type: "vector",
+                    path: "embedding",
+                    numDimensions: 8,
+                    similarity: "euclidean",
+                    quantization: "scalar",
+                },
+            ]);
+
+            const response = await integration.mcpClient().callTool({
+                name: "insert-many",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "test",
+                    documents: [{ embedding: [1, 2, 3, 4, 5, 6, 7, 8] }],
+                },
+            });
+
+            const content = getResponseContent(response.content);
+            const insertedIds = extractInsertedIds(content);
+            expect(insertedIds).toHaveLength(1);
+
+            const docCount = await collection.countDocuments({ _id: insertedIds[0] });
+            expect(docCount).toBe(1);
+        });
+
+        it("returns an error when there is a search index and quantisation is wrong", async () => {
+            await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "test", [
+                {
+                    type: "vector",
+                    path: "embedding",
+                    numDimensions: 8,
+                    similarity: "euclidean",
+                    quantization: "scalar",
+                },
+            ]);
+
+            const response = await integration.mcpClient().callTool({
+                name: "insert-many",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "test",
+                    documents: [{ embedding: "oopsie" }],
+                },
+            });
+
+            const content = getResponseContent(response.content);
+            expect(content).toContain("There were errors when inserting documents. No document was inserted.");
+            const untrustedContent = getDataFromUntrustedContent(content);
+            expect(untrustedContent).toContain(
+                "- Field embedding is an embedding with 8 dimensions and scalar quantization, and the provided value is not compatible. Actual dimensions: unknown, actual quantization: unknown. Error: not-a-vector"
+            );
+
+            const oopsieCount = await collection.countDocuments({
+                embedding: "oopsie",
+            });
+            expect(oopsieCount).toBe(0);
+        });
+    },
+    { downloadOptions: { search: true } }
+);
+
+function extractInsertedIds(content: string): ObjectId[] {
+    expect(content).toContain("Documents were inserted successfully.");
+    expect(content).toContain("Inserted IDs:");
+
+    const match = content.match(/Inserted IDs:\s(.*)/);
+    const group = match?.[1];
+    return (
+        group
+            ?.split(",")
+            .map((e) => e.trim())
+            .map((e) => ObjectId.createFromHexString(e)) ?? []
+    );
+}

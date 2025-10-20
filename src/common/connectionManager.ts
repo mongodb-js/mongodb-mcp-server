@@ -32,6 +32,7 @@ export interface ConnectionState {
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
+const MCP_TEST_DATABASE = "#mongodb-mcp";
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
@@ -46,11 +47,11 @@ export class ConnectionStateConnected implements ConnectionState {
     public async isSearchSupported(): Promise<boolean> {
         if (this._isSearchSupported === undefined) {
             try {
-                const dummyDatabase = "test";
-                const dummyCollection = "test";
                 // If a cluster supports search indexes, the call below will succeed
-                // with a cursor otherwise will throw an Error
-                await this.serviceProvider.getSearchIndexes(dummyDatabase, dummyCollection);
+                // with a cursor otherwise will throw an Error.
+                // the Search Index Management Service might not be ready yet, but
+                // we assume that the agent can retry in that situation.
+                await this.serviceProvider.getSearchIndexes(MCP_TEST_DATABASE, "test");
                 this._isSearchSupported = true;
             } catch {
                 this._isSearchSupported = false;
