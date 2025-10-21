@@ -41,6 +41,9 @@ export const AtlasArgs = {
             .max(64, "Cluster name must be 64 characters or less")
             .regex(ALLOWED_CLUSTER_NAME_CHARACTERS_REGEX, ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR),
 
+    connectionType: (): z.ZodDefault<z.ZodEnum<["standard", "private", "privateEndpoint"]>> =>
+        z.enum(["standard", "private", "privateEndpoint"]).default("standard"),
+
     projectName: (): z.ZodString =>
         z
             .string()
