@@ -4,7 +4,6 @@ import { ToolBase } from "../tool.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { LogId } from "../../common/logger.js";
-import { z } from "zod";
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
@@ -119,12 +118,8 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return super.handleError(error, args);
     }
 
-    protected resolveTelemetryMetadata(
-        result: CallToolResult,
-        ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): TelemetryToolMetadata {
+    protected resolveTelemetryMetadata(result: CallToolResult): TelemetryToolMetadata {
         const toolMetadata: TelemetryToolMetadata = {};
-
 
         // Atlas Local tools set the deployment ID in the result metadata for telemetry
         // If the deployment ID is set, we use it for telemetry
