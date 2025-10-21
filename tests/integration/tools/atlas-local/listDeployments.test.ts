@@ -1,38 +1,18 @@
 import {
-    defaultDriverOptions,
-    defaultTestConfig,
     expectDefined,
     getResponseElements,
-    setupIntegrationTest,
 } from "../../helpers.js";
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
+import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 
-const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
-
-// Docker is not available on macOS in GitHub Actions
-// That's why we skip the tests on macOS in GitHub Actions
-describe("atlas-local-list-deployments", () => {
-    const integration = setupIntegrationTest(
-        () => defaultTestConfig,
-        () => defaultDriverOptions
-    );
-
-    it.skipIf(isMacOSInGitHubActions)("should have the atlas-local-list-deployments tool", async () => {
+describeWithAtlasLocal("atlas-local-list-deployments", (integration) => {
+    it("should have the atlas-local-list-deployments tool", async () => {
         const { tools } = await integration.mcpClient().listTools();
         const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
         expectDefined(listDeployments);
     });
 
-    it.skipIf(!isMacOSInGitHubActions)(
-        "[MacOS in GitHub Actions] should not have the atlas-local-list-deployments tool",
-        async () => {
-            const { tools } = await integration.mcpClient().listTools();
-            const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
-            expect(listDeployments).toBeUndefined();
-        }
-    );
-
-    it.skipIf(isMacOSInGitHubActions)("should have correct metadata", async () => {
+    it("should have correct metadata", async () => {
         const { tools } = await integration.mcpClient().listTools();
         const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
         expectDefined(listDeployments);
@@ -41,7 +21,7 @@ describe("atlas-local-list-deployments", () => {
         expect(listDeployments.inputSchema.properties).toEqual({});
     });
 
-    it.skipIf(isMacOSInGitHubActions)("should not crash when calling the tool", async () => {
+    it("should not crash when calling the tool", async () => {
         const response = await integration.mcpClient().callTool({
             name: "atlas-local-list-deployments",
             arguments: {},
@@ -62,5 +42,13 @@ describe("atlas-local-list-deployments", () => {
             expect(elements[1]?.text).toContain('"state":');
             expect(elements[1]?.text).toContain('"mongodbVersion":');
         }
+    });
+});
+
+describeWithAtlasLocalDisabled("[MacOS in GitHub Actions] atlas-local-list-deployments", (integration) => {
+    it("should not have the atlas-local-list-deployments tool", async () => {
+        const { tools } = await integration.mcpClient().listTools();
+        const listDeployments = tools.find((tool) => tool.name === "atlas-local-list-deployments");
+        expect(listDeployments).toBeUndefined();
     });
 });

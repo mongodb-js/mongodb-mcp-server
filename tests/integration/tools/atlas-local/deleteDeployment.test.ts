@@ -1,38 +1,18 @@
 import {
-    defaultDriverOptions,
-    defaultTestConfig,
     expectDefined,
     getResponseElements,
-    setupIntegrationTest,
 } from "../../helpers.js";
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
+import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 
-const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
-
-// Docker is not available on macOS in GitHub Actions
-// That's why we skip the tests on macOS in GitHub Actions
-describe("atlas-local-delete-deployment", () => {
-    const integration = setupIntegrationTest(
-        () => defaultTestConfig,
-        () => defaultDriverOptions
-    );
-
-    it.skipIf(isMacOSInGitHubActions)("should have the atlas-local-delete-deployment tool", async () => {
+describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
+    it("should have the atlas-local-delete-deployment tool", async () => {
         const { tools } = await integration.mcpClient().listTools();
         const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
         expectDefined(deleteDeployment);
     });
 
-    it.skipIf(!isMacOSInGitHubActions)(
-        "[MacOS in GitHub Actions] should not have the atlas-local-delete-deployment tool",
-        async () => {
-            const { tools } = await integration.mcpClient().listTools();
-            const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
-            expect(deleteDeployment).toBeUndefined();
-        }
-    );
-
-    it.skipIf(isMacOSInGitHubActions)("should have correct metadata", async () => {
+    it("should have correct metadata", async () => {
         const { tools } = await integration.mcpClient().listTools();
         const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
         expectDefined(deleteDeployment);
@@ -41,24 +21,21 @@ describe("atlas-local-delete-deployment", () => {
         expect(deleteDeployment.inputSchema.properties).toHaveProperty("deploymentName");
     });
 
-    it.skipIf(isMacOSInGitHubActions)(
-        "should return 'no such container' error when deployment to delete does not exist",
-        async () => {
-            const deploymentName = "non-existent";
+    it("should return 'no such container' error when deployment to delete does not exist", async () => {
+        const deploymentName = "non-existent";
 
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-local-delete-deployment",
-                arguments: { deploymentName },
-            });
-            const elements = getResponseElements(response.content);
-            expect(elements.length).toBeGreaterThanOrEqual(1);
-            expect(elements[0]?.text).toContain(
-                `The Atlas Local deployment "${deploymentName}" was not found. Please check the deployment name or use "atlas-local-list-deployments" to see available deployments.`
-            );
-        }
-    );
+        const response = await integration.mcpClient().callTool({
+            name: "atlas-local-delete-deployment",
+            arguments: { deploymentName },
+        });
+        const elements = getResponseElements(response.content);
+        expect(elements.length).toBeGreaterThanOrEqual(1);
+        expect(elements[0]?.text).toContain(
+            `The Atlas Local deployment "${deploymentName}" was not found. Please check the deployment name or use "atlas-local-list-deployments" to see available deployments.`
+        );
+    });
 
-    it.skipIf(isMacOSInGitHubActions)("should delete a deployment when calling the tool", async () => {
+    it("should delete a deployment when calling the tool", async () => {
         // Create a deployment
         const deploymentName = `test-deployment-${Date.now()}`;
         await integration.mcpClient().callTool({
@@ -81,12 +58,20 @@ describe("atlas-local-delete-deployment", () => {
             arguments: { deploymentName },
         });
 
-        // Count the number of deployments after deleting the deployment
+        // Check that deployment doesn't exist after deletion
         const afterResponse = await integration.mcpClient().callTool({
             name: "atlas-local-list-deployments",
             arguments: {},
         });
         const afterElements = getResponseElements(afterResponse.content);
         expect(afterElements[1]?.text ?? "").not.toContain(deploymentName);
+    });
+});
+
+describeWithAtlasLocalDisabled("[MacOS in GitHub Actions] atlas-local-delete-deployment", (integration) => {
+    it("should not have the atlas-local-delete-deployment tool", async () => {
+        const { tools } = await integration.mcpClient().listTools();
+        const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
+        expect(deleteDeployment).toBeUndefined();
     });
 });

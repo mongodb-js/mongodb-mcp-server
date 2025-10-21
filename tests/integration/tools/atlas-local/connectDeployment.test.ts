@@ -1,23 +1,12 @@
-import { beforeEach } from "vitest";
+import { expect, it, beforeAll, afterAll } from "vitest";
 import {
-    defaultDriverOptions,
-    defaultTestConfig,
     expectDefined,
     getResponseElements,
-    setupIntegrationTest,
     validateToolMetadata,
 } from "../../helpers.js";
-import { afterEach, describe, expect, it } from "vitest";
+import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 
-const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
-const integration = setupIntegrationTest(
-    () => defaultTestConfig,
-    () => defaultDriverOptions
-);
-
-// Docker is not available on macOS in GitHub Actions
-// That's why we skip the tests on macOS in GitHub Actions
-describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment", () => {
+describeWithAtlasLocal("atlas-local-connect-deployment", (integration) => {
     validateToolMetadata(integration, "atlas-local-connect-deployment", "Connect to a MongoDB Atlas Local deployment", [
         {
             name: "deploymentName",
@@ -47,11 +36,11 @@ describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment", () => 
     });
 });
 
-describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment with deployments", () => {
+describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integration) => {
     let deploymentName: string = "";
     let deploymentNamesToCleanup: string[] = [];
 
-    beforeEach(async () => {
+    beforeAll(async () => {
         // Create deployments
         deploymentName = `test-deployment-1-${Date.now()}`;
         deploymentNamesToCleanup.push(deploymentName);
@@ -68,7 +57,7 @@ describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment with dep
         });
     });
 
-    afterEach(async () => {
+    afterAll(async () => {
         // Delete all created deployments
         for (const deploymentNameToCleanup of deploymentNamesToCleanup) {
             try {
@@ -93,9 +82,51 @@ describe.skipIf(isMacOSInGitHubActions)("atlas-local-connect-deployment with dep
         expect(elements.length).toBeGreaterThanOrEqual(1);
         expect(elements[0]?.text).toContain(`Successfully connected to Atlas Local deployment "${deploymentName}".`);
     });
+
+    it("should be able to insert and read data after connecting", async () => {
+        // Connect to the deployment
+        await integration.mcpClient().callTool({
+            name: "atlas-local-connect-deployment",
+            arguments: { deploymentName },
+        });
+
+        const testDatabase = "test-db";
+        const testCollection = "test-collection";
+        const testData = [
+            { name: "document1", value: 1 },
+            { name: "document2", value: 2 },
+        ];
+
+        // Insert data using insert-many tool
+        const insertResponse = await integration.mcpClient().callTool({
+            name: "insert-many",
+            arguments: {
+                database: testDatabase,
+                collection: testCollection,
+                documents: testData,
+            },
+        });
+        const insertElements = getResponseElements(insertResponse.content);
+        expect(insertElements.length).toBeGreaterThanOrEqual(1);
+        expect(insertElements[0]?.text).toContain("Documents were inserted successfully.");
+
+        // Read data using find tool
+        const findResponse = await integration.mcpClient().callTool({
+            name: "find",
+            arguments: {
+                database: testDatabase,
+                collection: testCollection,
+            },
+        });
+        const findElements = getResponseElements(findResponse.content);
+        expect(findElements.length).toBe(2);
+        expect(findElements[0]?.text).toBe("Query on collection \"test-collection\" resulted in 2 documents. Returning 2 documents.");
+        expect(findElements[1]?.text).toContain("document1");
+        expect(findElements[1]?.text).toContain("document2");
+    });
 });
 
-describe.skipIf(!isMacOSInGitHubActions)("atlas-local-connect-deployment [MacOS in GitHub Actions]", () => {
+describeWithAtlasLocalDisabled("atlas-local-connect-deployment [MacOS in GitHub Actions]", (integration) => {
     it("should not have the atlas-local-connect-deployment tool", async () => {
         // This should throw an error because the client is not set within the timeout of 5 seconds (default)
         const { tools } = await integration.mcpClient().listTools();
