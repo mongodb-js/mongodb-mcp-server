@@ -35,7 +35,7 @@ const VectorSearchStage = z.object({
             queryVector: z
                 .union([z.string(), z.array(z.number())])
                 .describe(
-                    "The content to search for. The embeddingParameters field is mandatory if the queryVector is a string."
+                    "The content to search for. The embeddingParameters field is mandatory if the queryVector is a string, in that case, the tool generates the embedding automatically using the provided configuration."
                 ),
             numCandidates: z
                 .number()
