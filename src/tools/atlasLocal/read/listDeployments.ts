@@ -38,7 +38,7 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
         });
 
         return {
-            content: formatUntrustedData("Deployments", JSON.stringify(deploymentsJson)),
+            content: formatUntrustedData(`Found ${deployments.length} deployments`, JSON.stringify(deploymentsJson)),
         };
     }
 }
