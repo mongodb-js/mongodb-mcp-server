@@ -41,7 +41,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return this.executeWithAtlasLocalClient(client, ...args);
     }
 
-    protected async lookupDeploymentId(client: Client, containerId: string): Promise<string | undefined> {
+    private async lookupDeploymentId(client: Client, containerId: string): Promise<string | undefined> {
         try {
             // Lookup and return the deployment id for telemetry metadata.
             return await client.getDeploymentId(containerId);
