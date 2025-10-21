@@ -125,23 +125,6 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     ): TelemetryToolMetadata {
         const toolMetadata: TelemetryToolMetadata = {};
 
-        const client = this.session.atlasLocalClient;
-        if (!args.length || !client) {
-            return toolMetadata;
-        }
-
-        // Create a typed parser for the exact shape we expect
-        const argsShape = z.object(this.argsShape);
-        const parsedResult = argsShape.safeParse(args[0]);
-
-        if (!parsedResult.success) {
-            this.session.logger.debug({
-                id: LogId.telemetryMetadataError,
-                context: "tool",
-                message: `Error parsing tool arguments: ${parsedResult.error.message}`,
-            });
-            return toolMetadata;
-        }
 
         // Atlas Local tools set the deployment ID in the result metadata for telemetry
         // If the deployment ID is set, we use it for telemetry
