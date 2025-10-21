@@ -29,6 +29,9 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
                     text: `Successfully connected to Atlas Local deployment "${deploymentName}".`,
                 },
             ],
+            _meta: {
+                ...(await this.lookupTelemetryMetadata(client, deploymentName)),
+            },
         };
     }
 }

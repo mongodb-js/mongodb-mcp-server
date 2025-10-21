@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasLocalToolBase, AtlasLocalToolMetadataDeploymentIdKey } from "../atlasLocalTool.js";
+import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
@@ -27,9 +27,6 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         // Create the deployment
         const deployment = await client.createDeployment(deploymentOptions);
 
-        // Capture deployment ID for telemetry
-        const createdDeploymentId = await this.lookupDeploymentId(client, deployment.containerId);
-
         return {
             content: [
                 {
@@ -38,7 +35,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
                 },
             ],
             _meta: {
-                [AtlasLocalToolMetadataDeploymentIdKey]: createdDeploymentId,
+                ...(await this.lookupTelemetryMetadata(client, deployment.containerId)),
             },
         };
     }

@@ -44,8 +44,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     protected async lookupDeploymentId(client: Client, containerId: string): Promise<string | undefined> {
         try {
             // Lookup and return the deployment id for telemetry metadata.
-            const deploymentId = await client.getDeploymentId(containerId);
-            return deploymentId;
+            return await client.getDeploymentId(containerId);
         } catch (error) {
             this.session.logger.debug({
                 id: LogId.telemetryMetadataError,
@@ -55,6 +54,21 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
 
             return undefined;
         }
+    }
+
+    protected async lookupTelemetryMetadata(client: Client, containerId: string): Promise<{ [key: string]: unknown }> {
+        if (!this.telemetry.isTelemetryEnabled()) {
+            return {};
+        }
+
+        const deploymentId = await this.lookupDeploymentId(client, containerId);
+        if (deploymentId === undefined) {
+            return {};
+        }
+
+        return {
+            [AtlasLocalToolMetadataDeploymentIdKey]: deploymentId,
+        };
     }
 
     protected abstract executeWithAtlasLocalClient(
@@ -105,10 +119,10 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return super.handleError(error, args);
     }
 
-    protected async resolveTelemetryMetadata(
+    protected resolveTelemetryMetadata(
         result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): Promise<TelemetryToolMetadata> {
+    ): TelemetryToolMetadata {
         const toolMetadata: TelemetryToolMetadata = {};
 
         const client = this.session.atlasLocalClient;
@@ -129,22 +143,11 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
             return toolMetadata;
         }
 
+        // Atlas Local tools set the deployment ID in the result metadata for telemetry
+        // If the deployment ID is set, we use it for telemetry
         const resultDeploymentId = result._meta?.[AtlasLocalToolMetadataDeploymentIdKey];
         if (resultDeploymentId !== undefined && typeof resultDeploymentId === "string") {
             toolMetadata.atlasLocaldeploymentId = resultDeploymentId;
-        }
-
-        const data = parsedResult.data;
-
-        // Extract deploymentName using type guard and lookup deployment ID
-        if (
-            resultDeploymentId === undefined &&
-            "deploymentName" in data &&
-            typeof data.deploymentName === "string" &&
-            data.deploymentName.trim() !== ""
-        ) {
-            const deploymentId = await this.lookupDeploymentId(client, data.deploymentName);
-            toolMetadata.atlasLocaldeploymentId = deploymentId;
         }
 
         return toolMetadata;

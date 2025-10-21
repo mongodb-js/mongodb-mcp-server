@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { AtlasLocalToolBase, AtlasLocalToolMetadataDeploymentIdKey } from "../atlasLocalTool.js";
+import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
@@ -16,9 +16,10 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
         client: Client,
         { deploymentName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {
-        const deploymentId = this.telemetry.isTelemetryEnabled()
-            ? await this.lookupDeploymentId(client, deploymentName)
-            : undefined;
+        // Lookup telemetry metadata
+        // We need to lookup the telemetry metadata before deleting the deployment
+        // to ensure that the deployment ID is set in the result metadata
+        const telemetryMetadata = await this.lookupTelemetryMetadata(client, deploymentName);
 
         // Delete the deployment
         await client.deleteDeployment(deploymentName);
@@ -26,7 +27,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
         return {
             content: [{ type: "text", text: `Deployment "${deploymentName}" deleted successfully.` }],
             _meta: {
-                [AtlasLocalToolMetadataDeploymentIdKey]: deploymentId,
+                ...telemetryMetadata,
             },
         };
     }
