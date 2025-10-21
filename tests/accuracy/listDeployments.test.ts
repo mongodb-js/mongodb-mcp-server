@@ -2,7 +2,7 @@ import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 
 describeAccuracyTests([
     {
-        prompt: "What MongoDB clusters do I have running?",
+        prompt: "What local MongoDB clusters do I have running?",
         expectedToolCalls: [
             {
                 toolName: "atlas-local-list-deployments",
@@ -11,7 +11,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "What MongoDB instances do I have running?",
+        prompt: "What local MongoDB instances do I have running?",
         expectedToolCalls: [
             {
                 toolName: "atlas-local-list-deployments",
@@ -20,7 +20,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "How many MongoDB clusters are running?",
+        prompt: "How many local MongoDB clusters are running?",
         expectedToolCalls: [
             {
                 toolName: "atlas-local-list-deployments",
