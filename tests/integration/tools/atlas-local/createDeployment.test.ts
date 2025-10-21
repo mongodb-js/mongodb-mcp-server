@@ -82,8 +82,11 @@ describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
             name: "atlas-local-create-deployment",
             arguments: { deploymentName },
         });
+
+        // Check that the response is an error
         expect(response.isError).toBe(true);
         const elements = getResponseElements(response.content);
+        // There should be one element, the error message
         expect(elements).toHaveLength(1);
         expect(elements[0]?.text).toContain("Container already exists: " + deploymentName);
     });
