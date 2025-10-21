@@ -162,7 +162,7 @@ export abstract class ToolBase {
                 });
 
                 const result = await this.execute(...args);
-                await this.emitToolEvent(startTime, result, ...args);
+                this.emitToolEvent(startTime, result, ...args);
 
                 this.session.logger.debug({
                     id: LogId.toolExecute,
@@ -178,7 +178,7 @@ export abstract class ToolBase {
                     message: `Error executing ${this.name}: ${error as string}`,
                 });
                 const toolResult = await this.handleError(error, args[0] as ToolArgs<typeof this.argsShape>);
-                await this.emitToolEvent(startTime, toolResult, ...args);
+                this.emitToolEvent(startTime, toolResult, ...args);
                 return toolResult;
             }
         };
@@ -280,7 +280,7 @@ export abstract class ToolBase {
     protected abstract resolveTelemetryMetadata(
         result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
+    ): TelemetryToolMetadata;
 
     /**
      * Creates and emits a tool telemetry event
@@ -288,16 +288,16 @@ export abstract class ToolBase {
      * @param result - Whether the command succeeded or failed
      * @param args - The arguments passed to the tool
      */
-    private async emitToolEvent(
+    private emitToolEvent(
         startTime: number,
         result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): Promise<void> {
+    ): void {
         if (!this.telemetry.isTelemetryEnabled()) {
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = await this.resolveTelemetryMetadata(result, ...args);
+        const metadata = this.resolveTelemetryMetadata(result, ...args);
         const event: ToolEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
