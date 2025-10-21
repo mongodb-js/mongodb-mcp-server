@@ -1,7 +1,4 @@
-import {
-    expectDefined,
-    getResponseElements,
-} from "../../helpers.js";
+import { expectDefined, getResponseElements } from "../../helpers.js";
 import { afterEach, expect, it } from "vitest";
 import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 

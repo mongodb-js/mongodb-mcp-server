@@ -1,9 +1,5 @@
 import { expect, it, beforeAll, afterAll } from "vitest";
-import {
-    expectDefined,
-    getResponseElements,
-    validateToolMetadata,
-} from "../../helpers.js";
+import { expectDefined, getResponseElements, validateToolMetadata } from "../../helpers.js";
 import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 
 describeWithAtlasLocal("atlas-local-connect-deployment", (integration) => {
@@ -120,7 +116,9 @@ describeWithAtlasLocal("atlas-local-connect-deployment with deployments", (integ
         });
         const findElements = getResponseElements(findResponse.content);
         expect(findElements.length).toBe(2);
-        expect(findElements[0]?.text).toBe("Query on collection \"test-collection\" resulted in 2 documents. Returning 2 documents.");
+        expect(findElements[0]?.text).toBe(
+            'Query on collection "test-collection" resulted in 2 documents. Returning 2 documents.'
+        );
         expect(findElements[1]?.text).toContain("document1");
         expect(findElements[1]?.text).toContain("document2");
     });
