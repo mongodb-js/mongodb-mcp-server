@@ -27,20 +27,18 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
             };
         }
 
-        // Turn the deployments into a markdown table
-        const rows = deployments
-            .map((deployment) => {
-                return `${deployment.name || "Unknown"} | ${deployment.state} | ${deployment.mongodbVersion}`;
-            })
-            .join("\n");
+        // Filter out the fields we want to return to the user
+        // We don't want to return the entire deployment object because it contains too much data
+        const deploymentsJson = deployments.map((deployment) => {
+            return {
+                name: deployment.name,
+                state: deployment.state,
+                mongodbVersion: deployment.mongodbVersion,
+            };
+        });
 
         return {
-            content: formatUntrustedData(
-                `Found ${deployments.length} deployments:`,
-                `Deployment Name | State | MongoDB Version
-----------------|----------------|----------------
-${rows}`
-            ),
+            content: formatUntrustedData("Deployments", JSON.stringify(deploymentsJson)),
         };
     }
 }
