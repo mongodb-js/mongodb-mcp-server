@@ -1,5 +1,6 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { formatUntrustedData } from "../../src/tools/tool.js";
 
 describeAccuracyTests([
     {
@@ -8,7 +9,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-local-connect-deployment",
                 parameters: {
-                    deploymentIdOrName: "my-database",
+                    deploymentName: "my-database",
                 },
             },
         ],
@@ -19,7 +20,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-local-connect-deployment",
                 parameters: {
-                    deploymentIdOrName: "my-instance",
+                    deploymentName: "my-instance",
                 },
             },
         ],
@@ -28,13 +29,10 @@ describeAccuracyTests([
         prompt: "If and only if, the local MongoDB deployment 'local-mflix' exists, then connect to it",
         mockedTools: {
             "atlas-local-list-deployments": (): CallToolResult => ({
-                content: [
-                    { type: "text", text: "Found 1 deployment:" },
-                    {
-                        type: "text",
-                        text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nlocal-mflix | Running | 6.0",
-                    },
-                ],
+                content: formatUntrustedData(
+                    "Found 1 deployments",
+                    '[{"name":"local-mflix","state":"Running","mongodbVersion":"6.0"}]'
+                ),
             }),
         },
         expectedToolCalls: [
@@ -45,7 +43,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-local-connect-deployment",
                 parameters: {
-                    deploymentIdOrName: "local-mflix",
+                    deploymentName: "local-mflix",
                 },
             },
         ],
@@ -62,7 +60,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-local-connect-deployment",
                 parameters: {
-                    deploymentIdOrName: "local-mflix",
+                    deploymentName: "local-mflix",
                 },
             },
         ],

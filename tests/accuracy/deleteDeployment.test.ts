@@ -1,5 +1,6 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { formatUntrustedData } from "../../src/tools/tool.js";
 
 describeAccuracyTests([
     {
@@ -28,13 +29,10 @@ describeAccuracyTests([
         prompt: "Delete all my local MongoDB instances",
         mockedTools: {
             "atlas-local-list-deployments": (): CallToolResult => ({
-                content: [
-                    { type: "text", text: "Found 1 deployment:" },
-                    {
-                        type: "text",
-                        text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nlocal-mflix | Running | 6.0\nlocal-comics | Running | 6.0",
-                    },
-                ],
+                content: formatUntrustedData(
+                    "Found 2 deployments",
+                    '[{"name":"local-mflix","state":"Running","mongodbVersion":"6.0"},{"name":"local-comics","state":"Running","mongodbVersion":"6.0"}]'
+                ),
             }),
         },
         expectedToolCalls: [
@@ -60,13 +58,10 @@ describeAccuracyTests([
         prompt: "If and only if, the local MongoDB deployment 'local-mflix' exists, then delete it",
         mockedTools: {
             "atlas-local-list-deployments": (): CallToolResult => ({
-                content: [
-                    { type: "text", text: "Found 1 deployment:" },
-                    {
-                        type: "text",
-                        text: "Deployment Name | State | MongoDB Version\n----------------|----------------|----------------\nlocal-mflix | Running | 6.0",
-                    },
-                ],
+                content: formatUntrustedData(
+                    "Found 1 deployments",
+                    '[{"name":"local-mflix","state":"Running","mongodbVersion":"6.0"}]'
+                ),
             }),
         },
         expectedToolCalls: [
