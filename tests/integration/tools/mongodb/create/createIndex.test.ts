@@ -7,6 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     expectDefined,
     defaultTestConfig,
+    getResponseElements,
 } from "../../../helpers.js";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -501,6 +502,111 @@ describeWithMongoDB(
                         { type: "filter", path: "category" },
                     ],
                 });
+            });
+
+            it("doesn't duplicate indexes", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "vector_1_vector",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [
+                                    { type: "vector", path: "vector_1", numDimensions: 4 },
+                                    { type: "filter", path: "category" },
+                                ],
+                            },
+                        ],
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(content).toEqual(
+                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                );
+
+                // Try to create another vector search index with the same name
+                const duplicateVectorResponse = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "vector_1_vector",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [{ type: "vector", path: "vector_1", numDimensions: 4 }],
+                            },
+                        ],
+                    },
+                });
+
+                const duplicateVectorContent = getResponseContent(duplicateVectorResponse.content);
+                expect(duplicateVectorResponse.isError).toBe(true);
+                expect(duplicateVectorContent).toEqual(
+                    "Error running create-index: Index vector_1_vector already exists with a different definition. Drop it first if needed."
+                );
+            });
+
+            it("can create classic and vector search indexes with the same name", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "my-super-index",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [
+                                    { type: "vector", path: "vector_1", numDimensions: 4 },
+                                    { type: "filter", path: "category" },
+                                ],
+                            },
+                        ],
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(content).toEqual(
+                    `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                );
+
+                const classicResponse = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "my-super-index",
+                        definition: [{ type: "classic", keys: { field1: 1 } }],
+                    },
+                });
+
+                // Create a classic index with the same name
+                const classicContent = getResponseContent(classicResponse.content);
+                expect(classicContent).toEqual(
+                    `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}".`
+                );
+
+                const listIndexesResponse = await integration.mcpClient().callTool({
+                    name: "collection-indexes",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                    },
+                });
+
+                const listIndexesElements = getResponseElements(listIndexesResponse.content);
+                expect(listIndexesElements).toHaveLength(4); // 2 elements for classic indexes, 2 for vector search indexes
+
+                // Expect to find my-super-index in the classic definitions
+                expect(listIndexesElements[1]?.text).toContain('"name":"my-super-index"');
+
+                // Expect to find my-super-index in the vector search definitions
+                expect(listIndexesElements[3]?.text).toContain('"name":"my-super-index"');
             });
         });
     },
