@@ -70,7 +70,7 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.toolConstructors = toolConstructors ?? [...AtlasTools, ...MongoDbTools];
+        this.toolConstructors = toolConstructors ?? [...AtlasTools, ...MongoDbTools, ...AtlasLocalTools];
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -222,7 +222,7 @@ export class Server {
     }
 
     private registerTools(): void {
-        for (const toolConstructor of [...this.toolConstructors, ...AtlasLocalTools]) {
+        for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
                 session: this.session,
                 config: this.userConfig,
