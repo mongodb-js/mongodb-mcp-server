@@ -196,9 +196,17 @@ describeWithAtlas("clusters", (integration) => {
                     expect(elements[0]?.text).toContain(
                         "You need to connect to a MongoDB instance before you can access its data."
                     );
-                    expect(elements[1]?.text).toContain(
-                        'Please use one of the following tools: "atlas-connect-cluster", "connect" to connect to a MongoDB instance'
-                    );
+                    // Check if the response contains all available test tools.
+                    if (process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true") {
+                        // The tool atlas-local-connect-deployment may be disabled in some test environments if Docker is not available.
+                        expect(elements[1]?.text).toContain(
+                            'Please use one of the following tools: "atlas-connect-cluster", "connect" to connect to a MongoDB instance'
+                        );
+                    } else {
+                        expect(elements[1]?.text).toContain(
+                            'Please use one of the following tools: "atlas-connect-cluster", "atlas-local-connect-deployment", "connect" to connect to a MongoDB instance'
+                        );
+                    }
                 });
             });
         });

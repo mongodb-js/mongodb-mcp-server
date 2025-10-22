@@ -1,0 +1,36 @@
+---
+name: Code Health Long Running Tests
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual triggering of the workflow in feature branches
+
+permissions: {}
+
+jobs:
+  run-long-running-tests:
+    name: Run long running tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        env:
+          MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+          MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+        run: npm test -- tests/integration/tools/atlas --project=long-running-tests
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-test-results
+          path: coverage/lcov.info

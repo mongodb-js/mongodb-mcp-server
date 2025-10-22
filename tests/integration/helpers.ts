@@ -22,6 +22,7 @@ import { Keychain } from "../../src/common/keychain.js";
 import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 
 export const driverOptions = setupDriverConfig({
     config,
@@ -114,6 +115,7 @@ export function setupIntegrationTest(
             connectionManager,
             keychain: new Keychain(),
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            atlasLocalClient: await defaultCreateAtlasLocalClient(),
         });
 
         // Mock hasValidAccessToken for tests

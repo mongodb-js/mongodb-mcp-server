@@ -10,6 +10,16 @@ const vitestDefaultExcludes = [
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
 ];
 
+const longRunningTests = ["tests/integration/tools/atlas/performanceAdvisor.test.ts"];
+
+if (process.env.SKIP_ATLAS_TESTS === "true") {
+    vitestDefaultExcludes.push("**/atlas/**");
+}
+
+if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
+    vitestDefaultExcludes.push("**/atlas-local/**");
+}
+
 export default defineConfig({
     test: {
         environment: "node",
@@ -26,7 +36,7 @@ export default defineConfig({
                 test: {
                     name: "unit-and-integration",
                     include: ["**/*.test.ts"],
-                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**"],
+                    exclude: [...vitestDefaultExcludes, "scripts/**", "tests/accuracy/**", ...longRunningTests],
                 },
             },
             {
@@ -48,6 +58,15 @@ export default defineConfig({
                 test: {
                     name: "atlas-cleanup",
                     include: ["scripts/cleanupAtlasTestLeftovers.test.ts"],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "long-running-tests",
+                    include: [...longRunningTests],
+                    testTimeout: 7200000, // 2 hours for long-running tests
+                    hookTimeout: 7200000,
                 },
             },
         ],

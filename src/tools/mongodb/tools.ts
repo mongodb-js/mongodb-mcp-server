@@ -19,7 +19,6 @@ import { ExplainTool } from "./metadata/explain.js";
 import { CreateCollectionTool } from "./create/createCollection.js";
 import { LogsTool } from "./metadata/logs.js";
 import { ExportTool } from "./read/export.js";
-import { ListSearchIndexesTool } from "./search/listSearchIndexes.js";
 import { DropIndexTool } from "./delete/dropIndex.js";
 
 export const MongoDbTools = [
@@ -45,5 +44,4 @@ export const MongoDbTools = [
     CreateCollectionTool,
     LogsTool,
     ExportTool,
-    ListSearchIndexesTool,
 ];

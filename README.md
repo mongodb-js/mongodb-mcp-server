@@ -296,6 +296,13 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
+#### MongoDB Atlas Local Tools
+
+- `atlas-local-list-deployments` - Lists MongoDB Atlas Local deployments
+- `atlas-local-create-deployment` - Creates a MongoDB Atlas Local deployment
+- `atlas-local-connect-deployment` - Connects to a MongoDB Atlas Local deployment
+- `atlas-local-delete-deployment` - Deletes a MongoDB Atlas Local deployment
+
 #### MongoDB Database Tools
 
 - `connect` - Connect to a MongoDB instance

@@ -1,28 +1,26 @@
 import { ObjectId } from "mongodb";
 import { describeWithAtlas } from "./atlasHelpers.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
-import { afterAll, describe, expect, it } from "vitest";
-
-const randomId = new ObjectId().toString();
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describeWithAtlas("projects", (integration) => {
-    const projName = "testProj-" + randomId;
+    const projectsToCleanup: string[] = [];
 
     afterAll(async () => {
         const session = integration.mcpServer().session;
+        const projects =
+            (await session.apiClient.listProjects()).results?.filter((project) =>
+                projectsToCleanup.includes(project.name)
+            ) || [];
 
-        const projects = await session.apiClient.listProjects();
-        for (const project of projects?.results || []) {
-            if (project.name === projName) {
-                await session.apiClient.deleteProject({
-                    params: {
-                        path: {
-                            groupId: project.id || "",
-                        },
+        for (const project of projects) {
+            await session.apiClient.deleteProject({
+                params: {
+                    path: {
+                        groupId: project.id || "",
                     },
-                });
-                break;
-            }
+                },
+            });
         }
     });
 
@@ -36,7 +34,11 @@ describeWithAtlas("projects", (integration) => {
             expect(createProject.inputSchema.properties).toHaveProperty("projectName");
             expect(createProject.inputSchema.properties).toHaveProperty("organizationId");
         });
+
         it("should create a project", async () => {
+            const projName = `testProj-${new ObjectId().toString()}`;
+            projectsToCleanup.push(projName);
+
             const response = await integration.mcpClient().callTool({
                 name: "atlas-create-project",
                 arguments: { projectName: projName },
@@ -47,7 +49,23 @@ describeWithAtlas("projects", (integration) => {
             expect(elements[0]?.text).toContain(projName);
         });
     });
+
     describe("atlas-list-projects", () => {
+        let projName: string;
+        let orgId: string;
+        beforeAll(async () => {
+            projName = `testProj-${new ObjectId().toString()}`;
+            projectsToCleanup.push(projName);
+
+            const orgs = await integration.mcpServer().session.apiClient.listOrganizations();
+            orgId = (orgs.results && orgs.results[0]?.id) ?? "";
+
+            await integration.mcpClient().callTool({
+                name: "atlas-create-project",
+                arguments: { projectName: projName, organizationId: orgId },
+            });
+        });
+
         it("should have correct metadata", async () => {
             const { tools } = await integration.mcpClient().listTools();
             const listProjects = tools.find((tool) => tool.name === "atlas-list-projects");
@@ -57,29 +75,51 @@ describeWithAtlas("projects", (integration) => {
             expect(listProjects.inputSchema.properties).toHaveProperty("orgId");
         });
 
-        it("returns project names", async () => {
-            const response = await integration.mcpClient().callTool({ name: "atlas-list-projects", arguments: {} });
-            const elements = getResponseElements(response);
-            expect(elements).toHaveLength(2);
-            expect(elements[1]?.text).toContain("<untrusted-user-data-");
-            expect(elements[1]?.text).toContain(projName);
+        describe("with orgId filter", () => {
+            it("returns projects only for that org", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-list-projects",
+                    arguments: {
+                        orgId,
+                    },
+                });
 
-            const raw = getDataFromUntrustedContent(elements[1]?.text ?? "");
-            const data = JSON.parse(raw) as Array<{
-                name: string;
-                id: string;
-                organizationName: string;
-                organizationId: string;
-                createdAt: string;
-            }>;
+                const elements = getResponseElements(response);
+                expect(elements).toHaveLength(2);
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(projName);
+                const data = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "")) as {
+                    name: string;
+                    orgId: string;
+                }[];
+                expect(data.length).toBeGreaterThan(0);
+                expect(data.every((proj) => proj.orgId === orgId)).toBe(true);
+                expect(data.find((proj) => proj.name === projName)).toBeDefined();
 
-            expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBeGreaterThan(0);
+                expect(elements[0]?.text).toBe(`Found ${data.length} projects`);
+            });
+        });
 
-            const found = data.some((project) => project.name === projName);
-            expect(found).toBe(true);
+        describe("without orgId filter", () => {
+            it("returns projects for all orgs", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-list-projects",
+                    arguments: {},
+                });
 
-            expect(elements[0]?.text).toBe(`Found ${data.length} projects`);
+                const elements = getResponseElements(response);
+                expect(elements).toHaveLength(2);
+                expect(elements[1]?.text).toContain("<untrusted-user-data-");
+                expect(elements[1]?.text).toContain(projName);
+                const data = JSON.parse(getDataFromUntrustedContent(elements[1]?.text ?? "")) as {
+                    name: string;
+                    orgId: string;
+                }[];
+                expect(data.length).toBeGreaterThan(0);
+                expect(data.find((proj) => proj.name === projName && proj.orgId === orgId)).toBeDefined();
+
+                expect(elements[0]?.text).toBe(`Found ${data.length} projects`);
+            });
         });
     });
 });

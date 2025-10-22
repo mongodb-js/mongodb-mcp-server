@@ -16,12 +16,16 @@ import {
 } from "../common/connectionErrorHandler.js";
 import type { CommonProperties } from "../telemetry/types.js";
 import { Elicitation } from "../elicitation.js";
+import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
+import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
+import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
     createConnectionManager?: ConnectionManagerFactoryFn;
     connectionErrorHandler?: ConnectionErrorHandler;
+    createAtlasLocalClient?: AtlasLocalClientFactoryFn;
     additionalLoggers?: LoggerBase[];
     telemetryProperties?: Partial<CommonProperties>;
 };
@@ -32,18 +36,21 @@ export abstract class TransportRunnerBase {
     protected readonly userConfig: UserConfig;
     private readonly createConnectionManager: ConnectionManagerFactoryFn;
     private readonly connectionErrorHandler: ConnectionErrorHandler;
+    private readonly atlasLocalClient: Promise<Client | undefined>;
     private readonly telemetryProperties: Partial<CommonProperties>;
 
     protected constructor({
         userConfig,
         createConnectionManager = createMCPConnectionManager,
         connectionErrorHandler = defaultConnectionErrorHandler,
+        createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
         telemetryProperties = {},
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
+        this.atlasLocalClient = createAtlasLocalClient();
         this.telemetryProperties = telemetryProperties;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
@@ -86,6 +93,7 @@ export abstract class TransportRunnerBase {
             apiBaseUrl: this.userConfig.apiBaseUrl,
             apiClientId: this.userConfig.apiClientId,
             apiClientSecret: this.userConfig.apiClientSecret,
+            atlasLocalClient: await this.atlasLocalClient,
             logger,
             exportsManager,
             connectionManager,
