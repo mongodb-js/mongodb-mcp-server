@@ -66,7 +66,7 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
-                    name: "atlas-long-running",
+                    name: "long-running-tests",
                     include: [...longRunningTests],
                     testTimeout: 7200000, // 2 hours for long-running tests
                     hookTimeout: 7200000,
