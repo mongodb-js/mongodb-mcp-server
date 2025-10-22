@@ -174,10 +174,15 @@ export class AggregateTool extends MongoDBToolBase {
         }
 
         for (const stage of pipeline) {
+            // This validates that in readOnly mode or "write" operations are disabled, we can't use $out or $merge.
+            // This is really important because aggregates are the only "multi-faceted" tool in the MQL, where you
+            // can both read and write.
             if ((stage.$out || stage.$merge) && writeStageForbiddenError) {
                 throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
             }
 
+            // This ensure that you can't use $vectorSearch if the cluster does not support MongoDB Search
+            // either in Atlas or in a local cluster.
             if (stage.$vectorSearch && !isSearchSupported) {
                 throw new MongoDBError(
                     ErrorCodes.AtlasSearchNotSupported,
