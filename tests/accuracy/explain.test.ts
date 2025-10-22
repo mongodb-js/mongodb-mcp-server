@@ -45,6 +45,7 @@ describeAccuracyTests([
                                         $match: { release_year: 2020 },
                                     },
                                 ],
+                                responseBytesLimit: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                             },
                         },
                     ],

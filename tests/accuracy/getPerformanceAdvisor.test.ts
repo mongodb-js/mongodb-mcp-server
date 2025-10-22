@@ -1,5 +1,6 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { Matcher } from "./sdk/matcher.js";
 
 // Shared mock tool implementations
 const mockedTools = {
@@ -127,6 +128,15 @@ describeAccuracyTests([
                 parameters: {
                     projectId: "mflix",
                     clusterName: "mflix-cluster",
+                    operations: Matcher.anyOf(
+                        Matcher.undefined,
+                        Matcher.value([
+                            "suggestedIndexes",
+                            "dropIndexSuggestions",
+                            "slowQueryLogs",
+                            "schemaSuggestions",
+                        ])
+                    ),
                 },
             },
         ],

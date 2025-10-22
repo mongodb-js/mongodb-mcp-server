@@ -14,7 +14,9 @@ describeAccuracyTests([
                     exportTarget: [
                         {
                             name: "find",
-                            arguments: {},
+                            arguments: {
+                                filter: Matcher.emptyObjectOrUndefined,
+                            },
                         },
                     ],
                     jsonExportFormat: Matcher.anyValue,

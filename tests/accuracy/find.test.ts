@@ -1,10 +1,27 @@
+import type { ExpectedToolCall } from "./sdk/accuracyResultStorage/resultStorage.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
+
+const optionalListCalls: (database: string) => ExpectedToolCall[] = (database) => [
+    {
+        toolName: "list-databases",
+        parameters: {},
+        optional: true,
+    },
+    {
+        toolName: "list-collections",
+        parameters: {
+            database,
+        },
+        optional: true,
+    },
+];
 
 describeAccuracyTests([
     {
         prompt: "List all the movies in 'mflix.movies' namespace.",
         expectedToolCalls: [
+            ...optionalListCalls("mflix"),
             {
                 toolName: "find",
                 parameters: {
@@ -18,6 +35,7 @@ describeAccuracyTests([
     {
         prompt: "List all the documents in 'comics.books' namespace.",
         expectedToolCalls: [
+            ...optionalListCalls("comics"),
             {
                 toolName: "find",
                 parameters: {
@@ -31,6 +49,7 @@ describeAccuracyTests([
     {
         prompt: "Find all the movies in 'mflix.movies' namespace with runtime less than 100.",
         expectedToolCalls: [
+            ...optionalListCalls("mflix"),
             {
                 toolName: "find",
                 parameters: {
@@ -46,6 +65,7 @@ describeAccuracyTests([
     {
         prompt: "Find all movies in 'mflix.movies' collection where director is 'Christina Collins'",
         expectedToolCalls: [
+            ...optionalListCalls("mflix"),
             {
                 toolName: "find",
                 parameters: {
@@ -61,6 +81,7 @@ describeAccuracyTests([
     {
         prompt: "Give me all the movie titles available in 'mflix.movies' namespace",
         expectedToolCalls: [
+            ...optionalListCalls("mflix"),
             {
                 toolName: "find",
                 parameters: {
@@ -81,6 +102,7 @@ describeAccuracyTests([
     {
         prompt: "Use 'mflix.movies' namespace to answer who were casted in the movie 'Certain Fish'",
         expectedToolCalls: [
+            ...optionalListCalls("mflix"),
             {
                 toolName: "find",
                 parameters: {
@@ -99,6 +121,7 @@ describeAccuracyTests([
     {
         prompt: "From the mflix.movies namespace, give me first 2 movies of Horror genre sorted ascending by their runtime",
         expectedToolCalls: [
+            ...optionalListCalls("mflix"),
             {
                 toolName: "find",
                 parameters: {
@@ -112,8 +135,9 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "I want a COMPLETE list of all the movies ONLY from 'mflix.movies' namespace.",
+        prompt: "I want an exported COMPLETE list of all the movies ONLY from 'mflix.movies' namespace.",
         expectedToolCalls: [
+            ...optionalListCalls("mflix"),
             {
                 toolName: "find",
                 parameters: {

@@ -9,6 +9,7 @@ describeAccuracyTests([
                 toolName: "mongodb-logs",
                 parameters: {
                     type: "startupWarnings",
+                    limit: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                 },
             },
         ],
