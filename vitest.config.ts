@@ -10,9 +10,7 @@ const vitestDefaultExcludes = [
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
 ];
 
-const longRunningTests = [
-    "tests/integration/tools/atlas/performanceAdvisor.test.ts",
-];
+const longRunningTests = ["tests/integration/tools/atlas/performanceAdvisor.test.ts"];
 
 if (process.env.SKIP_ATLAS_TESTS === "true") {
     vitestDefaultExcludes.push("**/atlas/**");
@@ -21,7 +19,6 @@ if (process.env.SKIP_ATLAS_TESTS === "true") {
 if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
     vitestDefaultExcludes.push("**/atlas-local/**");
 }
-
 
 export default defineConfig({
     test: {
