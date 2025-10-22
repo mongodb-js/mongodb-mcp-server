@@ -55,7 +55,7 @@ export class VectorSearchEmbeddingsManager {
         database: string;
         collection: string;
     }): Promise<VectorFieldIndexDefinition[]> {
-        const provider = await this.assertAtlasSearchIsAvailable();
+        const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             return [];
         }
@@ -94,7 +94,7 @@ export class VectorSearchEmbeddingsManager {
         },
         document: Document
     ): Promise<VectorFieldValidationError[]> {
-        const provider = await this.assertAtlasSearchIsAvailable();
+        const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             return [];
         }
@@ -112,7 +112,7 @@ export class VectorSearchEmbeddingsManager {
             .filter((e) => e !== undefined);
     }
 
-    private async assertAtlasSearchIsAvailable(): Promise<NodeDriverServiceProvider | null> {
+    private async atlasSearchEnabledProvider(): Promise<NodeDriverServiceProvider | null> {
         const connectionState = this.connectionManager.currentConnectionState;
         if (connectionState.tag === "connected" && (await connectionState.isSearchSupported())) {
             return connectionState.serviceProvider;
@@ -235,7 +235,7 @@ export class VectorSearchEmbeddingsManager {
         embeddingParameters: SupportedEmbeddingParameters;
         inputType: EmbeddingParameters["inputType"];
     }): Promise<unknown[]> {
-        const provider = await this.assertAtlasSearchIsAvailable();
+        const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             throw new MongoDBError(
                 ErrorCodes.AtlasSearchNotSupported,
