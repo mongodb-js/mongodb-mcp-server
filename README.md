@@ -293,6 +293,7 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-create-db-user` - Creates a MongoDB Atlas database user
 - `atlas-list-alerts` - List MongoDB Atlas Alerts for a Project
+- `atlas-get-performance-advisor` - Gets Atlas Performance Advisor recommendations (index suggestions, drop index suggestions, schema suggestions, slow query logs)
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
