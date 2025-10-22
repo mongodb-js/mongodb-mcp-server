@@ -12,7 +12,10 @@ export type EmbeddingParameters = {
     inputType: "query" | "document";
 };
 
-interface EmbeddingsProvider<SupportedModels extends string, SupportedEmbeddingParameters extends EmbeddingParameters> {
+export interface EmbeddingsProvider<
+    SupportedModels extends string,
+    SupportedEmbeddingParameters extends EmbeddingParameters,
+> {
     embed(
         modelId: SupportedModels,
         content: EmbeddingsInput[],

@@ -35,7 +35,8 @@ export class VectorSearchEmbeddingsManager {
     constructor(
         private readonly config: UserConfig,
         private readonly connectionManager: ConnectionManager,
-        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()
+        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map(),
+        private readonly embeddingsProvider: typeof getEmbeddingsProvider = getEmbeddingsProvider
     ) {
         connectionManager.events.on("connection-close", () => {
             this.embeddings.clear();
@@ -242,15 +243,21 @@ export class VectorSearchEmbeddingsManager {
             );
         }
 
-        const embeddingsProvider = getEmbeddingsProvider(this.config);
+        const embeddingsProvider = this.embeddingsProvider(this.config);
 
         if (!embeddingsProvider) {
             throw new MongoDBError(ErrorCodes.NoEmbeddingsProviderConfigured, "No embeddings provider configured.");
         }
 
+        if (this.config.disableEmbeddingsValidation) {
+            return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {
+                inputType,
+                ...embeddingParameters,
+            });
+        }
+
         const embeddingInfoForCollection = await this.embeddingsForNamespace({ database, collection });
         const embeddingInfoForPath = embeddingInfoForCollection.find((definition) => definition.path === path);
-
         if (!embeddingInfoForPath) {
             throw new MongoDBError(
                 ErrorCodes.AtlasVectorSearchIndexNotFound,
