@@ -40,7 +40,7 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
  */
-export type ToolCategory = "mongodb" | "atlas";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
 
 /**
  * Telemetry metadata that can be provided by tools when emitting telemetry events.
@@ -50,6 +50,7 @@ export type ToolCategory = "mongodb" | "atlas";
 export type TelemetryToolMetadata = {
     projectId?: string;
     orgId?: string;
+    atlasLocaldeploymentId?: string;
 };
 
 export type ToolConstructorParams = {
@@ -277,6 +278,7 @@ export abstract class ToolBase {
     }
 
     protected abstract resolveTelemetryMetadata(
+        result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
     ): TelemetryToolMetadata;
 
@@ -295,7 +297,7 @@ export abstract class ToolBase {
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = this.resolveTelemetryMetadata(...args);
+        const metadata = this.resolveTelemetryMetadata(result, ...args);
         const event: ToolEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
@@ -314,6 +316,10 @@ export abstract class ToolBase {
 
         if (metadata?.projectId) {
             event.properties.project_id = metadata.projectId;
+        }
+
+        if (metadata?.atlasLocaldeploymentId) {
+            event.properties.atlas_local_deployment_id = metadata.atlasLocaldeploymentId;
         }
 
         this.telemetry.emitEvents([event]);

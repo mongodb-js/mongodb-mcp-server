@@ -15,6 +15,7 @@ import type {
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
+import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "./keychain.js";
 import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
 
@@ -26,6 +27,7 @@ export interface SessionOptions {
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
     keychain: Keychain;
+    atlasLocalClient?: Client;
     vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 }
 
@@ -41,6 +43,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
     readonly apiClient: ApiClient;
+    readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 
@@ -60,6 +63,7 @@ export class Session extends EventEmitter<SessionEvents> {
         connectionManager,
         exportsManager,
         keychain,
+        atlasLocalClient,
         vectorSearchEmbeddingsManager,
     }: SessionOptions) {
         super();
@@ -75,6 +79,7 @@ export class Session extends EventEmitter<SessionEvents> {
                 : undefined;
 
         this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
+        this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
         this.vectorSearchEmbeddingsManager = vectorSearchEmbeddingsManager;
