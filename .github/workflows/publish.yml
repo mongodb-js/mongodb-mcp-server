@@ -15,6 +15,11 @@ jobs:
       RELEASE_CHANNEL: ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -108,7 +113,9 @@ jobs:
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Login to MCP Registry
-        run: ./mcp-publisher login github-oidc
+        run: ./mcp-publisher login github --token $GITHUB_TOKEN
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Publish to MCP Registry
         run: ./mcp-publisher publish
