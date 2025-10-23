@@ -265,7 +265,7 @@ export const UserConfigSchema = z.object({
         ),
     voyageApiKey: z
         .string()
-        .optional()
+        .default("")
         .describe(
             "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
         ),
