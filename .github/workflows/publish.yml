@@ -113,9 +113,7 @@ jobs:
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Login to MCP Registry
-        run: ./mcp-publisher login github --token $GITHUB_TOKEN
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: ./mcp-publisher login github --token ${{ steps.app-token.outputs.token }}
 
       - name: Publish to MCP Registry
         run: ./mcp-publisher publish
