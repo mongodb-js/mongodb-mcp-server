@@ -69,7 +69,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         // Extract default value if present
         let defaultValue: unknown = undefined;
         if (schema._def && "defaultValue" in schema._def) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             defaultValue = schema._def.defaultValue() as unknown;
         }
 

@@ -75,7 +75,7 @@ jobs:
     environment: Production
     permissions:
       contents: write
-      id-token: write  # Required for OIDC authentication with MCP Registry
+      id-token: write # Required for OIDC authentication with MCP Registry
     needs:
       - check
     if: needs.check.outputs.VERSION_EXISTS == 'false'
