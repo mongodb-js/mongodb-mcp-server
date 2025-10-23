@@ -75,6 +75,7 @@ jobs:
     environment: Production
     permissions:
       contents: write
+      id-token: write  # Required for OIDC authentication with MCP Registry
     needs:
       - check
     if: needs.check.outputs.VERSION_EXISTS == 'false'
@@ -95,6 +96,22 @@ jobs:
         run: npm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Update server.json version and arguments
+        run: |
+          VERSION="${{ needs.check.outputs.VERSION }}"
+          VERSION="${VERSION#v}"
+          npm run generate:arguments
+
+      - name: Install MCP Publisher
+        run: brew install mcp-publisher
+
+      - name: Login to MCP Registry
+        run: mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: mcp-publisher publish
+
       - name: Publish git release
         env:
           GH_TOKEN: ${{ github.token }}

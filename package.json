@@ -3,6 +3,7 @@
   "description": "MongoDB Model Context Protocol Server",
   "version": "1.1.0",
   "type": "module",
+  "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
   "exports": {
     ".": {
       "import": {
@@ -51,7 +52,8 @@
     "fix": "npm run fix:lint && npm run reformat",
     "fix:lint": "eslint . --fix",
     "reformat": "prettier --write .",
-    "generate": "./scripts/generate.sh",
+    "generate": "./scripts/generate.sh && npm run generate:arguments",
+    "generate:args": "tsx scripts/generateArguments.ts",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage",
     "pretest:accuracy": "npm run build",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
