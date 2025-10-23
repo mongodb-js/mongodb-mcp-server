@@ -224,7 +224,7 @@ export const UserConfigSchema = z.object({
         .describe("Host address to bind the HTTP server to (only used when transport is 'http')."),
     httpHeaders: z
         .record(z.string())
-        .optional()
+        .default({})
         .describe(
             "Custom HTTP headers to include in responses from the HTTP server (only used when transport is 'http'). Useful for adding CORS headers, authentication tokens, or other custom headers required by your client application."
         ),
@@ -275,11 +275,12 @@ export const UserConfigSchema = z.object({
         .describe("When set to true, disables validation of embeddings dimensions."),
     vectorSearchDimensions: z
         .number()
-        .optional()
+        .default(1024)
         .describe("Default number of dimensions for vector search embeddings."),
     vectorSearchSimilarityFunction: z
         .custom<Similarity>()
         .optional()
+        .default("euclidean")
         .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
 });
 
