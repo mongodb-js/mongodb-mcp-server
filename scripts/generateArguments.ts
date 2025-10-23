@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
 /**
- * This script generates environment variable definitions and updates:
- * - server.json environmentVariables arrays
+ * This script generates argument definitions and updates:
+ * - server.json arrays
  * - TODO: README.md configuration table
  *
  * It uses the Zod schema and OPTIONS defined in src/common/config.ts
