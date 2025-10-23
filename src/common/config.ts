@@ -159,7 +159,6 @@ function isConnectionSpecifier(arg: string | undefined): boolean {
     );
 }
 
-// Zod schema for UserConfig with descriptions
 export const UserConfigSchema = z.object({
     // Atlas API Options
     apiBaseUrl: z.string().describe("Base URL for MongoDB Atlas API"),
