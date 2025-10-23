@@ -216,9 +216,19 @@ export const UserConfigSchema = z.object({
         .default("enabled")
         .describe("When set to disabled, disables telemetry collection."),
     transport: z.enum(["stdio", "http"]).default("stdio").describe("Either 'stdio' or 'http'."),
-    httpPort: z.number().default(3000).describe("Port number."),
-    httpHost: z.string().default("127.0.0.1").describe("Host to bind the http server."),
-    httpHeaders: z.record(z.string()).describe("HTTP headers to pass to the http server."),
+    httpPort: z
+        .number()
+        .default(3000)
+        .describe("Port number for the HTTP server (only used when transport is 'http')."),
+    httpHost: z
+        .string()
+        .default("127.0.0.1")
+        .describe("Host address to bind the HTTP server to (only used when transport is 'http')."),
+    httpHeaders: z
+        .record(z.string())
+        .describe(
+            "Custom HTTP headers to include in responses from the HTTP server (only used when transport is 'http'). Useful for adding CORS headers, authentication tokens, or other custom headers required by your client application."
+        ),
     idleTimeoutMs: z
         .number()
         .default(600_000)
@@ -268,7 +278,6 @@ export const UserConfigSchema = z.object({
         .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
 });
 
-// Export UserConfig type derived from the Zod schema
 export type UserConfig = z.infer<typeof UserConfigSchema> & CliOptions;
 
 export const defaultUserConfig: UserConfig = {
