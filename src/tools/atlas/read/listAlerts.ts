@@ -28,22 +28,20 @@ export class ListAlertsTool extends AtlasToolBase {
             return { content: [{ type: "text", text: "No alerts found in your MongoDB Atlas project." }] };
         }
 
-        // Format alerts as a table
-        const output =
-            `Alert ID | Status | Created | Updated | Type | Comment
-----------|---------|----------|----------|------|--------
-` +
-            data.results
-                .map((alert) => {
-                    const created = alert.created ? new Date(alert.created).toLocaleString() : "N/A";
-                    const updated = alert.updated ? new Date(alert.updated).toLocaleString() : "N/A";
-                    const comment = alert.acknowledgementComment ?? "N/A";
-                    return `${alert.id} | ${alert.status} | ${created} | ${updated} | ${alert.eventTypeName} | ${comment}`;
-                })
-                .join("\n");
+        const alerts = data.results.map((alert) => ({
+            id: alert.id,
+            status: alert.status,
+            created: alert.created ? new Date(alert.created).toISOString() : "N/A",
+            updated: alert.updated ? new Date(alert.updated).toISOString() : "N/A",
+            eventTypeName: alert.eventTypeName,
+            acknowledgementComment: alert.acknowledgementComment ?? "N/A",
+        }));
 
         return {
-            content: formatUntrustedData(`Found ${data.results.length} alerts in project ${projectId}`, output),
+            content: formatUntrustedData(
+                `Found ${data.results.length} alerts in project ${projectId}`,
+                JSON.stringify(alerts)
+            ),
         };
     }
 }
