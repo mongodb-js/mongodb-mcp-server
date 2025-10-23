@@ -121,26 +121,13 @@ export class ConnectClusterTool extends AtlasToolBase {
             expiryDate,
         };
 
-        this.session.logger.debug({
-            id: LogId.atlasConnectFailure,
-            context: "atlas-connect-cluster",
-            message: `Connection string received: ${connectionString}`,
-        });
         const cn = new URL(connectionString);
         cn.username = username;
         cn.password = password;
-        if (connectionType !== "privateEndpoint") {
-            cn.searchParams.set("authSource", "admin");
-        }
+        cn.searchParams.set("authSource", "admin");
 
         this.session.keychain.register(username, "user");
         this.session.keychain.register(password, "password");
-        const thing = cn.toString();
-        this.session.logger.debug({
-            id: LogId.atlasConnectFailure,
-            context: "atlas-connect-cluster",
-            message: `>>>>>> Connection string used: ${thing}`,
-        });
 
         return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
     }
