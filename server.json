@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "transport": {
         "type": "stdio"
       },
@@ -88,14 +88,14 @@
         },
         {
           "name": "MDB_MCP_HTTP_HOST",
-          "description": "Host to bind the http server.",
+          "description": "Host address to bind the HTTP server to (only used when transport is 'http').",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HTTP_PORT",
-          "description": "Port number.",
+          "description": "Port number for the HTTP server (only used when transport is 'http').",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -243,13 +243,13 @@
         {
           "type": "named",
           "name": "--httpHost",
-          "description": "Host to bind the http server.",
+          "description": "Host address to bind the HTTP server to (only used when transport is 'http').",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--httpPort",
-          "description": "Port number.",
+          "description": "Port number for the HTTP server (only used when transport is 'http').",
           "isRequired": false
         },
         {
@@ -326,7 +326,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.1.0",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.2.0",
       "transport": {
         "type": "stdio"
       },
@@ -403,14 +403,14 @@
         },
         {
           "name": "MDB_MCP_HTTP_HOST",
-          "description": "Host to bind the http server.",
+          "description": "Host address to bind the HTTP server to (only used when transport is 'http').",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HTTP_PORT",
-          "description": "Port number.",
+          "description": "Port number for the HTTP server (only used when transport is 'http').",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -558,13 +558,13 @@
         {
           "type": "named",
           "name": "--httpHost",
-          "description": "Host to bind the http server.",
+          "description": "Host address to bind the HTTP server to (only used when transport is 'http').",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--httpPort",
-          "description": "Port number.",
+          "description": "Port number for the HTTP server (only used when transport is 'http').",
           "isRequired": false
         },
         {
@@ -638,7 +638,7 @@
           "isRequired": false
         }
       ],
-      "version": "1.1.0"
+      "version": "1.2.0"
     }
   ]
 }
