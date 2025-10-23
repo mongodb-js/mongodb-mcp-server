@@ -82,7 +82,9 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
         const connectionString = getConnectionString(cluster.connectionStrings, connectionType);
         if (connectionString === undefined) {
-            throw new Error(`Connection string for connection type "${connectionType}" not available`);
+            throw new Error(
+                `Connection string for connection type "${connectionType}" is not available. Please ensure this connection type is set up in Atlas. See https://www.mongodb.com/docs/atlas/connect-to-database-deployment/#connect-to-an-atlas-cluster.`
+            );
         }
 
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
