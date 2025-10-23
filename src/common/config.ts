@@ -160,8 +160,7 @@ function isConnectionSpecifier(arg: string | undefined): boolean {
 }
 
 export const UserConfigSchema = z.object({
-    // Atlas API Options
-    apiBaseUrl: z.string(),
+    apiBaseUrl: z.string().optional(),
     apiClientId: z
         .string()
         .optional()
@@ -183,6 +182,7 @@ export const UserConfigSchema = z.object({
     logPath: z.string().describe("Folder to store logs."),
     disabledTools: z
         .array(z.string())
+        .optional()
         .describe("An array of tool names, operation types, and/or categories of tools that will be disabled."),
     confirmationRequiredTools: z
         .array(z.string())
@@ -200,14 +200,12 @@ export const UserConfigSchema = z.object({
     readOnly: z
         .boolean()
         .default(false)
-        .optional()
         .describe(
             "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations."
         ),
     indexCheck: z
         .boolean()
         .default(false)
-        .optional()
         .describe(
             "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan."
         ),
@@ -226,6 +224,7 @@ export const UserConfigSchema = z.object({
         .describe("Host address to bind the HTTP server to (only used when transport is 'http')."),
     httpHeaders: z
         .record(z.string())
+        .optional()
         .describe(
             "Custom HTTP headers to include in responses from the HTTP server (only used when transport is 'http'). Useful for adding CORS headers, authentication tokens, or other custom headers required by your client application."
         ),
@@ -266,15 +265,21 @@ export const UserConfigSchema = z.object({
         ),
     voyageApiKey: z
         .string()
+        .optional()
         .describe(
             "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
         ),
     disableEmbeddingsValidation: z
         .boolean()
+        .optional()
         .describe("When set to true, disables validation of embeddings dimensions."),
-    vectorSearchDimensions: z.number().describe("Default number of dimensions for vector search embeddings."),
+    vectorSearchDimensions: z
+        .number()
+        .optional()
+        .describe("Default number of dimensions for vector search embeddings."),
     vectorSearchSimilarityFunction: z
         .custom<Similarity>()
+        .optional()
         .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
 });
 
