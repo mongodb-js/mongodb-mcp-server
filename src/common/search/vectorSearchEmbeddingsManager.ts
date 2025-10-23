@@ -3,6 +3,9 @@ import { BSON, type Document } from "bson";
 import type { UserConfig } from "../config.js";
 import type { ConnectionManager } from "../connectionManager.js";
 import z from "zod";
+import { ErrorCodes, MongoDBError } from "../errors.js";
+import { getEmbeddingsProvider } from "./embeddingsProvider.js";
+import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
 
 export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
 export type Similarity = z.infer<typeof similarityEnum>;
@@ -32,7 +35,8 @@ export class VectorSearchEmbeddingsManager {
     constructor(
         private readonly config: UserConfig,
         private readonly connectionManager: ConnectionManager,
-        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map()
+        private readonly embeddings: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = new Map(),
+        private readonly embeddingsProvider: typeof getEmbeddingsProvider = getEmbeddingsProvider
     ) {
         connectionManager.events.on("connection-close", () => {
             this.embeddings.clear();
@@ -51,7 +55,7 @@ export class VectorSearchEmbeddingsManager {
         database: string;
         collection: string;
     }): Promise<VectorFieldIndexDefinition[]> {
-        const provider = await this.assertAtlasSearchIsAvailable();
+        const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             return [];
         }
@@ -90,7 +94,7 @@ export class VectorSearchEmbeddingsManager {
         },
         document: Document
     ): Promise<VectorFieldValidationError[]> {
-        const provider = await this.assertAtlasSearchIsAvailable();
+        const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             return [];
         }
@@ -108,7 +112,7 @@ export class VectorSearchEmbeddingsManager {
             .filter((e) => e !== undefined);
     }
 
-    private async assertAtlasSearchIsAvailable(): Promise<NodeDriverServiceProvider | null> {
+    private async atlasSearchEnabledProvider(): Promise<NodeDriverServiceProvider | null> {
         const connectionState = this.connectionManager.currentConnectionState;
         if (connectionState.tag === "connected" && (await connectionState.isSearchSupported())) {
             return connectionState.serviceProvider;
@@ -214,6 +218,57 @@ export class VectorSearchEmbeddingsManager {
         }
 
         return undefined;
+    }
+
+    public async generateEmbeddings({
+        database,
+        collection,
+        path,
+        rawValues,
+        embeddingParameters,
+        inputType,
+    }: {
+        database: string;
+        collection: string;
+        path: string;
+        rawValues: string[];
+        embeddingParameters: SupportedEmbeddingParameters;
+        inputType: EmbeddingParameters["inputType"];
+    }): Promise<unknown[]> {
+        const provider = await this.atlasSearchEnabledProvider();
+        if (!provider) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasSearchNotSupported,
+                "Atlas Search is not supported in this cluster."
+            );
+        }
+
+        const embeddingsProvider = this.embeddingsProvider(this.config);
+
+        if (!embeddingsProvider) {
+            throw new MongoDBError(ErrorCodes.NoEmbeddingsProviderConfigured, "No embeddings provider configured.");
+        }
+
+        if (this.config.disableEmbeddingsValidation) {
+            return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {
+                inputType,
+                ...embeddingParameters,
+            });
+        }
+
+        const embeddingInfoForCollection = await this.embeddingsForNamespace({ database, collection });
+        const embeddingInfoForPath = embeddingInfoForCollection.find((definition) => definition.path === path);
+        if (!embeddingInfoForPath) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasVectorSearchIndexNotFound,
+                `No Vector Search index found for path "${path}" in namespace "${database}.${collection}"`
+            );
+        }
+
+        return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {
+            inputType,
+            ...embeddingParameters,
+        });
     }
 
     private isANumber(value: unknown): boolean {

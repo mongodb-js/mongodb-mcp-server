@@ -6,9 +6,16 @@ import {
     defaultTestConfig,
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import {
+    createVectorSearchIndexAndWait,
+    describeWithMongoDB,
+    getDocsFromUntrustedContent,
+    validateAutoConnectBehavior,
+    waitUntilSearchIsReady,
+} from "../mongodbHelpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
+import { BSON } from "bson";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -20,7 +27,8 @@ describeWithMongoDB("aggregate tool", (integration) => {
         ...databaseCollectionParameters,
         {
             name: "pipeline",
-            description: "An array of aggregation stages to execute",
+            description:
+                "An array of aggregation stages to execute. $vectorSearch can only appear as the first stage of the aggregation pipeline or as the first stage of a $unionWith subpipeline. When using $vectorSearch, unless the user explicitly asks for the embeddings, $unset any embedding field to avoid reaching context limits.",
             type: "array",
             required: true,
         },
@@ -374,5 +382,299 @@ describeWithMongoDB(
     },
     {
         getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
+    }
+);
+
+import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
+
+describeWithMongoDB(
+    "aggregate tool with atlas search enabled",
+    (integration) => {
+        beforeEach(async () => {
+            await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
+        });
+
+        for (const [dataType, embedding] of Object.entries(DOCUMENT_EMBEDDINGS)) {
+            for (const similarity of ["euclidean", "cosine", "dotProduct"]) {
+                describe.skipIf(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY)(
+                    `querying with dataType ${dataType} and similarity ${similarity}`,
+                    () => {
+                        it(`should be able to return elements from within a vector search query with data type ${dataType}`, async () => {
+                            await waitUntilSearchIsReady(integration.mongoClient());
+
+                            const collection = integration
+                                .mongoClient()
+                                .db(integration.randomDbName())
+                                .collection("databases");
+                            await collection.insertOne({ name: "mongodb", description_embedding: embedding });
+
+                            await createVectorSearchIndexAndWait(
+                                integration.mongoClient(),
+                                integration.randomDbName(),
+                                "databases",
+                                [
+                                    {
+                                        type: "vector",
+                                        path: "description_embedding",
+                                        numDimensions: 256,
+                                        similarity,
+                                        quantization: "none",
+                                    },
+                                ]
+                            );
+
+                            // now query the index
+                            await integration.connectMcpClient();
+                            const response = await integration.mcpClient().callTool({
+                                name: "aggregate",
+                                arguments: {
+                                    database: integration.randomDbName(),
+                                    collection: "databases",
+                                    pipeline: [
+                                        {
+                                            $vectorSearch: {
+                                                index: "default",
+                                                path: "description_embedding",
+                                                queryVector: embedding,
+                                                numCandidates: 10,
+                                                limit: 10,
+                                                embeddingParameters: {
+                                                    model: "voyage-3-large",
+                                                    outputDimension: 256,
+                                                    outputDType: dataType,
+                                                },
+                                            },
+                                        },
+                                        {
+                                            $project: {
+                                                description_embedding: 0,
+                                            },
+                                        },
+                                    ],
+                                },
+                            });
+
+                            const responseContent = getResponseContent(response);
+                            expect(responseContent).toContain(
+                                "The aggregation resulted in 1 documents. Returning 1 documents."
+                            );
+                            const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
+                            expect(untrustedDocs).toHaveLength(1);
+                            expect(untrustedDocs[0]?.name).toBe("mongodb");
+                        });
+
+                        it("should be able to return elements from within a vector search query using binary encoding", async () => {
+                            await waitUntilSearchIsReady(integration.mongoClient());
+
+                            const collection = integration
+                                .mongoClient()
+                                .db(integration.randomDbName())
+                                .collection("databases");
+                            await collection.insertOne({
+                                name: "mongodb",
+                                description_embedding: BSON.Binary.fromFloat32Array(new Float32Array(embedding)),
+                            });
+
+                            await createVectorSearchIndexAndWait(
+                                integration.mongoClient(),
+                                integration.randomDbName(),
+                                "databases",
+                                [
+                                    {
+                                        type: "vector",
+                                        path: "description_embedding",
+                                        numDimensions: 256,
+                                        similarity,
+                                        quantization: "none",
+                                    },
+                                ]
+                            );
+
+                            // now query the index
+                            await integration.connectMcpClient();
+                            const response = await integration.mcpClient().callTool({
+                                name: "aggregate",
+                                arguments: {
+                                    database: integration.randomDbName(),
+                                    collection: "databases",
+                                    pipeline: [
+                                        {
+                                            $vectorSearch: {
+                                                index: "default",
+                                                path: "description_embedding",
+                                                queryVector: embedding,
+                                                numCandidates: 10,
+                                                limit: 10,
+                                                embeddingParameters: {
+                                                    model: "voyage-3-large",
+                                                    outputDimension: 256,
+                                                    outputDType: dataType,
+                                                },
+                                            },
+                                        },
+                                        {
+                                            $project: {
+                                                description_embedding: 0,
+                                            },
+                                        },
+                                    ],
+                                },
+                            });
+
+                            const responseContent = getResponseContent(response);
+                            expect(responseContent).toContain(
+                                "The aggregation resulted in 1 documents. Returning 1 documents."
+                            );
+                            const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
+                            expect(untrustedDocs).toHaveLength(1);
+                            expect(untrustedDocs[0]?.name).toBe("mongodb");
+                        });
+
+                        it("should be able too return elements from within a vector search query using scalar quantization", async () => {
+                            await waitUntilSearchIsReady(integration.mongoClient());
+
+                            const collection = integration
+                                .mongoClient()
+                                .db(integration.randomDbName())
+                                .collection("databases");
+                            await collection.insertOne({
+                                name: "mongodb",
+                                description_embedding: BSON.Binary.fromFloat32Array(new Float32Array(embedding)),
+                            });
+
+                            await createVectorSearchIndexAndWait(
+                                integration.mongoClient(),
+                                integration.randomDbName(),
+                                "databases",
+                                [
+                                    {
+                                        type: "vector",
+                                        path: "description_embedding",
+                                        numDimensions: 256,
+                                        similarity,
+                                        quantization: "scalar",
+                                    },
+                                ]
+                            );
+
+                            // now query the index
+                            await integration.connectMcpClient();
+                            const response = await integration.mcpClient().callTool({
+                                name: "aggregate",
+                                arguments: {
+                                    database: integration.randomDbName(),
+                                    collection: "databases",
+                                    pipeline: [
+                                        {
+                                            $vectorSearch: {
+                                                index: "default",
+                                                path: "description_embedding",
+                                                queryVector: embedding,
+                                                numCandidates: 10,
+                                                limit: 10,
+                                                embeddingParameters: {
+                                                    model: "voyage-3-large",
+                                                    outputDimension: 256,
+                                                    outputDType: dataType,
+                                                },
+                                            },
+                                        },
+                                        {
+                                            $project: {
+                                                description_embedding: 0,
+                                            },
+                                        },
+                                    ],
+                                },
+                            });
+
+                            const responseContent = getResponseContent(response);
+                            expect(responseContent).toContain(
+                                "The aggregation resulted in 1 documents. Returning 1 documents."
+                            );
+                            const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
+                            expect(untrustedDocs).toHaveLength(1);
+                            expect(untrustedDocs[0]?.name).toBe("mongodb");
+                        });
+
+                        it("should be able too return elements from within a vector search query using binary quantization", async () => {
+                            await waitUntilSearchIsReady(integration.mongoClient());
+
+                            const collection = integration
+                                .mongoClient()
+                                .db(integration.randomDbName())
+                                .collection("databases");
+                            await collection.insertOne({
+                                name: "mongodb",
+                                description_embedding: BSON.Binary.fromFloat32Array(new Float32Array(embedding)),
+                            });
+
+                            await createVectorSearchIndexAndWait(
+                                integration.mongoClient(),
+                                integration.randomDbName(),
+                                "databases",
+                                [
+                                    {
+                                        type: "vector",
+                                        path: "description_embedding",
+                                        numDimensions: 256,
+                                        similarity,
+                                        quantization: "binary",
+                                    },
+                                ]
+                            );
+
+                            // now query the index
+                            await integration.connectMcpClient();
+                            const response = await integration.mcpClient().callTool({
+                                name: "aggregate",
+                                arguments: {
+                                    database: integration.randomDbName(),
+                                    collection: "databases",
+                                    pipeline: [
+                                        {
+                                            $vectorSearch: {
+                                                index: "default",
+                                                path: "description_embedding",
+                                                queryVector: embedding,
+                                                numCandidates: 10,
+                                                limit: 10,
+                                                embeddingParameters: {
+                                                    model: "voyage-3-large",
+                                                    outputDimension: 256,
+                                                    outputDType: dataType,
+                                                },
+                                            },
+                                        },
+                                        {
+                                            $project: {
+                                                description_embedding: 0,
+                                            },
+                                        },
+                                    ],
+                                },
+                            });
+
+                            const responseContent = getResponseContent(response);
+                            expect(responseContent).toContain(
+                                "The aggregation resulted in 1 documents. Returning 1 documents."
+                            );
+                            const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
+                            expect(untrustedDocs).toHaveLength(1);
+                            expect(untrustedDocs[0]?.name).toBe("mongodb");
+                        });
+                    }
+                );
+            }
+        }
+    },
+    {
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            maxDocumentsPerQuery: -1,
+            maxBytesPerQuery: -1,
+        }),
+        downloadOptions: { search: true },
     }
 );

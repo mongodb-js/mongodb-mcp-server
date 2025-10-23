@@ -150,16 +150,18 @@ describeWithAtlas("clusters", (integration) => {
                 expectDefined(connectCluster.inputSchema.properties);
                 expect(connectCluster.inputSchema.properties).toHaveProperty("projectId");
                 expect(connectCluster.inputSchema.properties).toHaveProperty("clusterName");
+                expect(connectCluster.inputSchema.properties).toHaveProperty("connectionType");
             });
 
             it("connects to cluster", async () => {
                 const projectId = getProjectId();
+                const connectionType = "standard";
                 let connected = false;
 
                 for (let i = 0; i < 10; i++) {
                     const response = await integration.mcpClient().callTool({
                         name: "atlas-connect-cluster",
-                        arguments: { projectId, clusterName },
+                        arguments: { projectId, clusterName, connectionType },
                     });
 
                     const elements = getResponseElements(response.content);

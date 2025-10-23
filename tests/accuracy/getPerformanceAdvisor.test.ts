@@ -1,17 +1,26 @@
+import { formatUntrustedData } from "../../src/tools/tool.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Matcher } from "./sdk/matcher.js";
+
+const projectId = "68f600519f16226591d054c0";
 
 // Shared mock tool implementations
 const mockedTools = {
     "atlas-list-projects": (): CallToolResult => {
         return {
-            content: [
-                {
-                    type: "text",
-                    text: "Found 1 project\n\n# | Name | ID\n---|------|----\n1 | mflix | mflix",
-                },
-            ],
+            content: formatUntrustedData(
+                "Found 1 projects",
+                JSON.stringify([
+                    {
+                        name: "mflix",
+                        id: projectId,
+                        orgId: "68f600589f16226591d054c1",
+                        orgName: "MyOrg",
+                        created: "N/A",
+                    },
+                ])
+            ),
         };
     },
     "atlas-list-clusters": (): CallToolResult => {
@@ -45,7 +54,7 @@ const listProjectsAndClustersToolCalls = [
     {
         toolName: "atlas-list-clusters",
         parameters: {
-            projectId: "mflix",
+            projectId,
         },
         optional: true,
     },
@@ -60,7 +69,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
-                    projectId: "mflix",
+                    projectId,
                     clusterName: "mflix-cluster",
                     operations: ["suggestedIndexes"],
                 },
@@ -76,7 +85,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
-                    projectId: "mflix",
+                    projectId,
                     clusterName: "mflix-cluster",
                     operations: ["dropIndexSuggestions"],
                 },
@@ -92,7 +101,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
-                    projectId: "mflix",
+                    projectId,
                     clusterName: "mflix-cluster",
                     operations: ["slowQueryLogs"],
                     namespaces: ["mflix.movies", "mflix.shows"],
@@ -110,7 +119,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
-                    projectId: "mflix",
+                    projectId,
                     clusterName: "mflix-cluster",
                     operations: ["schemaSuggestions"],
                 },
@@ -126,7 +135,7 @@ describeAccuracyTests([
             {
                 toolName: "atlas-get-performance-advisor",
                 parameters: {
-                    projectId: "mflix",
+                    projectId,
                     clusterName: "mflix-cluster",
                     operations: Matcher.anyOf(
                         Matcher.undefined,

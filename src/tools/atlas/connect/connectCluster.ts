@@ -3,7 +3,7 @@ import { type OperationType, type ToolArgs } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { LogId } from "../../../common/logger.js";
-import { inspectCluster } from "../../../common/atlas/cluster.js";
+import { getConnectionString, inspectCluster } from "../../../common/atlas/cluster.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
@@ -22,6 +22,9 @@ function sleep(ms: number): Promise<void> {
 export const ConnectClusterArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
+    connectionType: AtlasArgs.connectionType().describe(
+        "Type of connection (standard, private, or privateEndpoint) to an Atlas cluster"
+    ),
 };
 
 export class ConnectClusterTool extends AtlasToolBase {
@@ -69,12 +72,19 @@ export class ConnectClusterTool extends AtlasToolBase {
 
     private async prepareClusterConnection(
         projectId: string,
-        clusterName: string
+        clusterName: string,
+        connectionType: "standard" | "private" | "privateEndpoint" | undefined = "standard"
     ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
         const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
 
-        if (!cluster.connectionString) {
-            throw new Error("Connection string not available");
+        if (cluster.connectionStrings === undefined) {
+            throw new Error("Connection strings not available");
+        }
+        const connectionString = getConnectionString(cluster.connectionStrings, connectionType);
+        if (connectionString === undefined) {
+            throw new Error(
+                `Connection string for connection type "${connectionType}" is not available. Please ensure this connection type is set up in Atlas. See https://www.mongodb.com/docs/atlas/connect-to-database-deployment/#connect-to-an-atlas-cluster.`
+            );
         }
 
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
@@ -113,7 +123,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             expiryDate,
         };
 
-        const cn = new URL(cluster.connectionString);
+        const cn = new URL(connectionString);
         cn.username = username;
         cn.password = password;
         cn.searchParams.set("authSource", "admin");
@@ -200,7 +210,11 @@ export class ConnectClusterTool extends AtlasToolBase {
         });
     }
 
-    protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({
+        projectId,
+        clusterName,
+        connectionType,
+    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
         let createdUser = false;
 
@@ -239,7 +253,11 @@ export class ConnectClusterTool extends AtlasToolBase {
                 case "disconnected":
                 default: {
                     await this.session.disconnect();
-                    const { connectionString, atlas } = await this.prepareClusterConnection(projectId, clusterName);
+                    const { connectionString, atlas } = await this.prepareClusterConnection(
+                        projectId,
+                        clusterName,
+                        connectionType
+                    );
 
                     createdUser = true;
                     // try to connect for about 5 minutes asynchronously

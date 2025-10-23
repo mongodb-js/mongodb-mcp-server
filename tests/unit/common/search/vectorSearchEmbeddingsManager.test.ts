@@ -13,6 +13,11 @@ import { ConnectionStateConnected } from "../../../../src/common/connectionManag
 import type { InsertOneResult } from "mongodb";
 import type { DropDatabaseResult } from "@mongosh/service-provider-node-driver/lib/node-driver-service-provider.js";
 import EventEmitter from "events";
+import {
+    type EmbeddingParameters,
+    type EmbeddingsProvider,
+    type getEmbeddingsProvider,
+} from "../../../../src/common/search/embeddingsProvider.js";
 
 type MockedServiceProvider = NodeDriverServiceProvider & {
     getSearchIndexes: MockedFunction<NodeDriverServiceProvider["getSearchIndexes"]>;
@@ -23,6 +28,10 @@ type MockedServiceProvider = NodeDriverServiceProvider & {
 
 type MockedConnectionManager = ConnectionManager & {
     currentConnectionState: ConnectionStateConnected;
+};
+
+type MockedEmbeddingsProvider = EmbeddingsProvider<string, EmbeddingParameters> & {
+    embed: MockedFunction<EmbeddingsProvider<string, EmbeddingParameters>["embed"]>;
 };
 
 const database = "my" as const;
@@ -78,6 +87,14 @@ describe("VectorSearchEmbeddingsManager", () => {
         getURI: () => "mongodb://my-test",
     } as unknown as MockedServiceProvider;
 
+    const embeddingsProvider: MockedEmbeddingsProvider = {
+        embed: vi.fn(),
+    };
+
+    const getMockedEmbeddingsProvider: typeof getEmbeddingsProvider = () => {
+        return embeddingsProvider;
+    };
+
     const connectionManager: MockedConnectionManager = {
         currentConnectionState: new ConnectionStateConnected(provider),
         events: eventEmitter,
@@ -85,6 +102,7 @@ describe("VectorSearchEmbeddingsManager", () => {
 
     beforeEach(() => {
         provider.getSearchIndexes.mockReset();
+        embeddingsProvider.embed.mockReset();
 
         provider.createSearchIndexes.mockResolvedValue([]);
         provider.insertOne.mockResolvedValue({} as unknown as InsertOneResult);
@@ -367,6 +385,119 @@ describe("VectorSearchEmbeddingsManager", () => {
                     );
 
                     expect(result).toHaveLength(0);
+                });
+            });
+        });
+    });
+
+    describe("generate embeddings", () => {
+        const embeddingToGenerate = {
+            database: "mydb",
+            collection: "mycoll",
+            path: "embedding_field",
+            rawValues: ["oops"],
+            embeddingParameters: { model: "voyage-3-large", outputDimension: 1024, outputDType: "float" } as const,
+            inputType: "query" as const,
+        };
+
+        let embeddings: VectorSearchEmbeddingsManager;
+
+        beforeEach(() => {
+            embeddings = new VectorSearchEmbeddingsManager(
+                embeddingValidationDisabled,
+                connectionManager,
+                new Map(),
+                getMockedEmbeddingsProvider
+            );
+        });
+
+        describe("when atlas search is not available", () => {
+            beforeEach(() => {
+                embeddings = new VectorSearchEmbeddingsManager(
+                    embeddingValidationEnabled,
+                    connectionManager,
+                    new Map(),
+                    getMockedEmbeddingsProvider
+                );
+
+                provider.getSearchIndexes.mockRejectedValue(new Error());
+            });
+
+            it("throws an exception", async () => {
+                await expect(embeddings.generateEmbeddings(embeddingToGenerate)).rejects.toThrowError();
+            });
+        });
+
+        describe("when atlas search is available", () => {
+            describe("when embedding validation is disabled", () => {
+                beforeEach(() => {
+                    embeddings = new VectorSearchEmbeddingsManager(
+                        embeddingValidationDisabled,
+                        connectionManager,
+                        new Map(),
+                        getMockedEmbeddingsProvider
+                    );
+                });
+
+                describe("when no index is available for path", () => {
+                    it("returns the embeddings as is", async () => {
+                        embeddingsProvider.embed.mockResolvedValue([[0xc0ffee]]);
+
+                        const [result] = await embeddings.generateEmbeddings(embeddingToGenerate);
+                        expect(result).toEqual([0xc0ffee]);
+                    });
+                });
+            });
+
+            describe("when embedding validation is enabled", () => {
+                beforeEach(() => {
+                    embeddings = new VectorSearchEmbeddingsManager(
+                        embeddingValidationEnabled,
+                        connectionManager,
+                        new Map(),
+                        getMockedEmbeddingsProvider
+                    );
+                });
+
+                describe("when no index is available for path", () => {
+                    it("throws an exception", async () => {
+                        await expect(embeddings.generateEmbeddings(embeddingToGenerate)).rejects.toThrowError();
+                    });
+                });
+
+                describe("when index is available on path", () => {
+                    beforeEach(() => {
+                        provider.getSearchIndexes.mockResolvedValue([
+                            {
+                                id: "65e8c766d0450e3e7ab9855f",
+                                name: "vector-search-test",
+                                type: "vectorSearch",
+                                status: "READY",
+                                queryable: true,
+                                latestDefinition: {
+                                    fields: [
+                                        {
+                                            type: "vector",
+                                            path: embeddingToGenerate.path,
+                                            numDimensions: 1024,
+                                            similarity: "euclidean",
+                                        },
+                                        { type: "filter", path: "genres" },
+                                        { type: "filter", path: "year" },
+                                    ],
+                                },
+                            },
+                        ]);
+                    });
+
+                    describe("when embedding validation is disabled", () => {
+                        it("returns the embeddings as is", async () => {
+                            embeddingsProvider.embed.mockResolvedValue([[0xc0ffee]]);
+
+                            const [result] = await embeddings.generateEmbeddings(embeddingToGenerate);
+                            expect(result).toEqual([0xc0ffee]);
+                        });
+                    });
                 });
             });
         });
