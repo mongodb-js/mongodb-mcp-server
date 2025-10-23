@@ -160,7 +160,7 @@ function isConnectionSpecifier(arg: string | undefined): boolean {
 }
 
 export const UserConfigSchema = z.object({
-    apiBaseUrl: z.string().optional(),
+    apiBaseUrl: z.string().default("https://cloud.mongodb.com/"),
     apiClientId: z
         .string()
         .optional()
@@ -182,7 +182,7 @@ export const UserConfigSchema = z.object({
     logPath: z.string().describe("Folder to store logs."),
     disabledTools: z
         .array(z.string())
-        .optional()
+        .default([])
         .describe("An array of tool names, operation types, and/or categories of tools that will be disabled."),
     confirmationRequiredTools: z
         .array(z.string())
