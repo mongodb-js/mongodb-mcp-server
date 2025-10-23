@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { UserConfigSchema } from "../src/common/config.js";
+import { OPTIONS, UserConfigSchema } from "../src/common/config.js";
 import type { ZodObject, ZodRawShape } from "zod";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -88,60 +88,6 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
     }
 
     return result;
-}
-
-function parseOptionsFromConfig(): ParsedOptions {
-    const configPath = join(__dirname, "..", "src", "common", "config.ts");
-    const configContent = readFileSync(configPath, "utf-8");
-
-    // Extract the OPTIONS object using regex
-    const optionsMatch = configContent.match(/const OPTIONS = \{([\s\S]*?)\} as Readonly<Options>;/);
-
-    if (!optionsMatch) {
-        throw new Error("Could not find OPTIONS object in config.ts");
-    }
-
-    const optionsContent = optionsMatch[1];
-
-    // Parse each array type
-    const parseArray = (type: string): string[] => {
-        const regex = new RegExp(`${type}:\\s*\\[(.*?)\\]`, "s");
-        const match = optionsContent?.match(regex);
-        if (!match) return [];
-
-        // Extract quoted strings from the array
-        const arrayContent = match[1];
-        if (!arrayContent) return [];
-        const items = arrayContent.match(/"([^"]+)"/g);
-        return items ? items.map((item) => item.replace(/"/g, "")) : [];
-    };
-
-    // Parse alias object
-    const parseAlias = (): Record<string, string> => {
-        const aliasMatch = optionsContent?.match(/alias:\s*\{([\s\S]*?)\}/);
-        if (!aliasMatch) return {};
-
-        const aliasContent = aliasMatch[1];
-        if (!aliasContent) return {};
-        const entries = aliasContent.matchAll(/(\w+):\s*"([^"]+)"/g);
-        const result: Record<string, string> = {};
-
-        for (const match of entries) {
-            if (match && match[1] && match[2]) {
-                result[match[1]] = match[2];
-            }
-        }
-
-        return result;
-    };
-
-    return {
-        string: parseArray("string"),
-        number: parseArray("number"),
-        boolean: parseArray("boolean"),
-        array: parseArray("array"),
-        alias: parseAlias(),
-    };
 }
 
 function generateEnvironmentVariables(
@@ -237,7 +183,13 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
     const serverJson = JSON.parse(content) as {
         version?: string;
-        packages: { environmentVariables: EnvironmentVariable[]; packageArguments?: unknown[]; version?: string }[];
+        packages: {
+            registryType?: string;
+            identifier?: string;
+            environmentVariables: EnvironmentVariable[];
+            packageArguments?: unknown[];
+            version?: string;
+        }[];
     };
 
     // Get version from package.json
@@ -280,7 +232,13 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
 
 function main(): void {
     const zodMetadata = extractZodDescriptions();
-    const options = parseOptionsFromConfig();
+    const options = {
+        string: Array.from(OPTIONS.string),
+        number: Array.from(OPTIONS.number),
+        boolean: Array.from(OPTIONS.boolean),
+        array: Array.from(OPTIONS.array),
+        alias: { ...OPTIONS.alias },
+    };
 
     const envVars = generateEnvironmentVariables(options, zodMetadata);
     updateServerJsonEnvVars(envVars);
