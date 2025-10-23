@@ -79,7 +79,7 @@ describeAccuracyTests([
     },
     // Test for Drop Index Suggestions operation
     {
-        prompt: "Show me drop index suggestions for the 'mflix' project and 'mflix-cluster' cluster",
+        prompt: "Show me drop index suggestions for the project named 'mflix' and 'mflix-cluster' cluster",
         expectedToolCalls: [
             ...listProjectsAndClustersToolCalls,
             {
