@@ -40,14 +40,6 @@ const SECRET_CONFIG_KEYS = new Set([
     "voyageApiKey",
 ]);
 
-interface ParsedOptions {
-    string: string[];
-    number: string[];
-    boolean: string[];
-    array: string[];
-    alias: Record<string, string>;
-}
-
 interface EnvironmentVariable {
     name: string;
     description: string;
@@ -91,7 +83,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
 }
 
 function generateEnvironmentVariables(
-    options: ParsedOptions,
+    options: typeof OPTIONS,
     zodMetadata: Record<string, ConfigMetadata>
 ): EnvironmentVariable[] {
     const envVars: EnvironmentVariable[] = [];
@@ -232,15 +224,8 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
 
 function main(): void {
     const zodMetadata = extractZodDescriptions();
-    const options = {
-        string: Array.from(OPTIONS.string),
-        number: Array.from(OPTIONS.number),
-        boolean: Array.from(OPTIONS.boolean),
-        array: Array.from(OPTIONS.array),
-        alias: { ...OPTIONS.alias },
-    };
 
-    const envVars = generateEnvironmentVariables(options, zodMetadata);
+    const envVars = generateEnvironmentVariables(OPTIONS, zodMetadata);
     updateServerJsonEnvVars(envVars);
 }
 
