@@ -28,7 +28,7 @@ export class InspectClusterTool extends AtlasToolBase {
         return {
             content: formatUntrustedData(
                 "Cluster details:",
-                `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Standard Connection String
+                `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Connection String
 ----------------|----------------|----------------|----------------|----------------|----------------
 ${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionStrings?.standardSrv || formattedCluster.connectionStrings?.standard || "N/A"}`
             ),
