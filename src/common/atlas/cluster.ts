@@ -114,16 +114,14 @@ export async function inspectCluster(apiClient: ApiClient, projectId: string, cl
     }
 }
 
-// getConnectionString returns a connection string given a connectionType.
-// For "privateEndpoint", it returns the first private endpoint connection string available.
+/**
+ * Returns a connection string for the specified connectionType.
+ * For "privateEndpoint", it returns the first private endpoint connection string available.
+ */
 export function getConnectionString(
     connectionStrings: ClusterConnectionStrings,
     connectionType: "standard" | "private" | "privateEndpoint"
 ): string | undefined {
-    if (connectionStrings === undefined) {
-        return undefined;
-    }
-
     switch (connectionType) {
         case "standard":
             return connectionStrings.standardSrv || connectionStrings.standard;
