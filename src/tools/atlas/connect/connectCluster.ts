@@ -24,7 +24,7 @@ export const ConnectClusterArgs = {
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
     connectionType: AtlasArgs.connectionType()
         .optional()
-        .describe("Desired connection type (standard, private, or privateEndpoint) to an Atlas cluster"),
+        .describe("Type of connection (standard, private, or privateEndpoint) to an Atlas cluster"),
 };
 
 export class ConnectClusterTool extends AtlasToolBase {
@@ -82,7 +82,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
         const connectionString = getConnectionString(cluster.connectionStrings, connectionType);
         if (connectionString === undefined) {
-            throw new Error(`Connection string for type "${connectionType}" not available`);
+            throw new Error(`Connection string for connection type "${connectionType}" not available`);
         }
 
         const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
