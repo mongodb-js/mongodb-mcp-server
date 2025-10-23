@@ -148,17 +148,18 @@ function generatePackageArguments(envVars: EnvironmentVariable[]): unknown[] {
     // Generate positional arguments from the same config options (only documented ones)
     const documentedVars = envVars.filter((v) => !v.description.startsWith("Configuration option:"));
 
-    for (const envVar of documentedVars) {
+    // Generate named arguments from the same config options
+    for (const argument of documentedVars) {
         const arg: Record<string, unknown> = {
-            type: "positional",
-            valueHint: envVar.configKey,
-            description: envVar.description,
-            isRequired: envVar.isRequired,
+            type: "named",
+            name: "--" + argument.configKey,
+            description: argument.description,
+            isRequired: argument.isRequired,
         };
 
         // Add format if it's not string (string is the default)
-        if (envVar.format !== "string") {
-            arg.format = envVar.format;
+        if (argument.format !== "string") {
+            arg.format = argument.format;
         }
 
         packageArguments.push(arg);
@@ -197,7 +198,7 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
         isSecret: v.isSecret,
     }));
 
-    // Generate package arguments (positional arguments in camelCase)
+    // Generate package arguments (named arguments in camelCase)
     const packageArguments = generatePackageArguments(envVars);
 
     // Update version at root level

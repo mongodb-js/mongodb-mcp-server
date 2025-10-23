@@ -17,13 +17,6 @@
       },
       "environmentVariables": [
         {
-          "name": "MDB_MCP_API_BASE_URL",
-          "description": "Base URL for MongoDB Atlas API",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_API_CLIENT_ID",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false,
@@ -187,151 +180,145 @@
       ],
       "packageArguments": [
         {
-          "type": "positional",
-          "valueHint": "apiBaseUrl",
-          "description": "Base URL for MongoDB Atlas API",
-          "isRequired": false
-        },
-        {
-          "type": "positional",
-          "valueHint": "apiClientId",
+          "type": "named",
+          "name": "--apiClientId",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "apiClientSecret",
+          "type": "named",
+          "name": "--apiClientSecret",
           "description": "Atlas API client secret for authentication. Required for running Atlas tools.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "atlasTemporaryDatabaseUserLifetimeMs",
+          "type": "named",
+          "name": "--atlasTemporaryDatabaseUserLifetimeMs",
           "description": "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "confirmationRequiredTools",
+          "type": "named",
+          "name": "--confirmationRequiredTools",
           "description": "An array of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "connectionString",
+          "type": "named",
+          "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "disableEmbeddingsValidation",
+          "type": "named",
+          "name": "--disableEmbeddingsValidation",
           "description": "When set to true, disables validation of embeddings dimensions.",
           "isRequired": false,
           "format": "boolean"
         },
         {
-          "type": "positional",
-          "valueHint": "disabledTools",
+          "type": "named",
+          "name": "--disabledTools",
           "description": "An array of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "exportCleanupIntervalMs",
+          "type": "named",
+          "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "exportTimeoutMs",
+          "type": "named",
+          "name": "--exportTimeoutMs",
           "description": "Time in milliseconds after which an export is considered expired and eligible for cleanup.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "exportsPath",
+          "type": "named",
+          "name": "--exportsPath",
           "description": "Folder to store exported data files.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "httpHost",
+          "type": "named",
+          "name": "--httpHost",
           "description": "Host to bind the http server.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "httpPort",
+          "type": "named",
+          "name": "--httpPort",
           "description": "Port number.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "idleTimeoutMs",
+          "type": "named",
+          "name": "--idleTimeoutMs",
           "description": "Idle timeout for a client to disconnect (only applies to http transport).",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "indexCheck",
+          "type": "named",
+          "name": "--indexCheck",
           "description": "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.",
           "isRequired": false,
           "format": "boolean"
         },
         {
-          "type": "positional",
-          "valueHint": "logPath",
+          "type": "named",
+          "name": "--logPath",
           "description": "Folder to store logs.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "loggers",
+          "type": "named",
+          "name": "--loggers",
           "description": "Comma separated values, possible values are 'mcp', 'disk' and 'stderr'.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "maxBytesPerQuery",
+          "type": "named",
+          "name": "--maxBytesPerQuery",
           "description": "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.",
           "isRequired": false,
           "format": "number"
         },
         {
-          "type": "positional",
-          "valueHint": "maxDocumentsPerQuery",
+          "type": "named",
+          "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
           "isRequired": false,
           "format": "number"
         },
         {
-          "type": "positional",
-          "valueHint": "notificationTimeoutMs",
+          "type": "named",
+          "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "readOnly",
+          "type": "named",
+          "name": "--readOnly",
           "description": "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.",
           "isRequired": false,
           "format": "boolean"
         },
         {
-          "type": "positional",
-          "valueHint": "telemetry",
+          "type": "named",
+          "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "transport",
+          "type": "named",
+          "name": "--transport",
           "description": "Either 'stdio' or 'http'.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "voyageApiKey",
+          "type": "named",
+          "name": "--voyageApiKey",
           "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
           "isRequired": false
         }
@@ -345,13 +332,6 @@
       },
       "environmentVariables": [
         {
-          "name": "MDB_MCP_API_BASE_URL",
-          "description": "Base URL for MongoDB Atlas API",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_API_CLIENT_ID",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false,
@@ -515,151 +495,145 @@
       ],
       "packageArguments": [
         {
-          "type": "positional",
-          "valueHint": "apiBaseUrl",
-          "description": "Base URL for MongoDB Atlas API",
-          "isRequired": false
-        },
-        {
-          "type": "positional",
-          "valueHint": "apiClientId",
+          "type": "named",
+          "name": "--apiClientId",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "apiClientSecret",
+          "type": "named",
+          "name": "--apiClientSecret",
           "description": "Atlas API client secret for authentication. Required for running Atlas tools.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "atlasTemporaryDatabaseUserLifetimeMs",
+          "type": "named",
+          "name": "--atlasTemporaryDatabaseUserLifetimeMs",
           "description": "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "confirmationRequiredTools",
+          "type": "named",
+          "name": "--confirmationRequiredTools",
           "description": "An array of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "connectionString",
+          "type": "named",
+          "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "disableEmbeddingsValidation",
+          "type": "named",
+          "name": "--disableEmbeddingsValidation",
           "description": "When set to true, disables validation of embeddings dimensions.",
           "isRequired": false,
           "format": "boolean"
         },
         {
-          "type": "positional",
-          "valueHint": "disabledTools",
+          "type": "named",
+          "name": "--disabledTools",
           "description": "An array of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "exportCleanupIntervalMs",
+          "type": "named",
+          "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "exportTimeoutMs",
+          "type": "named",
+          "name": "--exportTimeoutMs",
           "description": "Time in milliseconds after which an export is considered expired and eligible for cleanup.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "exportsPath",
+          "type": "named",
+          "name": "--exportsPath",
           "description": "Folder to store exported data files.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "httpHost",
+          "type": "named",
+          "name": "--httpHost",
           "description": "Host to bind the http server.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "httpPort",
+          "type": "named",
+          "name": "--httpPort",
           "description": "Port number.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "idleTimeoutMs",
+          "type": "named",
+          "name": "--idleTimeoutMs",
           "description": "Idle timeout for a client to disconnect (only applies to http transport).",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "indexCheck",
+          "type": "named",
+          "name": "--indexCheck",
           "description": "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.",
           "isRequired": false,
           "format": "boolean"
         },
         {
-          "type": "positional",
-          "valueHint": "logPath",
+          "type": "named",
+          "name": "--logPath",
           "description": "Folder to store logs.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "loggers",
+          "type": "named",
+          "name": "--loggers",
           "description": "Comma separated values, possible values are 'mcp', 'disk' and 'stderr'.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "maxBytesPerQuery",
+          "type": "named",
+          "name": "--maxBytesPerQuery",
           "description": "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools.",
           "isRequired": false,
           "format": "number"
         },
         {
-          "type": "positional",
-          "valueHint": "maxDocumentsPerQuery",
+          "type": "named",
+          "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
           "isRequired": false,
           "format": "number"
         },
         {
-          "type": "positional",
-          "valueHint": "notificationTimeoutMs",
+          "type": "named",
+          "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "readOnly",
+          "type": "named",
+          "name": "--readOnly",
           "description": "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations.",
           "isRequired": false,
           "format": "boolean"
         },
         {
-          "type": "positional",
-          "valueHint": "telemetry",
+          "type": "named",
+          "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "transport",
+          "type": "named",
+          "name": "--transport",
           "description": "Either 'stdio' or 'http'.",
           "isRequired": false
         },
         {
-          "type": "positional",
-          "valueHint": "voyageApiKey",
+          "type": "named",
+          "name": "--voyageApiKey",
           "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
           "isRequired": false
         }

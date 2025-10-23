@@ -161,7 +161,7 @@ function isConnectionSpecifier(arg: string | undefined): boolean {
 
 export const UserConfigSchema = z.object({
     // Atlas API Options
-    apiBaseUrl: z.string().describe("Base URL for MongoDB Atlas API"),
+    apiBaseUrl: z.string(),
     apiClientId: z
         .string()
         .optional()
@@ -218,7 +218,7 @@ export const UserConfigSchema = z.object({
     transport: z.enum(["stdio", "http"]).default("stdio").describe("Either 'stdio' or 'http'."),
     httpPort: z.number().default(3000).describe("Port number."),
     httpHost: z.string().default("127.0.0.1").describe("Host to bind the http server."),
-    httpHeaders: z.record(z.string()).describe("HTTP headers for the server."),
+    httpHeaders: z.record(z.string()).describe("HTTP headers to pass to the http server."),
     idleTimeoutMs: z
         .number()
         .default(600_000)
