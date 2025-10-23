@@ -15,11 +15,6 @@ jobs:
       RELEASE_CHANNEL: ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
-        id: app-token
-        with:
-          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
-          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -85,6 +80,11 @@ jobs:
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:

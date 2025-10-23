@@ -226,7 +226,7 @@ export const UserConfigSchema = z.object({
         .record(z.string())
         .default({})
         .describe(
-            "Custom HTTP headers to include in responses from the HTTP server (only used when transport is 'http'). Useful for adding CORS headers, authentication tokens, or other custom headers required by your client application."
+            "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         ),
     idleTimeoutMs: z
         .number()
