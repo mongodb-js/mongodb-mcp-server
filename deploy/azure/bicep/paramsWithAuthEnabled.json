@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "containerAppEnvName": { "value": "mcp-env-wlm2rwwpyzafw" },
+    "containerAppName": { "value": "mongo-mcp-server-app-with-auth" },
+    "containerImage": { "value": "<your-docker-registry>/mongo-mcp-server:latest" },
+    "containerCpu": { "value": "1.0" },
+    "containerMemory": { "value": "2Gi" },
+    "appEnvironmentVars": {
+      "value": {
+        "MDB_MCP_READ_ONLY": "false",
+        "MDB_MCP_HTTP_PORT": "8080",
+        "MDB_MCP_HTTP_HOST": "::",
+        "MDB_MCP_TRANSPORT": "http",
+        "MDB_MCP_LOGGERS": "disk,mcp,stderr",
+        "MDB_MCP_LOG_PATH": "/tmp/mongodb-mcp",
+        "MDB_MCP_DISABLED_TOOLS": "explain,export,atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many"
+      }
+    },
+    "mdbConnectionString": { "value": "<MONGODB_CONNECTION_STRING>" },
+
+    "authMode": { "value": "MicrosoftMIBasedAuth" },
+    "authClientId": { "value": "97251c0f-95cd-4a6f-8414-ae34319fbb29" },
+    "authIssuerUrl": { "value": "https://login.microsoftonline.com/888d76fa-54b2-4ced-8ee5-aac1585adee7/v2.0" },
+    "authTenantId": { "value": "888d76fa-54b2-4ced-8ee5-aac1585adee7" },
+    "authAllowedClientApps": { "value": ["6553980f-5268-4494-b1b2-233ba381fb6e"] }    
+  }
+}
