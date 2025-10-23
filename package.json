@@ -53,7 +53,7 @@
     "fix:lint": "eslint . --fix",
     "reformat": "prettier --write .",
     "generate": "./scripts/generate.sh && npm run generate:arguments",
-    "generate:args": "tsx scripts/generateArguments.ts",
+    "generate:arguments": "tsx scripts/generateArguments.ts",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage",
     "pretest:accuracy": "npm run build",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
