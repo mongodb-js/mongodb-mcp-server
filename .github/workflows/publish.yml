@@ -75,6 +75,7 @@ jobs:
     environment: Production
     permissions:
       contents: write
+      id-token: write
     needs:
       - check
     if: needs.check.outputs.VERSION_EXISTS == 'false'
@@ -101,3 +102,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }} ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
+
+      - name: Install MCP Publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Login to MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: ./mcp-publisher publish
