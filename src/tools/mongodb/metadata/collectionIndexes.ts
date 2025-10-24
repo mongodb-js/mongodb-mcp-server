@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
-import { FeatureFlags, formatUntrustedData } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 
 type SearchIndexStatus = {
     name: string;
@@ -31,7 +31,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         }));
 
         const searchIndexDefinitions: SearchIndexStatus[] = [];
-        if (this.isFeatureFlagEnabled(FeatureFlags.VectorSearch) && (await this.session.isSearchSupported())) {
+        if (this.isFeatureEnabled("vectorSearch") && (await this.session.isSearchSupported())) {
             const searchIndexes = await provider.getSearchIndexes(database, collection);
             searchIndexDefinitions.push(...this.extractSearchIndexDetails(searchIndexes));
         }

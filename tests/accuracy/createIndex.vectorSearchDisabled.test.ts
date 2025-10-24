@@ -52,6 +52,6 @@ describeAccuracyTests(
         },
     ],
     {
-        userConfig: { voyageApiKey: "" },
+        userConfig: { previewFeatures: "" },
     }
 );

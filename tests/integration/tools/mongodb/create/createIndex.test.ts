@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool when search is not enabled", (integration) => {
     it("doesn't allow creating vector search indexes", async () => {
-        expect(integration.mcpServer().userConfig.voyageApiKey).toEqual("");
+        expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("vectorSearch");
 
         const { tools } = await integration.mcpClient().listTools();
         const createIndexTool = tools.find((tool) => tool.name === "create-index");
@@ -38,7 +38,7 @@ describeWithMongoDB(
     "createIndex tool when search is enabled",
     (integration) => {
         it("allows creating vector search indexes", async () => {
-            expect(integration.mcpServer().userConfig.voyageApiKey).not.toEqual("");
+            expect(integration.mcpServer().userConfig.previewFeatures).includes("vectorSearch");
 
             const { tools } = await integration.mcpClient().listTools();
             const createIndexTool = tools.find((tool) => tool.name === "create-index");
@@ -84,7 +84,7 @@ describeWithMongoDB(
         getUserConfig: () => {
             return {
                 ...defaultTestConfig,
-                voyageApiKey: "valid_key",
+                previewFeatures: ["vectorSearch"],
             };
         },
     }
@@ -392,7 +392,7 @@ describeWithMongoDB(
         getUserConfig: () => {
             return {
                 ...defaultTestConfig,
-                voyageApiKey: "valid_key",
+                previewFeatures: ["vectorSearch"],
             };
         },
     }
@@ -613,7 +613,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: "valid_key",
+            previewFeatures: ["vectorSearch"],
         }),
         downloadOptions: {
             search: true,

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, FeatureFlags } from "../../tool.js";
+import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 import { quantizationEnum, similarityEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
 
@@ -74,7 +74,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                         type: z.literal("classic"),
                         keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
                     }),
-                    ...(this.isFeatureFlagEnabled(FeatureFlags.VectorSearch) ? [this.vectorSearchIndexDefinition] : []),
+                    ...(this.isFeatureEnabled("vectorSearch") ? [this.vectorSearchIndexDefinition] : []),
                 ])
             )
             .describe(

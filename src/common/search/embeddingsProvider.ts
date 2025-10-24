@@ -53,8 +53,8 @@ class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels, Voyag
         this.voyage = createVoyage({ apiKey: voyageApiKey, fetch: customFetch });
     }
 
-    static isConfiguredIn({ voyageApiKey }: UserConfig): boolean {
-        return !!voyageApiKey;
+    static isConfiguredIn({ voyageApiKey, previewFeatures }: UserConfig): boolean {
+        return previewFeatures.includes("vectorSearch") && !!voyageApiKey;
     }
 
     async embed<Model extends VoyageModels>(

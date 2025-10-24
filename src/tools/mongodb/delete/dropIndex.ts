@@ -2,7 +2,7 @@ import z from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, formatUntrustedData, FeatureFlags } from "../../tool.js";
+import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 
 export class DropIndexTool extends MongoDBToolBase {
     public name = "drop-index";
@@ -10,7 +10,7 @@ export class DropIndexTool extends MongoDBToolBase {
     protected argsShape = {
         ...DbOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
-        type: this.isFeatureFlagEnabled(FeatureFlags.VectorSearch)
+        type: this.isFeatureEnabled("vectorSearch")
             ? z
                   .enum(["classic", "search"])
                   .describe(

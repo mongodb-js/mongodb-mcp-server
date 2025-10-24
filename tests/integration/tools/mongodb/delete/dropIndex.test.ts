@@ -157,7 +157,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 {
                     getUserConfig: () => ({
                         ...defaultTestConfig,
-                        voyageApiKey: vectorSearchEnabled ? "test-api-key" : "",
+                        previewFeatures: vectorSearchEnabled ? ["vectorSearch"] : [],
                     }),
                 }
             );
@@ -243,7 +243,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 {
                     getUserConfig: () => ({
                         ...defaultTestConfig,
-                        voyageApiKey: vectorSearchEnabled ? "test-api-key" : "",
+                        previewFeatures: vectorSearchEnabled ? ["vectorSearch"] : [],
                     }),
                 }
             );
@@ -310,7 +310,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 {
                     getUserConfig: () => ({
                         ...defaultTestConfig,
-                        voyageApiKey: vectorSearchEnabled ? "test-api-key" : "",
+                        previewFeatures: vectorSearchEnabled ? ["vectorSearch"] : [],
                     }),
                     getMockElicitationInput: () => mockElicitInput,
                 }
@@ -334,7 +334,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
                     },
                     {
-                        getUserConfig: () => ({ ...defaultTestConfig, voyageApiKey: "test-api-key" }),
+                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["vectorSearch"] }),
                     }
                 );
 
@@ -408,7 +408,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
                     },
                     {
-                        getUserConfig: () => ({ ...defaultTestConfig, voyageApiKey: "test-api-key" }),
+                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["vectorSearch"] }),
                         downloadOptions: { search: true },
                     }
                 );
@@ -484,7 +484,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
                     },
                     {
-                        getUserConfig: () => ({ ...defaultTestConfig, voyageApiKey: "test-api-key" }),
+                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["vectorSearch"] }),
                         downloadOptions: { search: true },
                         getMockElicitationInput: () => mockElicitInput,
                     }
