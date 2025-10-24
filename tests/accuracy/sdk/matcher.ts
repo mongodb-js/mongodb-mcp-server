@@ -32,6 +32,18 @@ export abstract class Matcher {
         return new StringMatcher();
     }
 
+    public static caseInsensitiveString(text: string): Matcher {
+        return new CaseInsensitiveStringMatcher(text);
+    }
+
+    public static not(matcher: Matcher): Matcher {
+        return new NotMatcher(matcher);
+    }
+
+    public static arrayOrSingle(matcher: Matcher): Matcher {
+        return new ArrayOrSingleValueMatching(matcher);
+    }
+
     public static value(expected: unknown): Matcher {
         if (typeof expected === "object" && expected !== null && MATCHER_SYMBOL in expected) {
             return expected as Matcher;
@@ -61,6 +73,20 @@ class AnyValueMatcher extends Matcher {
     }
 }
 
+class ArrayOrSingleValueMatching extends Matcher {
+    constructor(private matcher: Matcher) {
+        super();
+    }
+
+    public match(other: unknown): number {
+        if (Array.isArray(other)) {
+            return other.length === 1 && this.matcher.match(other[0]) === 1 ? 1 : 0;
+        }
+
+        return this.matcher.match(other);
+    }
+}
+
 class NumberMatcher extends Matcher {
     constructor(private additionalFilter: (value: number) => boolean = () => true) {
         super();
@@ -73,6 +99,16 @@ class NumberMatcher extends Matcher {
 class UndefinedMatcher extends Matcher {
     public match(actual: unknown): number {
         return actual === undefined ? 1 : 0;
+    }
+}
+
+class NotMatcher extends Matcher {
+    constructor(private matcher: Matcher) {
+        super();
+    }
+
+    public match(actual: unknown): number {
+        return this.matcher.match(actual) === 1 ? 0 : 1;
     }
 }
 
@@ -109,6 +145,16 @@ class BooleanMatcher extends Matcher {
 class StringMatcher extends Matcher {
     public match(actual: unknown): number {
         return typeof actual === "string" ? 1 : 0;
+    }
+}
+
+class CaseInsensitiveStringMatcher extends Matcher {
+    constructor(private expected: string) {
+        super();
+    }
+
+    public match(actual: unknown): number {
+        return typeof actual === "string" && this.expected.toLocaleLowerCase() === actual.toLocaleLowerCase() ? 1 : 0;
     }
 }
 

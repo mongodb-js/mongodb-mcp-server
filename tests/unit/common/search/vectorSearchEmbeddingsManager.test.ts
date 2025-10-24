@@ -396,7 +396,7 @@ describe("VectorSearchEmbeddingsManager", () => {
             collection: "mycoll",
             path: "embedding_field",
             rawValues: ["oops"],
-            embeddingParameters: { model: "voyage-3-large", outputDimension: 1024, outputDType: "float" } as const,
+            embeddingParameters: { model: "voyage-3-large", outputDimension: 1024, outputDtype: "float" } as const,
             inputType: "query" as const,
         };
 
