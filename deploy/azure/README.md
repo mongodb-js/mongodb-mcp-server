@@ -6,31 +6,7 @@ This directory contains an Azure Bicep template (`bicep/main.bicep`) and support
 ## Prerequisites
 - Azure CLI (2.55.0 or later) installed and signed in (`az login`).
 - Azure subscription with permissions to deploy the required resources.
-- Docker installed locally for building container images.
-- Azure Container Registry (ACR) to host the MongoDB MCP server image.
-- MongoDB MCP server container image available in your registry (instructions below).
-
-## Prepare the MongoDB MCP Docker Image
-If you already have a tagged image in your ACR, skip this section. Otherwise, build and push the image using the official Dockerfile:
-
-```powershell
-# 1. Clone the MongoDB MCP server repository
-git clone https://github.com/mongodb-js/mongodb-mcp-server.git
-cd mongodb-mcp-server
-
-# 2. Log in to your Azure Container Registry
-$acrName = "<your-acr-name>"          # without the .azurecr.io suffix
-az acr login --name $acrName
-
-# 3. Build the MongoDB MCP server image
-$tag = "$acrName.azurecr.io/mongodb-mcp-server:latest"
-docker build -f Dockerfile -t $tag .
-
-# 4. Push the image to your ACR
-docker push $tag
-```
-
-Record the fully qualified image name (FQIN) for later use in your parameter file, e.g. `myregistry.azurecr.io/mongodb-mcp-server:latest`.
+- MongoDB MCP server container image available in dockerhub registry (mongodb/mongodb-mcp-server:latest).
 
 ## Parameter Files
 Two sample parameter files are provided to help you tailor deployments:
@@ -73,7 +49,7 @@ Two sample parameter files are provided to help you tailor deployments:
 5. **Monitor outputs:** Review the deployment outputs and logs for connection endpoints, credential references, or other values needed to complete integration.
 
 ## Post-Deployment Checklist
-- Confirm the container instance or orchestration target pulled the correct MongoDB MCP image from your ACR.
+- Confirm the container instance or orchestration target pulled the correct MongoDB MCP image from your dockerhub.
 - Verify networking rules (firewalls, VNet integrations, etc.) allow intended clients to reach the server endpoint.
 - If using the auth-enabled parameters, validate that credentials/secrets are stored securely (Key Vault, managed identity) and tested end-to-end.
 - Document any additional operational steps (scaling, logging, maintenance) based on your environment requirements.
