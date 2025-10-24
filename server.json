@@ -637,8 +637,7 @@
           "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
           "isRequired": false
         }
-      ],
-      "version": "1.2.0"
+      ]
     }
   ]
 }
