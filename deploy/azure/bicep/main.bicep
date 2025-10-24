@@ -101,7 +101,7 @@ var authEnvVars = authMode == 'MicrosoftMIBasedAuth'
         value: authTenantId
       }
       {
-        // Client ID of the Azure AD App representing the your container app
+        // Client ID of the Azure AD App representing your container app
         name: 'MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID'
         value: authClientId
       }

@@ -12,7 +12,7 @@ This directory contains an Azure Bicep template (`bicep/main.bicep`) and support
 Two sample parameter files are provided to help you tailor deployments:
 
 - `bicep/params.json`: Baseline configuration that deploys the MongoDB MCP server with authentication disabled or using default settings. Use this when testing in development environments or when external authentication is not required.
-- `bicep/paramsWithAuthEnabled.json`: Extends the baseline deployment and enables explicit authentication configuration (for example, username/password, secrets, or identity inputs). Use this when you want the server protected with credentials.
+- `bicep/paramsWithAuthEnabled.json`: Extends the baseline deployment and enables Microsoft Entra ID (Azure AD) authentication using managed identity and client application IDs. Use this when you want the server protected with Azure AD authentication via managed identity.
 
 > **Tip:** Update the image reference, secrets, networking, and any other environment-specific values in the chosen parameter file before deployment.
 
