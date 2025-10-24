@@ -10,6 +10,9 @@ import type { Similarity } from "./search/vectorSearchEmbeddingsManager.js";
 import { z } from "zod";
 const levenshtein = levenshteinModule.default;
 
+const previewFeatures = z.enum(["vectorSearch"]);
+export type PreviewFeatures = z.infer<typeof previewFeatures>;
+
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 export const OPTIONS = {
     number: ["maxDocumentsPerQuery", "maxBytesPerQuery"],
@@ -81,7 +84,7 @@ export const OPTIONS = {
         "tlsFIPSMode",
         "version",
     ],
-    array: ["disabledTools", "loggers", "confirmationRequiredTools"],
+    array: ["disabledTools", "loggers", "confirmationRequiredTools", "previewFeatures"],
     alias: {
         h: "help",
         p: "password",
@@ -119,7 +122,7 @@ export const ALL_CONFIG_KEYS = new Set(
         .concat(Object.keys(OPTIONS.alias))
 );
 
-export function validateConfigKey(key: string): { valid: boolean; suggestion?: string } {
+function validateConfigKey(key: string): { valid: boolean; suggestion?: string } {
     if (ALL_CONFIG_KEYS.has(key)) {
         return { valid: true };
     }
@@ -282,6 +285,7 @@ export const UserConfigSchema = z.object({
         .optional()
         .default("euclidean")
         .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
+    previewFeatures: z.array(previewFeatures).default([]).describe("An array of preview features that are enabled."),
 });
 
 export type UserConfig = z.infer<typeof UserConfigSchema> & CliOptions;
@@ -318,6 +322,7 @@ export const defaultUserConfig: UserConfig = {
     disableEmbeddingsValidation: false,
     vectorSearchDimensions: 1024,
     vectorSearchSimilarityFunction: "euclidean",
+    previewFeatures: [],
 };
 
 export const config = setupUserConfig({
@@ -556,7 +561,7 @@ export function setupUserConfig({
     env: Record<string, unknown>;
     defaults: Partial<UserConfig>;
 }): UserConfig {
-    const userConfig: UserConfig = {
+    const userConfig = {
         ...defaults,
         ...parseEnvConfig(env),
         ...parseCliConfig(cli),

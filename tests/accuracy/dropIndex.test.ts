@@ -127,7 +127,7 @@ describeAccuracyTests(
     ],
     {
         userConfig: {
-            voyageApiKey: "voyage-api-key",
+            previewFeatures: "vectorSearch",
         },
         clusterConfig: { search: true },
     }

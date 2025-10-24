@@ -153,7 +153,7 @@ describeAccuracyTests([
         },
     },
     {
-        prompt: "Run an approximate vectorSearch query on mflix.movies on path 'plot_embeddings' with the model voyage-3-large to find all 'sci-fy' movies.",
+        prompt: "Run an approximate vectorSearch query on mflix.movies on path 'plot_embeddings' with the model voyage-3-large to find all 'sci-fi' movies.",
         expectedToolCalls: [
             {
                 toolName: "collection-indexes",
@@ -173,7 +173,7 @@ describeAccuracyTests([
                                 exact: Matcher.anyOf(Matcher.undefined, Matcher.boolean(false)),
                                 index: "my-index",
                                 path: "plot_embeddings",
-                                queryVector: "sci-fy",
+                                queryVector: "sci-fi",
                                 embeddingParameters: {
                                     model: "voyage-3-large",
                                     outputDimension: Matcher.anyOf(

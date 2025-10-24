@@ -672,6 +672,7 @@ describeWithMongoDB(
         getUserConfig: () => ({
             ...defaultTestConfig,
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            previewFeatures: ["vectorSearch"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
         }),

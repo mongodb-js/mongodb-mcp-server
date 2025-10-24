@@ -90,7 +90,7 @@ describeAccuracyTests(
     ],
     {
         userConfig: {
-            voyageApiKey: "",
+            previewFeatures: "",
         },
     }
 );
