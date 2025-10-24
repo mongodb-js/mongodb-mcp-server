@@ -19,16 +19,9 @@ export class InsertManyTool extends MongoDBToolBase {
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany(). For fields that have vector search indexes, you can provide raw text strings that will be automatically converted to embeddings if embeddingParameters is provided."
             ),
         embeddingParameters: zSupportedEmbeddingParameters
-            .extend({
-                input: z
-                    .array(z.record(z.string(), z.string()).optional())
-                    .describe(
-                        "An array of objects (one per document) that maps field paths to plain-text content for generating embeddings. Each object should have keys matching the vector search index field paths (in dot notation), with string values containing the text to embed. If provided, these texts will be used to generate embeddings instead of looking for raw text in the document fields themselves. Example: [{'content': 'Input text to create embeddings from for first doc'}, {'content': 'Input text to create embeddings from for second doc'}]"
-                    ),
-            })
             .optional()
             .describe(
-                "The embedding model and its parameters to use to generate embeddings for fields that have vector search indexes. Required when fields associated with vector search indexes contain raw text strings. Note to LLM: If unsure, ask the user before providing one."
+                "The embedding model and its parameters to use to generate embeddings for fields that have vector search indexes. When a field has a vector search index and contains a plain text string in the document, embeddings will be automatically generated from that string value. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
             ),
     };
     public operationType: OperationType = "create";
@@ -37,7 +30,6 @@ export class InsertManyTool extends MongoDBToolBase {
         database,
         collection,
         documents,
-        embeddingsInput,
         embeddingParameters,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
@@ -54,7 +46,6 @@ export class InsertManyTool extends MongoDBToolBase {
             collection,
             documents,
             vectorIndexes,
-            embeddingsInput,
             embeddingParameters,
         });
 
@@ -98,14 +89,12 @@ export class InsertManyTool extends MongoDBToolBase {
         collection,
         documents,
         vectorIndexes,
-        embeddingsInput,
         embeddingParameters,
     }: {
         database: string;
         collection: string;
         documents: Document[];
         vectorIndexes: VectorFieldIndexDefinition[];
-        embeddingsInput?: Array<Record<string, string> | undefined>;
         embeddingParameters?: z.infer<typeof zSupportedEmbeddingParameters>;
     }): Promise<Document[]> {
         // If no vector indexes, return documents as-is
@@ -120,13 +109,11 @@ export class InsertManyTool extends MongoDBToolBase {
             if (!document) {
                 continue;
             }
-            const documentEmbeddingsInput = embeddingsInput?.[i];
             const processedDoc = await this.processDocumentForEmbeddings(
                 database,
                 collection,
                 document,
                 vectorIndexes,
-                documentEmbeddingsInput,
                 embeddingParameters
             );
             processedDocuments.push(processedDoc);
@@ -140,7 +127,6 @@ export class InsertManyTool extends MongoDBToolBase {
         collection: string,
         document: Document,
         vectorIndexes: VectorFieldIndexDefinition[],
-        embeddingsInput?: Record<string, string>,
         embeddingParameters?: z.infer<typeof zSupportedEmbeddingParameters>
     ): Promise<Document> {
         // Find all fields in the document that match vector search indexed fields and need embeddings
@@ -151,20 +137,7 @@ export class InsertManyTool extends MongoDBToolBase {
         }> = [];
 
         for (const indexDef of vectorIndexes) {
-            // First, check if embeddingsInput provides text for this field
-            if (embeddingsInput && indexDef.path in embeddingsInput) {
-                const inputText = embeddingsInput[indexDef.path];
-                if (typeof inputText === "string" && inputText.length > 0) {
-                    fieldsNeedingEmbeddings.push({
-                        path: indexDef.path,
-                        rawValue: inputText,
-                        indexDef,
-                    });
-                    continue;
-                }
-            }
-
-            // Otherwise, check if the field exists in the document and is a string (raw text)
+            // Check if the field exists in the document and is a string (raw text)
             const fieldValue = this.getFieldValue(document, indexDef.path);
             if (typeof fieldValue === "string") {
                 fieldsNeedingEmbeddings.push({
@@ -185,7 +158,7 @@ export class InsertManyTool extends MongoDBToolBase {
             const fieldPaths = fieldsNeedingEmbeddings.map((f) => f.path).join(", ");
             throw new MongoDBError(
                 ErrorCodes.AtlasVectorSearchInvalidQuery,
-                `Fields [${fieldPaths}] have vector search indexes but ${embeddingsInput ? "embeddingsInput contains text for these fields" : "contain raw text strings"}. The embeddingParameters parameter is required to generate embeddings for these fields.`
+                `Fields [${fieldPaths}] have vector search indexes and contain raw text strings. The embeddingParameters parameter is required to generate embeddings for these fields.`
             );
         }
 
