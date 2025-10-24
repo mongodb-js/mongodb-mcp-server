@@ -26,7 +26,9 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     protected description = `Get MongoDB Atlas performance advisor recommendations, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max ${DEFAULT_SLOW_QUERY_LOGS_LIMIT}) slow query logs`;
     public operationType: OperationType = "read";
     protected argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID to get performance advisor recommendations"),
+        projectId: AtlasArgs.projectId().describe(
+            "Atlas project ID to get performance advisor recommendations. The project ID is a hexadecimal identifier of 24 characters. If the user has only specified the name, use the `atlas-list-projects` tool to retrieve the user's projects with their ids."
+        ),
         clusterName: AtlasArgs.clusterName().describe("Atlas cluster name to get performance advisor recommendations"),
         operations: z
             .array(PerformanceAdvisorOperationType)

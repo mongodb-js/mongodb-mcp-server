@@ -5,11 +5,13 @@ import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "./keychain.js";
 import type { Secret } from "./keychain.js";
-import levenshtein from "ts-levenshtein";
+import * as levenshteinModule from "ts-levenshtein";
 import type { Similarity } from "./search/vectorSearchEmbeddingsManager.js";
+import { z } from "zod";
+const levenshtein = levenshteinModule.default;
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
-const OPTIONS = {
+export const OPTIONS = {
     number: ["maxDocumentsPerQuery", "maxBytesPerQuery"],
     string: [
         "apiBaseUrl",
@@ -157,38 +159,132 @@ function isConnectionSpecifier(arg: string | undefined): boolean {
     );
 }
 
-// If we decide to support non-string config options, we'll need to extend the mechanism for parsing
-// env variables.
-export interface UserConfig extends CliOptions {
-    apiBaseUrl: string;
-    apiClientId?: string;
-    apiClientSecret?: string;
-    telemetry: "enabled" | "disabled";
-    logPath: string;
-    exportsPath: string;
-    exportTimeoutMs: number;
-    exportCleanupIntervalMs: number;
-    connectionString?: string;
-    // TODO: Use a type tracking all tool names.
-    disabledTools: Array<string>;
-    confirmationRequiredTools: Array<string>;
-    readOnly?: boolean;
-    indexCheck?: boolean;
-    transport: "stdio" | "http";
-    httpPort: number;
-    httpHost: string;
-    httpHeaders: Record<string, string>;
-    loggers: Array<"stderr" | "disk" | "mcp">;
-    idleTimeoutMs: number;
-    notificationTimeoutMs: number;
-    maxDocumentsPerQuery: number;
-    maxBytesPerQuery: number;
-    atlasTemporaryDatabaseUserLifetimeMs: number;
-    voyageApiKey: string;
-    disableEmbeddingsValidation: boolean;
-    vectorSearchDimensions: number;
-    vectorSearchSimilarityFunction: Similarity;
-}
+export const UserConfigSchema = z.object({
+    apiBaseUrl: z.string().default("https://cloud.mongodb.com/"),
+    apiClientId: z
+        .string()
+        .optional()
+        .describe("Atlas API client ID for authentication. Required for running Atlas tools."),
+    apiClientSecret: z
+        .string()
+        .optional()
+        .describe("Atlas API client secret for authentication. Required for running Atlas tools."),
+    connectionString: z
+        .string()
+        .optional()
+        .describe(
+            "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
+        ),
+    loggers: z
+        .array(z.enum(["stderr", "disk", "mcp"]))
+        .default(["disk", "mcp"])
+        .describe("Comma separated values, possible values are 'mcp', 'disk' and 'stderr'."),
+    logPath: z.string().describe("Folder to store logs."),
+    disabledTools: z
+        .array(z.string())
+        .default([])
+        .describe("An array of tool names, operation types, and/or categories of tools that will be disabled."),
+    confirmationRequiredTools: z
+        .array(z.string())
+        .default([
+            "atlas-create-access-list",
+            "atlas-create-db-user",
+            "drop-database",
+            "drop-collection",
+            "delete-many",
+            "drop-index",
+        ])
+        .describe(
+            "An array of tool names that require user confirmation before execution. Requires the client to support elicitation."
+        ),
+    readOnly: z
+        .boolean()
+        .default(false)
+        .describe(
+            "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations."
+        ),
+    indexCheck: z
+        .boolean()
+        .default(false)
+        .describe(
+            "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan."
+        ),
+    telemetry: z
+        .enum(["enabled", "disabled"])
+        .default("enabled")
+        .describe("When set to disabled, disables telemetry collection."),
+    transport: z.enum(["stdio", "http"]).default("stdio").describe("Either 'stdio' or 'http'."),
+    httpPort: z
+        .number()
+        .default(3000)
+        .describe("Port number for the HTTP server (only used when transport is 'http')."),
+    httpHost: z
+        .string()
+        .default("127.0.0.1")
+        .describe("Host address to bind the HTTP server to (only used when transport is 'http')."),
+    httpHeaders: z
+        .record(z.string())
+        .default({})
+        .describe(
+            "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
+        ),
+    idleTimeoutMs: z
+        .number()
+        .default(600_000)
+        .describe("Idle timeout for a client to disconnect (only applies to http transport)."),
+    notificationTimeoutMs: z
+        .number()
+        .default(540_000)
+        .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport)."),
+    maxBytesPerQuery: z
+        .number()
+        .default(16_777_216)
+        .describe(
+            "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools."
+        ),
+    maxDocumentsPerQuery: z
+        .number()
+        .default(100)
+        .describe(
+            "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter."
+        ),
+    exportsPath: z.string().describe("Folder to store exported data files."),
+    exportTimeoutMs: z
+        .number()
+        .default(300_000)
+        .describe("Time in milliseconds after which an export is considered expired and eligible for cleanup."),
+    exportCleanupIntervalMs: z
+        .number()
+        .default(120_000)
+        .describe("Time in milliseconds between export cleanup cycles that remove expired export files."),
+    atlasTemporaryDatabaseUserLifetimeMs: z
+        .number()
+        .default(14_400_000)
+        .describe(
+            "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted."
+        ),
+    voyageApiKey: z
+        .string()
+        .default("")
+        .describe(
+            "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
+        ),
+    disableEmbeddingsValidation: z
+        .boolean()
+        .optional()
+        .describe("When set to true, disables validation of embeddings dimensions."),
+    vectorSearchDimensions: z
+        .number()
+        .default(1024)
+        .describe("Default number of dimensions for vector search embeddings."),
+    vectorSearchSimilarityFunction: z
+        .custom<Similarity>()
+        .optional()
+        .default("euclidean")
+        .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
+});
+
+export type UserConfig = z.infer<typeof UserConfigSchema> & CliOptions;
 
 export const defaultUserConfig: UserConfig = {
     apiBaseUrl: "https://cloud.mongodb.com/",

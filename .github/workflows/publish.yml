@@ -95,6 +95,7 @@ jobs:
         run: npm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish git release
         env:
           GH_TOKEN: ${{ github.token }}

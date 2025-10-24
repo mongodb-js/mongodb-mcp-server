@@ -34,8 +34,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         },
         {
             name: "responseBytesLimit",
-            description:
-                'The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.',
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.`,
             type: "number",
             required: false,
         },
