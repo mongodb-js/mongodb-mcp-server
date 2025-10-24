@@ -10,9 +10,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    needs:
-      - check
-    if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
