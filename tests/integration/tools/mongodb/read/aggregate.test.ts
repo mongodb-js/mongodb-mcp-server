@@ -32,7 +32,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
 ### Usage Rules for \`$vectorSearch\`
 - **Unset embeddings:**  
   Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
-- **Prefiltering:**
+- **Pre-filtering:**
 If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
     NEVER include fields in $vectorSearch.filter that are not part of the vector index.
 - **Post-filtering:**
