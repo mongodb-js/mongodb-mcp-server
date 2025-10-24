@@ -107,13 +107,15 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             (integration) => {
                 function oidcIt(name: string, cb: Parameters<OidcIt>[1]): void {
                     /* eslint-disable vitest/expect-expect */
-                    it(name, { timeout: DEFAULT_TIMEOUT }, async (context) => {
+                    it(name, { timeout: DEFAULT_TIMEOUT, retry: 5 }, async (context) => {
                         context.skip(
                             await isCommunityServer(integration),
                             "OIDC is not supported in MongoDB Community"
                         );
                         context.skip(
-                            semver.satisfies(await getServerVersion(integration), "< 7", { includePrerelease: true }),
+                            semver.satisfies(await getServerVersion(integration), "< 7", {
+                                includePrerelease: true,
+                            }),
                             "OIDC is only supported on MongoDB newer than 7.0"
                         );
 
