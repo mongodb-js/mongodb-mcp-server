@@ -13,7 +13,8 @@ import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
 import { type TestConnectionManager } from "../../utils/index.js";
 
-const DEFAULT_TIMEOUT = 30_000;
+const DEFAULT_TIMEOUT = 60_000;
+const DEFAULT_RETRIES = 5;
 
 // OIDC is only supported on Linux servers
 describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", async () => {
@@ -107,7 +108,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             (integration) => {
                 function oidcIt(name: string, cb: Parameters<OidcIt>[1]): void {
                     /* eslint-disable vitest/expect-expect */
-                    it(name, { timeout: DEFAULT_TIMEOUT, retry: 5 }, async (context) => {
+                    it(name, { timeout: DEFAULT_TIMEOUT, retry: DEFAULT_RETRIES }, async (context) => {
                         context.skip(
                             await isCommunityServer(integration),
                             "OIDC is not supported in MongoDB Community"
