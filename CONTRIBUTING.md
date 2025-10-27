@@ -147,11 +147,15 @@ To release a new version of the MCP server, follow these steps:
 
 1. Ensure there is a Jira _Release_ ticket in the [`MCP` project](https://jira.mongodb.org/projects/MCP) for the new release and move it to _In Progress_.
 2. Verify that the Jira tickets you expect to be released are correctly mapped to the _Release_ ticket. Add any additional required documentation to the release ticket.
-3. To create a new version, go to the GitHub repository Actions tab and run the "Version Bump" workflow with one of the following options:
+3. To create a new version, go to the GitHub repository Actions tab and run the "Prepare Release" workflow with one of the following options:
    - `patch` (e.g., 1.0.0 → 1.0.1) for backward-compatible bug fixes
    - `minor` (e.g., 1.0.0 → 1.1.0) for backward-compatible new features
    - `major` (e.g., 1.0.0 → 2.0.0) for breaking changes
    - A specific version number (e.g., `1.2.3`)
+   - **Pre-release versions**: To create a pre-release, enter the version suffixed by `-prerelease.{n}` where `n` is the pre-release number (e.g., `1.1.0-prerelease.1`, `1.1.0-prerelease.2`). Pre-releases are release candidates that provide early access to new features before they are promoted to stable.
+
+   > **Note**: Stable releases are published under the `latest` tag on NPM and are intended for production use. Pre-release versions are published under the `prerelease` tag and serve as release candidates for early access and feedback before being released as stable versions.
+
 4. This creates a pull request with the version change.
 5. Merge this pull request if all looks correct. This will trigger the "Publish" workflow which will publish it to **NPM**, **Docker** and the **MCP Registry**.
 6. Verify that the new version is published correctly by checking:
