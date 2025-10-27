@@ -178,7 +178,7 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
         version?: string;
         packages: {
             registryType?: string;
-            identifier?: string;
+            identifier: string;
             environmentVariables: EnvironmentVariable[];
             packageArguments?: unknown[];
             version?: string;
@@ -209,12 +209,13 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
         for (const pkg of serverJson.packages) {
             pkg.environmentVariables = envVarsArray as EnvironmentVariable[];
             pkg.packageArguments = packageArguments;
-            pkg.version = version;
 
-            // Update OCI identifier version tag if this is an OCI package
-            if (pkg.registryType === "oci" && pkg.identifier) {
+            // For OCI packages, update the version tag in the identifier and not a version field
+            if (pkg.registryType === "oci") {
                 // Replace the version tag in the OCI identifier (e.g., docker.io/mongodb/mongodb-mcp-server:1.0.0)
                 pkg.identifier = pkg.identifier.replace(/:[^:]+$/, `:${version}`);
+            } else {
+                pkg.version = version;
             }
         }
     }
