@@ -234,7 +234,7 @@ export class AggregateTool extends MongoDBToolBase {
                 if (filterFieldsNotIndexed.length) {
                     throw new MongoDBError(
                         ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        `Vector search stage contains filter on fields are not indexed by index ${vectorSearchStage.index} - ${filterFieldsNotIndexed.join(", ")}`
+                        `Vector search stage contains filter on fields that are not indexed by index ${vectorSearchStage.index} - ${filterFieldsNotIndexed.join(", ")}`
                     );
                 }
             }
