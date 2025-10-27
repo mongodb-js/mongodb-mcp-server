@@ -11,7 +11,7 @@ import { z } from "zod";
 const levenshtein = levenshteinModule.default;
 
 const previewFeatures = z.enum(["vectorSearch"]);
-export type PreviewFeatures = z.infer<typeof previewFeatures>;
+export type PreviewFeature = z.infer<typeof previewFeatures>;
 
 // From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
 export const OPTIONS = {
