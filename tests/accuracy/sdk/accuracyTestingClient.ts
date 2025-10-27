@@ -91,7 +91,7 @@ export class AccuracyTestingClient {
             return [`--${key}`, value];
         });
 
-        const args = [MCP_SERVER_CLI_SCRIPT, "--connectionString", mdbConnectionString, ...additionalArgs];
+        const args = [MCP_SERVER_CLI_SCRIPT, mdbConnectionString, ...additionalArgs];
 
         const clientTransport = new StdioClientTransport({
             command: process.execPath,

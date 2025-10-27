@@ -1,5 +1,22 @@
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { formatUntrustedData } from "../../src/tools/tool.js";
+import type { MockedTools } from "./sdk/accuracyTestingClient.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
+
+const mockedTools: MockedTools = {
+    "collection-indexes": ({ collection }: Record<string, unknown>): CallToolResult => {
+        return {
+            content: formatUntrustedData(
+                `Found 1 indexes in the collection "${collection as string}".`,
+                JSON.stringify({
+                    name: "_id_",
+                    key: { _id: 1 },
+                })
+            ),
+        };
+    },
+};
 
 describeAccuracyTests(
     [
@@ -23,6 +40,7 @@ describeAccuracyTests(
                     },
                 },
             ],
+            mockedTools,
         },
         {
             prompt: "Create a text index on title field in 'mflix.movies' namespace",
@@ -44,6 +62,7 @@ describeAccuracyTests(
                     },
                 },
             ],
+            mockedTools,
         },
         {
             prompt: "Create a vector search index on 'mflix.movies' namespace on the 'plotSummary' field. The index should use 1024 dimensions.",
@@ -69,6 +88,7 @@ describeAccuracyTests(
                     },
                 },
             ],
+            mockedTools,
         },
         {
             prompt: "Create a vector search index on 'mflix.movies' namespace with on the 'plotSummary' field and 'genre' field, both of which contain vector embeddings. Pick a sensible number of dimensions for a voyage 3.5 model.",
@@ -105,6 +125,7 @@ describeAccuracyTests(
                     },
                 },
             ],
+            mockedTools,
         },
         {
             prompt: "Create a vector search index on 'mflix.movies' namespace where the 'plotSummary' field is indexed as a 1024-dimensional vector and the 'releaseDate' field is indexed as a regular field.",
@@ -134,6 +155,95 @@ describeAccuracyTests(
                     },
                 },
             ],
+            mockedTools,
+        },
+        {
+            prompt: "Create an Atlas search index on 'mflix.movies' namespace with dynamic mappings enabled",
+            expectedToolCalls: [
+                {
+                    toolName: "create-index",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                        definition: [
+                            {
+                                type: "search",
+                                analyzer: Matcher.anyOf(Matcher.undefined, Matcher.value("lucene.standard")),
+                                mappings: {
+                                    dynamic: true,
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Create an Atlas search index on 'mflix.movies' namespace for searching on 'title' as string field and 'year' as number field",
+            expectedToolCalls: [
+                {
+                    toolName: "create-index",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                        definition: [
+                            {
+                                type: "search",
+                                analyzer: Matcher.anyOf(Matcher.undefined, Matcher.value("lucene.standard")),
+                                mappings: {
+                                    dynamic: Matcher.anyOf(Matcher.undefined, Matcher.value(false)),
+                                    fields: {
+                                        title: {
+                                            type: "string",
+                                        },
+                                        year: {
+                                            type: "number",
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Create an Atlas search index on 'mflix.movies' namespace with a custom 'lucene.keyword' analyzer, where 'title' is indexed as an autocomplete field and 'genres' as a string array field, and 'released' as a date field",
+            expectedToolCalls: [
+                {
+                    toolName: "create-index",
+                    parameters: {
+                        database: "mflix",
+                        collection: "movies",
+                        name: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                        definition: [
+                            {
+                                type: "search",
+                                analyzer: "lucene.keyword",
+                                mappings: {
+                                    dynamic: Matcher.anyOf(Matcher.undefined, Matcher.value(false)),
+                                    fields: {
+                                        title: {
+                                            type: "autocomplete",
+                                        },
+                                        genres: {
+                                            type: "string",
+                                        },
+                                        released: {
+                                            type: "date",
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+            mockedTools,
         },
     ],
     {
