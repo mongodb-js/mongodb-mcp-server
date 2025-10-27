@@ -160,7 +160,6 @@ To release a new version of the MCP server, follow these steps:
    - MCP Registry: `curl "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mongodb-js%2Fmongodb-mcp-server/versions/latest"`
 7. Close the Jira ticket for the release and post an update in the `#mongodb-mcp` Slack channel.
 
-
 ### Code Quality
 
 All pull requests automatically run through the "Code Health" workflow, which:
