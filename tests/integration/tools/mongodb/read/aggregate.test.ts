@@ -733,7 +733,7 @@ describeWithMongoDB(
 
                 expect(response.isError).toBe(true);
                 expect(JSON.stringify(response.content)).toContain(
-                    "Error running aggregate: Vector search stage contains filter on fields are not indexed by index default - name"
+                    "Error running aggregate: Vector search stage contains filter on fields that are not indexed by index default - name"
                 );
             });
 
