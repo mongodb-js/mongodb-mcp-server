@@ -90,11 +90,23 @@ export class AggregateTool extends MongoDBToolBase {
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
-                await checkIndexUsage(provider, database, collection, "aggregate", async () => {
-                    return provider
-                        .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
-                        .explain("queryPlanner");
-                });
+                const usesVectorSearchIndex = await this.isVectorSearchIndexUsed({ database, collection, pipeline });
+                switch (usesVectorSearchIndex) {
+                    case "no-vector-search-query":
+                        await checkIndexUsage(provider, database, collection, "aggregate", async () => {
+                            return provider
+                                .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
+                                .explain("queryPlanner");
+                        });
+                        break;
+                    case false:
+                        throw new MongoDBError(
+                            ErrorCodes.AtlasVectorSearchIndexNotFound,
+                            "Could not find provided vector search index."
+                        );
+                    case true:
+                    // nothing to do, everything is correct so ready to run the query
+                }
             }
 
             pipeline = await this.replaceRawValuesWithEmbeddingsIfNecessary({
@@ -267,6 +279,41 @@ export class AggregateTool extends MongoDBToolBase {
         }
 
         return pipeline;
+    }
+
+    private async isVectorSearchIndexUsed({
+        database,
+        collection,
+        pipeline,
+    }: {
+        database: string;
+        collection: string;
+        pipeline: Document[];
+    }): Promise<boolean | "no-vector-search-query"> {
+        // check if the pipeline contains a $vectorSearch stage
+        let usesVectorSearch = false;
+        let indexName: string = "default";
+
+        for (const stage of pipeline) {
+            if ("$vectorSearch" in stage) {
+                const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;
+                usesVectorSearch = true;
+                indexName = vectorSearchStage.index;
+                break;
+            }
+        }
+
+        if (!usesVectorSearch) {
+            return "no-vector-search-query";
+        }
+
+        const indexExists = await this.session.vectorSearchEmbeddingsManager.indexExists({
+            database,
+            collection,
+            indexName,
+        });
+
+        return indexExists;
     }
 
     private generateMessage({

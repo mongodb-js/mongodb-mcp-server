@@ -48,6 +48,26 @@ export class VectorSearchEmbeddingsManager {
         this.embeddings.delete(embeddingDefKey);
     }
 
+    async indexExists({
+        database,
+        collection,
+        indexName,
+    }: {
+        database: string;
+        collection: string;
+        indexName: string;
+    }): Promise<boolean> {
+        const provider = await this.atlasSearchEnabledProvider();
+        if (!provider) {
+            return false;
+        }
+
+        const searchIndexesWithName = await provider.getSearchIndexes(database, collection, indexName);
+        console.log(">>>>>", searchIndexesWithName);
+
+        return searchIndexesWithName.length >= 1;
+    }
+
     async embeddingsForNamespace({
         database,
         collection,
