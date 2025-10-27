@@ -143,31 +143,23 @@ When adding new tools to the MCP server:
 
 ## Release Process
 
-Our release process is automated using GitHub Actions workflows:
+To release a new version of the MCP server, follow these steps:
 
-### Version Bumping
-
-1. To create a new version, go to the GitHub repository Actions tab
-2. Select the "Version Bump" workflow
-3. Click "Run workflow" and choose one of the following options:
+1. Ensure there is a Jira _Release_ ticket in the [`MCP` project](https://jira.mongodb.org/projects/MCP) for the new release and move it to _In Progress_.
+2. Verify that the Jira tickets you expect to be released are correctly mapped to the _Release_ ticket. Add any additional required documentation to the release ticket.
+3. To create a new version, go to the GitHub repository Actions tab and run the "Version Bump" workflow with one of the following options:
    - `patch` (e.g., 1.0.0 → 1.0.1) for backward-compatible bug fixes
    - `minor` (e.g., 1.0.0 → 1.1.0) for backward-compatible new features
    - `major` (e.g., 1.0.0 → 2.0.0) for breaking changes
    - A specific version number (e.g., `1.2.3`)
-4. This creates a pull request with the version change
-5. Once approved and merged, the version is updated
+4. This creates a pull request with the version change.
+5. Merge this pull request if all looks correct. This will trigger the "Publish" workflow which will publish it to **NPM**, **Docker** and the **MCP Registry**.
+6. Verify that the new version is published correctly by checking:
+   - NPM: https://www.npmjs.com/package/mongodb-mcp-server
+   - Docker: https://hub.docker.com/r/mongodb/mongodb-mcp-server
+   - MCP Registry: `curl "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mongodb-js%2Fmongodb-mcp-server/versions/latest"`
+7. Close the Jira ticket for the release and post an update in the `#mongodb-mcp` Slack channel.
 
-### Automatic Publishing
-
-When a version bump is merged to the main branch:
-
-1. The "Publish" workflow automatically runs
-2. It checks if the version already exists as a git tag
-3. If the version is new, it:
-   - Builds the package
-   - Publishes to NPM
-   - Creates a git tag for the version
-   - Creates a GitHub release with auto-generated release notes
 
 ### Code Quality
 
