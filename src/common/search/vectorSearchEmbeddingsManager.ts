@@ -63,7 +63,6 @@ export class VectorSearchEmbeddingsManager {
         }
 
         const searchIndexesWithName = await provider.getSearchIndexes(database, collection, indexName);
-        console.log(">>>>>", searchIndexesWithName);
 
         return searchIndexesWithName.length >= 1;
     }
