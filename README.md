@@ -368,7 +368,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `exportTimeoutMs`                      | `MDB_MCP_EXPORT_TIMEOUT_MS`                         | 300000                                                                      | Time in milliseconds after which an export is considered expired and eligible for cleanup.                                                                                                              |
 | `exportCleanupIntervalMs`              | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS`                | 120000                                                                      | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                    |
 | `atlasTemporaryDatabaseUserLifetimeMs` | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` | 14400000                                                                    | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                             |
-| `voyageApiKey`                         | `MDB_VOYAGE_API_KEY`                                | <not set>                                                                   | API key for communicating with Voyage AI. Used for generating embeddings for Vector search.                                                                                                             |
+| ([preview](#opting-into-preview-features)) `voyageApiKey`                         | `MDB_VOYAGE_API_KEY`                                | <not set>                                                                   | API key for communicating with Voyage AI. Used for generating embeddings for Vector search. **This feature is in preview and requires opting into the `vectorSearch` preview feature**.                                                                                                             |
 | `previewFeatures`                      | `MDB_MCP_PREVIEW_FEATURES`                          | `[]`                                                                        | An array of preview features to opt into.                                                                                                                                                               |
 
 #### Logger Options
@@ -501,8 +501,8 @@ The MongoDB MCP Server may offer functionality that is still in development and 
 List of available preview features:
 
 - `vectorSearch` - Enables tools or functionality related to Vector Search in MongoDB Atlas:
-  - Index management, such as creating, listing, and dropping vector search indexes.
-  - Querying collections using vector search capabilities. This requires a configured embedding model that will be used to generate vector representations of the query data.
+  - Index management, such as creating, listing, and dropping search and vector search indexes.
+  - Querying collections using vector search capabilities. This requires a configured embedding model that will be used to generate vector representations of the query data. Currently, only [Voyage AI](https://www.voyageai.com) embedding models are supported. Set the `voyageApiKey` configuration option with your Voyage AI API key to use this feature.
 
 ### Atlas API Access
 
