@@ -120,7 +120,7 @@ describeWithMongoDB(
                 name: "definition",
                 type: "array",
                 description:
-                    "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes",
+                    "The index definition. Use 'classic' for standard indexes, 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes.",
                 required: true,
             },
             {
