@@ -799,6 +799,69 @@ describeWithMongoDB(
                     "Error running aggregate: Vector search stage contains filter on fields that are not indexed by index default - name"
                 );
             });
+
+            it("should succeed the validation if the pre-filter are also indexed as part of vector search index", async () => {
+                await waitUntilSearchIsReady(integration.mongoClient());
+
+                const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
+                await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
+
+                await createVectorSearchIndexAndWait(
+                    integration.mongoClient(),
+                    integration.randomDbName(),
+                    "databases",
+                    [
+                        {
+                            type: "vector",
+                            path: "description_embedding",
+                            numDimensions: 256,
+                            similarity: "euclidean",
+                            quantization: "none",
+                        },
+                        {
+                            type: "filter",
+                            path: "name",
+                        },
+                    ]
+                );
+
+                // now query the index
+                await integration.connectMcpClient();
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "databases",
+                        pipeline: [
+                            {
+                                $vectorSearch: {
+                                    index: "default",
+                                    path: "description_embedding",
+                                    queryVector: DOCUMENT_EMBEDDINGS.float,
+                                    numCandidates: 10,
+                                    limit: 10,
+                                    embeddingParameters: {
+                                        model: "voyage-3-large",
+                                        outputDimension: 256,
+                                        outputDType: "float",
+                                    },
+                                    filter: { name: 10 },
+                                },
+                            },
+                            {
+                                $project: {
+                                    description_embedding: 0,
+                                },
+                            },
+                        ],
+                    },
+                });
+
+                expect(!!response.isError).toBe(false);
+                expect(JSON.stringify(response.content)).toContain(
+                    "The aggregation resulted in 0 documents. Returning 0 documents."
+                );
+            });
         });
     },
     {
