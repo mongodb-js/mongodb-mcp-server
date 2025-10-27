@@ -14,6 +14,7 @@ import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "..
 import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logger.js";
 import { zSupportedEmbeddingParameters } from "../../../common/search/embeddingsProvider.js";
+import { collectFieldsFromVectorSearchFilter } from "../../../helpers/collectFieldsFromVectorSearchFilter.js";
 
 const AnyStage = zEJSON();
 const VectorSearchStage = z.object({
@@ -97,6 +98,7 @@ export class AggregateTool extends MongoDBToolBase {
         try {
             const provider = await this.ensureConnected();
             await this.assertOnlyUsesPermittedStages(pipeline);
+            await this.assertVectorSearchFilterFieldsAreIndexed(database, collection, pipeline);
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
@@ -200,6 +202,74 @@ export class AggregateTool extends MongoDBToolBase {
                 );
             }
         }
+    }
+
+    private async assertVectorSearchFilterFieldsAreIndexed(
+        database: string,
+        collection: string,
+        pipeline: Record<string, unknown>[]
+    ): Promise<void> {
+        if (!(await this.session.isSearchSupported())) {
+            return;
+        }
+
+        const searchIndexesWithFilterFields = await this.searchIndexesWithFilterFields(database, collection);
+        for (const stage of pipeline) {
+            if ("$vectorSearch" in stage) {
+                const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;
+                const allowedFilterFields = searchIndexesWithFilterFields[vectorSearchStage.index];
+                if (!allowedFilterFields) {
+                    this.session.logger.warning({
+                        id: LogId.toolValidationError,
+                        context: "aggregate tool",
+                        message: `Could not assert if filter fields are indexed - No filter fields found for index ${vectorSearchStage.index}`,
+                    });
+                    return;
+                }
+
+                const filterFieldsInStage = collectFieldsFromVectorSearchFilter(vectorSearchStage.filter);
+                const filterFieldsNotIndexed = filterFieldsInStage.filter(
+                    (field) => !allowedFilterFields.includes(field)
+                );
+                if (filterFieldsNotIndexed.length) {
+                    throw new MongoDBError(
+                        ErrorCodes.AtlasVectorSearchInvalidQuery,
+                        `Vector search stage contains filter on fields are not indexed by index ${vectorSearchStage.index} - ${filterFieldsNotIndexed.join(", ")}`
+                    );
+                }
+            }
+        }
+    }
+
+    private async searchIndexesWithFilterFields(
+        database: string,
+        collection: string
+    ): Promise<Record<string, string[]>> {
+        const searchIndexes = (await this.session.serviceProvider.getSearchIndexes(database, collection)) as Array<{
+            name: string;
+            latestDefinition: {
+                fields: Array<
+                    | {
+                          type: "vector";
+                      }
+                    | {
+                          type: "filter";
+                          path: string;
+                      }
+                >;
+            };
+        }>;
+
+        return searchIndexes.reduce<Record<string, string[]>>((indexFieldMap, searchIndex) => {
+            const filterFields = searchIndex.latestDefinition.fields
+                .map<string | undefined>((field) => {
+                    return field.type === "filter" ? field.path : undefined;
+                })
+                .filter((filterField) => filterField !== undefined);
+
+            indexFieldMap[searchIndex.name] = filterFields;
+            return indexFieldMap;
+        }, {});
     }
 
     private async countAggregationResultDocuments({
