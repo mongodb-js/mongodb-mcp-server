@@ -559,13 +559,13 @@ export function setupUserConfig({
 }: {
     cli: string[];
     env: Record<string, unknown>;
-    defaults: Partial<UserConfig>;
+    defaults: UserConfig;
 }): UserConfig {
     const userConfig = {
         ...defaults,
         ...parseEnvConfig(env),
         ...parseCliConfig(cli),
-    } as UserConfig;
+    } satisfies UserConfig;
 
     userConfig.disabledTools = commaSeparatedToArray(userConfig.disabledTools);
     userConfig.loggers = commaSeparatedToArray(userConfig.loggers);
