@@ -90,21 +90,25 @@ export class AggregateTool extends MongoDBToolBase {
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
-                const usesVectorSearchIndex = await this.isVectorSearchIndexUsed({ database, collection, pipeline });
+                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed({
+                    database,
+                    collection,
+                    pipeline,
+                });
                 switch (usesVectorSearchIndex) {
-                    case "no-vector-search-query":
+                    case "not-vector-search-query":
                         await checkIndexUsage(provider, database, collection, "aggregate", async () => {
                             return provider
                                 .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
                                 .explain("queryPlanner");
                         });
                         break;
-                    case false:
+                    case "non-existent-index":
                         throw new MongoDBError(
                             ErrorCodes.AtlasVectorSearchIndexNotFound,
-                            "Could not find provided vector search index."
+                            `Could not find an index with name "${indexName}" in namespace "${database}.${collection}".`
                         );
-                    case true:
+                    case "valid-index":
                     // nothing to do, everything is correct so ready to run the query
                 }
             }
@@ -289,7 +293,7 @@ export class AggregateTool extends MongoDBToolBase {
         database: string;
         collection: string;
         pipeline: Document[];
-    }): Promise<boolean | "no-vector-search-query"> {
+    }): Promise<["valid-index" | "non-existent-index" | "not-vector-search-query", string?]> {
         // check if the pipeline contains a $vectorSearch stage
         let usesVectorSearch = false;
         let indexName: string = "default";
@@ -304,7 +308,7 @@ export class AggregateTool extends MongoDBToolBase {
         }
 
         if (!usesVectorSearch) {
-            return "no-vector-search-query";
+            return ["not-vector-search-query"];
         }
 
         const indexExists = await this.session.vectorSearchEmbeddingsManager.indexExists({
@@ -313,7 +317,7 @@ export class AggregateTool extends MongoDBToolBase {
             indexName,
         });
 
-        return indexExists;
+        return [indexExists ? "valid-index" : "non-existent-index", indexName];
     }
 
     private generateMessage({

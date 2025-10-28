@@ -430,7 +430,9 @@ describeWithMongoDB(
             });
 
             const responseContent = getResponseContent(response);
-            expect(responseContent).toContain("Error running aggregate: Could not find provided vector search index.");
+            expect(responseContent).toContain(
+                `Error running aggregate: Could not find an index with name "non_existing" in namespace "${integration.randomDbName()}.databases".`
+            );
         });
 
         for (const [dataType, embedding] of Object.entries(DOCUMENT_EMBEDDINGS)) {
