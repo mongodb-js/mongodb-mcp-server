@@ -114,10 +114,10 @@ export class CreateIndexTool extends MongoDBToolBase {
                 })
                 .refine((data) => data.dynamic !== !!(data.fields && Object.keys(data.fields).length > 0), {
                     message:
-                        "Either `mappings.dynamic` must be true or at least one field must be defined in `mappings.fields`",
+                        "Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in `fields`",
                 })
                 .describe(
-                    "Document describing the index to create. Either `dynamic` must be true or at least one field must be defined in the `fields` document."
+                    "Document describing the index to create. Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
                 ),
         })
         .describe("Definition for an Atlas Search (lexical) index.");
@@ -142,7 +142,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 ])
             )
             .describe(
-                "The index definition. Use 'classic' for standard indexes, 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes."
+                `The index definition.${this.isFeatureEnabled("vectorSearch") ? " Use 'classic' for standard indexes, 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes." : ""}`
             ),
     };
 
