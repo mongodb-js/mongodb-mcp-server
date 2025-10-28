@@ -162,7 +162,9 @@ To release a new version of the MCP server, follow these steps:
    - NPM: https://www.npmjs.com/package/mongodb-mcp-server
    - Docker: https://hub.docker.com/r/mongodb/mongodb-mcp-server
    - MCP Registry: `curl "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mongodb-js%2Fmongodb-mcp-server/versions/latest"`
-7. Close the Jira ticket for the release and post an update in the `#mongodb-mcp` Slack channel.
+7. Close the Jira ticket for the release. 
+8. Go to the [Releases](https://jira.mongodb.org/projects/MCP?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased) section the and rename the `vNext` to the new version number and mark it as Released. Create a new `vNext` for the next release.
+9. Post an update in the `#mongodb-mcp` Slack channel.
 
 ### Code Quality
 
