@@ -16,7 +16,7 @@ export class InsertManyTool extends MongoDBToolBase {
         documents: z
             .array(zEJSON().describe("An individual MongoDB document"))
             .describe(
-                "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany(). For fields that have vector search indexes, you can provide raw text strings that will be automatically converted to embeddings if embeddingParameters is provided."
+                "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany(). If you are asked to generate a embedding for a field, you have to explicitly specify the field name with a raw text string value of the field and an embedding will be generated if embeddingParameters is provided."
             ),
         embeddingParameters: zSupportedEmbeddingParameters
             .optional()

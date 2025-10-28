@@ -17,7 +17,7 @@ const embeddingParameters = {
 describeAccuracyTests(
     [
         {
-            prompt: "Insert a document into 'mflix.movies' collection with title 'The Matrix' and a plotSummary field with the text 'A computer hacker learns about the true nature of his reality'. Use the plot summary to generate the 'plotEmbeddings' field using the voyage-3 model.",
+            prompt: "Insert a document into 'mflix.movies' collection with title 'The Matrix' and a plotSummary field with the text 'A computer hacker learns about the true nature of his reality' and a 'plotSummaryEmbeddings' field which should be generated using the voyage-3.5 model.",
             expectedToolCalls: [
                 {
                     toolName: "insert-many",
@@ -28,10 +28,12 @@ describeAccuracyTests(
                             {
                                 title: "The Matrix",
                                 plotSummary: "A computer hacker learns about the true nature of his reality",
-                                plotEmbeddings: "A computer hacker learns about the true nature of his reality",
+                                plotSummaryEmbeddings: "A computer hacker learns about the true nature of his reality",
                             },
                         ],
-                        embeddingParameters,
+                        embeddingParameters: {
+                            model: "voyage-3.5",
+                        },
                     },
                 },
             ],
