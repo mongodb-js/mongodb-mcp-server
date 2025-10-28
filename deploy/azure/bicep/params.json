@@ -2,6 +2,8 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "containerAppEnvName": { "value": "container-app-env" },
+    "containerAppName": { "value": "mongo-mcp-server-app-without-auth" },
     "containerImage": { "value": "mongodb/mongodb-mcp-server:latest" },
     "containerCpu": { "value": "1.0" },
     "containerMemory": { "value": "2Gi" },

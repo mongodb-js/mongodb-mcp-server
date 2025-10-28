@@ -49,10 +49,7 @@ Two sample parameter files are provided to help you tailor deployments:
 5. **Monitor outputs:** Review the deployment outputs and logs for connection endpoints, credential references, or other values needed to complete integration.
 
 ## Post-Deployment Checklist
-- Confirm the container instance or orchestration target pulled the correct MongoDB MCP image from your dockerhub.
-- Verify networking rules (firewalls, VNet integrations, etc.) allow intended clients to reach the server endpoint.
-- If using the auth-enabled parameters, validate that credentials/secrets are stored securely (Key Vault, managed identity) and tested end-to-end.
-- Document any additional operational steps (scaling, logging, maintenance) based on your environment requirements.
+- After the Azure Container Apps deployment completes, access the MCP server by visiting the application’s public endpoint with /mcp appended. Example: https://[CONTAINER_APP_NAME].<region>.azurecontainerapps.io/mcp.
 
 ## Updating the Deployment
 To apply changes:
