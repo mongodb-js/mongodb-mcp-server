@@ -23,6 +23,8 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
     - [Command-Line Arguments](#command-line-arguments)
     - [MCP Client Configuration](#mcp-configuration-file-examples)
     - [Proxy Support](#proxy-support)
+- [🚀 Deploy on Public Clouds](#deploy-on-public-clouds)
+    - [Azure Cloud](#azure)
 - [🤝 Contributing](#contributing)
 
 <a name="getting-started"></a>
@@ -687,6 +689,15 @@ The MCP Server will detect typical PROXY environment variables and use them for
 connecting to the Atlas API, your MongoDB Cluster, or any other external calls
 to third-party services like OID Providers. The behaviour is the same as what
 `mongosh` does, so the same settings will work in the MCP Server.
+
+## 🚀Deploy on Public Clouds
+
+You can deploy the MongoDB MCP Server to your preferred cloud provider using the deployment assets under `deploy/`. Each guide explains the prerequisites, configuration, and automation scripts that streamline the rollout.
+
+### Azure
+
+For detailed Azure instructions, see [deploy/azure/README.md](deploy/azure/README.md).
+
 
 ## 🤝Contributing
 
