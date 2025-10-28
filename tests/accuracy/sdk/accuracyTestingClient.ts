@@ -97,6 +97,7 @@ export class AccuracyTestingClient {
             command: process.execPath,
             args,
             env: {
+                ...process.env,
                 DO_NOT_TRACK: "1",
             },
         });
