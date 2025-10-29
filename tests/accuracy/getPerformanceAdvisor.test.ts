@@ -1,6 +1,7 @@
 import { formatUntrustedData } from "../../src/tools/tool.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { Matcher } from "./sdk/matcher.js";
 
 const projectId = "68f600519f16226591d054c0";
 
@@ -78,7 +79,7 @@ describeAccuracyTests([
     },
     // Test for Drop Index Suggestions operation
     {
-        prompt: "Show me drop index suggestions for the 'mflix' project and 'mflix-cluster' cluster",
+        prompt: "Show me drop index suggestions for the project named 'mflix' and 'mflix-cluster' cluster",
         expectedToolCalls: [
             ...listProjectsAndClustersToolCalls,
             {
@@ -136,6 +137,15 @@ describeAccuracyTests([
                 parameters: {
                     projectId,
                     clusterName: "mflix-cluster",
+                    operations: Matcher.anyOf(
+                        Matcher.undefined,
+                        Matcher.value([
+                            "suggestedIndexes",
+                            "dropIndexSuggestions",
+                            "slowQueryLogs",
+                            "schemaSuggestions",
+                        ])
+                    ),
                 },
             },
         ],

@@ -315,7 +315,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: "valid_key",
+            previewFeatures: ["vectorSearch"],
         }),
         downloadOptions: { search: true },
     }

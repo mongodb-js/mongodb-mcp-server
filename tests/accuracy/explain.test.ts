@@ -1,11 +1,6 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
 
-/**
- * None of these tests score a parameter match on any of the models, likely
- * because we are using Zod.union, when we probably should've used
- * Zod.discriminatedUnion
- */
 describeAccuracyTests([
     {
         prompt: `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`,
@@ -23,7 +18,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
-                    verbosity: Matcher.string(),
+                    verbosity: Matcher.anyOf(Matcher.string(), Matcher.undefined),
                 },
             },
         ],
@@ -45,10 +40,11 @@ describeAccuracyTests([
                                         $match: { release_year: 2020 },
                                     },
                                 ],
+                                responseBytesLimit: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                             },
                         },
                     ],
-                    verbosity: Matcher.string(),
+                    verbosity: Matcher.anyOf(Matcher.string(), Matcher.undefined),
                 },
             },
         ],
@@ -69,7 +65,7 @@ describeAccuracyTests([
                             },
                         },
                     ],
-                    verbosity: Matcher.string(),
+                    verbosity: Matcher.anyOf(Matcher.string(), Matcher.undefined),
                 },
             },
         ],

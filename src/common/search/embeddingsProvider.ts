@@ -27,13 +27,32 @@ export const zVoyageModels = z
     .enum(["voyage-3-large", "voyage-3.5", "voyage-3.5-lite", "voyage-code-3"])
     .default("voyage-3-large");
 
+// Zod does not undestand JS boxed numbers (like Int32) as integer literals,
+// so we preprocess them to unwrap them so Zod understands them.
+function unboxNumber(v: unknown): number {
+    if (v && typeof v === "object" && typeof v.valueOf === "function") {
+        const n = Number(v.valueOf());
+        if (!Number.isNaN(n)) return n;
+    }
+    return v as number;
+}
+
 export const zVoyageEmbeddingParameters = z.object({
     outputDimension: z
-        .union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)])
+        .preprocess(
+            unboxNumber,
+            z.union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)])
+        )
         .optional()
         .default(1024),
-    outputDType: z.enum(["float", "int8", "uint8", "binary", "ubinary"]).optional().default("float"),
+    outputDtype: z.enum(["float", "int8", "uint8", "binary", "ubinary"]).optional().default("float"),
 });
+
+const zVoyageAPIParameters = zVoyageEmbeddingParameters
+    .extend({
+        inputType: z.enum(["query", "document"]),
+    })
+    .strip();
 
 type VoyageModels = z.infer<typeof zVoyageModels>;
 type VoyageEmbeddingParameters = z.infer<typeof zVoyageEmbeddingParameters> & EmbeddingParameters;
@@ -53,8 +72,8 @@ class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels, Voyag
         this.voyage = createVoyage({ apiKey: voyageApiKey, fetch: customFetch });
     }
 
-    static isConfiguredIn({ voyageApiKey }: UserConfig): boolean {
-        return !!voyageApiKey;
+    static isConfiguredIn({ voyageApiKey, previewFeatures }: UserConfig): boolean {
+        return previewFeatures.includes("vectorSearch") && !!voyageApiKey;
     }
 
     async embed<Model extends VoyageModels>(
@@ -62,11 +81,15 @@ class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels, Voyag
         content: EmbeddingsInput[],
         parameters: VoyageEmbeddingParameters
     ): Promise<Embeddings[]> {
+        // This ensures that if we receive any random parameter from the outside (agent or us)
+        // it's stripped before sending it to Voyage, as Voyage will reject the request on
+        // a single unknown parameter.
+        const voyage = zVoyageAPIParameters.parse(parameters);
         const model = this.voyage.textEmbeddingModel(modelId);
         const { embeddings } = await embedMany({
             model,
             values: content,
-            providerOptions: { voyage: parameters },
+            providerOptions: { voyage },
         });
 
         return embeddings;

@@ -293,6 +293,7 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-create-db-user` - Creates a MongoDB Atlas database user
 - `atlas-list-alerts` - List MongoDB Atlas Alerts for a Project
+- `atlas-get-performance-advisor` - Gets Atlas Performance Advisor recommendations (index suggestions, drop index suggestions, schema suggestions, slow query logs)
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
@@ -368,6 +369,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `exportCleanupIntervalMs`              | `MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS`                | 120000                                                                      | Time in milliseconds between export cleanup cycles that remove expired export files.                                                                                                                    |
 | `atlasTemporaryDatabaseUserLifetimeMs` | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` | 14400000                                                                    | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                             |
 | `voyageApiKey`                         | `MDB_VOYAGE_API_KEY`                                | <not set>                                                                   | API key for communicating with Voyage AI. Used for generating embeddings for Vector search.                                                                                                             |
+| `previewFeatures`                      | `MDB_MCP_PREVIEW_FEATURES`                          | `[]`                                                                        | An array of preview features to opt into.                                                                                                                                                               |
 
 #### Logger Options
 
@@ -488,6 +490,19 @@ You can disable telemetry using:
 - **DO_NOT_TRACK environment variable**: `export DO_NOT_TRACK=1`
 
 > **💡 Platform Note:** For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
+
+#### Opting into Preview Features
+
+The MongoDB MCP Server may offer functionality that is still in development and may change in future releases. These features are considered "preview features" and are not enabled by default. Generally, these features are well tested, but may not offer the complete functionality we intend to provide in the final release or we'd like to gather feedback before making them generally available. To enable one or more preview features, use the `previewFeatures` configuration option.
+
+- For **environment variable** configuration, use a comma-separated string: `export MDB_MCP_PREVIEW_FEATURES="vectorSearch,feature1,feature2"`.
+- For **command-line argument** configuration, use a space-separated string: `--previewFeatures vectorSearch feature1 feature2`.
+
+List of available preview features:
+
+- `vectorSearch` - Enables tools or functionality related to Vector Search in MongoDB Atlas:
+  - Index management, such as creating, listing, and dropping vector search indexes.
+  - Querying collections using vector search capabilities. This requires a configured embedding model that will be used to generate vector representations of the query data.
 
 ### Atlas API Access
 

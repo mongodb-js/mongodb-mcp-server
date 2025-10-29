@@ -6,7 +6,7 @@ import type { Session } from "../common/session.js";
 import { LogId } from "../common/logger.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import { type ToolEvent } from "../telemetry/types.js";
-import type { UserConfig } from "../common/config.js";
+import type { PreviewFeature, UserConfig } from "../common/config.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 
@@ -14,10 +14,6 @@ export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNev
 export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback<Args>>;
 
 export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
-
-export const enum FeatureFlags {
-    VectorSearch = "vectorSearch",
-}
 
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
@@ -325,14 +321,8 @@ export abstract class ToolBase {
         this.telemetry.emitEvents([event]);
     }
 
-    // TODO: Move this to a separate file
-    protected isFeatureFlagEnabled(flag: FeatureFlags): boolean {
-        switch (flag) {
-            case FeatureFlags.VectorSearch:
-                return this.config.voyageApiKey !== "";
-            default:
-                return false;
-        }
+    protected isFeatureEnabled(feature: PreviewFeature): boolean {
+        return this.config.previewFeatures.includes(feature);
     }
 }
 

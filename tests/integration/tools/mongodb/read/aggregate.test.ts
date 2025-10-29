@@ -27,15 +27,25 @@ describeWithMongoDB("aggregate tool", (integration) => {
         ...databaseCollectionParameters,
         {
             name: "pipeline",
-            description:
-                "An array of aggregation stages to execute. $vectorSearch can only appear as the first stage of the aggregation pipeline or as the first stage of a $unionWith subpipeline. When using $vectorSearch, unless the user explicitly asks for the embeddings, $unset any embedding field to avoid reaching context limits.",
+            description: `An array of aggregation stages to execute.  
+\`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
+### Usage Rules for \`$vectorSearch\`
+- **Unset embeddings:**  
+  Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
+- **Pre-filtering:**
+If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
+    NEVER include fields in $vectorSearch.filter that are not part of the vector index.
+- **Post-filtering:**
+    For all remaining filters, add a $match stage after $vectorSearch.
+### Note to LLM
+- If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
+- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.`,
             type: "array",
             required: true,
         },
         {
             name: "responseBytesLimit",
-            description:
-                'The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.',
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.`,
             type: "number",
             required: false,
         },
@@ -395,6 +405,47 @@ describeWithMongoDB(
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
+        it("should throw an exception when using an index that does not exist", async () => {
+            await waitUntilSearchIsReady(integration.mongoClient());
+
+            const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
+
+            await collection.insertOne({ name: "mongodb", description_embedding: [1, 2, 3, 4] });
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "databases",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "non_existing",
+                                path: "description_embedding",
+                                queryVector: "example",
+                                numCandidates: 10,
+                                limit: 10,
+                                embeddingParameters: {
+                                    model: "voyage-3-large",
+                                    outputDimension: 256,
+                                },
+                            },
+                        },
+                        {
+                            $project: {
+                                description_embedding: 0,
+                            },
+                        },
+                    ],
+                },
+            });
+
+            const responseContent = getResponseContent(response);
+            expect(responseContent).toContain(
+                `Error running aggregate: Could not find an index with name "non_existing" in namespace "${integration.randomDbName()}.databases".`
+            );
+        });
+
         for (const [dataType, embedding] of Object.entries(DOCUMENT_EMBEDDINGS)) {
             for (const similarity of ["euclidean", "cosine", "dotProduct"]) {
                 describe.skipIf(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY)(
@@ -407,6 +458,7 @@ describeWithMongoDB(
                                 .mongoClient()
                                 .db(integration.randomDbName())
                                 .collection("databases");
+
                             await collection.insertOne({ name: "mongodb", description_embedding: embedding });
 
                             await createVectorSearchIndexAndWait(
@@ -673,8 +725,10 @@ describeWithMongoDB(
         getUserConfig: () => ({
             ...defaultTestConfig,
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            previewFeatures: ["vectorSearch"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
+            indexCheck: true,
         }),
         downloadOptions: { search: true },
     }

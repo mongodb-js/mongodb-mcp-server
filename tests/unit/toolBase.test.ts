@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ToolBase, type OperationType, type ToolCategory, type ToolConstructorParams } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
-import type { UserConfig } from "../../src/common/config.js";
+import type { PreviewFeature, UserConfig } from "../../src/common/config.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
 import type { CompositeLogger } from "../../src/common/logger.js";
@@ -32,6 +32,7 @@ describe("ToolBase", () => {
 
         mockConfig = {
             confirmationRequiredTools: [],
+            previewFeatures: [],
         } as unknown as UserConfig;
 
         mockTelemetry = {} as Telemetry;
@@ -98,6 +99,21 @@ describe("ToolBase", () => {
 
             expect(result).toBe(false);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("isFeatureEnabled", () => {
+        it("should return false for any feature by default", () => {
+            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(false);
+            expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(false);
+        });
+
+        it("should return true for enabled features", () => {
+            mockConfig.previewFeatures = ["vectorSearch", "someOtherFeature" as PreviewFeature];
+            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(true);
+            expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(true);
+
+            expect(testTool["isFeatureEnabled"]("anotherFeature" as PreviewFeature)).to.equal(false);
         });
     });
 });

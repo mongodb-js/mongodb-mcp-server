@@ -47,7 +47,7 @@ const VectorSearchStage = z.object({
             filter: zEJSON()
                 .optional()
                 .describe(
-                    "MQL filter that can only use pre-filter fields from the index definition. Note to LLM: If unsure, use the `collection-indexes` tool to learn which fields can be used for pre-filtering."
+                    "MQL filter that can only use filter fields from the index definition. Note to LLM: If unsure, use the `collection-indexes` tool to learn which fields can be used for filtering."
                 ),
             embeddingParameters: zSupportedEmbeddingParameters
                 .optional()
@@ -59,13 +59,23 @@ const VectorSearchStage = z.object({
 });
 
 export const AggregateArgs = {
-    pipeline: z
-        .array(z.union([AnyStage, VectorSearchStage]))
-        .describe(
-            "An array of aggregation stages to execute. $vectorSearch can only appear as the first stage of the aggregation pipeline or as the first stage of a $unionWith subpipeline. When using $vectorSearch, unless the user explicitly asks for the embeddings, $unset any embedding field to avoid reaching context limits."
-        ),
+    pipeline: z.array(z.union([AnyStage, VectorSearchStage])).describe(
+        `An array of aggregation stages to execute.  
+\`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
+### Usage Rules for \`$vectorSearch\`
+- **Unset embeddings:**  
+  Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
+- **Pre-filtering:**
+If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
+    NEVER include fields in $vectorSearch.filter that are not part of the vector index.
+- **Post-filtering:**
+    For all remaining filters, add a $match stage after $vectorSearch.
+### Note to LLM
+- If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
+- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.`
+    ),
     responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. \
+The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
 Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\
 `),
 };
@@ -90,11 +100,27 @@ export class AggregateTool extends MongoDBToolBase {
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
-                await checkIndexUsage(provider, database, collection, "aggregate", async () => {
-                    return provider
-                        .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
-                        .explain("queryPlanner");
+                const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed({
+                    database,
+                    collection,
+                    pipeline,
                 });
+                switch (usesVectorSearchIndex) {
+                    case "not-vector-search-query":
+                        await checkIndexUsage(provider, database, collection, "aggregate", async () => {
+                            return provider
+                                .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
+                                .explain("queryPlanner");
+                        });
+                        break;
+                    case "non-existent-index":
+                        throw new MongoDBError(
+                            ErrorCodes.AtlasVectorSearchIndexNotFound,
+                            `Could not find an index with name "${indexName}" in namespace "${database}.${collection}".`
+                        );
+                    case "valid-index":
+                    // nothing to do, everything is correct so ready to run the query
+                }
             }
 
             pipeline = await this.replaceRawValuesWithEmbeddingsIfNecessary({
@@ -267,6 +293,41 @@ export class AggregateTool extends MongoDBToolBase {
         }
 
         return pipeline;
+    }
+
+    private async isVectorSearchIndexUsed({
+        database,
+        collection,
+        pipeline,
+    }: {
+        database: string;
+        collection: string;
+        pipeline: Document[];
+    }): Promise<["valid-index" | "non-existent-index" | "not-vector-search-query", string?]> {
+        // check if the pipeline contains a $vectorSearch stage
+        let usesVectorSearch = false;
+        let indexName: string = "default";
+
+        for (const stage of pipeline) {
+            if ("$vectorSearch" in stage) {
+                const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;
+                usesVectorSearch = true;
+                indexName = vectorSearchStage.index;
+                break;
+            }
+        }
+
+        if (!usesVectorSearch) {
+            return ["not-vector-search-query"];
+        }
+
+        const indexExists = await this.session.vectorSearchEmbeddingsManager.indexExists({
+            database,
+            collection,
+            indexName,
+        });
+
+        return [indexExists ? "valid-index" : "non-existent-index", indexName];
     }
 
     private generateMessage({
