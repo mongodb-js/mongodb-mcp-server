@@ -49,6 +49,11 @@ export class InsertManyTool extends MongoDBToolBase {
             embeddingParameters,
         });
 
+        await this.session.vectorSearchEmbeddingsManager.assertFieldsHaveCorrectEmbeddings(
+            { database, collection },
+            documents
+        );
+
         const result = await provider.insertMany(database, collection, documents);
         const content = formatUntrustedData(
             "Documents were inserted successfully.",
@@ -119,11 +124,6 @@ export class InsertManyTool extends MongoDBToolBase {
             this.deleteFieldPath(processedDocuments[documentIndex], fieldPath);
             processedDocuments[documentIndex][fieldPath] = generatedEmbeddings[index];
         }
-
-        await this.session.vectorSearchEmbeddingsManager.assertFieldsHaveCorrectEmbeddings(
-            { database, collection },
-            processedDocuments
-        );
 
         return processedDocuments;
     }

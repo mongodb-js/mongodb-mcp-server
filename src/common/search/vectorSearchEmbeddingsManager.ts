@@ -6,6 +6,7 @@ import z from "zod";
 import { ErrorCodes, MongoDBError } from "../errors.js";
 import { getEmbeddingsProvider } from "./embeddingsProvider.js";
 import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
+import { formatUntrustedData } from "../../tools/tool.js";
 
 export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
 export type Similarity = z.infer<typeof similarityEnum>;
@@ -120,7 +121,12 @@ export class VectorSearchEmbeddingsManager {
                     `actual quantization: ${validation.actualQuantization}. Error: ${validation.error}`
             );
 
-            throw new MongoDBError(ErrorCodes.AtlasVectorSearchInvalidQuery, embeddingValidationMessages.join("\n"));
+            throw new MongoDBError(
+                ErrorCodes.AtlasVectorSearchInvalidQuery,
+                formatUntrustedData("", ...embeddingValidationMessages)
+                    .map(({ text }) => text)
+                    .join("\n")
+            );
         }
     }
 

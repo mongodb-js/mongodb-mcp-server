@@ -180,7 +180,7 @@ describeWithMongoDB(
             });
 
             const content = getResponseContent(response.content);
-            expect(content).toContain("There were errors when inserting documents. No document was inserted.");
+            expect(content).toContain("Error running insert-many");
             const untrustedContent = getDataFromUntrustedContent(content);
             expect(untrustedContent).toContain(
                 "- Field embedding is an embedding with 8 dimensions and scalar quantization, and the provided value is not compatible. Actual dimensions: unknown, actual quantization: unknown. Error: not-a-vector"
