@@ -25,11 +25,15 @@ export class InsertManyTool extends MongoDBToolBase {
             .describe(
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
             ),
-        embeddingParameters: zSupportedEmbeddingParametersWithInput
-            .optional()
-            .describe(
-                "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
-            ),
+        ...(this.isFeatureEnabled("vectorSearch")
+            ? {
+                  embeddingParameters: zSupportedEmbeddingParametersWithInput
+                      .optional()
+                      .describe(
+                          "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
+                      ),
+              }
+            : {}),
     };
     public operationType: OperationType = "create";
 
@@ -37,9 +41,13 @@ export class InsertManyTool extends MongoDBToolBase {
         database,
         collection,
         documents,
-        embeddingParameters,
+        embeddingParameters: providedEmbeddingParameters,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
+
+        const embeddingParameters = this.isFeatureEnabled("vectorSearch")
+            ? (providedEmbeddingParameters as z.infer<typeof zSupportedEmbeddingParametersWithInput>)
+            : undefined;
 
         // Process documents to replace raw string values with generated embeddings
         documents = await this.replaceRawValuesWithEmbeddingsIfNecessary({

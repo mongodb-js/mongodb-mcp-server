@@ -28,13 +28,6 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
             required: true,
         },
-        {
-            name: "embeddingParameters",
-            type: "object",
-            description:
-                "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one.",
-            required: false,
-        },
     ]);
 
     validateThrowsForInvalidArguments(integration, "insert-many", [
@@ -598,8 +591,39 @@ describeWithMongoDB(
         getUserConfig: () => ({
             ...defaultTestConfig,
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            previewFeatures: ["vectorSearch"],
         }),
         downloadOptions: { search: true },
+    }
+);
+
+describeWithMongoDB(
+    "insertMany tool when vector search is enabled",
+    (integration) => {
+        validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [
+            ...databaseCollectionParameters,
+            {
+                name: "documents",
+                type: "array",
+                description:
+                    "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
+                required: true,
+            },
+            {
+                name: "embeddingParameters",
+                type: "object",
+                description:
+                    "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one.",
+                required: false,
+            },
+        ]);
+    },
+    {
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            voyageApiKey: "valid-key",
+            previewFeatures: ["vectorSearch"],
+        }),
     }
 );
 
