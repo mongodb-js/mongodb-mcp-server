@@ -22,6 +22,9 @@ function sleep(ms: number): Promise<void> {
 export const ConnectClusterArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
+    connectionType: AtlasArgs.connectionType().describe(
+        "Type of connection (standard, private, or privateEndpoint) to an Atlas cluster"
+    ),
 };
 
 export class ConnectClusterTool extends AtlasToolBase {
