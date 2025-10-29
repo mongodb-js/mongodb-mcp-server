@@ -166,7 +166,7 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({
                 name: "insert-many",
                 arguments: {
-                    database: integration.randomDbName(),
+                    database: database,
                     collection: "test",
                     documents: [{ embedding: "oopsie" }],
                 },
@@ -237,7 +237,7 @@ describeWithMongoDB(
             });
 
             it("generates embeddings for multiple documents with the same field", async () => {
-                await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "test", [
+                await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                     {
                         type: "vector",
                         path: "titleEmbeddings",
@@ -250,7 +250,7 @@ describeWithMongoDB(
                 const response = await integration.mcpClient().callTool({
                     name: "insert-many",
                     arguments: {
-                        database: integration.randomDbName(),
+                        database: database,
                         collection: "test",
                         documents: [
                             {
@@ -388,7 +388,7 @@ describeWithMongoDB(
             });
 
             it("removes redundant nested field from document when embeddings are generated", async () => {
-                await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "test", [
+                await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                     {
                         type: "vector",
                         path: "title.embeddings",
@@ -422,7 +422,7 @@ describeWithMongoDB(
             });
 
             it("returns an error when input field does not have a vector search index", async () => {
-                await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "test", [
+                await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                     {
                         type: "vector",
                         path: "titleEmbeddings",
