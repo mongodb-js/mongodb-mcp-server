@@ -31,7 +31,7 @@ export class InspectClusterTool extends AtlasToolBase {
             instanceSize: formattedCluster.instanceSize || "N/A",
             state: formattedCluster.state || "UNKNOWN",
             mongoDBVersion: formattedCluster.mongoDBVersion || "N/A",
-            connectionStrings: formattedCluster.connectionStrings || "N/A",
+            connectionStrings: formattedCluster.connectionStrings || {},
         };
 
         return {
