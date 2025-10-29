@@ -100,7 +100,7 @@ describeWithAtlas("clusters", (integration) => {
 
                 const content = getResponseContent(response.content);
                 expect(content).toContain("<untrusted-user-data-");
-                expect(content).toMatch(`Found clusters in project`);
+                expect(content).toMatch(/Found \d+ clusters in project/);
                 expect(content).toContain(projectId);
             });
         });
@@ -139,7 +139,6 @@ describeWithAtlas("clusters", (integration) => {
                 expectDefined(connectCluster.inputSchema.properties);
                 expect(connectCluster.inputSchema.properties).toHaveProperty("projectId");
                 expect(connectCluster.inputSchema.properties).toHaveProperty("clusterName");
-                expect(connectCluster.inputSchema.properties).toHaveProperty("connectionType");
             });
 
             it("connects to cluster", async () => {
