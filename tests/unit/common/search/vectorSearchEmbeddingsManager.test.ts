@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { MockedFunction } from "vitest";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import type {
@@ -411,7 +411,7 @@ describe("VectorSearchEmbeddingsManager", () => {
             );
         });
 
-        describe("when atlas search is not available", () => {
+        describe("assertVectorSearchIndexExists", () => {
             beforeEach(() => {
                 embeddings = new VectorSearchEmbeddingsManager(
                     embeddingValidationEnabled,
@@ -419,12 +419,57 @@ describe("VectorSearchEmbeddingsManager", () => {
                     new Map(),
                     getMockedEmbeddingsProvider
                 );
-
-                provider.getSearchIndexes.mockRejectedValue(new Error());
             });
 
-            it("throws an exception", async () => {
-                await expect(embeddings.generateEmbeddings(embeddingToGenerate)).rejects.toThrowError();
+            afterEach(() => {
+                provider.getSearchIndexes.mockReset();
+            });
+
+            it("does not throw an exception when index is available for path", async () => {
+                provider.getSearchIndexes.mockResolvedValue([
+                    {
+                        id: "65e8c766d0450e3e7ab9855f",
+                        name: "vector-search-test",
+                        type: "vectorSearch",
+                        status: "READY",
+                        queryable: true,
+                        latestDefinition: {
+                            fields: [
+                                {
+                                    type: "vector",
+                                    path: embeddingToGenerate.path,
+                                    numDimensions: 1024,
+                                    similarity: "euclidean",
+                                },
+                            ],
+                        },
+                    },
+                ]);
+                await expect(
+                    embeddings.assertVectorSearchIndexExists({
+                        database,
+                        collection,
+                        path: embeddingToGenerate.path,
+                    })
+                ).resolves.not.toThrowError();
+            });
+
+            it("throws an exception when atlas search is not available", async () => {
+                provider.getSearchIndexes.mockRejectedValue(new Error());
+                await expect(
+                    embeddings.assertVectorSearchIndexExists({
+                        database,
+                        collection,
+                        path: embeddingToGenerate.path,
+                    })
+                ).rejects.toThrowError();
+            });
+
+            it("throws an exception when no index is available for path", async () => {
+                provider.getSearchIndexes.mockResolvedValue([]);
+                await expect(
+                    embeddings.assertVectorSearchIndexExists({ database, collection, path: embeddingToGenerate.path })
+                ).rejects.toThrowError();
             });
         });
 
@@ -457,12 +502,6 @@ describe("VectorSearchEmbeddingsManager", () => {
                         new Map(),
                         getMockedEmbeddingsProvider
                     );
-                });
-
-                describe("when no index is available for path", () => {
-                    it("throws an exception", async () => {
-                        await expect(embeddings.generateEmbeddings(embeddingToGenerate)).rejects.toThrowError();
-                    });
                 });
 
                 describe("when index is available on path", () => {

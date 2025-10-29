@@ -28,7 +28,7 @@ export class InsertManyTool extends MongoDBToolBase {
         embeddingParameters: zSupportedEmbeddingParametersWithInput
             .optional()
             .describe(
-                "The embedding model and its parameters to use to generate embeddings for fields that have vector search indexes. When a field has a vector search index and contains a plain text string in the document, embeddings will be automatically generated from that string value. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
+                "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
             ),
     };
     public operationType: OperationType = "create";

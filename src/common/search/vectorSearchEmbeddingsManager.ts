@@ -124,7 +124,7 @@ export class VectorSearchEmbeddingsManager {
         }
     }
 
-    private async findFieldsWithWrongEmbeddings(
+    public async findFieldsWithWrongEmbeddings(
         {
             database,
             collection,
