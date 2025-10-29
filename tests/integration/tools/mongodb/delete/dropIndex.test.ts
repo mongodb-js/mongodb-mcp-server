@@ -395,10 +395,11 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
 
                         describe.each([
-                            { description: "search", indexName: getSearchIndexName() },
-                            { description: "vector search", indexName: getVectorIndexName() },
-                        ])("and attempting to delete an existing $description index", ({ indexName }) => {
+                            { description: "search", getIndexName: getSearchIndexName },
+                            { description: "vector search", getIndexName: getVectorIndexName },
+                        ])("and attempting to delete an existing $description index", ({ getIndexName }) => {
                             it("should succeed in deleting the index", async () => {
+                                const indexName = getIndexName();
                                 const collection = getMoviesCollection();
                                 let indexes = await collection.listSearchIndexes().toArray();
                                 expect(indexes.find((idx) => idx.name === indexName)).toBeDefined();
