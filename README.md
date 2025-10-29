@@ -24,7 +24,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
     - [MCP Client Configuration](#mcp-configuration-file-examples)
     - [Proxy Support](#proxy-support)
 - [🚀 Deploy on Public Clouds](#deploy-on-public-clouds)
-    - [Azure Cloud](#azure)
+  - [Azure Cloud](#azure)
 - [🤝 Contributing](#contributing)
 
 <a name="getting-started"></a>
@@ -697,7 +697,6 @@ You can deploy the MongoDB MCP Server to your preferred cloud provider using the
 ### Azure
 
 For detailed Azure instructions, see [deploy/azure/README.md](deploy/azure/README.md).
-
 
 ## 🤝Contributing
 

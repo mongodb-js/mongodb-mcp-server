@@ -24,6 +24,8 @@
     "authClientId": { "value": "<AUTH_CLIENT_ID>" },
     "authIssuerUrl": { "value": "<AUTH_ISSUER_URL>" },
     "authTenantId": { "value": "<AUTH_TENANT_ID>" },
-    "authAllowedClientApps": { "value": ["<AUTH_ALLOWED_CLIENT_APP_1>","<AUTH_ALLOWED_CLIENT_APP_2>"] }
+    "authAllowedClientApps": {
+      "value": ["<AUTH_ALLOWED_CLIENT_APP_1>", "<AUTH_ALLOWED_CLIENT_APP_2>"]
+    }
   }
 }
