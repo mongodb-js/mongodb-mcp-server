@@ -2,7 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { type OperationType, type ToolArgs, formatUntrustedData } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { Cluster } from "../../../common/atlas/cluster.js";
-import { inspectCluster } from "../../../common/atlas/cluster.js";
+import { getConnectionString, inspectCluster } from "../../../common/atlas/cluster.js";
 import { AtlasArgs } from "../../args.js";
 
 export const InspectClusterArgs = {
@@ -31,10 +31,7 @@ export class InspectClusterTool extends AtlasToolBase {
             instanceSize: formattedCluster.instanceSize || "N/A",
             state: formattedCluster.state || "UNKNOWN",
             mongoDBVersion: formattedCluster.mongoDBVersion || "N/A",
-            connectionString:
-                formattedCluster.connectionStrings?.standardSrv ||
-                formattedCluster.connectionStrings?.standard ||
-                "N/A",
+            connectionStrings: formattedCluster.connectionStrings || "N/A",
         };
 
         return {
