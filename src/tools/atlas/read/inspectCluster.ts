@@ -2,7 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { type OperationType, type ToolArgs, formatUntrustedData } from "../../tool.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { Cluster } from "../../../common/atlas/cluster.js";
-import { getConnectionString, inspectCluster } from "../../../common/atlas/cluster.js";
+import { inspectCluster } from "../../../common/atlas/cluster.js";
 import { AtlasArgs } from "../../args.js";
 
 export const InspectClusterArgs = {
