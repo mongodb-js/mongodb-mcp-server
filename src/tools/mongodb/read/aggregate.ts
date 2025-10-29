@@ -276,21 +276,36 @@ export class AggregateTool extends MongoDBToolBase {
                 const embeddingParameters = vectorSearchStage.embeddingParameters;
                 delete vectorSearchStage.embeddingParameters;
 
-                const [embeddings] = await this.session.vectorSearchEmbeddingsManager.generateEmbeddings({
+                await this.session.vectorSearchEmbeddingsManager.assertVectorSearchIndexExists({
                     database,
                     collection,
                     path: vectorSearchStage.path,
+                });
+
+                const [embeddings] = await this.session.vectorSearchEmbeddingsManager.generateEmbeddings({
                     rawValues: [vectorSearchStage.queryVector],
                     embeddingParameters,
                     inputType: "query",
                 });
 
+                if (!embeddings) {
+                    throw new MongoDBError(
+                        ErrorCodes.AtlasVectorSearchInvalidQuery,
+                        "Failed to generate embeddings for the query vector."
+                    );
+                }
+
                 // $vectorSearch.queryVector can be a BSON.Binary: that it's not either number or an array.
                 // It's not exactly valid from the LLM perspective (they can't provide binaries).
                 // That's why we overwrite the stage in an untyped way, as what we expose and what LLMs can use is different.
-                vectorSearchStage.queryVector = embeddings as number[];
+                vectorSearchStage.queryVector = embeddings;
             }
         }
+
+        await this.session.vectorSearchEmbeddingsManager.assertFieldsHaveCorrectEmbeddings(
+            { database, collection },
+            pipeline
+        );
 
         return pipeline;
     }
