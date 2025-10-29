@@ -44,10 +44,10 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
  * the project and organization IDs if available.
  */
 export type TelemetryToolMetadata = {
-    projectId?: string;
-    orgId?: string;
-    atlasLocaldeploymentId?: string;
-};
+    project_id?: string;
+    org_id?: string;
+    atlas_local_deployment_id?: string;
+} & Record<string, string | number | string[]>;
 
 export type ToolConstructorParams = {
     session: Session;
@@ -303,20 +303,9 @@ export abstract class ToolBase {
                 component: "tool",
                 duration_ms: duration,
                 result: result.isError ? "failure" : "success",
+                ...metadata,
             },
         };
-
-        if (metadata?.orgId) {
-            event.properties.org_id = metadata.orgId;
-        }
-
-        if (metadata?.projectId) {
-            event.properties.project_id = metadata.projectId;
-        }
-
-        if (metadata?.atlasLocaldeploymentId) {
-            event.properties.atlas_local_deployment_id = metadata.atlasLocaldeploymentId;
-        }
 
         this.telemetry.emitEvents([event]);
     }

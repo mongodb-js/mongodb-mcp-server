@@ -125,7 +125,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         // If the deployment ID is set, we use it for telemetry
         const resultDeploymentId = result._meta?.[AtlasLocalToolMetadataDeploymentIdKey];
         if (resultDeploymentId !== undefined && typeof resultDeploymentId === "string") {
-            toolMetadata.atlasLocaldeploymentId = resultDeploymentId;
+            toolMetadata.atlas_local_deployment_id = resultDeploymentId;
         }
 
         return toolMetadata;

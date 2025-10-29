@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { CallToolResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { OperationType, TelemetryToolMetadata, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import {
     getSuggestedIndexes,
@@ -13,6 +13,7 @@ import {
     SLOW_QUERY_LOGS_COPY,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
 import { AtlasArgs } from "../../args.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 
 const PerformanceAdvisorOperationType = z.enum([
     "suggestedIndexes",
@@ -129,5 +130,15 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                 ],
             };
         }
+    }
+
+    protected override resolveTelemetryMetadata(
+        result: CallToolResult,
+        args: ToolArgs<typeof this.argsShape>,
+        extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+    ): TelemetryToolMetadata {
+        const baseMetadata = super.resolveTelemetryMetadata(result, args, extra);
+        baseMetadata.operations = args.operations;
+        return baseMetadata;
     }
 }
