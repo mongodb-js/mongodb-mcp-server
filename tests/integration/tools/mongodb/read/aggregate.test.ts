@@ -405,6 +405,47 @@ describeWithMongoDB(
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
+        it("should throw an exception when using an index that does not exist", async () => {
+            await waitUntilSearchIsReady(integration.mongoClient());
+
+            const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
+
+            await collection.insertOne({ name: "mongodb", description_embedding: [1, 2, 3, 4] });
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "databases",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "non_existing",
+                                path: "description_embedding",
+                                queryVector: "example",
+                                numCandidates: 10,
+                                limit: 10,
+                                embeddingParameters: {
+                                    model: "voyage-3-large",
+                                    outputDimension: 256,
+                                },
+                            },
+                        },
+                        {
+                            $project: {
+                                description_embedding: 0,
+                            },
+                        },
+                    ],
+                },
+            });
+
+            const responseContent = getResponseContent(response);
+            expect(responseContent).toContain(
+                `Error running aggregate: Could not find an index with name "non_existing" in namespace "${integration.randomDbName()}.databases".`
+            );
+        });
+
         for (const [dataType, embedding] of Object.entries(DOCUMENT_EMBEDDINGS)) {
             for (const similarity of ["euclidean", "cosine", "dotProduct"]) {
                 describe.skipIf(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY)(
@@ -417,6 +458,7 @@ describeWithMongoDB(
                                 .mongoClient()
                                 .db(integration.randomDbName())
                                 .collection("databases");
+
                             await collection.insertOne({ name: "mongodb", description_embedding: embedding });
 
                             await createVectorSearchIndexAndWait(
@@ -686,6 +728,7 @@ describeWithMongoDB(
             previewFeatures: ["vectorSearch"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
+            indexCheck: true,
         }),
         downloadOptions: { search: true },
     }
