@@ -146,7 +146,7 @@ When adding new tools to the MCP server:
 To release a new version of the MCP server, follow these steps:
 
 1. Ensure there is a Jira _Release_ ticket in the [`MCP` project](https://jira.mongodb.org/projects/MCP) for the new release and move it to _In Progress_.
-2. Verify that the Jira tickets you expect to be released are correctly mapped to the _Release_ ticket. Add any additional required documentation to the release ticket.
+2. Verify that the Jira tickets you expect to be released are correctly mapped to the expected Release version. Add any additional required documentation to the release ticket.
 3. To create a new version, go to the GitHub repository Actions tab and run the "Prepare Release" workflow with one of the following options:
    - `patch` (e.g., 1.0.0 → 1.0.1) for backward-compatible bug fixes
    - `minor` (e.g., 1.0.0 → 1.1.0) for backward-compatible new features
