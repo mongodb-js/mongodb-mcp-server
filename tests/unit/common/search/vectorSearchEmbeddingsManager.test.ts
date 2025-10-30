@@ -390,6 +390,149 @@ describe("VectorSearchEmbeddingsManager", () => {
         });
     });
 
+    describe("assertFieldsHaveCorrectEmbeddings", () => {
+        it("does not throw for invalid documents when validation is disabled", async () => {
+            const embeddings = new VectorSearchEmbeddingsManager(
+                embeddingValidationDisabled,
+                connectionManager,
+                embeddingConfig
+            );
+            await expect(
+                embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                    { embedding_field: "some text" },
+                    { embedding_field: [1, 2, 3] },
+                ])
+            ).resolves.not.toThrow();
+        });
+
+        describe("when validation is enabled", () => {
+            let embeddings: VectorSearchEmbeddingsManager;
+
+            beforeEach(() => {
+                embeddings = new VectorSearchEmbeddingsManager(
+                    embeddingValidationEnabled,
+                    connectionManager,
+                    embeddingConfig
+                );
+            });
+
+            it("does not throw when all documents are valid", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3, 4, 5, 6, 7, 8] },
+                        { embedding_field: [9, 10, 11, 12, 13, 14, 15, 16] },
+                        { field: "no embeddings here" },
+                    ])
+                ).resolves.not.toThrow();
+            });
+
+            it("throws error when one document has wrong dimensions", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                    ])
+                ).rejects.toThrow(/Field embedding_field is an embedding with 8 dimensions/);
+            });
+
+            it("throws error when one document has wrong type", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: "some text" },
+                    ])
+                ).rejects.toThrow(/Field embedding_field is an embedding with 8 dimensions/);
+            });
+
+            it("throws error when one document has non-numeric values", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: ["1", "2", "3", "4", "5", "6", "7", "8"] },
+                    ])
+                ).rejects.toThrow(/Field embedding_field is an embedding with 8 dimensions/);
+            });
+
+            it("throws error with details about dimension mismatch", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                    ])
+                ).rejects.toThrow(/Actual dimensions: 3/);
+            });
+
+            it("throws error with details about quantization", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                    ])
+                ).rejects.toThrow(/actual quantization: scalar/);
+            });
+
+            it("throws error with details about error type", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                    ])
+                ).rejects.toThrow(/Error: dimension-mismatch/);
+            });
+
+            it("throws error when multiple documents have invalid embeddings", async () => {
+                try {
+                    await embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                        { embedding_field: "some text" },
+                    ]);
+                    expect.fail("Should have thrown an error");
+                } catch (error) {
+                    expect((error as Error).message).toContain("Field embedding_field");
+                    expect((error as Error).message).toContain("dimension-mismatch");
+                }
+            });
+
+            it("handles documents with multiple invalid fields", async () => {
+                try {
+                    await embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        {
+                            embedding_field: [1, 2, 3],
+                            embedding_field_binary: "not binary",
+                        },
+                    ]);
+                    expect.fail("Should have thrown an error");
+                } catch (error) {
+                    expect((error as Error).message).toContain("Field embedding_field");
+                    expect((error as Error).message).toContain("Field embedding_field_binary");
+                }
+            });
+
+            it("handles mix of valid and invalid documents", async () => {
+                try {
+                    await embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3, 4, 5, 6, 7, 8] }, // valid
+                        { embedding_field: [1, 2, 3] }, // invalid
+                        { valid_field: "no embeddings" }, // valid (no embedding field)
+                    ]);
+                    expect.fail("Should have thrown an error");
+                } catch (error) {
+                    expect((error as Error).message).toContain("Field embedding_field");
+                    expect((error as Error).message).toContain("dimension-mismatch");
+                    expect((error as Error).message).not.toContain("Field valid_field");
+                }
+            });
+
+            it("handles nested fields with validation errors", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { a: { nasty: { scalar: { field: [1, 2, 3] } } } },
+                    ])
+                ).rejects.toThrow(/Field a\.nasty\.scalar\.field/);
+            });
+
+            it("handles empty document array", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [])
+                ).resolves.not.toThrow();
+            });
+        });
+    });
+
     describe("generate embeddings", () => {
         const embeddingToGenerate = {
             database: "mydb",

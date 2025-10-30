@@ -108,13 +108,14 @@ export class VectorSearchEmbeddingsManager {
         { database, collection }: { database: string; collection: string },
         documents: Document[]
     ): Promise<void> {
-        const embeddingValidationResults = await Promise.all(
-            documents.map((document) => this.findFieldsWithWrongEmbeddings({ database, collection }, document))
-        );
-        const embeddingValidations = new Set(embeddingValidationResults.flat());
+        const embeddingValidationResults = (
+            await Promise.all(
+                documents.map((document) => this.findFieldsWithWrongEmbeddings({ database, collection }, document))
+            )
+        ).flat();
 
-        if (embeddingValidations.size > 0) {
-            const embeddingValidationMessages = Array.from(embeddingValidations).map(
+        if (embeddingValidationResults.length > 0) {
+            const embeddingValidationMessages = embeddingValidationResults.map(
                 (validation) =>
                     `- Field ${validation.path} is an embedding with ${validation.expectedNumDimensions} dimensions and ${validation.expectedQuantization}` +
                     ` quantization, and the provided value is not compatible. Actual dimensions: ${validation.actualNumDimensions}, ` +
@@ -293,7 +294,7 @@ export class VectorSearchEmbeddingsManager {
         rawValues: string[];
         embeddingParameters: SupportedEmbeddingParameters;
         inputType: EmbeddingParameters["inputType"];
-    }): Promise<number[][]> {
+    }): Promise<unknown[][]> {
         const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             throw new MongoDBError(

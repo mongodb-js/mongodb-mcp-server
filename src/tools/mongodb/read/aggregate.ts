@@ -298,7 +298,7 @@ export class AggregateTool extends MongoDBToolBase {
                 // $vectorSearch.queryVector can be a BSON.Binary: that it's not either number or an array.
                 // It's not exactly valid from the LLM perspective (they can't provide binaries).
                 // That's why we overwrite the stage in an untyped way, as what we expose and what LLMs can use is different.
-                vectorSearchStage.queryVector = embeddings;
+                vectorSearchStage.queryVector = embeddings as string | number[];
             }
         }
 
