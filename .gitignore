@@ -13,3 +13,5 @@ tests/tmp
 coverage
 # Generated assets by accuracy runs
 .accuracy
+
+.DS_Store
