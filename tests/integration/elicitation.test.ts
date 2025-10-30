@@ -9,7 +9,6 @@ import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 function createTestConfig(config: Partial<UserConfig> = {}): UserConfig {
     return {
         ...defaultTestConfig,
-        telemetry: "disabled",
         // Add fake API credentials so Atlas tools get registered
         apiClientId: "test-client-id",
         apiClientSecret: "test-client-secret",

@@ -76,6 +76,10 @@ npm test -- path/to/test/file.test.ts
 npm test -- path/to/directory
 ```
 
+#### Accuracy Tests and colima
+
+If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, you will need to apply [additional configuration](https://node.testcontainers.org/supported-container-runtimes/#colima) to ensure the accuracy tests run correctly.
+
 ## Troubleshooting
 
 ### Restart Server
