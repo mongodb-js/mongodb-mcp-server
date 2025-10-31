@@ -31,8 +31,8 @@ export class ListAlertsTool extends AtlasToolBase {
         const alerts = data.results.map((alert) => ({
             id: alert.id,
             status: alert.status,
-            created: alert.created ? new Date(alert.created).toISOString() : null,
-            updated: alert.updated ? new Date(alert.updated).toISOString() : null,
+            created: alert.created ? new Date(alert.created).toISOString() : "N/A",
+            updated: alert.updated ? new Date(alert.updated).toISOString() : "N/A",
             eventTypeName: alert.eventTypeName,
             acknowledgementComment: alert.acknowledgementComment ?? "N/A",
         }));
