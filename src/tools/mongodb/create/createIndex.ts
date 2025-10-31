@@ -4,7 +4,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
-import { similarityValues, type Similarity } from "../../../common/schemas.js";
+import { similarityValues } from "../../../common/schemas.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
     private vectorSearchIndexDefinition = z.object({
