@@ -14,10 +14,10 @@ import type { InsertOneResult } from "mongodb";
 import type { DropDatabaseResult } from "@mongosh/service-provider-node-driver/lib/node-driver-service-provider.js";
 import EventEmitter from "events";
 import {
-    type EmbeddingParameters,
     type EmbeddingsProvider,
     type getEmbeddingsProvider,
 } from "../../../../src/common/search/embeddingsProvider.js";
+import type { EmbeddingParameters } from "../../../../src/tools/mongodb/mongodbSchemas.js";
 
 type MockedServiceProvider = NodeDriverServiceProvider & {
     getSearchIndexes: MockedFunction<NodeDriverServiceProvider["getSearchIndexes"]>;
