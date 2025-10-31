@@ -181,6 +181,21 @@ interface ConfigFieldMeta {
  */
 export const configRegistry = z4.registry<ConfigFieldMeta>();
 
+function getLocalDataPath(): string {
+    return process.platform === "win32"
+        ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), "mongodb")
+        : path.join(os.homedir(), ".mongodb");
+}
+
+export function getLogPath(): string {
+    const logPath = path.join(getLocalDataPath(), "mongodb-mcp", ".app-logs");
+    return logPath;
+}
+
+export function getExportsPath(): string {
+    return path.join(getLocalDataPath(), "mongodb-mcp", "exports");
+}
+
 export const UserConfigSchema = z4.object({
     apiBaseUrl: z4.string().default("https://cloud.mongodb.com/"),
     apiClientId: z4
@@ -209,6 +224,7 @@ export const UserConfigSchema = z4.object({
         }),
     logPath: z4
         .string()
+        .default(getLogPath())
         .describe("Folder to store logs.")
         .register(configRegistry, { defaultValueDescription: "see below*" }),
     disabledTools: z4
@@ -282,6 +298,7 @@ export const UserConfigSchema = z4.object({
         ),
     exportsPath: z4
         .string()
+        .default(getExportsPath())
         .describe("Folder to store exported data files.")
         .register(configRegistry, { defaultValueDescription: "see below*" }),
     exportTimeoutMs: z4
@@ -327,52 +344,13 @@ export const UserConfigSchema = z4.object({
 export type PreviewFeature = z4.infer<typeof UserConfigSchema>["previewFeatures"][number];
 export type UserConfig = z4.infer<typeof UserConfigSchema> & CliOptions;
 
-export const defaultUserConfig: UserConfig = {
-    apiBaseUrl: "https://cloud.mongodb.com/",
-    logPath: getLogPath(),
-    exportsPath: getExportsPath(),
-    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-    disabledTools: [],
-    telemetry: "enabled",
-    readOnly: false,
-    indexCheck: false,
-    confirmationRequiredTools: [
-        "atlas-create-access-list",
-        "atlas-create-db-user",
-        "drop-database",
-        "drop-collection",
-        "delete-many",
-        "drop-index",
-    ],
-    transport: "stdio",
-    httpPort: 3000,
-    httpHost: "127.0.0.1",
-    loggers: ["disk", "mcp"],
-    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-    httpHeaders: {},
-    maxDocumentsPerQuery: 100, // By default, we only fetch a maximum 100 documents per query / aggregation
-    maxBytesPerQuery: 16 * 1024 * 1024, // By default, we only return ~16 mb of data per query / aggregation
-    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-    voyageApiKey: "",
-    disableEmbeddingsValidation: false,
-    vectorSearchDimensions: 1024,
-    vectorSearchSimilarityFunction: "euclidean",
-    previewFeatures: [],
-};
+export const defaultUserConfig: UserConfig = UserConfigSchema.parse({});
 
 export const config = setupUserConfig({
     defaults: defaultUserConfig,
     cli: process.argv,
     env: process.env,
 });
-
-function getLocalDataPath(): string {
-    return process.platform === "win32"
-        ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), "mongodb")
-        : path.join(os.homedir(), ".mongodb");
-}
 
 export type DriverOptions = ConnectionInfo["driverOptions"];
 export const defaultDriverOptions: DriverOptions = {
@@ -387,15 +365,6 @@ export const defaultDriverOptions: DriverOptions = {
     proxy: { useEnvironmentVariableProxies: true },
     applyProxyToOIDC: true,
 };
-
-function getLogPath(): string {
-    const logPath = path.join(getLocalDataPath(), "mongodb-mcp", ".app-logs");
-    return logPath;
-}
-
-function getExportsPath(): string {
-    return path.join(getLocalDataPath(), "mongodb-mcp", "exports");
-}
 
 // Gets the config supplied by the user as environment variables. The variable names
 // are prefixed with `MDB_MCP_` and the keys match the UserConfig keys, but are converted

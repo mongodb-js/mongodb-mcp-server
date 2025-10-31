@@ -5,12 +5,55 @@ import {
     defaultUserConfig,
     registerKnownSecretsInRootKeychain,
     warnAboutDeprecatedOrUnknownCliArgs,
+    getLogPath,
+    getExportsPath,
 } from "../../../src/common/config.js";
 import type { CliOptions } from "@mongosh/arg-parser";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
 
 describe("config", () => {
+    it("should generate defaults from UserConfigSchema that match expected values", () => {
+        // Expected hardcoded values (what we had before)
+        const expectedDefaults = {
+            apiBaseUrl: "https://cloud.mongodb.com/",
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            logPath: getLogPath() as string,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            exportsPath: getExportsPath() as string,
+            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
+            disabledTools: [],
+            telemetry: "enabled",
+            readOnly: false,
+            indexCheck: false,
+            confirmationRequiredTools: [
+                "atlas-create-access-list",
+                "atlas-create-db-user",
+                "drop-database",
+                "drop-collection",
+                "delete-many",
+                "drop-index",
+            ],
+            transport: "stdio",
+            httpPort: 3000,
+            httpHost: "127.0.0.1",
+            loggers: ["disk", "mcp"],
+            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+            httpHeaders: {},
+            maxDocumentsPerQuery: 100,
+            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+            voyageApiKey: "",
+            vectorSearchDimensions: 1024,
+            vectorSearchSimilarityFunction: "euclidean",
+            previewFeatures: [],
+        };
+
+        expect(defaultUserConfig).toStrictEqual(expectedDefaults);
+    });
+
     describe("env var parsing", () => {
         describe("mongodb urls", () => {
             it("should not try to parse a multiple-host urls", () => {
