@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectFieldsFromVectorSearchFilter } from "../../../src/helpers/collectFieldsFromVectorSearchFilter.js";
+import { collectFieldsFromVectorSearchFilter } from "../../../src/helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
 describe("#collectFieldsFromVectorSearchFilter", () => {
     it("should return empty list if filter is not an object or an empty object", () => {

@@ -16,7 +16,7 @@ import { AnyVectorSearchStage, VectorSearchStage } from "../mongodbSchemas.js";
 import {
     assertVectorSearchFilterFieldsAreIndexed,
     type VectorSearchIndex,
-} from "../../../helpers/collectFieldsFromVectorSearchFilter.js";
+} from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
 export const AggregateArgs = {
     pipeline: z.array(z.union([AnyVectorSearchStage, VectorSearchStage])).describe(
