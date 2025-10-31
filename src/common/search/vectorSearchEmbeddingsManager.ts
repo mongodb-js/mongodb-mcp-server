@@ -5,9 +5,10 @@ import type { ConnectionManager } from "../connectionManager.js";
 import z from "zod";
 import { ErrorCodes, MongoDBError } from "../errors.js";
 import { getEmbeddingsProvider } from "./embeddingsProvider.js";
-import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
+import type { EmbeddingParameters } from "../../tools/mongodb/mongodbSchemas.js";
 import { formatUntrustedData } from "../../tools/tool.js";
 import type { Similarity } from "../schemas.js";
+import type { SupportedEmbeddingParameters } from "../../tools/mongodb/mongodbSchemas.js";
 
 export const quantizationEnum = z.enum(["none", "scalar", "binary"]);
 export type Quantization = z.infer<typeof quantizationEnum>;

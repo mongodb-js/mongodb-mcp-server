@@ -4,13 +4,15 @@ import { embedMany } from "ai";
 import type { UserConfig } from "../config.js";
 import assert from "assert";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
-import { z } from "zod";
+import {
+    type EmbeddingParameters,
+    type VoyageEmbeddingParameters,
+    type VoyageModels,
+    zVoyageAPIParameters,
+} from "../../tools/mongodb/mongodbSchemas.js";
 
 type EmbeddingsInput = string;
 type Embeddings = number[] | unknown[];
-export type EmbeddingParameters = {
-    inputType: "query" | "document";
-};
 
 export interface EmbeddingsProvider<
     SupportedModels extends string,
@@ -22,40 +24,6 @@ export interface EmbeddingsProvider<
         parameters: SupportedEmbeddingParameters
     ): Promise<Embeddings[]>;
 }
-
-export const zVoyageModels = z
-    .enum(["voyage-3-large", "voyage-3.5", "voyage-3.5-lite", "voyage-code-3"])
-    .default("voyage-3-large");
-
-// Zod does not undestand JS boxed numbers (like Int32) as integer literals,
-// so we preprocess them to unwrap them so Zod understands them.
-function unboxNumber(v: unknown): number {
-    if (v && typeof v === "object" && typeof v.valueOf === "function") {
-        const n = Number(v.valueOf());
-        if (!Number.isNaN(n)) return n;
-    }
-    return v as number;
-}
-
-export const zVoyageEmbeddingParameters = z.object({
-    outputDimension: z
-        .preprocess(
-            unboxNumber,
-            z.union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)])
-        )
-        .optional()
-        .default(1024),
-    outputDtype: z.enum(["float", "int8", "uint8", "binary", "ubinary"]).optional().default("float"),
-});
-
-const zVoyageAPIParameters = zVoyageEmbeddingParameters
-    .extend({
-        inputType: z.enum(["query", "document"]),
-    })
-    .strip();
-
-type VoyageModels = z.infer<typeof zVoyageModels>;
-type VoyageEmbeddingParameters = z.infer<typeof zVoyageEmbeddingParameters> & EmbeddingParameters;
 
 class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels, VoyageEmbeddingParameters> {
     private readonly voyage: VoyageProvider;
@@ -105,6 +73,3 @@ export function getEmbeddingsProvider(
 
     return undefined;
 }
-
-export const zSupportedEmbeddingParameters = zVoyageEmbeddingParameters.extend({ model: zVoyageModels });
-export type SupportedEmbeddingParameters = z.infer<typeof zSupportedEmbeddingParameters>;
