@@ -375,7 +375,7 @@ function getLocalDataPath(): string {
 }
 
 export type DriverOptions = ConnectionInfo["driverOptions"];
-export const defaultDriverOptions: Partial<DriverOptions> = {
+export const defaultDriverOptions: DriverOptions = {
     readConcern: {
         level: "local",
     },
