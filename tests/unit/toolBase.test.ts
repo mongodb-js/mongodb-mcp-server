@@ -3,11 +3,12 @@ import { z } from "zod";
 import { ToolBase, type OperationType, type ToolCategory, type ToolConstructorParams } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
-import type { PreviewFeature, UserConfig } from "../../src/common/config.js";
+import type { UserConfig } from "../../src/common/config.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
 import type { CompositeLogger } from "../../src/common/logger.js";
 import type { TelemetryToolMetadata, ToolCallbackArgs } from "../../src/tools/tool.js";
+import type { PreviewFeature } from "../../src/common/schemas.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;

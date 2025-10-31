@@ -7,9 +7,7 @@ import { ErrorCodes, MongoDBError } from "../errors.js";
 import { getEmbeddingsProvider } from "./embeddingsProvider.js";
 import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
 import { formatUntrustedData } from "../../tools/tool.js";
-
-export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
-export type Similarity = z.infer<typeof similarityEnum>;
+import type { Similarity } from "../schemas.js";
 
 export const quantizationEnum = z.enum(["none", "scalar", "binary"]);
 export type Quantization = z.infer<typeof quantizationEnum>;

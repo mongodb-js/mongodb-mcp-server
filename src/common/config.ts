@@ -1,184 +1,20 @@
-import path from "path";
-import os from "os";
 import argv from "yargs-parser";
 import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "./keychain.js";
 import type { Secret } from "./keychain.js";
-import * as levenshteinModule from "ts-levenshtein";
-import type { Similarity } from "./search/vectorSearchEmbeddingsManager.js";
 import { z as z4 } from "zod/v4";
-const levenshtein = levenshteinModule.default;
+import {
+    commaSeparatedToArray,
+    type ConfigFieldMeta,
+    getExportsPath,
+    getLogPath,
+    isConnectionSpecifier,
+    validateConfigKey,
+} from "./configUtils.js";
+import { OPTIONS } from "./argsParserOptions.js";
+import { similarityValues, previewFeatureValues } from "./schemas.js";
 
-// From: https://github.com/mongodb-js/mongosh/blob/main/packages/cli-repl/src/arg-parser.ts
-export const OPTIONS = {
-    number: ["maxDocumentsPerQuery", "maxBytesPerQuery"],
-    string: [
-        "apiBaseUrl",
-        "apiClientId",
-        "apiClientSecret",
-        "connectionString",
-        "httpHost",
-        "httpPort",
-        "idleTimeoutMs",
-        "logPath",
-        "notificationTimeoutMs",
-        "telemetry",
-        "transport",
-        "apiVersion",
-        "authenticationDatabase",
-        "authenticationMechanism",
-        "browser",
-        "db",
-        "gssapiHostName",
-        "gssapiServiceName",
-        "host",
-        "oidcFlows",
-        "oidcRedirectUri",
-        "password",
-        "port",
-        "sslCAFile",
-        "sslCRLFile",
-        "sslCertificateSelector",
-        "sslDisabledProtocols",
-        "sslPEMKeyFile",
-        "sslPEMKeyPassword",
-        "sspiHostnameCanonicalization",
-        "sspiRealmOverride",
-        "tlsCAFile",
-        "tlsCRLFile",
-        "tlsCertificateKeyFile",
-        "tlsCertificateKeyFilePassword",
-        "tlsCertificateSelector",
-        "tlsDisabledProtocols",
-        "username",
-        "atlasTemporaryDatabaseUserLifetimeMs",
-        "exportsPath",
-        "exportTimeoutMs",
-        "exportCleanupIntervalMs",
-        "voyageApiKey",
-    ],
-    boolean: [
-        "apiDeprecationErrors",
-        "apiStrict",
-        "disableEmbeddingsValidation",
-        "help",
-        "indexCheck",
-        "ipv6",
-        "nodb",
-        "oidcIdTokenAsAccessToken",
-        "oidcNoNonce",
-        "oidcTrustedEndpoint",
-        "readOnly",
-        "retryWrites",
-        "ssl",
-        "sslAllowInvalidCertificates",
-        "sslAllowInvalidHostnames",
-        "sslFIPSMode",
-        "tls",
-        "tlsAllowInvalidCertificates",
-        "tlsAllowInvalidHostnames",
-        "tlsFIPSMode",
-        "version",
-    ],
-    array: ["disabledTools", "loggers", "confirmationRequiredTools", "previewFeatures"],
-    alias: {
-        h: "help",
-        p: "password",
-        u: "username",
-        "build-info": "buildInfo",
-        browser: "browser",
-        oidcDumpTokens: "oidcDumpTokens",
-        oidcRedirectUrl: "oidcRedirectUri",
-        oidcIDTokenAsAccessToken: "oidcIdTokenAsAccessToken",
-    },
-    configuration: {
-        "camel-case-expansion": false,
-        "unknown-options-as-args": true,
-        "parse-positional-numbers": false,
-        "parse-numbers": false,
-        "greedy-arrays": true,
-        "short-option-groups": false,
-    },
-} as Readonly<Options>;
-
-interface Options {
-    string: string[];
-    number: string[];
-    boolean: string[];
-    array: string[];
-    alias: Record<string, string>;
-    configuration: Record<string, boolean>;
-}
-
-export const ALL_CONFIG_KEYS = new Set(
-    (OPTIONS.string as readonly string[])
-        .concat(OPTIONS.number)
-        .concat(OPTIONS.array)
-        .concat(OPTIONS.boolean)
-        .concat(Object.keys(OPTIONS.alias))
-);
-
-function validateConfigKey(key: string): { valid: boolean; suggestion?: string } {
-    if (ALL_CONFIG_KEYS.has(key)) {
-        return { valid: true };
-    }
-
-    let minLev = Number.MAX_VALUE;
-    let suggestion = "";
-
-    // find the closest match for a suggestion
-    for (const validKey of ALL_CONFIG_KEYS) {
-        // check if there is an exact case-insensitive match
-        if (validKey.toLowerCase() === key.toLowerCase()) {
-            return { valid: false, suggestion: validKey };
-        }
-
-        // else, infer something using levenshtein so we suggest a valid key
-        const lev = levenshtein.get(key, validKey);
-        if (lev < minLev) {
-            minLev = lev;
-            suggestion = validKey;
-        }
-    }
-
-    if (minLev <= 2) {
-        // accept up to 2 typos
-        return { valid: false, suggestion };
-    }
-
-    return { valid: false };
-}
-
-function isConnectionSpecifier(arg: string | undefined): boolean {
-    return (
-        arg !== undefined &&
-        (arg.startsWith("mongodb://") ||
-            arg.startsWith("mongodb+srv://") ||
-            !(arg.endsWith(".js") || arg.endsWith(".mongodb")))
-    );
-}
-
-/**
- * Metadata for config schema fields.
- */
-interface ConfigFieldMeta {
-    /**
-     * Custom description for the default value, used when generating documentation.
-     */
-    defaultValueDescription?: string;
-    /**
-     * Marks the field as containing sensitive/secret information, used for MCP Registry.
-     * Secret fields will be marked as secret in environment variable definitions.
-     */
-    isSecret?: boolean;
-
-    [key: string]: unknown;
-}
-
-/**
- * Custom registry for storing metadata specific to config schema fields.
- */
 export const configRegistry = z4.registry<ConfigFieldMeta>();
 
 export const UserConfigSchema = z4.object({
@@ -201,7 +37,16 @@ export const UserConfigSchema = z4.object({
         )
         .register(configRegistry, { isSecret: true }),
     loggers: z4
-        .array(z4.enum(["stderr", "disk", "mcp"]))
+        .preprocess(
+            (val: string | string[] | undefined) => commaSeparatedToArray(val),
+            z4.array(z4.enum(["stderr", "disk", "mcp"]))
+        )
+        .check(
+            z4.minLength(1, "Cannot be an empty array"),
+            z4.refine((val) => new Set(val).size === val.length, {
+                message: "Duplicate loggers found in config",
+            })
+        )
         .default(["disk", "mcp"])
         .describe("An array of logger types.")
         .register(configRegistry, {
@@ -209,14 +54,15 @@ export const UserConfigSchema = z4.object({
         }),
     logPath: z4
         .string()
+        .default(getLogPath())
         .describe("Folder to store logs.")
         .register(configRegistry, { defaultValueDescription: "see below*" }),
     disabledTools: z4
-        .array(z4.string())
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z4.array(z4.string()))
         .default([])
         .describe("An array of tool names, operation types, and/or categories of tools that will be disabled."),
     confirmationRequiredTools: z4
-        .array(z4.string())
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z4.array(z4.string()))
         .default([
             "atlas-create-access-list",
             "atlas-create-db-user",
@@ -245,8 +91,11 @@ export const UserConfigSchema = z4.object({
         .default("enabled")
         .describe("When set to disabled, disables telemetry collection."),
     transport: z4.enum(["stdio", "http"]).default("stdio").describe("Either 'stdio' or 'http'."),
-    httpPort: z4
+    httpPort: z4.coerce
         .number()
+        .int()
+        .min(1, "Invalid httpPort: must be at least 1")
+        .max(65535, "Invalid httpPort: must be at most 65535")
         .default(3000)
         .describe("Port number for the HTTP server (only used when transport is 'http')."),
     httpHost: z4
@@ -260,21 +109,21 @@ export const UserConfigSchema = z4.object({
         .describe(
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         ),
-    idleTimeoutMs: z4
+    idleTimeoutMs: z4.coerce
         .number()
         .default(600_000)
         .describe("Idle timeout for a client to disconnect (only applies to http transport)."),
-    notificationTimeoutMs: z4
+    notificationTimeoutMs: z4.coerce
         .number()
         .default(540_000)
         .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport)."),
-    maxBytesPerQuery: z4
+    maxBytesPerQuery: z4.coerce
         .number()
         .default(16_777_216)
         .describe(
             "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools."
         ),
-    maxDocumentsPerQuery: z4
+    maxDocumentsPerQuery: z4.coerce
         .number()
         .default(100)
         .describe(
@@ -282,17 +131,18 @@ export const UserConfigSchema = z4.object({
         ),
     exportsPath: z4
         .string()
+        .default(getExportsPath())
         .describe("Folder to store exported data files.")
         .register(configRegistry, { defaultValueDescription: "see below*" }),
-    exportTimeoutMs: z4
+    exportTimeoutMs: z4.coerce
         .number()
         .default(300_000)
         .describe("Time in milliseconds after which an export is considered expired and eligible for cleanup."),
-    exportCleanupIntervalMs: z4
+    exportCleanupIntervalMs: z4.coerce
         .number()
         .default(120_000)
         .describe("Time in milliseconds between export cleanup cycles that remove expired export files."),
-    atlasTemporaryDatabaseUserLifetimeMs: z4
+    atlasTemporaryDatabaseUserLifetimeMs: z4.coerce
         .number()
         .default(14_400_000)
         .describe(
@@ -307,72 +157,31 @@ export const UserConfigSchema = z4.object({
         .register(configRegistry, { isSecret: true }),
     disableEmbeddingsValidation: z4
         .boolean()
-        .optional()
+        .default(false)
         .describe("When set to true, disables validation of embeddings dimensions."),
-    vectorSearchDimensions: z4
+    vectorSearchDimensions: z4.coerce
         .number()
         .default(1024)
         .describe("Default number of dimensions for vector search embeddings."),
     vectorSearchSimilarityFunction: z4
-        .custom<Similarity>()
-        .optional()
+        .enum(similarityValues)
         .default("euclidean")
         .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
     previewFeatures: z4
-        .array(z4.enum(["vectorSearch"]))
+        .preprocess(
+            (val: string | string[] | undefined) => commaSeparatedToArray(val),
+            z4.array(z4.enum(previewFeatureValues))
+        )
         .default([])
         .describe("An array of preview features that are enabled."),
 });
 
-export type PreviewFeature = z4.infer<typeof UserConfigSchema>["previewFeatures"][number];
 export type UserConfig = z4.infer<typeof UserConfigSchema> & CliOptions;
 
-export const defaultUserConfig: UserConfig = {
-    apiBaseUrl: "https://cloud.mongodb.com/",
-    logPath: getLogPath(),
-    exportsPath: getExportsPath(),
-    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-    disabledTools: [],
-    telemetry: "enabled",
-    readOnly: false,
-    indexCheck: false,
-    confirmationRequiredTools: [
-        "atlas-create-access-list",
-        "atlas-create-db-user",
-        "drop-database",
-        "drop-collection",
-        "delete-many",
-        "drop-index",
-    ],
-    transport: "stdio",
-    httpPort: 3000,
-    httpHost: "127.0.0.1",
-    loggers: ["disk", "mcp"],
-    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-    httpHeaders: {},
-    maxDocumentsPerQuery: 100, // By default, we only fetch a maximum 100 documents per query / aggregation
-    maxBytesPerQuery: 16 * 1024 * 1024, // By default, we only return ~16 mb of data per query / aggregation
-    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-    voyageApiKey: "",
-    disableEmbeddingsValidation: false,
-    vectorSearchDimensions: 1024,
-    vectorSearchSimilarityFunction: "euclidean",
-    previewFeatures: [],
-};
-
 export const config = setupUserConfig({
-    defaults: defaultUserConfig,
     cli: process.argv,
     env: process.env,
 });
-
-function getLocalDataPath(): string {
-    return process.platform === "win32"
-        ? path.join(process.env.LOCALAPPDATA || process.env.APPDATA || os.homedir(), "mongodb")
-        : path.join(os.homedir(), ".mongodb");
-}
 
 export type DriverOptions = ConnectionInfo["driverOptions"];
 export const defaultDriverOptions: DriverOptions = {
@@ -388,22 +197,17 @@ export const defaultDriverOptions: DriverOptions = {
     applyProxyToOIDC: true,
 };
 
-function getLogPath(): string {
-    const logPath = path.join(getLocalDataPath(), "mongodb-mcp", ".app-logs");
-    return logPath;
-}
-
-function getExportsPath(): string {
-    return path.join(getLocalDataPath(), "mongodb-mcp", "exports");
-}
-
 // Gets the config supplied by the user as environment variables. The variable names
 // are prefixed with `MDB_MCP_` and the keys match the UserConfig keys, but are converted
 // to SNAKE_UPPER_CASE.
 function parseEnvConfig(env: Record<string, unknown>): Partial<UserConfig> {
     const CONFIG_WITH_URLS: Set<string> = new Set<(typeof OPTIONS)["string"][number]>(["connectionString"]);
 
-    function setValue(obj: Record<string, unknown>, path: string[], value: string): void {
+    function setValue(
+        obj: Record<string, string | string[] | boolean | number | Record<string, unknown> | undefined>,
+        path: string[],
+        value: string
+    ): void {
         const currentField = path.shift();
         if (!currentField) {
             return;
@@ -440,10 +244,10 @@ function parseEnvConfig(env: Record<string, unknown>): Partial<UserConfig> {
             obj[currentField] = {};
         }
 
-        setValue(obj[currentField] as Record<string, unknown>, path, value);
+        setValue(obj[currentField] as Record<string, string | string[] | boolean | number | undefined>, path, value);
     }
 
-    const result: Record<string, unknown> = {};
+    const result: Record<string, string | string[] | boolean | number | undefined> = {};
     const mcpVariables = Object.entries(env).filter(
         ([key, value]) => value !== undefined && key.startsWith("MDB_MCP_")
     ) as [string, string][];
@@ -468,12 +272,14 @@ function SNAKE_CASE_toCamelCase(str: string): string {
 // We will consolidate them in a way where the mongosh format takes precedence.
 // We will warn users that previous configuration is deprecated in favour of
 // whatever is in mongosh.
-function parseCliConfig(args: string[]): CliOptions {
+function parseCliConfig(args: string[]): Partial<Record<keyof CliOptions, string | number | undefined>> {
     const programArgs = args.slice(2);
-    const parsed = argv(programArgs, OPTIONS as unknown as argv.Options) as unknown as CliOptions &
-        UserConfig & {
-            _?: string[];
-        };
+    const parsed = argv(programArgs, OPTIONS as unknown as argv.Options) as unknown as Record<
+        keyof CliOptions,
+        string | number | undefined
+    > & {
+        _?: string[];
+    };
 
     const positionalArguments = parsed._ ?? [];
 
@@ -543,29 +349,6 @@ export function warnAboutDeprecatedOrUnknownCliArgs(
     }
 }
 
-function commaSeparatedToArray<T extends string[]>(str: string | string[] | undefined): T {
-    if (str === undefined) {
-        return [] as unknown as T;
-    }
-
-    if (!Array.isArray(str)) {
-        return [str] as T;
-    }
-
-    if (str.length === 0) {
-        return str as T;
-    }
-
-    if (str.length === 1) {
-        return str[0]
-            ?.split(",")
-            .map((e) => e.trim())
-            .filter((e) => e.length > 0) as T;
-    }
-
-    return str as T;
-}
-
 export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): void {
     const keychain = Keychain.root;
 
@@ -589,59 +372,25 @@ export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfi
     maybeRegister(userConfig.username, "user");
 }
 
-export function setupUserConfig({
-    cli,
-    env,
-    defaults,
-}: {
-    cli: string[];
-    env: Record<string, unknown>;
-    defaults: UserConfig;
-}): UserConfig {
-    const userConfig = {
-        ...defaults,
+export function setupUserConfig({ cli, env }: { cli: string[]; env: Record<string, unknown> }): UserConfig {
+    const rawConfig = {
         ...parseEnvConfig(env),
         ...parseCliConfig(cli),
-    } satisfies UserConfig;
+    };
 
-    userConfig.disabledTools = commaSeparatedToArray(userConfig.disabledTools);
-    userConfig.loggers = commaSeparatedToArray(userConfig.loggers);
-    userConfig.confirmationRequiredTools = commaSeparatedToArray(userConfig.confirmationRequiredTools);
-
-    if (userConfig.connectionString && userConfig.connectionSpecifier) {
-        const connectionInfo = generateConnectionInfoFromCliArgs(userConfig);
-        userConfig.connectionString = connectionInfo.connectionString;
+    if (rawConfig.connectionString && rawConfig.connectionSpecifier) {
+        const connectionInfo = generateConnectionInfoFromCliArgs(rawConfig as UserConfig);
+        rawConfig.connectionString = connectionInfo.connectionString;
     }
 
-    const transport = userConfig.transport as string;
-    if (transport !== "http" && transport !== "stdio") {
-        throw new Error(`Invalid transport: ${transport}`);
+    const parseResult = UserConfigSchema.safeParse(rawConfig);
+    if (parseResult.error) {
+        throw new Error(
+            `Invalid configuration for the following fields:\n${parseResult.error.issues.map((issue) => `${issue.path.join(".")} - ${issue.message}`).join("\n")}`
+        );
     }
-
-    const telemetry = userConfig.telemetry as string;
-    if (telemetry !== "enabled" && telemetry !== "disabled") {
-        throw new Error(`Invalid telemetry: ${telemetry}`);
-    }
-
-    const httpPort = +userConfig.httpPort;
-    if (httpPort < 1 || httpPort > 65535 || isNaN(httpPort)) {
-        throw new Error(`Invalid httpPort: ${userConfig.httpPort}`);
-    }
-
-    if (userConfig.loggers.length === 0) {
-        throw new Error("No loggers found in config");
-    }
-
-    const loggerTypes = new Set(userConfig.loggers);
-    if (loggerTypes.size !== userConfig.loggers.length) {
-        throw new Error("Duplicate loggers found in config");
-    }
-
-    for (const loggerType of userConfig.loggers as string[]) {
-        if (loggerType !== "mcp" && loggerType !== "disk" && loggerType !== "stderr") {
-            throw new Error(`Invalid logger: ${loggerType}`);
-        }
-    }
+    // We don't have as schema defined for all args-parser arguments so we need to merge the raw config with the parsed config.
+    const userConfig = { ...rawConfig, ...parseResult.data } as UserConfig;
 
     registerKnownSecretsInRootKeychain(userConfig);
     return userConfig;
