@@ -23,7 +23,8 @@ export default {
     create(context) {
         const currentFilePath = path.resolve(context.getFilename());
 
-        if (currentFilePath === configFilePath || currentFilePath === schemasFilePath) {
+        // Only allow zod v4 import in config.ts
+        if (currentFilePath === configFilePath) {
             return {};
         }
 
