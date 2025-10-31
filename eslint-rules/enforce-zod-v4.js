@@ -22,8 +22,8 @@ export default {
     create(context) {
         const currentFilePath = path.resolve(context.getFilename());
 
-        // Only enforce rule in config.ts
-        if (currentFilePath !== configFilePath) {
+        // Only allow zod v4 import in config.ts
+        if (currentFilePath === configFilePath) {
             return {};
         }
 
@@ -36,11 +36,9 @@ export default {
                     return;
                 }
 
-                // If importing from 'zod' or any 'zod/...' except 'zod/v4', only allow 'zod/v4' in config.ts
-                const isZodImport = importPath === "zod" || importPath.startsWith("zod/");
                 const isZodV4Import = importPath === "zod/v4";
 
-                if (isZodImport && !isZodV4Import) {
+                if (isZodV4Import) {
                     context.report({
                         node,
                         messageId: "enforceZodV4",
