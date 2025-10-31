@@ -41,3 +41,24 @@ jobs:
         with:
           name: test-results
           path: coverage/lcov.info
+  run-atlas-local-tests:
+    name: Run Atlas Local tests
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test -- tests/integration/tools/atlas-local/
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-local-test-results
+          path: coverage/lcov.info
