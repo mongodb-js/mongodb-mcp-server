@@ -9,7 +9,8 @@ export default {
     meta: {
         type: "problem",
         docs: {
-            description: "Only allow importing 'zod/v4' in config.ts, all other imports are allowed elsewhere.",
+            description:
+                "Only allow importing 'zod/v4' in config.ts, all other imports are allowed elsewhere. We should only adopt zod v4 for tools and resources once https://github.com/modelcontextprotocol/typescript-sdk/issues/555 is resolved.",
             recommended: true,
         },
         fixable: null,
