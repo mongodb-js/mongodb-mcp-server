@@ -158,14 +158,13 @@ export const UserConfigSchema = z4.object({
         .register(configRegistry, { isSecret: true }),
     disableEmbeddingsValidation: z4
         .boolean()
-        .optional()
+        .default(false)
         .describe("When set to true, disables validation of embeddings dimensions."),
     vectorSearchDimensions: z4.coerce
         .number()
         .default(1024)
         .describe("Default number of dimensions for vector search embeddings."),
     vectorSearchSimilarityFunction: similarityEnumV4
-        .optional()
         .default("euclidean")
         .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
     previewFeatures: z4
