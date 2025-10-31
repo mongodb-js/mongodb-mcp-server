@@ -45,6 +45,7 @@ describe("config", () => {
             voyageApiKey: "",
             vectorSearchDimensions: 1024,
             vectorSearchSimilarityFunction: "euclidean",
+            disableEmbeddingsValidation: false,
             previewFeatures: [],
         };
 

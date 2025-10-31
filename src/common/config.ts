@@ -179,7 +179,6 @@ export const UserConfigSchema = z4.object({
 export type Similarity = z4.infer<typeof UserConfigSchema>["vectorSearchSimilarityFunction"];
 export type PreviewFeature = z4.infer<typeof UserConfigSchema>["previewFeatures"][number];
 export type UserConfig = z4.infer<typeof UserConfigSchema> & CliOptions;
-export type Logger = UserConfig["loggers"][number];
 
 export const config = setupUserConfig({
     cli: process.argv,
