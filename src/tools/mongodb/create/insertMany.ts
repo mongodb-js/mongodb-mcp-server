@@ -4,7 +4,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 import { zEJSON } from "../../args.js";
 import { type Document } from "bson";
-import { zSupportedEmbeddingParameters } from "../../../common/search/embeddingsProvider.js";
+import { zSupportedEmbeddingParameters } from "../mongodbSchemas.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
