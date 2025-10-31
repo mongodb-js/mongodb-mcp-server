@@ -24,6 +24,10 @@ export abstract class Matcher {
         return new UndefinedMatcher();
     }
 
+    public static get null(): Matcher {
+        return new NullMatcher();
+    }
+
     public static boolean(expected?: boolean): Matcher {
         return new BooleanMatcher(expected);
     }
@@ -99,6 +103,12 @@ class NumberMatcher extends Matcher {
 class UndefinedMatcher extends Matcher {
     public match(actual: unknown): number {
         return actual === undefined ? 1 : 0;
+    }
+}
+
+class NullMatcher extends Matcher {
+    public match(actual: unknown): number {
+        return actual === null ? 1 : 0;
     }
 }
 
