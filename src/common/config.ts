@@ -165,12 +165,11 @@ function isConnectionSpecifier(arg: string | undefined): boolean {
 interface ConfigFieldMeta {
     /**
      * Custom description for the default value, used when generating documentation.
-     * Example: "see below*" or "`\"disk,mcp\"` see below*"
      */
     defaultValueDescription?: string;
     /**
      * Marks the field as containing sensitive/secret information, used for MCP Registry.
-     * Secret fields will be redacted in logs and marked as secret in environment variable definitions.
+     * Secret fields will be marked as secret in environment variable definitions.
      */
     isSecret?: boolean;
 
