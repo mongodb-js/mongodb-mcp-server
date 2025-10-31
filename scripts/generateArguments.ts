@@ -263,14 +263,21 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
         if (!argumentInfo.defaultValueDescription && defaultValue !== undefined && defaultValue !== null) {
             if (Array.isArray(defaultValue)) {
                 defaultValueString = `\`"${defaultValue.join(",")}"\``;
-            } else if (typeof defaultValue === "number") {
-                defaultValueString = `\`${defaultValue}\``;
-            } else if (typeof defaultValue === "boolean") {
-                defaultValueString = `\`${defaultValue}\``;
-            } else if (typeof defaultValue === "string") {
-                defaultValueString = `\`"${defaultValue}"\``;
             } else {
-                throw new Error(`Unsupported default value type: ${typeof defaultValue}`);
+                // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+                switch (typeof defaultValue) {
+                    case "number":
+                        defaultValueString = `\`${defaultValue}\``;
+                        break;
+                    case "boolean":
+                        defaultValueString = `\`${defaultValue}\``;
+                        break;
+                    case "string":
+                        defaultValueString = `\`"${defaultValue}"\``;
+                        break;
+                    default:
+                        throw new Error(`Unsupported default value type: ${typeof defaultValue}`);
+                }
             }
         }
 
