@@ -11,9 +11,10 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { OPTIONS, UserConfigSchema, defaultUserConfig, configRegistry } from "../src/common/config.js";
+import { UserConfigSchema, configRegistry } from "../src/common/config.js";
 import assert from "assert";
 import { execSync } from "child_process";
+import { OPTIONS } from "../src/common/argsParserOptions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -68,7 +69,8 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         let description = schema.description || `Configuration option: ${key}`;
 
         if ("innerType" in schema.def) {
-            if (schema.def.innerType.def.type === "array") {
+            // "pipe" is used for our comma-separated arrays
+            if (schema.def.innerType.def.type === "pipe") {
                 assert(
                     description.startsWith("An array of"),
                     `Field description for field "${key}" with array type does not start with 'An array of'`
@@ -255,9 +257,7 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
         const cliOption = `\`${argumentInfo.configKey}\``;
         const envVarName = `\`${argumentInfo.name}\``;
 
-        // Get default value from Zod schema or fallback to defaultUserConfig
-        const config = defaultUserConfig as unknown as Record<string, unknown>;
-        const defaultValue = argumentInfo.defaultValue ?? config[argumentInfo.configKey];
+        const defaultValue = argumentInfo.defaultValue;
 
         let defaultValueString = argumentInfo.defaultValueDescription ?? "`<not set>`";
         if (!argumentInfo.defaultValueDescription && defaultValue !== undefined && defaultValue !== null) {

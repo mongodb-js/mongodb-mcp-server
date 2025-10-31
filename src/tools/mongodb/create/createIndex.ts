@@ -3,7 +3,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
-import { quantizationEnum, similarityEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
+import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
+import { similarityEnum } from "../../../common/schemas.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
     private vectorSearchIndexDefinition = z.object({

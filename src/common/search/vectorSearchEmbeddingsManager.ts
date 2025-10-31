@@ -1,15 +1,12 @@
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { BSON, type Document } from "bson";
-import type { UserConfig } from "../config.js";
+import type { Similarity, UserConfig } from "../config.js";
 import type { ConnectionManager } from "../connectionManager.js";
 import z from "zod";
 import { ErrorCodes, MongoDBError } from "../errors.js";
 import { getEmbeddingsProvider } from "./embeddingsProvider.js";
 import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
 import { formatUntrustedData } from "../../tools/tool.js";
-
-export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
-export type Similarity = z.infer<typeof similarityEnum>;
 
 export const quantizationEnum = z.enum(["none", "scalar", "binary"]);
 export type Quantization = z.infer<typeof quantizationEnum>;
