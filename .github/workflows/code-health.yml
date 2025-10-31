@@ -39,7 +39,7 @@ jobs:
           SKIP_ATLAS_LOCAL_TESTS: "true"
       - name: Upload test results
         if: always() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results
           path: coverage/lcov.info
@@ -64,7 +64,7 @@ jobs:
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
         run: npm test -- tests/integration/tools/atlas/
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: atlas-test-results
@@ -86,7 +86,7 @@ jobs:
       - name: Run tests
         run: npm test -- tests/integration/tools/atlas-local/
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: atlas-local-test-results
