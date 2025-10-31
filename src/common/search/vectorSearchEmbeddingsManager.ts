@@ -6,9 +6,8 @@ import z from "zod";
 import { ErrorCodes, MongoDBError } from "../errors.js";
 import { getEmbeddingsProvider } from "./embeddingsProvider.js";
 import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
-
-export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
-export type Similarity = z.infer<typeof similarityEnum>;
+import { formatUntrustedData } from "../../tools/tool.js";
+import type { Similarity } from "../schemas.js";
 
 export const quantizationEnum = z.enum(["none", "scalar", "binary"]);
 export type Quantization = z.infer<typeof quantizationEnum>;
@@ -48,6 +47,25 @@ export class VectorSearchEmbeddingsManager {
         this.embeddings.delete(embeddingDefKey);
     }
 
+    async indexExists({
+        database,
+        collection,
+        indexName,
+    }: {
+        database: string;
+        collection: string;
+        indexName: string;
+    }): Promise<boolean> {
+        const provider = await this.atlasSearchEnabledProvider();
+        if (!provider) {
+            return false;
+        }
+
+        const searchIndexesWithName = await provider.getSearchIndexes(database, collection, indexName);
+
+        return searchIndexesWithName.length >= 1;
+    }
+
     async embeddingsForNamespace({
         database,
         collection,
@@ -84,7 +102,34 @@ export class VectorSearchEmbeddingsManager {
         return definition;
     }
 
-    async findFieldsWithWrongEmbeddings(
+    async assertFieldsHaveCorrectEmbeddings(
+        { database, collection }: { database: string; collection: string },
+        documents: Document[]
+    ): Promise<void> {
+        const embeddingValidationResults = (
+            await Promise.all(
+                documents.map((document) => this.findFieldsWithWrongEmbeddings({ database, collection }, document))
+            )
+        ).flat();
+
+        if (embeddingValidationResults.length > 0) {
+            const embeddingValidationMessages = embeddingValidationResults.map(
+                (validation) =>
+                    `- Field ${validation.path} is an embedding with ${validation.expectedNumDimensions} dimensions and ${validation.expectedQuantization}` +
+                    ` quantization, and the provided value is not compatible. Actual dimensions: ${validation.actualNumDimensions}, ` +
+                    `actual quantization: ${validation.actualQuantization}. Error: ${validation.error}`
+            );
+
+            throw new MongoDBError(
+                ErrorCodes.AtlasVectorSearchInvalidQuery,
+                formatUntrustedData("", ...embeddingValidationMessages)
+                    .map(({ text }) => text)
+                    .join("\n")
+            );
+        }
+    }
+
+    public async findFieldsWithWrongEmbeddings(
         {
             database,
             collection,
@@ -220,21 +265,34 @@ export class VectorSearchEmbeddingsManager {
         return undefined;
     }
 
-    public async generateEmbeddings({
+    public async assertVectorSearchIndexExists({
         database,
         collection,
         path,
-        rawValues,
-        embeddingParameters,
-        inputType,
     }: {
         database: string;
         collection: string;
         path: string;
+    }): Promise<void> {
+        const embeddingInfoForCollection = await this.embeddingsForNamespace({ database, collection });
+        const embeddingInfoForPath = embeddingInfoForCollection.find((definition) => definition.path === path);
+        if (!embeddingInfoForPath) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasVectorSearchIndexNotFound,
+                `No Vector Search index found for path "${path}" in namespace "${database}.${collection}"`
+            );
+        }
+    }
+
+    public async generateEmbeddings({
+        rawValues,
+        embeddingParameters,
+        inputType,
+    }: {
         rawValues: string[];
         embeddingParameters: SupportedEmbeddingParameters;
         inputType: EmbeddingParameters["inputType"];
-    }): Promise<unknown[]> {
+    }): Promise<unknown[][]> {
         const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             throw new MongoDBError(
@@ -254,15 +312,6 @@ export class VectorSearchEmbeddingsManager {
                 inputType,
                 ...embeddingParameters,
             });
-        }
-
-        const embeddingInfoForCollection = await this.embeddingsForNamespace({ database, collection });
-        const embeddingInfoForPath = embeddingInfoForCollection.find((definition) => definition.path === path);
-        if (!embeddingInfoForPath) {
-            throw new MongoDBError(
-                ErrorCodes.AtlasVectorSearchIndexNotFound,
-                `No Vector Search index found for path "${path}" in namespace "${database}.${collection}"`
-            );
         }
 
         return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {

@@ -49,7 +49,6 @@ describe("Build Test", () => {
                 "Session",
                 "StreamableHttpRunner",
                 "Telemetry",
-                "defaultUserConfig",
             ])
         );
     });

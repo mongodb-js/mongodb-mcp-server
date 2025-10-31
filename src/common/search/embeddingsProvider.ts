@@ -7,7 +7,7 @@ import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { z } from "zod";
 
 type EmbeddingsInput = string;
-type Embeddings = number[];
+type Embeddings = number[] | unknown[];
 export type EmbeddingParameters = {
     inputType: "query" | "document";
 };

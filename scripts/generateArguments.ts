@@ -3,7 +3,7 @@
 /**
  * This script generates argument definitions and updates:
  * - server.json arrays
- * - TODO: README.md configuration table
+ * - README.md configuration table
  *
  * It uses the Zod schema and OPTIONS defined in src/common/config.ts
  */
@@ -11,8 +11,10 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { OPTIONS, UserConfigSchema } from "../src/common/config.js";
-import type { ZodObject, ZodRawShape } from "zod";
+import { UserConfigSchema, configRegistry } from "../src/common/config.js";
+import assert from "assert";
+import { execSync } from "child_process";
+import { OPTIONS } from "../src/common/argsParserOptions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,14 +23,12 @@ function camelCaseToSnakeCase(str: string): string {
     return str.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase();
 }
 
-// List of configuration keys that contain sensitive/secret information
+// List of mongosh OPTIONS that contain sensitive/secret information
 // These should be redacted in logs and marked as secret in environment variable definitions
-const SECRET_CONFIG_KEYS = new Set([
+const SECRET_OPTIONS_KEYS = new Set([
     "connectionString",
     "username",
     "password",
-    "apiClientId",
-    "apiClientSecret",
     "tlsCAFile",
     "tlsCertificateKeyFile",
     "tlsCertificateKeyFilePassword",
@@ -37,10 +37,9 @@ const SECRET_CONFIG_KEYS = new Set([
     "sslPEMKeyFile",
     "sslPEMKeyPassword",
     "sslCRLFile",
-    "voyageApiKey",
 ]);
 
-interface EnvironmentVariable {
+interface ArgumentInfo {
     name: string;
     description: string;
     isRequired: boolean;
@@ -48,45 +47,65 @@ interface EnvironmentVariable {
     isSecret: boolean;
     configKey: string;
     defaultValue?: unknown;
+    defaultValueDescription?: string;
 }
 
 interface ConfigMetadata {
     description: string;
     defaultValue?: unknown;
+    defaultValueDescription?: string;
+    isSecret?: boolean;
 }
 
 function extractZodDescriptions(): Record<string, ConfigMetadata> {
     const result: Record<string, ConfigMetadata> = {};
 
     // Get the shape of the Zod schema
-    const shape = (UserConfigSchema as ZodObject<ZodRawShape>).shape;
+    const shape = UserConfigSchema.shape;
 
     for (const [key, fieldSchema] of Object.entries(shape)) {
         const schema = fieldSchema;
         // Extract description from Zod schema
-        const description = schema.description || `Configuration option: ${key}`;
+        let description = schema.description || `Configuration option: ${key}`;
+
+        if ("innerType" in schema.def) {
+            // "pipe" is used for our comma-separated arrays
+            if (schema.def.innerType.def.type === "pipe") {
+                assert(
+                    description.startsWith("An array of"),
+                    `Field description for field "${key}" with array type does not start with 'An array of'`
+                );
+                description = description.replace("An array of", "Comma separated values of");
+            }
+        }
 
         // Extract default value if present
         let defaultValue: unknown = undefined;
-        if (schema._def && "defaultValue" in schema._def) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            defaultValue = schema._def.defaultValue() as unknown;
+        let defaultValueDescription: string | undefined = undefined;
+        let isSecret: boolean | undefined = undefined;
+        if (schema.def && "defaultValue" in schema.def) {
+            defaultValue = schema.def.defaultValue;
+        }
+        // Get metadata from custom registry
+        const registryMeta = configRegistry.get(schema);
+        if (registryMeta) {
+            defaultValueDescription = registryMeta.defaultValueDescription;
+            isSecret = registryMeta.isSecret;
         }
 
         result[key] = {
             description,
             defaultValue,
+            defaultValueDescription,
+            isSecret,
         };
     }
 
     return result;
 }
 
-function generateEnvironmentVariables(
-    options: typeof OPTIONS,
-    zodMetadata: Record<string, ConfigMetadata>
-): EnvironmentVariable[] {
-    const envVars: EnvironmentVariable[] = [];
+function getArgumentInfo(options: typeof OPTIONS, zodMetadata: Record<string, ConfigMetadata>): ArgumentInfo[] {
+    const argumentInfos: ArgumentInfo[] = [];
     const processedKeys = new Set<string>();
 
     // Helper to add env var
@@ -107,14 +126,15 @@ function generateEnvironmentVariables(
             format = "string"; // Arrays are passed as comma-separated strings
         }
 
-        envVars.push({
+        argumentInfos.push({
             name: envVarName,
             description: metadata.description,
             isRequired: false,
             format: format,
-            isSecret: SECRET_CONFIG_KEYS.has(key),
+            isSecret: metadata.isSecret ?? SECRET_OPTIONS_KEYS.has(key),
             configKey: key,
             defaultValue: metadata.defaultValue,
+            defaultValueDescription: metadata.defaultValueDescription,
         });
     };
 
@@ -139,10 +159,10 @@ function generateEnvironmentVariables(
     }
 
     // Sort by name for consistent output
-    return envVars.sort((a, b) => a.name.localeCompare(b.name));
+    return argumentInfos.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function generatePackageArguments(envVars: EnvironmentVariable[]): unknown[] {
+function generatePackageArguments(envVars: ArgumentInfo[]): unknown[] {
     const packageArguments: unknown[] = [];
 
     // Generate positional arguments from the same config options (only documented ones)
@@ -168,7 +188,7 @@ function generatePackageArguments(envVars: EnvironmentVariable[]): unknown[] {
     return packageArguments;
 }
 
-function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
+function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     const serverJsonPath = join(__dirname, "..", "server.json");
     const packageJsonPath = join(__dirname, "..", "package.json");
 
@@ -179,7 +199,7 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
         packages: {
             registryType?: string;
             identifier: string;
-            environmentVariables: EnvironmentVariable[];
+            environmentVariables: ArgumentInfo[];
             packageArguments?: unknown[];
             version?: string;
         }[];
@@ -207,7 +227,7 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
     // Update environmentVariables, packageArguments, and version for all packages
     if (serverJson.packages && Array.isArray(serverJson.packages)) {
         for (const pkg of serverJson.packages) {
-            pkg.environmentVariables = envVarsArray as EnvironmentVariable[];
+            pkg.environmentVariables = envVarsArray as ArgumentInfo[];
             pkg.packageArguments = packageArguments;
 
             // For OCI packages, update the version tag in the identifier and not a version field
@@ -224,11 +244,77 @@ function updateServerJsonEnvVars(envVars: EnvironmentVariable[]): void {
     console.log(`✓ Updated server.json (version ${version})`);
 }
 
+function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
+    const rows = [
+        "| CLI Option                             | Environment Variable                                | Default                                                                     | Description                                                                                                                                                                                             |",
+        "| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
+    ];
+
+    // Filter to only include options that are in the Zod schema (documented options)
+    const documentedVars = argumentInfos.filter((v) => !v.description.startsWith("Configuration option:"));
+
+    for (const argumentInfo of documentedVars) {
+        const cliOption = `\`${argumentInfo.configKey}\``;
+        const envVarName = `\`${argumentInfo.name}\``;
+
+        const defaultValue = argumentInfo.defaultValue;
+
+        let defaultValueString = argumentInfo.defaultValueDescription ?? "`<not set>`";
+        if (!argumentInfo.defaultValueDescription && defaultValue !== undefined && defaultValue !== null) {
+            if (Array.isArray(defaultValue)) {
+                defaultValueString = `\`"${defaultValue.join(",")}"\``;
+            } else {
+                // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+                switch (typeof defaultValue) {
+                    case "number":
+                        defaultValueString = `\`${defaultValue}\``;
+                        break;
+                    case "boolean":
+                        defaultValueString = `\`${defaultValue}\``;
+                        break;
+                    case "string":
+                        defaultValueString = `\`"${defaultValue}"\``;
+                        break;
+                    default:
+                        throw new Error(`Unsupported default value type: ${typeof defaultValue}`);
+                }
+            }
+        }
+
+        const desc = argumentInfo.description.replace(/\|/g, "\\|"); // Escape pipes in description
+        rows.push(
+            `| ${cliOption.padEnd(38)} | ${envVarName.padEnd(51)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
+        );
+    }
+
+    return rows.join("\n");
+}
+
+function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
+    const readmePath = join(__dirname, "..", "README.md");
+    let content = readFileSync(readmePath, "utf-8");
+
+    const newTable = generateReadmeConfigTable(envVars);
+
+    // Find and replace the configuration options table
+    const tableRegex = /### Configuration Options\n\n\| CLI Option[\s\S]*?\n\n####/;
+    const replacement = `### Configuration Options\n\n${newTable}\n\n####`;
+
+    content = content.replace(tableRegex, replacement);
+
+    writeFileSync(readmePath, content, "utf-8");
+    console.log("✓ Updated README.md configuration table");
+
+    // Run prettier on the README.md file
+    execSync("npx prettier --write README.md", { cwd: join(__dirname, "..") });
+}
+
 function main(): void {
     const zodMetadata = extractZodDescriptions();
 
-    const envVars = generateEnvironmentVariables(OPTIONS, zodMetadata);
-    updateServerJsonEnvVars(envVars);
+    const argumentInfo = getArgumentInfo(OPTIONS, zodMetadata);
+    updateServerJsonEnvVars(argumentInfo);
+    updateReadmeConfigTable(argumentInfo);
 }
 
 main();
