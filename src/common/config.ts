@@ -3,7 +3,6 @@ import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "./keychain.js";
 import type { Secret } from "./keychain.js";
-
 import { z as z4 } from "zod/v4";
 import {
     commaSeparatedToArray,
@@ -14,7 +13,7 @@ import {
     validateConfigKey,
 } from "./configUtils.js";
 import { OPTIONS } from "./argsParserOptions.js";
-import { similarityEnumV4 } from "./schemas.js";
+import { similarityValues, previewFeatureValues } from "./schemas.js";
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
 
@@ -164,20 +163,19 @@ export const UserConfigSchema = z4.object({
         .number()
         .default(1024)
         .describe("Default number of dimensions for vector search embeddings."),
-    vectorSearchSimilarityFunction: similarityEnumV4
+    vectorSearchSimilarityFunction: z4
+        .enum(similarityValues)
         .default("euclidean")
         .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'."),
     previewFeatures: z4
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
-            z4.array(z4.enum(["vectorSearch"]))
+            z4.array(z4.enum(previewFeatureValues))
         )
         .default([])
         .describe("An array of preview features that are enabled."),
 });
 
-export type Similarity = z4.infer<typeof UserConfigSchema>["vectorSearchSimilarityFunction"];
-export type PreviewFeature = z4.infer<typeof UserConfigSchema>["previewFeatures"][number];
 export type UserConfig = z4.infer<typeof UserConfigSchema> & CliOptions;
 
 export const config = setupUserConfig({

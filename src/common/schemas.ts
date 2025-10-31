@@ -1,7 +1,6 @@
-import z4 from "zod/v4";
-import z3 from "zod/v3";
+export const previewFeatureValues = ["vectorSearch"] as const;
+export type PreviewFeature = (typeof previewFeatureValues)[number];
 
-const similarityValues = ["cosine", "euclidean", "dotProduct"] as const;
+export const similarityValues = ["cosine", "euclidean", "dotProduct"] as const;
 
-export const similarityEnumV4 = z4.enum(similarityValues);
-export const similarityEnum = z3.enum(similarityValues);
+export type Similarity = (typeof similarityValues)[number];
