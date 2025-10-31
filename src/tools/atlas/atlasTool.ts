@@ -107,12 +107,12 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
 
         // Extract projectId using type guard
         if ("projectId" in data && typeof data.projectId === "string" && data.projectId.trim() !== "") {
-            toolMetadata.projectId = data.projectId;
+            toolMetadata.project_id = data.projectId;
         }
 
         // Extract orgId using type guard
         if ("orgId" in data && typeof data.orgId === "string" && data.orgId.trim() !== "") {
-            toolMetadata.orgId = data.orgId;
+            toolMetadata.org_id = data.orgId;
         }
         return toolMetadata;
     }

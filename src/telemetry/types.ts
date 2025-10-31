@@ -16,7 +16,7 @@ export type TelemetryEvent<T> = {
         duration_ms: number;
         result: TelemetryResult;
         category: string;
-    };
+    } & Record<string, string | number | string[]>;
 };
 
 export type BaseEvent = TelemetryEvent<unknown>;

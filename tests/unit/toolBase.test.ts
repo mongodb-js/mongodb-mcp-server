@@ -1,13 +1,19 @@
+import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
+import type { ZodRawShape } from "zod";
 import { z } from "zod";
 import { ToolBase, type OperationType, type ToolCategory, type ToolConstructorParams } from "../../src/tools/tool.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { PreviewFeature, UserConfig } from "../../src/common/config.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
 import type { CompositeLogger } from "../../src/common/logger.js";
-import type { TelemetryToolMetadata, ToolCallbackArgs } from "../../src/tools/tool.js";
+import type { TelemetryToolMetadata, ToolArgs, ToolCallbackArgs } from "../../src/tools/tool.js";
+import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Server } from "../../src/server.js";
+import type { ToolEvent } from "../../src/telemetry/types.js";
+import { expectDefined } from "../integration/helpers.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -33,9 +39,13 @@ describe("ToolBase", () => {
         mockConfig = {
             confirmationRequiredTools: [],
             previewFeatures: [],
+            disabledTools: [],
         } as unknown as UserConfig;
 
-        mockTelemetry = {} as Telemetry;
+        mockTelemetry = {
+            isTelemetryEnabled: () => true,
+            emitEvents: vi.fn(),
+        } as unknown as Telemetry;
 
         mockRequestConfirmation = vi.fn();
         mockElicitation = {
@@ -116,6 +126,48 @@ describe("ToolBase", () => {
             expect(testTool["isFeatureEnabled"]("anotherFeature" as PreviewFeature)).to.equal(false);
         });
     });
+
+    describe("resolveTelemetryMetadata", () => {
+        let mockCallback: ToolCallback<(typeof testTool)["argsShape"]>;
+        beforeEach(() => {
+            const mockServer = {
+                mcpServer: {
+                    tool: (
+                        name: string,
+                        description: string,
+                        paramsSchema: unknown,
+                        annotations: ToolAnnotations,
+                        cb: ToolCallback<ZodRawShape>
+                    ): void => {
+                        expect(name).toBe(testTool.name);
+                        expect(description).toBe(testTool["description"]);
+                        mockCallback = cb;
+                    },
+                },
+            };
+            testTool.register(mockServer as unknown as Server);
+        });
+
+        it("should return empty metadata by default", async () => {
+            await mockCallback({ param1: "value1" }, {} as never);
+            const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            expectDefined(event);
+            expect(event.properties.result).to.equal("success");
+            expect(event.properties).not.toHaveProperty("project_id");
+            expect(event.properties).not.toHaveProperty("org_id");
+            expect(event.properties).not.toHaveProperty("atlas_local_deployment_id");
+            expect(event.properties).not.toHaveProperty("test_param2");
+        });
+
+        it("should include custom telemetry metadata", async () => {
+            await mockCallback({ param1: "value1", param2: 3 }, {} as never);
+            const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            expectDefined(event);
+
+            expect(event.properties.result).to.equal("success");
+            expect(event.properties).toHaveProperty("test_param2", "three");
+        });
+    });
 });
 
 class TestTool extends ToolBase {
@@ -139,7 +191,16 @@ class TestTool extends ToolBase {
         });
     }
 
-    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+    protected resolveTelemetryMetadata(
+        result: CallToolResult,
+        args: ToolArgs<typeof this.argsShape>
+    ): TelemetryToolMetadata {
+        if (args.param2 === 3) {
+            return {
+                test_param2: "three",
+            };
+        }
+
         return {};
     }
 }
