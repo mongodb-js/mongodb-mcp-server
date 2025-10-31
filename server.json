@@ -39,7 +39,7 @@
         },
         {
           "name": "MDB_MCP_CONFIRMATION_REQUIRED_TOOLS",
-          "description": "An array of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -60,7 +60,7 @@
         },
         {
           "name": "MDB_MCP_DISABLED_TOOLS",
-          "description": "An array of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -123,7 +123,7 @@
         },
         {
           "name": "MDB_MCP_LOGGERS",
-          "description": "Comma separated values, possible values are 'mcp', 'disk' and 'stderr'.",
+          "description": "Comma separated values of logger types.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -145,6 +145,13 @@
         {
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_PREVIEW_FEATURES",
+          "description": "Comma separated values of preview features that are enabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -200,7 +207,7 @@
         {
           "type": "named",
           "name": "--confirmationRequiredTools",
-          "description": "An array of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
         },
         {
@@ -219,7 +226,7 @@
         {
           "type": "named",
           "name": "--disabledTools",
-          "description": "An array of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
         },
         {
@@ -274,7 +281,7 @@
         {
           "type": "named",
           "name": "--loggers",
-          "description": "Comma separated values, possible values are 'mcp', 'disk' and 'stderr'.",
+          "description": "Comma separated values of logger types.",
           "isRequired": false
         },
         {
@@ -295,6 +302,12 @@
           "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--previewFeatures",
+          "description": "Comma separated values of preview features that are enabled.",
           "isRequired": false
         },
         {
@@ -354,7 +367,7 @@
         },
         {
           "name": "MDB_MCP_CONFIRMATION_REQUIRED_TOOLS",
-          "description": "An array of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -375,7 +388,7 @@
         },
         {
           "name": "MDB_MCP_DISABLED_TOOLS",
-          "description": "An array of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -438,7 +451,7 @@
         },
         {
           "name": "MDB_MCP_LOGGERS",
-          "description": "Comma separated values, possible values are 'mcp', 'disk' and 'stderr'.",
+          "description": "Comma separated values of logger types.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -460,6 +473,13 @@
         {
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_PREVIEW_FEATURES",
+          "description": "Comma separated values of preview features that are enabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -515,7 +535,7 @@
         {
           "type": "named",
           "name": "--confirmationRequiredTools",
-          "description": "An array of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
         },
         {
@@ -534,7 +554,7 @@
         {
           "type": "named",
           "name": "--disabledTools",
-          "description": "An array of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
         },
         {
@@ -589,7 +609,7 @@
         {
           "type": "named",
           "name": "--loggers",
-          "description": "Comma separated values, possible values are 'mcp', 'disk' and 'stderr'.",
+          "description": "Comma separated values of logger types.",
           "isRequired": false
         },
         {
@@ -610,6 +630,12 @@
           "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--previewFeatures",
+          "description": "Comma separated values of preview features that are enabled.",
           "isRequired": false
         },
         {
