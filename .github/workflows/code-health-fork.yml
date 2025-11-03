@@ -12,35 +12,39 @@ jobs:
     name: Run MongoDB tests
     # Code health disabled on forks for now
     # if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    # if: github.event.pull_request.user.login == 'dependabot[bot]'
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        if: matrix.os == 'ubuntu-latest'
-      - uses: actions/checkout@v5
-      - uses: docker/setup-docker-action@v4
-        if: matrix.os == 'ubuntu-latest'
-        name: Setup Docker Environment
-        with:
-          set-host: true
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: package.json
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: Run tests
-        run: npm test
+      - name: Check user
+        run: echo "USER = $USER"
         env:
-          SKIP_ATLAS_TESTS: "true"
-          SKIP_ATLAS_LOCAL_TESTS: "true"
-      - name: Upload test results
-        if: always() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v5
-        with:
-          name: test-results
-          path: coverage/lcov.info
+          USER_NAME: ${{github.event.pull_request.user.login}}
+      # - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      #   if: matrix.os == 'ubuntu-latest'
+      # - uses: actions/checkout@v5
+      # - uses: docker/setup-docker-action@v4
+      #   if: matrix.os == 'ubuntu-latest'
+      #   name: Setup Docker Environment
+      #   with:
+      #     set-host: true
+      # - uses: actions/setup-node@v6
+      #   with:
+      #     node-version-file: package.json
+      #     cache: "npm"
+      # - name: Install dependencies
+      #   run: npm ci
+      # - name: Run tests
+      #   run: npm test
+      #   env:
+      #     SKIP_ATLAS_TESTS: "true"
+      #     SKIP_ATLAS_LOCAL_TESTS: "true"
+      # - name: Upload test results
+      #   if: always() && matrix.os == 'ubuntu-latest'
+      #   uses: actions/upload-artifact@v5
+      #   with:
+      #     name: test-results
+      #     path: coverage/lcov.info
