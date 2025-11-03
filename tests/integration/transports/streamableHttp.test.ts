@@ -103,6 +103,14 @@ describe("StreamableHttpRunner", () => {
                     });
                 });
             }
+
+            it("health endpoint works without authentication", async () => {
+                // Health endpoint should work regardless of configured headers
+                const response = await fetch(`${runner.serverAddress}/health`);
+                expect(response.status).toBe(200);
+                const data = (await response.json()) as { status: string; service: string };
+                expect(data).toEqual({ status: "healthy", service: "mongodb-mcp" });
+            });
         });
     }
 
