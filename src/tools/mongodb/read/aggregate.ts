@@ -11,55 +11,15 @@ import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
-import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logger.js";
-import { zSupportedEmbeddingParameters } from "../../../common/search/embeddingsProvider.js";
-
-const AnyStage = zEJSON();
-const VectorSearchStage = z.object({
-    $vectorSearch: z
-        .object({
-            exact: z
-                .boolean()
-                .optional()
-                .default(false)
-                .describe(
-                    "When true, uses an ENN algorithm, otherwise uses ANN. Using ENN is not compatible with numCandidates, in that case, numCandidates must be left empty."
-                ),
-            index: z.string().describe("Name of the index, as retrieved from the `collection-indexes` tool."),
-            path: z
-                .string()
-                .describe(
-                    "Field, in dot notation, where to search. There must be a vector search index for that field. Note to LLM: When unsure, use the 'collection-indexes' tool to validate that the field is indexed with a vector search index."
-                ),
-            queryVector: z
-                .union([z.string(), z.array(z.number())])
-                .describe(
-                    "The content to search for. The embeddingParameters field is mandatory if the queryVector is a string, in that case, the tool generates the embedding automatically using the provided configuration."
-                ),
-            numCandidates: z
-                .number()
-                .int()
-                .positive()
-                .optional()
-                .describe("Number of candidates for the ANN algorithm. Mandatory when exact is false."),
-            limit: z.number().int().positive().optional().default(10),
-            filter: zEJSON()
-                .optional()
-                .describe(
-                    "MQL filter that can only use filter fields from the index definition. Note to LLM: If unsure, use the `collection-indexes` tool to learn which fields can be used for filtering."
-                ),
-            embeddingParameters: zSupportedEmbeddingParameters
-                .optional()
-                .describe(
-                    "The embedding model and its parameters to use to generate embeddings before searching. It is mandatory if queryVector is a string value. Note to LLM: If unsure, ask the user before providing one."
-                ),
-        })
-        .passthrough(),
-});
+import { AnyVectorSearchStage, VectorSearchStage } from "../mongodbSchemas.js";
+import {
+    assertVectorSearchFilterFieldsAreIndexed,
+    type VectorSearchIndex,
+} from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
 export const AggregateArgs = {
-    pipeline: z.array(z.union([AnyStage, VectorSearchStage])).describe(
+    pipeline: z.array(z.union([AnyVectorSearchStage, VectorSearchStage])).describe(
         `An array of aggregation stages to execute.  
 \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
 ### Usage Rules for \`$vectorSearch\`
@@ -97,6 +57,13 @@ export class AggregateTool extends MongoDBToolBase {
         try {
             const provider = await this.ensureConnected();
             await this.assertOnlyUsesPermittedStages(pipeline);
+            if (await this.session.isSearchSupported()) {
+                assertVectorSearchFilterFieldsAreIndexed({
+                    searchIndexes: (await provider.getSearchIndexes(database, collection)) as VectorSearchIndex[],
+                    pipeline,
+                    logger: this.session.logger,
+                });
+            }
 
             // Check if aggregate operation uses an index if enabled
             if (this.config.indexCheck) {
@@ -276,21 +243,36 @@ export class AggregateTool extends MongoDBToolBase {
                 const embeddingParameters = vectorSearchStage.embeddingParameters;
                 delete vectorSearchStage.embeddingParameters;
 
-                const [embeddings] = await this.session.vectorSearchEmbeddingsManager.generateEmbeddings({
+                await this.session.vectorSearchEmbeddingsManager.assertVectorSearchIndexExists({
                     database,
                     collection,
                     path: vectorSearchStage.path,
+                });
+
+                const [embeddings] = await this.session.vectorSearchEmbeddingsManager.generateEmbeddings({
                     rawValues: [vectorSearchStage.queryVector],
                     embeddingParameters,
                     inputType: "query",
                 });
 
+                if (!embeddings) {
+                    throw new MongoDBError(
+                        ErrorCodes.AtlasVectorSearchInvalidQuery,
+                        "Failed to generate embeddings for the query vector."
+                    );
+                }
+
                 // $vectorSearch.queryVector can be a BSON.Binary: that it's not either number or an array.
                 // It's not exactly valid from the LLM perspective (they can't provide binaries).
                 // That's why we overwrite the stage in an untyped way, as what we expose and what LLMs can use is different.
-                vectorSearchStage.queryVector = embeddings as number[];
+                vectorSearchStage.queryVector = embeddings as string | number[];
             }
         }
+
+        await this.session.vectorSearchEmbeddingsManager.assertFieldsHaveCorrectEmbeddings(
+            { database, collection },
+            pipeline
+        );
 
         return pipeline;
     }

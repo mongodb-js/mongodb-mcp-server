@@ -35,9 +35,12 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm test
+        env:
+          SKIP_ATLAS_TESTS: "true"
+          SKIP_ATLAS_LOCAL_TESTS: "true"
       - name: Upload test results
         if: always() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results
           path: coverage/lcov.info

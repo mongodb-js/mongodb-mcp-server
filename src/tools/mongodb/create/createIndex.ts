@@ -3,7 +3,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
-import { quantizationEnum, similarityEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
+import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
+import { similarityValues } from "../../../common/schemas.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
     private vectorSearchIndexDefinition = z.object({
@@ -38,7 +39,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                                 .describe(
                                     "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
                                 ),
-                            similarity: similarityEnum
+                            similarity: z
+                                .enum(similarityValues)
                                 .default(this.config.vectorSearchSimilarityFunction)
                                 .describe(
                                     "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
