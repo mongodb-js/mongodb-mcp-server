@@ -28,14 +28,12 @@ export type ToolEventProperties = {
     command: string;
     error_code?: string;
     error_type?: string;
-    project_id?: string;
-    org_id?: string;
     cluster_name?: string;
     is_atlas?: boolean;
-    atlas_local_deployment_id?: string;
-};
+} & TelemetryToolMetadata;
 
 export type ToolEvent = TelemetryEvent<ToolEventProperties>;
+
 /**
  * Interface for server events
  */
@@ -137,3 +135,23 @@ export type CommonProperties = {
      */
     hosting_mode?: string;
 } & CommonStaticProperties;
+
+/**
+ * Telemetry metadata that can be provided by tools when emitting telemetry events.
+ * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
+ * the project and organization IDs if available.
+ */
+export type TelemetryToolMetadata = AtlasLocalToolMetadata | AtlasToolMetadata | PerfAdvisorToolMetadata;
+
+export type AtlasLocalToolMetadata = {
+    atlas_local_deployment_id?: string;
+};
+
+export type AtlasToolMetadata = {
+    project_id?: string;
+    org_id?: string;
+};
+
+export type PerfAdvisorToolMetadata = AtlasToolMetadata & {
+    operations: string[];
+};

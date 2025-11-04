@@ -5,7 +5,7 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/
 import type { Session } from "../common/session.js";
 import { LogId } from "../common/logger.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
-import { type ToolEvent } from "../telemetry/types.js";
+import type { TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
 import type { PreviewFeature, UserConfig } from "../common/config.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
@@ -37,17 +37,6 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
  */
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
-
-/**
- * Telemetry metadata that can be provided by tools when emitting telemetry events.
- * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
- * the project and organization IDs if available.
- */
-export type TelemetryToolMetadata = {
-    project_id?: string;
-    org_id?: string;
-    atlas_local_deployment_id?: string;
-} & Record<string, string | number | string[]>;
 
 export type ToolConstructorParams = {
     session: Session;
