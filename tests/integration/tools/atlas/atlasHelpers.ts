@@ -101,26 +101,6 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
     });
 }
 
-export function parseTable(text: string): Record<string, string>[] {
-    const data = text
-        .split("\n")
-        .filter((line) => line.trim() !== "")
-        .map((line) => line.split("|").map((cell) => cell.trim()));
-
-    const headers = data[0];
-    return data
-        .filter((_, index) => index >= 2)
-        .map((cells) => {
-            const row: Record<string, string> = {};
-            cells.forEach((cell, index) => {
-                if (headers) {
-                    row[headers[index] ?? ""] = cell;
-                }
-            });
-            return row;
-        });
-}
-
 export const randomId = new ObjectId().toString();
 
 async function createProject(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {

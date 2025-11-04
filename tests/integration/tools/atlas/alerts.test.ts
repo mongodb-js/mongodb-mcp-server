@@ -1,5 +1,5 @@
-import { expectDefined, getResponseElements } from "../../helpers.js";
-import { parseTable, describeWithAtlas, withProject } from "./atlasHelpers.js";
+import { expectDefined, getResponseContent } from "../../helpers.js";
+import { describeWithAtlas, withProject } from "./atlasHelpers.js";
 import { expect, it } from "vitest";
 
 describeWithAtlas("atlas-list-alerts", (integration) => {
@@ -13,26 +13,20 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
     });
 
     withProject(integration, ({ getProjectId }) => {
-        it("returns alerts in table format", async () => {
+        it("returns alerts in JSON format", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "atlas-list-alerts",
                 arguments: { projectId: getProjectId() },
             });
 
-            const elements = getResponseElements(response.content);
-            expect(elements).toHaveLength(1);
-
-            const data = parseTable(elements[0]?.text ?? "");
-
-            // Since we can't guarantee alerts will exist, we just verify the table structure
-            if (data.length > 0) {
-                const alert = data[0];
-                expect(alert).toHaveProperty("Alert ID");
-                expect(alert).toHaveProperty("Status");
-                expect(alert).toHaveProperty("Created");
-                expect(alert).toHaveProperty("Updated");
-                expect(alert).toHaveProperty("Type");
-                expect(alert).toHaveProperty("Comment");
+            const content = getResponseContent(response.content);
+            // check that there are alerts or no alerts
+            if (content.includes("Found alerts in project")) {
+                expect(content).toContain("<untrusted-user-data-");
+                // expect projectId in the content
+                expect(content).toContain(getProjectId());
+            } else {
+                expect(content).toContain("No alerts found");
             }
         });
     });
