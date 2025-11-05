@@ -18,11 +18,11 @@ type IndexStatus = {
 
 export class CollectionIndexesTool extends MongoDBToolBase {
     public name = "collection-indexes";
-    protected description = "Describe the indexes for a collection";
-    protected argsShape = DbOperationArgs;
+    public description = "Describe the indexes for a collection";
+    public argsShape = DbOperationArgs;
     public operationType: OperationType = "metadata";
 
-    protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
+    public async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const indexes = await provider.getIndexes(database, collection);
         const indexDefinitions: IndexStatus[] = indexes.map((index) => ({

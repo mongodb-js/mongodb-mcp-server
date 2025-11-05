@@ -7,8 +7,8 @@ import { zEJSON } from "../../args.js";
 
 export class DeleteManyTool extends MongoDBToolBase {
     public name = "delete-many";
-    protected description = "Removes all documents that match the filter from a MongoDB collection";
-    protected argsShape = {
+    public description = "Removes all documents that match the filter from a MongoDB collection";
+    public argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()
             .optional()
@@ -18,11 +18,7 @@ export class DeleteManyTool extends MongoDBToolBase {
     };
     public operationType: OperationType = "delete";
 
-    protected async execute({
-        database,
-        collection,
-        filter,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ database, collection, filter }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
         // Check if delete operation uses an index if enabled

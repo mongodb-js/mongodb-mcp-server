@@ -6,14 +6,14 @@ import { EJSON } from "bson";
 
 export class DbStatsTool extends MongoDBToolBase {
     public name = "db-stats";
-    protected description = "Returns statistics that reflect the use state of a single database";
-    protected argsShape = {
+    public description = "Returns statistics that reflect the use state of a single database";
+    public argsShape = {
         database: DbOperationArgs.database,
     };
 
     public operationType: OperationType = "metadata";
 
-    protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const result = await provider.runCommandWithCheck(database, {
             dbStats: 1,

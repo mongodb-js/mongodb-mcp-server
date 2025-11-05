@@ -65,8 +65,8 @@ export class CreateIndexTool extends MongoDBToolBase {
     });
 
     public name = "create-index";
-    protected description = "Create an index for a collection";
-    protected argsShape = {
+    public description = "Create an index for a collection";
+    public argsShape = {
         ...DbOperationArgs,
         name: z.string().optional().describe("The name of the index"),
         definition: z
@@ -86,7 +86,7 @@ export class CreateIndexTool extends MongoDBToolBase {
 
     public operationType: OperationType = "create";
 
-    protected async execute({
+    public async execute({
         database,
         collection,
         name,

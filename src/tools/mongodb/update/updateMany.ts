@@ -7,8 +7,8 @@ import { zEJSON } from "../../args.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
     public name = "update-many";
-    protected description = "Updates all documents that match the specified filter for a collection";
-    protected argsShape = {
+    public description = "Updates all documents that match the specified filter for a collection";
+    public argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()
             .optional()
@@ -25,7 +25,7 @@ export class UpdateManyTool extends MongoDBToolBase {
     };
     public operationType: OperationType = "update";
 
-    protected async execute({
+    public async execute({
         database,
         collection,
         filter,

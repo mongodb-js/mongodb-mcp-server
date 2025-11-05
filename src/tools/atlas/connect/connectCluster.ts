@@ -29,9 +29,9 @@ export const ConnectClusterArgs = {
 
 export class ConnectClusterTool extends AtlasToolBase {
     public name = "atlas-connect-cluster";
-    protected description = "Connect to MongoDB Atlas cluster";
+    public description = "Connect to MongoDB Atlas cluster";
     public operationType: OperationType = "connect";
-    protected argsShape = {
+    public argsShape = {
         ...ConnectClusterArgs,
     };
 
@@ -210,7 +210,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         });
     }
 
-    protected async execute({
+    public async execute({
         projectId,
         clusterName,
         connectionType,

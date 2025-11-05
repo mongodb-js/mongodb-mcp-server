@@ -9,13 +9,13 @@ export const ListAlertsArgs = {
 
 export class ListAlertsTool extends AtlasToolBase {
     public name = "atlas-list-alerts";
-    protected description = "List MongoDB Atlas alerts";
+    public description = "List MongoDB Atlas alerts";
     public operationType: OperationType = "read";
-    protected argsShape = {
+    public argsShape = {
         ...ListAlertsArgs,
     };
 
-    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const data = await this.session.apiClient.listAlerts({
             params: {
                 path: {

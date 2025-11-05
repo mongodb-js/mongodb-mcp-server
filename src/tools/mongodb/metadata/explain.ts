@@ -10,10 +10,10 @@ import { CountArgs } from "../read/count.js";
 
 export class ExplainTool extends MongoDBToolBase {
     public name = "explain";
-    protected description =
+    public description =
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
-    protected argsShape = {
+    public argsShape = {
         ...DbOperationArgs,
         method: z
             .array(
@@ -44,7 +44,7 @@ export class ExplainTool extends MongoDBToolBase {
 
     public operationType: OperationType = "metadata";
 
-    protected async execute({
+    public async execute({
         database,
         collection,
         method: methods,

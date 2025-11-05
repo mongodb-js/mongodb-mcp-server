@@ -64,9 +64,9 @@ export abstract class ToolBase {
 
     public abstract operationType: OperationType;
 
-    protected abstract description: string;
+    public abstract description: string;
 
-    protected abstract argsShape: ZodRawShape;
+    public abstract argsShape: ZodRawShape;
 
     protected get annotations(): ToolAnnotations {
         const annotations: ToolAnnotations = {
@@ -97,7 +97,7 @@ export abstract class ToolBase {
         return annotations;
     }
 
-    protected abstract execute(...args: ToolCallbackArgs<typeof this.argsShape>): Promise<CallToolResult>;
+    abstract execute(...args: ToolCallbackArgs<typeof this.argsShape>): Promise<CallToolResult>;
 
     /** Get the confirmation message for the tool. Can be overridden to provide a more specific message. */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

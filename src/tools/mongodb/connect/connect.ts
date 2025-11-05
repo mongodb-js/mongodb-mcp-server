@@ -33,11 +33,11 @@ const disconnectedDescription =
 
 export class ConnectTool extends MongoDBToolBase {
     public name: typeof connectedName | typeof disconnectedName = disconnectedName;
-    protected description: typeof connectedDescription | typeof disconnectedDescription = disconnectedDescription;
+    public description: typeof connectedDescription | typeof disconnectedDescription = disconnectedDescription;
 
     // Here the default is empty just to trigger registration, but we're going to override it with the correct
     // schema in the register method.
-    protected argsShape = {
+    public argsShape = {
         connectionString: z.string().optional(),
     };
 
@@ -54,7 +54,7 @@ export class ConnectTool extends MongoDBToolBase {
         });
     }
 
-    protected async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         switch (this.name) {
             case disconnectedName:
                 assert(connectionString, "Connection string is required");

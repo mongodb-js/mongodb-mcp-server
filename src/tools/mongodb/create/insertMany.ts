@@ -17,8 +17,8 @@ const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.ext
 
 export class InsertManyTool extends MongoDBToolBase {
     public name = "insert-many";
-    protected description = "Insert an array of documents into a MongoDB collection";
-    protected argsShape = {
+    public description = "Insert an array of documents into a MongoDB collection";
+    public argsShape = {
         ...DbOperationArgs,
         documents: z
             .array(zEJSON().describe("An individual MongoDB document"))
@@ -37,7 +37,7 @@ export class InsertManyTool extends MongoDBToolBase {
     };
     public operationType: OperationType = "create";
 
-    protected async execute({
+    public async execute({
         database,
         collection,
         documents,

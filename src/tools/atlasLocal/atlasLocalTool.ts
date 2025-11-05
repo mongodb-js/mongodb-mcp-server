@@ -14,7 +14,7 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
     }
 
-    protected async execute(...args: Parameters<ToolCallback<typeof this.argsShape>>): Promise<CallToolResult> {
+    public async execute(...args: Parameters<ToolCallback<typeof this.argsShape>>): Promise<CallToolResult> {
         const client = this.session.atlasLocalClient;
 
         // If the client is not found, throw an error

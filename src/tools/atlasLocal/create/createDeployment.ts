@@ -6,13 +6,13 @@ import { CommonArgs } from "../../args.js";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-create-deployment";
-    protected description = "Create a MongoDB Atlas local deployment";
+    public description = "Create a MongoDB Atlas local deployment";
     public operationType: OperationType = "create";
-    protected argsShape = {
+    public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
     };
 
-    protected async executeWithAtlasLocalClient(
+    public async executeWithAtlasLocalClient(
         client: Client,
         { deploymentName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {

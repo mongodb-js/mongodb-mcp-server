@@ -38,10 +38,10 @@ export interface ServerOptions {
 export class Server {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
-    private readonly telemetry: Telemetry;
+    public readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
-    private readonly toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[];
+    public readonly toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
 
@@ -219,6 +219,18 @@ export class Server {
         }
 
         this.telemetry.emitEvents([event]);
+    }
+
+    public getAvailableTools(): ToolBase[] {
+        return this.toolConstructors.map(
+            (toolConstructor) =>
+                new toolConstructor({
+                    session: this.session,
+                    config: this.userConfig,
+                    telemetry: this.telemetry,
+                    elicitation: this.elicitation,
+                })
+        );
     }
 
     private registerTools(): void {

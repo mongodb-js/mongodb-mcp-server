@@ -6,11 +6,11 @@ import { formatUntrustedData } from "../../tool.js";
 
 export class ListDatabasesTool extends MongoDBToolBase {
     public name = "list-databases";
-    protected description = "List all databases for a MongoDB connection";
-    protected argsShape = {};
+    public description = "List all databases for a MongoDB connection";
+    public argsShape = {};
     public operationType: OperationType = "metadata";
 
-    protected async execute(): Promise<CallToolResult> {
+    public async execute(): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const dbs = (await provider.listDatabases("")).databases as { name: string; sizeOnDisk: bson.Long }[];
 
