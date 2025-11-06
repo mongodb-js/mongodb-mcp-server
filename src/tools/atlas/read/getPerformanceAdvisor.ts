@@ -134,12 +134,11 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     }
 
     protected override resolveTelemetryMetadata(
-        result: CallToolResult,
         args: ToolArgs<typeof this.argsShape>,
         extra: RequestHandlerExtra<ServerRequest, ServerNotification>
     ): PerfAdvisorToolMetadata {
         return {
-            ...super.resolveTelemetryMetadata(result, args, extra),
+            ...super.resolveTelemetryMetadata(args, extra),
             operations: args.operations,
         };
     }
