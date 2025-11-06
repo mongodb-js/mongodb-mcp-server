@@ -264,6 +264,7 @@ export abstract class ToolBase {
     }
 
     protected abstract resolveTelemetryMetadata(
+        result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
     ): TelemetryToolMetadata;
 
@@ -282,7 +283,7 @@ export abstract class ToolBase {
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = this.resolveTelemetryMetadata(...args);
+        const metadata = this.resolveTelemetryMetadata(result, ...args);
         const event: ToolEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",

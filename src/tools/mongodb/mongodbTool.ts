@@ -113,6 +113,8 @@ export abstract class MongoDBToolBase extends ToolBase {
 
     protected resolveTelemetryMetadata(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        result: CallToolResult,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         args: ToolArgs<typeof this.argsShape>
     ): AtlasMetadata {
         const metadata: AtlasMetadata = {};
