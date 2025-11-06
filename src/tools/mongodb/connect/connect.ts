@@ -5,7 +5,6 @@ import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.
 import assert from "assert";
 import type { Server } from "../../../server.js";
 import { LogId } from "../../../common/logger.js";
-import { ConnectionMetadata } from "../../../telemetry/types.js";
 
 const disconnectedSchema = z
     .object({

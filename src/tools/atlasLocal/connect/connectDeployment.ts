@@ -3,6 +3,7 @@ import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
+import type { ConnectionMetadata } from "../../../telemetry/types.js";
 
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-connect-deployment";
@@ -32,6 +33,13 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
             _meta: {
                 ...(await this.lookupTelemetryMetadata(client, deploymentName)),
             },
+        };
+    }
+
+    protected override resolveTelemetryMetadata(result: CallToolResult): ConnectionMetadata {
+        return {
+            ...super.resolveTelemetryMetadata(result),
+            ...this.getConnectionInfoMetadata(),
         };
     }
 }

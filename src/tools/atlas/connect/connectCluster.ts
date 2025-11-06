@@ -8,7 +8,8 @@ import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUti
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionMetadata } from "../../../telemetry/types.js";
+import type { ConnectionMetadata } from "../../../telemetry/types.js";
+import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -305,18 +306,13 @@ export class ConnectClusterTool extends AtlasToolBase {
         return { content };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected override resolveTelemetryMetadata(_args: ToolArgs<typeof this.argsShape>): ConnectionMetadata {
-        const metadata: ConnectionMetadata = {};
-        const connectionStringAuthType = this.session.connectionManager.currentConnectionState.connectionStringAuthType;
-        if (connectionStringAuthType) {
-            metadata.connection_auth_type = connectionStringAuthType;
-        }
-
-        if (this.session.connectedAtlasCluster?.projectId) {
-            metadata.project_id = this.session.connectedAtlasCluster.projectId;
-        }
-
-        return metadata;
+    protected override resolveTelemetryMetadata(
+        result: CallToolResult,
+        args: Parameters<ToolCallback<typeof this.argsShape>>
+    ): ConnectionMetadata {
+        return {
+            ...super.resolveTelemetryMetadata(result, ...args),
+            ...this.getConnectionInfoMetadata(),
+        };
     }
 }
