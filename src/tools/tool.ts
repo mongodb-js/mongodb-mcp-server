@@ -306,13 +306,13 @@ export abstract class ToolBase {
 
     protected getConnectionInfoMetadata(): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
-        const connectionStringAuthType = this.session.connectionManager.currentConnectionState.connectionStringAuthType;
-        if (connectionStringAuthType) {
-            metadata.connection_auth_type = connectionStringAuthType;
-        }
-
         if (this.session.connectedAtlasCluster?.projectId) {
             metadata.project_id = this.session.connectedAtlasCluster.projectId;
+        }
+
+        const connectionStringAuthType = this.session.connectionStringAuthType;
+        if (connectionStringAuthType !== undefined) {
+            metadata.connection_auth_type = connectionStringAuthType;
         }
 
         return metadata;
