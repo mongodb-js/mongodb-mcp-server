@@ -5,7 +5,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
 import { type ToolBase, type ToolConstructorParams, type OperationType } from "../../../../src/tools/tool.js";
 import { defaultDriverOptions, type UserConfig } from "../../../../src/common/config.js";
-import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
+import {
+    MCPConnectionManager,
+    ConnectionStateConnected,
+    type AtlasClusterConnectionInfo,
+} from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
@@ -14,13 +18,14 @@ import { InMemoryTransport } from "../../inMemoryTransport.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { Server } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultTestConfig } from "../../helpers.js";
+import { defaultTestConfig, expectDefined } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import { MongoDbTools } from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { type TestConnectionManager } from "../../../utils/index.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -325,6 +330,44 @@ describe("MongoDBTool implementations", () => {
             const tools = await mcpClient?.listTools({});
             expect(tools?.tools).toHaveLength(1);
             expect(tools?.tools.find((tool) => tool.name === "UnusableVoyageTool")).toBeUndefined();
+        });
+    });
+
+    describe("resolveTelemetryMetadata", () => {
+        it("should return empty metadata when not connected", async () => {
+            await cleanupAndStartServer();
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
+            const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
+
+            expect(metadata).toEqual({});
+            expect(metadata).not.toHaveProperty("project_id");
+            expect(metadata).not.toHaveProperty("connection_auth_type");
+        });
+
+        it("should return metadata with connection_auth_type when connected via connection string", async () => {
+            await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
+            // Connect to MongoDB to set the connection state
+            await mcpClient?.callTool({
+                name: "Random",
+                arguments: {},
+            });
+
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
+            const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
+
+            // When connected via connection string, connection_auth_type should be set
+            // The actual value depends on the connection string, but it should be present
+            expect(metadata).toHaveProperty("connection_auth_type");
+            expect(typeof metadata.connection_auth_type).toBe("string");
+            expect(metadata.connection_auth_type).toBe("scram");
         });
     });
 });
