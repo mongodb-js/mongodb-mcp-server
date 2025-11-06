@@ -1,18 +1,17 @@
 ---
 name: Code Health (fork)
 on:
-  pull_request_target:
+  pull_request:
     branches:
       - main
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   run-tests:
     name: Run MongoDB tests
-    # Code health disabled on forks for now
-    # if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -22,6 +21,8 @@ jobs:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         if: matrix.os == 'ubuntu-latest'
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: docker/setup-docker-action@v4
         if: matrix.os == 'ubuntu-latest'
         name: Setup Docker Environment

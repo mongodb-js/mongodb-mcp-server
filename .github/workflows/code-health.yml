@@ -6,7 +6,8 @@ on:
       - main
   pull_request:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   run-tests:
@@ -21,6 +22,8 @@ jobs:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         if: matrix.os == 'ubuntu-latest'
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: docker/setup-docker-action@v4
         if: matrix.os == 'ubuntu-latest'
         name: Setup Docker Environment
@@ -51,6 +54,8 @@ jobs:
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
@@ -77,6 +82,8 @@ jobs:
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version-file: package.json
@@ -99,6 +106,8 @@ jobs:
     needs: [run-tests, run-atlas-tests, run-atlas-local-tests]
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
