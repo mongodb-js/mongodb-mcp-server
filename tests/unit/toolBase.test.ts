@@ -198,10 +198,7 @@ class TestTool extends ToolBase {
         });
     }
 
-    protected resolveTelemetryMetadata(
-        result: CallToolResult,
-        args: ToolArgs<typeof this.argsShape>
-    ): TelemetryToolMetadata {
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof this.argsShape>): TelemetryToolMetadata {
         if (args.param2 === 3) {
             return {
                 test_param2: "three",

@@ -6,7 +6,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "../../common/logger.js";
 import type { Server } from "../../server.js";
-import type { AtlasToolMetadata } from "../../telemetry/types.js";
+import type { AtlasMetadata } from "../../telemetry/types.js";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),
@@ -114,8 +114,8 @@ export abstract class MongoDBToolBase extends ToolBase {
     protected resolveTelemetryMetadata(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         args: ToolArgs<typeof this.argsShape>
-    ): AtlasToolMetadata {
-        const metadata: AtlasToolMetadata = {};
+    ): AtlasMetadata {
+        const metadata: AtlasMetadata = {};
 
         // Add projectId to the metadata if running a MongoDB operation to an Atlas cluster
         if (this.session.connectedAtlasCluster?.projectId) {
