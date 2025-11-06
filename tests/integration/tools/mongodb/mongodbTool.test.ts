@@ -5,11 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
 import { type ToolBase, type ToolConstructorParams, type OperationType } from "../../../../src/tools/tool.js";
 import { defaultDriverOptions, type UserConfig } from "../../../../src/common/config.js";
-import {
-    MCPConnectionManager,
-    ConnectionStateConnected,
-    type AtlasClusterConnectionInfo,
-} from "../../../../src/common/connectionManager.js";
+import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
@@ -25,7 +21,6 @@ import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import { MongoDbTools } from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
-import { type TestConnectionManager } from "../../../utils/index.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
