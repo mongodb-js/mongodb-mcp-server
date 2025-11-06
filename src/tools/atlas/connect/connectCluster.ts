@@ -8,6 +8,7 @@ import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUti
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
+import { AtlasLocalToolMetadata } from "../../../telemetry/types.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -302,5 +303,20 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         return { content };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected override resolveTelemetryMetadata(_args: ToolArgs<typeof this.argsShape>): AtlasLocalToolMetadata {
+        const metadata: AtlasLocalToolMetadata = {};
+        const connectionStringAuthType = this.session.connectionManager.currentConnectionState.connectionStringAuthType;
+        if (connectionStringAuthType) {
+            metadata.connection_auth_type = connectionStringAuthType;
+        }
+
+        if (this.session.connectedAtlasCluster?.projectId) {
+            metadata.project_id = this.session.connectedAtlasCluster.projectId;
+        }
+
+        return metadata;
     }
 }
