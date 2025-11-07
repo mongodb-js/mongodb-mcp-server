@@ -198,9 +198,33 @@ export class VectorSearchEmbeddingsManager {
         }
 
         switch (definition.quantization) {
-            // Because quantization is not defined by the user
-            // we have to trust them in the format they use.
+            // Quantization "none" means no quantization is performed, so
+            // full-fidelity vectors are stored therefore the underlying vector
+            // must be stored as an array of numbers having the same dimension
+            // as that of the index.
             case "none":
+                if (!Array.isArray(fieldRef)) {
+                    return constructError({
+                        error: "not-a-vector",
+                    });
+                }
+
+                if (fieldRef.length !== definition.numDimensions) {
+                    return constructError({
+                        actualNumDimensions: fieldRef.length,
+                        actualQuantization: "none",
+                        error: "dimension-mismatch",
+                    });
+                }
+
+                if (!fieldRef.every((e) => this.isANumber(e))) {
+                    return constructError({
+                        actualNumDimensions: fieldRef.length,
+                        actualQuantization: "none",
+                        error: "not-numeric",
+                    });
+                }
+
                 return undefined;
             case "scalar":
             case "binary":
