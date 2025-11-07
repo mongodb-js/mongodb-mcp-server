@@ -217,7 +217,7 @@ export class VectorSearchEmbeddingsManager {
                     });
                 }
 
-                if (!fieldRef.every((e) => this.isANumber(e))) {
+                if (fieldRef.some((e) => !this.isANumber(e))) {
                     return constructError({
                         actualNumDimensions: fieldRef.length,
                         actualQuantization: "none",
@@ -275,7 +275,7 @@ export class VectorSearchEmbeddingsManager {
                         });
                     }
 
-                    if (!fieldRef.every((e) => this.isANumber(e))) {
+                    if (fieldRef.some((e) => !this.isANumber(e))) {
                         return constructError({
                             actualNumDimensions: fieldRef.length,
                             actualQuantization: "scalar",

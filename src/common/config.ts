@@ -378,7 +378,7 @@ function warnIfVectorSearchNotEnabledCorrectly(config: UserConfig): void {
     if (vectorSearchEnabled && !embeddingsProviderConfigured) {
         console.warn(`\
 Warning: Vector search is enabled but no embeddings provider is configured.
-- Set the 'voyageApiKey' configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
+- Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
 `);
     }
 
