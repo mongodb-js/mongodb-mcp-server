@@ -13,6 +13,22 @@ import { ObjectId, type Collection, type Document, type IndexDirection } from "m
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool when search is not enabled", (integration) => {
+    validateToolMetadata(integration, "create-index", "Create an index for a collection", [
+        ...databaseCollectionParameters,
+        {
+            name: "definition",
+            type: "array",
+            description: "The index definition. Use 'classic' for standard indexes.",
+            required: true,
+        },
+        {
+            name: "name",
+            type: "string",
+            description: "The name of the index",
+            required: false,
+        },
+    ]);
+
     it("doesn't allow creating vector search indexes", async () => {
         expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("vectorSearch");
 
@@ -99,7 +115,7 @@ describeWithMongoDB(
                 name: "definition",
                 type: "array",
                 description:
-                    "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes",
+                    "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes.",
                 required: true,
             },
             {
