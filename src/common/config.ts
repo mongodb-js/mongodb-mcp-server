@@ -319,7 +319,7 @@ export function warnAboutDeprecatedOrUnknownCliArgs(
     if (knownArgs.connectionString) {
         usedDeprecatedArgument = true;
         warn(
-            "The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
+            "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
         );
     }
 
@@ -333,15 +333,15 @@ export function warnAboutDeprecatedOrUnknownCliArgs(
         if (!valid) {
             usedInvalidArgument = true;
             if (suggestion) {
-                warn(`Invalid command line argument '${providedKey}'. Did you mean '${suggestion}'?`);
+                warn(`Warning: Invalid command line argument '${providedKey}'. Did you mean '${suggestion}'?`);
             } else {
-                warn(`Invalid command line argument '${providedKey}'.`);
+                warn(`Warning: Invalid command line argument '${providedKey}'.`);
             }
         }
     }
 
     if (usedInvalidArgument || usedDeprecatedArgument) {
-        warn("Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
+        warn("- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.");
     }
 
     if (usedInvalidArgument) {
@@ -372,6 +372,24 @@ export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfi
     maybeRegister(userConfig.username, "user");
 }
 
+function warnIfVectorSearchNotEnabledCorrectly(config: UserConfig): void {
+    const vectorSearchEnabled = config.previewFeatures.includes("vectorSearch");
+    const embeddingsProviderConfigured = !!config.voyageApiKey;
+    if (vectorSearchEnabled && !embeddingsProviderConfigured) {
+        console.warn(`\
+Warning: Vector search is enabled but no embeddings provider is configured.
+- Set the 'voyageApiKey' configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
+`);
+    }
+
+    if (!vectorSearchEnabled && embeddingsProviderConfigured) {
+        console.warn(`\
+Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
+- Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
+`);
+    }
+}
+
 export function setupUserConfig({ cli, env }: { cli: string[]; env: Record<string, unknown> }): UserConfig {
     const rawConfig = {
         ...parseEnvConfig(env),
@@ -392,6 +410,7 @@ export function setupUserConfig({ cli, env }: { cli: string[]; env: Record<strin
     // We don't have as schema defined for all args-parser arguments so we need to merge the raw config with the parsed config.
     const userConfig = { ...rawConfig, ...parseResult.data } as UserConfig;
 
+    warnIfVectorSearchNotEnabledCorrectly(userConfig);
     registerKnownSecretsInRootKeychain(userConfig);
     return userConfig;
 }

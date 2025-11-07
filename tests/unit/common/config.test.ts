@@ -686,14 +686,14 @@ describe("config", () => {
 
 describe("CLI arguments", () => {
     const referDocMessage =
-        "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
+        "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
 
     type TestCase = { readonly cliArg: keyof (CliOptions & UserConfig); readonly warning: string };
     const testCases = [
         {
             cliArg: "connectionString",
             warning:
-                "The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
+                "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
         },
     ] as TestCase[];
 
@@ -742,9 +742,9 @@ describe("CLI arguments", () => {
                 { warn, exit }
             );
 
-            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'wakanda'.");
+            expect(warn).toHaveBeenCalledWith("Warning: Invalid command line argument 'wakanda'.");
             expect(warn).toHaveBeenCalledWith(
-                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
             );
         });
 
@@ -767,9 +767,11 @@ describe("CLI arguments", () => {
                 { warn, exit }
             );
 
-            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonli'. Did you mean 'readOnly'?");
             expect(warn).toHaveBeenCalledWith(
-                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                "Warning: Invalid command line argument 'readonli'. Did you mean 'readOnly'?"
+            );
+            expect(warn).toHaveBeenCalledWith(
+                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
             );
         });
 
@@ -781,9 +783,11 @@ describe("CLI arguments", () => {
                 { warn, exit }
             );
 
-            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonly'. Did you mean 'readOnly'?");
             expect(warn).toHaveBeenCalledWith(
-                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                "Warning: Invalid command line argument 'readonly'. Did you mean 'readOnly'?"
+            );
+            expect(warn).toHaveBeenCalledWith(
+                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
             );
         });
     });
