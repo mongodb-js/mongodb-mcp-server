@@ -8,7 +8,7 @@ describe("accessListUtils", () => {
     it("should add the current IP to the access list", async () => {
         const apiClient = {
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createProjectIpAccessList: vi.fn().mockResolvedValue(undefined as never),
+            createAccessListEntry: vi.fn().mockResolvedValue(undefined as never),
             logger: new NullLogger(),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
@@ -22,7 +22,7 @@ describe("accessListUtils", () => {
     it("should not fail if the current IP is already in the access list", async () => {
         const apiClient = {
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createProjectIpAccessList: vi
+            createAccessListEntry: vi
                 .fn()
                 .mockRejectedValue(
                     ApiClientError.fromError(
