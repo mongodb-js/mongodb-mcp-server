@@ -247,7 +247,7 @@ describe("mocked atlas-get-performance-advisor", () => {
             },
         });
 
-        expect(response.isError).toBe(false);
+        expect(response.isError).toBe(undefined);
 
         const elements = getResponseElements(response.content);
         expect(elements).toHaveLength(2);
