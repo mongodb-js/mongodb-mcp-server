@@ -42,7 +42,7 @@ export type EmbeddingParameters = {
 export const zSupportedEmbeddingParameters = zVoyageEmbeddingParameters.extend({ model: zVoyageModels });
 export type SupportedEmbeddingParameters = z.infer<typeof zSupportedEmbeddingParameters>;
 
-export const AnyVectorSearchStage = zEJSON();
+export const AnyAggregateStage = zEJSON();
 export const VectorSearchStage = z.object({
     $vectorSearch: z
         .object({
