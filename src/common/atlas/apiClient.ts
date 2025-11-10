@@ -351,6 +351,216 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>) {
+        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/accessList", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>) {
+        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/accessList", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteAccessListEntry(options: FetchOptions<operations["deleteGroupAccessListEntry"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/accessList/{entryValue}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listAlerts(options: FetchOptions<operations["listGroupAlerts"]>) {
+        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/alerts", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listClusters(options: FetchOptions<operations["listGroupClusters"]>) {
+        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/clusters", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createCluster(options: FetchOptions<operations["createGroupCluster"]>) {
+        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/clusters", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteCluster(options: FetchOptions<operations["deleteGroupCluster"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getCluster(options: FetchOptions<operations["getGroupCluster"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listDropIndexSuggestions(
+        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>
+    ) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listClusterSuggestedIndexes(
+        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>
+    ) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/databaseUsers",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>) {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/databaseUsers",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteDatabaseUser(options: FetchOptions<operations["deleteGroupDatabaseUser"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/databaseUsers/{databaseName}/{username}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>) {
+        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/flexClusters", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>) {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/flexClusters",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteFlexCluster(options: FetchOptions<operations["deleteGroupFlexCluster"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listOrgs(options?: FetchOptions<operations["listOrgs"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
         if (error) {
