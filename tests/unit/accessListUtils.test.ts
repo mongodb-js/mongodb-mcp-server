@@ -13,7 +13,7 @@ describe("accessListUtils", () => {
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
+        expect(apiClient.createAccessListEntry).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
             body: [{ groupId: "projectId", ipAddress: "127.0.0.1", comment: DEFAULT_ACCESS_LIST_COMMENT }],
         });
@@ -34,7 +34,7 @@ describe("accessListUtils", () => {
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
+        expect(apiClient.createAccessListEntry).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
             body: [{ groupId: "projectId", ipAddress: "127.0.0.1", comment: DEFAULT_ACCESS_LIST_COMMENT }],
         });
