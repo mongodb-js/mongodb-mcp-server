@@ -49,6 +49,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                         rootCertType: "ISRGROOTX1",
                         terminationProtectionEnabled: false,
                         versionReleaseSystem: "LTS",
+                        useAwsTimeBasedSnapshotCopyForFastInitialSync: false,
                         replicationSpecs: [
                             {
                                 zoneName: "Zone 1",
@@ -226,9 +227,9 @@ describe("mocked atlas-get-performance-advisor", () => {
         });
 
         session.apiClient.listClusterSuggestedIndexes = mockSuggestedIndexes;
-        session.apiClient.listDropIndexes = mockDropIndexSuggestions;
+        session.apiClient.listDropIndexSuggestions = mockDropIndexSuggestions;
         session.apiClient.listSchemaAdvice = mockSchemaAdvice;
-        session.apiClient.listSlowQueries = mockSlowQueries;
+        session.apiClient.listSlowQueryLogs = mockSlowQueries;
         session.apiClient.getCluster = mockGetCluster;
     });
 
