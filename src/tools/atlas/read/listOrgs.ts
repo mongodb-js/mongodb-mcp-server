@@ -10,7 +10,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
     protected argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {
-        const data = await this.session.apiClient.listOrganizations();
+        const data = await this.session.apiClient.listOrgs();
 
         if (!data?.results?.length) {
             return {

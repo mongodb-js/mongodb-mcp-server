@@ -19,11 +19,11 @@ async function readStdin(): Promise<string> {
 
 function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
     const allowedOperations = [
-        "listProjects",
-        "listOrganizations",
-        "getProject",
-        "createProject",
-        "deleteProject",
+        "listGroups",
+        "listOrgs",
+        "getGroup",
+        "createGroup",
+        "deleteGroup",
         "listClusters",
         "listFlexClusters",
         "getCluster",
@@ -32,19 +32,19 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "createFlexCluster",
         "deleteCluster",
         "deleteFlexCluster",
-        "listClustersForAllProjects",
+        "listClusterDetails",
         "createDatabaseUser",
         "deleteDatabaseUser",
         "listDatabaseUsers",
-        "listProjectIpAccessLists",
-        "createProjectIpAccessList",
-        "deleteProjectIpAccessList",
-        "listOrganizationProjects",
+        "listAccessListEntries",
+        "createAccessListEntry",
+        "deleteAccessListEntry",
+        "getOrgGroups",
         "listAlerts",
-        "listDropIndexes",
+        "listDropIndexSuggestions",
         "listClusterSuggestedIndexes",
         "listSchemaAdvice",
-        "listSlowQueries",
+        "listSlowQueryLogs",
     ];
 
     const filteredPaths = {};

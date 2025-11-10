@@ -61,7 +61,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             // validate access token
             await apiClient.validateAccessToken();
             try {
-                const group = await createProject(apiClient);
+                const group = await createGroup(apiClient);
                 const ipInfo = await apiClient.getIpInfo();
                 ipAddress = ipInfo.currentIpv4Address;
                 projectId = group.id;
@@ -80,7 +80,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
             // send the delete request and ignore errors
             apiClient
-                .deleteProject({
+                .deleteGroup({
                     params: {
                         path: {
                             groupId: projectId,
@@ -103,15 +103,15 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
 export const randomId = new ObjectId().toString();
 
-async function createProject(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
+async function createGroup(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
     const projectName: string = `testProj-` + randomId;
 
-    const orgs = await apiClient.listOrganizations();
+    const orgs = await apiClient.listOrgs();
     if (!orgs?.results?.length || !orgs.results[0]?.id) {
         throw new Error("No orgs found");
     }
 
-    const group = await apiClient.createProject({
+    const group = await apiClient.createGroup({
         body: {
             name: projectName,
             orgId: orgs.results[0]?.id ?? "",
@@ -124,7 +124,7 @@ async function createProject(apiClient: ApiClient): Promise<Group & Required<Pic
 
     // add current IP to project access list
     const { currentIpv4Address } = await apiClient.getIpInfo();
-    await apiClient.createProjectIpAccessList({
+    await apiClient.createAccessListEntry({
         params: {
             path: {
                 groupId: group.id,

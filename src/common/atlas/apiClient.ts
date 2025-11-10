@@ -307,7 +307,7 @@ export class ApiClient {
 
     // DO NOT EDIT. This is auto-generated code.
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listClustersForAllProjects(options?: FetchOptions<operations["listClustersForAllProjects"]>) {
+    async listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/clusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -316,7 +316,7 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listProjects(options?: FetchOptions<operations["listProjects"]>) {
+    async listGroups(options?: FetchOptions<operations["listGroups"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -325,7 +325,7 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createProject(options: FetchOptions<operations["createProject"]>) {
+    async createGroup(options: FetchOptions<operations["createGroup"]>) {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -334,7 +334,7 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteProject(options: FetchOptions<operations["deleteProject"]>) {
+    async deleteGroup(options: FetchOptions<operations["deleteGroup"]>) {
         const { error, response } = await this.client.DELETE("/api/atlas/v2/groups/{groupId}", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -342,7 +342,7 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getProject(options: FetchOptions<operations["getProject"]>) {
+    async getGroup(options: FetchOptions<operations["getGroup"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -351,213 +351,7 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listProjectIpAccessLists(options: FetchOptions<operations["listProjectIpAccessLists"]>) {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/accessList", options);
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createProjectIpAccessList(options: FetchOptions<operations["createProjectIpAccessList"]>) {
-        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/accessList", options);
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteProjectIpAccessList(options: FetchOptions<operations["deleteProjectIpAccessList"]>) {
-        const { error, response } = await this.client.DELETE(
-            "/api/atlas/v2/groups/{groupId}/accessList/{entryValue}",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listAlerts(options: FetchOptions<operations["listAlerts"]>) {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/alerts", options);
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listClusters(options: FetchOptions<operations["listClusters"]>) {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/clusters", options);
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createCluster(options: FetchOptions<operations["createCluster"]>) {
-        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/clusters", options);
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteCluster(options: FetchOptions<operations["deleteCluster"]>) {
-        const { error, response } = await this.client.DELETE(
-            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getCluster(options: FetchOptions<operations["getCluster"]>) {
-        const { data, error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listDropIndexes(options: FetchOptions<operations["listDropIndexes"]>) {
-        const { data, error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listSchemaAdvice(options: FetchOptions<operations["listSchemaAdvice"]>) {
-        const { data, error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listClusterSuggestedIndexes(options: FetchOptions<operations["listClusterSuggestedIndexes"]>) {
-        const { data, error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listDatabaseUsers(options: FetchOptions<operations["listDatabaseUsers"]>) {
-        const { data, error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/databaseUsers",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createDatabaseUser(options: FetchOptions<operations["createDatabaseUser"]>) {
-        const { data, error, response } = await this.client.POST(
-            "/api/atlas/v2/groups/{groupId}/databaseUsers",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteDatabaseUser(options: FetchOptions<operations["deleteDatabaseUser"]>) {
-        const { error, response } = await this.client.DELETE(
-            "/api/atlas/v2/groups/{groupId}/databaseUsers/{databaseName}/{username}",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listFlexClusters(options: FetchOptions<operations["listFlexClusters"]>) {
-        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/flexClusters", options);
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createFlexCluster(options: FetchOptions<operations["createFlexCluster"]>) {
-        const { data, error, response } = await this.client.POST(
-            "/api/atlas/v2/groups/{groupId}/flexClusters",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async deleteFlexCluster(options: FetchOptions<operations["deleteFlexCluster"]>) {
-        const { error, response } = await this.client.DELETE(
-            "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getFlexCluster(options: FetchOptions<operations["getFlexCluster"]>) {
-        const { data, error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listSlowQueries(options: FetchOptions<operations["listSlowQueries"]>) {
-        const { data, error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-        return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listOrganizations(options?: FetchOptions<operations["listOrganizations"]>) {
+    async listOrgs(options?: FetchOptions<operations["listOrgs"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -566,7 +360,7 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listOrganizationProjects(options: FetchOptions<operations["listOrganizationProjects"]>) {
+    async getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs/{orgId}/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
