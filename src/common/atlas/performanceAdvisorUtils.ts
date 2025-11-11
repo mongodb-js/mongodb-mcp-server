@@ -60,7 +60,7 @@ export async function getDropIndexSuggestions(
     unusedIndexes: Array<DropIndexSuggestion>;
 }> {
     try {
-        const response = await apiClient.listDropIndexes({
+        const response = await apiClient.listDropIndexSuggestions({
             params: {
                 path: {
                     groupId: projectId,
@@ -123,7 +123,7 @@ export async function getSlowQueries(
         }
 
         const slowQueryPromises = processIds.map((processId) =>
-            apiClient.listSlowQueries({
+            apiClient.listSlowQueryLogs({
                 params: {
                     path: {
                         groupId: projectId,

@@ -2,15 +2,56 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { UserConfig } from "../../../src/common/config.js";
 import {
     setupUserConfig,
-    defaultUserConfig,
     registerKnownSecretsInRootKeychain,
     warnAboutDeprecatedOrUnknownCliArgs,
+    UserConfigSchema,
 } from "../../../src/common/config.js";
+import { getLogPath, getExportsPath } from "../../../src/common/configUtils.js";
 import type { CliOptions } from "@mongosh/arg-parser";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
 
 describe("config", () => {
+    it("should generate defaults from UserConfigSchema that match expected values", () => {
+        // Expected hardcoded values (what we had before)
+        const expectedDefaults = {
+            apiBaseUrl: "https://cloud.mongodb.com/",
+            logPath: getLogPath(),
+            exportsPath: getExportsPath(),
+            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
+            disabledTools: [],
+            telemetry: "enabled",
+            readOnly: false,
+            indexCheck: false,
+            confirmationRequiredTools: [
+                "atlas-create-access-list",
+                "atlas-create-db-user",
+                "drop-database",
+                "drop-collection",
+                "delete-many",
+                "drop-index",
+            ],
+            transport: "stdio",
+            httpPort: 3000,
+            httpHost: "127.0.0.1",
+            loggers: ["disk", "mcp"],
+            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+            httpHeaders: {},
+            maxDocumentsPerQuery: 100,
+            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+            voyageApiKey: "",
+            vectorSearchDimensions: 1024,
+            vectorSearchSimilarityFunction: "euclidean",
+            disableEmbeddingsValidation: false,
+            previewFeatures: [],
+        };
+
+        expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
+    });
+
     describe("env var parsing", () => {
         describe("mongodb urls", () => {
             it("should not try to parse a multiple-host urls", () => {
@@ -19,7 +60,6 @@ describe("config", () => {
                         MDB_MCP_CONNECTION_STRING: "mongodb://user:password@host1,host2,host3/",
                     },
                     cli: [],
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
@@ -55,7 +95,6 @@ describe("config", () => {
                         env: {
                             [envVar]: String(value),
                         },
-                        defaults: defaultUserConfig,
                     });
 
                     expect(actual[property]).toBe(value);
@@ -76,7 +115,6 @@ describe("config", () => {
                         env: {
                             [envVar]: "disk,mcp",
                         },
-                        defaults: defaultUserConfig,
                     });
 
                     expect(actual[config]).toEqual(["disk", "mcp"]);
@@ -90,7 +128,6 @@ describe("config", () => {
             const actual = setupUserConfig({
                 cli: ["myself", "--", "--connectionString", "mongodb://user:password@host1,host2,host3/"],
                 env: {},
-                defaults: defaultUserConfig,
             });
 
             expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
@@ -120,11 +157,11 @@ describe("config", () => {
                 },
                 {
                     cli: ["--httpPort", "8080"],
-                    expected: { httpPort: "8080" },
+                    expected: { httpPort: 8080 },
                 },
                 {
                     cli: ["--idleTimeoutMs", "42"],
-                    expected: { idleTimeoutMs: "42" },
+                    expected: { idleTimeoutMs: 42 },
                 },
                 {
                     cli: ["--logPath", "/var/"],
@@ -132,11 +169,11 @@ describe("config", () => {
                 },
                 {
                     cli: ["--notificationTimeoutMs", "42"],
-                    expected: { notificationTimeoutMs: "42" },
+                    expected: { notificationTimeoutMs: 42 },
                 },
                 {
                     cli: ["--atlasTemporaryDatabaseUserLifetimeMs", "12345"],
-                    expected: { atlasTemporaryDatabaseUserLifetimeMs: "12345" },
+                    expected: { atlasTemporaryDatabaseUserLifetimeMs: 12345 },
                 },
                 {
                     cli: ["--telemetry", "enabled"],
@@ -184,11 +221,19 @@ describe("config", () => {
                 },
                 {
                     cli: ["--oidcRedirectUri", "https://oidc"],
-                    expected: { oidcRedirectUri: "https://oidc" },
+                    expected: { oidcRedirectUri: "https://oidc", oidcRedirectUrl: "https://oidc" },
+                },
+                {
+                    cli: ["--oidcRedirectUrl", "https://oidc"],
+                    expected: { oidcRedirectUrl: "https://oidc", oidcRedirectUri: "https://oidc" },
                 },
                 {
                     cli: ["--password", "123456"],
-                    expected: { password: "123456" },
+                    expected: { password: "123456", p: "123456" },
+                },
+                {
+                    cli: ["-p", "123456"],
+                    expected: { password: "123456", p: "123456" },
                 },
                 {
                     cli: ["--port", "27017"],
@@ -252,7 +297,11 @@ describe("config", () => {
                 },
                 {
                     cli: ["--username", "admin"],
-                    expected: { username: "admin" },
+                    expected: { username: "admin", u: "admin" },
+                },
+                {
+                    cli: ["-u", "admin"],
+                    expected: { username: "admin", u: "admin" },
                 },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 
@@ -261,12 +310,12 @@ describe("config", () => {
                     const actual = setupUserConfig({
                         cli: ["myself", "--", ...cli],
                         env: {},
-                        defaults: defaultUserConfig,
                     });
 
-                    for (const [key, value] of Object.entries(expected)) {
-                        expect(actual[key as keyof UserConfig]).toBe(value);
-                    }
+                    expect(actual).toStrictEqual({
+                        ...UserConfigSchema.parse({}),
+                        ...expected,
+                    });
                 });
             }
         });
@@ -360,7 +409,6 @@ describe("config", () => {
                     const actual = setupUserConfig({
                         cli: ["myself", "--", ...cli],
                         env: {},
-                        defaults: defaultUserConfig,
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
@@ -387,7 +435,6 @@ describe("config", () => {
                     const actual = setupUserConfig({
                         cli: ["myself", "--", ...cli],
                         env: {},
-                        defaults: defaultUserConfig,
                     });
 
                     for (const [key, value] of Object.entries(expected)) {
@@ -403,7 +450,6 @@ describe("config", () => {
             const actual = setupUserConfig({
                 cli: ["myself", "--", "--connectionString", "mongodb://localhost"],
                 env: { MDB_MCP_CONNECTION_STRING: "mongodb://crazyhost" },
-                defaults: defaultUserConfig,
             });
 
             expect(actual.connectionString).toBe("mongodb://localhost");
@@ -413,10 +459,6 @@ describe("config", () => {
             const actual = setupUserConfig({
                 cli: ["myself", "--", "--connectionString", "mongodb://localhost"],
                 env: {},
-                defaults: {
-                    ...defaultUserConfig,
-                    connectionString: "mongodb://crazyhost",
-                },
             });
 
             expect(actual.connectionString).toBe("mongodb://localhost");
@@ -426,10 +468,6 @@ describe("config", () => {
             const actual = setupUserConfig({
                 cli: [],
                 env: { MDB_MCP_CONNECTION_STRING: "mongodb://localhost" },
-                defaults: {
-                    ...defaultUserConfig,
-                    connectionString: "mongodb://crazyhost",
-                },
             });
 
             expect(actual.connectionString).toBe("mongodb://localhost");
@@ -441,7 +479,6 @@ describe("config", () => {
             const actual = setupUserConfig({
                 cli: ["myself", "--", "mongodb://localhost", "--connectionString", "toRemove"],
                 env: {},
-                defaults: defaultUserConfig,
             });
 
             // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
@@ -458,7 +495,6 @@ describe("config", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--transport", "http"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.transport).toEqual("http");
@@ -468,7 +504,6 @@ describe("config", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--transport", "stdio"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.transport).toEqual("stdio");
@@ -479,9 +514,10 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--transport", "sse"],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("Invalid transport: sse");
+                ).toThrowError(
+                    'Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"'
+                );
             });
 
             it("should not support arbitrary values", () => {
@@ -491,9 +527,10 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--transport", value],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError(`Invalid transport: ${value}`);
+                ).toThrowError(
+                    `Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"`
+                );
             });
         });
 
@@ -502,7 +539,6 @@ describe("config", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--telemetry", "enabled"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.telemetry).toEqual("enabled");
@@ -512,7 +548,6 @@ describe("config", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--telemetry", "disabled"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.telemetry).toEqual("disabled");
@@ -523,9 +558,10 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--telemetry", "true"],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("Invalid telemetry: true");
+                ).toThrowError(
+                    'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
+                );
             });
 
             it("should not support the boolean false value", () => {
@@ -533,9 +569,10 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--telemetry", "false"],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("Invalid telemetry: false");
+                ).toThrowError(
+                    'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
+                );
             });
 
             it("should not support arbitrary values", () => {
@@ -545,9 +582,10 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--telemetry", value],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError(`Invalid telemetry: ${value}`);
+                ).toThrowError(
+                    `Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"`
+                );
             });
         });
 
@@ -557,9 +595,10 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--httpPort", "0"],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("Invalid httpPort: 0");
+                ).toThrowError(
+                    "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at least 1"
+                );
             });
 
             it("must be below 65535 (OS limit)", () => {
@@ -567,9 +606,10 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--httpPort", "89527345"],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("Invalid httpPort: 89527345");
+                ).toThrowError(
+                    "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at most 65535"
+                );
             });
 
             it("should not support non numeric values", () => {
@@ -577,19 +617,19 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--httpPort", "portAventura"],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("Invalid httpPort: portAventura");
+                ).toThrowError(
+                    "Invalid configuration for the following fields:\nhttpPort - Invalid input: expected number, received NaN"
+                );
             });
 
             it("should support numeric values", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--httpPort", "8888"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
-                expect(actual.httpPort).toEqual("8888");
+                expect(actual.httpPort).toEqual(8888);
             });
         });
 
@@ -599,9 +639,8 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--loggers", ""],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("No loggers found in config");
+                ).toThrowError("Invalid configuration for the following fields:\nloggers - Cannot be an empty array");
             });
 
             it("must not allow duplicates", () => {
@@ -609,16 +648,16 @@ describe("config", () => {
                     setupUserConfig({
                         cli: ["myself", "--", "--loggers", "disk,disk,disk"],
                         env: {},
-                        defaults: defaultUserConfig,
                     })
-                ).toThrowError("Duplicate loggers found in config");
+                ).toThrowError(
+                    "Invalid configuration for the following fields:\nloggers - Duplicate loggers found in config"
+                );
             });
 
             it("allows mcp logger", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--loggers", "mcp"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.loggers).toEqual(["mcp"]);
@@ -628,7 +667,6 @@ describe("config", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--loggers", "disk"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.loggers).toEqual(["disk"]);
@@ -638,7 +676,6 @@ describe("config", () => {
                 const actual = setupUserConfig({
                     cli: ["myself", "--", "--loggers", "stderr"],
                     env: {},
-                    defaults: defaultUserConfig,
                 });
 
                 expect(actual.loggers).toEqual(["stderr"]);

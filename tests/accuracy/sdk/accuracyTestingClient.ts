@@ -96,6 +96,10 @@ export class AccuracyTestingClient {
         const clientTransport = new StdioClientTransport({
             command: process.execPath,
             args,
+            env: {
+                ...process.env,
+                DO_NOT_TRACK: "1",
+            },
         });
 
         const client = await createMCPClient({

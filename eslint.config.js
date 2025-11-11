@@ -6,6 +6,7 @@ import tseslint from "typescript-eslint";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import vitestPlugin from "@vitest/eslint-plugin";
 import noConfigImports from "./eslint-rules/no-config-imports.js";
+import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
 const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
 
@@ -72,9 +73,15 @@ export default defineConfig([
                     "no-config-imports": noConfigImports,
                 },
             },
+            "enforce-zod-v4": {
+                rules: {
+                    "enforce-zod-v4": enforceZodV4,
+                },
+            },
         },
         rules: {
             "no-config-imports/no-config-imports": "error",
+            "enforce-zod-v4/enforce-zod-v4": "error",
         },
     },
     globalIgnores([

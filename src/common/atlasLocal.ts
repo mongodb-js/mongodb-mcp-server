@@ -12,18 +12,14 @@ export const defaultCreateAtlasLocalClient: AtlasLocalClientFactoryFn = async ()
             // Connect to Atlas Local client
             // This will fail if docker is not running
             return AtlasLocalClient.connect();
-        } catch (dockerError) {
+        } catch {
             console.warn(
-                "Failed to connect to Atlas Local client (Docker not available or not running), atlas-local tools will be disabled (error: ",
-                dockerError,
-                ")"
+                "Cannot connect to Docker. Atlas Local tools are disabled. All other tools continue to work normally."
             );
         }
-    } catch (importError) {
+    } catch {
         console.warn(
-            "Failed to import Atlas Local client (platform not supported), atlas-local tools will be disabled (error: ",
-            importError,
-            ")"
+            "Atlas Local is not supported on this platform. Atlas Local tools are disabled. All other tools continue to work normally."
         );
     }
 

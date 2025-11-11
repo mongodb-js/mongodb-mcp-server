@@ -76,6 +76,10 @@ npm test -- path/to/test/file.test.ts
 npm test -- path/to/directory
 ```
 
+#### Accuracy Tests and colima
+
+If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, you will need to apply [additional configuration](https://node.testcontainers.org/supported-container-runtimes/#colima) to ensure the accuracy tests run correctly.
+
 ## Troubleshooting
 
 ### Restart Server
@@ -143,31 +147,28 @@ When adding new tools to the MCP server:
 
 ## Release Process
 
-Our release process is automated using GitHub Actions workflows:
+To release a new version of the MCP server, follow these steps:
 
-### Version Bumping
-
-1. To create a new version, go to the GitHub repository Actions tab
-2. Select the "Version Bump" workflow
-3. Click "Run workflow" and choose one of the following options:
+1. Ensure there is a Jira _Release_ ticket in the [`MCP` project](https://jira.mongodb.org/projects/MCP) for the new release and move it to _In Progress_.
+2. Verify that the Jira tickets you expect to be released are correctly mapped to the expected Release version. Add any additional required documentation to the release ticket.
+3. To create a new version, go to the GitHub repository Actions tab and run the "Prepare Release" workflow with one of the following options:
    - `patch` (e.g., 1.0.0 → 1.0.1) for backward-compatible bug fixes
    - `minor` (e.g., 1.0.0 → 1.1.0) for backward-compatible new features
    - `major` (e.g., 1.0.0 → 2.0.0) for breaking changes
    - A specific version number (e.g., `1.2.3`)
-4. This creates a pull request with the version change
-5. Once approved and merged, the version is updated
+   - **Pre-release versions**: To create a pre-release, enter the version suffixed by `-prerelease.{n}` where `n` is the pre-release number (e.g., `1.1.0-prerelease.1`, `1.1.0-prerelease.2`). Pre-releases are release candidates that provide early access to new features before they are promoted to stable.
 
-### Automatic Publishing
+   > **Note**: Stable releases are published under the `latest` tag on NPM and are intended for production use. Pre-release versions are published under the `prerelease` tag and serve as release candidates for early access and feedback before being released as stable versions.
 
-When a version bump is merged to the main branch:
-
-1. The "Publish" workflow automatically runs
-2. It checks if the version already exists as a git tag
-3. If the version is new, it:
-   - Builds the package
-   - Publishes to NPM
-   - Creates a git tag for the version
-   - Creates a GitHub release with auto-generated release notes
+4. This creates a pull request with the version change.
+5. Merge this pull request if all looks correct. This will trigger the "Publish" workflow which will publish it to **NPM**, **Docker** and the **MCP Registry**.
+6. Verify that the new version is published correctly by checking:
+   - NPM: https://www.npmjs.com/package/mongodb-mcp-server
+   - Docker: https://hub.docker.com/r/mongodb/mongodb-mcp-server
+   - MCP Registry: `curl "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mongodb-js%2Fmongodb-mcp-server/versions/latest"`
+7. Close the Jira ticket for the release.
+8. Go to the [Releases](https://jira.mongodb.org/projects/MCP?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased) section the and rename the `vNext` to the new version number and mark it as Released. Create a new `vNext` for the next release.
+9. Post an update in the `#mongodb-mcp` Slack channel.
 
 ### Code Quality
 

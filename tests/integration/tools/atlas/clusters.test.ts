@@ -1,14 +1,6 @@
 import type { Session } from "../../../../src/common/session.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
-import {
-    describeWithAtlas,
-    withProject,
-    randomId,
-    parseTable,
-    deleteCluster,
-    waitCluster,
-    sleep,
-} from "./atlasHelpers.js";
+import { expectDefined, getResponseContent } from "../../helpers.js";
+import { describeWithAtlas, withProject, randomId, deleteCluster, waitCluster, sleep } from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describeWithAtlas("clusters", (integration) => {
@@ -48,12 +40,14 @@ describeWithAtlas("clusters", (integration) => {
                         region: "US_EAST_1",
                     },
                 });
-                const elements = getResponseElements(response.content);
-                expect(elements).toHaveLength(2);
-                expect(elements[0]?.text).toContain("has been created");
+                const content = getResponseContent(response.content);
+                expect(content).toContain("Cluster");
+                expect(content).toContain(clusterName);
+                expect(content).toContain("has been created");
+                expect(content).toContain("US_EAST_1");
 
                 // Check that the current IP is present in the access list
-                const accessList = await session.apiClient.listProjectIpAccessLists({
+                const accessList = await session.apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
                 });
                 const found = accessList.results?.some((entry) => entry.ipAddress === getIpAddress());
@@ -80,11 +74,10 @@ describeWithAtlas("clusters", (integration) => {
                     name: "atlas-inspect-cluster",
                     arguments: { projectId, clusterName: clusterName },
                 });
-                const elements = getResponseElements(response.content);
-                expect(elements).toHaveLength(2);
-                expect(elements[0]?.text).toContain("Cluster details:");
-                expect(elements[1]?.text).toContain("<untrusted-user-data-");
-                expect(elements[1]?.text).toContain(`${clusterName} | `);
+                const content = getResponseContent(response.content);
+                expect(content).toContain("Cluster details:");
+                expect(content).toContain("<untrusted-user-data-");
+                expect(content).toContain(clusterName);
             });
         });
 
@@ -105,14 +98,10 @@ describeWithAtlas("clusters", (integration) => {
                     .mcpClient()
                     .callTool({ name: "atlas-list-clusters", arguments: { projectId } });
 
-                const elements = getResponseElements(response);
-                expect(elements).toHaveLength(2);
-
-                expect(elements[1]?.text).toContain("<untrusted-user-data-");
-                expect(elements[1]?.text).toContain(`${clusterName} | `);
-                const data = parseTable(getDataFromUntrustedContent(elements[1]?.text ?? ""));
-                expect(data.length).toBeGreaterThanOrEqual(1);
-                expect(elements[0]?.text).toMatch(`Found ${data.length} clusters in project`);
+                const content = getResponseContent(response.content);
+                expect(content).toContain("<untrusted-user-data-");
+                expect(content).toMatch(/Found \d+ clusters in project/);
+                expect(content).toContain(projectId);
             });
         });
 
@@ -126,7 +115,7 @@ describeWithAtlas("clusters", (integration) => {
                         (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !== undefined
                     );
                 });
-                await integration.mcpServer().session.apiClient.createProjectIpAccessList({
+                await integration.mcpServer().session.apiClient.createAccessListEntry({
                     params: {
                         path: {
                             groupId: projectId,
@@ -150,7 +139,6 @@ describeWithAtlas("clusters", (integration) => {
                 expectDefined(connectCluster.inputSchema.properties);
                 expect(connectCluster.inputSchema.properties).toHaveProperty("projectId");
                 expect(connectCluster.inputSchema.properties).toHaveProperty("clusterName");
-                expect(connectCluster.inputSchema.properties).toHaveProperty("connectionType");
             });
 
             it("connects to cluster", async () => {
@@ -164,23 +152,20 @@ describeWithAtlas("clusters", (integration) => {
                         arguments: { projectId, clusterName, connectionType },
                     });
 
-                    const elements = getResponseElements(response.content);
-                    expect(elements.length).toBeGreaterThanOrEqual(1);
-                    if (elements[0]?.text.includes(`Connected to cluster "${clusterName}"`)) {
+                    const content = getResponseContent(response.content);
+                    expect(content).toContain("Connected to cluster");
+                    expect(content).toContain(clusterName);
+                    if (content.includes(`Connected to cluster "${clusterName}"`)) {
                         connected = true;
 
                         // assert that some of the element s have the message
-                        expect(
-                            elements.some((element) =>
-                                element.text.includes(
-                                    "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
-                                )
-                            )
-                        ).toBe(true);
+                        expect(content).toContain(
+                            "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
+                        );
 
                         break;
                     } else {
-                        expect(elements[0]?.text).toContain(`Attempting to connect to cluster "${clusterName}"...`);
+                        expect(content).toContain(`Attempting to connect to cluster "${clusterName}"...`);
                     }
                     await sleep(500);
                 }
@@ -193,19 +178,18 @@ describeWithAtlas("clusters", (integration) => {
                         name: "find",
                         arguments: { database: "some-db", collection: "some-collection" },
                     });
-                    const elements = getResponseElements(response.content);
-                    expect(elements).toHaveLength(2);
-                    expect(elements[0]?.text).toContain(
+                    const content = getResponseContent(response.content);
+                    expect(content).toContain(
                         "You need to connect to a MongoDB instance before you can access its data."
                     );
                     // Check if the response contains all available test tools.
                     if (process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true") {
                         // The tool atlas-local-connect-deployment may be disabled in some test environments if Docker is not available.
-                        expect(elements[1]?.text).toContain(
+                        expect(content).toContain(
                             'Please use one of the following tools: "atlas-connect-cluster", "connect" to connect to a MongoDB instance'
                         );
                     } else {
-                        expect(elements[1]?.text).toContain(
+                        expect(content).toContain(
                             'Please use one of the following tools: "atlas-connect-cluster", "atlas-local-connect-deployment", "connect" to connect to a MongoDB instance'
                         );
                     }

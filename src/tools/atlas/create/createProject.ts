@@ -22,7 +22,7 @@ export class CreateProjectTool extends AtlasToolBase {
 
         if (!organizationId) {
             try {
-                const organizations = await this.session.apiClient.listOrganizations();
+                const organizations = await this.session.apiClient.listOrgs();
                 if (!organizations?.results?.length) {
                     throw new Error(
                         "No organizations were found in your MongoDB Atlas account. Please create an organization first."
@@ -48,7 +48,7 @@ export class CreateProjectTool extends AtlasToolBase {
             orgId: organizationId,
         } as Group;
 
-        const group = await this.session.apiClient.createProject({
+        const group = await this.session.apiClient.createGroup({
             body: input,
         });
 

@@ -73,7 +73,7 @@ describe("ApiClient", () => {
             // @ts-expect-error accessing private property for testing
             apiClient.client.GET = mockGet;
 
-            const result = await apiClient.listProjects();
+            const result = await apiClient.listGroups();
 
             expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", undefined);
             expect(result).toEqual(mockProjects);
@@ -94,7 +94,7 @@ describe("ApiClient", () => {
             // @ts-expect-error accessing private property for testing
             apiClient.client.GET = mockGet;
 
-            await expect(apiClient.listProjects()).rejects.toThrow();
+            await expect(apiClient.listGroups()).rejects.toThrow();
         });
     });
 

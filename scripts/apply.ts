@@ -36,6 +36,7 @@ async function main(): Promise<void> {
         path: string;
         method: string;
         operationId: string;
+        methodName: string;
         requiredParams: boolean;
         tag: string;
         hasResponseBody: boolean;
@@ -45,7 +46,9 @@ async function main(): Promise<void> {
     for (const path in openapi.paths) {
         for (const method in openapi.paths[path]) {
             // @ts-expect-error This is a workaround for the OpenAPI types
-            const operation = openapi.paths[path][method] as OpenAPIV3_1.OperationObject;
+            const operation = openapi.paths[path][method] as OpenAPIV3_1.OperationObject & {
+                "x-xgen-operation-id-override": string;
+            };
 
             if (!operation.operationId || !operation.tags?.length) {
                 continue;
@@ -81,6 +84,7 @@ async function main(): Promise<void> {
             operations.push({
                 path,
                 method: method.toUpperCase(),
+                methodName: operation["x-xgen-operation-id-override"] || operation.operationId || "",
                 operationId: operation.operationId || "",
                 requiredParams,
                 hasResponseBody,
@@ -91,9 +95,9 @@ async function main(): Promise<void> {
 
     const operationOutput = operations
         .map((operation) => {
-            const { operationId, method, path, requiredParams, hasResponseBody } = operation;
+            const { methodName, operationId, method, path, requiredParams, hasResponseBody } = operation;
             return `// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-async ${operationId}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>) {
+async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>) {
     const { ${hasResponseBody ? `data, ` : ``}error, response } = await this.client.${method}("${path}", options);
     if (error) {
         throw ApiClientError.fromError(response, error);
