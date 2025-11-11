@@ -30,7 +30,7 @@ describeWithAtlas("ip access lists", (integration) => {
             if (projectId) {
                 // projectId may be empty if beforeAll failed.
                 for (const value of values) {
-                    await apiClient.deleteProjectIpAccessList({
+                    await apiClient.deleteAccessListEntry({
                         params: {
                             path: {
                                 groupId: projectId,
@@ -110,7 +110,7 @@ describeWithAtlas("ip access lists", (integration) => {
                 // Second call should be a no-op (idempotent)
                 await expect(ensureCurrentIpInAccessList(apiClient, projectId)).resolves.not.toThrow();
                 // Check that the IP is present in the access list
-                const accessList = await apiClient.listProjectIpAccessLists({
+                const accessList = await apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
                 });
                 const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);

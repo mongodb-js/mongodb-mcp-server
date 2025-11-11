@@ -51,7 +51,7 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("US_EAST_1");
 
                 // Check that the current IP is present in the access list
-                const accessList = await session.apiClient.listProjectIpAccessLists({
+                const accessList = await session.apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
                 });
                 const found = accessList.results?.some((entry) => entry.ipAddress === getIpAddress());
@@ -119,7 +119,7 @@ describeWithAtlas("clusters", (integration) => {
                         (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !== undefined
                     );
                 });
-                await integration.mcpServer().session.apiClient.createProjectIpAccessList({
+                await integration.mcpServer().session.apiClient.createAccessListEntry({
                     params: {
                         path: {
                             groupId: projectId,

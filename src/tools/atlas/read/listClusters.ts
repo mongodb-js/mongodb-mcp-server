@@ -25,11 +25,11 @@ export class ListClustersTool extends AtlasToolBase {
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (!projectId) {
-            const data = await this.session.apiClient.listClustersForAllProjects();
+            const data = await this.session.apiClient.listClusterDetails();
 
             return this.formatAllClustersTable(data);
         } else {
-            const project = await this.session.apiClient.getProject({
+            const project = await this.session.apiClient.getGroup({
                 params: {
                     path: {
                         groupId: projectId,
