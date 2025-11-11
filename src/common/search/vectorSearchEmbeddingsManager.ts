@@ -24,10 +24,8 @@ export type VectorFieldIndexDefinition = {
 export type VectorFieldValidationError = {
     path: string;
     expectedNumDimensions: number;
-    expectedQuantization: Quantization;
     actualNumDimensions: number | "unknown";
-    actualQuantization: Quantization | "unknown";
-    error: "dimension-mismatch" | "quantization-mismatch" | "not-a-vector" | "not-numeric";
+    error: "dimension-mismatch" | "not-a-vector" | "not-numeric";
 };
 
 export type EmbeddingNamespace = `${string}.${string}`;
@@ -116,9 +114,9 @@ export class VectorSearchEmbeddingsManager {
         if (embeddingValidationResults.length > 0) {
             const embeddingValidationMessages = embeddingValidationResults.map(
                 (validation) =>
-                    `- Field ${validation.path} is an embedding with ${validation.expectedNumDimensions} dimensions and ${validation.expectedQuantization}` +
-                    ` quantization, and the provided value is not compatible. Actual dimensions: ${validation.actualNumDimensions}, ` +
-                    `actual quantization: ${validation.actualQuantization}. Error: ${validation.error}`
+                    `- Field ${validation.path} is an embedding with ${validation.expectedNumDimensions} dimensions,` +
+                    ` and the provided value is not compatible. Actual dimensions: ${validation.actualNumDimensions},` +
+                    ` Error: ${validation.error}`
             );
 
             throw new MongoDBError(
@@ -179,13 +177,11 @@ export class VectorSearchEmbeddingsManager {
         let fieldRef: unknown = document;
 
         const constructError = (
-            details: Partial<Pick<VectorFieldValidationError, "error" | "actualNumDimensions" | "actualQuantization">>
+            details: Partial<Pick<VectorFieldValidationError, "error" | "actualNumDimensions">>
         ): VectorFieldValidationError => ({
             path: definition.path,
             expectedNumDimensions: definition.numDimensions,
-            expectedQuantization: definition.quantization,
             actualNumDimensions: details.actualNumDimensions ?? "unknown",
-            actualQuantization: details.actualQuantization ?? "unknown",
             error: details.error ?? "not-a-vector",
         });
 
@@ -197,94 +193,55 @@ export class VectorSearchEmbeddingsManager {
             }
         }
 
-        switch (definition.quantization) {
-            // Quantization "none" means no quantization is performed, so
-            // full-fidelity vectors are stored therefore the underlying vector
-            // must be stored as an array of numbers having the same dimension
-            // as that of the index.
-            case "none":
-                if (!Array.isArray(fieldRef)) {
+        if (fieldRef instanceof BSON.Binary) {
+            try {
+                const elements = fieldRef.toFloat32Array();
+                if (elements.length !== definition.numDimensions) {
                     return constructError({
-                        error: "not-a-vector",
-                    });
-                }
-
-                if (fieldRef.length !== definition.numDimensions) {
-                    return constructError({
-                        actualNumDimensions: fieldRef.length,
-                        actualQuantization: "none",
+                        actualNumDimensions: elements.length,
                         error: "dimension-mismatch",
                     });
                 }
 
-                if (fieldRef.some((e) => !this.isANumber(e))) {
-                    return constructError({
-                        actualNumDimensions: fieldRef.length,
-                        actualQuantization: "none",
-                        error: "not-numeric",
-                    });
-                }
-
                 return undefined;
-            case "scalar":
-            case "binary":
-                if (fieldRef instanceof BSON.Binary) {
-                    try {
-                        const elements = fieldRef.toFloat32Array();
-                        if (elements.length !== definition.numDimensions) {
-                            return constructError({
-                                actualNumDimensions: elements.length,
-                                actualQuantization: "binary",
-                                error: "dimension-mismatch",
-                            });
-                        }
-
-                        return undefined;
-                    } catch {
-                        // bits are also supported
-                        try {
-                            const bits = fieldRef.toBits();
-                            if (bits.length !== definition.numDimensions) {
-                                return constructError({
-                                    actualNumDimensions: bits.length,
-                                    actualQuantization: "binary",
-                                    error: "dimension-mismatch",
-                                });
-                            }
-
-                            return undefined;
-                        } catch {
-                            return constructError({
-                                actualQuantization: "binary",
-                                error: "not-a-vector",
-                            });
-                        }
-                    }
-                } else {
-                    if (!Array.isArray(fieldRef)) {
+            } catch {
+                // bits are also supported
+                try {
+                    const bits = fieldRef.toBits();
+                    if (bits.length !== definition.numDimensions) {
                         return constructError({
-                            error: "not-a-vector",
-                        });
-                    }
-
-                    if (fieldRef.length !== definition.numDimensions) {
-                        return constructError({
-                            actualNumDimensions: fieldRef.length,
-                            actualQuantization: "scalar",
+                            actualNumDimensions: bits.length,
                             error: "dimension-mismatch",
                         });
                     }
 
-                    if (fieldRef.some((e) => !this.isANumber(e))) {
-                        return constructError({
-                            actualNumDimensions: fieldRef.length,
-                            actualQuantization: "scalar",
-                            error: "not-numeric",
-                        });
-                    }
+                    return undefined;
+                } catch {
+                    return constructError({
+                        error: "not-a-vector",
+                    });
                 }
+            }
+        } else {
+            if (!Array.isArray(fieldRef)) {
+                return constructError({
+                    error: "not-a-vector",
+                });
+            }
 
-                break;
+            if (fieldRef.length !== definition.numDimensions) {
+                return constructError({
+                    actualNumDimensions: fieldRef.length,
+                    error: "dimension-mismatch",
+                });
+            }
+
+            if (fieldRef.some((e) => !this.isANumber(e))) {
+                return constructError({
+                    actualNumDimensions: fieldRef.length,
+                    error: "not-numeric",
+                });
+            }
         }
 
         return undefined;

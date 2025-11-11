@@ -297,16 +297,9 @@ describe("VectorSearchEmbeddingsManager", () => {
                     }
                 );
 
-                it.each([
-                    { path: "embedding_field", expectedQuantization: "scalar", actualQuantization: "scalar" },
-                    {
-                        path: "embedding_field_wo_quantization",
-                        expectedQuantization: "none",
-                        actualQuantization: "none",
-                    },
-                ] as const)(
-                    "documents inserting the field with wrong dimensions are invalid - path = $path",
-                    async ({ path, expectedQuantization, actualQuantization }) => {
+                it.each(["embedding_field", "embedding_field_wo_quantization"] as const)(
+                    "documents inserting the field with wrong dimensions are invalid - path = $0",
+                    async (path) => {
                         const result = await embeddings.findFieldsWithWrongEmbeddings(
                             { database, collection },
                             { [path]: [1, 2, 3] }
@@ -315,26 +308,17 @@ describe("VectorSearchEmbeddingsManager", () => {
                         expect(result).toHaveLength(1);
                         const expectedError: VectorFieldValidationError = {
                             actualNumDimensions: 3,
-                            actualQuantization,
                             error: "dimension-mismatch",
                             expectedNumDimensions: 8,
-                            expectedQuantization,
                             path,
                         };
                         expect(result[0]).toEqual(expectedError);
                     }
                 );
 
-                it.each([
-                    { path: "embedding_field", expectedQuantization: "scalar", actualQuantization: "scalar" },
-                    {
-                        path: "embedding_field_wo_quantization",
-                        expectedQuantization: "none",
-                        actualQuantization: "none",
-                    },
-                ] as const)(
-                    "documents inserting the field with correct dimensions, but wrong type are invalid - $path",
-                    async ({ path, expectedQuantization, actualQuantization }) => {
+                it.each(["embedding_field", "embedding_field_wo_quantization"] as const)(
+                    "documents inserting the field with correct dimensions, but wrong type are invalid - $0",
+                    async (path) => {
                         const result = await embeddings.findFieldsWithWrongEmbeddings(
                             { database, collection },
                             { [path]: ["1", "2", "3", "4", "5", "6", "7", "8"] }
@@ -343,10 +327,8 @@ describe("VectorSearchEmbeddingsManager", () => {
                         expect(result).toHaveLength(1);
                         const expectedError: VectorFieldValidationError = {
                             actualNumDimensions: 8,
-                            actualQuantization,
                             error: "not-numeric",
                             expectedNumDimensions: 8,
-                            expectedQuantization,
                             path,
                         };
 
@@ -486,14 +468,6 @@ describe("VectorSearchEmbeddingsManager", () => {
                         { embedding_field: [1, 2, 3] },
                     ])
                 ).rejects.toThrow(/Actual dimensions: 3/);
-            });
-
-            it("throws error with details about quantization", async () => {
-                await expect(
-                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
-                        { embedding_field: [1, 2, 3] },
-                    ])
-                ).rejects.toThrow(/actual quantization: scalar/);
             });
 
             it("throws error with details about error type", async () => {
