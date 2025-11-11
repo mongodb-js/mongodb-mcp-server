@@ -170,7 +170,7 @@ describeWithMongoDB(
             expect(docCount).toBe(1);
         });
 
-        it("returns an error when there is a search index and quantisation is wrong", async () => {
+        it("returns an error when there is a search index and embeddings parameter are wrong", async () => {
             await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                 {
                     type: "vector",

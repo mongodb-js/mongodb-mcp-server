@@ -185,6 +185,26 @@ export class VectorSearchEmbeddingsManager {
             error: details.error ?? "not-a-vector",
         });
 
+        const extractUnderlyingVector = (fieldRef: unknown): ArrayLike<unknown> | undefined => {
+            if (fieldRef instanceof BSON.Binary) {
+                try {
+                    return fieldRef.toFloat32Array();
+                } catch {
+                    try {
+                        return fieldRef.toBits();
+                    } catch {
+                        return undefined;
+                    }
+                }
+            }
+
+            if (Array.isArray(fieldRef)) {
+                return fieldRef as Array<unknown>;
+            }
+
+            return undefined;
+        };
+
         for (const field of fieldPath) {
             if (fieldRef && typeof fieldRef === "object" && field in fieldRef) {
                 fieldRef = (fieldRef as Record<string, unknown>)[field];
@@ -193,55 +213,25 @@ export class VectorSearchEmbeddingsManager {
             }
         }
 
-        if (fieldRef instanceof BSON.Binary) {
-            try {
-                const elements = fieldRef.toFloat32Array();
-                if (elements.length !== definition.numDimensions) {
-                    return constructError({
-                        actualNumDimensions: elements.length,
-                        error: "dimension-mismatch",
-                    });
-                }
+        const maybeVector = extractUnderlyingVector(fieldRef);
+        if (!maybeVector) {
+            return constructError({
+                error: "not-a-vector",
+            });
+        }
 
-                return undefined;
-            } catch {
-                // bits are also supported
-                try {
-                    const bits = fieldRef.toBits();
-                    if (bits.length !== definition.numDimensions) {
-                        return constructError({
-                            actualNumDimensions: bits.length,
-                            error: "dimension-mismatch",
-                        });
-                    }
+        if (maybeVector.length !== definition.numDimensions) {
+            return constructError({
+                actualNumDimensions: maybeVector.length,
+                error: "dimension-mismatch",
+            });
+        }
 
-                    return undefined;
-                } catch {
-                    return constructError({
-                        error: "not-a-vector",
-                    });
-                }
-            }
-        } else {
-            if (!Array.isArray(fieldRef)) {
-                return constructError({
-                    error: "not-a-vector",
-                });
-            }
-
-            if (fieldRef.length !== definition.numDimensions) {
-                return constructError({
-                    actualNumDimensions: fieldRef.length,
-                    error: "dimension-mismatch",
-                });
-            }
-
-            if (fieldRef.some((e) => !this.isANumber(e))) {
-                return constructError({
-                    actualNumDimensions: fieldRef.length,
-                    error: "not-numeric",
-                });
-            }
+        if (Array.isArray(maybeVector) && maybeVector.some((e) => !this.isANumber(e))) {
+            return constructError({
+                actualNumDimensions: maybeVector.length,
+                error: "not-numeric",
+            });
         }
 
         return undefined;
