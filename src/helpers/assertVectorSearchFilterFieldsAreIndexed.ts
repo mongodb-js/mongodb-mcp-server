@@ -21,19 +21,22 @@ export type VectorSearchIndex = {
               }
         >;
     };
+    type: "vectorSearch";
 };
 
 export function assertVectorSearchFilterFieldsAreIndexed({
-    searchIndexes,
+    vectorSearchIndexes,
     pipeline,
     logger,
 }: {
-    searchIndexes: VectorSearchIndex[];
+    vectorSearchIndexes: VectorSearchIndex[];
     pipeline: Record<string, unknown>[];
     logger: CompositeLogger;
 }): void {
-    const searchIndexesWithFilterFields = searchIndexes.reduce<Record<string, string[]>>(
-        (indexFieldMap, searchIndex) => {
+    const searchIndexesWithFilterFields = vectorSearchIndexes
+        // Ensure we only process vector search indexes and not lexical search ones
+        .filter((index) => index.type === "vectorSearch")
+        .reduce<Record<string, string[]>>((indexFieldMap, searchIndex) => {
             const filterFields = searchIndex.latestDefinition.fields
                 .map<string | undefined>((field) => {
                     return field.type === "filter" ? field.path : undefined;
@@ -42,9 +45,7 @@ export function assertVectorSearchFilterFieldsAreIndexed({
 
             indexFieldMap[searchIndex.name] = filterFields;
             return indexFieldMap;
-        },
-        {}
-    );
+        }, {});
     for (const stage of pipeline) {
         if ("$vectorSearch" in stage) {
             const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;

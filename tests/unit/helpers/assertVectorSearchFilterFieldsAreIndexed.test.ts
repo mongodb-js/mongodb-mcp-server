@@ -196,11 +196,12 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
                     })),
                 ],
             },
+            type: "vectorSearch",
         },
     ];
 
     it("should not throw when all filter fields are indexed", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2", "field3"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2", "field3"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -219,7 +220,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -227,7 +228,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should not throw when filter is empty", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -243,7 +244,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -251,7 +252,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should not throw when filter is not provided", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -266,7 +267,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -274,12 +275,12 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should not throw when pipeline has no $vectorSearch stage", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
         const pipeline = [{ $match: { status: "active" } }, { $limit: 10 }];
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -287,7 +288,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should throw MongoDBError when filter field is not indexed", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -306,7 +307,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -314,7 +315,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -327,7 +328,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should throw MongoDBError with all unindexed fields listed", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -347,7 +348,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -360,7 +361,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should handle nested $and and $or operators", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2", "field3"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2", "field3"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -383,7 +384,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -391,7 +392,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should throw when nested filter contains unindexed field", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1", "field2"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -414,7 +415,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -427,7 +428,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should log warning when index is not found in searchIndexes", () => {
-        const searchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
+        const vectorSearchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
         const pipeline = [
             {
                 $vectorSearch: {
@@ -444,7 +445,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
         ];
 
         assertVectorSearchFilterFieldsAreIndexed({
-            searchIndexes,
+            vectorSearchIndexes,
             pipeline,
             logger: mockLogger,
         });
@@ -459,7 +460,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should handle multiple $vectorSearch stages in pipeline", () => {
-        const searchIndexes = [
+        const vectorSearchIndexes = [
             ...createMockSearchIndexes("index1", ["field1", "field2"]),
             ...createMockSearchIndexes("index2", ["field3", "field4"]),
         ];
@@ -493,7 +494,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -501,7 +502,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should throw on second $vectorSearch stage if it has unindexed field", () => {
-        const searchIndexes = [
+        const vectorSearchIndexes = [
             ...createMockSearchIndexes("index1", ["field1", "field2"]),
             ...createMockSearchIndexes("index2", ["field3"]),
         ];
@@ -534,7 +535,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -547,12 +548,13 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should handle search index with no filter fields", () => {
-        const searchIndexes: VectorSearchIndex[] = [
+        const vectorSearchIndexes: VectorSearchIndex[] = [
             {
                 name: "myIndex",
                 latestDefinition: {
                     fields: [{ type: "vector" }],
                 },
+                type: "vectorSearch",
             },
         ];
         const pipeline = [
@@ -572,7 +574,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
 
         expect(() =>
             assertVectorSearchFilterFieldsAreIndexed({
-                searchIndexes,
+                vectorSearchIndexes,
                 pipeline,
                 logger: mockLogger,
             })
@@ -582,5 +584,46 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
                 "Vector search stage contains filter on fields that are not indexed by index myIndex - field1"
             )
         );
+    });
+
+    it("should ignore atlas search indexes", () => {
+        const vectorSearchIndexes: VectorSearchIndex[] = [
+            ...createMockSearchIndexes("index1", ["field1", "field2"]),
+            // Atlas search index - it should be ignored by the validation
+            // and not cause any errors
+            {
+                name: "atlasSearchIndex",
+                latestDefinition: {
+                    analyzer: "lucene.standard",
+                    mappings: {
+                        dynamic: false,
+                    },
+                },
+                type: "search",
+            } as unknown as VectorSearchIndex,
+        ];
+
+        const pipeline = [
+            {
+                $vectorSearch: {
+                    index: "index1",
+                    path: "embedding",
+                    queryVector: [1, 2, 3],
+                    numCandidates: 100,
+                    limit: 10,
+                    filter: {
+                        field1: "value",
+                    },
+                },
+            },
+        ];
+
+        expect(() =>
+            assertVectorSearchFilterFieldsAreIndexed({
+                vectorSearchIndexes,
+                pipeline,
+                logger: mockLogger,
+            })
+        ).not.toThrow();
     });
 });
