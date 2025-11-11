@@ -190,11 +190,13 @@ export class VectorSearchEmbeddingsManager {
                 try {
                     return fieldRef.toFloat32Array();
                 } catch {
-                    try {
-                        return fieldRef.toBits();
-                    } catch {
-                        return undefined;
-                    }
+                    // nothing to do here
+                }
+
+                try {
+                    return fieldRef.toBits();
+                } catch {
+                    // nothing to do here
                 }
             }
 
