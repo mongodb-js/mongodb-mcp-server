@@ -372,18 +372,18 @@ export function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfi
     maybeRegister(userConfig.username, "user");
 }
 
-function warnIfVectorSearchNotEnabledCorrectly(config: UserConfig): void {
+export function warnIfVectorSearchNotEnabledCorrectly(config: UserConfig, warn: (message: string) => void): void {
     const vectorSearchEnabled = config.previewFeatures.includes("vectorSearch");
     const embeddingsProviderConfigured = !!config.voyageApiKey;
     if (vectorSearchEnabled && !embeddingsProviderConfigured) {
-        console.warn(`\
+        warn(`\
 Warning: Vector search is enabled but no embeddings provider is configured.
 - Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
 `);
     }
 
     if (!vectorSearchEnabled && embeddingsProviderConfigured) {
-        console.warn(`\
+        warn(`\
 Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
 - Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
 `);
@@ -410,7 +410,7 @@ export function setupUserConfig({ cli, env }: { cli: string[]; env: Record<strin
     // We don't have as schema defined for all args-parser arguments so we need to merge the raw config with the parsed config.
     const userConfig = { ...rawConfig, ...parseResult.data } as UserConfig;
 
-    warnIfVectorSearchNotEnabledCorrectly(userConfig);
+    warnIfVectorSearchNotEnabledCorrectly(userConfig, (message) => console.warn(message));
     registerKnownSecretsInRootKeychain(userConfig);
     return userConfig;
 }
