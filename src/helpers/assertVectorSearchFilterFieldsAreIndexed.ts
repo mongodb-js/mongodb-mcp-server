@@ -8,7 +8,9 @@ import { type CompositeLogger, LogId } from "../common/logger.js";
 // https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/#mongodb-vector-search-pre-filter
 const ALLOWED_LOGICAL_OPERATORS = ["$not", "$nor", "$and", "$or"];
 
-export type VectorSearchIndex = {
+export type SearchIndex = VectorSearchIndex | AtlasSearchIndex;
+
+type VectorSearchIndex = {
     name: string;
     latestDefinition: {
         fields: Array<
@@ -24,16 +26,22 @@ export type VectorSearchIndex = {
     type: "vectorSearch";
 };
 
+type AtlasSearchIndex = {
+    name: string;
+    latestDefinition: unknown;
+    type: "search";
+};
+
 export function assertVectorSearchFilterFieldsAreIndexed({
-    vectorSearchIndexes,
+    searchIndexes,
     pipeline,
     logger,
 }: {
-    vectorSearchIndexes: VectorSearchIndex[];
+    searchIndexes: SearchIndex[];
     pipeline: Record<string, unknown>[];
     logger: CompositeLogger;
 }): void {
-    const searchIndexesWithFilterFields = vectorSearchIndexes
+    const searchIndexesWithFilterFields = searchIndexes
         // Ensure we only process vector search indexes and not lexical search ones
         .filter((index) => index.type === "vectorSearch")
         .reduce<Record<string, string[]>>((indexFieldMap, searchIndex) => {
