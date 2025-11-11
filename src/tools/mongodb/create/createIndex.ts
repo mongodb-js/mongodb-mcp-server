@@ -5,6 +5,7 @@ import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
 import { similarityValues } from "../../../common/schemas.js";
+import { CommonArgs } from "../../args.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
     private vectorSearchIndexDefinition = z
@@ -121,6 +122,11 @@ export class CreateIndexTool extends MongoDBToolBase {
                 .describe(
                     "Document describing the index to create. Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
                 ),
+            numPartitions: CommonArgs.numberEnum([z.literal(1), z.literal(2), z.literal(4)])
+                .default(1)
+                .describe(
+                    "Specifies the number of sub-indexes to create if the document count exceeds two billion. If omitted, defaults to 1."
+                ),
         })
         .describe("Definition for an Atlas Search (lexical) index.");
 
@@ -204,6 +210,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                             definition: {
                                 mappings: definition.mappings,
                                 analyzer: definition.analyzer,
+                                numPartitions: definition.numPartitions,
                             },
                             type: "search",
                         },

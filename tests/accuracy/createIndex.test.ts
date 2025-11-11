@@ -173,6 +173,7 @@ describeAccuracyTests(
                                 mappings: {
                                     dynamic: true,
                                 },
+                                numPartitions: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                             },
                         ],
                     },
@@ -204,6 +205,7 @@ describeAccuracyTests(
                                         },
                                     },
                                 },
+                                numPartitions: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                             },
                         ],
                     },

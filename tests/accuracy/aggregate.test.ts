@@ -421,4 +421,26 @@ describeAccuracyTests([
             },
         },
     },
+    {
+        prompt: "Run a search query on mflix.movies to find all movies that mention 'space travel' in the plot.",
+        expectedToolCalls: [
+            {
+                toolName: "aggregate",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    pipeline: [
+                        {
+                            $search: {
+                                index: "default",
+                                text: {
+                                    query: "space travel",
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
+    },
 ]);
