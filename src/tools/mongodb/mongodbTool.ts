@@ -1,11 +1,12 @@
 import { z } from "zod";
-import type { ToolArgs, ToolCategory, TelemetryToolMetadata } from "../tool.js";
+import type { ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "../../common/logger.js";
 import type { Server } from "../../server.js";
+import type { AtlasToolMetadata } from "../../telemetry/types.js";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),
@@ -115,12 +116,12 @@ export abstract class MongoDBToolBase extends ToolBase {
         result: CallToolResult,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         args: ToolArgs<typeof this.argsShape>
-    ): TelemetryToolMetadata {
-        const metadata: TelemetryToolMetadata = {};
+    ): AtlasToolMetadata {
+        const metadata: AtlasToolMetadata = {};
 
         // Add projectId to the metadata if running a MongoDB operation to an Atlas cluster
         if (this.session.connectedAtlasCluster?.projectId) {
-            metadata.projectId = this.session.connectedAtlasCluster.projectId;
+            metadata.project_id = this.session.connectedAtlasCluster.projectId;
         }
 
         return metadata;

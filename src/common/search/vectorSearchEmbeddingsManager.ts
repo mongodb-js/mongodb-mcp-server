@@ -5,10 +5,10 @@ import type { ConnectionManager } from "../connectionManager.js";
 import z from "zod";
 import { ErrorCodes, MongoDBError } from "../errors.js";
 import { getEmbeddingsProvider } from "./embeddingsProvider.js";
-import type { EmbeddingParameters, SupportedEmbeddingParameters } from "./embeddingsProvider.js";
-
-export const similarityEnum = z.enum(["cosine", "euclidean", "dotProduct"]);
-export type Similarity = z.infer<typeof similarityEnum>;
+import type { EmbeddingParameters } from "../../tools/mongodb/mongodbSchemas.js";
+import { formatUntrustedData } from "../../tools/tool.js";
+import type { Similarity } from "../schemas.js";
+import type { SupportedEmbeddingParameters } from "../../tools/mongodb/mongodbSchemas.js";
 
 export const quantizationEnum = z.enum(["none", "scalar", "binary"]);
 export type Quantization = z.infer<typeof quantizationEnum>;
@@ -24,10 +24,8 @@ export type VectorFieldIndexDefinition = {
 export type VectorFieldValidationError = {
     path: string;
     expectedNumDimensions: number;
-    expectedQuantization: Quantization;
     actualNumDimensions: number | "unknown";
-    actualQuantization: Quantization | "unknown";
-    error: "dimension-mismatch" | "quantization-mismatch" | "not-a-vector" | "not-numeric";
+    error: "dimension-mismatch" | "not-a-vector" | "not-numeric";
 };
 
 export type EmbeddingNamespace = `${string}.${string}`;
@@ -103,7 +101,34 @@ export class VectorSearchEmbeddingsManager {
         return definition;
     }
 
-    async findFieldsWithWrongEmbeddings(
+    async assertFieldsHaveCorrectEmbeddings(
+        { database, collection }: { database: string; collection: string },
+        documents: Document[]
+    ): Promise<void> {
+        const embeddingValidationResults = (
+            await Promise.all(
+                documents.map((document) => this.findFieldsWithWrongEmbeddings({ database, collection }, document))
+            )
+        ).flat();
+
+        if (embeddingValidationResults.length > 0) {
+            const embeddingValidationMessages = embeddingValidationResults.map(
+                (validation) =>
+                    `- Field ${validation.path} is an embedding with ${validation.expectedNumDimensions} dimensions,` +
+                    ` and the provided value is not compatible. Actual dimensions: ${validation.actualNumDimensions},` +
+                    ` Error: ${validation.error}`
+            );
+
+            throw new MongoDBError(
+                ErrorCodes.AtlasVectorSearchInvalidQuery,
+                formatUntrustedData("", ...embeddingValidationMessages)
+                    .map(({ text }) => text)
+                    .join("\n")
+            );
+        }
+    }
+
+    public async findFieldsWithWrongEmbeddings(
         {
             database,
             collection,
@@ -152,15 +177,35 @@ export class VectorSearchEmbeddingsManager {
         let fieldRef: unknown = document;
 
         const constructError = (
-            details: Partial<Pick<VectorFieldValidationError, "error" | "actualNumDimensions" | "actualQuantization">>
+            details: Partial<Pick<VectorFieldValidationError, "error" | "actualNumDimensions">>
         ): VectorFieldValidationError => ({
             path: definition.path,
             expectedNumDimensions: definition.numDimensions,
-            expectedQuantization: definition.quantization,
             actualNumDimensions: details.actualNumDimensions ?? "unknown",
-            actualQuantization: details.actualQuantization ?? "unknown",
             error: details.error ?? "not-a-vector",
         });
+
+        const extractUnderlyingVector = (fieldRef: unknown): ArrayLike<unknown> | undefined => {
+            if (fieldRef instanceof BSON.Binary) {
+                try {
+                    return fieldRef.toFloat32Array();
+                } catch {
+                    // nothing to do here
+                }
+
+                try {
+                    return fieldRef.toBits();
+                } catch {
+                    // nothing to do here
+                }
+            }
+
+            if (Array.isArray(fieldRef)) {
+                return fieldRef as Array<unknown>;
+            }
+
+            return undefined;
+        };
 
         for (const field of fieldPath) {
             if (fieldRef && typeof fieldRef === "object" && field in fieldRef) {
@@ -170,90 +215,58 @@ export class VectorSearchEmbeddingsManager {
             }
         }
 
-        switch (definition.quantization) {
-            // Because quantization is not defined by the user
-            // we have to trust them in the format they use.
-            case "none":
-                return undefined;
-            case "scalar":
-            case "binary":
-                if (fieldRef instanceof BSON.Binary) {
-                    try {
-                        const elements = fieldRef.toFloat32Array();
-                        if (elements.length !== definition.numDimensions) {
-                            return constructError({
-                                actualNumDimensions: elements.length,
-                                actualQuantization: "binary",
-                                error: "dimension-mismatch",
-                            });
-                        }
+        const maybeVector = extractUnderlyingVector(fieldRef);
+        if (!maybeVector) {
+            return constructError({
+                error: "not-a-vector",
+            });
+        }
 
-                        return undefined;
-                    } catch {
-                        // bits are also supported
-                        try {
-                            const bits = fieldRef.toBits();
-                            if (bits.length !== definition.numDimensions) {
-                                return constructError({
-                                    actualNumDimensions: bits.length,
-                                    actualQuantization: "binary",
-                                    error: "dimension-mismatch",
-                                });
-                            }
+        if (maybeVector.length !== definition.numDimensions) {
+            return constructError({
+                actualNumDimensions: maybeVector.length,
+                error: "dimension-mismatch",
+            });
+        }
 
-                            return undefined;
-                        } catch {
-                            return constructError({
-                                actualQuantization: "binary",
-                                error: "not-a-vector",
-                            });
-                        }
-                    }
-                } else {
-                    if (!Array.isArray(fieldRef)) {
-                        return constructError({
-                            error: "not-a-vector",
-                        });
-                    }
-
-                    if (fieldRef.length !== definition.numDimensions) {
-                        return constructError({
-                            actualNumDimensions: fieldRef.length,
-                            actualQuantization: "scalar",
-                            error: "dimension-mismatch",
-                        });
-                    }
-
-                    if (!fieldRef.every((e) => this.isANumber(e))) {
-                        return constructError({
-                            actualNumDimensions: fieldRef.length,
-                            actualQuantization: "scalar",
-                            error: "not-numeric",
-                        });
-                    }
-                }
-
-                break;
+        if (Array.isArray(maybeVector) && maybeVector.some((e) => !this.isANumber(e))) {
+            return constructError({
+                actualNumDimensions: maybeVector.length,
+                error: "not-numeric",
+            });
         }
 
         return undefined;
     }
 
-    public async generateEmbeddings({
+    public async assertVectorSearchIndexExists({
         database,
         collection,
         path,
-        rawValues,
-        embeddingParameters,
-        inputType,
     }: {
         database: string;
         collection: string;
         path: string;
+    }): Promise<void> {
+        const embeddingInfoForCollection = await this.embeddingsForNamespace({ database, collection });
+        const embeddingInfoForPath = embeddingInfoForCollection.find((definition) => definition.path === path);
+        if (!embeddingInfoForPath) {
+            throw new MongoDBError(
+                ErrorCodes.AtlasVectorSearchIndexNotFound,
+                `No Vector Search index found for path "${path}" in namespace "${database}.${collection}"`
+            );
+        }
+    }
+
+    public async generateEmbeddings({
+        rawValues,
+        embeddingParameters,
+        inputType,
+    }: {
         rawValues: string[];
         embeddingParameters: SupportedEmbeddingParameters;
         inputType: EmbeddingParameters["inputType"];
-    }): Promise<unknown[]> {
+    }): Promise<unknown[][]> {
         const provider = await this.atlasSearchEnabledProvider();
         if (!provider) {
             throw new MongoDBError(
@@ -273,15 +286,6 @@ export class VectorSearchEmbeddingsManager {
                 inputType,
                 ...embeddingParameters,
             });
-        }
-
-        const embeddingInfoForCollection = await this.embeddingsForNamespace({ database, collection });
-        const embeddingInfoForPath = embeddingInfoForCollection.find((definition) => definition.path === path);
-        if (!embeddingInfoForPath) {
-            throw new MongoDBError(
-                ErrorCodes.AtlasVectorSearchIndexNotFound,
-                `No Vector Search index found for path "${path}" in namespace "${database}.${collection}"`
-            );
         }
 
         return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {

@@ -5,10 +5,11 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/
 import type { Session } from "../common/session.js";
 import { LogId } from "../common/logger.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
-import { type ToolEvent } from "../telemetry/types.js";
-import type { PreviewFeature, UserConfig } from "../common/config.js";
+import type { TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
+import type { UserConfig } from "../common/config.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
+import type { PreviewFeature } from "../common/schemas.js";
 
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
 export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback<Args>>;
@@ -37,17 +38,6 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
  */
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
-
-/**
- * Telemetry metadata that can be provided by tools when emitting telemetry events.
- * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
- * the project and organization IDs if available.
- */
-export type TelemetryToolMetadata = {
-    projectId?: string;
-    orgId?: string;
-    atlasLocaldeploymentId?: string;
-};
 
 export type ToolConstructorParams = {
     session: Session;
@@ -303,20 +293,9 @@ export abstract class ToolBase {
                 component: "tool",
                 duration_ms: duration,
                 result: result.isError ? "failure" : "success",
+                ...metadata,
             },
         };
-
-        if (metadata?.orgId) {
-            event.properties.org_id = metadata.orgId;
-        }
-
-        if (metadata?.projectId) {
-            event.properties.project_id = metadata.projectId;
-        }
-
-        if (metadata?.atlasLocaldeploymentId) {
-            event.properties.atlas_local_deployment_id = metadata.atlasLocaldeploymentId;
-        }
 
         this.telemetry.emitEvents([event]);
     }

@@ -127,7 +127,7 @@ describeWithAtlas("db users", (integration) => {
                 const session = integration.mcpServer().session;
                 const ipInfo = await session.apiClient.getIpInfo();
                 await createUserWithMCP();
-                const accessList = await session.apiClient.listProjectIpAccessLists({
+                const accessList = await session.apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
                 });
                 const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);

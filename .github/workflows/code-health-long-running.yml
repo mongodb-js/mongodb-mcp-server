@@ -11,11 +11,12 @@ permissions: {}
 jobs:
   run-long-running-tests:
     name: Run long running tests
-    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
@@ -29,7 +30,7 @@ jobs:
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
         run: npm test -- tests/integration/tools/atlas --project=long-running-tests
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: atlas-test-results

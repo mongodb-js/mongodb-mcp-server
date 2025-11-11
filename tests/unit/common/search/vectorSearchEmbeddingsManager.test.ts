@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { MockedFunction } from "vitest";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import type {
@@ -14,10 +14,10 @@ import type { InsertOneResult } from "mongodb";
 import type { DropDatabaseResult } from "@mongosh/service-provider-node-driver/lib/node-driver-service-provider.js";
 import EventEmitter from "events";
 import {
-    type EmbeddingParameters,
     type EmbeddingsProvider,
     type getEmbeddingsProvider,
 } from "../../../../src/common/search/embeddingsProvider.js";
+import type { EmbeddingParameters } from "../../../../src/tools/mongodb/mongodbSchemas.js";
 
 type MockedServiceProvider = NodeDriverServiceProvider & {
     getSearchIndexes: MockedFunction<NodeDriverServiceProvider["getSearchIndexes"]>;
@@ -42,6 +42,13 @@ const embeddingConfig: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = n
     [
         mapKey,
         [
+            {
+                type: "vector",
+                path: "embedding_field_wo_quantization",
+                numDimensions: 8,
+                quantization: "none",
+                similarity: "euclidean",
+            },
             {
                 type: "vector",
                 path: "embedding_field",
@@ -278,51 +285,56 @@ describe("VectorSearchEmbeddingsManager", () => {
                     expect(result).toHaveLength(0);
                 });
 
-                it("documents inserting the field with wrong type are invalid", async () => {
-                    const result = await embeddings.findFieldsWithWrongEmbeddings(
-                        { database, collection },
-                        { embedding_field: "some text" }
-                    );
+                it.each(["embedding_field", "embedding_field_wo_quantization"] as const)(
+                    "documents inserting the field with wrong type are invalid - $0",
+                    async (field) => {
+                        const result = await embeddings.findFieldsWithWrongEmbeddings(
+                            { database, collection },
+                            { [field]: "some text" }
+                        );
 
-                    expect(result).toHaveLength(1);
-                });
+                        expect(result).toHaveLength(1);
+                    }
+                );
 
-                it("documents inserting the field with wrong dimensions are invalid", async () => {
-                    const result = await embeddings.findFieldsWithWrongEmbeddings(
-                        { database, collection },
-                        { embedding_field: [1, 2, 3] }
-                    );
+                it.each(["embedding_field", "embedding_field_wo_quantization"] as const)(
+                    "documents inserting the field with wrong dimensions are invalid - path = $0",
+                    async (path) => {
+                        const result = await embeddings.findFieldsWithWrongEmbeddings(
+                            { database, collection },
+                            { [path]: [1, 2, 3] }
+                        );
 
-                    expect(result).toHaveLength(1);
-                    const expectedError: VectorFieldValidationError = {
-                        actualNumDimensions: 3,
-                        actualQuantization: "scalar",
-                        error: "dimension-mismatch",
-                        expectedNumDimensions: 8,
-                        expectedQuantization: "scalar",
-                        path: "embedding_field",
-                    };
-                    expect(result[0]).toEqual(expectedError);
-                });
+                        expect(result).toHaveLength(1);
+                        const expectedError: VectorFieldValidationError = {
+                            actualNumDimensions: 3,
+                            error: "dimension-mismatch",
+                            expectedNumDimensions: 8,
+                            path,
+                        };
+                        expect(result[0]).toEqual(expectedError);
+                    }
+                );
 
-                it("documents inserting the field with correct dimensions, but wrong type are invalid", async () => {
-                    const result = await embeddings.findFieldsWithWrongEmbeddings(
-                        { database, collection },
-                        { embedding_field: ["1", "2", "3", "4", "5", "6", "7", "8"] }
-                    );
+                it.each(["embedding_field", "embedding_field_wo_quantization"] as const)(
+                    "documents inserting the field with correct dimensions, but wrong type are invalid - $0",
+                    async (path) => {
+                        const result = await embeddings.findFieldsWithWrongEmbeddings(
+                            { database, collection },
+                            { [path]: ["1", "2", "3", "4", "5", "6", "7", "8"] }
+                        );
 
-                    expect(result).toHaveLength(1);
-                    const expectedError: VectorFieldValidationError = {
-                        actualNumDimensions: 8,
-                        actualQuantization: "scalar",
-                        error: "not-numeric",
-                        expectedNumDimensions: 8,
-                        expectedQuantization: "scalar",
-                        path: "embedding_field",
-                    };
+                        expect(result).toHaveLength(1);
+                        const expectedError: VectorFieldValidationError = {
+                            actualNumDimensions: 8,
+                            error: "not-numeric",
+                            expectedNumDimensions: 8,
+                            path,
+                        };
 
-                    expect(result[0]).toEqual(expectedError);
-                });
+                        expect(result[0]).toEqual(expectedError);
+                    }
+                );
 
                 it("documents inserting the field with correct dimensions and quantization in binary are valid", async () => {
                     const result = await embeddings.findFieldsWithWrongEmbeddings(
@@ -390,6 +402,141 @@ describe("VectorSearchEmbeddingsManager", () => {
         });
     });
 
+    describe("assertFieldsHaveCorrectEmbeddings", () => {
+        it("does not throw for invalid documents when validation is disabled", async () => {
+            const embeddings = new VectorSearchEmbeddingsManager(
+                embeddingValidationDisabled,
+                connectionManager,
+                embeddingConfig
+            );
+            await expect(
+                embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                    { embedding_field: "some text" },
+                    { embedding_field: [1, 2, 3] },
+                ])
+            ).resolves.not.toThrow();
+        });
+
+        describe("when validation is enabled", () => {
+            let embeddings: VectorSearchEmbeddingsManager;
+
+            beforeEach(() => {
+                embeddings = new VectorSearchEmbeddingsManager(
+                    embeddingValidationEnabled,
+                    connectionManager,
+                    embeddingConfig
+                );
+            });
+
+            it("does not throw when all documents are valid", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3, 4, 5, 6, 7, 8] },
+                        { embedding_field: [9, 10, 11, 12, 13, 14, 15, 16] },
+                        { field: "no embeddings here" },
+                    ])
+                ).resolves.not.toThrow();
+            });
+
+            it("throws error when one document has wrong dimensions", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                    ])
+                ).rejects.toThrow(/Field embedding_field is an embedding with 8 dimensions/);
+            });
+
+            it("throws error when one document has wrong type", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: "some text" },
+                    ])
+                ).rejects.toThrow(/Field embedding_field is an embedding with 8 dimensions/);
+            });
+
+            it("throws error when one document has non-numeric values", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: ["1", "2", "3", "4", "5", "6", "7", "8"] },
+                    ])
+                ).rejects.toThrow(/Field embedding_field is an embedding with 8 dimensions/);
+            });
+
+            it("throws error with details about dimension mismatch", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                    ])
+                ).rejects.toThrow(/Actual dimensions: 3/);
+            });
+
+            it("throws error with details about error type", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                    ])
+                ).rejects.toThrow(/Error: dimension-mismatch/);
+            });
+
+            it("throws error when multiple documents have invalid embeddings", async () => {
+                try {
+                    await embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3] },
+                        { embedding_field: "some text" },
+                    ]);
+                    expect.fail("Should have thrown an error");
+                } catch (error) {
+                    expect((error as Error).message).toContain("Field embedding_field");
+                    expect((error as Error).message).toContain("dimension-mismatch");
+                }
+            });
+
+            it("handles documents with multiple invalid fields", async () => {
+                try {
+                    await embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        {
+                            embedding_field: [1, 2, 3],
+                            embedding_field_binary: "not binary",
+                        },
+                    ]);
+                    expect.fail("Should have thrown an error");
+                } catch (error) {
+                    expect((error as Error).message).toContain("Field embedding_field");
+                    expect((error as Error).message).toContain("Field embedding_field_binary");
+                }
+            });
+
+            it("handles mix of valid and invalid documents", async () => {
+                try {
+                    await embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { embedding_field: [1, 2, 3, 4, 5, 6, 7, 8] }, // valid
+                        { embedding_field: [1, 2, 3] }, // invalid
+                        { valid_field: "no embeddings" }, // valid (no embedding field)
+                    ]);
+                    expect.fail("Should have thrown an error");
+                } catch (error) {
+                    expect((error as Error).message).toContain("Field embedding_field");
+                    expect((error as Error).message).toContain("dimension-mismatch");
+                    expect((error as Error).message).not.toContain("Field valid_field");
+                }
+            });
+
+            it("handles nested fields with validation errors", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [
+                        { a: { nasty: { scalar: { field: [1, 2, 3] } } } },
+                    ])
+                ).rejects.toThrow(/Field a\.nasty\.scalar\.field/);
+            });
+
+            it("handles empty document array", async () => {
+                await expect(
+                    embeddings.assertFieldsHaveCorrectEmbeddings({ database, collection }, [])
+                ).resolves.not.toThrow();
+            });
+        });
+    });
+
     describe("generate embeddings", () => {
         const embeddingToGenerate = {
             database: "mydb",
@@ -411,7 +558,7 @@ describe("VectorSearchEmbeddingsManager", () => {
             );
         });
 
-        describe("when atlas search is not available", () => {
+        describe("assertVectorSearchIndexExists", () => {
             beforeEach(() => {
                 embeddings = new VectorSearchEmbeddingsManager(
                     embeddingValidationEnabled,
@@ -419,12 +566,57 @@ describe("VectorSearchEmbeddingsManager", () => {
                     new Map(),
                     getMockedEmbeddingsProvider
                 );
-
-                provider.getSearchIndexes.mockRejectedValue(new Error());
             });
 
-            it("throws an exception", async () => {
-                await expect(embeddings.generateEmbeddings(embeddingToGenerate)).rejects.toThrowError();
+            afterEach(() => {
+                provider.getSearchIndexes.mockReset();
+            });
+
+            it("does not throw an exception when index is available for path", async () => {
+                provider.getSearchIndexes.mockResolvedValue([
+                    {
+                        id: "65e8c766d0450e3e7ab9855f",
+                        name: "vector-search-test",
+                        type: "vectorSearch",
+                        status: "READY",
+                        queryable: true,
+                        latestDefinition: {
+                            fields: [
+                                {
+                                    type: "vector",
+                                    path: embeddingToGenerate.path,
+                                    numDimensions: 1024,
+                                    similarity: "euclidean",
+                                },
+                            ],
+                        },
+                    },
+                ]);
+                await expect(
+                    embeddings.assertVectorSearchIndexExists({
+                        database,
+                        collection,
+                        path: embeddingToGenerate.path,
+                    })
+                ).resolves.not.toThrowError();
+            });
+
+            it("throws an exception when atlas search is not available", async () => {
+                provider.getSearchIndexes.mockRejectedValue(new Error());
+                await expect(
+                    embeddings.assertVectorSearchIndexExists({
+                        database,
+                        collection,
+                        path: embeddingToGenerate.path,
+                    })
+                ).rejects.toThrowError();
+            });
+
+            it("throws an exception when no index is available for path", async () => {
+                provider.getSearchIndexes.mockResolvedValue([]);
+                await expect(
+                    embeddings.assertVectorSearchIndexExists({ database, collection, path: embeddingToGenerate.path })
+                ).rejects.toThrowError();
             });
         });
 
@@ -457,12 +649,6 @@ describe("VectorSearchEmbeddingsManager", () => {
                         new Map(),
                         getMockedEmbeddingsProvider
                     );
-                });
-
-                describe("when no index is available for path", () => {
-                    it("throws an exception", async () => {
-                        await expect(embeddings.generateEmbeddings(embeddingToGenerate)).rejects.toThrowError();
-                    });
                 });
 
                 describe("when index is available on path", () => {

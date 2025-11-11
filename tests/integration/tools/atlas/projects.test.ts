@@ -9,12 +9,12 @@ describeWithAtlas("projects", (integration) => {
     afterAll(async () => {
         const session = integration.mcpServer().session;
         const projects =
-            (await session.apiClient.listProjects()).results?.filter((project) =>
+            (await session.apiClient.listGroups()).results?.filter((project) =>
                 projectsToCleanup.includes(project.name)
             ) || [];
 
         for (const project of projects) {
-            await session.apiClient.deleteProject({
+            await session.apiClient.deleteGroup({
                 params: {
                     path: {
                         groupId: project.id || "",
@@ -57,7 +57,7 @@ describeWithAtlas("projects", (integration) => {
             projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
-            const orgs = await integration.mcpServer().session.apiClient.listOrganizations();
+            const orgs = await integration.mcpServer().session.apiClient.listOrgs();
             orgId = (orgs.results && orgs.results[0]?.id) ?? "";
 
             await integration.mcpClient().callTool({
