@@ -6,6 +6,7 @@ import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from ".
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { Session } from "../../../../src/common/session.js";
+import { get } from "ts-levenshtein";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
@@ -33,7 +34,15 @@ interface ProjectTestArgs {
     getIpAddress: () => string;
 }
 
+interface ClusterTestArgs {
+    getProjectId: () => string;
+    getIpAddress: () => string;
+    getClusterName: () => string;
+}
+
 type ProjectTestFunction = (args: ProjectTestArgs) => void;
+
+type ClusterTestFunction = (args: ClusterTestArgs) => void;
 
 export function withCredentials(integration: IntegrationTest, fn: IntegrationTestFunction): SuiteCollector<object> {
     const describeFn =
@@ -71,25 +80,25 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             }
         });
 
-        afterAll(() => {
+        afterAll(async () => {
             if (!projectId) {
                 return;
             }
 
             const apiClient = integration.mcpServer().session.apiClient;
 
-            // send the delete request and ignore errors
-            apiClient
-                .deleteProject({
+            try {
+                await apiClient.deleteProject({
                     params: {
                         path: {
                             groupId: projectId,
                         },
                     },
-                })
-                .catch((error) => {
-                    console.log("Failed to delete project:", error);
                 });
+            } catch (error) {
+                // send the delete request and ignore errors
+                console.log("Failed to delete project:", error);
+            }
         });
 
         const args = {
@@ -101,10 +110,12 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
     });
 }
 
-export const randomId = new ObjectId().toString();
+export function randomId(): string {
+    return new ObjectId().toString();
+}
 
 async function createProject(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
-    const projectName: string = `testProj-` + randomId;
+    const projectName: string = `testProj-` + randomId();
 
     const orgs = await apiClient.listOrganizations();
     if (!orgs?.results?.length || !orgs.results[0]?.id) {
@@ -228,4 +239,79 @@ export async function waitCluster(
     throw new Error(
         `Cluster wait timeout: ${clusterName} did not meet condition within ${maxPollingIterations} iterations`
     );
+}
+
+export function withCluster(integration: IntegrationTest, fn: ClusterTestFunction): SuiteCollector<object> {
+    return withProject(integration, ({ getProjectId, getIpAddress }) => {
+        describe("with cluster", () => {
+            const clusterName: string = `test-cluster-${randomId()}`;
+
+            beforeAll(async () => {
+                const apiClient = integration.mcpServer().session.apiClient;
+
+                const projectId = getProjectId();
+
+                const input = {
+                    groupId: projectId,
+                    name: clusterName,
+                    clusterType: "REPLICASET",
+                    replicationSpecs: [
+                        {
+                            zoneName: "Zone 1",
+                            regionConfigs: [
+                                {
+                                    providerName: "TENANT",
+                                    backingProviderName: "AWS",
+                                    regionName: "US_EAST_1",
+                                    electableSpecs: {
+                                        instanceSize: "M0",
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    terminationProtectionEnabled: false,
+                } as unknown as ClusterDescription20240805;
+
+                await apiClient.createCluster({
+                    params: {
+                        path: {
+                            groupId: projectId,
+                        },
+                    },
+                    body: input,
+                });
+
+                await waitCluster(integration.mcpServer().session, projectId, clusterName, (cluster) => {
+                    return cluster.stateName === "IDLE";
+                });
+            });
+
+            afterAll(async () => {
+                const apiClient = integration.mcpServer().session.apiClient;
+
+                try {
+                    // send the delete request and ignore errors
+                    await apiClient.deleteCluster({
+                        params: {
+                            path: {
+                                groupId: getProjectId(),
+                                clusterName,
+                            },
+                        },
+                    });
+                } catch (error) {
+                    console.log("Failed to delete cluster:", error);
+                }
+            });
+
+            const args = {
+                getProjectId: (): string => getProjectId(),
+                getIpAddress: (): string => getIpAddress(),
+                getClusterName: (): string => clusterName,
+            };
+
+            fn(args);
+        });
+    });
 }

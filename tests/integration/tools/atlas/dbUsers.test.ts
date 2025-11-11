@@ -8,7 +8,7 @@ describeWithAtlas("db users", (integration) => {
     withProject(integration, ({ getProjectId }) => {
         let userName: string;
         beforeEach(() => {
-            userName = "testuser-" + randomId;
+            userName = "testuser-" + randomId();
         });
 
         const createUserWithMCP = async (password?: string): Promise<unknown> => {

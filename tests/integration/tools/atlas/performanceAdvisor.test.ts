@@ -18,7 +18,7 @@ import type { BaseEvent, ToolEvent } from "../../../../src/telemetry/types.js";
 
 describeWithAtlas("performanceAdvisor", (integration) => {
     withProject(integration, ({ getProjectId }) => {
-        const clusterName = "ClusterTest-" + randomId;
+        const clusterName = "ClusterTest-" + randomId();
 
         afterAll(async () => {
             const projectId = getProjectId();
