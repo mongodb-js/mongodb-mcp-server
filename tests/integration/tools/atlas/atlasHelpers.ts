@@ -6,7 +6,6 @@ import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from ".
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { Session } from "../../../../src/common/session.js";
-import { get } from "ts-levenshtein";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 

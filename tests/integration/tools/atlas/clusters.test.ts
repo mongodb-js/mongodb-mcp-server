@@ -1,11 +1,15 @@
-import { before } from "node:test";
 import type { Session } from "../../../../src/common/session.js";
 import { expectDefined, getResponseContent } from "../../helpers.js";
-import { describeWithAtlas, withProject, withCluster, randomId, deleteCluster, waitCluster, sleep } from "./atlasHelpers.js";
+import {
+    describeWithAtlas,
+    withProject,
+    withCluster,
+    randomId,
+    deleteCluster,
+    waitCluster,
+    sleep,
+} from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
-import cluster from "cluster";
-import { connect } from "http2";
-import { connected } from "process";
 
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
