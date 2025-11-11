@@ -18,7 +18,7 @@ import {
     type VectorSearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
-const pipelineDescription = `\
+const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
 \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
 ### Usage Rules for \`$vectorSearch\`
@@ -34,11 +34,13 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
 - If no requested filters are valid prefilters, omit the filter key from $vectorSearch.\
 `;
 
+const genericPipelineDescription = "An array of aggregation stages to execute.";
+
 export const getAggregateArgs = (vectorSearchEnabled: boolean) =>
     ({
         pipeline: z
             .array(vectorSearchEnabled ? z.union([AnyAggregateStage, VectorSearchStage]) : AnyAggregateStage)
-            .describe(pipelineDescription),
+            .describe(vectorSearchEnabled ? pipelineDescriptionWithVectorSearch : genericPipelineDescription),
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
 The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
 Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\
