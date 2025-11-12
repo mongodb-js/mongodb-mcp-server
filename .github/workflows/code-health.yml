@@ -153,6 +153,5 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install -y git-secrets
-          npm ci
       - name: Run git-secrets
         run: git-secrets --register-aws && git-secrets --scan
