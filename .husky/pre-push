@@ -1,2 +1,0 @@
-npm run check
-npm test -- --run tests/unit
