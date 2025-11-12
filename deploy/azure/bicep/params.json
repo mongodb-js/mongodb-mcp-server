@@ -19,7 +19,6 @@
       }
     },
     "mdbConnectionString": { "value": "<MONGODB_CONNECTION_STRING>" },
-    
     "authMode": { "value": "NOAUTH" }
   }
 }
