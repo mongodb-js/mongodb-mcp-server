@@ -3,8 +3,8 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "containerAppEnvName": { "value": "container-app-env" },
-    "containerAppName": { "value": "mongo-mcp-server-app-without-auth" },
-    "containerImage": { "value": "mongodb/mongodb-mcp-server:latest" },
+    "containerAppName": { "value": "mongo-mcp-without-auth" },
+    "containerImage": { "value": "mongodb/mongodb-mcp-server:1.2.0" },
     "containerCpu": { "value": "1.0" },
     "containerMemory": { "value": "2Gi" },
     "appEnvironmentVars": {
@@ -15,10 +15,11 @@
         "MDB_MCP_TRANSPORT": "http",
         "MDB_MCP_LOGGERS": "disk,mcp,stderr",
         "MDB_MCP_LOG_PATH": "/tmp/mongodb-mcp",
-        "MDB_MCP_DISABLED_TOOLS": "explain,export,atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many"
+        "MDB_MCP_DISABLED_TOOLS": "aggregate,create-index,explain,export,atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many"
       }
     },
-    "authMode": { "value": "NOAUTH" },
-    "mdbConnectionString": { "value": "<MONGODB_CONNECTION_STRING>" }
+    "mdbConnectionString": { "value": "<MONGODB_CONNECTION_STRING>" },
+    
+    "authMode": { "value": "NOAUTH" }
   }
 }
