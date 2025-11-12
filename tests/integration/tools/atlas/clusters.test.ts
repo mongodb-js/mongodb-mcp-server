@@ -218,7 +218,7 @@ describeWithAtlas("clusters", (integration) => {
                             }
                         });
 
-                        it("disconnects before connecting to another cluster", async () => {
+                        it("disconnects and deletes the database user before connecting to another cluster", async () => {
                             const deleteDatabaseUserSpy = vitest.spyOn(
                                 integration.mcpServer().session.apiClient,
                                 "deleteDatabaseUser"
