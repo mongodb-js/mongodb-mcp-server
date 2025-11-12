@@ -8,7 +8,7 @@ This directory contains an Azure Bicep template (`bicep/main.bicep`) and support
 
 - Azure CLI (2.55.0 or later) installed and signed in (`az login`).
 - Azure subscription with permissions to deploy the required resources.
-- MongoDB MCP server container image available in dockerhub registry (mongodb/mongodb-mcp-server:1.2.0). Version 1.2.0 has been validated for Azure AI Foundry compatibility when the aggregate, create-index, explain, and export tools are omitted. You can reference the `latest` tag instead if you want to experiment with newer builds.
+- MongoDB MCP server container image available in dockerhub registry (mongodb/mongodb-mcp-server:1.2.0). Version 1.2.0 has been validated for Azure AI Foundry compatibility when the aggregate, create-index, explain, and export tools are omitted (additional tools are disabled by default for security). You can reference the `latest` tag instead if you want to experiment with newer builds.
 
 ## Parameter Files
 
