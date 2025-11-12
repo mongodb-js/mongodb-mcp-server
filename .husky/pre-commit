@@ -1,0 +1,14 @@
+GIT_SECRETS_PATH=$(which git-secrets)
+
+if [ ! -x "$GIT_SECRETS_PATH" ]
+then
+   echo "git-secrets is not installed. Please run 'brew install git-secrets' or visit https://github.com/awslabs/git-secrets#installing-git-secrets"
+   exit 1
+fi
+
+git-secrets --register-aws > /dev/null
+git-secrets --pre_commit_hook -- "$@"
+
+npm run fix
+npm run check
+npm test -- --run tests/unit
