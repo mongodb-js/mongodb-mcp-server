@@ -137,8 +137,8 @@ jobs:
         with:
           file: coverage/lcov.info
 
-  run-git-hooks:
-    name: Run git hooks
+  run-git-secrets:
+    name: Run git secrets
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
@@ -154,5 +154,5 @@ jobs:
         run: |
           sudo apt-get install -y git-secrets
           npm ci
-      - name: Run pre-commit and pre-push hooks
-        run: ./.husky/_/pre-commit && ./.husky/_/pre-push
+      - name: Run git-secrets
+        run: git-secrets --register-aws && git-secrets --scan
