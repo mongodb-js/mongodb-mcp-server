@@ -36,6 +36,9 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm test
+        env:
+          SKIP_ATLAS_TESTS: "true"
+          SKIP_ATLAS_LOCAL_TESTS: "true"
   run-atlas-local-tests:
     name: Run Atlas Local tests
     if: github.event.pull_request.user.login == 'dependabot[bot]'
