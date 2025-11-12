@@ -24,7 +24,7 @@ Two sample parameter files are provided to help you tailor deployments:
 When using `bicep/paramsWithAuthEnabled.json`, provide tenant and app-specific values for the following parameters before deployment:
 
 - `authClientId`: Set to the application (client) ID of the Microsoft Entra ID app registration that represents the MongoDB MCP server API (often the managed identity or a server-side app registration).
-- `authIssuerUrl`: Use the issuer URL for your tenant. Use <authentication-endpoint>/<TENANT-ID>/v2.0, and replace <authentication-endpoint> with the authentication endpoint for your cloud environment (for example, "https://login.microsoftonline.com" for global Azure), also replacing <TENANT-ID> with the Directory (tenant) ID in which the app registration was created.
+- `authIssuerUrl`: Use the issuer URL for your tenant. Use `<authentication-endpoint>/<TENANT-ID>/v2.0`, and replace <authentication-endpoint> with the authentication endpoint for your cloud environment (for example, "https://login.microsoftonline.com" for global Azure), also replacing <TENANT-ID> with the Directory (tenant) ID in which the app registration was created.
 - `authTenantId`: The tenant ID (directory ID) of the Microsoft Entra tenant that owns the identities interacting with the MCP server. Obtain it via `az account show --query tenantId -o tsv`.
 - `authAllowedClientApps` (optional): Provide an array of application (client) IDs for every client that should be allowed to request tokens for the MongoDB MCP server (for example, front-end apps, automation scripts, or integration partners). Omit this property to allow all clients without any filtering.
 
