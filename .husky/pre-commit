@@ -9,6 +9,5 @@ fi
 git-secrets --register-aws > /dev/null
 git-secrets --scan
 
-npm run fix
 npm run check
 npm test -- --run tests/unit
