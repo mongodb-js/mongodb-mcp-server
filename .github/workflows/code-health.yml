@@ -151,6 +151,8 @@ jobs:
           node-version-file: package.json
           cache: "npm"
       - name: Install dependencies
-        run: npm ci
+        run: |
+          apt-get install -y git-secrets
+          npm ci
       - name: Run pre-commit and pre-push hooks
         run: ./.husky/_/pre-commit && ./.husky/_/pre-push
