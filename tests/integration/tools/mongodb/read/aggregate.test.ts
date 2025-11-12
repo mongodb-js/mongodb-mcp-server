@@ -27,19 +27,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         ...databaseCollectionParameters,
         {
             name: "pipeline",
-            description: `An array of aggregation stages to execute.  
-\`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
-### Usage Rules for \`$vectorSearch\`
-- **Unset embeddings:**  
-  Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
-- **Pre-filtering:**
-If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
-    NEVER include fields in $vectorSearch.filter that are not part of the vector index.
-- **Post-filtering:**
-    For all remaining filters, add a $match stage after $vectorSearch.
-### Note to LLM
-- If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
-- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.`,
+            description: "An array of aggregation stages to execute.",
             type: "array",
             required: true,
         },
@@ -405,6 +393,34 @@ describeWithMongoDB(
             skip(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY);
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
+
+        validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
+            ...databaseCollectionParameters,
+            {
+                name: "pipeline",
+                description: `An array of aggregation stages to execute.
+\`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
+### Usage Rules for \`$vectorSearch\`
+- **Unset embeddings:**
+  Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
+- **Pre-filtering:**
+If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
+    NEVER include fields in $vectorSearch.filter that are not part of the vector index.
+- **Post-filtering:**
+    For all remaining filters, add a $match stage after $vectorSearch.
+### Note to LLM
+- If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
+- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.`,
+                type: "array",
+                required: true,
+            },
+            {
+                name: "responseBytesLimit",
+                description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.`,
+                type: "number",
+                required: false,
+            },
+        ]);
 
         it("should throw an exception when using an index that does not exist", async () => {
             await waitUntilSearchIsReady(integration.mongoClient());

@@ -12,7 +12,7 @@ function isOlderThanTwoHours(date: string): boolean {
 }
 
 async function findTestOrganization(client: ApiClient): Promise<AtlasOrganization> {
-    const orgs = await client.listOrganizations();
+    const orgs = await client.listOrgs();
     const testOrg = orgs?.results?.find((org) => org.name === "MongoDB MCP Test");
 
     if (!testOrg) {
@@ -23,7 +23,7 @@ async function findTestOrganization(client: ApiClient): Promise<AtlasOrganizatio
 }
 
 async function findAllTestProjects(client: ApiClient, orgId: string): Promise<Group[]> {
-    const projects = await client.listOrganizationProjects({
+    const projects = await client.getOrgGroups({
         params: {
             path: {
                 orgId,
@@ -101,7 +101,7 @@ async function main(): Promise<void> {
 
         // Try to delete the project
         try {
-            await apiClient.deleteProject({
+            await apiClient.deleteGroup({
                 params: {
                     path: {
                         groupId: project.id,

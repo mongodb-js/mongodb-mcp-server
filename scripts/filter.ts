@@ -19,11 +19,11 @@ async function readStdin(): Promise<string> {
 
 function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
     const allowedOperations = [
-        "listProjects",
-        "listOrganizations",
-        "getProject",
-        "createProject",
-        "deleteProject",
+        "listGroups",
+        "listOrgs",
+        "getGroup",
+        "createGroup",
+        "deleteGroup",
         "listClusters",
         "listFlexClusters",
         "getCluster",
@@ -32,28 +32,35 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "createFlexCluster",
         "deleteCluster",
         "deleteFlexCluster",
-        "listClustersForAllProjects",
+        "listClusterDetails",
         "createDatabaseUser",
         "deleteDatabaseUser",
         "listDatabaseUsers",
-        "listProjectIpAccessLists",
-        "createProjectIpAccessList",
-        "deleteProjectIpAccessList",
-        "listOrganizationProjects",
+        "listAccessListEntries",
+        "createAccessListEntry",
+        "deleteAccessListEntry",
+        "getOrgGroups",
         "listAlerts",
-        "listDropIndexes",
+        "listDropIndexSuggestions",
         "listClusterSuggestedIndexes",
         "listSchemaAdvice",
-        "listSlowQueries",
+        "listSlowQueryLogs",
     ];
 
     const filteredPaths = {};
 
     for (const path in openapi.paths) {
         const filteredMethods = {} as OpenAPIV3_1.PathItemObject;
-        for (const method in openapi.paths[path]) {
-            // @ts-expect-error This is a workaround for the OpenAPI types
-            if (allowedOperations.includes((openapi.paths[path][method] as { operationId: string }).operationId)) {
+        // @ts-expect-error This is a workaround for the OpenAPI types
+        for (const [method, operation] of Object.entries(openapi.paths[path])) {
+            const op = operation as OpenAPIV3_1.OperationObject & {
+                "x-xgen-operation-id-override": string;
+            };
+            if (
+                op.operationId &&
+                (allowedOperations.includes(op.operationId) ||
+                    allowedOperations.includes(op["x-xgen-operation-id-override"]))
+            ) {
                 // @ts-expect-error This is a workaround for the OpenAPI types
                 filteredMethods[method] = openapi.paths[path][method] as OpenAPIV3_1.OperationObject;
             }

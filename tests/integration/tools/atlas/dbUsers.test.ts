@@ -8,7 +8,7 @@ describeWithAtlas("db users", (integration) => {
     withProject(integration, ({ getProjectId }) => {
         let userName: string;
         beforeEach(() => {
-            userName = "testuser-" + randomId;
+            userName = "testuser-" + randomId();
         });
 
         const createUserWithMCP = async (password?: string): Promise<unknown> => {
@@ -127,7 +127,7 @@ describeWithAtlas("db users", (integration) => {
                 const session = integration.mcpServer().session;
                 const ipInfo = await session.apiClient.getIpInfo();
                 await createUserWithMCP();
-                const accessList = await session.apiClient.listProjectIpAccessLists({
+                const accessList = await session.apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
                 });
                 const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);

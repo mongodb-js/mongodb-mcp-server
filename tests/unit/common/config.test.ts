@@ -5,11 +5,13 @@ import {
     registerKnownSecretsInRootKeychain,
     warnAboutDeprecatedOrUnknownCliArgs,
     UserConfigSchema,
+    warnIfVectorSearchNotEnabledCorrectly,
 } from "../../../src/common/config.js";
 import { getLogPath, getExportsPath } from "../../../src/common/configUtils.js";
 import type { CliOptions } from "@mongosh/arg-parser";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
+import { defaultTestConfig } from "../../integration/helpers.js";
 
 describe("config", () => {
     it("should generate defaults from UserConfigSchema that match expected values", () => {
@@ -686,14 +688,14 @@ describe("config", () => {
 
 describe("CLI arguments", () => {
     const referDocMessage =
-        "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
+        "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
 
     type TestCase = { readonly cliArg: keyof (CliOptions & UserConfig); readonly warning: string };
     const testCases = [
         {
             cliArg: "connectionString",
             warning:
-                "The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
+                "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
         },
     ] as TestCase[];
 
@@ -742,9 +744,9 @@ describe("CLI arguments", () => {
                 { warn, exit }
             );
 
-            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'wakanda'.");
+            expect(warn).toHaveBeenCalledWith("Warning: Invalid command line argument 'wakanda'.");
             expect(warn).toHaveBeenCalledWith(
-                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
             );
         });
 
@@ -767,9 +769,11 @@ describe("CLI arguments", () => {
                 { warn, exit }
             );
 
-            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonli'. Did you mean 'readOnly'?");
             expect(warn).toHaveBeenCalledWith(
-                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                "Warning: Invalid command line argument 'readonli'. Did you mean 'readOnly'?"
+            );
+            expect(warn).toHaveBeenCalledWith(
+                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
             );
         });
 
@@ -781,10 +785,57 @@ describe("CLI arguments", () => {
                 { warn, exit }
             );
 
-            expect(warn).toHaveBeenCalledWith("Invalid command line argument 'readonly'. Did you mean 'readOnly'?");
             expect(warn).toHaveBeenCalledWith(
-                "Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                "Warning: Invalid command line argument 'readonly'. Did you mean 'readOnly'?"
             );
+            expect(warn).toHaveBeenCalledWith(
+                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            );
+        });
+    });
+
+    describe("warnIfVectorSearchNotEnabledCorrectly", () => {
+        it("should warn if vectorSearch is enabled but embeddings provider is not configured", () => {
+            const warnStub = vi.fn();
+            warnIfVectorSearchNotEnabledCorrectly(
+                {
+                    ...defaultTestConfig,
+                    previewFeatures: ["vectorSearch"],
+                },
+                warnStub
+            );
+            expect(warnStub).toBeCalledWith(`\
+Warning: Vector search is enabled but no embeddings provider is configured.
+- Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
+`);
+        });
+
+        it("should warn if vectorSearch is not enabled but embeddings provider is configured", () => {
+            const warnStub = vi.fn();
+            warnIfVectorSearchNotEnabledCorrectly(
+                {
+                    ...defaultTestConfig,
+                    voyageApiKey: "random-key",
+                },
+                warnStub
+            );
+            expect(warnStub).toBeCalledWith(`\
+Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
+- Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
+`);
+        });
+
+        it("should not warn if vectorSearch is enabled correctly", () => {
+            const warnStub = vi.fn();
+            warnIfVectorSearchNotEnabledCorrectly(
+                {
+                    ...defaultTestConfig,
+                    voyageApiKey: "random-key",
+                    previewFeatures: ["vectorSearch"],
+                },
+                warnStub
+            );
+            expect(warnStub).not.toBeCalled();
         });
     });
 

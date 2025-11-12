@@ -80,7 +80,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 ])
             )
             .describe(
-                "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes"
+                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("vectorSearch") ? " and 'vectorSearch' for vector search indexes" : ""}.`
             ),
     };
 

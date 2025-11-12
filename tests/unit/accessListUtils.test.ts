@@ -8,12 +8,12 @@ describe("accessListUtils", () => {
     it("should add the current IP to the access list", async () => {
         const apiClient = {
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createProjectIpAccessList: vi.fn().mockResolvedValue(undefined as never),
+            createAccessListEntry: vi.fn().mockResolvedValue(undefined as never),
             logger: new NullLogger(),
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
+        expect(apiClient.createAccessListEntry).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
             body: [{ groupId: "projectId", ipAddress: "127.0.0.1", comment: DEFAULT_ACCESS_LIST_COMMENT }],
         });
@@ -22,7 +22,7 @@ describe("accessListUtils", () => {
     it("should not fail if the current IP is already in the access list", async () => {
         const apiClient = {
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" } as never),
-            createProjectIpAccessList: vi
+            createAccessListEntry: vi
                 .fn()
                 .mockRejectedValue(
                     ApiClientError.fromError(
@@ -34,7 +34,7 @@ describe("accessListUtils", () => {
         } as unknown as ApiClient;
         await ensureCurrentIpInAccessList(apiClient, "projectId");
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(apiClient.createProjectIpAccessList).toHaveBeenCalledWith({
+        expect(apiClient.createAccessListEntry).toHaveBeenCalledWith({
             params: { path: { groupId: "projectId" } },
             body: [{ groupId: "projectId", ipAddress: "127.0.0.1", comment: DEFAULT_ACCESS_LIST_COMMENT }],
         });
