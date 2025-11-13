@@ -11,8 +11,8 @@ import {
     getLogPath,
     isConnectionSpecifier,
     validateConfigKey,
-} from "./configUtils.js";
-import { OPTIONS } from "./argsParserOptions.js";
+} from "./config/configUtils.js";
+import { OPTIONS } from "./config/argsParserOptions.js";
 import { similarityValues, previewFeatureValues } from "./schemas.js";
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
