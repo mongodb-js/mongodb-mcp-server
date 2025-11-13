@@ -14,7 +14,7 @@ import { fileURLToPath } from "url";
 import { UserConfigSchema, configRegistry } from "../src/common/config.js";
 import assert from "assert";
 import { execSync } from "child_process";
-import { OPTIONS } from "../src/common/argsParserOptions.js";
+import { OPTIONS } from "../src/common/config/argsParserOptions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
