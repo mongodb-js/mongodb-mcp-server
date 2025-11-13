@@ -11,7 +11,8 @@ import {
     defaultDriverOptions,
     getDataFromUntrustedContent,
 } from "../../helpers.js";
-import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
+import type { UserConfig } from "../../../../src/common/config.js";
+import type { DriverOptions } from "../../../../src/common/config/driverOptions.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
 import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
