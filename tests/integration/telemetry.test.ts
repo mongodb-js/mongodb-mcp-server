@@ -1,7 +1,7 @@
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { Session } from "../../src/common/session.js";
 import { config } from "../../src/common/config.js";
-import { driverOptions } from "./helpers.js";
+import { defaultDriverOptions } from "./helpers.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";
@@ -16,7 +16,7 @@ describe("Telemetry", () => {
 
         const deviceId = DeviceId.create(logger);
         const actualDeviceId = await deviceId.get();
-        const connectionManager = new MCPConnectionManager(config, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(config, defaultDriverOptions, logger, deviceId);
 
         const telemetry = Telemetry.create(
             new Session({

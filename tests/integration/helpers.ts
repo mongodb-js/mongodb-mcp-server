@@ -20,10 +20,6 @@ import type { MockClientCapabilities, createMockElicitInput } from "../utils/eli
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 
-export const driverOptions = createDriverOptions(config);
-
-export const defaultDriverOptions: DriverOptions = { ...driverOptions };
-
 interface Parameter {
     name: string;
     description: string;
@@ -51,6 +47,8 @@ export const defaultTestConfig: UserConfig = {
     telemetry: "disabled",
     loggers: ["stderr"],
 };
+
+export const defaultDriverOptions: DriverOptions = createDriverOptions(defaultTestConfig);
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
