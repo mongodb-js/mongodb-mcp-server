@@ -1,5 +1,5 @@
 import argv from "yargs-parser";
-import type { CliOptions, ConnectionInfo } from "@mongosh/arg-parser";
+import type { CliOptions } from "@mongosh/arg-parser";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "./keychain.js";
 import type { Secret } from "./keychain.js";
@@ -182,20 +182,6 @@ export const config = setupUserConfig({
     cli: process.argv,
     env: process.env,
 });
-
-export type DriverOptions = ConnectionInfo["driverOptions"];
-export const defaultDriverOptions: DriverOptions = {
-    readConcern: {
-        level: "local",
-    },
-    readPreference: "secondaryPreferred",
-    writeConcern: {
-        w: "majority",
-    },
-    timeoutMS: 30_000,
-    proxy: { useEnvironmentVariableProxies: true },
-    applyProxyToOIDC: true,
-};
 
 // Gets the config supplied by the user as environment variables. The variable names
 // are prefixed with `MDB_MCP_` and the keys match the UserConfig keys, but are converted
@@ -413,18 +399,4 @@ export function setupUserConfig({ cli, env }: { cli: string[]; env: Record<strin
     warnIfVectorSearchNotEnabledCorrectly(userConfig, (message) => console.warn(message));
     registerKnownSecretsInRootKeychain(userConfig);
     return userConfig;
-}
-
-export function setupDriverConfig({
-    config,
-    defaults,
-}: {
-    config: UserConfig;
-    defaults: Partial<DriverOptions>;
-}): DriverOptions {
-    const { driverOptions } = generateConnectionInfoFromCliArgs(config);
-    return {
-        ...defaults,
-        ...driverOptions,
-    };
 }

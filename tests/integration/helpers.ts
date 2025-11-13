@@ -6,13 +6,9 @@ import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import type { UserConfig, DriverOptions } from "../../src/common/config.js";
+import { type UserConfig, config } from "../../src/common/config.js";
+import { type DriverOptions, createDriverOptions } from "../../src/common/config/driverOptions.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import {
-    config,
-    setupDriverConfig,
-    defaultDriverOptions as defaultDriverOptionsFromConfig,
-} from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
@@ -24,10 +20,7 @@ import type { MockClientCapabilities, createMockElicitInput } from "../utils/eli
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 
-export const driverOptions = setupDriverConfig({
-    config,
-    defaults: defaultDriverOptionsFromConfig,
-});
+export const driverOptions = createDriverOptions(config);
 
 export const defaultDriverOptions: DriverOptions = { ...driverOptions };
 

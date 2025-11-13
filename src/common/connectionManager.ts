@@ -4,7 +4,8 @@ import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { type ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import { defaultDriverOptions, setupDriverConfig, type DriverOptions, type UserConfig } from "./config.js";
+import { createDriverOptions, type DriverOptions } from "./config/driverOptions.js";
+import { type UserConfig } from "./config.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
@@ -394,10 +395,7 @@ export type ConnectionManagerFactoryFn = (createParams: {
 }) => Promise<ConnectionManager>;
 
 export const createMCPConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
-    const driverOptions = setupDriverConfig({
-        config: userConfig,
-        defaults: defaultDriverOptions,
-    });
+    const driverOptions = createDriverOptions(userConfig);
 
     return Promise.resolve(new MCPConnectionManager(userConfig, driverOptions, logger, deviceId));
 };
