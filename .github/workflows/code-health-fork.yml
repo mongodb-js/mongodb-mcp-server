@@ -39,9 +39,18 @@ jobs:
         env:
           SKIP_ATLAS_TESTS: "true"
           SKIP_ATLAS_LOCAL_TESTS: "true"
-      - name: Upload test results
-        if: always() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v5
+  run-atlas-local-tests:
+    name: Run Atlas Local tests
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
         with:
-          name: test-results
-          path: coverage/lcov.info
+          node-version-file: package.json
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test -- tests/integration/tools/atlas-local/

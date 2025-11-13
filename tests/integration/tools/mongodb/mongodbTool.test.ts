@@ -71,11 +71,9 @@ class UnusableVoyageTool extends MongoDBToolBase {
     protected argsShape = {};
 
     override verifyAllowed(): boolean {
-        if (this.config.voyageApiKey.trim()) {
-            return super.verifyAllowed();
-        }
         return false;
     }
+
     public async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
         return { content: [{ type: "text", text: "Something" }] };

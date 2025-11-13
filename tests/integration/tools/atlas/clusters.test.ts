@@ -1,11 +1,19 @@
 import type { Session } from "../../../../src/common/session.js";
 import { expectDefined, getResponseContent } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId, deleteCluster, waitCluster, sleep } from "./atlasHelpers.js";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+    describeWithAtlas,
+    withProject,
+    withCluster,
+    randomId,
+    deleteCluster,
+    waitCluster,
+    sleep,
+} from "./atlasHelpers.js";
+import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
 
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
-        const clusterName = "ClusterTest-" + randomId;
+        const clusterName = "ClusterTest-" + randomId();
 
         afterAll(async () => {
             const projectId = getProjectId();
@@ -142,6 +150,11 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             it("connects to cluster", async () => {
+                const createDatabaseUserSpy = vitest.spyOn(
+                    integration.mcpServer().session.apiClient,
+                    "createDatabaseUser"
+                );
+
                 const projectId = getProjectId();
                 const connectionType = "standard";
                 let connected = false;
@@ -158,6 +171,8 @@ describeWithAtlas("clusters", (integration) => {
                     if (content.includes(`Connected to cluster "${clusterName}"`)) {
                         connected = true;
 
+                        expect(createDatabaseUserSpy).toHaveBeenCalledTimes(1);
+
                         // assert that some of the element s have the message
                         expect(content).toContain(
                             "Note: A temporary user has been created to enable secure connection to the cluster. For more information, see https://dochub.mongodb.org/core/mongodb-mcp-server-tools-considerations"
@@ -170,6 +185,58 @@ describeWithAtlas("clusters", (integration) => {
                     await sleep(500);
                 }
                 expect(connected).toBe(true);
+            });
+
+            describe("when connected", () => {
+                withCluster(
+                    integration,
+                    ({ getProjectId: getSecondaryProjectId, getClusterName: getSecondaryClusterName }) => {
+                        beforeAll(async () => {
+                            let connected = false;
+                            for (let i = 0; i < 10; i++) {
+                                const response = await integration.mcpClient().callTool({
+                                    name: "atlas-connect-cluster",
+                                    arguments: {
+                                        projectId: getSecondaryProjectId(),
+                                        clusterName: getSecondaryClusterName(),
+                                        connectionType: "standard",
+                                    },
+                                });
+
+                                const content = getResponseContent(response.content);
+
+                                if (content.includes(`Connected to cluster "${getSecondaryClusterName()}"`)) {
+                                    connected = true;
+                                    break;
+                                }
+
+                                await sleep(500);
+                            }
+
+                            if (!connected) {
+                                throw new Error("Could not connect to cluster before tests");
+                            }
+                        });
+
+                        it("disconnects and deletes the database user before connecting to another cluster", async () => {
+                            const deleteDatabaseUserSpy = vitest.spyOn(
+                                integration.mcpServer().session.apiClient,
+                                "deleteDatabaseUser"
+                            );
+
+                            await integration.mcpClient().callTool({
+                                name: "atlas-connect-cluster",
+                                arguments: {
+                                    projectId: getProjectId(),
+                                    clusterName: clusterName,
+                                    connectionType: "standard",
+                                },
+                            });
+
+                            expect(deleteDatabaseUserSpy).toHaveBeenCalledTimes(1);
+                        });
+                    }
+                );
             });
 
             describe("when not connected", () => {
