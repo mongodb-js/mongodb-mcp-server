@@ -12,18 +12,17 @@ import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorU
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logger.js";
-import { AnyVectorSearchStage, VectorSearchStage } from "../mongodbSchemas.js";
+import { AnyAggregateStage, VectorSearchStage } from "../mongodbSchemas.js";
 import {
     assertVectorSearchFilterFieldsAreIndexed,
-    type VectorSearchIndex,
+    type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
-export const AggregateArgs = {
-    pipeline: z.array(z.union([AnyVectorSearchStage, VectorSearchStage])).describe(
-        `An array of aggregation stages to execute.  
+const pipelineDescriptionWithVectorSearch = `\
+An array of aggregation stages to execute.
 \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
 ### Usage Rules for \`$vectorSearch\`
-- **Unset embeddings:**  
+- **Unset embeddings:**
   Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
 - **Pre-filtering:**
 If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
@@ -32,20 +31,28 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
     For all remaining filters, add a $match stage after $vectorSearch.
 ### Note to LLM
 - If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
-- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.`
-    ),
-    responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
+- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.\
+`;
+
+const genericPipelineDescription = "An array of aggregation stages to execute.";
+
+export const getAggregateArgs = (vectorSearchEnabled: boolean) =>
+    ({
+        pipeline: z
+            .array(vectorSearchEnabled ? z.union([AnyAggregateStage, VectorSearchStage]) : AnyAggregateStage)
+            .describe(vectorSearchEnabled ? pipelineDescriptionWithVectorSearch : genericPipelineDescription),
+        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
 The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
 Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\
 `),
-};
+    }) as const;
 
 export class AggregateTool extends MongoDBToolBase {
     public name = "aggregate";
     protected description = "Run an aggregation against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
-        ...AggregateArgs,
+        ...getAggregateArgs(this.isFeatureEnabled("vectorSearch")),
     };
     public operationType: OperationType = "read";
 
@@ -59,7 +66,7 @@ export class AggregateTool extends MongoDBToolBase {
             await this.assertOnlyUsesPermittedStages(pipeline);
             if (await this.session.isSearchSupported()) {
                 assertVectorSearchFilterFieldsAreIndexed({
-                    searchIndexes: (await provider.getSearchIndexes(database, collection)) as VectorSearchIndex[],
+                    searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
                     pipeline,
                     logger: this.session.logger,
                 });

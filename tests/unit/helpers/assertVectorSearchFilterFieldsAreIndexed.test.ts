@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
     assertVectorSearchFilterFieldsAreIndexed,
     collectFieldsFromVectorSearchFilter,
-    type VectorSearchIndex,
+    type SearchIndex,
 } from "../../../src/helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
 import { type CompositeLogger, LogId } from "../../../src/common/logger.js";
@@ -184,7 +184,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
         error: vi.fn(),
     } as unknown as CompositeLogger;
 
-    const createMockSearchIndexes = (indexName: string, filterFields: string[]): VectorSearchIndex[] => [
+    const createMockSearchIndexes = (indexName: string, filterFields: string[]): SearchIndex[] => [
         {
             name: indexName,
             latestDefinition: {
@@ -196,6 +196,7 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
                     })),
                 ],
             },
+            type: "vectorSearch",
         },
     ];
 
@@ -547,12 +548,13 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
     });
 
     it("should handle search index with no filter fields", () => {
-        const searchIndexes: VectorSearchIndex[] = [
+        const searchIndexes: SearchIndex[] = [
             {
                 name: "myIndex",
                 latestDefinition: {
                     fields: [{ type: "vector" }],
                 },
+                type: "vectorSearch",
             },
         ];
         const pipeline = [
@@ -582,5 +584,46 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
                 "Vector search stage contains filter on fields that are not indexed by index myIndex - field1"
             )
         );
+    });
+
+    it("should ignore atlas search indexes", () => {
+        const searchIndexes: SearchIndex[] = [
+            ...createMockSearchIndexes("index1", ["field1", "field2"]),
+            // Atlas search index - it should be ignored by the validation
+            // and not cause any errors
+            {
+                name: "atlasSearchIndex",
+                latestDefinition: {
+                    analyzer: "lucene.standard",
+                    mappings: {
+                        dynamic: false,
+                    },
+                },
+                type: "search",
+            },
+        ];
+
+        const pipeline = [
+            {
+                $vectorSearch: {
+                    index: "index1",
+                    path: "embedding",
+                    queryVector: [1, 2, 3],
+                    numCandidates: 100,
+                    limit: 10,
+                    filter: {
+                        field1: "value",
+                    },
+                },
+            },
+        ];
+
+        expect(() =>
+            assertVectorSearchFilterFieldsAreIndexed({
+                searchIndexes: searchIndexes,
+                pipeline,
+                logger: mockLogger,
+            })
+        ).not.toThrow();
     });
 });

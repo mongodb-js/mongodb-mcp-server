@@ -115,17 +115,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Download test results
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: test-results
           path: coverage/mongodb
       - name: Download atlas test results
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: atlas-test-results
           path: coverage/atlas
       - name: Download atlas local test results
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: atlas-local-test-results
           path: coverage/atlas-local
@@ -136,3 +136,22 @@ jobs:
         uses: coverallsapp/github-action@v2.3.6
         with:
           file: coverage/lcov.info
+
+  run-git-secrets:
+    name: Run git secrets
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "npm"
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y git-secrets
+      - name: Run git-secrets
+        run: git-secrets --register-aws && git-secrets --scan

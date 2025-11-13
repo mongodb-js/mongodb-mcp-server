@@ -124,6 +124,24 @@ describeWithMongoDB(
             await collection.drop();
         });
 
+        validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [
+            ...databaseCollectionParameters,
+            {
+                name: "documents",
+                type: "array",
+                description:
+                    "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
+                required: true,
+            },
+            {
+                name: "embeddingParameters",
+                type: "object",
+                description:
+                    "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one.",
+                required: false,
+            },
+        ]);
+
         it("inserts a document when the embedding is correct", async () => {
             await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                 {
@@ -152,12 +170,12 @@ describeWithMongoDB(
             expect(docCount).toBe(1);
         });
 
-        it("returns an error when there is a search index and quantisation is wrong", async () => {
+        it("returns an error when there is a search index and embeddings parameter are wrong", async () => {
             await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                 {
                     type: "vector",
                     path: "embedding",
-                    numDimensions: 8,
+                    numDimensions: 256,
                     similarity: "euclidean",
                     quantization: "scalar",
                 },
@@ -169,6 +187,18 @@ describeWithMongoDB(
                     database: database,
                     collection: "test",
                     documents: [{ embedding: "oopsie" }],
+                    // Note: We are intentionally commenting out the
+                    // embeddingParameters so that we can simulate the idea
+                    // of unknown or mismatched quantization.
+
+                    // embeddingParameters: { outputDimension: 256,
+                    // outputDtype: "float", model: "voyage-3-large", input:
+                    // [
+                    //         {
+                    //             embedding: "oopsie",
+                    //         },
+                    //     ],
+                    // },
                 },
             });
 
@@ -176,7 +206,7 @@ describeWithMongoDB(
             expect(content).toContain("Error running insert-many");
             const untrustedContent = getDataFromUntrustedContent(content);
             expect(untrustedContent).toContain(
-                "- Field embedding is an embedding with 8 dimensions and scalar quantization, and the provided value is not compatible. Actual dimensions: unknown, actual quantization: unknown. Error: not-a-vector"
+                "- Field embedding is an embedding with 256 dimensions, and the provided value is not compatible. Actual dimensions: unknown, Error: not-a-vector"
             );
 
             const oopsieCount = await collection.countDocuments({
@@ -590,6 +620,8 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
+            // This is expected to be set through the CI env. When not set we
+            // get a warning in the run logs.
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
             previewFeatures: ["vectorSearch"],
         }),
@@ -621,7 +653,9 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: "valid-key",
+            // This is expected to be set through the CI env. When not set we
+            // get a warning in the run logs.
+            voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
             previewFeatures: ["vectorSearch"],
         }),
     }

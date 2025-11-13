@@ -218,6 +218,39 @@ export class ConnectClusterTool extends AtlasToolBase {
         const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
         let createdUser = false;
 
+        const state = this.queryConnection(projectId, clusterName);
+        switch (state) {
+            case "connected-to-other-cluster":
+            case "disconnected": {
+                await this.session.disconnect();
+
+                const { connectionString, atlas } = await this.prepareClusterConnection(
+                    projectId,
+                    clusterName,
+                    connectionType
+                );
+
+                createdUser = true;
+
+                // try to connect for about 5 minutes asynchronously
+                void this.connectToCluster(connectionString, atlas).catch((err: unknown) => {
+                    const error = err instanceof Error ? err : new Error(String(err));
+                    this.session.logger.error({
+                        id: LogId.atlasConnectFailure,
+                        context: "atlas-connect-cluster",
+                        message: `error connecting to cluster: ${error.message}`,
+                    });
+                });
+                break;
+            }
+            case "connecting":
+            case "connected":
+            case "unknown":
+            default: {
+                break;
+            }
+        }
+
         for (let i = 0; i < 60; i++) {
             const state = this.queryConnection(projectId, clusterName);
             switch (state) {
@@ -246,34 +279,15 @@ export class ConnectClusterTool extends AtlasToolBase {
                     return { content };
                 }
                 case "connecting":
-                case "unknown": {
-                    break;
-                }
+                case "unknown":
                 case "connected-to-other-cluster":
                 case "disconnected":
                 default: {
-                    await this.session.disconnect();
-                    const { connectionString, atlas } = await this.prepareClusterConnection(
-                        projectId,
-                        clusterName,
-                        connectionType
-                    );
-
-                    createdUser = true;
-                    // try to connect for about 5 minutes asynchronously
-                    void this.connectToCluster(connectionString, atlas).catch((err: unknown) => {
-                        const error = err instanceof Error ? err : new Error(String(err));
-                        this.session.logger.error({
-                            id: LogId.atlasConnectFailure,
-                            context: "atlas-connect-cluster",
-                            message: `error connecting to cluster: ${error.message}`,
-                        });
-                    });
                     break;
                 }
             }
 
-            await sleep(500);
+            await sleep(500); // wait 500ms before checking the connection state again
         }
 
         const content: CallToolResult["content"] = [

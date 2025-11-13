@@ -4,7 +4,7 @@ import type { ToolArgs, OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 import type { Document } from "mongodb";
-import { AggregateArgs } from "../read/aggregate.js";
+import { getAggregateArgs } from "../read/aggregate.js";
 import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
@@ -20,7 +20,7 @@ export class ExplainTool extends MongoDBToolBase {
                 z.discriminatedUnion("name", [
                     z.object({
                         name: z.literal("aggregate"),
-                        arguments: z.object(AggregateArgs),
+                        arguments: z.object(getAggregateArgs(this.isFeatureEnabled("vectorSearch"))),
                     }),
                     z.object({
                         name: z.literal("find"),

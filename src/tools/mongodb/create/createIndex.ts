@@ -150,7 +150,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 ])
             )
             .describe(
-                `The index definition.${this.isFeatureEnabled("vectorSearch") ? " Use 'classic' for standard indexes, 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes." : ""}`
+                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("vectorSearch") ? ", 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes" : ""}.`
             ),
     };
 
