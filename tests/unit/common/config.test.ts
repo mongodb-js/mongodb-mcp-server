@@ -7,7 +7,7 @@ import {
     UserConfigSchema,
     warnIfVectorSearchNotEnabledCorrectly,
 } from "../../../src/common/config.js";
-import { getLogPath, getExportsPath } from "../../../src/common/configUtils.js";
+import { getLogPath, getExportsPath } from "../../../src/common/config/configUtils.js";
 import type { CliOptions } from "@mongosh/arg-parser";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
