@@ -15,7 +15,7 @@ import { LogId } from "../../../common/logger.js";
 import { AnyAggregateStage, VectorSearchStage } from "../mongodbSchemas.js";
 import {
     assertVectorSearchFilterFieldsAreIndexed,
-    type VectorSearchIndex,
+    type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 
 const pipelineDescriptionWithVectorSearch = `\
@@ -66,7 +66,7 @@ export class AggregateTool extends MongoDBToolBase {
             await this.assertOnlyUsesPermittedStages(pipeline);
             if (await this.session.isSearchSupported()) {
                 assertVectorSearchFilterFieldsAreIndexed({
-                    searchIndexes: (await provider.getSearchIndexes(database, collection)) as VectorSearchIndex[],
+                    searchIndexes: (await provider.getSearchIndexes(database, collection)) as SearchIndex[],
                     pipeline,
                     logger: this.session.logger,
                 });
