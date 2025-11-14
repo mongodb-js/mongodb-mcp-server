@@ -8,6 +8,8 @@ import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUti
 import type { AtlasClusterConnectionInfo } from "../../../common/connectionManager.js";
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
+import type { ConnectionMetadata } from "../../../telemetry/types.js";
+import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -316,5 +318,18 @@ export class ConnectClusterTool extends AtlasToolBase {
         }
 
         return { content };
+    }
+
+    protected override resolveTelemetryMetadata(
+        result: CallToolResult,
+        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+    ): ConnectionMetadata {
+        const parentMetadata = super.resolveTelemetryMetadata(result, ...args);
+        const connectionMetadata = this.getConnectionInfoMetadata();
+        if (connectionMetadata && connectionMetadata.project_id !== undefined) {
+            // delete the project_id from the parent metadata to avoid duplication
+            delete parentMetadata.project_id;
+        }
+        return { ...parentMetadata, ...connectionMetadata };
     }
 }

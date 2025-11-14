@@ -1,5 +1,5 @@
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { AtlasToolMetadata } from "../../telemetry/types.js";
+import type { AtlasMetadata } from "../../telemetry/types.js";
 import { ToolBase, type ToolArgs, type ToolCategory } from "../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../../common/logger.js";
@@ -85,8 +85,8 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
     protected resolveTelemetryMetadata(
         result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
-    ): AtlasToolMetadata {
-        const toolMetadata: AtlasToolMetadata = {};
+    ): AtlasMetadata {
+        const toolMetadata: AtlasMetadata = {};
         if (!args.length) {
             return toolMetadata;
         }

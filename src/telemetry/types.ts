@@ -141,17 +141,22 @@ export type CommonProperties = {
  * For MongoDB tools, this is typically empty, while for Atlas tools, this should include
  * the project and organization IDs if available.
  */
-export type TelemetryToolMetadata = AtlasLocalToolMetadata | AtlasToolMetadata | PerfAdvisorToolMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | PerfAdvisorToolMetadata | ConnectionMetadata;
 
-export type AtlasLocalToolMetadata = {
-    atlas_local_deployment_id?: string;
-};
-
-export type AtlasToolMetadata = {
+export type AtlasMetadata = {
     project_id?: string;
     org_id?: string;
 };
 
-export type PerfAdvisorToolMetadata = AtlasToolMetadata & {
+export type PerfAdvisorToolMetadata = AtlasMetadata & {
     operations: string[];
+};
+
+export type ConnectionMetadata = AtlasMetadata &
+    AtlasLocalToolMetadata & {
+        connection_auth_type?: string;
+    };
+
+type AtlasLocalToolMetadata = {
+    atlas_local_deployment_id?: string;
 };

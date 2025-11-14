@@ -175,6 +175,90 @@ describe("ToolBase", () => {
             expect(event.properties).toHaveProperty("test_param2", "three");
         });
     });
+
+    describe("getConnectionInfoMetadata", () => {
+        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringAuthType are set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({});
+            expect(metadata).not.toHaveProperty("project_id");
+            expect(metadata).not.toHaveProperty("connection_auth_type");
+        });
+
+        it("should return metadata with project_id when connectedAtlasCluster.projectId is set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
+                projectId: "test-project-id",
+                username: "test-user",
+                clusterName: "test-cluster",
+                expiryDate: new Date(),
+            };
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({
+                project_id: "test-project-id",
+            });
+            expect(metadata).not.toHaveProperty("connection_auth_type");
+        });
+
+        it("should return empty metadata when connectedAtlasCluster exists but projectId is falsy", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
+                projectId: "",
+                username: "test-user",
+                clusterName: "test-cluster",
+                expiryDate: new Date(),
+            };
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({});
+            expect(metadata).not.toHaveProperty("project_id");
+        });
+
+        it("should return metadata with connection_auth_type when connectionStringAuthType is set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "scram";
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({
+                connection_auth_type: "scram",
+            });
+            expect(metadata).not.toHaveProperty("project_id");
+        });
+
+        it("should return metadata with both project_id and connection_auth_type when both are set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
+                projectId: "test-project-id",
+                username: "test-user",
+                clusterName: "test-cluster",
+                expiryDate: new Date(),
+            };
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "oidc-auth-flow";
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({
+                project_id: "test-project-id",
+                connection_auth_type: "oidc-auth-flow",
+            });
+        });
+
+        it("should handle different connectionStringAuthType values", () => {
+            const authTypes = ["scram", "ldap", "kerberos", "oidc-auth-flow", "oidc-device-flow", "x.509"] as const;
+
+            for (const authType of authTypes) {
+                (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = authType;
+                const metadata = testTool["getConnectionInfoMetadata"]();
+                expect(metadata.connection_auth_type).toBe(authType);
+            }
+        });
+    });
 });
 
 class TestTool extends ToolBase {
