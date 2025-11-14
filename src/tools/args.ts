@@ -84,3 +84,13 @@ function toEJSON<T extends object | undefined>(value: T): T {
 export function zEJSON(): z.AnyZodObject {
     return z.object({}).passthrough().transform(toEJSON) as unknown as z.AnyZodObject;
 }
+
+/**
+ * Serializes data to EJSON format with proper Int64 preservation.
+ * This function ensures that Int64 values are not truncated to JavaScript numbers.
+ * @param value The data to serialize
+ * @returns EJSON string with preserved Int64 precision
+ */
+export function serializeWithInt64Preservation(value: unknown): string {
+    return EJSON.stringify(value, undefined, undefined, { relaxed: false });
+}

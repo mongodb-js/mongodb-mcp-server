@@ -138,7 +138,7 @@ export class AggregateTool extends MongoDBToolBase {
                             cursorResults.cappedBy,
                         ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
                     }),
-                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
+                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents, undefined, undefined, { relaxed: false })] : [])
                 ),
             };
         } finally {

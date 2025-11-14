@@ -21,7 +21,7 @@ export class DbStatsTool extends MongoDBToolBase {
         });
 
         return {
-            content: formatUntrustedData(`Statistics for database ${database}`, EJSON.stringify(result)),
+            content: formatUntrustedData(`Statistics for database ${database}`, EJSON.stringify(result, undefined, undefined, { relaxed: false })),
         };
     }
 }
