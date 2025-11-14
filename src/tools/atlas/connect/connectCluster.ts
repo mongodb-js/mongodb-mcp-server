@@ -312,17 +312,10 @@ export class ConnectClusterTool extends AtlasToolBase {
     ): ConnectionMetadata {
         const parentMetadata = super.resolveTelemetryMetadata(result, ...args);
         const connectionMetadata = this.getConnectionInfoMetadata();
-        // Explicitly merge, preferring parentMetadata for known overlapping keys (project_id, org_id)
-        // since parent has more complete information from tool arguments
-        const { project_id, org_id, ...restConnectionMetadata } = connectionMetadata;
-        const finalProjectId = parentMetadata.project_id ?? project_id;
-        const finalOrgId = parentMetadata.org_id ?? org_id;
-        return {
-            ...parentMetadata,
-            ...restConnectionMetadata,
-            // Only include project_id and org_id if they are defined
-            ...(finalProjectId !== undefined && { project_id: finalProjectId }),
-            ...(finalOrgId !== undefined && { org_id: finalOrgId }),
-        };
+        if (connectionMetadata.project_id !== undefined) {
+            // delete the project_id from the parent metadata to avoid duplication
+            delete parentMetadata.project_id;
+        }
+        return { ...parentMetadata, ...connectionMetadata };
     }
 }
