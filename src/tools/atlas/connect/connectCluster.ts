@@ -308,11 +308,11 @@ export class ConnectClusterTool extends AtlasToolBase {
 
     protected override resolveTelemetryMetadata(
         result: CallToolResult,
-        args: Parameters<ToolCallback<typeof this.argsShape>>
+        ...args: Parameters<ToolCallback<typeof this.argsShape>>
     ): ConnectionMetadata {
         const parentMetadata = super.resolveTelemetryMetadata(result, ...args);
         const connectionMetadata = this.getConnectionInfoMetadata();
-        if (connectionMetadata.project_id !== undefined) {
+        if (connectionMetadata && connectionMetadata.project_id !== undefined) {
             // delete the project_id from the parent metadata to avoid duplication
             delete parentMetadata.project_id;
         }
