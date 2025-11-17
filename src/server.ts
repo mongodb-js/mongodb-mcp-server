@@ -30,18 +30,26 @@ export interface ServerOptions {
     telemetry: Telemetry;
     elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
-    /** Custom tool constructors to register with the server.
-     *  This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
-     *  ```ts
-     *  import { AllTools, ToolBase } from "mongodb-mcp-server/tools";
-     *  class CustomTool extends ToolBase {
-     *      name = "custom_tool";
-     *      ...
-     *  }
-     *  const server = new Server({
-     *      tools: [...AllTools, CustomTool],
-     *  });
-     *  ```
+    /**
+     * Custom tool constructors to register with the server.
+     * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
+     * 
+     * ```ts
+     * import { AllTools, ToolBase } from "mongodb-mcp-server/tools";
+     * class CustomTool extends ToolBase {
+     *     name = "custom_tool";
+     *     // ...
+     * }
+     * const server = new Server({
+     *     session: mySession,
+     *     userConfig: myUserConfig,
+     *     mcpServer: myMcpServer,
+     *     telemetry: myTelemetry,
+     *     elicitation: myElicitation,
+     *     connectionErrorHandler: myConnectionErrorHandler,
+     *     tools: [...AllTools, CustomTool],
+     * });
+     * ```
      */
     tools?: (new (params: ToolConstructorParams) => ToolBase)[];
 }
