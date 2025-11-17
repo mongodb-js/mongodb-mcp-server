@@ -33,7 +33,7 @@ export interface ServerOptions {
     /**
      * Custom tool constructors to register with the server.
      * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
-     * 
+     *
      * ```ts
      * import { AllTools, ToolBase } from "mongodb-mcp-server/tools";
      * class CustomTool extends ToolBase {
