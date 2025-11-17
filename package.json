@@ -17,12 +17,12 @@
     },
     "./tools": {
       "import": {
-        "types": "./dist/esm/tools.d.ts",
-        "default": "./dist/esm/tools.js"
+        "types": "./dist/esm/tools/index.d.ts",
+        "default": "./dist/esm/tools/index.js"
       },
       "require": {
-        "types": "./dist/cjs/tools.d.ts",
-        "default": "./dist/cjs/tools.js"
+        "types": "./dist/cjs/tools/index.d.ts",
+        "default": "./dist/cjs/tools/index.js"
       }
     }
   },

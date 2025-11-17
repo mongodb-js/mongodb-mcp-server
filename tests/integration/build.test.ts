@@ -11,8 +11,8 @@ const projectRoot = path.resolve(currentDir, "../..");
 const esmPath = path.resolve(projectRoot, "dist/esm/lib.js");
 const cjsPath = path.resolve(projectRoot, "dist/cjs/lib.js");
 
-const esmToolsPath = path.resolve(projectRoot, "dist/esm/tools.js");
-const cjsToolsPath = path.resolve(projectRoot, "dist/cjs/tools.js");
+const esmToolsPath = path.resolve(projectRoot, "dist/esm/tools/index.js");
+const cjsToolsPath = path.resolve(projectRoot, "dist/cjs/tools/index.js");
 
 describe("Build Test", () => {
     it("should successfully require CommonJS module", () => {
