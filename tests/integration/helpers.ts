@@ -18,7 +18,7 @@ import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
-import { defaultUserConfig } from "../../src/common/config/userConfig.js";
+import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 
 interface Parameter {
     name: string;
@@ -43,7 +43,7 @@ export interface IntegrationTest {
     mcpServer: () => Server;
 }
 export const defaultTestConfig: UserConfig = {
-    ...defaultUserConfig,
+    ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
 };

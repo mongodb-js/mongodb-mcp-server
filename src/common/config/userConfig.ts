@@ -169,5 +169,3 @@ export const UserConfigSchema = z4.object({
         .default([])
         .describe("An array of preview features that are enabled."),
 });
-
-export const defaultUserConfig = UserConfigSchema.parse({});
