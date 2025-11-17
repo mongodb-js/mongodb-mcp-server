@@ -1,6 +1,6 @@
 import type { Session } from "../common/session.js";
 import type { BaseEvent, CommonProperties } from "./types.js";
-import type { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import { LogId } from "../common/logger.js";
 import type { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";

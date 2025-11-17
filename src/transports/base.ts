@@ -1,4 +1,4 @@
-import type { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";

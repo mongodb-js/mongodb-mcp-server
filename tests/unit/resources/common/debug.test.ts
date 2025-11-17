@@ -2,36 +2,36 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
-import { config } from "../../../../src/common/config.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { defaultTestConfig } from "../../../integration/helpers.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
-    const connectionManager = new MCPConnectionManager(config, logger, deviceId);
+    const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, deviceId);
 
     const session = vi.mocked(
         new Session({
             apiBaseUrl: "",
             logger,
-            exportsManager: ExportsManager.init(config, logger),
+            exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         })
     );
 
-    const telemetry = Telemetry.create(session, { ...config, telemetry: "disabled" }, deviceId);
+    const telemetry = Telemetry.create(session, { ...defaultTestConfig, telemetry: "disabled" }, deviceId);
 
-    let debugResource: DebugResource = new DebugResource(session, config, telemetry);
+    let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);
 
     beforeEach(() => {
-        debugResource = new DebugResource(session, config, telemetry);
+        debugResource = new DebugResource(session, defaultTestConfig, telemetry);
     });
 
     it("should be connected when a connected event happens", async () => {

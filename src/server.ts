@@ -6,7 +6,7 @@ import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logger.js";
 import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
-import type { UserConfig } from "./common/config.js";
+import type { UserConfig } from "./common/config/userConfig.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";

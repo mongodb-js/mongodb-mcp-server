@@ -1,5 +1,5 @@
 import { ReactiveResource } from "../resource.js";
-import type { UserConfig } from "../../common/config.js";
+import type { UserConfig } from "../../common/config/userConfig.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session } from "../../lib.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";

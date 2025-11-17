@@ -4,46 +4,6 @@ import { ALL_CONFIG_KEYS } from "./argsParserOptions.js";
 import * as levenshteinModule from "ts-levenshtein";
 const levenshtein = levenshteinModule.default;
 
-export function validateConfigKey(key: string): { valid: boolean; suggestion?: string } {
-    if (ALL_CONFIG_KEYS.has(key)) {
-        return { valid: true };
-    }
-
-    let minLev = Number.MAX_VALUE;
-    let suggestion = "";
-
-    // find the closest match for a suggestion
-    for (const validKey of ALL_CONFIG_KEYS) {
-        // check if there is an exact case-insensitive match
-        if (validKey.toLowerCase() === key.toLowerCase()) {
-            return { valid: false, suggestion: validKey };
-        }
-
-        // else, infer something using levenshtein so we suggest a valid key
-        const lev = levenshtein.get(key, validKey);
-        if (lev < minLev) {
-            minLev = lev;
-            suggestion = validKey;
-        }
-    }
-
-    if (minLev <= 2) {
-        // accept up to 2 typos
-        return { valid: false, suggestion };
-    }
-
-    return { valid: false };
-}
-
-export function isConnectionSpecifier(arg: string | undefined): boolean {
-    return (
-        arg !== undefined &&
-        (arg.startsWith("mongodb://") ||
-            arg.startsWith("mongodb+srv://") ||
-            !(arg.endsWith(".js") || arg.endsWith(".mongodb")))
-    );
-}
-
 /**
  * Metadata for config schema fields.
  */
@@ -60,6 +20,34 @@ export type ConfigFieldMeta = {
 
     [key: string]: unknown;
 };
+
+export function matchingConfigKey(key: string): string | undefined {
+    let minLev = Number.MAX_VALUE;
+    let suggestion = undefined;
+    for (const validKey of ALL_CONFIG_KEYS) {
+        const lev = levenshtein.get(key, validKey);
+        // Accepting upto 2 typos and should be better than whatever previous
+        // suggestion was.
+        if (lev <= 2 && lev < minLev) {
+            minLev = lev;
+            suggestion = validKey;
+        }
+    }
+
+    return suggestion;
+}
+
+export function isConnectionSpecifier(arg: string | undefined): boolean {
+    return (
+        arg !== undefined &&
+        (arg.startsWith("mongodb://") ||
+            arg.startsWith("mongodb+srv://") ||
+            // Strings starting with a hyphen `-` are generally a sign of CLI
+            // flag so we exclude them from the possibility of being a
+            // connection specifier.
+            !(arg.endsWith(".js") || arg.endsWith(".mongodb") || arg.startsWith("-")))
+    );
+}
 
 export function getLocalDataPath(): string {
     return process.platform === "win32"

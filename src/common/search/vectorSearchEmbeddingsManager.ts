@@ -1,6 +1,6 @@
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { BSON, type Document } from "bson";
-import type { UserConfig } from "../config.js";
+import type { UserConfig } from "../config/userConfig.js";
 import type { ConnectionManager } from "../connectionManager.js";
 import z from "zod";
 import { ErrorCodes, MongoDBError } from "../errors.js";

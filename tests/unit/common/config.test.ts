@@ -1,17 +1,29 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { UserConfig } from "../../../src/common/config.js";
-import {
-    setupUserConfig,
-    registerKnownSecretsInRootKeychain,
-    warnAboutDeprecatedOrUnknownCliArgs,
-    UserConfigSchema,
-    warnIfVectorSearchNotEnabledCorrectly,
-} from "../../../src/common/config.js";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from "vitest";
+import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
+import { type CreateUserConfigHelpers, createUserConfig } from "../../../src/common/config/createUserConfig.js";
 import { getLogPath, getExportsPath } from "../../../src/common/config/configUtils.js";
-import type { CliOptions } from "@mongosh/arg-parser";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
-import { defaultTestConfig } from "../../integration/helpers.js";
+
+function createEnvironment(): {
+    setVariable: (this: void, variable: string, value: unknown) => void;
+    clearVariables(this: void): void;
+} {
+    const registeredEnvVariables: string[] = [];
+
+    return {
+        setVariable(variable: string, value: unknown): void {
+            (process.env as Record<string, unknown>)[variable] = value;
+            registeredEnvVariables.push(variable);
+        },
+
+        clearVariables(): void {
+            for (const variable of registeredEnvVariables) {
+                delete (process.env as Record<string, unknown>)[variable];
+            }
+        },
+    };
+}
 
 describe("config", () => {
     it("should generate defaults from UserConfigSchema that match expected values", () => {
@@ -50,20 +62,58 @@ describe("config", () => {
             disableEmbeddingsValidation: false,
             previewFeatures: [],
         };
-
         expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
     });
 
+    it("should generate defaults when no config sources are populated", () => {
+        const expectedDefaults = {
+            apiBaseUrl: "https://cloud.mongodb.com/",
+            logPath: getLogPath(),
+            exportsPath: getExportsPath(),
+            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
+            disabledTools: [],
+            telemetry: "enabled",
+            readOnly: false,
+            indexCheck: false,
+            confirmationRequiredTools: [
+                "atlas-create-access-list",
+                "atlas-create-db-user",
+                "drop-database",
+                "drop-collection",
+                "delete-many",
+                "drop-index",
+            ],
+            transport: "stdio",
+            httpPort: 3000,
+            httpHost: "127.0.0.1",
+            loggers: ["disk", "mcp"],
+            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+            httpHeaders: {},
+            maxDocumentsPerQuery: 100,
+            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+            voyageApiKey: "",
+            vectorSearchDimensions: 1024,
+            vectorSearchSimilarityFunction: "euclidean",
+            disableEmbeddingsValidation: false,
+            previewFeatures: [],
+        };
+        expect(createUserConfig()).toStrictEqual(expectedDefaults);
+    });
+
     describe("env var parsing", () => {
+        const { setVariable, clearVariables } = createEnvironment();
+
+        afterEach(() => {
+            clearVariables();
+        });
+
         describe("mongodb urls", () => {
             it("should not try to parse a multiple-host urls", () => {
-                const actual = setupUserConfig({
-                    env: {
-                        MDB_MCP_CONNECTION_STRING: "mongodb://user:password@host1,host2,host3/",
-                    },
-                    cli: [],
-                });
-
+                setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://user:password@host1,host2,host3/");
+                const actual = createUserConfig();
                 expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
             });
         });
@@ -92,34 +142,24 @@ describe("config", () => {
 
             for (const { envVar, property, value } of testCases) {
                 it(`should map ${envVar} to ${property} with value "${value}"`, () => {
-                    const actual = setupUserConfig({
-                        cli: [],
-                        env: {
-                            [envVar]: String(value),
-                        },
-                    });
-
+                    setVariable(envVar, value);
+                    const actual = createUserConfig();
                     expect(actual[property]).toBe(value);
                 });
             }
         });
 
         describe("array cases", () => {
-            const testCases = {
-                MDB_MCP_DISABLED_TOOLS: "disabledTools",
-                MDB_MCP_LOGGERS: "loggers",
-            } as const;
+            const testCases = [
+                { envVar: "MDB_MCP_DISABLED_TOOLS", property: "disabledTools", value: "find,export" },
+                { envVar: "MDB_MCP_LOGGERS", property: "loggers", value: "disk,mcp" },
+            ] as const;
 
-            for (const [envVar, config] of Object.entries(testCases)) {
-                it(`should map ${envVar} to ${config}`, () => {
-                    const actual = setupUserConfig({
-                        cli: [],
-                        env: {
-                            [envVar]: "disk,mcp",
-                        },
-                    });
-
-                    expect(actual[config]).toEqual(["disk", "mcp"]);
+            for (const { envVar, property, value } of testCases) {
+                it(`should map ${envVar} to ${property}`, () => {
+                    setVariable(envVar, value);
+                    const actual = createUserConfig();
+                    expect(actual[property]).toEqual(value.split(","));
                 });
             }
         });
@@ -127,9 +167,8 @@ describe("config", () => {
 
     describe("cli parsing", () => {
         it("should not try to parse a multiple-host urls", () => {
-            const actual = setupUserConfig({
-                cli: ["myself", "--", "--connectionString", "mongodb://user:password@host1,host2,host3/"],
-                env: {},
+            const actual = createUserConfig({
+                cliArguments: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],
             });
 
             expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
@@ -309,11 +348,9 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const actual = setupUserConfig({
-                        cli: ["myself", "--", ...cli],
-                        env: {},
+                    const actual = createUserConfig({
+                        cliArguments: cli,
                     });
-
                     expect(actual).toStrictEqual({
                         ...UserConfigSchema.parse({}),
                         ...expected,
@@ -408,11 +445,9 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const actual = setupUserConfig({
-                        cli: ["myself", "--", ...cli],
-                        env: {},
+                    const actual = createUserConfig({
+                        cliArguments: cli,
                     });
-
                     for (const [key, value] of Object.entries(expected)) {
                         expect(actual[key as keyof UserConfig]).toBe(value);
                     }
@@ -434,11 +469,9 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const actual = setupUserConfig({
-                        cli: ["myself", "--", ...cli],
-                        env: {},
+                    const actual = createUserConfig({
+                        cliArguments: cli,
                     });
-
                     for (const [key, value] of Object.entries(expected)) {
                         expect(actual[key as keyof UserConfig]).toEqual(value);
                     }
@@ -448,430 +481,460 @@ describe("config", () => {
     });
 
     describe("precedence rules", () => {
-        it("cli arguments take precedence over env vars", () => {
-            const actual = setupUserConfig({
-                cli: ["myself", "--", "--connectionString", "mongodb://localhost"],
-                env: { MDB_MCP_CONNECTION_STRING: "mongodb://crazyhost" },
-            });
+        const { setVariable, clearVariables } = createEnvironment();
 
+        afterEach(() => {
+            clearVariables();
+        });
+
+        it("cli arguments take precedence over env vars", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost");
+            const actual = createUserConfig({
+                cliArguments: ["--connectionString", "mongodb://localhost"],
+            });
             expect(actual.connectionString).toBe("mongodb://localhost");
         });
 
         it("any cli argument takes precedence over defaults", () => {
-            const actual = setupUserConfig({
-                cli: ["myself", "--", "--connectionString", "mongodb://localhost"],
-                env: {},
+            const actual = createUserConfig({
+                cliArguments: ["--connectionString", "mongodb://localhost"],
             });
-
             expect(actual.connectionString).toBe("mongodb://localhost");
         });
 
         it("any env var takes precedence over defaults", () => {
-            const actual = setupUserConfig({
-                cli: [],
-                env: { MDB_MCP_CONNECTION_STRING: "mongodb://localhost" },
-            });
-
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://localhost");
+            const actual = createUserConfig();
             expect(actual.connectionString).toBe("mongodb://localhost");
         });
     });
 
     describe("consolidation", () => {
         it("positional argument for url has precedence over --connectionString", () => {
-            const actual = setupUserConfig({
-                cli: ["myself", "--", "mongodb://localhost", "--connectionString", "toRemove"],
-                env: {},
+            const actual = createUserConfig({
+                cliArguments: ["mongodb://localhost", "--connectionString", "mongodb://toRemoveHost"],
             });
-
             // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
             expect(actual.connectionString).toBe(
                 "mongodb://localhost/?directConnection=true&serverSelectionTimeoutMS=2000"
             );
-            expect(actual.connectionSpecifier).toBe("mongodb://localhost");
+        });
+
+        it("positional argument is always considered", () => {
+            const actual = createUserConfig({
+                cliArguments: ["mongodb://localhost"],
+            });
+            // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
+            expect(actual.connectionString).toBe(
+                "mongodb://localhost/?directConnection=true&serverSelectionTimeoutMS=2000"
+            );
         });
     });
 
     describe("validation", () => {
         describe("transport", () => {
             it("should support http", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--transport", "http"],
-                    env: {},
+                const actual = createUserConfig({
+                    cliArguments: ["--transport", "http"],
                 });
-
                 expect(actual.transport).toEqual("http");
             });
 
             it("should support stdio", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--transport", "stdio"],
-                    env: {},
+                const actual = createUserConfig({
+                    cliArguments: ["--transport", "stdio"],
                 });
-
                 expect(actual.transport).toEqual("stdio");
             });
 
             it("should not support sse", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--transport", "sse"],
-                        env: {},
-                    })
-                ).toThrowError(
-                    'Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"'
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--transport", "sse"],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        'Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"'
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support arbitrary values", () => {
                 const value = Math.random() + "transport";
-
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--transport", value],
-                        env: {},
-                    })
-                ).toThrowError(
-                    `Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"`
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--transport", value],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        'Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"'
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
         });
 
         describe("telemetry", () => {
             it("can be enabled", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--telemetry", "enabled"],
-                    env: {},
+                const actual = createUserConfig({
+                    cliArguments: ["--telemetry", "enabled"],
                 });
-
                 expect(actual.telemetry).toEqual("enabled");
             });
 
             it("can be disabled", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--telemetry", "disabled"],
-                    env: {},
+                const actual = createUserConfig({
+                    cliArguments: ["--telemetry", "disabled"],
                 });
-
                 expect(actual.telemetry).toEqual("disabled");
             });
 
             it("should not support the boolean true value", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--telemetry", "true"],
-                        env: {},
-                    })
-                ).toThrowError(
-                    'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--telemetry", "true"],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support the boolean false value", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--telemetry", "false"],
-                        env: {},
-                    })
-                ).toThrowError(
-                    'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--telemetry", "false"],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support arbitrary values", () => {
                 const value = Math.random() + "telemetry";
-
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--telemetry", value],
-                        env: {},
-                    })
-                ).toThrowError(
-                    `Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"`
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--telemetry", value],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
         });
 
         describe("httpPort", () => {
             it("must be above 1", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--httpPort", "0"],
-                        env: {},
-                    })
-                ).toThrowError(
-                    "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at least 1"
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--httpPort", "0"],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at least 1"
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("must be below 65535 (OS limit)", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--httpPort", "89527345"],
-                        env: {},
-                    })
-                ).toThrowError(
-                    "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at most 65535"
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--httpPort", "89527345"],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at most 65535"
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support non numeric values", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--httpPort", "portAventura"],
-                        env: {},
-                    })
-                ).toThrowError(
-                    "Invalid configuration for the following fields:\nhttpPort - Invalid input: expected number, received NaN"
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--httpPort", "portAventura"],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        "Invalid configuration for the following fields:\nhttpPort - Invalid input: expected number, received NaN"
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should support numeric values", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--httpPort", "8888"],
-                    env: {},
-                });
-
+                const actual = createUserConfig({ cliArguments: ["--httpPort", "8888"] });
                 expect(actual.httpPort).toEqual(8888);
             });
         });
 
         describe("loggers", () => {
             it("must not be empty", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--loggers", ""],
-                        env: {},
-                    })
-                ).toThrowError("Invalid configuration for the following fields:\nloggers - Cannot be an empty array");
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--loggers", ""],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        "Invalid configuration for the following fields:\nloggers - Cannot be an empty array"
+                    )
+                );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("must not allow duplicates", () => {
-                expect(() =>
-                    setupUserConfig({
-                        cli: ["myself", "--", "--loggers", "disk,disk,disk"],
-                        env: {},
-                    })
-                ).toThrowError(
-                    "Invalid configuration for the following fields:\nloggers - Duplicate loggers found in config"
+                const onErrorFn = vi.fn();
+                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
+                createUserConfig({
+                    onError: onErrorFn,
+                    closeProcess: onExitFn,
+                    cliArguments: ["--loggers", "disk,disk,disk"],
+                });
+                expect(onErrorFn).toBeCalledWith(
+                    expect.stringContaining(
+                        "Invalid configuration for the following fields:\nloggers - Duplicate loggers found in config"
+                    )
                 );
+                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("allows mcp logger", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--loggers", "mcp"],
-                    env: {},
-                });
-
+                const actual = createUserConfig({ cliArguments: ["--loggers", "mcp"] });
                 expect(actual.loggers).toEqual(["mcp"]);
             });
 
             it("allows disk logger", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--loggers", "disk"],
-                    env: {},
-                });
-
+                const actual = createUserConfig({ cliArguments: ["--loggers", "disk"] });
                 expect(actual.loggers).toEqual(["disk"]);
             });
 
             it("allows stderr logger", () => {
-                const actual = setupUserConfig({
-                    cli: ["myself", "--", "--loggers", "stderr"],
-                    env: {},
-                });
-
+                const actual = createUserConfig({ cliArguments: ["--loggers", "stderr"] });
                 expect(actual.loggers).toEqual(["stderr"]);
             });
         });
     });
 });
 
-describe("CLI arguments", () => {
+describe("Warning and Error messages", () => {
+    let warn: MockedFunction<CreateUserConfigHelpers["onWarning"]>;
+    let error: MockedFunction<CreateUserConfigHelpers["onError"]>;
+    let exit: MockedFunction<CreateUserConfigHelpers["closeProcess"]>;
     const referDocMessage =
         "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
 
-    type TestCase = { readonly cliArg: keyof (CliOptions & UserConfig); readonly warning: string };
-    const testCases = [
-        {
-            cliArg: "connectionString",
-            warning:
-                "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
-        },
-    ] as TestCase[];
+    beforeEach(() => {
+        warn = vi.fn();
+        error = vi.fn();
+        exit = vi.fn();
+    });
 
-    for (const { cliArg, warning } of testCases) {
-        describe(`deprecation behaviour of ${cliArg}`, () => {
-            let cliArgs: CliOptions & UserConfig & { _?: string[] };
-            let warn: (msg: string) => void;
-            let exit: (status: number) => void | never;
+    describe("Deprecated CLI arguments", () => {
+        const testCases = [
+            {
+                cliArg: "--connectionString",
+                value: "mongodb://localhost:27017",
+                warning:
+                    "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
+            },
+        ] as const;
 
-            beforeEach(() => {
-                cliArgs = { [cliArg]: "RandomString" } as unknown as CliOptions & UserConfig & { _?: string[] };
-                warn = vi.fn();
-                exit = vi.fn();
+        for (const { cliArg, value, warning } of testCases) {
+            describe(`deprecation behaviour of ${cliArg}`, () => {
+                beforeEach(() => {
+                    createUserConfig({ onWarning: warn, closeProcess: exit, cliArguments: [cliArg, value] });
+                });
 
-                warnAboutDeprecatedOrUnknownCliArgs(cliArgs as unknown as Record<string, unknown>, { warn, exit });
+                it(`warns the usage of ${cliArg} as it is deprecated`, () => {
+                    expect(warn).toHaveBeenCalledWith(expect.stringContaining(warning));
+                });
+
+                it(`shows the reference message when ${cliArg} was passed`, () => {
+                    expect(warn).toHaveBeenCalledWith(expect.stringContaining(referDocMessage));
+                });
+
+                it(`should not exit the process`, () => {
+                    expect(exit).not.toHaveBeenCalled();
+                });
             });
-
-            it(`warns the usage of ${cliArg} as it is deprecated`, () => {
-                expect(warn).toHaveBeenCalledWith(warning);
-            });
-
-            it(`shows the reference message when ${cliArg} was passed`, () => {
-                expect(warn).toHaveBeenCalledWith(referDocMessage);
-            });
-
-            it(`should not exit the process`, () => {
-                expect(exit).not.toHaveBeenCalled();
-            });
-        });
-    }
+        }
+    });
 
     describe("invalid arguments", () => {
-        let warn: (msg: string) => void;
-        let exit: (status: number) => void | never;
+        it("should show an error when an argument is not known and exit the process", () => {
+            createUserConfig({
+                cliArguments: ["--wakanda", "forever"],
+                onWarning: warn,
+                onError: error,
+                closeProcess: exit,
+            });
 
-        beforeEach(() => {
-            warn = vi.fn();
-            exit = vi.fn();
-        });
-
-        it("should show a warning when an argument is not known", () => {
-            warnAboutDeprecatedOrUnknownCliArgs(
-                {
-                    wakanda: "",
-                },
-                { warn, exit }
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining("Error: Invalid command line argument '--wakanda'.")
             );
-
-            expect(warn).toHaveBeenCalledWith("Warning: Invalid command line argument 'wakanda'.");
-            expect(warn).toHaveBeenCalledWith(
-                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                )
             );
-        });
-
-        it("should exit the process on unknown cli args", () => {
-            warnAboutDeprecatedOrUnknownCliArgs(
-                {
-                    wakanda: "",
-                },
-                { warn, exit }
-            );
-
             expect(exit).toHaveBeenCalledWith(1);
         });
 
         it("should show a suggestion when is a simple typo", () => {
-            warnAboutDeprecatedOrUnknownCliArgs(
-                {
-                    readonli: "",
-                },
-                { warn, exit }
+            createUserConfig({
+                cliArguments: ["--readonli", ""],
+                onWarning: warn,
+                onError: error,
+                closeProcess: exit,
+            });
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining("Error: Invalid command line argument '--readonli'. Did you mean '--readOnly'?")
             );
-
-            expect(warn).toHaveBeenCalledWith(
-                "Warning: Invalid command line argument 'readonli'. Did you mean 'readOnly'?"
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                )
             );
-            expect(warn).toHaveBeenCalledWith(
-                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
-            );
+            expect(exit).toHaveBeenCalledWith(1);
         });
 
         it("should show a suggestion when the only change is on the case", () => {
-            warnAboutDeprecatedOrUnknownCliArgs(
-                {
-                    readonly: "",
-                },
-                { warn, exit }
-            );
+            createUserConfig({
+                cliArguments: ["--readonly", ""],
+                onWarning: warn,
+                onError: error,
+                closeProcess: exit,
+            });
 
-            expect(warn).toHaveBeenCalledWith(
-                "Warning: Invalid command line argument 'readonly'. Did you mean 'readOnly'?"
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining("Error: Invalid command line argument '--readonly'. Did you mean '--readOnly'?")
             );
-            expect(warn).toHaveBeenCalledWith(
-                "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
+                )
             );
+            expect(exit).toHaveBeenCalledWith(1);
         });
     });
 
-    describe("warnIfVectorSearchNotEnabledCorrectly", () => {
+    describe("vector search misconfiguration", () => {
         it("should warn if vectorSearch is enabled but embeddings provider is not configured", () => {
-            const warnStub = vi.fn();
-            warnIfVectorSearchNotEnabledCorrectly(
-                {
-                    ...defaultTestConfig,
-                    previewFeatures: ["vectorSearch"],
-                },
-                warnStub
-            );
-            expect(warnStub).toBeCalledWith(`\
+            createUserConfig({
+                cliArguments: ["--previewFeatures", "vectorSearch"],
+                onWarning: warn,
+                onError: error,
+                closeProcess: exit,
+            });
+            expect(warn).toBeCalledWith(`\
 Warning: Vector search is enabled but no embeddings provider is configured.
 - Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
 `);
         });
 
         it("should warn if vectorSearch is not enabled but embeddings provider is configured", () => {
-            const warnStub = vi.fn();
-            warnIfVectorSearchNotEnabledCorrectly(
-                {
-                    ...defaultTestConfig,
-                    voyageApiKey: "random-key",
-                },
-                warnStub
-            );
-            expect(warnStub).toBeCalledWith(`\
+            createUserConfig({
+                cliArguments: ["--voyageApiKey", "1FOO"],
+                onWarning: warn,
+                onError: error,
+                closeProcess: exit,
+            });
+
+            expect(warn).toBeCalledWith(`\
 Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
 - Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
 `);
         });
 
         it("should not warn if vectorSearch is enabled correctly", () => {
-            const warnStub = vi.fn();
-            warnIfVectorSearchNotEnabledCorrectly(
-                {
-                    ...defaultTestConfig,
-                    voyageApiKey: "random-key",
-                    previewFeatures: ["vectorSearch"],
-                },
-                warnStub
-            );
-            expect(warnStub).not.toBeCalled();
-        });
-    });
-
-    describe("keychain management", () => {
-        type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
-        const testCases = [
-            { cliArg: "apiClientId", secretKind: "user" },
-            { cliArg: "apiClientSecret", secretKind: "password" },
-            { cliArg: "awsAccessKeyId", secretKind: "password" },
-            { cliArg: "awsIamSessionToken", secretKind: "password" },
-            { cliArg: "awsSecretAccessKey", secretKind: "password" },
-            { cliArg: "awsSessionToken", secretKind: "password" },
-            { cliArg: "password", secretKind: "password" },
-            { cliArg: "tlsCAFile", secretKind: "url" },
-            { cliArg: "tlsCRLFile", secretKind: "url" },
-            { cliArg: "tlsCertificateKeyFile", secretKind: "url" },
-            { cliArg: "tlsCertificateKeyFilePassword", secretKind: "password" },
-            { cliArg: "username", secretKind: "user" },
-        ] as TestCase[];
-        let keychain: Keychain;
-
-        beforeEach(() => {
-            keychain = Keychain.root;
-            keychain.clearAllSecrets();
-        });
-
-        afterEach(() => {
-            keychain.clearAllSecrets();
-        });
-
-        for (const { cliArg, secretKind } of testCases) {
-            it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
-                registerKnownSecretsInRootKeychain({ [cliArg]: cliArg });
-
-                expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
+            createUserConfig({
+                cliArguments: ["--voyageApiKey", "1FOO", "--previewFeatures", "vectorSearch"],
+                onWarning: warn,
+                onError: error,
+                closeProcess: exit,
             });
-        }
+            expect(warn).not.toBeCalled();
+        });
     });
+});
+
+describe("keychain management", () => {
+    type TestCase = { readonly cliArg: keyof UserConfig; secretKind: Secret["kind"] };
+    const testCases = [
+        { cliArg: "apiClientId", secretKind: "user" },
+        { cliArg: "apiClientSecret", secretKind: "password" },
+        // Note: These arguments were part of original test cases before
+        // refactor of Config but because now we use yargs-parser to strictly
+        // parse the config and do not allow unknown arguments to creep into the
+        // final results, these arguments never end up in the config. It is
+        // because we have the mongosh OPTIONS copied over from the repo and the
+        // copied object does not contain these are parse targets.
+
+        //  TODO: Whenever we finish importing OPTIONS from mongosh these test
+        // cases should be good to be enabled again.
+
+        // { cliArg: "awsAccessKeyId", secretKind: "password" },
+        // { cliArg: "awsIamSessionToken", secretKind: "password" },
+        // { cliArg: "awsSecretAccessKey", secretKind: "password" },
+        // { cliArg: "awsSessionToken", secretKind: "password" },
+        { cliArg: "password", secretKind: "password" },
+        { cliArg: "tlsCAFile", secretKind: "url" },
+        { cliArg: "tlsCRLFile", secretKind: "url" },
+        { cliArg: "tlsCertificateKeyFile", secretKind: "url" },
+        { cliArg: "tlsCertificateKeyFilePassword", secretKind: "password" },
+        { cliArg: "username", secretKind: "user" },
+    ] as TestCase[];
+    let keychain: Keychain;
+
+    beforeEach(() => {
+        keychain = Keychain.root;
+        keychain.clearAllSecrets();
+    });
+
+    afterEach(() => {
+        keychain.clearAllSecrets();
+    });
+
+    for (const { cliArg, secretKind } of testCases) {
+        it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
+            createUserConfig({ cliArguments: [`--${cliArg}`, cliArg], onError: console.error });
+            expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
+        });
+    }
 });

@@ -35,9 +35,10 @@ function enableFipsIfRequested(): void {
 
 enableFipsIfRequested();
 
-import { ConsoleLogger, LogId } from "./common/logger.js";
-import { config } from "./common/config.js";
 import crypto from "crypto";
+import { ConsoleLogger, LogId } from "./common/logger.js";
+import { createUserConfig } from "./common/config/createUserConfig.js";
+import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
@@ -47,8 +48,9 @@ import { Keychain } from "./common/keychain.js";
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
 
-    assertHelpMode();
-    assertVersionMode();
+    const config = createUserConfig();
+    assertHelpMode(config);
+    assertVersionMode(config);
 
     const transportRunner =
         config.transport === "stdio"
@@ -131,7 +133,7 @@ main().catch((error: unknown) => {
     process.exit(1);
 });
 
-function assertHelpMode(): void | never {
+function assertHelpMode(config: UserConfig): void | never {
     if (config.help) {
         console.log("For usage information refer to the README.md:");
         console.log("https://github.com/mongodb-js/mongodb-mcp-server?tab=readme-ov-file#quick-start");
@@ -139,7 +141,7 @@ function assertHelpMode(): void | never {
     }
 }
 
-function assertVersionMode(): void | never {
+function assertVersionMode(config: UserConfig): void | never {
     if (config.version) {
         console.log(packageInfo.version);
         process.exit(0);

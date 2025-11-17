@@ -4,7 +4,7 @@ import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import { type UserConfig } from "./config.js";
+import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";

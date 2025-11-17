@@ -7,9 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExportsManagerConfig } from "../../../src/common/exportsManager.js";
 import { ensureExtension, isExportExpired, ExportsManager } from "../../../src/common/exportsManager.js";
 import type { AvailableExport } from "../../../src/common/exportsManager.js";
-import { config } from "../../../src/common/config.js";
 import { ROOT_DIR } from "../../accuracy/sdk/constants.js";
-import { timeout } from "../../integration/helpers.js";
+import { defaultTestConfig, timeout } from "../../integration/helpers.js";
 import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { CompositeLogger } from "../../../src/common/logger.js";
@@ -18,8 +17,8 @@ const logger = new CompositeLogger();
 const exportsPath = path.join(ROOT_DIR, "tests", "tmp", `exports-${Date.now()}`);
 const exportsManagerConfig: ExportsManagerConfig = {
     exportsPath,
-    exportTimeoutMs: config.exportTimeoutMs,
-    exportCleanupIntervalMs: config.exportCleanupIntervalMs,
+    exportTimeoutMs: defaultTestConfig.exportTimeoutMs,
+    exportCleanupIntervalMs: defaultTestConfig.exportCleanupIntervalMs,
 } as const;
 
 function getExportNameAndPath({

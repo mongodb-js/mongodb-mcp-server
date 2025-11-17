@@ -6,7 +6,7 @@ import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { type UserConfig, config } from "../../src/common/config.js";
+import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
@@ -18,6 +18,7 @@ import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
+import { defaultUserConfig } from "../../src/common/config/userConfig.js";
 
 interface Parameter {
     name: string;
@@ -42,7 +43,7 @@ export interface IntegrationTest {
     mcpServer: () => Server;
 }
 export const defaultTestConfig: UserConfig = {
-    ...config,
+    ...defaultUserConfig,
     telemetry: "disabled",
     loggers: ["stderr"],
 };

@@ -1,7 +1,7 @@
 import { createVoyage } from "voyage-ai-provider";
 import type { VoyageProvider } from "voyage-ai-provider";
 import { embedMany } from "ai";
-import type { UserConfig } from "../config.js";
+import type { UserConfig } from "../config/userConfig.js";
 import assert from "assert";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import {
