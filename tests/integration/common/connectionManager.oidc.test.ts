@@ -1,3 +1,4 @@
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { TestContext } from "vitest";
 import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
@@ -134,7 +135,19 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     // state of the connection manager
                     connectionManager.changeState("connection-close", { tag: "disconnected" });
 
-                    await integration.connectMcpClient();
+                    // Note: Instead of using `integration.connectMcpClient`,
+                    // we're connecting straight using Session because
+                    // `integration.connectMcpClient` uses `connect` tool which
+                    // does not work the same way as connect on server start up.
+                    // So to mimic the same functionality as that of server
+                    // startup we call the connectToMongoDB the same way as the
+                    // `Server.connectToConfigConnectionString` does.
+                    await integration.mcpServer().session.connectToMongoDB(
+                        generateConnectionInfoFromCliArgs({
+                            ...oidcConfig,
+                            connectionSpecifier: integration.connectionString(),
+                        })
+                    );
                 }, DEFAULT_TIMEOUT);
 
                 addCb?.(oidcIt);
