@@ -1,9 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { AtlasTools } from "./tools/atlas/tools.js";
-import { AtlasLocalTools } from "./tools/atlasLocal/tools.js";
-import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logger.js";
 import { LogId, McpLogger } from "./common/logger.js";
@@ -24,6 +21,7 @@ import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";
+import { AllTools } from "./tools/index.js";
 
 export interface ServerOptions {
     session: Session;
@@ -32,7 +30,28 @@ export interface ServerOptions {
     telemetry: Telemetry;
     elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
-    toolConstructors?: (new (params: ToolConstructorParams) => ToolBase)[];
+    /**
+     * Custom tool constructors to register with the server.
+     * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
+     *
+     * ```ts
+     * import { AllTools, ToolBase } from "mongodb-mcp-server/tools";
+     * class CustomTool extends ToolBase {
+     *     name = "custom_tool";
+     *     // ...
+     * }
+     * const server = new Server({
+     *     session: mySession,
+     *     userConfig: myUserConfig,
+     *     mcpServer: myMcpServer,
+     *     telemetry: myTelemetry,
+     *     elicitation: myElicitation,
+     *     connectionErrorHandler: myConnectionErrorHandler,
+     *     tools: [...AllTools, CustomTool],
+     * });
+     * ```
+     */
+    tools?: (new (params: ToolConstructorParams) => ToolBase)[];
 }
 
 export class Server {
@@ -61,7 +80,7 @@ export class Server {
         telemetry,
         connectionErrorHandler,
         elicitation,
-        toolConstructors,
+        tools,
     }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
@@ -70,7 +89,7 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.toolConstructors = toolConstructors ?? [...AtlasTools, ...MongoDbTools, ...AtlasLocalTools];
+        this.toolConstructors = tools ?? AllTools;
     }
 
     async connect(transport: Transport): Promise<void> {

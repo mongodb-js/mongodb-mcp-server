@@ -3,6 +3,8 @@ export { Session, type SessionOptions } from "./common/session.js";
 export { type UserConfig } from "./common/config.js";
 export { LoggerBase, type LogPayload, type LoggerType, type LogLevel } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
+export { StdioRunner } from "./transports/stdio.js";
+export { TransportRunnerBase, type TransportRunnerConfig } from "./transports/base.js";
 export {
     ConnectionManager,
     type AnyConnectionState,
@@ -21,3 +23,4 @@ export { ErrorCodes } from "./common/errors.js";
 export { Telemetry } from "./telemetry/telemetry.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
+export { Elicitation } from "./elicitation.js";

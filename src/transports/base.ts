@@ -20,6 +20,7 @@ import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
+import type { ToolBase, ToolConstructorParams } from "../tools/tool.js";
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
@@ -28,6 +29,7 @@ export type TransportRunnerConfig = {
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
     additionalLoggers?: LoggerBase[];
     telemetryProperties?: Partial<CommonProperties>;
+    tools?: (new (params: ToolConstructorParams) => ToolBase)[];
 };
 
 export abstract class TransportRunnerBase {
@@ -38,6 +40,7 @@ export abstract class TransportRunnerBase {
     private readonly connectionErrorHandler: ConnectionErrorHandler;
     private readonly atlasLocalClient: Promise<Client | undefined>;
     private readonly telemetryProperties: Partial<CommonProperties>;
+    private readonly tools?: (new (params: ToolConstructorParams) => ToolBase)[];
 
     protected constructor({
         userConfig,
@@ -46,12 +49,14 @@ export abstract class TransportRunnerBase {
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
         telemetryProperties = {},
+        tools,
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
         this.atlasLocalClient = createAtlasLocalClient();
         this.telemetryProperties = telemetryProperties;
+        this.tools = tools;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -114,6 +119,7 @@ export abstract class TransportRunnerBase {
             userConfig: this.userConfig,
             connectionErrorHandler: this.connectionErrorHandler,
             elicitation,
+            tools: this.tools,
         });
 
         // We need to create the MCP logger after the server is constructed

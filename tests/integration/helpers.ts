@@ -1,7 +1,7 @@
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
-import { Server } from "../../src/server.js";
+import { Server, type ServerOptions } from "../../src/server.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -67,9 +67,11 @@ export function setupIntegrationTest(
     {
         elicitInput,
         getClientCapabilities,
+        serverOptions,
     }: {
         elicitInput?: ReturnType<typeof createMockElicitInput>;
         getClientCapabilities?: () => MockClientCapabilities;
+        serverOptions?: Partial<ServerOptions>;
     } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
@@ -147,6 +149,7 @@ export function setupIntegrationTest(
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
+            ...serverOptions,
         });
 
         await mcpServer.connect(serverTransport);
