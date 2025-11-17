@@ -174,6 +174,15 @@ describe("config", () => {
             expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
         });
 
+        it("positional connection specifier gets accounted for even without other connection sources", () => {
+            // Note that neither connectionString argument nor env variable is
+            // provided.
+            const actual = createUserConfig({
+                cliArguments: ["mongodb://host1:27017"],
+            });
+            expect(actual.connectionString).toEqual("mongodb://host1:27017/?directConnection=true");
+        });
+
         describe("string use cases", () => {
             const testCases = [
                 {
@@ -485,6 +494,14 @@ describe("config", () => {
 
         afterEach(() => {
             clearVariables();
+        });
+
+        it("positional argument takes precedence over all", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost1");
+            const actual = createUserConfig({
+                cliArguments: ["mongodb://crazyhost2", "--connectionString", "mongodb://localhost"],
+            });
+            expect(actual.connectionString).toBe("mongodb://crazyhost2/?directConnection=true");
         });
 
         it("cli arguments take precedence over env vars", () => {
