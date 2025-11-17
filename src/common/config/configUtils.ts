@@ -42,10 +42,10 @@ export function isConnectionSpecifier(arg: string | undefined): boolean {
         arg !== undefined &&
         (arg.startsWith("mongodb://") ||
             arg.startsWith("mongodb+srv://") ||
-            // Strings starting with a hyphen `-` are generally a sign of CLI
-            // flag so we exclude them from the possibility of being a
+            // Strings starting with double hyphens `--` are generally a sign of
+            // CLI flag so we exclude them from the possibility of being a
             // connection specifier.
-            !(arg.endsWith(".js") || arg.endsWith(".mongodb") || arg.startsWith("-")))
+            !(arg.endsWith(".js") || arg.endsWith(".mongodb") || arg.startsWith("--")))
     );
 }
 

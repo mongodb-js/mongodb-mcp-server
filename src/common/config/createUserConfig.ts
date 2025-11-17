@@ -108,15 +108,23 @@ function parseUserConfigSources(cliArguments: string[]): {
     // no-op statement so ESLint does not complain.
     void endOfFlagArguments;
 
+    // A connectionSpecifier can be one of:
+    // - database name
+    // - host name
+    // - ip address
+    // - replica set specifier
+    // - complete connection string
+    let connectionSpecifier: string | undefined = undefined;
     const [maybeConnectionSpecifier, ...unknownArguments] = positionalAndUnknownArguments;
-    // If the extracted connection specifier is not a connection specifier
-    // indeed, then we push it back to the unknown arguments list. This might
-    // happen for example when an unknown argument is provided without ever
-    // specifying a positional argument.
-    if (typeof maybeConnectionSpecifier !== "string" || !isConnectionSpecifier(maybeConnectionSpecifier)) {
-        if (maybeConnectionSpecifier) {
-            unknownArguments.unshift(maybeConnectionSpecifier);
-        }
+
+    if (typeof maybeConnectionSpecifier === "string" && isConnectionSpecifier(maybeConnectionSpecifier)) {
+        connectionSpecifier = maybeConnectionSpecifier;
+    } else if (maybeConnectionSpecifier !== undefined) {
+        // If the extracted connection specifier is not a connection specifier
+        // indeed, then we push it back to the unknown arguments list. This might
+        // happen for example when an unknown argument is provided without ever
+        // specifying a positional argument.
+        unknownArguments.unshift(maybeConnectionSpecifier);
     }
 
     return {
@@ -142,16 +150,7 @@ function parseUserConfigSources(cliArguments: string[]): {
             })
             .filter((argument) => typeof argument === "string"),
         userAndArgsParserConfig: parsedUserAndArgsParserConfig,
-        // A connectionSpecifier can be one of:
-        // - database name
-        // - host name
-        // - ip address
-        // - replica set specifier
-        // - complete connection string
-        connectionSpecifier:
-            typeof maybeConnectionSpecifier === "string" && isConnectionSpecifier(maybeConnectionSpecifier)
-                ? String(maybeConnectionSpecifier)
-                : undefined,
+        connectionSpecifier,
     };
 }
 

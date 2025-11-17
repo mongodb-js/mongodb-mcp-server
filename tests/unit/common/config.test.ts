@@ -916,16 +916,17 @@ describe("keychain management", () => {
     const testCases = [
         { cliArg: "apiClientId", secretKind: "user" },
         { cliArg: "apiClientSecret", secretKind: "password" },
-        // Note: These arguments were part of original test cases before
-        // refactor of Config but because now we use yargs-parser to strictly
-        // parse the config and do not allow unknown arguments to creep into the
-        // final results, these arguments never end up in the config. It is
-        // because we have the mongosh OPTIONS copied over from the repo and the
-        // copied object does not contain these are parse targets.
-
-        //  TODO: Whenever we finish importing OPTIONS from mongosh these test
-        // cases should be good to be enabled again.
-
+        /*
+         * Note: These arguments were part of original test cases before
+         * refactor of Config but because now we use yargs-parser to strictly
+         * parse the config and do not allow unknown arguments to creep into the
+         * final results, these arguments never end up in the config. It is
+         * because we have the mongosh OPTIONS copied over from the repo and the
+         * copied object does not contain these as parse targets.
+         *
+         * TODO: Whenever we finish importing OPTIONS from mongosh these test
+         * cases should be good to be enabled again.
+         */
         // { cliArg: "awsAccessKeyId", secretKind: "password" },
         // { cliArg: "awsIamSessionToken", secretKind: "password" },
         // { cliArg: "awsSecretAccessKey", secretKind: "password" },
