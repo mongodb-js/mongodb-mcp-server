@@ -143,7 +143,7 @@ describe("MongoDBTool implementations", () => {
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
             elicitation,
-            toolConstructors,
+            tools: toolConstructors,
         });
 
         await mcpServer.connect(serverTransport);
