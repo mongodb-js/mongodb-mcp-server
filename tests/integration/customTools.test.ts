@@ -1,120 +1,24 @@
-import { describe, it, expect, beforeAll, afterAll, vi, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { ToolBase, type ToolArgs } from "../../src/tools/index.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { Session } from "../../src/common/session.js";
-import { Server } from "../../src/server.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
-import { CompositeLogger } from "../../src/common/logger.js";
-import { ExportsManager } from "../../src/common/exportsManager.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "./inMemoryTransport.js";
-import { MCPConnectionManager } from "../../src/common/connectionManager.js";
-import { DeviceId } from "../../src/helpers/deviceId.js";
-import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
-import { Keychain } from "../../src/common/keychain.js";
-import { Elicitation } from "../../src/elicitation.js";
-import { defaultTestConfig, driverOptions } from "./helpers.js";
-import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
-import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
+import { defaultTestConfig, driverOptions, setupIntegrationTest } from "./helpers.js";
 
 describe("Custom Tools", () => {
-    let mcpClient: Client;
-    let mcpServer: Server;
-    let deviceId: DeviceId;
-
-    beforeAll(async () => {
-        const userConfig = { ...defaultTestConfig };
-
-        const clientTransport = new InMemoryTransport();
-        const serverTransport = new InMemoryTransport();
-        const logger = new CompositeLogger();
-
-        await serverTransport.start();
-        await clientTransport.start();
-
-        void clientTransport.output.pipeTo(serverTransport.input);
-        void serverTransport.output.pipeTo(clientTransport.input);
-
-        mcpClient = new Client(
-            {
-                name: "test-client",
-                version: "1.2.3",
+    const { mcpClient, mcpServer } = setupIntegrationTest(
+        () => ({ ...defaultTestConfig }),
+        () => driverOptions,
+        {
+            serverOptions: {
+                tools: [CustomGreetingTool, CustomCalculatorTool],
             },
-            {
-                capabilities: {},
-            }
-        );
-
-        const exportsManager = ExportsManager.init(userConfig, logger);
-
-        deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
-
-        const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
-            logger,
-            exportsManager,
-            connectionManager,
-            keychain: new Keychain(),
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            atlasLocalClient: await defaultCreateAtlasLocalClient(),
-        });
-
-        // Mock hasValidAccessToken for tests
-        if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
-            const mockFn = vi.fn().mockResolvedValue(true);
-            session.apiClient.validateAccessToken = mockFn;
         }
-
-        userConfig.telemetry = "disabled";
-
-        const telemetry = Telemetry.create(session, userConfig, deviceId);
-
-        const mcpServerInstance = new McpServer({
-            name: "test-server",
-            version: "5.2.3",
-        });
-
-        const elicitation = new Elicitation({ server: mcpServerInstance.server });
-
-        mcpServer = new Server({
-            session,
-            userConfig,
-            telemetry,
-            mcpServer: mcpServerInstance,
-            elicitation,
-            connectionErrorHandler,
-            tools: [CustomGreetingTool, CustomCalculatorTool],
-        });
-
-        await mcpServer.connect(serverTransport);
-        await mcpClient.connect(clientTransport);
-    });
-
-    afterEach(async () => {
-        if (mcpServer) {
-            await mcpServer.session.disconnect();
-        }
-
-        vi.clearAllMocks();
-    });
-
-    afterAll(async () => {
-        await mcpClient.close();
-
-        await mcpServer.close();
-
-        deviceId.close();
-    });
+    );
 
     it("should register custom tools instead of default tools", async () => {
         // Check that custom tools are registered
-        const tools = await mcpClient.listTools();
+        const tools = await mcpClient().listTools();
         const customGreetingTool = tools.tools.find((t) => t.name === "custom_greeting");
         const customCalculatorTool = tools.tools.find((t) => t.name === "custom_calculator");
 
@@ -127,7 +31,7 @@ describe("Custom Tools", () => {
     });
 
     it("should execute custom tools", async () => {
-        const result = await mcpClient.callTool({
+        const result = await mcpClient().callTool({
             name: "custom_greeting",
             arguments: { name: "World" },
         });
@@ -139,7 +43,7 @@ describe("Custom Tools", () => {
             },
         ]);
 
-        const result2 = await mcpClient.callTool({
+        const result2 = await mcpClient().callTool({
             name: "custom_calculator",
             arguments: { a: 5, b: 3 },
         });
@@ -151,7 +55,7 @@ describe("Custom Tools", () => {
             },
         ]);
 
-        const result3 = await mcpClient.callTool({
+        const result3 = await mcpClient().callTool({
             name: "custom_calculator",
             arguments: { a: 4, b: 7 },
         });
@@ -165,11 +69,11 @@ describe("Custom Tools", () => {
     });
 
     it("should respect tool categories and operation types from custom tools", () => {
-        const customGreetingTool = mcpServer.tools.find((t) => t.name === "custom_greeting");
+        const customGreetingTool = mcpServer().tools.find((t) => t.name === "custom_greeting");
         expect(customGreetingTool?.category).toBe("mongodb");
         expect(customGreetingTool?.operationType).toBe("read");
 
-        const customCalculatorTool = mcpServer.tools.find((t) => t.name === "custom_calculator");
+        const customCalculatorTool = mcpServer().tools.find((t) => t.name === "custom_calculator");
         expect(customCalculatorTool?.category).toBe("mongodb");
         expect(customCalculatorTool?.operationType).toBe("read");
     });
