@@ -7,7 +7,6 @@ import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../too
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
 import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
 import type { UserConfig } from "../../../src/common/config.js";
-import { createDriverOptions } from "../../../src/common/config/driverOptions.js";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
@@ -142,7 +141,6 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             },
             {
                 getUserConfig: () => oidcConfig,
-                getDriverOptions: () => createDriverOptions(oidcConfig),
                 downloadOptions: {
                     runner: true,
                     downloadOptions: { enterprise: true, version: mongodbVersion },

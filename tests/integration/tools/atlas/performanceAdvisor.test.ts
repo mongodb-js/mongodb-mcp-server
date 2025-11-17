@@ -5,7 +5,6 @@ import { ObjectId } from "bson";
 import type { Session } from "../../../../src/common/session.js";
 import {
     DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS,
-    defaultDriverOptions,
     defaultTestConfig,
     expectDefined,
     getResponseElements,
@@ -132,15 +131,12 @@ describeWithAtlas("performanceAdvisor", (integration) => {
 });
 
 describe("mocked atlas-get-performance-advisor", () => {
-    const integration = setupIntegrationTest(
-        () => ({
-            ...defaultTestConfig,
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-        }),
-        () => defaultDriverOptions
-    );
+    const integration = setupIntegrationTest(() => ({
+        ...defaultTestConfig,
+        apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+        apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+        apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+    }));
 
     let mockEmitEvents: MockInstance<(events: BaseEvent[]) => void>;
     let projectId: string;

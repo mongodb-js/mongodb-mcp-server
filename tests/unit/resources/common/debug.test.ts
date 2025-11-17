@@ -3,7 +3,6 @@ import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { config } from "../../../../src/common/config.js";
-import { defaultDriverOptions } from "../../../integration/helpers.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
@@ -14,7 +13,7 @@ import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vec
 describe("debug resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
-    const connectionManager = new MCPConnectionManager(config, defaultDriverOptions, logger, deviceId);
+    const connectionManager = new MCPConnectionManager(config, logger, deviceId);
 
     const session = vi.mocked(
         new Session({

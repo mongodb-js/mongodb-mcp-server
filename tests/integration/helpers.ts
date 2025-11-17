@@ -7,7 +7,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { type UserConfig, config } from "../../src/common/config.js";
-import { type DriverOptions, createDriverOptions } from "../../src/common/config/driverOptions.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
@@ -48,13 +47,10 @@ export const defaultTestConfig: UserConfig = {
     loggers: ["stderr"],
 };
 
-export const defaultDriverOptions: DriverOptions = createDriverOptions(defaultTestConfig);
-
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
-    getDriverOptions: () => DriverOptions,
     {
         elicitInput,
         getClientCapabilities,
@@ -71,7 +67,6 @@ export function setupIntegrationTest(
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
-        const driverOptions = getDriverOptions();
         const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
@@ -97,7 +92,7 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
 
         const session = new Session({
             apiBaseUrl: userConfig.apiBaseUrl,
