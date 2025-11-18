@@ -32,7 +32,7 @@ export function createUserConfig({
     closeProcess = defaultUserConfigHelpers.closeProcess,
     cliArguments = defaultUserConfigHelpers.cliArguments,
 }: Partial<CreateUserConfigHelpers> = defaultUserConfigHelpers): UserConfig {
-    const { unknownCliArgumentErrors, deprecatedCliArgumentWarnings, userAndArgsParserConfig, connectionSpecifier } =
+    const { unknownCliArgumentErrors, deprecatedCliArgumentWarning, userAndArgsParserConfig, connectionSpecifier } =
         parseUserConfigSources(cliArguments);
 
     if (unknownCliArgumentErrors.length) {
@@ -44,9 +44,9 @@ ${unknownCliArgumentErrors.join("\n")}
         return closeProcess(1);
     }
 
-    if (deprecatedCliArgumentWarnings.length) {
+    if (deprecatedCliArgumentWarning) {
         const deprecatedMessages = `
-${deprecatedCliArgumentWarnings.join("\n")}
+${deprecatedCliArgumentWarning}
 - Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.
 `;
         onWarning(deprecatedMessages);
@@ -79,13 +79,17 @@ ${deprecatedCliArgumentWarnings.join("\n")}
 
 function parseUserConfigSources(cliArguments: string[]): {
     unknownCliArgumentErrors: string[];
-    deprecatedCliArgumentWarnings: string[];
+    deprecatedCliArgumentWarning: string | undefined;
     userAndArgsParserConfig: Record<string, unknown>;
     connectionSpecifier: string | undefined;
 } {
     const {
         _: positionalAndUnknownArguments,
-        "--": endOfFlagArguments,
+        // We don't make use of end of flag arguments but also don't want them to
+        // end up alongside unknown arguments so we are extracting them and having a
+        // no-op statement so ESLint does not complain.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        "--": _endOfFlagArguments,
         ...parsedUserAndArgsParserConfig
     } = argv(cliArguments, {
         ...OPTIONS,
@@ -102,11 +106,6 @@ function parseUserConfigSources(cliArguments: string[]): {
             "populate--": true,
         },
     });
-
-    // We don't make use of end of flag arguments but also don't want them to
-    // end up alongside unknown arguments so we are extracting them and having a
-    // no-op statement so ESLint does not complain.
-    void endOfFlagArguments;
 
     // A connectionSpecifier can be one of:
     // - database name
@@ -139,16 +138,9 @@ function parseUserConfigSources(cliArguments: string[]): {
 
                 return `Error: Invalid command line argument '${argument}'.`;
             }),
-        deprecatedCliArgumentWarnings: cliArguments
-            .filter((argument) => argument.startsWith("--connectionString"))
-            .map((argument) => {
-                if (argument.startsWith("--connectionString")) {
-                    return "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.";
-                }
-
-                return undefined;
-            })
-            .filter((argument) => typeof argument === "string"),
+        deprecatedCliArgumentWarning: cliArguments.find((argument) => argument.startsWith("--connectionString"))
+            ? "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
+            : undefined,
         userAndArgsParserConfig: parsedUserAndArgsParserConfig,
         connectionSpecifier,
     };
