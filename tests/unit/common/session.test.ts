@@ -27,8 +27,11 @@ describe("Session", () => {
         const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, mockDeviceId);
 
         session = new Session({
-            apiClientId: "test-client-id",
-            apiBaseUrl: "https://api.test.com",
+            userConfig: {
+                ...defaultTestConfig,
+                apiClientId: "test-client-id",
+                apiBaseUrl: "https://api.test.com",
+            },
             logger,
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager: connectionManager,

@@ -1,4 +1,3 @@
-import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
@@ -328,11 +327,7 @@ export class Server {
                     context: "server",
                     message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
                 });
-                const connectionInfo = generateConnectionInfoFromCliArgs({
-                    ...this.userConfig,
-                    connectionSpecifier: this.userConfig.connectionString,
-                });
-                await this.session.connectToMongoDB(connectionInfo);
+                await this.session.connectToConfiguredConnection();
             } catch (error) {
                 // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
                 this.session.logger.error({

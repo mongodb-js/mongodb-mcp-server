@@ -99,9 +99,7 @@ describe("MongoDBTool implementations", () => {
         deviceId = DeviceId.create(logger);
         const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
         const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
+            userConfig,
             logger,
             exportsManager,
             connectionManager,

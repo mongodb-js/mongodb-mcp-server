@@ -17,7 +17,7 @@ describe("debug resource", () => {
 
     const session = vi.mocked(
         new Session({
-            apiBaseUrl: "",
+            userConfig: defaultTestConfig,
             logger,
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager,

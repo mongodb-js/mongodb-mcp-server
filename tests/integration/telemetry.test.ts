@@ -21,7 +21,7 @@ describe("Telemetry", () => {
 
         const telemetry = Telemetry.create(
             new Session({
-                apiBaseUrl: "",
+                userConfig: defaultTestConfig,
                 logger,
                 exportsManager: ExportsManager.init(config, logger),
                 connectionManager: connectionManager,
