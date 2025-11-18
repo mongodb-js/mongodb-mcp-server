@@ -5,7 +5,7 @@ import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logger.js";
 import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
-import type { UserConfig } from "./common/config.js";
+import type { UserConfig } from "./common/config/userConfig.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -327,9 +327,7 @@ export class Server {
                     context: "server",
                     message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
                 });
-                await this.session.connectToMongoDB({
-                    connectionString: this.userConfig.connectionString,
-                });
+                await this.session.connectToConfiguredConnection();
             } catch (error) {
                 // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
                 this.session.logger.error({

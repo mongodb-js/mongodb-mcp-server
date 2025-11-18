@@ -6,13 +6,8 @@ import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import type { UserConfig, DriverOptions } from "../../src/common/config.js";
+import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import {
-    config,
-    setupDriverConfig,
-    defaultDriverOptions as defaultDriverOptionsFromConfig,
-} from "../../src/common/config.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
@@ -23,13 +18,7 @@ import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
-
-export const driverOptions = setupDriverConfig({
-    config,
-    defaults: defaultDriverOptionsFromConfig,
-});
-
-export const defaultDriverOptions: DriverOptions = { ...driverOptions };
+import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 
 interface Parameter {
     name: string;
@@ -54,7 +43,7 @@ export interface IntegrationTest {
     mcpServer: () => Server;
 }
 export const defaultTestConfig: UserConfig = {
-    ...config,
+    ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
 };
@@ -63,7 +52,6 @@ export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
-    getDriverOptions: () => DriverOptions,
     {
         elicitInput,
         getClientCapabilities,
@@ -80,7 +68,6 @@ export function setupIntegrationTest(
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
-        const driverOptions = getDriverOptions();
         const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
@@ -106,12 +93,10 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
 
         const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
+            userConfig,
             logger,
             exportsManager,
             connectionManager,

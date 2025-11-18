@@ -3,18 +3,14 @@ import { ToolBase, type ToolArgs } from "../../src/tools/index.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
-import { defaultTestConfig, driverOptions, setupIntegrationTest } from "./helpers.js";
+import { defaultTestConfig, setupIntegrationTest } from "./helpers.js";
 
 describe("Custom Tools", () => {
-    const { mcpClient, mcpServer } = setupIntegrationTest(
-        () => ({ ...defaultTestConfig }),
-        () => driverOptions,
-        {
-            serverOptions: {
-                tools: [CustomGreetingTool, CustomCalculatorTool],
-            },
-        }
-    );
+    const { mcpClient, mcpServer } = setupIntegrationTest(() => ({ ...defaultTestConfig }), {
+        serverOptions: {
+            tools: [CustomGreetingTool, CustomCalculatorTool],
+        },
+    });
 
     it("should register custom tools instead of default tools", async () => {
         // Check that custom tools are registered

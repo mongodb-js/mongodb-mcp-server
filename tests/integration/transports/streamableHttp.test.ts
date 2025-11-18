@@ -2,23 +2,22 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
-import { config } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
 import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
+import { defaultTestConfig } from "../helpers.js";
+import { type UserConfig } from "../../../src/common/config/userConfig.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
-    let oldTelemetry: "enabled" | "disabled";
-    let oldLoggers: ("stderr" | "disk" | "mcp")[];
+    let config: UserConfig;
 
     beforeAll(() => {
-        oldTelemetry = config.telemetry;
-        oldLoggers = config.loggers;
-        config.telemetry = "disabled";
-        config.loggers = ["stderr"];
-        config.httpPort = 0; // Use a random port for testing
+        config = {
+            ...defaultTestConfig,
+            httpPort: 0, // Use a random port for testing
+        };
     });
 
     const headerTestCases: { headers: Record<string, string>; description: string }[] = [
@@ -36,9 +35,6 @@ describe("StreamableHttpRunner", () => {
 
             afterAll(async () => {
                 await runner.close();
-                config.telemetry = oldTelemetry;
-                config.loggers = oldLoggers;
-                config.httpHeaders = {};
             });
 
             const clientHeaderTestCases = [
@@ -110,7 +106,6 @@ describe("StreamableHttpRunner", () => {
         const runners: StreamableHttpRunner[] = [];
         try {
             for (let i = 0; i < 3; i++) {
-                config.httpPort = 0; // Use a random port for each runner
                 const runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
                 runners.push(runner);
@@ -163,9 +158,6 @@ describe("StreamableHttpRunner", () => {
     describe("with telemetry properties", () => {
         afterEach(async () => {
             await runner.close();
-            config.telemetry = oldTelemetry;
-            config.loggers = oldLoggers;
-            config.httpHeaders = {};
         });
 
         it("merges them with the base properties", async () => {

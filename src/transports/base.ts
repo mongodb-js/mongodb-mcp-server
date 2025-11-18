@@ -1,4 +1,4 @@
-import type { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server } from "../server.js";
 import { Session } from "../common/session.js";
@@ -95,9 +95,7 @@ export abstract class TransportRunnerBase {
         });
 
         const session = new Session({
-            apiBaseUrl: this.userConfig.apiBaseUrl,
-            apiClientId: this.userConfig.apiClientId,
-            apiClientSecret: this.userConfig.apiClientSecret,
+            userConfig: this.userConfig,
             atlasLocalClient: await this.atlasLocalClient,
             logger,
             exportsManager,

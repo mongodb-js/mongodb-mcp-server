@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import type { ClusterDescription20240805, Group } from "../../../../src/common/atlas/openapi.js";
 import type { ApiClient } from "../../../../src/common/atlas/apiClient.js";
 import type { IntegrationTest } from "../../helpers.js";
-import { setupIntegrationTest, defaultTestConfig, defaultDriverOptions } from "../../helpers.js";
+import { setupIntegrationTest, defaultTestConfig } from "../../helpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe } from "vitest";
 import type { Session } from "../../../../src/common/session.js";
@@ -15,15 +15,12 @@ export function describeWithAtlas(name: string, fn: IntegrationTestFunction): vo
             ? describe.skip
             : describe;
     describeFn(name, () => {
-        const integration = setupIntegrationTest(
-            () => ({
-                ...defaultTestConfig,
-                apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
-                apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
-                apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-            }),
-            () => defaultDriverOptions
-        );
+        const integration = setupIntegrationTest(() => ({
+            ...defaultTestConfig,
+            apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
+            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
+            apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
+        }));
         fn(integration);
     });
 }

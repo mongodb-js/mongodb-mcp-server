@@ -6,7 +6,7 @@ import type { Session } from "../common/session.js";
 import { LogId } from "../common/logger.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
-import type { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";

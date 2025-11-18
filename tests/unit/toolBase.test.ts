@@ -12,7 +12,7 @@ import type {
 import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
-import type { UserConfig } from "../../src/common/config.js";
+import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
 import type { CompositeLogger } from "../../src/common/logger.js";

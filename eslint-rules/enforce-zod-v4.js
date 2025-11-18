@@ -2,8 +2,7 @@
 import path from "path";
 
 // The file that is allowed to import from zod/v4
-const configFilePath = path.resolve(import.meta.dirname, "../src/common/config.ts");
-const schemasFilePath = path.resolve(import.meta.dirname, "../src/common/schemas.ts");
+const configFilePath = path.resolve(import.meta.dirname, "../src/common/config/userConfig.ts");
 
 // Ref: https://eslint.org/docs/latest/extend/custom-rules
 export default {

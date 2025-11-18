@@ -29,7 +29,7 @@ export abstract class MongoDBToolBase extends ToolBase {
 
             if (this.config.connectionString) {
                 try {
-                    await this.connectToMongoDB(this.config.connectionString);
+                    await this.session.connectToConfiguredConnection();
                 } catch (error) {
                     this.session.logger.error({
                         id: LogId.mongodbConnectFailure,
@@ -106,10 +106,6 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
 
         return super.handleError(error, args);
-    }
-
-    protected connectToMongoDB(connectionString: string): Promise<void> {
-        return this.session.connectToMongoDB({ connectionString });
     }
 
     /**

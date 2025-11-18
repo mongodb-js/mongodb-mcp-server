@@ -15,19 +15,19 @@ const ruleTester = new RuleTester({
 });
 
 describe("enforce-zod-v4", () => {
-    it("should allow zod/v4 imports in config.ts", () => {
+    it("should allow zod/v4 imports in userConfig.ts", () => {
         ruleTester.run("enforce-zod-v4", rule, {
             valid: [
                 {
-                    filename: resolve("src/common/config.ts"),
+                    filename: resolve("src/common/config/userConfig.ts"),
                     code: 'import { z } from "zod/v4";\n',
                 },
                 {
-                    filename: resolve("src/common/config.ts"),
+                    filename: resolve("src/common/config/userConfig.ts"),
                     code: 'import * as z from "zod/v4";\n',
                 },
                 {
-                    filename: resolve("src/common/config.ts"),
+                    filename: resolve("src/common/config/userConfig.ts"),
                     code: 'import type { ZodType } from "zod/v4";\n',
                 },
             ],
@@ -63,7 +63,7 @@ describe("enforce-zod-v4", () => {
                     code: 'import { something } from "some-package";\n',
                 },
                 {
-                    filename: resolve("src/common/config.ts"),
+                    filename: resolve("src/common/config/userConfig.ts"),
                     code: 'import path from "path";\n',
                 },
                 {
@@ -127,7 +127,7 @@ describe("enforce-zod-v4", () => {
         ruleTester.run("enforce-zod-v4", rule, {
             valid: [
                 {
-                    filename: resolve("src/common/config.ts"),
+                    filename: resolve("src/common/config/userConfig.ts"),
                     code: `import { z } from "zod/v4";
 import path from "path";
 import type { UserConfig } from "./types.js";

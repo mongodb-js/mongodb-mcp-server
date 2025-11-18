@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, afterEach } from "vitest";
-import { type UserConfig } from "../../src/common/config.js";
+import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { defaultTestConfig } from "./helpers.js";
 import { Elicitation } from "../../src/elicitation.js";
 import { createMockElicitInput } from "../utils/elicitationMocks.js";

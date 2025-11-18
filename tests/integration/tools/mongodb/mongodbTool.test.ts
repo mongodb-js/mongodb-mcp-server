@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
 import { type ToolBase, type ToolConstructorParams, type OperationType } from "../../../../src/tools/tool.js";
-import { defaultDriverOptions, type UserConfig } from "../../../../src/common/config.js";
+import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
@@ -94,15 +94,12 @@ describe("MongoDBTool implementations", () => {
     ): Promise<void> {
         await cleanup();
         const userConfig: UserConfig = { ...defaultTestConfig, telemetry: "disabled", ...config };
-        const driverOptions = defaultDriverOptions;
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init(userConfig, logger);
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
         const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
+            userConfig,
             logger,
             exportsManager,
             connectionManager,

@@ -68,7 +68,7 @@ export class ConnectTool extends MongoDBToolBase {
                 break;
         }
 
-        await this.connectToMongoDB(connectionString);
+        await this.session.connectToMongoDB({ connectionString });
         this.updateMetadata();
 
         return {
