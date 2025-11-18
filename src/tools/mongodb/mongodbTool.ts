@@ -8,6 +8,7 @@ import { LogId } from "../../common/logger.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),
@@ -29,7 +30,11 @@ export abstract class MongoDBToolBase extends ToolBase {
 
             if (this.config.connectionString) {
                 try {
-                    await this.connectToMongoDB(this.config.connectionString);
+                    const connectionInfo = generateConnectionInfoFromCliArgs({
+                        ...this.config,
+                        connectionSpecifier: this.config.connectionString,
+                    });
+                    await this.session.connectToMongoDB(connectionInfo);
                 } catch (error) {
                     this.session.logger.error({
                         id: LogId.mongodbConnectFailure,
@@ -106,10 +111,6 @@ export abstract class MongoDBToolBase extends ToolBase {
         }
 
         return super.handleError(error, args);
-    }
-
-    protected connectToMongoDB(connectionString: string): Promise<void> {
-        return this.session.connectToMongoDB({ connectionString });
     }
 
     /**

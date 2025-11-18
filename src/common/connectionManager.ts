@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import type { MongoClientOptions } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { type ConnectionInfo } from "@mongosh/arg-parser";
+import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
@@ -33,6 +33,20 @@ export interface ConnectionState {
 }
 
 const MCP_TEST_DATABASE = "#mongodb-mcp";
+
+export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
+    readConcern: {
+        level: "local",
+    },
+    readPreference: "secondaryPreferred",
+    writeConcern: {
+        w: "majority",
+    },
+    timeoutMS: 30_000,
+    proxy: { useEnvironmentVariableProxies: true },
+    applyProxyToOIDC: true,
+};
+
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
@@ -171,10 +185,15 @@ export class MCPConnectionManager extends ConnectionManager {
                 components: appNameComponents,
             });
 
-            const connectionInfo = {
-                connectionString: settings.connectionString,
-                driverOptions: settings.driverOptions ?? {},
-            };
+            const connectionInfo: ConnectionInfo = settings.driverOptions
+                ? {
+                      connectionString: settings.connectionString,
+                      driverOptions: settings.driverOptions,
+                  }
+                : generateConnectionInfoFromCliArgs({
+                      ...defaultDriverOptions,
+                      connectionSpecifier: settings.connectionString,
+                  });
 
             if (connectionInfo.driverOptions.oidc) {
                 connectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
