@@ -1,4 +1,3 @@
-// eslint-disable-next-line enforce-zod-v4/enforce-zod-v4
 import { z as z4 } from "zod/v4";
 import { type CliOptions } from "@mongosh/arg-parser";
 import { type ConfigFieldMeta, commaSeparatedToArray, getExportsPath, getLogPath } from "./configUtils.js";
