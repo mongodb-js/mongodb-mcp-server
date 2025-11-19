@@ -22,6 +22,8 @@ import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolBase, ToolConstructorParams } from "../tools/tool.js";
 
+type CreateSessionConfigFn = (userConfig: UserConfig) => Promise<UserConfig>;
+
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
     createConnectionManager?: ConnectionManagerFactoryFn;
@@ -30,6 +32,11 @@ export type TransportRunnerConfig = {
     additionalLoggers?: LoggerBase[];
     telemetryProperties?: Partial<CommonProperties>;
     tools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    /**
+     * Hook which allows library consumers to fetch configuration from external sources (e.g., secrets managers, APIs)
+     * or modify the existing configuration before the session is created.
+     */
+    createSessionConfig?: CreateSessionConfigFn;
 };
 
 export abstract class TransportRunnerBase {
@@ -41,6 +48,7 @@ export abstract class TransportRunnerBase {
     private readonly atlasLocalClient: Promise<Client | undefined>;
     private readonly telemetryProperties: Partial<CommonProperties>;
     private readonly tools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    private readonly createSessionConfig?: CreateSessionConfigFn;
 
     protected constructor({
         userConfig,
@@ -50,6 +58,7 @@ export abstract class TransportRunnerBase {
         additionalLoggers = [],
         telemetryProperties = {},
         tools,
+        createSessionConfig,
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
@@ -57,6 +66,7 @@ export abstract class TransportRunnerBase {
         this.atlasLocalClient = createAtlasLocalClient();
         this.telemetryProperties = telemetryProperties;
         this.tools = tools;
+        this.createSessionConfig = createSessionConfig;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -81,30 +91,34 @@ export abstract class TransportRunnerBase {
     }
 
     protected async setupServer(): Promise<Server> {
+        // Call the config provider hook if provided, allowing consumers to
+        // fetch or modify configuration before session initialization
+        const userConfig = this.createSessionConfig ? await this.createSessionConfig(this.userConfig) : this.userConfig;
+
         const mcpServer = new McpServer({
             name: packageInfo.mcpServerName,
             version: packageInfo.version,
         });
 
         const logger = new CompositeLogger(this.logger);
-        const exportsManager = ExportsManager.init(this.userConfig, logger);
+        const exportsManager = ExportsManager.init(userConfig, logger);
         const connectionManager = await this.createConnectionManager({
             logger,
-            userConfig: this.userConfig,
+            userConfig,
             deviceId: this.deviceId,
         });
 
         const session = new Session({
-            userConfig: this.userConfig,
+            userConfig,
             atlasLocalClient: await this.atlasLocalClient,
             logger,
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(this.userConfig, connectionManager),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
         });
 
-        const telemetry = Telemetry.create(session, this.userConfig, this.deviceId, {
+        const telemetry = Telemetry.create(session, userConfig, this.deviceId, {
             commonProperties: this.telemetryProperties,
         });
 
@@ -114,7 +128,7 @@ export abstract class TransportRunnerBase {
             mcpServer,
             session,
             telemetry,
-            userConfig: this.userConfig,
+            userConfig,
             connectionErrorHandler: this.connectionErrorHandler,
             elicitation,
             tools: this.tools,
@@ -122,7 +136,7 @@ export abstract class TransportRunnerBase {
 
         // We need to create the MCP logger after the server is constructed
         // because it needs the server instance
-        if (this.userConfig.loggers.includes("mcp")) {
+        if (userConfig.loggers.includes("mcp")) {
             logger.addLogger(new McpLogger(result, Keychain.root));
         }
 
