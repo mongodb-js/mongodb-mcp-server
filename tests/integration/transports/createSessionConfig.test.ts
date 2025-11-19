@@ -1,8 +1,7 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import type { UserConfig } from "../../../src/common/config.js";
+import { describe, expect, it } from "vitest";
 import { TransportRunnerConfig } from "../../../src/lib.js";
 import { defaultTestConfig } from "../helpers.js";
 
