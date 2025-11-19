@@ -2,7 +2,7 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it } from "vitest";
-import { TransportRunnerConfig } from "../../../src/lib.js";
+import type { TransportRunnerConfig } from "../../../src/lib.js";
 import { defaultTestConfig } from "../helpers.js";
 
 describe("createSessionConfig", () => {
@@ -12,12 +12,11 @@ describe("createSessionConfig", () => {
     describe("basic functionality", () => {
         it("should use the modified config from createSessionConfig", async () => {
             const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = async (userConfig) => {
-                return {
+                return Promise.resolve({
                     ...userConfig,
                     apiBaseUrl: "https://test-api.mongodb.com/",
-                };
+                });
             };
-
             userConfig.httpPort = 0; // Use a random port
             runner = new StreamableHttpRunner({
                 userConfig,
@@ -122,7 +121,7 @@ describe("createSessionConfig", () => {
     describe("error handling", () => {
         it("should propagate errors from configProvider on client connection", async () => {
             const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = async () => {
-                throw new Error("Failed to fetch config");
+                return Promise.reject(new Error("Failed to fetch config"));
             };
 
             userConfig.httpPort = 0; // Use a random port
