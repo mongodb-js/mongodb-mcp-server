@@ -4,8 +4,8 @@ import { type ToolArgs, type OperationType, formatUntrustedData } from "../../to
 import { z } from "zod";
 
 export class LogsTool extends MongoDBToolBase {
-    public name = "mongodb-logs";
-    protected description = "Returns the most recent logged mongod events";
+    public internalName = "mongodb-logs";
+    protected internalDescription = "Returns the most recent logged mongod events";
     protected argsShape = {
         type: z
             .enum(["global", "startupWarnings"])

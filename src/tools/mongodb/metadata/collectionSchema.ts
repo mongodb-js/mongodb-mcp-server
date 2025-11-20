@@ -11,8 +11,8 @@ import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
 export class CollectionSchemaTool extends MongoDBToolBase {
-    public name = "collection-schema";
-    protected description = "Describe the schema for a collection";
+    public internalName = "collection-schema";
+    protected internalDescription = "Describe the schema for a collection";
     protected argsShape = {
         ...DbOperationArgs,
         sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),

@@ -54,9 +54,9 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 };
 
 class RandomTool extends MongoDBToolBase {
-    name = "Random";
+    internalName = "Random";
     operationType: OperationType = "read";
-    protected description = "This is a tool.";
+    protected internalDescription = "This is a tool.";
     protected argsShape = {};
     public async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
@@ -65,9 +65,9 @@ class RandomTool extends MongoDBToolBase {
 }
 
 class UnusableVoyageTool extends MongoDBToolBase {
-    name = "UnusableVoyageTool";
+    internalName = "UnusableVoyageTool";
     operationType: OperationType = "read";
-    protected description = "This is a Voyage tool.";
+    protected internalDescription = "This is a Voyage tool.";
     protected argsShape = {};
 
     override verifyAllowed(): boolean {

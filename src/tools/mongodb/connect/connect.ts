@@ -32,8 +32,9 @@ const disconnectedDescription =
     "Connect to a MongoDB instance. The config resource captures if the server is already connected to a MongoDB cluster. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new MongoDB cluster.";
 
 export class ConnectTool extends MongoDBToolBase {
-    public name: typeof connectedName | typeof disconnectedName = disconnectedName;
-    protected description: typeof connectedDescription | typeof disconnectedDescription = disconnectedDescription;
+    public internalName: typeof connectedName | typeof disconnectedName = disconnectedName;
+    protected internalDescription: typeof connectedDescription | typeof disconnectedDescription =
+        disconnectedDescription;
 
     // Here the default is empty just to trigger registration, but we're going to override it with the correct
     // schema in the register method.
@@ -55,18 +56,17 @@ export class ConnectTool extends MongoDBToolBase {
     }
 
     protected async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        switch (this.name) {
-            case disconnectedName:
-                assert(connectionString, "Connection string is required");
-                break;
-            case connectedName:
-                connectionString ??= this.config.connectionString;
-                assert(
-                    connectionString,
-                    "Cannot switch to a new connection because no connection string was provided and no default connection string is configured."
-                );
-                break;
+        const isSwitchConnectionTool = this.name === this.getConfiguredNameFor(connectedName);
+        if (isSwitchConnectionTool) {
+            connectionString ??= this.config.connectionString;
         }
+
+        assert(
+            connectionString,
+            isSwitchConnectionTool
+                ? "Cannot switch to a new connection because no connection string was provided and no default connection string is configured."
+                : "Connection string is required"
+        );
 
         await this.session.connectToMongoDB({ connectionString });
         this.updateMetadata();
@@ -107,8 +107,8 @@ export class ConnectTool extends MongoDBToolBase {
         });
 
         this.update?.({
-            name,
-            description,
+            internalName: name,
+            internalDescription: description,
             inputSchema,
         });
     }

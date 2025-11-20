@@ -6,8 +6,8 @@ import type { Deployment } from "@mongodb-js/atlas-local";
 import type { Client } from "@mongodb-js/atlas-local";
 
 export class ListDeploymentsTool extends AtlasLocalToolBase {
-    public name = "atlas-local-list-deployments";
-    protected description = "List MongoDB Atlas local deployments";
+    public internalName = "atlas-local-list-deployments";
+    protected internalDescription = "List MongoDB Atlas local deployments";
     public operationType: OperationType = "read";
     protected argsShape = {};
 

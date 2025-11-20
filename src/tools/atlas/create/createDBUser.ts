@@ -34,8 +34,8 @@ export const CreateDBUserArgs = {
 };
 
 export class CreateDBUserTool extends AtlasToolBase {
-    public name = "atlas-create-db-user";
-    protected description = "Create an MongoDB Atlas database user";
+    public internalName = "atlas-create-db-user";
+    protected internalDescription = "Create an MongoDB Atlas database user";
     public operationType: OperationType = "create";
     protected argsShape = {
         ...CreateDBUserArgs,

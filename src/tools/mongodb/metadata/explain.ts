@@ -9,8 +9,8 @@ import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
 export class ExplainTool extends MongoDBToolBase {
-    public name = "explain";
-    protected description =
+    public internalName = "explain";
+    protected internalDescription =
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
     protected argsShape = {

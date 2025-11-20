@@ -3,8 +3,8 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 
 export class CollectionStorageSizeTool extends MongoDBToolBase {
-    public name = "collection-storage-size";
-    protected description = "Gets the size of the collection";
+    public internalName = "collection-storage-size";
+    protected internalDescription = "Gets the size of the collection";
     protected argsShape = DbOperationArgs;
 
     public operationType: OperationType = "metadata";

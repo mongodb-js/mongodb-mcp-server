@@ -36,8 +36,8 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
 };
 
 export class FindTool extends MongoDBToolBase {
-    public name = "find";
-    protected description = "Run a find query against a MongoDB collection";
+    public internalName = "find";
+    protected internalDescription = "Run a find query against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
         ...FindArgs,

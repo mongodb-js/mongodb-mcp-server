@@ -11,8 +11,8 @@ export const InspectClusterArgs = {
 };
 
 export class InspectClusterTool extends AtlasToolBase {
-    public name = "atlas-inspect-cluster";
-    protected description = "Inspect MongoDB Atlas cluster";
+    public internalName = "atlas-inspect-cluster";
+    protected internalDescription = "Inspect MongoDB Atlas cluster";
     public operationType: OperationType = "read";
     protected argsShape = {
         ...InspectClusterArgs,

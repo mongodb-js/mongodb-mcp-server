@@ -47,13 +47,41 @@ export type ToolConstructorParams = {
 };
 
 export abstract class ToolBase {
-    public abstract name: string;
+    /**
+     * The internal / original name of the tool. This is the name that OSS
+     * MongoDB MCP server identify the tool with.
+     */
+    public abstract internalName: string;
+
+    /**
+     * The name with which the tool is registered with the MCP server. This
+     * could be:
+     * 1. The overridden name specified by `UserConfig.toolMetadataOverrides`
+     * 2. or, the internalName of the tool
+     */
+    public get name(): string {
+        return this.config.toolMetadataOverrides?.[this.internalName]?.name ?? this.internalName;
+    }
 
     public abstract category: ToolCategory;
 
     public abstract operationType: OperationType;
 
-    protected abstract description: string;
+    /**
+     * The internal / original description of the tool.
+     */
+    protected abstract internalDescription: string;
+
+    /**
+     * The description with which the tool is registered with the MCP server.
+     * This could be:
+     * 1. The overridden description specified by
+     *    `UserConfig.toolMetadataOverrides`
+     * 2. or, the internalDescription of the tool
+     */
+    public get description(): string {
+        return this.config.toolMetadataOverrides?.[this.internalName]?.description ?? this.internalDescription;
+    }
 
     protected abstract argsShape: ZodRawShape;
 
@@ -168,14 +196,28 @@ export abstract class ToolBase {
             }
         };
 
+        /**
+         * Note: We register the tool using `Tool.name` and `Tool.description`
+         * instead of `Tool.internalName` and `Tool.internalDescription` to
+         * account for overridden metadata provided by the user through
+         * `UserConfig.toolMetadataOverrides`.
+         */
         server.mcpServer.tool(this.name, this.description, this.argsShape, this.annotations, callback);
 
-        // This is very similar to RegisteredTool.update, but without the bugs around the name.
-        // In the upstream update method, the name is captured in the closure and not updated when
-        // the tool name changes. This means that you only get one name update before things end up
-        // in a broken state.
-        // See https://github.com/modelcontextprotocol/typescript-sdk/issues/414 for more details.
-        this.update = (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }): void => {
+        /**
+         * This is very similar to RegisteredTool.update, but without the bugs
+         * around the name. In the upstream update method, the name is captured
+         * in the closure and not updated when the tool name changes. This means
+         * that you only get one name update before things end up in a broken
+         * state. See
+         * https://github.com/modelcontextprotocol/typescript-sdk/issues/414 for
+         * more details.
+         */
+        this.update = (updates: {
+            internalName: string;
+            internalDescription?: string;
+            inputSchema?: AnyZodObject;
+        }): void => {
             const tools = server.mcpServer["_registeredTools"] as { [toolName: string]: RegisteredTool };
             const existingTool = tools[this.name];
 
@@ -191,16 +233,18 @@ export abstract class ToolBase {
 
             existingTool.annotations = this.annotations;
 
-            if (updates.name && updates.name !== this.name) {
-                existingTool.annotations.title = updates.name;
+            if (updates.internalName && updates.internalName !== this.internalName) {
+                existingTool.annotations.title = this.getConfiguredNameFor(updates.internalName);
                 delete tools[this.name];
-                this.name = updates.name;
+                this.internalName = updates.internalName;
                 tools[this.name] = existingTool;
             }
 
-            if (updates.description) {
-                existingTool.description = updates.description;
-                this.description = updates.description;
+            if (updates.internalDescription) {
+                const descriptionToBeUsed =
+                    this.getConfiguredDescriptionFor(updates.internalName) ?? updates.internalDescription;
+                existingTool.description = descriptionToBeUsed;
+                this.internalDescription = descriptionToBeUsed;
             }
 
             if (updates.inputSchema) {
@@ -213,7 +257,19 @@ export abstract class ToolBase {
         return true;
     }
 
-    protected update?: (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }) => void;
+    /**
+     * Updates the registered tool's metadata using the provided metadata while
+     * taking into account the configured overrides provided through
+     * `UserConfig.toolMetadataOverrides`. The caller of this function is
+     * expected to call the method with the internal name and internal
+     * description so that the correct overrides can be figured out during
+     * update.
+     */
+    protected update?: (updates: {
+        internalName: string;
+        internalDescription?: string;
+        inputSchema?: AnyZodObject;
+    }) => void;
 
     // Checks if a tool is allowed to run based on the config
     protected verifyAllowed(): boolean {
@@ -314,6 +370,14 @@ export abstract class ToolBase {
         }
 
         return metadata;
+    }
+
+    protected getConfiguredNameFor(internalToolName: string): string {
+        return this.config.toolMetadataOverrides?.[internalToolName]?.name ?? internalToolName;
+    }
+
+    protected getConfiguredDescriptionFor(internalToolName: string): string | undefined {
+        return this.config.toolMetadataOverrides?.[internalToolName]?.description;
     }
 }
 

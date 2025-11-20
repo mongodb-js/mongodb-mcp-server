@@ -5,8 +5,8 @@ import { formatUntrustedData } from "../../tool.js";
 import { EJSON } from "bson";
 
 export class DbStatsTool extends MongoDBToolBase {
-    public name = "db-stats";
-    protected description = "Returns statistics that reflect the use state of a single database";
+    public internalName = "db-stats";
+    protected internalDescription = "Returns statistics that reflect the use state of a single database";
     protected argsShape = {
         database: DbOperationArgs.database,
     };
