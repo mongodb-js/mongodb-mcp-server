@@ -167,4 +167,14 @@ export const UserConfigSchema = z4.object({
         )
         .default([])
         .describe("An array of preview features that are enabled."),
+    toolMetadataOverrides: z4
+        .record(
+            z4.string().describe("Original name of the MongoDB MCP server tool that needs to be overridden."),
+            z4.object({
+                name: z4.string().nonempty().optional().describe("New name to be used for the tool."),
+                description: z4.string().nonempty().optional().describe("New description to be used for the tool."),
+            })
+        )
+        .default({})
+        .describe("A map of name of the MongoDB MCP server tool to the metadata that needs to be used for that tool."),
 });
