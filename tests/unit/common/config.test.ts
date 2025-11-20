@@ -579,7 +579,7 @@ describe("config", () => {
             expect(actual.connectionString).toBe("mongodb://dummyhost");
         });
 
-        it("config file takes precendence over defaults", () => {
+        it("config file takes precedence over defaults", () => {
             const actual = createUserConfig({ cliArguments: ["--config", CONFIG_FIXTURES.VALID] });
             expect(actual.connectionString).toBe("mongodb://valid-json-localhost:1000");
         });
