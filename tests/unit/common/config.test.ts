@@ -31,81 +31,49 @@ const CONFIG_FIXTURES = {
     WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "..", "..", "fixtures", "config-with-invalid-value.json"),
 };
 
+// Expected hardcoded values (what we had before)
+const expectedDefaults = {
+    apiBaseUrl: "https://cloud.mongodb.com/",
+    logPath: getLogPath(),
+    exportsPath: getExportsPath(),
+    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
+    disabledTools: [],
+    telemetry: "enabled",
+    readOnly: false,
+    indexCheck: false,
+    confirmationRequiredTools: [
+        "atlas-create-access-list",
+        "atlas-create-db-user",
+        "drop-database",
+        "drop-collection",
+        "delete-many",
+        "drop-index",
+    ],
+    transport: "stdio",
+    httpPort: 3000,
+    httpHost: "127.0.0.1",
+    loggers: ["disk", "mcp"],
+    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+    httpHeaders: {},
+    maxDocumentsPerQuery: 100,
+    maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+    voyageApiKey: "",
+    vectorSearchDimensions: 1024,
+    vectorSearchSimilarityFunction: "euclidean",
+    disableEmbeddingsValidation: false,
+    previewFeatures: [],
+    toolMetadataOverrides: {},
+};
+
 describe("config", () => {
     it("should generate defaults from UserConfigSchema that match expected values", () => {
-        // Expected hardcoded values (what we had before)
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
-            previewFeatures: [],
-        };
         expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
     });
 
     it("should generate defaults when no config sources are populated", () => {
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
-            previewFeatures: [],
-        };
         expect(createUserConfig()).toStrictEqual(expectedDefaults);
     });
 
