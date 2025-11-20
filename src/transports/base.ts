@@ -22,7 +22,7 @@ import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolBase, ToolConstructorParams } from "../tools/tool.js";
 
-type CreateSessionConfigFn = (userConfig: UserConfig) => Promise<UserConfig>;
+type CreateSessionConfigFn = (userConfig: UserConfig) => Promise<UserConfig> | UserConfig;
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
