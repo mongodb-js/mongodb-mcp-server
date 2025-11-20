@@ -95,12 +95,15 @@ export abstract class TransportRunnerBase {
         // fetch or modify configuration before session initialization
         const userConfig = this.createSessionConfig ? await this.createSessionConfig(this.userConfig) : this.userConfig;
 
-        const mcpServer = new McpServer({
-            name: packageInfo.mcpServerName,
-            version: packageInfo.version,
-        }, {
-            instructions: TransportRunnerBase.getInstructions(userConfig),
-        });
+        const mcpServer = new McpServer(
+            {
+                name: packageInfo.mcpServerName,
+                version: packageInfo.version,
+            },
+            {
+                instructions: TransportRunnerBase.getInstructions(userConfig),
+            }
+        );
 
         const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(userConfig, logger);

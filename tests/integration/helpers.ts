@@ -7,7 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
-import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
@@ -19,7 +19,7 @@ import type { MockClientCapabilities, createMockElicitInput } from "../utils/eli
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
-import { OperationType } from "../../src/tools/tool.js";
+import type { OperationType } from "../../src/tools/tool.js";
 
 interface Parameter {
     name: string;
@@ -340,6 +340,9 @@ function validateToolAnnotations(tool: ToolInfo, name: string, operationType: Op
         case "update":
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(false);
+            break;
+        case "connect":
+            break;
     }
 }
 

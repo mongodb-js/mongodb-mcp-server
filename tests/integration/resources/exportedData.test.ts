@@ -56,7 +56,8 @@ describeWithMongoDB(
                 });
                 expect(response.isError).toEqual(true);
                 expect(response.contents[0]?.uri).toEqual(exportURI);
-                expect(response.contents[0]?.text).toEqual(
+                const text = (response.contents[0] as { text: string }).text;
+                expect(text).toEqual(
                     `Error reading ${exportURI}: Requested export has either expired or does not exist.`
                 );
             });
@@ -95,7 +96,8 @@ describeWithMongoDB(
 
                     expect(response.isError).toEqual(true);
                     expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
-                    expect(response.contents[0]?.text).toMatch(`Error reading ${exportedResourceURI}:`);
+                    const text = (response.contents[0] as { text: string }).text;
+                    expect(text).toMatch(`Error reading ${exportedResourceURI}:`);
                     break;
                 }
             });
@@ -128,9 +130,10 @@ describeWithMongoDB(
                 expect(response.isError).toBeFalsy();
                 expect(response.contents[0]?.mimeType).toEqual("application/json");
 
-                expect(response.contents[0]?.text).toContain(`The exported data contains ${docs.length} documents.`);
-                expect(response.contents[0]?.text).toContain("<untrusted-user-data");
-                const exportContent = getDataFromUntrustedContent((response.contents[0]?.text as string) || "");
+                const text = (response.contents[0] as { text: string }).text;
+                expect(text).toContain(`The exported data contains ${docs.length} documents.`);
+                expect(text).toContain("<untrusted-user-data");
+                const exportContent = getDataFromUntrustedContent(text);
                 const exportedDocs = EJSON.parse(exportContent) as { name: string; _id: ObjectId }[];
                 const expectedDocs = docs as unknown as { name: string; _id: ObjectId }[];
                 expect(exportedDocs[0]?.name).toEqual(expectedDocs[0]?.name);
