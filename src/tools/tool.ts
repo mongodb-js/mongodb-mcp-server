@@ -49,7 +49,7 @@ export type ToolConstructorParams = {
 export abstract class ToolBase {
     /**
      * The internal / original name of the tool. This is the name that OSS
-     * MongoDB MCP server identify the tool with.
+     * MongoDB MCP server identifies the tool with.
      */
     public abstract internalName: string;
 
