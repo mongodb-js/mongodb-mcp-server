@@ -22,6 +22,7 @@ describeWithMongoDB(
             integration,
             "switch-connection",
             "Switch to a different MongoDB connection. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new instance.",
+            "connect",
             [
                 {
                     name: "connectionString",
@@ -160,6 +161,7 @@ describeWithMongoDB("Connect tool", (integration) => {
         integration,
         "connect",
         "Connect to a MongoDB instance. The config resource captures if the server is already connected to a MongoDB cluster. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new MongoDB cluster.",
+        "connect",
         [
             {
                 name: "connectionString",

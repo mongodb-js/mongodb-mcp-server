@@ -16,6 +16,7 @@ describeWithMongoDB("collectionStorageSize tool", (integration) => {
         integration,
         "collection-storage-size",
         "Gets the size of the collection",
+        "metadata",
         databaseCollectionParameters
     );
 

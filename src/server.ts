@@ -100,7 +100,6 @@ export class Server {
         this.mcpServer.server.registerCapabilities({
             logging: {},
             resources: { listChanged: true, subscribe: true },
-            instructions: this.getInstructions(),
         });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
@@ -299,24 +298,6 @@ export class Server {
                 );
             }
         }
-    }
-
-    private getInstructions(): string {
-        let instructions = `
-            This is the MongoDB MCP server.
-        `;
-        if (this.userConfig.connectionString) {
-            instructions += `
-            This MCP server was configured with a MongoDB connection string, and you can assume that you are connected to a MongoDB cluster.
-            `;
-        }
-
-        if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
-            instructions += `
-            This MCP server was configured with MongoDB Atlas API credentials.`;
-        }
-
-        return instructions;
     }
 
     private async connectToConfigConnectionString(): Promise<void> {

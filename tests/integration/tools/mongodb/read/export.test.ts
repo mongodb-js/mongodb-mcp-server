@@ -54,6 +54,7 @@ describeWithMongoDB(
             integration,
             "export",
             "Export a query or aggregation results in the specified EJSON format.",
+            "read",
             [
                 ...databaseCollectionParameters,
                 {

@@ -13,7 +13,7 @@ import { ObjectId, type Collection, type Document, type IndexDirection } from "m
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool when search is not enabled", (integration) => {
-    validateToolMetadata(integration, "create-index", "Create an index for a collection", [
+    validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
         ...databaseCollectionParameters,
         {
             name: "definition",
@@ -109,7 +109,7 @@ describeWithMongoDB(
 describeWithMongoDB(
     "createIndex tool with classic indexes",
     (integration) => {
-        validateToolMetadata(integration, "create-index", "Create an index for a collection", [
+        validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
             ...databaseCollectionParameters,
             {
                 name: "definition",
