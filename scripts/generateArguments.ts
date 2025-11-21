@@ -275,6 +275,10 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
                     case "string":
                         defaultValueString = `\`"${defaultValue}"\``;
                         break;
+                    case "object": {
+                        defaultValueString = `\`"${JSON.stringify(defaultValue)}"\``;
+                        break;
+                    }
                     default:
                         throw new Error(`Unsupported default value type: ${typeof defaultValue}`);
                 }

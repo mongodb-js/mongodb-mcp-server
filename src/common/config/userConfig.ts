@@ -176,5 +176,7 @@ export const UserConfigSchema = z4.object({
             })
         )
         .default({})
-        .describe("A map of name of the MongoDB MCP server tool to the metadata that needs to be used for that tool."),
+        .describe(
+            'A map of name of the MongoDB MCP server tool to the metadata that needs to be used for that tool. Example: `{ "toolMetadataOverrides": { "find": { "name": "query" } } }`'
+        ),
 });
