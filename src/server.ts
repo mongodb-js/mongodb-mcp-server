@@ -240,6 +240,9 @@ export class Server {
     }
 
     private registerTools(): void {
+        const toolsToRegister: ToolBase[] = [];
+        const usedNames = new Set<string>();
+
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
                 session: this.session,
@@ -247,6 +250,17 @@ export class Server {
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
             });
+
+            if (usedNames.has(tool.name)) {
+                throw new Error(
+                    `Tool name collision detected: '${tool.name}'. This might be due to toolMetadataOverrides configuration.`
+                );
+            }
+            usedNames.add(tool.name);
+            toolsToRegister.push(tool);
+        }
+
+        for (const tool of toolsToRegister) {
             if (tool.register(this)) {
                 this.tools.push(tool);
             }
