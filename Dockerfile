@@ -1,7 +1,7 @@
 FROM node:24-alpine
 ARG VERSION=latest
 RUN addgroup -S mcp && adduser -S mcp -G mcp
-RUN npm install -g pnpm && pnpm install -g mongodb-mcp-server@${VERSION}
+RUN npm install -g mongodb-mcp-server@${VERSION}
 USER mcp
 WORKDIR /home/mcp
 ENV MDB_MCP_LOGGERS=stderr,mcp
