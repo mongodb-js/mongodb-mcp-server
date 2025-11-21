@@ -18,6 +18,17 @@ export const ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR =
 const ALLOWED_PROJECT_NAME_CHARACTERS_REGEX = /^[a-zA-Z0-9\s()@&+:._',-]+$/;
 export const ALLOWED_PROJECT_NAME_CHARACTERS_ERROR =
     "Project names can't be longer than 64 characters and can only contain letters, numbers, spaces, and the following symbols: ( ) @ & + : . _ - ' ,";
+
+// Zod does not undestand JS boxed numbers (like Int32) as integer literals,
+// so we preprocess them to unwrap them so Zod understands them.
+function unboxNumber(v: unknown): number {
+    if (v && typeof v === "object" && typeof v.valueOf === "function") {
+        const n = Number(v.valueOf());
+        if (!Number.isNaN(n)) return n;
+    }
+    return v as number;
+}
+
 export const CommonArgs = {
     string: (): ZodString => z.string().regex(NO_UNICODE_REGEX, NO_UNICODE_ERROR),
 
@@ -27,6 +38,11 @@ export const CommonArgs = {
             .min(1, `${fieldName} is required`)
             .length(24, `${fieldName} must be exactly 24 characters`)
             .regex(/^[0-9a-fA-F]+$/, `${fieldName} must contain only hexadecimal characters`),
+    numberEnum: <Options extends Readonly<[z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]]>>(
+        values: Options
+    ): z.ZodEffects<z.ZodUnion<Options>> => {
+        return z.preprocess(unboxNumber, z.union(values));
+    },
 };
 
 export const AtlasArgs = {

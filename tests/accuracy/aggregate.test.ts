@@ -421,4 +421,27 @@ describeAccuracyTests([
             },
         },
     },
+    {
+        prompt: "Run a $search query on mflix.movies to find all movies that mention 'space travel' in the plot or title. Use the default search index.",
+        expectedToolCalls: [
+            {
+                toolName: "aggregate",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                    pipeline: [
+                        {
+                            $search: {
+                                index: Matcher.anyOf(Matcher.undefined, Matcher.value("default")),
+                                text: {
+                                    query: "space travel",
+                                    path: ["plot", "title"],
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
+    },
 ]);
