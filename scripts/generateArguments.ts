@@ -3,7 +3,7 @@
 /**
  * This script generates argument definitions and updates:
  * - server.json arrays
- * - README.md configuration table
+ * - CONFIGURATION.md configuration table
  *
  * It uses the Zod schema and OPTIONS defined in src/common/config.ts
  */
@@ -244,7 +244,7 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     console.log(`✓ Updated server.json (version ${version})`);
 }
 
-function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
+function generateConfigurationTable(argumentInfos: ArgumentInfo[]): string {
     const rows = [
         "| CLI Option                             | Environment Variable                                | Default                                                                     | Description                                                                                                                                                                                             |",
         "| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
@@ -294,23 +294,23 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
     return rows.join("\n");
 }
 
-function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
-    const readmePath = join(__dirname, "..", "README.md");
-    let content = readFileSync(readmePath, "utf-8");
+function updateConfigurationTable(envVars: ArgumentInfo[]): void {
+    const configurationPath = join(__dirname, "..", "CONFIGURATION.md");
+    let content = readFileSync(configurationPath, "utf-8");
 
-    const newTable = generateReadmeConfigTable(envVars);
+    const newTable = generateConfigurationTable(envVars);
 
     // Find and replace the configuration options table
-    const tableRegex = /### Configuration Options\n\n\| CLI Option[\s\S]*?\n\n####/;
-    const replacement = `### Configuration Options\n\n${newTable}\n\n####`;
+    const tableRegex = /## Configuration Options\n\n\| CLI Option[\s\S]*?\n\n###/;
+    const replacement = `## Configuration Options\n\n${newTable}\n\n###`;
 
     content = content.replace(tableRegex, replacement);
 
-    writeFileSync(readmePath, content, "utf-8");
-    console.log("✓ Updated README.md configuration table");
+    writeFileSync(configurationPath, content, "utf-8");
+    console.log("✓ Updated CONFIGURATION.md configuration table");
 
-    // Run prettier on the README.md file
-    execSync("npx prettier --write README.md", { cwd: join(__dirname, "..") });
+    // Run prettier on the CONFIGURATION.md file
+    execSync("npx prettier --write CONFIGURATION.md", { cwd: join(__dirname, "..") });
 }
 
 function main(): void {
@@ -318,7 +318,7 @@ function main(): void {
 
     const argumentInfo = getArgumentInfo(OPTIONS, zodMetadata);
     updateServerJsonEnvVars(argumentInfo);
-    updateReadmeConfigTable(argumentInfo);
+    updateConfigurationTable(argumentInfo);
 }
 
 main();
