@@ -26,7 +26,7 @@ export async function freshInsertDocuments({
 }
 
 describeWithMongoDB("find tool with default configuration", (integration) => {
-    validateToolMetadata(integration, "find", "Run a find query against a MongoDB collection", [
+    validateToolMetadata(integration, "find", "Run a find query against a MongoDB collection", "read", [
         ...databaseCollectionParameters,
 
         {

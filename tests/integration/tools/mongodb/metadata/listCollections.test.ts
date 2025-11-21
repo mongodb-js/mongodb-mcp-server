@@ -15,6 +15,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
         integration,
         "list-collections",
         "List all collections for a given database",
+        "metadata",
         databaseParameters
     );
 

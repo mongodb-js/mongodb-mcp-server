@@ -95,10 +95,15 @@ export abstract class TransportRunnerBase {
         // fetch or modify configuration before session initialization
         const userConfig = this.createSessionConfig ? await this.createSessionConfig(this.userConfig) : this.userConfig;
 
-        const mcpServer = new McpServer({
-            name: packageInfo.mcpServerName,
-            version: packageInfo.version,
-        });
+        const mcpServer = new McpServer(
+            {
+                name: packageInfo.mcpServerName,
+                version: packageInfo.version,
+            },
+            {
+                instructions: TransportRunnerBase.getInstructions(userConfig),
+            }
+        );
 
         const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(userConfig, logger);
@@ -153,5 +158,23 @@ export abstract class TransportRunnerBase {
         } finally {
             this.deviceId.close();
         }
+    }
+
+    private static getInstructions(config: UserConfig): string {
+        let instructions = `
+            This is the MongoDB MCP server.
+        `;
+        if (config.connectionString) {
+            instructions += `
+            This MCP server was configured with a MongoDB connection string, and you can assume that you are connected to a MongoDB cluster.
+            `;
+        }
+
+        if (config.apiClientId && config.apiClientSecret) {
+            instructions += `
+            This MCP server was configured with MongoDB Atlas API credentials.`;
+        }
+
+        return instructions;
     }
 }

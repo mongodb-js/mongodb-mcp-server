@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("renameCollection tool", (integration) => {
-    validateToolMetadata(integration, "rename-collection", "Renames a collection in a MongoDB database", [
+    validateToolMetadata(integration, "rename-collection", "Renames a collection in a MongoDB database", "update", [
         ...databaseCollectionParameters,
 
         {

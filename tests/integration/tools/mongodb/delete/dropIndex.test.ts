@@ -97,6 +97,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         integration,
                         "drop-index",
                         "Drop an index for the provided database and collection.",
+                        "delete",
                         [
                             ...databaseCollectionParameters,
                             {

@@ -3,14 +3,20 @@ import { expectDefined, getResponseElements, validateToolMetadata } from "../../
 import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 
 describeWithAtlasLocal("atlas-local-connect-deployment", (integration) => {
-    validateToolMetadata(integration, "atlas-local-connect-deployment", "Connect to a MongoDB Atlas Local deployment", [
-        {
-            name: "deploymentName",
-            type: "string",
-            description: "Name of the deployment to connect to",
-            required: true,
-        },
-    ]);
+    validateToolMetadata(
+        integration,
+        "atlas-local-connect-deployment",
+        "Connect to a MongoDB Atlas Local deployment",
+        "connect",
+        [
+            {
+                name: "deploymentName",
+                type: "string",
+                description: "Name of the deployment to connect to",
+                required: true,
+            },
+        ]
+    );
 
     it("should have the atlas-local-connect-deployment tool", async () => {
         const { tools } = await integration.mcpClient().listTools();

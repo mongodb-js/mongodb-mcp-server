@@ -16,6 +16,7 @@ describeWithMongoDB("dbStats tool", (integration) => {
         integration,
         "db-stats",
         "Returns statistics that reflect the use state of a single database",
+        "metadata",
         databaseParameters
     );
 

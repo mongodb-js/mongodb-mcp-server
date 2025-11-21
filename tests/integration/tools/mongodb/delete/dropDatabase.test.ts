@@ -15,6 +15,7 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
         integration,
         "drop-database",
         "Removes the specified database, deleting the associated data files",
+        "delete",
         databaseParameters
     );
 

@@ -26,25 +26,20 @@ export function contentWithTextResourceURI(
     });
 }
 
-export function contentWithResourceURILink(
-    content: CallToolResult["content"]
-): CallToolResult["content"][number] | undefined {
+export function contentWithResourceURILink(content: CallToolResult["content"]): { uri: string } | undefined {
     return content.find((part) => {
         return part.type === "resource_link";
     });
 }
 
-export function contentWithExportPath(
-    content: CallToolResult["content"]
-): CallToolResult["content"][number] | undefined {
-    return content.find((part) => {
-        return (
-            part.type === "text" &&
-            part.text.startsWith(
+export function contentWithExportPath(content: CallToolResult["content"]): { text: string } | undefined {
+    return content
+        .filter((part) => part.type === "text")
+        .find((part) => {
+            return part.text.startsWith(
                 `Optionally, when the export is finished, the exported data can also be accessed under path -`
-            )
-        );
-    });
+            );
+        });
 }
 
 describeWithMongoDB(
@@ -54,6 +49,7 @@ describeWithMongoDB(
             integration,
             "export",
             "Export a query or aggregation results in the specified EJSON format.",
+            "read",
             [
                 ...databaseCollectionParameters,
                 {
