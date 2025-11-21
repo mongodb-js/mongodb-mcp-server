@@ -164,7 +164,7 @@ describe("Server integration test", () => {
     describeWithMongoDB(
         "Tool with overridden metadata",
         (integration) => {
-            validateToolMetadata(integration, "new-connect", "new connect tool description", [
+            validateToolMetadata(integration, "new-connect", "new connect tool description", "connect", [
                 {
                     name: "connectionString",
                     description: "MongoDB connection string (in the mongodb:// or mongodb+srv:// format)",

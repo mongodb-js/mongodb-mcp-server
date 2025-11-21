@@ -99,7 +99,7 @@ describeWithMongoDB(
             });
         });
 
-        validateToolMetadata(integration, "new-switch-connection", "new description", [
+        validateToolMetadata(integration, "new-switch-connection", "new description", "connect", [
             {
                 name: "connectionString",
                 description: "MongoDB connection string to switch to (in the mongodb:// or mongodb+srv:// format)",
@@ -302,7 +302,7 @@ describeWithMongoDB(
 describeWithMongoDB(
     "Connect tool with overridden metadata",
     (integration) => {
-        validateToolMetadata(integration, "new-connect", "new connect tool description", [
+        validateToolMetadata(integration, "new-connect", "new connect tool description", "connect", [
             {
                 name: "connectionString",
                 description: "MongoDB connection string (in the mongodb:// or mongodb+srv:// format)",
