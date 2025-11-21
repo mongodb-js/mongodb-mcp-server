@@ -64,8 +64,8 @@ export class CreateIndexTool extends MongoDBToolBase {
             ),
     });
 
-    public name = "create-index";
-    protected description = "Create an index for a collection";
+    public internalName = "create-index";
+    protected internalDescription = "Create an index for a collection";
     protected argsShape = {
         ...DbOperationArgs,
         name: z.string().optional().describe("The name of the index"),

@@ -48,8 +48,8 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     }) as const;
 
 export class AggregateTool extends MongoDBToolBase {
-    public name = "aggregate";
-    protected description = "Run an aggregation against a MongoDB collection";
+    public internalName = "aggregate";
+    protected internalDescription = "Run an aggregation against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
         ...getAggregateArgs(this.isFeatureEnabled("vectorSearch")),

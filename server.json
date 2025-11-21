@@ -171,6 +171,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_TOOL_METADATA_OVERRIDES",
+          "description": "A map of name of the MongoDB MCP server tool to the metadata that needs to be used for that tool. Example: `{ \"toolMetadataOverrides\": { \"find\": { \"name\": \"query\" } } }`",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_TRANSPORT",
           "description": "Either 'stdio' or 'http'.",
           "isRequired": false,
@@ -321,6 +328,12 @@
           "type": "named",
           "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--toolMetadataOverrides",
+          "description": "A map of name of the MongoDB MCP server tool to the metadata that needs to be used for that tool. Example: `{ \"toolMetadataOverrides\": { \"find\": { \"name\": \"query\" } } }`",
           "isRequired": false
         },
         {
@@ -499,6 +512,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_TOOL_METADATA_OVERRIDES",
+          "description": "A map of name of the MongoDB MCP server tool to the metadata that needs to be used for that tool. Example: `{ \"toolMetadataOverrides\": { \"find\": { \"name\": \"query\" } } }`",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_TRANSPORT",
           "description": "Either 'stdio' or 'http'.",
           "isRequired": false,
@@ -649,6 +669,12 @@
           "type": "named",
           "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--toolMetadataOverrides",
+          "description": "A map of name of the MongoDB MCP server tool to the metadata that needs to be used for that tool. Example: `{ \"toolMetadataOverrides\": { \"find\": { \"name\": \"query\" } } }`",
           "isRequired": false
         },
         {

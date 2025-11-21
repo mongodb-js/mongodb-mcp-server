@@ -262,10 +262,10 @@ describe("ToolBase", () => {
 });
 
 class TestTool extends ToolBase {
-    public name = "test-tool";
+    public internalName = "test-tool";
     public category: ToolCategory = "mongodb";
     public operationType: OperationType = "delete";
-    protected description = "A test tool for verification tests";
+    protected internalDescription = "A test tool for verification tests";
     protected argsShape = {
         param1: z.string().describe("Test parameter 1"),
         param2: z.number().optional().describe("Test parameter 2"),

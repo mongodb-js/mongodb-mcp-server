@@ -5,8 +5,8 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 
 export class DropIndexTool extends MongoDBToolBase {
-    public name = "drop-index";
-    protected description = "Drop an index for the provided database and collection.";
+    public internalName = "drop-index";
+    protected internalDescription = "Drop an index for the provided database and collection.";
     protected argsShape = {
         ...DbOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),

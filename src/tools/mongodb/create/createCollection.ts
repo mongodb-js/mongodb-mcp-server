@@ -3,8 +3,8 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 
 export class CreateCollectionTool extends MongoDBToolBase {
-    public name = "create-collection";
-    protected description =
+    public internalName = "create-collection";
+    protected internalDescription =
         "Creates a new collection in a database. If the database doesn't exist, it will be created automatically.";
     protected argsShape = DbOperationArgs;
 

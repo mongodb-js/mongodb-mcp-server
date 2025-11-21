@@ -13,8 +13,8 @@ export const CountArgs = {
 };
 
 export class CountTool extends MongoDBToolBase {
-    public name = "count";
-    protected description =
+    public internalName = "count";
+    protected internalDescription =
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter";
     protected argsShape = {
         ...DbOperationArgs,
