@@ -11,7 +11,7 @@ This project implements a Model Context Protocol (MCP) server for MongoDB and Mo
 ### Prerequisites
 
 - Node.js (v20 or later)
-- npm
+- pnpm
 
 ### Getting Started
 
@@ -25,7 +25,7 @@ This project implements a Model Context Protocol (MCP) server for MongoDB and Mo
 2. Install dependencies:
 
    ```
-   npm install
+   pnpm install
    ```
 
 3. Add the mcp server to your IDE of choice (see the [README](README.md) for detailed client integration instructions)
@@ -52,7 +52,7 @@ This project implements a Model Context Protocol (MCP) server for MongoDB and Mo
 3. Run the inspector and double check your changes:
 
    ```
-   npm run inspect
+   pnpm run inspect
    ```
 
 4. Commit your changes using [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
@@ -65,15 +65,15 @@ When adding new features or fixing bugs, please ensure that you also add tests t
 
 The tests can be found in the `tests` directory.
 
-You can run tests using the following npm scripts:
+You can run tests using the following pnpm scripts:
 
-- `npm test`: Run all tests
+- `pnpm test`: Run all tests
 
 To run a specific test file or directory:
 
 ```bash
-npm test -- path/to/test/file.test.ts
-npm test -- path/to/directory
+pnpm test -- path/to/test/file.test.ts
+pnpm test -- path/to/directory
 ```
 
 #### Accuracy Tests and colima
@@ -84,7 +84,7 @@ If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, yo
 
 ### Restart Server
 
-- Run `npm run build` to re-build the server if you made changes to the code
+- Run `pnpm run build` to re-build the server if you made changes to the code
 - Press `Cmd + Shift + P` and type List MCP Servers
 - Select the MCP server you want to restart
 - Select the option to restart the server
@@ -102,7 +102,7 @@ To see MCP logs, check https://code.visualstudio.com/docs/copilot/chat/mcp-serve
 For debugging, we use the MCP inspector tool. From the root of this repository, run:
 
 ```shell
-npm run inspect
+pnpm run inspect
 ```
 
 This is equivalent to:
