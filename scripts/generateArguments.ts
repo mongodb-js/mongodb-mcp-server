@@ -68,7 +68,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         let description = schema.description || `Configuration option: ${key}`;
 
         if ("innerType" in schema.def) {
-            // "pipe" & innerType is assumed to be for our comma-separated arrays
+            // "pipe" is also used for our comma-separated arrays
             if (schema.def.innerType.def.type === "pipe") {
                 description = description.replace("An array of", "Comma separated values of");
             }
