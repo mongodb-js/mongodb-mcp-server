@@ -6,8 +6,8 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
-    public name = "update-many";
-    protected description = "Updates all documents that match the specified filter for a collection";
+    public internalName = "update-many";
+    protected internalDescription = "Updates all documents that match the specified filter for a collection";
     protected argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()

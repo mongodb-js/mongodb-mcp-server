@@ -6,8 +6,8 @@ import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUti
 import { AtlasArgs } from "../../args.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {
-    public name = "atlas-create-free-cluster";
-    protected description = "Create a free MongoDB Atlas cluster";
+    public internalName = "atlas-create-free-cluster";
+    protected internalDescription = "Create a free MongoDB Atlas cluster";
     public operationType: OperationType = "create";
     protected argsShape = {
         projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),

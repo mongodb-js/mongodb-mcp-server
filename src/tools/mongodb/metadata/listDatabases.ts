@@ -5,8 +5,8 @@ import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListDatabasesTool extends MongoDBToolBase {
-    public name = "list-databases";
-    protected description = "List all databases for a MongoDB connection";
+    public internalName = "list-databases";
+    protected internalDescription = "List all databases for a MongoDB connection";
     protected argsShape = {};
     public operationType: OperationType = "metadata";
 

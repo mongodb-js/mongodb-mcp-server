@@ -3,8 +3,8 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 
 export class DropCollectionTool extends MongoDBToolBase {
-    public name = "drop-collection";
-    protected description =
+    public internalName = "drop-collection";
+    protected internalDescription =
         "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.";
     protected argsShape = {
         ...DbOperationArgs,

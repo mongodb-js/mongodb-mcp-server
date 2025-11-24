@@ -55,6 +55,11 @@ export const OPTIONS = {
         "exportTimeoutMs",
         "exportCleanupIntervalMs",
         "voyageApiKey",
+        // Note: toolMetadataOverrides expects a JSON object but we mention it
+        // as a string only to let yargs-parser know that this key needs to be
+        // parsed. The internal handling of the key as an object is done within
+        // yargs-parser itself.
+        "toolMetadataOverrides",
     ],
     boolean: [
         "apiDeprecationErrors",

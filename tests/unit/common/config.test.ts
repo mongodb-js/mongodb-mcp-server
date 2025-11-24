@@ -1,3 +1,4 @@
+import path from "path";
 import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from "vitest";
 import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
 import { type CreateUserConfigHelpers, createUserConfig } from "../../../src/common/config/createUserConfig.js";
@@ -25,81 +26,54 @@ function createEnvironment(): {
     };
 }
 
+const CONFIG_FIXTURES = {
+    VALID: path.resolve(import.meta.dirname, "..", "..", "fixtures", "valid-config.json"),
+    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "..", "..", "fixtures", "config-with-invalid-value.json"),
+};
+
+// Expected hardcoded values (what we had before)
+const expectedDefaults = {
+    apiBaseUrl: "https://cloud.mongodb.com/",
+    logPath: getLogPath(),
+    exportsPath: getExportsPath(),
+    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
+    disabledTools: [],
+    telemetry: "enabled",
+    readOnly: false,
+    indexCheck: false,
+    confirmationRequiredTools: [
+        "atlas-create-access-list",
+        "atlas-create-db-user",
+        "drop-database",
+        "drop-collection",
+        "delete-many",
+        "drop-index",
+    ],
+    transport: "stdio",
+    httpPort: 3000,
+    httpHost: "127.0.0.1",
+    loggers: ["disk", "mcp"],
+    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+    httpHeaders: {},
+    maxDocumentsPerQuery: 100,
+    maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+    voyageApiKey: "",
+    vectorSearchDimensions: 1024,
+    vectorSearchSimilarityFunction: "euclidean",
+    disableEmbeddingsValidation: false,
+    previewFeatures: [],
+    toolMetadataOverrides: {},
+};
+
 describe("config", () => {
     it("should generate defaults from UserConfigSchema that match expected values", () => {
-        // Expected hardcoded values (what we had before)
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
-            previewFeatures: [],
-        };
         expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
     });
 
     it("should generate defaults when no config sources are populated", () => {
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
-            previewFeatures: [],
-        };
         expect(createUserConfig()).toStrictEqual(expectedDefaults);
     });
 
@@ -489,6 +463,87 @@ describe("config", () => {
         });
     });
 
+    describe("loading a config file", () => {
+        let warn: MockedFunction<CreateUserConfigHelpers["onWarning"]>;
+        let error: MockedFunction<CreateUserConfigHelpers["onError"]>;
+        let exit: MockedFunction<CreateUserConfigHelpers["closeProcess"]>;
+
+        beforeEach(() => {
+            warn = vi.fn();
+            error = vi.fn();
+            exit = vi.fn();
+        });
+
+        describe("through env variable MDB_MCP_CONFIG", () => {
+            const { setVariable, clearVariables } = createEnvironment();
+            afterEach(() => {
+                clearVariables();
+            });
+
+            it("should load a valid config file without troubles", () => {
+                setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.VALID);
+                const config = createUserConfig({
+                    onWarning: warn,
+                    onError: error,
+                    closeProcess: exit,
+                });
+                expect(warn).not.toBeCalled();
+                expect(error).not.toBeCalled();
+                expect(exit).not.toBeCalled();
+
+                expect(config.connectionString).toBe("mongodb://valid-json-localhost:1000");
+                expect(config.loggers).toStrictEqual(["stderr"]);
+            });
+
+            it("should attempt loading config file with wrong value and exit", () => {
+                setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.WITH_INVALID_VALUE);
+                createUserConfig({
+                    onWarning: warn,
+                    onError: error,
+                    closeProcess: exit,
+                });
+                expect(warn).not.toBeCalled();
+                expect(error).toBeCalledWith(
+                    expect.stringContaining("Invalid configuration for the following fields:")
+                );
+                expect(error).toBeCalledWith(expect.stringContaining("loggers - Duplicate loggers found in config"));
+                expect(exit).toBeCalledWith(1);
+            });
+        });
+
+        describe("through cli argument --config", () => {
+            it("should load a valid config file without troubles", () => {
+                const config = createUserConfig({
+                    onWarning: warn,
+                    onError: error,
+                    closeProcess: exit,
+                    cliArguments: ["--config", CONFIG_FIXTURES.VALID],
+                });
+                expect(warn).not.toBeCalled();
+                expect(error).not.toBeCalled();
+                expect(exit).not.toBeCalled();
+
+                expect(config.connectionString).toBe("mongodb://valid-json-localhost:1000");
+                expect(config.loggers).toStrictEqual(["stderr"]);
+            });
+
+            it("should attempt loading config file with wrong value and exit", () => {
+                createUserConfig({
+                    onWarning: warn,
+                    onError: error,
+                    closeProcess: exit,
+                    cliArguments: ["--config", CONFIG_FIXTURES.WITH_INVALID_VALUE],
+                });
+                expect(warn).not.toBeCalled();
+                expect(error).toBeCalledWith(
+                    expect.stringContaining("Invalid configuration for the following fields:")
+                );
+                expect(error).toBeCalledWith(expect.stringContaining("loggers - Duplicate loggers found in config"));
+                expect(exit).toBeCalledWith(1);
+            });
+        });
+    });
+
     describe("precedence rules", () => {
         const { setVariable, clearVariables } = createEnvironment();
 
@@ -499,30 +554,34 @@ describe("config", () => {
         it("positional argument takes precedence over all", () => {
             setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost1");
             const actual = createUserConfig({
-                cliArguments: ["mongodb://crazyhost2", "--connectionString", "mongodb://localhost"],
+                cliArguments: [
+                    "mongodb://crazyhost2",
+                    "--config",
+                    CONFIG_FIXTURES.VALID,
+                    "--connectionString",
+                    "mongodb://localhost",
+                ],
             });
             expect(actual.connectionString).toBe("mongodb://crazyhost2/?directConnection=true");
         });
 
-        it("cli arguments take precedence over env vars", () => {
-            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost");
+        it("any cli argument takes precedence over env vars, config and defaults", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
             const actual = createUserConfig({
-                cliArguments: ["--connectionString", "mongodb://localhost"],
+                cliArguments: ["--config", CONFIG_FIXTURES.VALID, "--connectionString", "mongodb://host-from-cli"],
             });
-            expect(actual.connectionString).toBe("mongodb://localhost");
+            expect(actual.connectionString).toBe("mongodb://host-from-cli");
         });
 
-        it("any cli argument takes precedence over defaults", () => {
-            const actual = createUserConfig({
-                cliArguments: ["--connectionString", "mongodb://localhost"],
-            });
-            expect(actual.connectionString).toBe("mongodb://localhost");
+        it("any env var takes precedence over config and defaults", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
+            const actual = createUserConfig({ cliArguments: ["--config", CONFIG_FIXTURES.VALID] });
+            expect(actual.connectionString).toBe("mongodb://dummyhost");
         });
 
-        it("any env var takes precedence over defaults", () => {
-            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://localhost");
-            const actual = createUserConfig();
-            expect(actual.connectionString).toBe("mongodb://localhost");
+        it("config file takes precedence over defaults", () => {
+            const actual = createUserConfig({ cliArguments: ["--config", CONFIG_FIXTURES.VALID] });
+            expect(actual.connectionString).toBe("mongodb://valid-json-localhost:1000");
         });
     });
 

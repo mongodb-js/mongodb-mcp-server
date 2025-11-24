@@ -9,8 +9,8 @@ export const ListDBUsersArgs = {
 };
 
 export class ListDBUsersTool extends AtlasToolBase {
-    public name = "atlas-list-db-users";
-    protected description = "List MongoDB Atlas database users";
+    public internalName = "atlas-list-db-users";
+    protected internalDescription = "List MongoDB Atlas database users";
     public operationType: OperationType = "read";
     protected argsShape = {
         ...ListDBUsersArgs,
