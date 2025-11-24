@@ -5,9 +5,6 @@ on:
     branches:
       - main
   pull_request:
-  pull_request_target:
-    branches:
-      - main
 
 permissions: {}
 
@@ -64,4 +61,5 @@ jobs:
           rm -rf node_modules
           pnpm pkg set scripts.prepare="exit 0"
           pnpm install --prod --frozen-lockfile
-      - run: pnpm dlx @modelcontextprotocol/inspector@0.16.5 --cli --method tools/list -- node dist/esm/index.js
+      - name: List available tools
+        run: pnpm dlx @modelcontextprotocol/inspector@0.16.5 --cli --method tools/list -- node dist/esm/index.js
