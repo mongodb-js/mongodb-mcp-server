@@ -1,0 +1,329 @@
+import { describe, it, expect } from "vitest";
+import { applyConfigOverrides, getConfigMeta, nameToConfigKey } from "../../../../src/common/config/configOverrides.js";
+import { UserConfigSchema, type UserConfig } from "../../../../src/common/config/userConfig.js";
+import type { RequestContext } from "../../../../src/transports/base.js";
+
+describe("configOverrides", () => {
+    const baseConfig: Partial<UserConfig> = {
+        readOnly: false,
+        indexCheck: false,
+        idleTimeoutMs: 600_000,
+        notificationTimeoutMs: 540_000,
+        disabledTools: ["tool1"],
+        confirmationRequiredTools: ["drop-database"],
+        connectionString: "mongodb://localhost:27017",
+        vectorSearchDimensions: 1024,
+        vectorSearchSimilarityFunction: "euclidean",
+        disableEmbeddingsValidation: false,
+        previewFeatures: [],
+        loggers: ["disk", "mcp"],
+        exportTimeoutMs: 300_000,
+        exportCleanupIntervalMs: 120_000,
+        atlasTemporaryDatabaseUserLifetimeMs: 14_400_000,
+    };
+
+    describe("helper functions", () => {
+        describe("nameToConfigKey", () => {
+            it("should convert header name to config key", () => {
+                expect(nameToConfigKey("header", "x-mongodb-mcp-read-only")).toBe("readOnly");
+                expect(nameToConfigKey("header", "x-mongodb-mcp-idle-timeout-ms")).toBe("idleTimeoutMs");
+                expect(nameToConfigKey("header", "x-mongodb-mcp-connection-string")).toBe("connectionString");
+            });
+
+            it("should convert query parameter name to config key", () => {
+                expect(nameToConfigKey("query", "mongodbMcpReadOnly")).toBe("readOnly");
+                expect(nameToConfigKey("query", "mongodbMcpIdleTimeoutMs")).toBe("idleTimeoutMs");
+                expect(nameToConfigKey("query", "mongodbMcpConnectionString")).toBe("connectionString");
+            });
+
+            it("should not mix up header and query parameter names", () => {
+                expect(nameToConfigKey("header", "mongodbMcpReadOnly")).toBeUndefined();
+                expect(nameToConfigKey("query", "x-mongodb-mcp-read-only")).toBeUndefined();
+            });
+
+            it("should return undefined for non-mcp names", () => {
+                expect(nameToConfigKey("header", "content-type")).toBeUndefined();
+                expect(nameToConfigKey("header", "authorization")).toBeUndefined();
+                expect(nameToConfigKey("query", "content")).toBeUndefined();
+            });
+        });
+
+        it("should get override behavior for config keys", () => {
+            expect(getConfigMeta("readOnly")?.overrideBehavior).toEqual(expect.any(Function));
+            expect(getConfigMeta("disabledTools")?.overrideBehavior).toBe("merge");
+            expect(getConfigMeta("apiBaseUrl")?.overrideBehavior).toBe("not-allowed");
+            expect(getConfigMeta("maxBytesPerQuery")?.overrideBehavior).toBe("not-allowed");
+        });
+    });
+
+    describe("applyConfigOverrides", () => {
+        it("should return base config when request is undefined", () => {
+            const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig });
+            expect(result).toEqual(baseConfig);
+        });
+
+        it("should return base config when request has no headers or query", () => {
+            const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request: {} });
+            expect(result).toEqual(baseConfig);
+        });
+
+        describe("override behavior", () => {
+            it("should override boolean values with override behavior", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-read-only": "true",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.readOnly).toBe(true);
+            });
+
+            it("should override numeric values with override behavior", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-idle-timeout-ms": "300000",
+                        "x-mongodb-mcp-export-timeout-ms": "600000",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.idleTimeoutMs).toBe(300000);
+                expect(result.exportTimeoutMs).toBe(600000);
+            });
+
+            it("should override string values with override behavior", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-connection-string": "mongodb://newhost:27017",
+                        "x-mongodb-mcp-vector-search-similarity-function": "cosine",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.connectionString).toBe("mongodb://newhost:27017");
+                expect(result.vectorSearchSimilarityFunction).toBe("cosine");
+            });
+        });
+
+        describe("merge behavior", () => {
+            it("should merge array values", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-disabled-tools": "tool2,tool3",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.disabledTools).toEqual(["tool1", "tool2", "tool3"]);
+            });
+
+            it("should merge multiple array fields", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-disabled-tools": "tool2",
+                        "x-mongodb-mcp-confirmation-required-tools": "drop-collection",
+                        "x-mongodb-mcp-preview-features": "feature1",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.disabledTools).toEqual(["tool1", "tool2"]);
+                expect(result.confirmationRequiredTools).toEqual(["drop-database", "drop-collection"]);
+                // previewFeatures has enum validation - "feature1" isn't a valid value, so it gets rejected
+                expect(result.previewFeatures).toEqual([]);
+            });
+
+            it("should merge loggers", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-loggers": "stderr",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.loggers).toEqual(["disk", "mcp", "stderr"]);
+            });
+        });
+
+        describe("not-allowed behavior", () => {
+            it("should throw an error for not-allowed fields", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-api-base-url": "https://malicious.com/",
+                        "x-mongodb-mcp-max-bytes-per-query": "999999",
+                        "x-mongodb-mcp-max-documents-per-query": "1000",
+                        "x-mongodb-mcp-transport": "stdio",
+                        "x-mongodb-mcp-http-port": "9999",
+                    },
+                };
+                expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
+                    "Config key apiBaseUrl is not allowed to be overridden"
+                );
+            });
+        });
+
+        describe("conditional overrides", () => {
+            it("should have certain config keys to be conditionally overridden", () => {
+                expect(
+                    Object.keys(UserConfigSchema.shape)
+                        .map((key) => [key, getConfigMeta(key as any)?.overrideBehavior])
+                        .filter(([_, behavior]) => typeof behavior === "function")
+                        .map(([key]) => key)
+                ).toEqual(["readOnly", "indexCheck", "disableEmbeddingsValidation"]);
+            });
+
+            it("should allow readOnly override from false to true", () => {
+                const request: RequestContext = { headers: { "x-mongodb-mcp-read-only": "true" } };
+                const result = applyConfigOverrides({
+                    baseConfig: { ...baseConfig, readOnly: false } as UserConfig,
+                    request,
+                });
+                expect(result.readOnly).toBe(true);
+            });
+
+            it("should throw when trying to override readOnly from true to false", () => {
+                const request: RequestContext = { headers: { "x-mongodb-mcp-read-only": "false" } };
+                expect(() =>
+                    applyConfigOverrides({ baseConfig: { ...baseConfig, readOnly: true } as UserConfig, request })
+                ).toThrow("Config override validation failed for readOnly");
+            });
+
+            it("should allow indexCheck override from false to true", () => {
+                const request: RequestContext = { headers: { "x-mongodb-mcp-index-check": "true" } };
+                const result = applyConfigOverrides({
+                    baseConfig: { ...baseConfig, indexCheck: false } as UserConfig,
+                    request,
+                });
+                expect(result.indexCheck).toBe(true);
+            });
+
+            it("should throw when trying to override indexCheck from true to false", () => {
+                const request: RequestContext = { headers: { "x-mongodb-mcp-index-check": "false" } };
+                expect(() =>
+                    applyConfigOverrides({ baseConfig: { ...baseConfig, indexCheck: true } as UserConfig, request })
+                ).toThrow("Config override validation failed for indexCheck");
+            });
+
+            it("should allow disableEmbeddingsValidation override from true to false", () => {
+                const request: RequestContext = { headers: { "x-mongodb-mcp-disable-embeddings-validation": "false" } };
+                const result = applyConfigOverrides({
+                    baseConfig: { ...baseConfig, disableEmbeddingsValidation: true } as UserConfig,
+                    request,
+                });
+                expect(result.disableEmbeddingsValidation).toBe(false);
+            });
+
+            it("should throw when trying to override disableEmbeddingsValidation from false to true", () => {
+                const request: RequestContext = { headers: { "x-mongodb-mcp-disable-embeddings-validation": "true" } };
+                expect(() =>
+                    applyConfigOverrides({
+                        baseConfig: { ...baseConfig, disableEmbeddingsValidation: false } as UserConfig,
+                        request,
+                    })
+                ).toThrow("Config override validation failed for disableEmbeddingsValidation");
+            });
+        });
+
+        describe("query parameter overrides", () => {
+            it("should apply overrides from query parameters", () => {
+                const request: RequestContext = {
+                    query: {
+                        mongodbMcpReadOnly: "true",
+                        mongodbMcpIdleTimeoutMs: "400000",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.readOnly).toBe(true);
+                expect(result.idleTimeoutMs).toBe(400000);
+            });
+
+            it("should merge arrays from query parameters", () => {
+                const request: RequestContext = {
+                    query: {
+                        mongodbMcpDisabledTools: "tool2,tool3",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.disabledTools).toEqual(["tool1", "tool2", "tool3"]);
+            });
+        });
+
+        describe("precedence", () => {
+            it("should give query parameters precedence over headers", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-idle-timeout-ms": "300000",
+                    },
+                    query: {
+                        mongodbMcpIdleTimeoutMs: "500000",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.idleTimeoutMs).toBe(500000);
+            });
+
+            it("should merge arrays from both headers and query", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-disabled-tools": "tool2",
+                    },
+                    query: {
+                        mongodbMcpDisabledTools: "tool3",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                // Query takes precedence over headers, but base + query result
+                expect(result.disabledTools).toEqual(["tool1", "tool3"]);
+            });
+        });
+
+        describe("edge cases", () => {
+            it("should handle invalid numeric values gracefully", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-idle-timeout-ms": "not-a-number",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.idleTimeoutMs).toBe(baseConfig.idleTimeoutMs);
+            });
+
+            it("should handle empty string values for arrays", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-disabled-tools": "",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                // Empty string gets filtered out by commaSeparatedToArray, resulting in []
+                // Merging [] with ["tool1"] gives ["tool1"]
+                expect(result.disabledTools).toEqual(["tool1"]);
+            });
+
+            it("should trim whitespace in array values", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-disabled-tools": " tool2 , tool3 ",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.disabledTools).toEqual(["tool1", "tool2", "tool3"]);
+            });
+
+            it("should handle case-insensitive header names", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "X-MongoDB-MCP-Read-Only": "true",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.readOnly).toBe(true);
+            });
+
+            it("should handle array values sent as multiple headers", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-disabled-tools": ["tool2", "tool3"],
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.disabledTools).toEqual(["tool1", "tool2", "tool3"]);
+            });
+        });
+    });
+});

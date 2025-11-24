@@ -65,7 +65,7 @@
     "generate": "npm run generate:api && npm run generate:arguments",
     "generate:api": "./scripts/generate.sh",
     "generate:arguments": "tsx scripts/generateArguments.ts",
-    "test": "vitest --project eslint-rules --project unit-and-integration --coverage",
+    "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
     "pretest:accuracy": "npm run build",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",

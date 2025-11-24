@@ -4,6 +4,22 @@ import { ALL_CONFIG_KEYS } from "./argsParserOptions.js";
 import * as levenshteinModule from "ts-levenshtein";
 const levenshtein = levenshteinModule.default;
 
+/// Custom logic function to apply the override value.
+/// Returns true if the override should be applied, false otherwise.
+export type CustomOverrideLogic = (oldValue: unknown, newValue: unknown) => boolean;
+
+/**
+ * Defines how a config field can be overridden via HTTP headers or query parameters.
+ */
+export type OverrideBehavior =
+    /// Cannot be overridden via request
+    | "not-allowed"
+    /// Can be completely replaced
+    | "override"
+    /// Values are merged (for arrays)
+    | "merge"
+    | CustomOverrideLogic;
+
 /**
  * Metadata for config schema fields.
  */
@@ -17,7 +33,11 @@ export type ConfigFieldMeta = {
      * Secret fields will be marked as secret in environment variable definitions.
      */
     isSecret?: boolean;
-
+    /**
+     * Defines how this config field can be overridden via HTTP headers or query parameters.
+     * Defaults to "not-allowed" for security.
+     */
+    overrideBehavior?: OverrideBehavior;
     [key: string]: unknown;
 };
 
@@ -69,8 +89,11 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
         return undefined;
     }
 
-    if (!Array.isArray(str)) {
-        return [str] as T;
+    if (typeof str === "string") {
+        return str
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0) as T;
     }
 
     if (str.length === 1) {
@@ -81,4 +104,23 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
     }
 
     return str as T;
+}
+
+/**
+ * Preprocessor for boolean values that handles string "true"/"false" correctly.
+ * Zod's coerce.boolean() treats any non-empty string as true, which is not what we want.
+ */
+export function parseBoolean(val: unknown): unknown {
+    if (typeof val === "string") {
+        const lower = val.toLowerCase().trim();
+        if (lower === "false" || lower === "0") return false;
+        if (lower === "true" || lower === "1") return true;
+    }
+    if (typeof val === "boolean") {
+        return val;
+    }
+    if (typeof val === "number") {
+        return val !== 0;
+    }
+    return false;
 }

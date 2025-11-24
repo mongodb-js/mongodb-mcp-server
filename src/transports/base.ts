@@ -21,8 +21,17 @@ import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolBase, ToolConstructorParams } from "../tools/tool.js";
+import { applyConfigOverrides } from "../common/config/configOverrides.js";
 
-type CreateSessionConfigFn = (userConfig: UserConfig) => Promise<UserConfig> | UserConfig;
+export type RequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+    query?: Record<string, string | string[] | undefined>;
+};
+
+type CreateSessionConfigFn = (context: {
+    userConfig: UserConfig;
+    request?: RequestContext;
+}) => Promise<UserConfig> | UserConfig;
 
 export type TransportRunnerConfig = {
     userConfig: UserConfig;
@@ -90,10 +99,15 @@ export abstract class TransportRunnerBase {
         this.deviceId = DeviceId.create(this.logger);
     }
 
-    protected async setupServer(): Promise<Server> {
+    protected async setupServer(request?: RequestContext): Promise<Server> {
+        // Apply config overrides from request context (headers and query parameters)
+        let userConfig = applyConfigOverrides({ baseConfig: this.userConfig, request });
+
         // Call the config provider hook if provided, allowing consumers to
-        // fetch or modify configuration before session initialization
-        const userConfig = this.createSessionConfig ? await this.createSessionConfig(this.userConfig) : this.userConfig;
+        // fetch or modify configuration after applying request context overrides
+        if (this.createSessionConfig) {
+            userConfig = await this.createSessionConfig({ userConfig, request });
+        }
 
         const mcpServer = new McpServer({
             name: packageInfo.mcpServerName,
