@@ -181,6 +181,10 @@ export abstract class ToolBase {
         return true;
     }
 
+    public isEnabled(): boolean {
+        return this.registeredTool?.enabled ?? false;
+    }
+
     protected disable(): void {
         if (!this.registeredTool) {
             this.session.logger.warning({
