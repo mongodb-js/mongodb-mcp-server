@@ -61,6 +61,7 @@ describe("config", () => {
             vectorSearchSimilarityFunction: "euclidean",
             disableEmbeddingsValidation: false,
             previewFeatures: [],
+            allowRequestOverrides: false,
         };
         expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
     });
@@ -99,6 +100,7 @@ describe("config", () => {
             vectorSearchSimilarityFunction: "euclidean",
             disableEmbeddingsValidation: false,
             previewFeatures: [],
+            allowRequestOverrides: false,
         };
         expect(createUserConfig()).toStrictEqual(expectedDefaults);
     });
