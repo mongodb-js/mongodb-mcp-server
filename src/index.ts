@@ -44,6 +44,7 @@ import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
+import { DryModeRunner } from "./transports/dryModeRunner.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -51,6 +52,7 @@ async function main(): Promise<void> {
     const config = createUserConfig();
     assertHelpMode(config);
     assertVersionMode(config);
+    await DryModeRunner.assertDryMode({ userConfig: config });
 
     const transportRunner =
         config.transport === "stdio"

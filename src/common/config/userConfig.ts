@@ -173,4 +173,10 @@ export const UserConfigSchema = z4.object({
         )
         .default([])
         .describe("An array of preview features that are enabled."),
+    dry: z4
+        .boolean()
+        .default(false)
+        .describe(
+            "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
+        ),
 });
