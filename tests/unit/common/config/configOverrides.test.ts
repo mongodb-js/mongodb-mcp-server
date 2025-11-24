@@ -141,7 +141,7 @@ describe("configOverrides", () => {
         });
 
         describe("not-allowed behavior", () => {
-            it("shoud have some not-allowed fields", () => {
+            it("should have some not-allowed fields", () => {
                 expect(
                     Object.keys(UserConfigSchema.shape).filter(
                         (key) => getConfigMeta(key as any)?.overrideBehavior === "not-allowed"
