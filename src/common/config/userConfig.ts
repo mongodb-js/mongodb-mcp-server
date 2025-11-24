@@ -207,4 +207,11 @@ export const UserConfigSchema = z4.object({
         .default([])
         .describe("An array of preview features that are enabled.")
         .register(configRegistry, { overrideBehavior: "merge" }),
+    allowRequestOverrides: z4
+        .preprocess(parseBoolean, z4.boolean())
+        .default(false)
+        .describe(
+            "When set to true, allows configuration values to be overridden via request headers and query parameters."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });

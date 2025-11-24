@@ -48,11 +48,34 @@ describe("Config Overrides via HTTP", () => {
     });
 
     describe("override behavior", () => {
+        it("should not apply overrides when allowRequestOverrides is false", async () => {
+            await startRunner({
+                ...defaultTestConfig,
+                httpPort: 0,
+                readOnly: false,
+                allowRequestOverrides: false,
+            });
+
+            await connectClient({
+                ["x-mongodb-mcp-read-only"]: "true",
+            });
+
+            const response = await client.listTools();
+
+            expect(response).toBeDefined();
+            expect(response.tools).toBeDefined();
+
+            // Verify read-only mode is NOT applied - insert-many should still be available
+            const writeTools = response.tools.filter((tool) => tool.name === "insert-many");
+            expect(writeTools.length).toBe(1);
+        });
+
         it("should override readOnly config via header (false to true)", async () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
                 readOnly: false,
+                allowRequestOverrides: true,
             });
 
             await connectClient({
@@ -78,6 +101,7 @@ describe("Config Overrides via HTTP", () => {
                 ...defaultTestConfig,
                 httpPort: 0,
                 connectionString: undefined,
+                allowRequestOverrides: true,
             });
 
             await connectClient({
@@ -96,6 +120,7 @@ describe("Config Overrides via HTTP", () => {
                 ...defaultTestConfig,
                 httpPort: 0,
                 disabledTools: ["insert-many"],
+                allowRequestOverrides: true,
             });
 
             await connectClient({
@@ -158,6 +183,7 @@ describe("Config Overrides via HTTP", () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
+                allowRequestOverrides: true,
             });
 
             try {
@@ -178,6 +204,7 @@ describe("Config Overrides via HTTP", () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
+                allowRequestOverrides: true,
             });
 
             try {
@@ -208,6 +235,7 @@ describe("Config Overrides via HTTP", () => {
                 ...defaultTestConfig,
                 httpPort: 0,
                 readOnly: false,
+                allowRequestOverrides: true,
             });
 
             // Note: SDK doesn't support query params directly, so this test verifies the mechanism exists
@@ -230,6 +258,7 @@ describe("Config Overrides via HTTP", () => {
                 ...defaultTestConfig,
                 httpPort: 0,
                 readOnly: false,
+                allowRequestOverrides: true,
             };
 
             // createSessionConfig receives the config after header overrides are applied
@@ -274,6 +303,7 @@ describe("Config Overrides via HTTP", () => {
             const userConfig = {
                 ...defaultTestConfig,
                 httpPort: 0,
+                allowRequestOverrides: true,
             };
 
             let capturedRequest: RequestContext | undefined;
@@ -308,6 +338,7 @@ describe("Config Overrides via HTTP", () => {
                 ...defaultTestConfig,
                 httpPort: 0,
                 readOnly: false,
+                allowRequestOverrides: true,
             });
 
             await connectClient({
@@ -332,6 +363,7 @@ describe("Config Overrides via HTTP", () => {
                 ...defaultTestConfig,
                 httpPort: 0,
                 readOnly: true,
+                allowRequestOverrides: true,
             });
 
             try {
@@ -360,6 +392,7 @@ describe("Config Overrides via HTTP", () => {
                 indexCheck: false,
                 idleTimeoutMs: 600_000,
                 disabledTools: ["tool1"],
+                allowRequestOverrides: true,
             });
 
             await connectClient({

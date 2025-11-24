@@ -20,6 +20,7 @@ describe("configOverrides", () => {
         exportTimeoutMs: 300_000,
         exportCleanupIntervalMs: 120_000,
         atlasTemporaryDatabaseUserLifetimeMs: 14_400_000,
+        allowRequestOverrides: true,
     };
 
     describe("helper functions", () => {
@@ -65,6 +66,51 @@ describe("configOverrides", () => {
         it("should return base config when request has no headers or query", () => {
             const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request: {} });
             expect(result).toEqual(baseConfig);
+        });
+
+        describe("allowRequestOverrides", () => {
+            it("should not apply overrides when allowRequestOverrides is false", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-read-only": "true",
+                        "x-mongodb-mcp-idle-timeout-ms": "300000",
+                    },
+                };
+                const configWithOverridesDisabled = {
+                    ...baseConfig,
+                    allowRequestOverrides: false,
+                } as UserConfig;
+                const result = applyConfigOverrides({ baseConfig: configWithOverridesDisabled, request });
+                // Config should remain unchanged
+                expect(result.readOnly).toBe(false);
+                expect(result.idleTimeoutMs).toBe(600_000);
+            });
+
+            it("should apply overrides when allowRequestOverrides is true", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-read-only": "true",
+                        "x-mongodb-mcp-idle-timeout-ms": "300000",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                // Config should be overridden
+                expect(result.readOnly).toBe(true);
+                expect(result.idleTimeoutMs).toBe(300000);
+            });
+
+            it("should not apply overrides by default when allowRequestOverrides is not set", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-read-only": "true",
+                    },
+                };
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { allowRequestOverrides, ...configWithoutOverridesFlag } = baseConfig;
+                const result = applyConfigOverrides({ baseConfig: configWithoutOverridesFlag as UserConfig, request });
+                // Should not apply overrides since the default is false
+                expect(result.readOnly).toBe(false);
+            });
         });
 
         describe("override behavior", () => {
@@ -162,6 +208,7 @@ describe("configOverrides", () => {
                     "maxDocumentsPerQuery",
                     "exportsPath",
                     "voyageApiKey",
+                    "allowRequestOverrides",
                 ]);
             });
 

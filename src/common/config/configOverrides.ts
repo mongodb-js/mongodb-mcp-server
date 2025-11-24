@@ -25,6 +25,11 @@ export function applyConfigOverrides({
         return baseConfig;
     }
 
+    // Only apply overrides if allowRequestOverrides is enabled
+    if (!baseConfig.allowRequestOverrides) {
+        return baseConfig;
+    }
+
     const result: UserConfig = { ...baseConfig };
     const overridesFromHeaders = extractConfigOverrides("header", request.headers);
     const overridesFromQuery = extractConfigOverrides("query", request.query);
