@@ -144,7 +144,9 @@ describe("configOverrides", () => {
             it("should have some not-allowed fields", () => {
                 expect(
                     Object.keys(UserConfigSchema.shape).filter(
-                        (key) => getConfigMeta(key as any)?.overrideBehavior === "not-allowed"
+                        (key) =>
+                            getConfigMeta(key as keyof typeof UserConfigSchema.shape)?.overrideBehavior ===
+                            "not-allowed"
                     )
                 ).toEqual([
                     "apiBaseUrl",
@@ -183,8 +185,11 @@ describe("configOverrides", () => {
             it("should have certain config keys to be conditionally overridden", () => {
                 expect(
                     Object.keys(UserConfigSchema.shape)
-                        .map((key) => [key, getConfigMeta(key as any)?.overrideBehavior])
-                        .filter(([_, behavior]) => typeof behavior === "function")
+                        .map((key) => [
+                            key,
+                            getConfigMeta(key as keyof typeof UserConfigSchema.shape)?.overrideBehavior,
+                        ])
+                        .filter(([, behavior]) => typeof behavior === "function")
                         .map(([key]) => key)
                 ).toEqual(["readOnly", "indexCheck", "disableEmbeddingsValidation"]);
             });

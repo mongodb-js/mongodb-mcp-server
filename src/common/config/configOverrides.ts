@@ -1,7 +1,7 @@
 import type { UserConfig } from "./userConfig.js";
 import { UserConfigSchema, configRegistry } from "./userConfig.js";
 import type { RequestContext } from "../../transports/base.js";
-import type { OverrideBehavior } from "./configUtils.js";
+import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
 
 export const CONFIG_HEADER_PREFIX = "x-mongodb-mcp-";
 export const CONFIG_QUERY_PREFIX = "mongodbMcp";
@@ -38,7 +38,7 @@ export function applyConfigOverrides({
         const behavior = getConfigMeta(key)?.overrideBehavior || "not-allowed";
         const baseValue = baseConfig[key as keyof UserConfig];
         const newValue = applyOverride(key, baseValue, overrideValue, behavior);
-        (result as any)[key] = newValue;
+        (result as Record<keyof UserConfig, unknown>)[key] = newValue;
     }
 
     return result;
@@ -87,7 +87,7 @@ function assertValidConfigKey(key: string): asserts key is keyof typeof UserConf
 /**
  * Gets the schema metadata for a config key.
  */
-export function getConfigMeta(key: keyof typeof UserConfigSchema.shape) {
+export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigFieldMeta | undefined {
     return configRegistry.get(UserConfigSchema.shape[key]);
 }
 
@@ -95,7 +95,7 @@ export function getConfigMeta(key: keyof typeof UserConfigSchema.shape) {
  * Parses a string value to the appropriate type using the Zod schema.
  */
 function parseConfigValue(key: keyof typeof UserConfigSchema.shape, value: unknown): unknown {
-    const fieldSchema = UserConfigSchema.shape[key as keyof typeof UserConfigSchema.shape];
+    const fieldSchema = UserConfigSchema.shape[key];
     if (!fieldSchema) {
         throw new Error(`Invalid config key: ${key}`);
     }
@@ -114,7 +114,7 @@ export function nameToConfigKey(mode: "header" | "query", name: string): string 
     if (mode === "header" && lowerCaseName.startsWith(CONFIG_HEADER_PREFIX)) {
         const normalized = lowerCaseName.substring(CONFIG_HEADER_PREFIX.length);
         // Convert kebab-case to camelCase
-        return normalized.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+        return normalized.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
     }
     if (mode === "query" && name.startsWith(CONFIG_QUERY_PREFIX)) {
         const withoutPrefix = name.substring(CONFIG_QUERY_PREFIX.length);
@@ -148,7 +148,7 @@ function applyOverride(
 
         case "merge":
             if (Array.isArray(baseValue) && Array.isArray(overrideValue)) {
-                return [...baseValue, ...overrideValue];
+                return [...(baseValue as unknown[]), ...(overrideValue as unknown[])];
             }
             throw new Error("Cannot merge non-array values, did you mean to use the 'override' behavior?");
 

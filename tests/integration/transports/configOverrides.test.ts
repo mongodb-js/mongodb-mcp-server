@@ -2,7 +2,9 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
-import { defaultTestConfig } from "../helpers.js";
+import { defaultTestConfig, expectDefined } from "../helpers.js";
+import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
+import type { RequestContext } from "../../../src/transports/base.js";
 
 describe("Config Overrides via HTTP", () => {
     let runner: StreamableHttpRunner;
@@ -10,13 +12,16 @@ describe("Config Overrides via HTTP", () => {
     let transport: StreamableHTTPClientTransport;
 
     // Helper function to setup and start runner with config
-    async function startRunner(config: any, createSessionConfig?: any) {
+    async function startRunner(
+        config: UserConfig,
+        createSessionConfig?: TransportRunnerConfig["createSessionConfig"]
+    ): Promise<void> {
         runner = new StreamableHttpRunner({ userConfig: config, createSessionConfig });
         await runner.start();
     }
 
     // Helper function to connect client with headers
-    async function connectClient(headers: Record<string, string> = {}) {
+    async function connectClient(headers: Record<string, string> = {}): Promise<void> {
         transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
             requestInit: { headers },
         });
@@ -106,7 +111,8 @@ describe("Config Overrides via HTTP", () => {
             const insertTool = response.tools.find(
                 (tool) => tool.name === "insert-many" || tool.name === "find" || tool.name === "aggregate"
             );
-            expect(response.tools).is.not.empty;
+
+            expect(response.tools).not.toHaveLength(0);
             expect(insertTool).toBeUndefined();
         });
     });
@@ -228,14 +234,15 @@ describe("Config Overrides via HTTP", () => {
 
             // createSessionConfig receives the config after header overrides are applied
             // It can further modify it, but headers have already been applied
-            const createSessionConfig = async ({
+            const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = ({
                 userConfig: config,
                 request,
             }: {
                 userConfig: typeof userConfig;
-                request?: any;
-            }) => {
-                expect(request).toBeDefined();
+                request?: RequestContext;
+            }): typeof userConfig => {
+                expectDefined(request);
+                expectDefined(request.headers);
                 expect(request.headers).toBeDefined();
                 config.readOnly = request.headers["x-mongodb-mcp-read-only"] === "true";
                 config.disabledTools = ["count"];
@@ -260,7 +267,7 @@ describe("Config Overrides via HTTP", () => {
             const countTool = response.tools.find((tool) => tool.name === "count");
             expect(countTool).toBeUndefined();
 
-            expect(response.tools).is.not.empty;
+            expect(response.tools).not.toHaveLength(0);
         });
 
         it("should pass request context to createSessionConfig", async () => {
@@ -269,10 +276,17 @@ describe("Config Overrides via HTTP", () => {
                 httpPort: 0,
             };
 
-            let capturedRequest: any;
-            const createSessionConfig = async ({ request }: { userConfig: typeof userConfig; request?: any }) => {
+            let capturedRequest: RequestContext | undefined;
+            const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = ({
+                request,
+            }: {
+                userConfig: typeof userConfig;
+                request?: RequestContext;
+            }): Promise<typeof userConfig> => {
+                expectDefined(request);
+                expectDefined(request.headers);
                 capturedRequest = request;
-                return userConfig;
+                return Promise.resolve(userConfig);
             };
 
             await startRunner(userConfig, createSessionConfig);
@@ -282,7 +296,8 @@ describe("Config Overrides via HTTP", () => {
             });
 
             // Verify that request context was passed
-            expect(capturedRequest).toBeDefined();
+            expectDefined(capturedRequest);
+            expectDefined(capturedRequest.headers);
             expect(capturedRequest.headers["x-custom-header"]).toBe("test-value");
         });
     });

@@ -2,8 +2,8 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { TransportRunnerConfig } from "../../../src/lib.js";
-import { defaultTestConfig } from "../helpers.js";
+import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
+import { defaultTestConfig, expectDefined } from "../helpers.js";
 
 describe("createSessionConfig", () => {
     const userConfig = defaultTestConfig;
@@ -17,7 +17,7 @@ describe("createSessionConfig", () => {
             userConfig?: typeof userConfig;
             createSessionConfig?: TransportRunnerConfig["createSessionConfig"];
         } = {}
-    ) => {
+    ): Promise<StreamableHttpRunner> => {
         runner = new StreamableHttpRunner({
             userConfig: { ...userConfig, httpPort: 0, ...config.userConfig },
             createSessionConfig: config.createSessionConfig,
@@ -27,13 +27,13 @@ describe("createSessionConfig", () => {
     };
 
     // Helper to setup server and get user config
-    const getServerConfig = async () => {
+    const getServerConfig = async (): Promise<UserConfig> => {
         const server = await runner["setupServer"]();
         return server.userConfig;
     };
 
     // Helper to create and connect client
-    const createConnectedClient = async () => {
+    const createConnectedClient = async (): Promise<{ client: Client; transport: StreamableHTTPClientTransport }> => {
         client = new Client({ name: "test-client", version: "1.0.0" });
         transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`));
         await client.connect(transport);
@@ -109,9 +109,9 @@ describe("createSessionConfig", () => {
             });
 
             await createConnectedClient();
-            const response = await client!.listTools();
+            const response = await client?.listTools();
+            expectDefined(response);
 
-            expect(response).toBeDefined();
             expect(response.tools).toBeDefined();
             expect(response.tools.length).toBeGreaterThan(0);
 
