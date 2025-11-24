@@ -20,9 +20,11 @@ import { CreateCollectionTool } from "./create/createCollection.js";
 import { LogsTool } from "./metadata/logs.js";
 import { ExportTool } from "./read/export.js";
 import { DropIndexTool } from "./delete/dropIndex.js";
+import { SwitchConnectionTool } from "./connect/switchConnection.js";
 
 export const MongoDbTools = [
     ConnectTool,
+    SwitchConnectionTool,
     ListCollectionsTool,
     ListDatabasesTool,
     CollectionIndexesTool,
