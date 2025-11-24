@@ -330,7 +330,7 @@ describe("Config Overrides via HTTP", () => {
                 }
                 expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
                 expect(error.message).toContain(
-                    `Cannot apply override for readOnly from true to false: Cannot disable readOnly mode`
+                    `Cannot apply override for readOnly from true to false: Can only set to true`
                 );
             }
         });

@@ -125,3 +125,14 @@ export function parseBoolean(val: unknown): unknown {
     }
     return false;
 }
+
+/** Allow overriding only to the allowed value */
+export function oneWayOverride<T>(allowedValue: T): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        // Only allow override if setting to true from false
+        if (newValue === allowedValue) {
+            return newValue;
+        }
+        throw new Error(`Can only set to ${allowedValue ? "true" : "false"}`);
+    };
+}

@@ -5,6 +5,7 @@ import {
     commaSeparatedToArray,
     getExportsPath,
     getLogPath,
+    oneWayOverride,
     parseBoolean,
 } from "./configUtils.js";
 import { previewFeatureValues, similarityValues } from "../schemas.js";
@@ -86,13 +87,7 @@ export const UserConfigSchema = z4.object({
             "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations."
         )
         .register(configRegistry, {
-            overrideBehavior: (oldValue, newValue) => {
-                // Only allow override if setting to true from false
-                if (oldValue === false && newValue === true) {
-                    return newValue;
-                }
-                throw new Error("Cannot disable readOnly mode");
-            },
+            overrideBehavior: oneWayOverride(true),
         }),
     indexCheck: z4
         .preprocess(parseBoolean, z4.boolean())
@@ -101,13 +96,7 @@ export const UserConfigSchema = z4.object({
             "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan."
         )
         .register(configRegistry, {
-            overrideBehavior: (oldValue, newValue) => {
-                // Only allow override if setting to true from false
-                if (newValue === true) {
-                    return newValue;
-                }
-                throw new Error("Cannot disable indexCheck mode");
-            },
+            overrideBehavior: oneWayOverride(true),
         }),
     telemetry: z4
         .enum(["enabled", "disabled"])
@@ -198,13 +187,7 @@ export const UserConfigSchema = z4.object({
         .default(false)
         .describe("When set to true, disables validation of embeddings dimensions.")
         .register(configRegistry, {
-            overrideBehavior: (oldValue, newValue) => {
-                // Only allow override if setting to false from true (making more restrictive)
-                if (newValue === false) {
-                    return newValue;
-                }
-                throw new Error("Cannot disable disableEmbeddingsValidation");
-            },
+            overrideBehavior: oneWayOverride(false),
         }),
     vectorSearchDimensions: z4.coerce
         .number()
