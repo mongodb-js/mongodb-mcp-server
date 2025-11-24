@@ -123,7 +123,7 @@ export function parseBoolean(val: unknown): unknown {
     if (typeof val === "number") {
         return val !== 0;
     }
-    return false;
+    return !!val;
 }
 
 /** Allow overriding only to the allowed value */

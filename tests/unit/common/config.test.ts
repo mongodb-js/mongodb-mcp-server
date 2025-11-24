@@ -452,6 +452,30 @@ describe("config", () => {
                     cli: ["--version"],
                     expected: { version: true },
                 },
+                {
+                    cli: ["--allowRequestOverrides", "false"],
+                    expected: { allowRequestOverrides: false },
+                },
+                {
+                    cli: ["--allowRequestOverrides", "0"],
+                    expected: { allowRequestOverrides: false },
+                },
+                {
+                    cli: ["--allowRequestOverrides", "1"],
+                    expected: { allowRequestOverrides: true },
+                },
+                {
+                    cli: ["--allowRequestOverrides", "true"],
+                    expected: { allowRequestOverrides: true },
+                },
+                {
+                    cli: ["--allowRequestOverrides", "yes"],
+                    expected: { allowRequestOverrides: true },
+                },
+                {
+                    cli: ["--allowRequestOverrides", ""],
+                    expected: { allowRequestOverrides: false },
+                },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 
             for (const { cli, expected } of testCases) {
