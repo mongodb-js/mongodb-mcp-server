@@ -84,6 +84,8 @@ When using the `disk` logger, log files are stored in:
 
 You can override the log directory with the `logPath` option.
 
+> **🔒 Security Note:** When configuring a custom `logPath`, ensure the directory is owned and writable only by the user running the MongoDB MCP server process. On Linux/macOS, use `chmod 700` and verify ownership with `chown`. On Windows, restrict write permissions to the service account only.
+
 ### Disabled Tools
 
 You can disable specific tools or categories of tools by using the `disabledTools` option. This option accepts an array of strings,
@@ -152,6 +154,8 @@ The data exported by the `export` tool is temporarily stored in the configured `
 
 - **Windows:** `%LOCALAPPDATA%\mongodb\mongodb-mcp\exports`
 - **macOS/Linux:** `~/.mongodb/mongodb-mcp/exports`
+
+> **🔒 Security Note:** When configuring a custom `exportsPath`, ensure the directory is owned and writable only by the user running the MongoDB MCP server process. Exported data may contain sensitive information from your database. On Linux/macOS, use `chmod 700` and verify ownership with `chown`. On Windows, restrict write permissions to the service account only.
 
 The `exportTimeoutMs` configuration controls the time after which the exported data is considered expired and eligible for cleanup. By default, exports expire after 5 minutes (300000ms).
 
