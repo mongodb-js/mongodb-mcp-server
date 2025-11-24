@@ -29,7 +29,7 @@ jobs:
           MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
           MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
-        run: pnpm test -- tests/integration/tools/atlas --project=long-running-tests
+        run: pnpm test tests/integration/tools/atlas --project=long-running-tests
       - name: Upload test results
         uses: actions/upload-artifact@v5
         if: always()

@@ -72,8 +72,8 @@ You can run tests using the following pnpm scripts:
 To run a specific test file or directory:
 
 ```bash
-pnpm test -- path/to/test/file.test.ts
-pnpm test -- path/to/directory
+pnpm test path/to/test/file.test.ts
+pnpm test path/to/directory
 ```
 
 #### Accuracy Tests and colima

@@ -69,7 +69,7 @@ jobs:
           MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
           MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
-        run: pnpm test -- tests/integration/tools/atlas/
+        run: pnpm test tests/integration/tools/atlas/
       - name: Upload test results
         uses: actions/upload-artifact@v5
         if: always()
@@ -94,7 +94,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run tests
-        run: pnpm test -- tests/integration/tools/atlas-local/
+        run: pnpm test tests/integration/tools/atlas-local/
       - name: Upload test results
         uses: actions/upload-artifact@v5
         if: always()
