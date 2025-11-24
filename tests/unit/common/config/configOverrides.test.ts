@@ -141,6 +141,28 @@ describe("configOverrides", () => {
         });
 
         describe("not-allowed behavior", () => {
+            it("shoud have some not-allowed fields", () => {
+                expect(
+                    Object.keys(UserConfigSchema.shape).filter(
+                        (key) => getConfigMeta(key as any)?.overrideBehavior === "not-allowed"
+                    )
+                ).toEqual([
+                    "apiBaseUrl",
+                    "apiClientId",
+                    "apiClientSecret",
+                    "logPath",
+                    "telemetry",
+                    "transport",
+                    "httpPort",
+                    "httpHost",
+                    "httpHeaders",
+                    "maxBytesPerQuery",
+                    "maxDocumentsPerQuery",
+                    "exportsPath",
+                    "voyageApiKey",
+                ]);
+            });
+
             it("should throw an error for not-allowed fields", () => {
                 const request: RequestContext = {
                     headers: {
@@ -157,7 +179,7 @@ describe("configOverrides", () => {
             });
         });
 
-        describe("conditional overrides", () => {
+        describe("custom overrides", () => {
             it("should have certain config keys to be conditionally overridden", () => {
                 expect(
                     Object.keys(UserConfigSchema.shape)
@@ -180,7 +202,7 @@ describe("configOverrides", () => {
                 const request: RequestContext = { headers: { "x-mongodb-mcp-read-only": "false" } };
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, readOnly: true } as UserConfig, request })
-                ).toThrow("Config override validation failed for readOnly");
+                ).toThrow("Cannot apply override for readOnly from true to false: Cannot disable readOnly mode");
             });
 
             it("should allow indexCheck override from false to true", () => {
@@ -196,7 +218,7 @@ describe("configOverrides", () => {
                 const request: RequestContext = { headers: { "x-mongodb-mcp-index-check": "false" } };
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, indexCheck: true } as UserConfig, request })
-                ).toThrow("Config override validation failed for indexCheck");
+                ).toThrow("Cannot apply override for indexCheck from true to false: Cannot disable indexCheck mode");
             });
 
             it("should allow disableEmbeddingsValidation override from true to false", () => {
@@ -215,7 +237,9 @@ describe("configOverrides", () => {
                         baseConfig: { ...baseConfig, disableEmbeddingsValidation: false } as UserConfig,
                         request,
                     })
-                ).toThrow("Config override validation failed for disableEmbeddingsValidation");
+                ).toThrow(
+                    "Cannot apply override for disableEmbeddingsValidation from false to true: Cannot disable disableEmbeddingsValidation"
+                );
             });
         });
 

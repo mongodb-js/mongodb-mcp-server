@@ -5,8 +5,9 @@ import * as levenshteinModule from "ts-levenshtein";
 const levenshtein = levenshteinModule.default;
 
 /// Custom logic function to apply the override value.
-/// Returns true if the override should be applied, false otherwise.
-export type CustomOverrideLogic = (oldValue: unknown, newValue: unknown) => boolean;
+/// Returns the value to use (which may be transformed from newValue).
+/// Should throw an error if the override cannot be applied.
+export type CustomOverrideLogic = (oldValue: unknown, newValue: unknown) => unknown;
 
 /**
  * Defines how a config field can be overridden via HTTP headers or query parameters.

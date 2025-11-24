@@ -132,13 +132,15 @@ function applyOverride(
     behavior: OverrideBehavior
 ): unknown {
     if (typeof behavior === "function") {
-        const shouldApply = behavior(baseValue, overrideValue);
-        if (!shouldApply) {
+        // Custom logic function returns the value to use (potentially transformed)
+        // or throws an error if the override cannot be applied
+        try {
+            return behavior(baseValue, overrideValue);
+        } catch (error) {
             throw new Error(
-                `Config override validation failed for ${key}: cannot override from ${JSON.stringify(baseValue)} to ${JSON.stringify(overrideValue)}`
+                `Cannot apply override for ${key} from ${JSON.stringify(baseValue)} to ${JSON.stringify(overrideValue)}: ${error instanceof Error ? error.message : String(error)}`
             );
         }
-        return overrideValue;
     }
     switch (behavior) {
         case "override":

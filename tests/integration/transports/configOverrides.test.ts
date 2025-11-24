@@ -68,27 +68,6 @@ describe("Config Overrides via HTTP", () => {
             expect(readTools.length).toBe(1);
         });
 
-        it("should NOT override readOnly from true to false", async () => {
-            await startRunner({
-                ...defaultTestConfig,
-                httpPort: 0,
-                readOnly: true,
-            });
-
-            try {
-                await connectClient({
-                    ["x-mongodb-mcp-read-only"]: "false",
-                });
-                expect.fail("Expected an error to be thrown");
-            } catch (error) {
-                if (!(error instanceof Error)) {
-                    throw new Error("Expected an error to be thrown");
-                }
-                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
-                expect(error.message).toContain(`Config override validation failed for readOnly`);
-            }
-        });
-
         it("should override connectionString via header", async () => {
             await startRunner({
                 ...defaultTestConfig,
@@ -350,7 +329,9 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown");
                 }
                 expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
-                expect(error.message).toContain(`Config override validation failed for readOnly`);
+                expect(error.message).toContain(
+                    `Cannot apply override for readOnly from true to false: Cannot disable readOnly mode`
+                );
             }
         });
     });

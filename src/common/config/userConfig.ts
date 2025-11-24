@@ -89,9 +89,9 @@ export const UserConfigSchema = z4.object({
             overrideBehavior: (oldValue, newValue) => {
                 // Only allow override if setting to true from false
                 if (oldValue === false && newValue === true) {
-                    return true;
+                    return newValue;
                 }
-                return false;
+                throw new Error("Cannot disable readOnly mode");
             },
         }),
     indexCheck: z4
@@ -103,10 +103,10 @@ export const UserConfigSchema = z4.object({
         .register(configRegistry, {
             overrideBehavior: (oldValue, newValue) => {
                 // Only allow override if setting to true from false
-                if (oldValue === false && newValue === true) {
-                    return true;
+                if (newValue === true) {
+                    return newValue;
                 }
-                return false;
+                throw new Error("Cannot disable indexCheck mode");
             },
         }),
     telemetry: z4
@@ -200,10 +200,10 @@ export const UserConfigSchema = z4.object({
         .register(configRegistry, {
             overrideBehavior: (oldValue, newValue) => {
                 // Only allow override if setting to false from true (making more restrictive)
-                if (oldValue === true && newValue === false) {
-                    return true;
+                if (newValue === false) {
+                    return newValue;
                 }
-                return false;
+                throw new Error("Cannot disable disableEmbeddingsValidation");
             },
         }),
     vectorSearchDimensions: z4.coerce
