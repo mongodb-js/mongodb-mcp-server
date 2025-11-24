@@ -3,3 +3,4 @@ coverage
 package-lock.json
 tests/tmp
 src/common/atlas/openapi.d.ts
+pnpm-lock.yaml

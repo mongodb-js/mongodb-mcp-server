@@ -76,6 +76,7 @@
   "devDependencies": {
     "@ai-sdk/azure": "^2.0.53",
     "@ai-sdk/google": "^2.0.23",
+    "@ai-sdk/mcp": "^0.0.8",
     "@ai-sdk/openai": "^2.0.52",
     "@eslint/js": "^9.34.0",
     "@modelcontextprotocol/inspector": "^0.17.1",
