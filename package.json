@@ -148,5 +148,9 @@
       "mongodb": "^6.21.0",
       "kerberos": "^2.2.2"
     }
+  },
+  "overrides": {
+    "mongodb": "^6.21.0",
+    "kerberos": "^2.2.2"
   }
 }
