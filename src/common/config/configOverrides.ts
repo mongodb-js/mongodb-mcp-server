@@ -26,14 +26,17 @@ export function applyConfigOverrides({
         return baseConfig;
     }
 
-    // Only apply overrides if allowRequestOverrides is enabled
-    if (!baseConfig.allowRequestOverrides) {
-        throw new Error("Request overrides are not enabled");
-    }
-
     const result: UserConfig = { ...baseConfig };
     const overridesFromHeaders = extractConfigOverrides("header", request.headers);
     const overridesFromQuery = extractConfigOverrides("query", request.query);
+
+    // Only apply overrides if allowRequestOverrides is enabled
+    if (
+        !baseConfig.allowRequestOverrides &&
+        (Object.keys(overridesFromHeaders).length > 0 || Object.keys(overridesFromQuery).length > 0)
+    ) {
+        throw new Error("Request overrides are not enabled");
+    }
 
     // Apply header overrides first
     for (const [key, overrideValue] of Object.entries(overridesFromHeaders)) {
