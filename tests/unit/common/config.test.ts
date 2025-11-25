@@ -64,7 +64,7 @@ describe("config", () => {
             voyageApiKey: "",
             vectorSearchDimensions: 1024,
             vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
+            embeddingsValidation: true,
             previewFeatures: [],
             allowRequestOverrides: false,
         };
@@ -103,7 +103,7 @@ describe("config", () => {
             voyageApiKey: "",
             vectorSearchDimensions: 1024,
             vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
+            embeddingsValidation: true,
             previewFeatures: [],
             allowRequestOverrides: false,
         };
@@ -134,6 +134,15 @@ describe("config", () => {
                 { envVar: "MDB_MCP_LOG_PATH", property: "logPath", value: "/var/log" },
                 { envVar: "MDB_MCP_CONNECTION_STRING", property: "connectionString", value: "mongodb://localhost" },
                 { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: true },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "false", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "true", expectedValue: true },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "apple", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "FALSE", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 0, expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 1, expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 100, expectedValue: false },
                 { envVar: "MDB_MCP_INDEX_CHECK", property: "indexCheck", value: true },
                 { envVar: "MDB_MCP_TRANSPORT", property: "transport", value: "http" },
                 { envVar: "MDB_MCP_HTTP_PORT", property: "httpPort", value: 8080 },
@@ -145,13 +154,18 @@ describe("config", () => {
                     property: "atlasTemporaryDatabaseUserLifetimeMs",
                     value: 12345,
                 },
-            ] as const;
+            ] as {
+                envVar: string;
+                property: keyof UserConfig;
+                value: unknown;
+                expectedValue?: unknown;
+            }[];
 
-            for (const { envVar, property, value } of testCases) {
-                it(`should map ${envVar} to ${property} with value "${value}"`, () => {
+            for (const { envVar, property, value, expectedValue } of testCases) {
+                it(`should map ${envVar} to ${property} with value "${String(value)}" to "${String(expectedValue ?? value)}"`, () => {
                     setVariable(envVar, value);
                     const actual = createUserConfig();
-                    expect(actual[property]).toBe(value);
+                    expect(actual[property]).toBe(expectedValue ?? value);
                 });
             }
         });
@@ -458,28 +472,42 @@ describe("config", () => {
                     expected: { version: true },
                 },
                 {
-                    cli: ["--allowRequestOverrides", "false"],
-                    expected: { allowRequestOverrides: false },
+                    cli: ["--readOnly"],
+                    expected: { readOnly: true },
                 },
                 {
-                    cli: ["--allowRequestOverrides", "0"],
-                    expected: { allowRequestOverrides: false },
+                    cli: ["--readOnly", "false"],
+                    expected: { readOnly: false },
                 },
                 {
-                    cli: ["--allowRequestOverrides", "1"],
-                    expected: { allowRequestOverrides: true },
+                    cli: ["--readOnly", "FALSE"],
+                    // This is yargs-parser default
+                    expected: { readOnly: true },
                 },
                 {
-                    cli: ["--allowRequestOverrides", "true"],
-                    expected: { allowRequestOverrides: true },
+                    cli: ["--readOnly", "0"],
+                    // This is yargs-parser default
+                    expected: { readOnly: true },
                 },
                 {
-                    cli: ["--allowRequestOverrides", "yes"],
-                    expected: { allowRequestOverrides: true },
+                    cli: ["--readOnly", "1"],
+                    expected: { readOnly: true },
                 },
                 {
-                    cli: ["--allowRequestOverrides", ""],
-                    expected: { allowRequestOverrides: false },
+                    cli: ["--readOnly", "true"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "yes"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "no"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", ""],
+                    expected: { readOnly: true },
                 },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 

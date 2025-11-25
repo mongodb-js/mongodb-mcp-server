@@ -56,17 +56,19 @@ function createDummyFindCursor(
     let index = 0;
     const readable = new Readable({
         objectMode: true,
-        async read(): Promise<void> {
-            try {
-                await beforeEachChunk?.(index);
-                if (index < dataArray.length) {
-                    this.push(dataArray[index++]);
-                } else {
-                    this.push(null);
+        read(): void {
+            void (async (): Promise<void> => {
+                try {
+                    await beforeEachChunk?.(index);
+                    if (index < dataArray.length) {
+                        this.push(dataArray[index++]);
+                    } else {
+                        this.push(null);
+                    }
+                } catch (error) {
+                    this.destroy(error as Error);
                 }
-            } catch (error) {
-                this.destroy(error as Error);
-            }
+            })();
         },
     });
 

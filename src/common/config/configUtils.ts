@@ -114,10 +114,13 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
 export function parseBoolean(val: unknown): unknown {
     if (typeof val === "string") {
         const lower = val.toLowerCase().trim();
-        if (lower === "false" || lower === "0" || lower === "") {
+        if (lower === "false") {
             return false;
         }
-        return true;
+        if (lower === "true") {
+            return true;
+        }
+        throw new Error(`Invalid boolean value: ${val}`);
     }
     if (typeof val === "boolean") {
         return val;

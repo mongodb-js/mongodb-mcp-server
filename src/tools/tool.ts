@@ -1,4 +1,4 @@
-import type { z, AnyZodObject } from "zod";
+import type { z } from "zod";
 import { type ZodRawShape, type ZodNever } from "zod";
 import type { RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
@@ -57,10 +57,11 @@ export abstract class ToolBase {
 
     protected abstract argsShape: ZodRawShape;
 
+    private registeredTool: RegisteredTool | undefined;
+
     protected get annotations(): ToolAnnotations {
         const annotations: ToolAnnotations = {
             title: this.name,
-            description: this.description,
         };
 
         switch (this.operationType) {
@@ -169,53 +170,44 @@ export abstract class ToolBase {
             }
         };
 
-        server.mcpServer.tool(this.name, this.description, this.argsShape, this.annotations, callback);
-
-        // This is very similar to RegisteredTool.update, but without the bugs around the name.
-        // In the upstream update method, the name is captured in the closure and not updated when
-        // the tool name changes. This means that you only get one name update before things end up
-        // in a broken state.
-        // See https://github.com/modelcontextprotocol/typescript-sdk/issues/414 for more details.
-        this.update = (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }): void => {
-            const tools = server.mcpServer["_registeredTools"] as { [toolName: string]: RegisteredTool };
-            const existingTool = tools[this.name];
-
-            if (!existingTool) {
-                this.session.logger.warning({
-                    id: LogId.toolUpdateFailure,
-                    context: "tool",
-                    message: `Tool ${this.name} not found in update`,
-                    noRedaction: true,
-                });
-                return;
-            }
-
-            existingTool.annotations = this.annotations;
-
-            if (updates.name && updates.name !== this.name) {
-                existingTool.annotations.title = updates.name;
-                delete tools[this.name];
-                this.name = updates.name;
-                tools[this.name] = existingTool;
-            }
-
-            if (updates.description) {
-                existingTool.annotations.description = updates.description;
-                existingTool.description = updates.description;
-                this.description = updates.description;
-            }
-
-            if (updates.inputSchema) {
-                existingTool.inputSchema = updates.inputSchema;
-            }
-
-            server.mcpServer.sendToolListChanged();
-        };
+        this.registeredTool = server.mcpServer.tool(
+            this.name,
+            this.description,
+            this.argsShape,
+            this.annotations,
+            callback
+        );
 
         return true;
     }
 
-    protected update?: (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }) => void;
+    public isEnabled(): boolean {
+        return this.registeredTool?.enabled ?? false;
+    }
+
+    protected disable(): void {
+        if (!this.registeredTool) {
+            this.session.logger.warning({
+                id: LogId.toolMetadataChange,
+                context: `tool - ${this.name}`,
+                message: "Requested disabling of tool but it was never registered",
+            });
+            return;
+        }
+        this.registeredTool.disable();
+    }
+
+    protected enable(): void {
+        if (!this.registeredTool) {
+            this.session.logger.warning({
+                id: LogId.toolMetadataChange,
+                context: `tool - ${this.name}`,
+                message: "Requested enabling of tool but it was never registered",
+            });
+            return;
+        }
+        this.registeredTool.enable();
+    }
 
     // Checks if a tool is allowed to run based on the config
     protected verifyAllowed(): boolean {

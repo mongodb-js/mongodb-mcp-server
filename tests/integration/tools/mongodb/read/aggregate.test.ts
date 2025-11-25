@@ -23,7 +23,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         integration.mcpServer().userConfig.disabledTools = [];
     });
 
-    validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
+    validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
         ...databaseCollectionParameters,
         {
             name: "pipeline",
@@ -394,7 +394,7 @@ describeWithMongoDB(
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
-        validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
+        validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
             ...databaseCollectionParameters,
             {
                 name: "pipeline",

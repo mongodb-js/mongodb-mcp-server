@@ -12,6 +12,7 @@ describeWithMongoDB("updateMany tool", (integration) => {
         integration,
         "update-many",
         "Updates all documents that match the specified filter for a collection",
+        "update",
         [
             ...databaseCollectionParameters,
 

@@ -13,6 +13,7 @@ describeWithMongoDB("count tool", (integration) => {
         integration,
         "count",
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter",
+        "read",
         [
             {
                 name: "query",

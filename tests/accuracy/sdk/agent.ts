@@ -1,4 +1,5 @@
-import type { LanguageModel, experimental_createMCPClient } from "ai";
+import type { LanguageModel } from "ai";
+import type { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { stepCountIs, generateText } from "ai";
 import type { Model } from "./models.js";
 

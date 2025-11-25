@@ -7,7 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "./inMemoryTransport.js";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
-import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
@@ -19,6 +19,7 @@ import type { MockClientCapabilities, createMockElicitInput } from "../utils/eli
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
+import type { OperationType } from "../../src/tools/tool.js";
 
 interface Parameter {
     name: string;
@@ -281,6 +282,7 @@ export function validateToolMetadata(
     integration: IntegrationTest,
     name: string,
     description: string,
+    operationType: OperationType,
     parameters: ParameterInfo[]
 ): void {
     it("should have correct metadata", async () => {
@@ -289,7 +291,7 @@ export function validateToolMetadata(
         expectDefined(tool);
         expect(tool.description).toBe(description);
 
-        validateToolAnnotations(tool, name, description);
+        validateToolAnnotations(tool, name, operationType);
         const toolParameters = getParameters(tool);
         expect(toolParameters).toHaveLength(parameters.length);
         expect(toolParameters).toIncludeSameMembers(parameters);
@@ -304,16 +306,11 @@ export function validateThrowsForInvalidArguments(
     describe("with invalid arguments", () => {
         for (const arg of args) {
             it(`throws a schema error for: ${JSON.stringify(arg)}`, async () => {
-                try {
-                    await integration.mcpClient().callTool({ name, arguments: arg });
-                    throw new Error("Expected an error to be thrown");
-                } catch (error) {
-                    expect((error as Error).message).not.toEqual("Expected an error to be thrown");
-                    expect(error).toBeInstanceOf(McpError);
-                    const mcpError = error as McpError;
-                    expect(mcpError.code).toEqual(-32602);
-                    expect(mcpError.message).toContain(`Invalid arguments for tool ${name}`);
-                }
+                const result = await integration.mcpClient().callTool({ name, arguments: arg });
+                expect(result.isError).toBe(true);
+                const message = getResponseContent(result.content);
+                expect(message).toContain("-32602");
+                expect(message).toContain(`Invalid arguments for tool ${name}`);
             });
         }
     });
@@ -325,12 +322,11 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
     expect(arg).not.toBeNull();
 }
 
-function validateToolAnnotations(tool: ToolInfo, name: string, description: string): void {
+function validateToolAnnotations(tool: ToolInfo, name: string, operationType: OperationType): void {
     expectDefined(tool.annotations);
     expect(tool.annotations.title).toBe(name);
-    expect(tool.annotations.description).toBe(description);
 
-    switch (tool.operationType) {
+    switch (operationType) {
         case "read":
         case "metadata":
             expect(tool.annotations.readOnlyHint).toBe(true);
@@ -344,6 +340,9 @@ function validateToolAnnotations(tool: ToolInfo, name: string, description: stri
         case "update":
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(false);
+            break;
+        case "connect":
+            break;
     }
 }
 
