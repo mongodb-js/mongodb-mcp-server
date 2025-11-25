@@ -168,6 +168,7 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
             },
         });
         await runner.start();
+        await runner.close();
         process.exit(0);
     } catch (error) {
         console.error(`Fatal error running server in dry run mode: ${error as string}`);
