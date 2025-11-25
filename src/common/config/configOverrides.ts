@@ -27,7 +27,7 @@ export function applyConfigOverrides({
 
     // Only apply overrides if allowRequestOverrides is enabled
     if (!baseConfig.allowRequestOverrides) {
-        return baseConfig;
+        throw new Error("Request overrides are not enabled");
     }
 
     const result: UserConfig = { ...baseConfig };
@@ -68,11 +68,6 @@ function extractConfigOverrides(
             continue;
         }
         assertValidConfigKey(configKey);
-
-        const behavior = getConfigMeta(configKey)?.overrideBehavior || "not-allowed";
-        if (behavior === "not-allowed") {
-            throw new Error(`Config key ${configKey} is not allowed to be overridden`);
-        }
 
         const parsedValue = parseConfigValue(configKey, value);
         if (parsedValue !== undefined) {
@@ -143,7 +138,7 @@ function applyOverride(
             return behavior(baseValue, overrideValue);
         } catch (error) {
             throw new Error(
-                `Cannot apply override for ${key} from ${JSON.stringify(baseValue)} to ${JSON.stringify(overrideValue)}: ${error instanceof Error ? error.message : String(error)}`
+                `Cannot apply override for ${key}: ${error instanceof Error ? error.message : String(error)}`
             );
         }
     }
@@ -155,9 +150,10 @@ function applyOverride(
             if (Array.isArray(baseValue) && Array.isArray(overrideValue)) {
                 return [...(baseValue as unknown[]), ...(overrideValue as unknown[])];
             }
-            throw new Error("Cannot merge non-array values, did you mean to use the 'override' behavior?");
+            throw new Error(`Cannot merge non-array values for ${key}`);
 
         case "not-allowed":
+            throw new Error(`Config key ${key} is not allowed to be overridden`);
         default:
             return baseValue;
     }

@@ -80,10 +80,9 @@ describe("configOverrides", () => {
                     ...baseConfig,
                     allowRequestOverrides: false,
                 } as UserConfig;
-                const result = applyConfigOverrides({ baseConfig: configWithOverridesDisabled, request });
-                // Config should remain unchanged
-                expect(result.readOnly).toBe(false);
-                expect(result.idleTimeoutMs).toBe(600_000);
+                expect(() => applyConfigOverrides({ baseConfig: configWithOverridesDisabled, request })).to.throw(
+                    "Request overrides are not enabled"
+                );
             });
 
             it("should apply overrides when allowRequestOverrides is true", () => {
@@ -107,9 +106,9 @@ describe("configOverrides", () => {
                 };
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { allowRequestOverrides, ...configWithoutOverridesFlag } = baseConfig;
-                const result = applyConfigOverrides({ baseConfig: configWithoutOverridesFlag as UserConfig, request });
-                // Should not apply overrides since the default is false
-                expect(result.readOnly).toBe(false);
+                expect(() =>
+                    applyConfigOverrides({ baseConfig: configWithoutOverridesFlag as UserConfig, request })
+                ).to.throw("Request overrides are not enabled");
             });
         });
 
@@ -254,7 +253,7 @@ describe("configOverrides", () => {
                 const request: RequestContext = { headers: { "x-mongodb-mcp-read-only": "false" } };
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, readOnly: true } as UserConfig, request })
-                ).toThrow("Cannot apply override for readOnly from true to false: Can only set to true");
+                ).toThrow("Cannot apply override for readOnly: Can only set to true");
             });
 
             it("should allow indexCheck override from false to true", () => {
@@ -270,7 +269,7 @@ describe("configOverrides", () => {
                 const request: RequestContext = { headers: { "x-mongodb-mcp-index-check": "false" } };
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, indexCheck: true } as UserConfig, request })
-                ).toThrow("Cannot apply override for indexCheck from true to false: Can only set to true");
+                ).toThrow("Cannot apply override for indexCheck: Can only set to true");
             });
 
             it("should allow disableEmbeddingsValidation override from true to false", () => {
@@ -289,9 +288,7 @@ describe("configOverrides", () => {
                         baseConfig: { ...baseConfig, disableEmbeddingsValidation: false } as UserConfig,
                         request,
                     })
-                ).toThrow(
-                    "Cannot apply override for disableEmbeddingsValidation from false to true: Can only set to false"
-                );
+                ).toThrow("Cannot apply override for disableEmbeddingsValidation: Can only set to false");
             });
         });
 

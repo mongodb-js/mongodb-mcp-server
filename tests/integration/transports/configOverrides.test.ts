@@ -48,7 +48,7 @@ describe("Config Overrides via HTTP", () => {
     });
 
     describe("override behavior", () => {
-        it("should not apply overrides when allowRequestOverrides is false", async () => {
+        it("should error when allowRequestOverrides is false", async () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
@@ -56,18 +56,17 @@ describe("Config Overrides via HTTP", () => {
                 allowRequestOverrides: false,
             });
 
-            await connectClient({
-                ["x-mongodb-mcp-read-only"]: "true",
-            });
-
-            const response = await client.listTools();
-
-            expect(response).toBeDefined();
-            expect(response.tools).toBeDefined();
-
-            // Verify read-only mode is NOT applied - insert-many should still be available
-            const writeTools = response.tools.filter((tool) => tool.name === "insert-many");
-            expect(writeTools.length).toBe(1);
+            try {
+                await connectClient({
+                    ["x-mongodb-mcp-read-only"]: "true",
+                });
+                expect.fail("Expected an error to be thrown");
+            } catch (error) {
+                if (!(error instanceof Error)) {
+                    throw new Error("Expected an error to be thrown");
+                }
+                expect(error.message).toContain("Request overrides are not enabled");
+            }
         });
 
         it("should override readOnly config via header (false to true)", async () => {
@@ -376,9 +375,7 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown");
                 }
                 expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
-                expect(error.message).toContain(
-                    `Cannot apply override for readOnly from true to false: Can only set to true`
-                );
+                expect(error.message).toContain(`Cannot apply override for readOnly: Can only set to true`);
             }
         });
     });
