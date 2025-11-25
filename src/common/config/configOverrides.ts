@@ -8,7 +8,8 @@ export const CONFIG_QUERY_PREFIX = "mongodbMcp";
 
 /**
  * Applies config overrides from request context (headers and query parameters).
- * Query parameters take precedence over headers.
+ * Query parameters take precedence over headers. Can be used within the createSessionConfig
+ * hook to manually apply the overrides. Requires `allowRequestOverrides` to be enabled.
  *
  * @param baseConfig - The base user configuration
  * @param request - The request context containing headers and query parameters

@@ -6,6 +6,8 @@ import {
     getExportsPath,
     getLogPath,
     oneWayOverride,
+    onlyLowerThanBaseValueOverride,
+    onlySubsetOfBaseValueOverride,
     parseBoolean,
 } from "./configUtils.js";
 import { previewFeatureValues, similarityValues } from "../schemas.js";
@@ -38,7 +40,7 @@ export const UserConfigSchema = z4.object({
         .describe(
             "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
         )
-        .register(configRegistry, { isSecret: true, overrideBehavior: "override" }),
+        .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
     loggers: z4
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
@@ -54,7 +56,7 @@ export const UserConfigSchema = z4.object({
         .describe("An array of logger types.")
         .register(configRegistry, {
             defaultValueDescription: '`"disk,mcp"` see below*',
-            overrideBehavior: "merge",
+            overrideBehavior: "not-allowed",
         }),
     logPath: z4
         .string()
@@ -133,12 +135,12 @@ export const UserConfigSchema = z4.object({
         .number()
         .default(600_000)
         .describe("Idle timeout for a client to disconnect (only applies to http transport).")
-        .register(configRegistry, { overrideBehavior: "override" }),
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     notificationTimeoutMs: z4.coerce
         .number()
         .default(540_000)
         .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport).")
-        .register(configRegistry, { overrideBehavior: "override" }),
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     maxBytesPerQuery: z4.coerce
         .number()
         .default(16_777_216)
@@ -167,21 +169,21 @@ export const UserConfigSchema = z4.object({
         .number()
         .default(120_000)
         .describe("Time in milliseconds between export cleanup cycles that remove expired export files.")
-        .register(configRegistry, { overrideBehavior: "override" }),
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     atlasTemporaryDatabaseUserLifetimeMs: z4.coerce
         .number()
         .default(14_400_000)
         .describe(
             "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted."
         )
-        .register(configRegistry, { overrideBehavior: "override" }),
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     voyageApiKey: z4
         .string()
         .default("")
         .describe(
             "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
         )
-        .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
+        .register(configRegistry, { isSecret: true, overrideBehavior: "override" }),
     disableEmbeddingsValidation: z4
         .preprocess(parseBoolean, z4.boolean())
         .default(false)
@@ -206,7 +208,7 @@ export const UserConfigSchema = z4.object({
         )
         .default([])
         .describe("An array of preview features that are enabled.")
-        .register(configRegistry, { overrideBehavior: "merge" }),
+        .register(configRegistry, { overrideBehavior: onlySubsetOfBaseValueOverride() }),
     allowRequestOverrides: z4
         .preprocess(parseBoolean, z4.boolean())
         .default(false)

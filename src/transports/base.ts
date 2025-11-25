@@ -100,13 +100,12 @@ export abstract class TransportRunnerBase {
     }
 
     protected async setupServer(request?: RequestContext): Promise<Server> {
-        // Apply config overrides from request context (headers and query parameters)
-        let userConfig = applyConfigOverrides({ baseConfig: this.userConfig, request });
+        let userConfig: UserConfig = this.userConfig;
 
-        // Call the config provider hook if provided, allowing consumers to
-        // fetch or modify configuration after applying request context overrides
         if (this.createSessionConfig) {
             userConfig = await this.createSessionConfig({ userConfig, request });
+        } else {
+            userConfig = applyConfigOverrides({ baseConfig: this.userConfig, request });
         }
 
         const mcpServer = new McpServer({

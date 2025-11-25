@@ -138,3 +138,38 @@ export function oneWayOverride<T>(allowedValue: T): CustomOverrideLogic {
         throw new Error(`Can only set to ${String(allowedValue)}`);
     };
 }
+
+/** Allow overriding only to a value lower than the specified value */
+export function onlyLowerThanBaseValueOverride(): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        if (typeof oldValue !== "number") {
+            throw new Error(`Unsupported type for base value for override: ${typeof oldValue}`);
+        }
+        if (typeof newValue !== "number") {
+            throw new Error(`Unsupported type for new value for override: ${typeof newValue}`);
+        }
+        if (newValue >= oldValue) {
+            throw new Error(`Can only set to a value lower than the base value`);
+        }
+        return newValue;
+    };
+}
+
+/** Allow overriding only to a subset of an array but not a superset */
+export function onlySubsetOfBaseValueOverride(): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        if (!Array.isArray(oldValue)) {
+            throw new Error(`Unsupported type for base value for override: ${typeof oldValue}`);
+        }
+        if (!Array.isArray(newValue)) {
+            throw new Error(`Unsupported type for new value for override: ${typeof newValue}`);
+        }
+        if (newValue.length > oldValue.length) {
+            throw new Error(`Can only override to a subset of the base value`);
+        }
+        if (!newValue.every((value) => oldValue.includes(value))) {
+            throw new Error(`Can only override to a subset of the base value`);
+        }
+        return newValue as unknown;
+    };
+}

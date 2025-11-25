@@ -95,7 +95,7 @@ describe("Config Overrides via HTTP", () => {
             expect(readTools.length).toBe(1);
         });
 
-        it("should override connectionString with header", async () => {
+        it("should not be able tooverride connectionString with header", async () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
@@ -103,13 +103,18 @@ describe("Config Overrides via HTTP", () => {
                 allowRequestOverrides: true,
             });
 
-            await connectClient({
-                ["x-mongodb-mcp-connection-string"]: "mongodb://override:27017",
-            });
-
-            const response = await client.listTools();
-
-            expect(response).toBeDefined();
+            try {
+                await connectClient({
+                    ["x-mongodb-mcp-connection-string"]: "mongodb://override:27017",
+                });
+                expect.fail("Expected an error to be thrown");
+            } catch (error) {
+                if (!(error instanceof Error)) {
+                    throw new Error("Expected an error to be thrown");
+                }
+                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain(`Config key connectionString is not allowed to be overridden`);
+            }
         });
     });
 
@@ -413,6 +418,133 @@ describe("Config Overrides via HTTP", () => {
 
             const findTool = response.tools.find((tool) => tool.name === "find");
             expect(findTool).toBeDefined();
+        });
+    });
+
+    describe("onlyLowerThanBaseValueOverride behavior", () => {
+        it("should allow override to a lower value", async () => {
+            await startRunner({
+                ...defaultTestConfig,
+                httpPort: 0,
+                idleTimeoutMs: 600_000,
+                allowRequestOverrides: true,
+            });
+
+            await connectClient({
+                ["x-mongodb-mcp-idle-timeout-ms"]: "300000",
+            });
+
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+        });
+
+        it("should reject override to a higher value", async () => {
+            await startRunner({
+                ...defaultTestConfig,
+                httpPort: 0,
+                idleTimeoutMs: 600_000,
+                allowRequestOverrides: true,
+            });
+
+            try {
+                await connectClient({
+                    ["x-mongodb-mcp-idle-timeout-ms"]: "900000",
+                });
+                expect.fail("Expected an error to be thrown");
+            } catch (error) {
+                if (!(error instanceof Error)) {
+                    throw new Error("Expected an error to be thrown");
+                }
+                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain(
+                    "Cannot apply override for idleTimeoutMs: Can only set to a value lower than the base value"
+                );
+            }
+        });
+
+        it("should reject override to equal value", async () => {
+            await startRunner({
+                ...defaultTestConfig,
+                httpPort: 0,
+                idleTimeoutMs: 600_000,
+                allowRequestOverrides: true,
+            });
+
+            try {
+                await connectClient({
+                    ["x-mongodb-mcp-idle-timeout-ms"]: "600000",
+                });
+                expect.fail("Expected an error to be thrown");
+            } catch (error) {
+                if (!(error instanceof Error)) {
+                    throw new Error("Expected an error to be thrown");
+                }
+                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain(
+                    "Cannot apply override for idleTimeoutMs: Can only set to a value lower than the base value"
+                );
+            }
+        });
+    });
+
+    describe("onlySubsetOfBaseValueOverride behavior", () => {
+        describe("previewFeatures", () => {
+            it("should allow override to same value", async () => {
+                await startRunner({
+                    ...defaultTestConfig,
+                    httpPort: 0,
+                    previewFeatures: ["vectorSearch"],
+                    allowRequestOverrides: true,
+                });
+
+                await connectClient({
+                    ["x-mongodb-mcp-preview-features"]: "vectorSearch",
+                });
+
+                const response = await client.listTools();
+                expect(response).toBeDefined();
+            });
+
+            it("should allow override to an empty array (subset of any array)", async () => {
+                await startRunner({
+                    ...defaultTestConfig,
+                    httpPort: 0,
+                    previewFeatures: ["vectorSearch"],
+                    allowRequestOverrides: true,
+                });
+
+                await connectClient({
+                    ["x-mongodb-mcp-preview-features"]: "",
+                });
+
+                const response = await client.listTools();
+                expect(response).toBeDefined();
+            });
+
+            it("should reject override when base is empty array and trying to add items", async () => {
+                await startRunner({
+                    ...defaultTestConfig,
+                    httpPort: 0,
+                    previewFeatures: [],
+                    allowRequestOverrides: true,
+                });
+
+                // Empty array trying to override with non-empty should fail (superset)
+                try {
+                    await connectClient({
+                        ["x-mongodb-mcp-preview-features"]: "vectorSearch",
+                    });
+                    expect.fail("Expected an error to be thrown");
+                } catch (error) {
+                    if (!(error instanceof Error)) {
+                        throw new Error("Expected an error to be thrown");
+                    }
+                    expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                    expect(error.message).toContain(
+                        "Cannot apply override for previewFeatures: Can only override to a subset of the base value"
+                    );
+                }
+            });
         });
     });
 });
