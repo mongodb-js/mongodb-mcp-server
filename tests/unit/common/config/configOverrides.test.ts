@@ -123,27 +123,13 @@ describe("configOverrides", () => {
                 expect(result.readOnly).toBe(true);
             });
 
-            it("should override numeric values with override behavior", () => {
-                const request: RequestContext = {
-                    headers: {
-                        "x-mongodb-mcp-idle-timeout-ms": "300000",
-                        "x-mongodb-mcp-export-timeout-ms": "600000",
-                    },
-                };
-                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
-                expect(result.idleTimeoutMs).toBe(300000);
-                expect(result.exportTimeoutMs).toBe(600000);
-            });
-
             it("should override string values with override behavior", () => {
                 const request: RequestContext = {
                     headers: {
-                        "x-mongodb-mcp-connection-string": "mongodb://newhost:27017",
                         "x-mongodb-mcp-vector-search-similarity-function": "cosine",
                     },
                 };
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
-                expect(result.connectionString).toBe("mongodb://newhost:27017");
                 expect(result.vectorSearchSimilarityFunction).toBe("cosine");
             });
         });
@@ -174,14 +160,15 @@ describe("configOverrides", () => {
                 expect(result.previewFeatures).toEqual([]);
             });
 
-            it("should merge loggers", () => {
+            it("should not be able to merge loggers", () => {
                 const request: RequestContext = {
                     headers: {
                         "x-mongodb-mcp-loggers": "stderr",
                     },
                 };
-                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
-                expect(result.loggers).toEqual(["disk", "mcp", "stderr"]);
+                expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
+                    "Config key loggers is not allowed to be overridden"
+                );
             });
         });
 
@@ -197,6 +184,8 @@ describe("configOverrides", () => {
                     "apiBaseUrl",
                     "apiClientId",
                     "apiClientSecret",
+                    "connectionString",
+                    "loggers",
                     "logPath",
                     "telemetry",
                     "transport",
@@ -206,7 +195,7 @@ describe("configOverrides", () => {
                     "maxBytesPerQuery",
                     "maxDocumentsPerQuery",
                     "exportsPath",
-                    "voyageApiKey",
+                    "exportCleanupIntervalMs",
                     "allowRequestOverrides",
                 ]);
             });
@@ -231,21 +220,21 @@ describe("configOverrides", () => {
             it("should allow overriding secret fields with headers if they have override behavior", () => {
                 const request: RequestContext = {
                     headers: {
-                        "x-mongodb-mcp-connection-string": "mongodb://newhost:27017/",
+                        "x-mongodb-mcp-voyage-api-key": "test",
                     },
                 };
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
-                expect(result.connectionString).toBe("mongodb://newhost:27017/");
+                expect(result.voyageApiKey).toBe("test");
             });
 
             it("should not allow overriding secret fields via query params", () => {
                 const request: RequestContext = {
                     query: {
-                        mongodbMcpConnectionString: "mongodb://malicious.com/",
+                        mongodbMcpVoyageApiKey: "test",
                     },
                 };
                 expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
-                    "Config key connectionString can only be overriden with headers"
+                    "Config key voyageApiKey can only be overriden with headers"
                 );
             });
         });
@@ -260,7 +249,16 @@ describe("configOverrides", () => {
                         ])
                         .filter(([, behavior]) => typeof behavior === "function")
                         .map(([key]) => key)
-                ).toEqual(["readOnly", "indexCheck", "disableEmbeddingsValidation"]);
+                ).toEqual([
+                    "readOnly",
+                    "indexCheck",
+                    "idleTimeoutMs",
+                    "notificationTimeoutMs",
+                    "exportTimeoutMs",
+                    "atlasTemporaryDatabaseUserLifetimeMs",
+                    "disableEmbeddingsValidation",
+                    "previewFeatures",
+                ]);
             });
 
             it("should allow readOnly override from false to true", () => {
