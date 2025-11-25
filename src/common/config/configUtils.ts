@@ -69,8 +69,11 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
         return undefined;
     }
 
-    if (!Array.isArray(str)) {
-        return [str] as T;
+    if (typeof str === "string") {
+        return str
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0) as T;
     }
 
     if (str.length === 1) {
@@ -81,4 +84,25 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
     }
 
     return str as T;
+}
+
+/**
+ * Preprocessor for boolean values that handles string "false"/"0" correctly.
+ * Zod's coerce.boolean() treats any non-empty string as true, which is not what we want.
+ */
+export function parseBoolean(val: unknown): unknown {
+    if (typeof val === "string") {
+        const lower = val.toLowerCase().trim();
+        if (lower === "false") {
+            return false;
+        }
+        return true;
+    }
+    if (typeof val === "boolean") {
+        return val;
+    }
+    if (typeof val === "number") {
+        return val !== 0;
+    }
+    return !!val;
 }

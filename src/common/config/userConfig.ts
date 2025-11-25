@@ -1,6 +1,12 @@
 import { z as z4 } from "zod/v4";
 import { type CliOptions } from "@mongosh/arg-parser";
-import { type ConfigFieldMeta, commaSeparatedToArray, getExportsPath, getLogPath } from "./configUtils.js";
+import {
+    type ConfigFieldMeta,
+    commaSeparatedToArray,
+    getExportsPath,
+    getLogPath,
+    parseBoolean,
+} from "./configUtils.js";
 import { previewFeatureValues, similarityValues } from "../schemas.js";
 
 // TODO: UserConfig should only be UserConfigSchema and not an intersection with
@@ -68,13 +74,13 @@ export const UserConfigSchema = z4.object({
             "An array of tool names that require user confirmation before execution. Requires the client to support elicitation."
         ),
     readOnly: z4
-        .boolean()
+        .preprocess(parseBoolean, z4.boolean())
         .default(false)
         .describe(
             "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations."
         ),
     indexCheck: z4
-        .boolean()
+        .preprocess(parseBoolean, z4.boolean())
         .default(false)
         .describe(
             "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan."
@@ -148,10 +154,10 @@ export const UserConfigSchema = z4.object({
             "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
         )
         .register(configRegistry, { isSecret: true }),
-    disableEmbeddingsValidation: z4
-        .boolean()
-        .default(false)
-        .describe("When set to true, disables validation of embeddings dimensions."),
+    embeddingsValidation: z4
+        .preprocess(parseBoolean, z4.boolean())
+        .default(true)
+        .describe("When set to false, disables validation of embeddings dimensions."),
     vectorSearchDimensions: z4.coerce
         .number()
         .default(1024)
