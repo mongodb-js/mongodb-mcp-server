@@ -39,12 +39,13 @@ export class DryRunModeRunner extends TransportRunnerBase {
     }
 
     private dumpTools(): void {
-        const tools = this.server?.tools
-            .filter((tool) => tool.isEnabled())
-            .map((tool) => ({
-                name: tool.name,
-                category: tool.category,
-            }));
+        const tools =
+            this.server?.tools
+                .filter((tool) => tool.isEnabled())
+                .map((tool) => ({
+                    name: tool.name,
+                    category: tool.category,
+                })) ?? [];
         this.consoleLogger.log("Enabled tools:");
         this.consoleLogger.log(JSON.stringify(tools, null, 2));
     }
