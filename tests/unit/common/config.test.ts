@@ -59,6 +59,7 @@ const expectedDefaults = {
     vectorSearchSimilarityFunction: "euclidean",
     embeddingsValidation: true,
     previewFeatures: [],
+    dryRun: false,
 };
 
 describe("config", () => {
