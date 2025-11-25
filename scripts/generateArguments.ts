@@ -69,12 +69,8 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         let description = schema.description || `Configuration option: ${key}`;
 
         if ("innerType" in schema.def) {
-            // "pipe" is used for our comma-separated arrays
+            // "pipe" is also used for our comma-separated arrays
             if (schema.def.innerType.def.type === "pipe") {
-                assert(
-                    description.startsWith("An array of"),
-                    `Field description for field "${key}" with array type does not start with 'An array of'`
-                );
                 description = description.replace("An array of", "Comma separated values of");
             }
         }

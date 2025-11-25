@@ -93,7 +93,7 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
 export function parseBoolean(val: unknown): unknown {
     if (typeof val === "string") {
         const lower = val.toLowerCase().trim();
-        if (lower === "false" || lower === "") {
+        if (lower === "false") {
             return false;
         }
         return true;

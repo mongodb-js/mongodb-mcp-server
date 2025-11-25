@@ -59,7 +59,7 @@ describe("config", () => {
             voyageApiKey: "",
             vectorSearchDimensions: 1024,
             vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
+            embeddingsValidation: true,
             previewFeatures: [],
         };
         expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
@@ -97,7 +97,7 @@ describe("config", () => {
             voyageApiKey: "",
             vectorSearchDimensions: 1024,
             vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
+            embeddingsValidation: true,
             previewFeatures: [],
         };
         expect(createUserConfig()).toStrictEqual(expectedDefaults);

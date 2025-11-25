@@ -52,17 +52,17 @@
           "isSecret": true
         },
         {
-          "name": "MDB_MCP_DISABLE_EMBEDDINGS_VALIDATION",
-          "description": "When set to true, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_DISABLED_TOOLS",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
+          "description": "When set to false, disables validation of embeddings dimensions.",
+          "isRequired": false,
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -218,16 +218,16 @@
         },
         {
           "type": "named",
-          "name": "--disableEmbeddingsValidation",
-          "description": "When set to true, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--disabledTools",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--embeddingsValidation",
+          "description": "When set to false, disables validation of embeddings dimensions.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -380,17 +380,17 @@
           "isSecret": true
         },
         {
-          "name": "MDB_MCP_DISABLE_EMBEDDINGS_VALIDATION",
-          "description": "When set to true, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_DISABLED_TOOLS",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
+          "description": "When set to false, disables validation of embeddings dimensions.",
+          "isRequired": false,
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -546,16 +546,16 @@
         },
         {
           "type": "named",
-          "name": "--disableEmbeddingsValidation",
-          "description": "When set to true, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--disabledTools",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--embeddingsValidation",
+          "description": "When set to false, disables validation of embeddings dimensions.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
