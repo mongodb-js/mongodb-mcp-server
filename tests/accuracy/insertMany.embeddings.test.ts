@@ -187,7 +187,7 @@ describeAccuracyTests(
         },
     ],
     {
-        userConfig: { voyageApiKey: "valid-key", previewFeatures: "vectorSearch" },
+        userConfig: { voyageApiKey: "valid-key", previewFeatures: "search" },
         clusterConfig: {
             search: true,
         },
