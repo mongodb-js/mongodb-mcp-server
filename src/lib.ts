@@ -7,6 +7,7 @@ export { StdioRunner } from "./transports/stdio.js";
 export { TransportRunnerBase, type TransportRunnerConfig } from "./transports/base.js";
 export {
     ConnectionManager,
+    ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateDisconnected,

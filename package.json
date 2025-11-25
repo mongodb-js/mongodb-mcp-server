@@ -3,6 +3,7 @@
   "description": "MongoDB Model Context Protocol Server",
   "version": "1.2.0",
   "type": "module",
+  "packageManager": "pnpm@10.23.0",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
   "exports": {
     ".": {
@@ -45,28 +46,28 @@
   "scripts": {
     "start": "node dist/index.js --transport http --loggers stderr mcp",
     "start:stdio": "node dist/index.js --transport stdio --loggers stderr mcp",
-    "prepare": "husky && npm run build",
+    "prepare": "husky && pnpm run build",
     "build:clean": "rm -rf dist",
     "build:update-package-version": "tsx scripts/updatePackageVersion.ts",
     "build:esm": "tsc --project tsconfig.esm.json && chmod +x dist/esm/index.js",
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
-    "build": "npm run build:clean && concurrently \"npm run build:esm\" \"npm run build:cjs\" && npm run build:universal-package",
-    "inspect": "npm run build && mcp-inspector -- dist/esm/index.js",
+    "build": "pnpm run build:clean && concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
+    "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
-    "check": "concurrently \"npm run build\" \"npm run check:types\" \"npm run check:lint\" \"npm run check:format\" \"npm run check:dependencies\"",
+    "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\"",
     "check:lint": "eslint .",
     "check:dependencies": "knip --strict",
     "check:format": "prettier -c .",
     "check:types": "tsc --noEmit --project tsconfig.json",
-    "fix": "npm run fix:lint && npm run reformat",
+    "fix": "pnpm run fix:lint && pnpm run reformat",
     "fix:lint": "eslint . --fix",
     "reformat": "prettier --write .",
-    "generate": "npm run generate:api && npm run generate:arguments",
+    "generate": "pnpm run generate:api && pnpm run generate:arguments",
     "generate:api": "./scripts/generate.sh",
     "generate:arguments": "tsx scripts/generateArguments.ts",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage",
-    "pretest:accuracy": "npm run build",
+    "pretest:accuracy": "pnpm run build",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "atlas:cleanup": "vitest --project atlas-cleanup"
@@ -75,6 +76,7 @@
   "devDependencies": {
     "@ai-sdk/azure": "^2.0.53",
     "@ai-sdk/google": "^2.0.23",
+    "@ai-sdk/mcp": "^0.0.8",
     "@ai-sdk/openai": "^2.0.52",
     "@eslint/js": "^9.34.0",
     "@modelcontextprotocol/inspector": "^0.17.1",
@@ -116,7 +118,7 @@
     "@mongodb-js/device-id": "^0.3.1",
     "@mongodb-js/devtools-proxy-support": "^0.5.3",
     "@mongosh/arg-parser": "^3.19.0",
-    "@mongosh/service-provider-node-driver": "^3.17.0",
+    "@mongosh/service-provider-node-driver": "^3.17.5",
     "ai": "^5.0.72",
     "bson": "^6.10.4",
     "express": "^5.1.0",
@@ -139,6 +141,16 @@
   },
   "optionalDependencies": {
     "@mongodb-js/atlas-local": "^1.0.2",
+    "kerberos": "^2.2.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "mongodb": "^6.21.0",
+      "kerberos": "^2.2.2"
+    }
+  },
+  "overrides": {
+    "mongodb": "^6.21.0",
     "kerberos": "^2.2.2"
   }
 }
