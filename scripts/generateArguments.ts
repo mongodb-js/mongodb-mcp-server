@@ -12,7 +12,6 @@ import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { UserConfigSchema, configRegistry } from "../src/common/config/userConfig.js";
-import assert from "assert";
 import { execSync } from "child_process";
 import { OPTIONS } from "../src/common/config/argsParserOptions.js";
 

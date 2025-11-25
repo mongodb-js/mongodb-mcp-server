@@ -127,6 +127,15 @@ describe("config", () => {
                 { envVar: "MDB_MCP_LOG_PATH", property: "logPath", value: "/var/log" },
                 { envVar: "MDB_MCP_CONNECTION_STRING", property: "connectionString", value: "mongodb://localhost" },
                 { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: true },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "false", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "true", expectedValue: true },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "apple", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "FALSE", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 0, expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 1, expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 100, expectedValue: false },
                 { envVar: "MDB_MCP_INDEX_CHECK", property: "indexCheck", value: true },
                 { envVar: "MDB_MCP_TRANSPORT", property: "transport", value: "http" },
                 { envVar: "MDB_MCP_HTTP_PORT", property: "httpPort", value: 8080 },
@@ -138,13 +147,18 @@ describe("config", () => {
                     property: "atlasTemporaryDatabaseUserLifetimeMs",
                     value: 12345,
                 },
-            ] as const;
+            ] as {
+                envVar: string;
+                property: keyof UserConfig;
+                value: unknown;
+                expectedValue?: unknown;
+            }[];
 
-            for (const { envVar, property, value } of testCases) {
-                it(`should map ${envVar} to ${property} with value "${value}"`, () => {
+            for (const { envVar, property, value, expectedValue } of testCases) {
+                it(`should map ${envVar} to ${property} with value "${String(value)}" to "${String(expectedValue ?? value)}"`, () => {
                     setVariable(envVar, value);
                     const actual = createUserConfig();
-                    expect(actual[property]).toBe(value);
+                    expect(actual[property]).toBe(expectedValue ?? value);
                 });
             }
         });
