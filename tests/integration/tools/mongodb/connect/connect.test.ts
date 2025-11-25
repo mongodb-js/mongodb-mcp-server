@@ -26,7 +26,8 @@ describeWithMongoDB(
             [
                 {
                     name: "connectionString",
-                    description: "MongoDB connection string to switch to (in the mongodb:// or mongodb+srv:// format)",
+                    description:
+                        "MongoDB connection string to switch to (in the mongodb:// or mongodb+srv:// format). If a connection string is not provided, the connection string from the config will be used.",
                     type: "string",
                     required: false,
                 },
