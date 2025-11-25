@@ -112,12 +112,14 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
  * Zod's coerce.boolean() treats any non-empty string as true, which is not what we want.
  */
 export function parseBoolean(val: unknown): unknown {
+    if (val === undefined) {
+        return undefined;
+    }
     if (typeof val === "string") {
-        const lower = val.toLowerCase().trim();
-        if (lower === "false") {
+        if (val === "false") {
             return false;
         }
-        if (lower === "true") {
+        if (val === "true") {
             return true;
         }
         throw new Error(`Invalid boolean value: ${val}`);
@@ -134,7 +136,10 @@ export function parseBoolean(val: unknown): unknown {
 /** Allow overriding only to the allowed value */
 export function oneWayOverride<T>(allowedValue: T): CustomOverrideLogic {
     return (oldValue, newValue) => {
-        // Only allow override if setting to allowed value
+        // Only allow override if setting to allowed value or current value
+        if (newValue === oldValue) {
+            return newValue;
+        }
         if (newValue === allowedValue) {
             return newValue;
         }

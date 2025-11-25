@@ -183,11 +183,12 @@ export const UserConfigSchema = z4.object({
         .describe(
             "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
         )
-        .register(configRegistry, { isSecret: true }),
+        .register(configRegistry, { isSecret: true, overrideBehavior: "override" }),
     embeddingsValidation: z4
         .preprocess(parseBoolean, z4.boolean())
         .default(true)
-        .describe("When set to false, disables validation of embeddings dimensions."),
+        .describe("When set to false, disables validation of embeddings dimensions.")
+        .register(configRegistry, { overrideBehavior: oneWayOverride(true) }),
     vectorSearchDimensions: z4.coerce
         .number()
         .default(1024)

@@ -14,7 +14,7 @@ describe("configOverrides", () => {
         connectionString: "mongodb://localhost:27017",
         vectorSearchDimensions: 1024,
         vectorSearchSimilarityFunction: "euclidean",
-        disableEmbeddingsValidation: false,
+        embeddingsValidation: false,
         previewFeatures: [],
         loggers: ["disk", "mcp"],
         exportTimeoutMs: 300_000,
@@ -61,6 +61,41 @@ describe("configOverrides", () => {
         it("should return base config when request is undefined", () => {
             const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig });
             expect(result).toEqual(baseConfig);
+        });
+
+        describe("boolean edge cases", () => {
+            it("should parse correctly for true value", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-read-only": "true",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.readOnly).toBe(true);
+            });
+
+            it("should parse correctly for false value", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-read-only": "false",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.readOnly).toBe(false);
+            });
+
+            for (const value of ["True", "False", "TRUE", "FALSE", "0", "1", ""]) {
+                it(`should throw an error for ${value}`, () => {
+                    const request: RequestContext = {
+                        headers: {
+                            "x-mongodb-mcp-read-only": value,
+                        },
+                    };
+                    expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
+                        `Invalid boolean value: ${value}`
+                    );
+                });
+            }
         });
 
         it("should return base config when request has no headers or query", () => {
@@ -256,7 +291,7 @@ describe("configOverrides", () => {
                     "notificationTimeoutMs",
                     "exportTimeoutMs",
                     "atlasTemporaryDatabaseUserLifetimeMs",
-                    "disableEmbeddingsValidation",
+                    "embeddingsValidation",
                     "previewFeatures",
                 ]);
             });
@@ -294,22 +329,22 @@ describe("configOverrides", () => {
             });
 
             it("should allow disableEmbeddingsValidation override from true to false", () => {
-                const request: RequestContext = { headers: { "x-mongodb-mcp-disable-embeddings-validation": "false" } };
+                const request: RequestContext = { headers: { "x-mongodb-mcp-embeddings-validation": "true" } };
                 const result = applyConfigOverrides({
-                    baseConfig: { ...baseConfig, disableEmbeddingsValidation: true } as UserConfig,
+                    baseConfig: { ...baseConfig, embeddingsValidation: true } as UserConfig,
                     request,
                 });
-                expect(result.disableEmbeddingsValidation).toBe(false);
+                expect(result.embeddingsValidation).toBe(true);
             });
 
-            it("should throw when trying to override disableEmbeddingsValidation from false to true", () => {
-                const request: RequestContext = { headers: { "x-mongodb-mcp-disable-embeddings-validation": "true" } };
+            it("should throw when trying to override embeddingsValidation from false to true", () => {
+                const request: RequestContext = { headers: { "x-mongodb-mcp-embeddings-validation": "false" } };
                 expect(() =>
                     applyConfigOverrides({
-                        baseConfig: { ...baseConfig, disableEmbeddingsValidation: false } as UserConfig,
+                        baseConfig: { ...baseConfig, embeddingsValidation: true } as UserConfig,
                         request,
                     })
-                ).toThrow("Cannot apply override for disableEmbeddingsValidation: Can only set to false");
+                ).toThrow("Cannot apply override for embeddingsValidation: Can only set to true");
             });
         });
 
