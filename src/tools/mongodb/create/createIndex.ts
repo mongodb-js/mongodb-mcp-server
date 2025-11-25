@@ -76,11 +76,11 @@ export class CreateIndexTool extends MongoDBToolBase {
                         type: z.literal("classic"),
                         keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
                     }),
-                    ...(this.isFeatureEnabled("vectorSearch") ? [this.vectorSearchIndexDefinition] : []),
+                    ...(this.isFeatureEnabled("search") ? [this.vectorSearchIndexDefinition] : []),
                 ])
             )
             .describe(
-                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("vectorSearch") ? " and 'vectorSearch' for vector search indexes" : ""}.`
+                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("search") ? " and 'vectorSearch' for vector search indexes" : ""}.`
             ),
     };
 

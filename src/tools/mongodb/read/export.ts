@@ -33,7 +33,7 @@ export class ExportTool extends MongoDBToolBase {
                             .literal("aggregate")
                             .describe("The literal name 'aggregate' to represent an aggregation cursor as target."),
                         arguments: z
-                            .object(getAggregateArgs(this.isFeatureEnabled("vectorSearch")))
+                            .object(getAggregateArgs(this.isFeatureEnabled("search")))
                             .describe("The arguments for 'aggregate' operation."),
                     }),
                 ])
