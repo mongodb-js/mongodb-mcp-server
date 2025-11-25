@@ -4,7 +4,7 @@ import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import { type TransportRunnerConfig } from "../../../src/transports/base.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
 
-describe.only("DryModeRunner", () => {
+describe("DryModeRunner", () => {
     let loggerMock: DryRunModeTestHelpers["logger"];
     let runnerConfig: TransportRunnerConfig;
 
