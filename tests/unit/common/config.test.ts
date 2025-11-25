@@ -450,6 +450,44 @@ describe("config", () => {
                     cli: ["--version"],
                     expected: { version: true },
                 },
+                {
+                    cli: ["--readOnly"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "false"],
+                    expected: { readOnly: false },
+                },
+                {
+                    cli: ["--readOnly", "FALSE"],
+                    // This is yargs-parser default
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "0"],
+                    // This is yargs-parser default
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "1"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "true"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "yes"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "no"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", ""],
+                    expected: { readOnly: true },
+                },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 
             for (const { cli, expected } of testCases) {
