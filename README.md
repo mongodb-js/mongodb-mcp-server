@@ -406,6 +406,8 @@ When using the `disk` logger, log files are stored in:
 
 You can override the log directory with the `logPath` option.
 
+> **🔒 Security Guideline:** The user account running the MCP server must have both read and write permissions to the `logPath` directory. Ensure this directory is properly secured with appropriate file system permissions to prevent unauthorized access to log files.
+
 #### Disabled Tools
 
 You can disable specific tools or categories of tools by using the `disabledTools` option. This option accepts an array of strings,
@@ -478,6 +480,8 @@ The data exported by the `export` tool is temporarily stored in the configured `
 The `exportTimeoutMs` configuration controls the time after which the exported data is considered expired and eligible for cleanup. By default, exports expire after 5 minutes (300000ms).
 
 The `exportCleanupIntervalMs` configuration controls how frequently the cleanup process runs to remove expired export files. By default, cleanup runs every 2 minutes (120000ms).
+
+> **🔒 Security Guideline:** The user account running the MCP server must have both read and write permissions to the `exportsPath` directory. Ensure this directory is properly secured with appropriate file system permissions to prevent unauthorized access to exported data files, which may contain sensitive MongoDB data. Consider the sensitivity of your data when choosing the export location and apply restrictive permissions accordingly.
 
 #### Telemetry
 
