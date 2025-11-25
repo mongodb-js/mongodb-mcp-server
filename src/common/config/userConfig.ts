@@ -164,7 +164,7 @@ export const UserConfigSchema = z4.object({
         .number()
         .default(300_000)
         .describe("Time in milliseconds after which an export is considered expired and eligible for cleanup.")
-        .register(configRegistry, { overrideBehavior: "override" }),
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     exportCleanupIntervalMs: z4.coerce
         .number()
         .default(120_000)
