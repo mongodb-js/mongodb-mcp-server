@@ -34,13 +34,27 @@ export function applyConfigOverrides({
     const overridesFromHeaders = extractConfigOverrides("header", request.headers);
     const overridesFromQuery = extractConfigOverrides("query", request.query);
 
-    // Merge overrides, with query params taking precedence
-    const allOverrides = { ...overridesFromHeaders, ...overridesFromQuery };
-
-    // Apply each override according to its behavior
-    for (const [key, overrideValue] of Object.entries(allOverrides)) {
+    // Apply header overrides first
+    for (const [key, overrideValue] of Object.entries(overridesFromHeaders)) {
         assertValidConfigKey(key);
-        const behavior = getConfigMeta(key)?.overrideBehavior || "not-allowed";
+        const meta = getConfigMeta(key);
+        const behavior = meta?.overrideBehavior || "not-allowed";
+        const baseValue = baseConfig[key as keyof UserConfig];
+        const newValue = applyOverride(key, baseValue, overrideValue, behavior);
+        (result as Record<keyof UserConfig, unknown>)[key] = newValue;
+    }
+
+    // Apply query overrides (with precedence), but block secret fields
+    for (const [key, overrideValue] of Object.entries(overridesFromQuery)) {
+        assertValidConfigKey(key);
+        const meta = getConfigMeta(key);
+
+        // Prevent overriding secret fields via query params
+        if (meta?.isSecret) {
+            throw new Error(`Config key ${key} can only be overriden with headers.`);
+        }
+
+        const behavior = meta?.overrideBehavior || "not-allowed";
         const baseValue = baseConfig[key as keyof UserConfig];
         const newValue = applyOverride(key, baseValue, overrideValue, behavior);
         (result as Record<keyof UserConfig, unknown>)[key] = newValue;

@@ -227,6 +227,29 @@ describe("configOverrides", () => {
             });
         });
 
+        describe("secret fields", () => {
+            it("should allow overriding secret fields with headers if they have override behavior", () => {
+                const request: RequestContext = {
+                    headers: {
+                        "x-mongodb-mcp-connection-string": "mongodb://newhost:27017/",
+                    },
+                };
+                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
+                expect(result.connectionString).toBe("mongodb://newhost:27017/");
+            });
+
+            it("should not allow overriding secret fields via query params", () => {
+                const request: RequestContext = {
+                    query: {
+                        mongodbMcpConnectionString: "mongodb://malicious.com/",
+                    },
+                };
+                expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
+                    "Config key connectionString can only be overriden with headers"
+                );
+            });
+        });
+
         describe("custom overrides", () => {
             it("should have certain config keys to be conditionally overridden", () => {
                 expect(

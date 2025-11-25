@@ -69,7 +69,7 @@ describe("Config Overrides via HTTP", () => {
             }
         });
 
-        it("should override readOnly config via header (false to true)", async () => {
+        it("should override readOnly config with header (false to true)", async () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
@@ -95,7 +95,7 @@ describe("Config Overrides via HTTP", () => {
             expect(readTools.length).toBe(1);
         });
 
-        it("should override connectionString via header", async () => {
+        it("should override connectionString with header", async () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
@@ -114,7 +114,7 @@ describe("Config Overrides via HTTP", () => {
     });
 
     describe("merge behavior", () => {
-        it("should merge disabledTools via header", async () => {
+        it("should merge disabledTools with header", async () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
@@ -178,7 +178,7 @@ describe("Config Overrides via HTTP", () => {
                 headerName: "x-mongodb-mcp-max-documents-per-query",
                 headerValue: "1000",
             },
-        ])("should reject $configKey override", async ({ configKey, headerName, headerValue }) => {
+        ])("should reject $configKey with header", async ({ configKey, headerName, headerValue }) => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
