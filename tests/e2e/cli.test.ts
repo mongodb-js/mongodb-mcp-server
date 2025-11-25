@@ -21,9 +21,10 @@ describe("CLI entrypoint", () => {
     });
 
     it("should handle dry run request", async () => {
-        const { stdout, stderr } = await execFileAsync(process.execPath, [CLI_PATH, "--dryRun"]);
+        const { stdout } = await execFileAsync(process.execPath, [CLI_PATH, "--dryRun"]);
         expect(stdout).toContain("Configuration:");
         expect(stdout).toContain("Enabled tools:");
-        expect(stderr).toEqual("");
+        // We don't do stderr assertions because in our CI, for docker-less env
+        // atlas local tools push message on stderr stream.
     });
 });
