@@ -66,8 +66,8 @@
     "generate": "pnpm run generate:api && pnpm run generate:arguments",
     "generate:api": "./scripts/generate.sh",
     "generate:arguments": "tsx scripts/generateArguments.ts",
+    "pretest": "pnpm run build",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage",
-    "pretest:accuracy": "pnpm run build",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "atlas:cleanup": "vitest --project atlas-cleanup"
