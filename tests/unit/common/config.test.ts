@@ -65,6 +65,7 @@ const expectedDefaults = {
     embeddingsValidation: true,
     previewFeatures: [],
     dryRun: false,
+    allowRequestOverrides: false,
 };
 
 describe("config", () => {
