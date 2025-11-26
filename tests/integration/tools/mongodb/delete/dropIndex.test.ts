@@ -53,10 +53,12 @@ function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
 
 function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
-    getIndexName: () => string;
+    getSearchIndexName: () => string;
+    getVectorIndexName: () => string;
 } {
     let moviesCollection: Collection;
     const indexName = "searchIdx";
+    const vectorIndexName = "vectorIdx";
     beforeEach(async () => {
         await integration.connectMcpClient();
         const mongoClient = integration.mongoClient();
@@ -65,14 +67,24 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
             {
                 name: "Movie1",
                 plot: "This is a horrible movie about a database called BongoDB and how it tried to copy the OG MangoDB.",
+                embeddings: [0.1, 0.2, 0.3, 0.4],
             },
         ]);
         await waitUntilSearchIsReady(mongoClient);
         await moviesCollection.createSearchIndex({
             name: indexName,
-            definition: { mappings: { dynamic: true } },
+            definition: { mappings: { fields: { plot: { type: "string" } } } },
+            type: "search",
+        });
+        await moviesCollection.createSearchIndex({
+            name: vectorIndexName,
+            definition: {
+                fields: [{ path: "embeddings", type: "vector", numDimensions: 4, similarity: "euclidean" }],
+            },
+            type: "vectorSearch",
         });
         await waitUntilSearchIndexIsListed(moviesCollection, indexName);
+        await waitUntilSearchIndexIsListed(moviesCollection, vectorIndexName);
     });
 
     afterEach(async () => {
@@ -82,7 +94,8 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
 
     return {
         getMoviesCollection: () => moviesCollection,
-        getIndexName: () => indexName,
+        getSearchIndexName: () => indexName,
+        getVectorIndexName: () => vectorIndexName,
     };
 }
 
@@ -342,7 +355,8 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 describeWithMongoDB(
                     "when connected to MongoDB with search support",
                     (integration) => {
-                        const { getIndexName } = setupForVectorSearchIndexes(integration);
+                        const { getSearchIndexName, getVectorIndexName, getMoviesCollection } =
+                            setupForVectorSearchIndexes(integration);
 
                         describe.each([
                             {
@@ -363,35 +377,40 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                                 collection: "movies",
                                 indexName: "non-existent-index",
                             },
-                        ])(
-                            "and attempting to delete $title (namespace - $database $collection)",
-                            ({ database, collection, indexName }) => {
-                                it("should fail with appropriate error", async () => {
-                                    const response = await integration.mcpClient().callTool({
-                                        name: "drop-index",
-                                        arguments: { database, collection, indexName, type: "search" },
-                                    });
-                                    expect(response.isError).toBe(true);
-                                    const content = getResponseContent(response.content);
-                                    expect(content).toContain("Index does not exist in the provided namespace.");
-
-                                    const data = getDataFromUntrustedContent(content);
-                                    expect(JSON.parse(data)).toMatchObject({
-                                        indexName,
-                                        namespace: `${database}.${collection}`,
-                                    });
+                        ])("and attempting to delete $title", ({ database, collection, indexName }) => {
+                            it("should fail with appropriate error", async () => {
+                                const response = await integration.mcpClient().callTool({
+                                    name: "drop-index",
+                                    arguments: { database, collection, indexName, type: "search" },
                                 });
-                            }
-                        );
+                                expect(response.isError).toBe(true);
+                                const content = getResponseContent(response.content);
+                                expect(content).toContain("Index does not exist in the provided namespace.");
 
-                        describe("and attempting to delete an existing index", () => {
+                                const data = getDataFromUntrustedContent(content);
+                                expect(JSON.parse(data)).toMatchObject({
+                                    indexName,
+                                    namespace: `${database}.${collection}`,
+                                });
+                            });
+                        });
+
+                        describe.each([
+                            { description: "search", getIndexName: getSearchIndexName },
+                            { description: "vector search", getIndexName: getVectorIndexName },
+                        ])("and attempting to delete an existing $description index", ({ getIndexName }) => {
                             it("should succeed in deleting the index", async () => {
+                                const indexName = getIndexName();
+                                const collection = getMoviesCollection();
+                                let indexes = await collection.listSearchIndexes().toArray();
+                                expect(indexes.find((idx) => idx.name === indexName)).toBeDefined();
+
                                 const response = await integration.mcpClient().callTool({
                                     name: "drop-index",
                                     arguments: {
-                                        database: "mflix",
-                                        collection: "movies",
-                                        indexName: getIndexName(),
+                                        database: collection.dbName,
+                                        collection: collection.collectionName,
+                                        indexName,
                                         type: "search",
                                     },
                                 });
@@ -402,9 +421,12 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
 
                                 const data = getDataFromUntrustedContent(content);
                                 expect(JSON.parse(data)).toMatchObject({
-                                    indexName: getIndexName(),
+                                    indexName,
                                     namespace: "mflix.movies",
                                 });
+
+                                indexes = await collection.listSearchIndexes().toArray();
+                                expect(indexes.find((idx) => idx.name === indexName)).toBeUndefined();
                             });
                         });
                     },
@@ -418,7 +440,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 describeWithMongoDB(
                     "when invoked via an elicitation enabled client",
                     (integration) => {
-                        const { getIndexName } = setupForVectorSearchIndexes(integration);
+                        const { getSearchIndexName: getIndexName } = setupForVectorSearchIndexes(integration);
                         let dropSearchIndexSpy: MockInstance;
 
                         beforeEach(() => {
