@@ -19,7 +19,7 @@ export const zVoyageEmbeddingParameters = z.object({
 
 export const zVoyageAPIParameters = zVoyageEmbeddingParameters
     .extend({
-        // Unlike, public facing parameters, `zVoyageEmbeddingParameters`, the
+        // Unlike public facing parameters, `zVoyageEmbeddingParameters`, the
         // api parameters need to be correct number and because we do an
         // additional parsing before calling the API, we override the
         // outputDimension schema to expect a union of numbers.
