@@ -635,7 +635,7 @@ describeWithMongoDB(
             // This is expected to be set through the CI env. When not set we
             // get a warning in the run logs.
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
         downloadOptions: { search: true },
     }
@@ -674,7 +674,7 @@ describeWithMongoDB(
             // This is expected to be set through the CI env. When not set we
             // get a warning in the run logs.
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
     }
 );

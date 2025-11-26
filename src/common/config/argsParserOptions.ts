@@ -60,6 +60,7 @@ export const OPTIONS = {
     boolean: [
         "apiDeprecationErrors",
         "apiStrict",
+        "dryRun",
         "embeddingsValidation",
         "help",
         "indexCheck",

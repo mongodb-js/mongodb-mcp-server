@@ -121,13 +121,13 @@ describe("ToolBase", () => {
 
     describe("isFeatureEnabled", () => {
         it("should return false for any feature by default", () => {
-            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(false);
+            expect(testTool["isFeatureEnabled"]("search")).to.equal(false);
             expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(false);
         });
 
         it("should return true for enabled features", () => {
-            mockConfig.previewFeatures = ["vectorSearch", "someOtherFeature" as PreviewFeature];
-            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(true);
+            mockConfig.previewFeatures = ["search", "someOtherFeature" as PreviewFeature];
+            expect(testTool["isFeatureEnabled"]("search")).to.equal(true);
             expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(true);
 
             expect(testTool["isFeatureEnabled"]("anotherFeature" as PreviewFeature)).to.equal(false);

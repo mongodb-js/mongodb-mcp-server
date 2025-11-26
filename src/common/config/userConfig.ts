@@ -214,4 +214,11 @@ export const UserConfigSchema = z4.object({
             "When set to true, allows configuration values to be overridden via request headers and query parameters."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    dryRun: z4
+        .boolean()
+        .default(false)
+        .describe(
+            "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });

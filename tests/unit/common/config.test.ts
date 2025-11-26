@@ -30,83 +30,49 @@ function createEnvironment(): {
     };
 }
 
+// Expected hardcoded values (what we had before)
+const expectedDefaults = {
+    apiBaseUrl: "https://cloud.mongodb.com/",
+    logPath: getLogPath(),
+    exportsPath: getExportsPath(),
+    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
+    disabledTools: [],
+    telemetry: "enabled",
+    readOnly: false,
+    indexCheck: false,
+    confirmationRequiredTools: [
+        "atlas-create-access-list",
+        "atlas-create-db-user",
+        "drop-database",
+        "drop-collection",
+        "delete-many",
+        "drop-index",
+    ],
+    transport: "stdio",
+    httpPort: 3000,
+    httpHost: "127.0.0.1",
+    loggers: ["disk", "mcp"],
+    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+    httpHeaders: {},
+    maxDocumentsPerQuery: 100,
+    maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+    voyageApiKey: "",
+    vectorSearchDimensions: 1024,
+    vectorSearchSimilarityFunction: "euclidean",
+    embeddingsValidation: true,
+    previewFeatures: [],
+    dryRun: false,
+};
+
 describe("config", () => {
     it("should generate defaults from UserConfigSchema that match expected values", () => {
-        // Expected hardcoded values (what we had before)
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            embeddingsValidation: true,
-            previewFeatures: [],
-            allowRequestOverrides: false,
-        };
         expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
     });
 
     it("should generate defaults when no config sources are populated", () => {
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            embeddingsValidation: true,
-            previewFeatures: [],
-            allowRequestOverrides: false,
-        };
         expect(createUserConfig()).toStrictEqual(expectedDefaults);
     });
 
@@ -933,7 +899,7 @@ describe("Warning and Error messages", () => {
     describe("vector search misconfiguration", () => {
         it("should warn if vectorSearch is enabled but embeddings provider is not configured", () => {
             createUserConfig({
-                cliArguments: ["--previewFeatures", "vectorSearch"],
+                cliArguments: ["--previewFeatures", "search"],
                 onWarning: warn,
                 onError: error,
                 closeProcess: exit,
@@ -953,14 +919,14 @@ Warning: Vector search is enabled but no embeddings provider is configured.
             });
 
             expect(warn).toBeCalledWith(`\
-Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
-- Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
+Warning: An embeddings provider is configured but the 'search' preview feature is not enabled.
+- Enable vector search by adding 'search' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
 `);
         });
 
         it("should not warn if vectorSearch is enabled correctly", () => {
             createUserConfig({
-                cliArguments: ["--voyageApiKey", "1FOO", "--previewFeatures", "vectorSearch"],
+                cliArguments: ["--voyageApiKey", "1FOO", "--previewFeatures", "search"],
                 onWarning: warn,
                 onError: error,
                 closeProcess: exit,

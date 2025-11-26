@@ -25,7 +25,7 @@ export class InsertManyTool extends MongoDBToolBase {
             .describe(
                 "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
             ),
-        ...(this.isFeatureEnabled("vectorSearch")
+        ...(this.isFeatureEnabled("search")
             ? {
                   embeddingParameters: zSupportedEmbeddingParametersWithInput
                       .optional()
@@ -45,7 +45,7 @@ export class InsertManyTool extends MongoDBToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
-        const embeddingParameters = this.isFeatureEnabled("vectorSearch")
+        const embeddingParameters = this.isFeatureEnabled("search")
             ? (providedEmbeddingParameters as z.infer<typeof zSupportedEmbeddingParametersWithInput>)
             : undefined;
 

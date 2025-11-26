@@ -170,19 +170,19 @@ function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): vo
 }
 
 function warnIfVectorSearchNotEnabledCorrectly(config: UserConfig, warn: (message: string) => void): void {
-    const vectorSearchEnabled = config.previewFeatures.includes("vectorSearch");
+    const searchEnabled = config.previewFeatures.includes("search");
     const embeddingsProviderConfigured = !!config.voyageApiKey;
-    if (vectorSearchEnabled && !embeddingsProviderConfigured) {
+    if (searchEnabled && !embeddingsProviderConfigured) {
         warn(`\
 Warning: Vector search is enabled but no embeddings provider is configured.
 - Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
 `);
     }
 
-    if (!vectorSearchEnabled && embeddingsProviderConfigured) {
+    if (!searchEnabled && embeddingsProviderConfigured) {
         warn(`\
-Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
-- Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
+Warning: An embeddings provider is configured but the 'search' preview feature is not enabled.
+- Enable vector search by adding 'search' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
 `);
     }
 }

@@ -500,12 +500,12 @@ You can disable telemetry using:
 
 The MongoDB MCP Server may offer functionality that is still in development and may change in future releases. These features are considered "preview features" and are not enabled by default. Generally, these features are well tested, but may not offer the complete functionality we intend to provide in the final release or we'd like to gather feedback before making them generally available. To enable one or more preview features, use the `previewFeatures` configuration option.
 
-- For **environment variable** configuration, use a comma-separated string: `export MDB_MCP_PREVIEW_FEATURES="vectorSearch,feature1,feature2"`.
-- For **command-line argument** configuration, use a space-separated string: `--previewFeatures vectorSearch feature1 feature2`.
+- For **environment variable** configuration, use a comma-separated string: `export MDB_MCP_PREVIEW_FEATURES="search,feature1,feature2"`.
+- For **command-line argument** configuration, use a space-separated string: `--previewFeatures search feature1 feature2`.
 
 List of available preview features:
 
-- `vectorSearch` - Enables tools or functionality related to Vector Search in MongoDB Atlas:
+- `search` - Enables tools or functionality related to Atlas Search and Vector Search in MongoDB Atlas:
   - Index management, such as creating, listing, and dropping search and vector search indexes.
   - Querying collections using vector search capabilities. This requires a configured embedding model that will be used to generate vector representations of the query data. Currently, only [Voyage AI](https://www.voyageai.com) embedding models are supported. Set the `voyageApiKey` configuration option with your Voyage AI API key to use this feature.
 
