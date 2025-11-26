@@ -232,6 +232,7 @@ describe("configOverrides", () => {
                     "exportsPath",
                     "exportCleanupIntervalMs",
                     "allowRequestOverrides",
+                    "dryRun",
                 ]);
             });
 
