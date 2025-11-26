@@ -203,7 +203,7 @@ describeWithMongoDB(
                     // embeddingParameters so that we can simulate the idea
                     // of unknown or mismatched quantization.
 
-                    // embeddingParameters: { outputDimension: 256,
+                    // embeddingParameters: { outputDimension: "256",
                     // outputDtype: "float", model: "voyage-3-large", input:
                     // [
                     //         {
@@ -558,7 +558,7 @@ describeWithMongoDB(
                         documents: [{ title: "The Matrix" }],
                         embeddingParameters: {
                             model: "voyage-3.5-lite",
-                            outputDimension: 256,
+                            outputDimension: "256",
                             input: [{ titleEmbeddings: "The Matrix" }],
                         },
                     },

@@ -6,6 +6,9 @@ export const zVoyageModels = z
     .default("voyage-3-large");
 
 export const zVoyageEmbeddingParameters = z.object({
+    // OpenAPI JSON Schema supports enum only as string so the public facing
+    // parameters that are fed to LLM providers should expect the dimensions as
+    // stringified numbers which are then transformed to actual numbers.
     outputDimension: z
         .union([z.literal("256"), z.literal("512"), z.literal("1024"), z.literal("2048"), z.literal("4096")])
         .transform((value): number => Number.parseInt(value))
@@ -16,6 +19,14 @@ export const zVoyageEmbeddingParameters = z.object({
 
 export const zVoyageAPIParameters = zVoyageEmbeddingParameters
     .extend({
+        // Unlike, public facing parameters, `zVoyageEmbeddingParameters`, the
+        // api parameters need to be correct number and because we do an
+        // additional parsing before calling the API, we override the
+        // outputDimension schema to expect a union of numbers.
+        outputDimension: z
+            .union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)])
+            .optional()
+            .default(1024),
         inputType: z.enum(["query", "document"]),
     })
     .strip();
