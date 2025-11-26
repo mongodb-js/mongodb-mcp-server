@@ -118,7 +118,13 @@ function parseConfigValue(key: keyof typeof UserConfigSchema.shape, value: unkno
         throw new Error(`Invalid config key: ${key}`);
     }
 
-    return fieldSchema.safeParse(value).data;
+    const result = fieldSchema.safeParse(value);
+    if (!result.success) {
+        throw new Error(
+            `Invalid configuration for the following fields:\n${result.error.issues.map((issue) => `${key} - ${issue.message}`).join("\n")}`
+        );
+    }
+    return result.data;
 }
 
 /**
