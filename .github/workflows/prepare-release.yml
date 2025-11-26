@@ -30,7 +30,9 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          sudo apt-get install -y git-secrets
+          pnpm install --frozen-lockfile
       - name: Bump version
         id: bump-version
         run: |
