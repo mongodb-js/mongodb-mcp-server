@@ -18,6 +18,7 @@ export const OPTIONS = {
         "connectionString",
         "httpHost",
         "httpPort",
+        "allowRequestOverrides",
         "idleTimeoutMs",
         "logPath",
         "notificationTimeoutMs",

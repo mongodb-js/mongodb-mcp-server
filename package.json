@@ -67,7 +67,7 @@
     "generate:api": "./scripts/generate.sh",
     "generate:arguments": "tsx scripts/generateArguments.ts",
     "pretest": "pnpm run build",
-    "test": "vitest --project eslint-rules --project unit-and-integration --coverage",
+    "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "test:local": "SKIP_ATLAS_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",

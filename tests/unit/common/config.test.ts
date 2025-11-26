@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from "vitest";
 import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
 import { type CreateUserConfigHelpers, createUserConfig } from "../../../src/common/config/createUserConfig.js";
-import { getLogPath, getExportsPath } from "../../../src/common/config/configUtils.js";
+import {
+    getLogPath,
+    getExportsPath,
+    onlyLowerThanBaseValueOverride,
+    onlySubsetOfBaseValueOverride,
+} from "../../../src/common/config/configUtils.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
 
@@ -60,6 +65,7 @@ const expectedDefaults = {
     embeddingsValidation: true,
     previewFeatures: [],
     dryRun: false,
+    allowRequestOverrides: false,
 };
 
 describe("config", () => {
@@ -975,4 +981,89 @@ describe("keychain management", () => {
             expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
         });
     }
+});
+
+describe("custom override logic functions", () => {
+    describe("onlyLowerThanBaseValueOverride", () => {
+        it("should allow override to a lower value", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            const result = customLogic(100, 50);
+            expect(result).toBe(50);
+        });
+
+        it("should reject override to a higher value", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic(100, 150)).toThrow("Can only set to a value lower than the base value");
+        });
+
+        it("should reject override to equal value", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic(100, 100)).toThrow("Can only set to a value lower than the base value");
+        });
+
+        it("should throw error if base value is not a number", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic("not a number", 50)).toThrow("Unsupported type for base value for override");
+        });
+
+        it("should throw error if new value is not a number", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic(100, "not a number")).toThrow("Unsupported type for new value for override");
+        });
+    });
+
+    describe("onlySubsetOfBaseValueOverride", () => {
+        it("should allow override to a subset", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic(["a", "b", "c"], ["a", "b"]);
+            expect(result).toEqual(["a", "b"]);
+        });
+
+        it("should allow override to an empty array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic(["a", "b", "c"], []);
+            expect(result).toEqual([]);
+        });
+
+        it("should allow override with same array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic(["a", "b"], ["a", "b"]);
+            expect(result).toEqual(["a", "b"]);
+        });
+
+        it("should reject override to a superset", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic(["a", "b"], ["a", "b", "c"])).toThrow(
+                "Can only override to a subset of the base value"
+            );
+        });
+
+        it("should reject override with items not in base value", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic(["a", "b"], ["c"])).toThrow("Can only override to a subset of the base value");
+        });
+
+        it("should reject override when base is empty and new is not", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic([], ["a"])).toThrow("Can only override to a subset of the base value");
+        });
+
+        it("should allow override when both arrays are empty", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic([], []);
+            expect(result).toEqual([]);
+        });
+
+        it("should throw error if base value is not an array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic("not an array", ["a"])).toThrow("Unsupported type for base value for override");
+        });
+
+        it("should throw error if new value is not an array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic(["a", "b"], "not an array")).toThrow(
+                "Unsupported type for new value for override"
+            );
+        });
+    });
 });

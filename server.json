@@ -17,6 +17,13 @@
       },
       "environmentVariables": [
         {
+          "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_API_CLIENT_ID",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false,
@@ -186,6 +193,12 @@
         }
       ],
       "packageArguments": [
+        {
+          "type": "named",
+          "name": "--allowRequestOverrides",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false
+        },
         {
           "type": "named",
           "name": "--apiClientId",
@@ -345,6 +358,13 @@
       },
       "environmentVariables": [
         {
+          "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_API_CLIENT_ID",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false,
@@ -514,6 +534,12 @@
         }
       ],
       "packageArguments": [
+        {
+          "type": "named",
+          "name": "--allowRequestOverrides",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false
+        },
         {
           "type": "named",
           "name": "--apiClientId",
