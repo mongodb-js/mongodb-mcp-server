@@ -19,7 +19,6 @@ import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
-import { MongoDbTools } from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
@@ -89,7 +88,7 @@ describe("MongoDBTool implementations", () => {
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[] = [...MongoDbTools, RandomTool],
+        additionalTools: (new (params: ToolConstructorParams) => ToolBase)[] = [RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();
@@ -140,7 +139,7 @@ describe("MongoDBTool implementations", () => {
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
             elicitation,
-            tools: toolConstructors,
+            additionalTools,
         });
 
         await mcpServer.connect(serverTransport);
@@ -237,7 +236,7 @@ describe("MongoDBTool implementations", () => {
 
     describe("when MCP is using injected connection error handler", () => {
         beforeEach(async () => {
-            await cleanupAndStartServer(defaultTestConfig, [...MongoDbTools, RandomTool], injectedErrorHandler);
+            await cleanupAndStartServer(defaultTestConfig, [RandomTool], injectedErrorHandler);
         });
 
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
@@ -263,7 +262,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: "mongodb://localhost:1234" },
-                    [...MongoDbTools, RandomTool],
+                    [RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -287,7 +286,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: mdbIntegration.connectionString(), indexCheck: true },
-                    [...MongoDbTools, RandomTool],
+                    [RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -318,8 +317,25 @@ describe("MongoDBTool implementations", () => {
                 injectedErrorHandler
             );
             const tools = await mcpClient?.listTools({});
-            expect(tools?.tools).toHaveLength(1);
+            expect(tools?.tools.find((tool) => tool.name === "Random")).toBeDefined();
             expect(tools?.tools.find((tool) => tool.name === "UnusableVoyageTool")).toBeUndefined();
+        });
+    });
+
+    describe("when an external tool with same name as that of internal tool is attempted to be registered", () => {
+        it("server should throw during initialization itself", async () => {
+            const serverStartPromise = cleanupAndStartServer(
+                { connectionString: mdbIntegration.connectionString(), indexCheck: true },
+                [
+                    class SimilarRandomTool extends RandomTool {
+                        override name = "find";
+                    },
+                ],
+                injectedErrorHandler
+            );
+            await expect(serverStartPromise).rejects.toThrow(
+                "Tool name collision detected for additional tool - 'find'. Cannot register an additional tool with the same name as that of an internal tool."
+            );
         });
     });
 

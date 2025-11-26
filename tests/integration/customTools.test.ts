@@ -8,11 +8,11 @@ import { defaultTestConfig, setupIntegrationTest } from "./helpers.js";
 describe("Custom Tools", () => {
     const { mcpClient, mcpServer } = setupIntegrationTest(() => ({ ...defaultTestConfig }), {
         serverOptions: {
-            tools: [CustomGreetingTool, CustomCalculatorTool],
+            additionalTools: [CustomGreetingTool, CustomCalculatorTool],
         },
     });
 
-    it("should register custom tools instead of default tools", async () => {
+    it("should register custom tools in addition to default tools", async () => {
         // Check that custom tools are registered
         const tools = await mcpClient().listTools();
         const customGreetingTool = tools.tools.find((t) => t.name === "custom_greeting");
@@ -21,9 +21,9 @@ describe("Custom Tools", () => {
         expect(customGreetingTool).toBeDefined();
         expect(customCalculatorTool).toBeDefined();
 
-        // Check that default tools are NOT registered since we only provided custom tools
+        // Check that default tools are also registered
         const defaultTool = tools.tools.find((t) => t.name === "list-databases");
-        expect(defaultTool).toBeUndefined();
+        expect(defaultTool).toBeDefined();
     });
 
     it("should execute custom tools", async () => {

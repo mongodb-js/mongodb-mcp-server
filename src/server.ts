@@ -31,11 +31,11 @@ export interface ServerOptions {
     elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
     /**
-     * Custom tool constructors to register with the server.
-     * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
+     * Custom tool constructors to register with the server. The tools provided
+     * here will be registered in addition to the default tools.
      *
      * ```ts
-     * import { AllTools, ToolBase } from "mongodb-mcp-server/tools";
+     * import { ToolBase } from "mongodb-mcp-server/tools";
      * class CustomTool extends ToolBase {
      *     name = "custom_tool";
      *     // ...
@@ -47,11 +47,11 @@ export interface ServerOptions {
      *     telemetry: myTelemetry,
      *     elicitation: myElicitation,
      *     connectionErrorHandler: myConnectionErrorHandler,
-     *     tools: [...AllTools, CustomTool],
+     *     additionalTools: [CustomTool],
      * });
      * ```
      */
-    tools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    additionalTools?: (new (params: ToolConstructorParams) => ToolBase)[];
 }
 
 export class Server {
@@ -60,7 +60,8 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
-    private readonly toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[];
+    private readonly internalToolImplementations: (new (params: ToolConstructorParams) => ToolBase)[] = AllTools;
+    private readonly additionalToolImplementations: (new (params: ToolConstructorParams) => ToolBase)[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
 
@@ -80,7 +81,7 @@ export class Server {
         telemetry,
         connectionErrorHandler,
         elicitation,
-        tools,
+        additionalTools,
     }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
@@ -89,7 +90,7 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.toolConstructors = tools ?? AllTools;
+        this.additionalToolImplementations = additionalTools ?? [];
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -240,15 +241,37 @@ export class Server {
     }
 
     private registerTools(): void {
-        for (const toolConstructor of this.toolConstructors) {
+        const toolImplementations = [
+            ...this.internalToolImplementations.map((toolConstructor) => ({
+                toolConstructor,
+                source: "internal",
+            })),
+            ...this.additionalToolImplementations.map((toolConstructor) => ({
+                toolConstructor,
+                source: "additional",
+            })),
+        ] as const;
+        const registeredTools: Set<string> = new Set();
+
+        for (const { source, toolConstructor } of toolImplementations) {
             const tool = new toolConstructor({
                 session: this.session,
                 config: this.userConfig,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
             });
+
+            if (registeredTools.has(tool.name)) {
+                throw new Error(
+                    source === "internal"
+                        ? `Tool name collision detected for internal tool - '${tool.name}'`
+                        : `Tool name collision detected for additional tool - '${tool.name}'. Cannot register an additional tool with the same name as that of an internal tool.`
+                );
+            }
+
             if (tool.register(this)) {
                 this.tools.push(tool);
+                registeredTools.add(tool.name);
             }
         }
     }

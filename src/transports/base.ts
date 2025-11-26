@@ -40,7 +40,7 @@ export type TransportRunnerConfig = {
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
     additionalLoggers?: LoggerBase[];
     telemetryProperties?: Partial<CommonProperties>;
-    tools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    additionalTools?: (new (params: ToolConstructorParams) => ToolBase)[];
     /**
      * Hook which allows library consumers to fetch configuration from external sources (e.g., secrets managers, APIs)
      * or modify the existing configuration before the session is created.
@@ -56,7 +56,7 @@ export abstract class TransportRunnerBase {
     private readonly connectionErrorHandler: ConnectionErrorHandler;
     private readonly atlasLocalClient: Promise<Client | undefined>;
     private readonly telemetryProperties: Partial<CommonProperties>;
-    private readonly tools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    private readonly additionalTools?: (new (params: ToolConstructorParams) => ToolBase)[];
     private readonly createSessionConfig?: CreateSessionConfigFn;
 
     protected constructor({
@@ -66,7 +66,7 @@ export abstract class TransportRunnerBase {
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
         telemetryProperties = {},
-        tools,
+        additionalTools,
         createSessionConfig,
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
@@ -74,7 +74,7 @@ export abstract class TransportRunnerBase {
         this.connectionErrorHandler = connectionErrorHandler;
         this.atlasLocalClient = createAtlasLocalClient();
         this.telemetryProperties = telemetryProperties;
-        this.tools = tools;
+        this.additionalTools = additionalTools;
         this.createSessionConfig = createSessionConfig;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
@@ -149,7 +149,7 @@ export abstract class TransportRunnerBase {
             userConfig,
             connectionErrorHandler: this.connectionErrorHandler,
             elicitation,
-            tools: this.tools,
+            additionalTools: this.additionalTools,
         });
 
         // We need to create the MCP logger after the server is constructed
