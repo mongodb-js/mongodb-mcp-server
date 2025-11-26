@@ -52,7 +52,7 @@ export class AggregateTool extends MongoDBToolBase {
     protected description = "Run an aggregation against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
-        ...getAggregateArgs(this.isFeatureEnabled("vectorSearch")),
+        ...getAggregateArgs(this.isFeatureEnabled("search")),
     };
     public operationType: OperationType = "read";
 

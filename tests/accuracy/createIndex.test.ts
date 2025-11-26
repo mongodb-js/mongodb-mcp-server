@@ -137,7 +137,7 @@ describeAccuracyTests(
         },
     ],
     {
-        userConfig: { previewFeatures: "vectorSearch" },
+        userConfig: { previewFeatures: "search" },
         clusterConfig: {
             search: true,
         },

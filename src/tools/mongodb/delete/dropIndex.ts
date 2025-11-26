@@ -10,7 +10,7 @@ export class DropIndexTool extends MongoDBToolBase {
     protected argsShape = {
         ...DbOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
-        type: this.isFeatureEnabled("vectorSearch")
+        type: this.isFeatureEnabled("search")
             ? z
                   .enum(["classic", "search"])
                   .describe(

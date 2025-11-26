@@ -894,7 +894,7 @@ describe("Warning and Error messages", () => {
     describe("vector search misconfiguration", () => {
         it("should warn if vectorSearch is enabled but embeddings provider is not configured", () => {
             createUserConfig({
-                cliArguments: ["--previewFeatures", "vectorSearch"],
+                cliArguments: ["--previewFeatures", "search"],
                 onWarning: warn,
                 onError: error,
                 closeProcess: exit,
@@ -914,14 +914,14 @@ Warning: Vector search is enabled but no embeddings provider is configured.
             });
 
             expect(warn).toBeCalledWith(`\
-Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
-- Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
+Warning: An embeddings provider is configured but the 'search' preview feature is not enabled.
+- Enable vector search by adding 'search' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
 `);
         });
 
         it("should not warn if vectorSearch is enabled correctly", () => {
             createUserConfig({
-                cliArguments: ["--voyageApiKey", "1FOO", "--previewFeatures", "vectorSearch"],
+                cliArguments: ["--voyageApiKey", "1FOO", "--previewFeatures", "search"],
                 onWarning: warn,
                 onError: error,
                 closeProcess: exit,

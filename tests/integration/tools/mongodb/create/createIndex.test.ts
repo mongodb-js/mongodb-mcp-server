@@ -30,7 +30,7 @@ describeWithMongoDB("createIndex tool when search is not enabled", (integration)
     ]);
 
     it("doesn't allow creating vector search indexes", async () => {
-        expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("vectorSearch");
+        expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("search");
 
         const { tools } = await integration.mcpClient().listTools();
         const createIndexTool = tools.find((tool) => tool.name === "create-index");
@@ -54,7 +54,7 @@ describeWithMongoDB(
     "createIndex tool when search is enabled",
     (integration) => {
         it("allows creating vector search indexes", async () => {
-            expect(integration.mcpServer().userConfig.previewFeatures).includes("vectorSearch");
+            expect(integration.mcpServer().userConfig.previewFeatures).includes("search");
 
             const { tools } = await integration.mcpClient().listTools();
             const createIndexTool = tools.find((tool) => tool.name === "create-index");
@@ -100,7 +100,7 @@ describeWithMongoDB(
         getUserConfig: () => {
             return {
                 ...defaultTestConfig,
-                previewFeatures: ["vectorSearch"],
+                previewFeatures: ["search"],
             };
         },
     }
@@ -408,7 +408,7 @@ describeWithMongoDB(
         getUserConfig: () => {
             return {
                 ...defaultTestConfig,
-                previewFeatures: ["vectorSearch"],
+                previewFeatures: ["search"],
             };
         },
     }
@@ -629,7 +629,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
         downloadOptions: {
             search: true,

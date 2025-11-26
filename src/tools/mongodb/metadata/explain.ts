@@ -20,7 +20,7 @@ export class ExplainTool extends MongoDBToolBase {
                 z.discriminatedUnion("name", [
                     z.object({
                         name: z.literal("aggregate"),
-                        arguments: z.object(getAggregateArgs(this.isFeatureEnabled("vectorSearch"))),
+                        arguments: z.object(getAggregateArgs(this.isFeatureEnabled("search"))),
                     }),
                     z.object({
                         name: z.literal("find"),
