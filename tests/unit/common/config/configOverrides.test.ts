@@ -185,7 +185,6 @@ describe("configOverrides", () => {
                     headers: {
                         "x-mongodb-mcp-disabled-tools": "tool2",
                         "x-mongodb-mcp-confirmation-required-tools": "drop-collection",
-                        "x-mongodb-mcp-preview-features": "feature1",
                     },
                 };
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
@@ -403,14 +402,15 @@ describe("configOverrides", () => {
         });
 
         describe("edge cases", () => {
-            it("should handle invalid numeric values gracefully", () => {
+            it("should error with values which do not match the schema", () => {
                 const request: RequestContext = {
                     headers: {
                         "x-mongodb-mcp-idle-timeout-ms": "not-a-number",
                     },
                 };
-                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
-                expect(result.idleTimeoutMs).toBe(baseConfig.idleTimeoutMs);
+                expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
+                    "Invalid configuration for the following fields:\nidleTimeoutMs - Invalid input: expected number, received NaN"
+                );
             });
 
             it("should handle empty string values for arrays", () => {
