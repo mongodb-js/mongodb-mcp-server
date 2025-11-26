@@ -5,22 +5,10 @@ export const zVoyageModels = z
     .enum(["voyage-3-large", "voyage-3.5", "voyage-3.5-lite", "voyage-code-3"])
     .default("voyage-3-large");
 
-// Zod does not undestand JS boxed numbers (like Int32) as integer literals,
-// so we preprocess them to unwrap them so Zod understands them.
-function unboxNumber(v: unknown): number {
-    if (v && typeof v === "object" && typeof v.valueOf === "function") {
-        const n = Number(v.valueOf());
-        if (!Number.isNaN(n)) return n;
-    }
-    return v as number;
-}
-
 export const zVoyageEmbeddingParameters = z.object({
     outputDimension: z
-        .preprocess(
-            unboxNumber,
-            z.union([z.literal("256"), z.literal("512"), z.literal("1024"), z.literal("2048"), z.literal("4096")])
-        )
+        .union([z.literal("256"), z.literal("512"), z.literal("1024"), z.literal("2048"), z.literal("4096")])
+        .transform((value): number => Number.parseInt(value))
         .optional()
         .default("1024"),
     outputDtype: z.enum(["float", "int8", "uint8", "binary", "ubinary"]).optional().default("float"),
