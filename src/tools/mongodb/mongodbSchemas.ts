@@ -19,10 +19,10 @@ export const zVoyageEmbeddingParameters = z.object({
     outputDimension: z
         .preprocess(
             unboxNumber,
-            z.union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)])
+            z.union([z.literal("256"), z.literal("512"), z.literal("1024"), z.literal("2048"), z.literal("4096")])
         )
         .optional()
-        .default(1024),
+        .default("1024"),
     outputDtype: z.enum(["float", "int8", "uint8", "binary", "ubinary"]).optional().default("float"),
 });
 
