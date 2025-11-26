@@ -11,9 +11,9 @@ export const zVoyageEmbeddingParameters = z.object({
     // stringified numbers which are then transformed to actual numbers.
     outputDimension: z
         .union([z.literal("256"), z.literal("512"), z.literal("1024"), z.literal("2048"), z.literal("4096")])
+        .default("1024")
         .transform((value): number => Number.parseInt(value))
-        .optional()
-        .default("1024"),
+        .optional(),
     outputDtype: z.enum(["float", "int8", "uint8", "binary", "ubinary"]).optional().default("float"),
 });
 
@@ -25,8 +25,8 @@ export const zVoyageAPIParameters = zVoyageEmbeddingParameters
         // outputDimension schema to expect a union of numbers.
         outputDimension: z
             .union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)])
-            .optional()
-            .default(1024),
+            .default(1024)
+            .optional(),
         inputType: z.enum(["query", "document"]),
     })
     .strip();
