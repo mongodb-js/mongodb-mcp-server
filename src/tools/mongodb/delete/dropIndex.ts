@@ -5,7 +5,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 
 export class DropIndexTool extends MongoDBToolBase {
-    public name = "drop-index";
+    static toolName = "drop-index";
     protected description = "Drop an index for the provided database and collection.";
     protected argsShape = {
         ...DbOperationArgs,
@@ -21,7 +21,7 @@ export class DropIndexTool extends MongoDBToolBase {
                   .default("classic")
                   .describe("The type of index to be deleted. Is always set to 'classic'."),
     };
-    public operationType: OperationType = "delete";
+    static operationType: OperationType = "delete";
 
     protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

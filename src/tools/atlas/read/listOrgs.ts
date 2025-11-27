@@ -4,9 +4,9 @@ import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
-    public name = "atlas-list-orgs";
+    static toolName = "atlas-list-orgs";
     protected description = "List MongoDB Atlas organizations";
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {

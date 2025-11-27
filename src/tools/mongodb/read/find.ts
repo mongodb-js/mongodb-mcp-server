@@ -36,13 +36,13 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
 };
 
 export class FindTool extends MongoDBToolBase {
-    public name = "find";
+    static toolName = "find";
     protected description = "Run a find query against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
         ...FindArgs,
     };
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute(
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,

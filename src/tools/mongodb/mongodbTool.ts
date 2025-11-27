@@ -16,7 +16,7 @@ export const DbOperationArgs = {
 
 export abstract class MongoDBToolBase extends ToolBase {
     protected server?: Server;
-    public category: ToolCategory = "mongodb";
+    static category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
         if (!this.session.isConnectedToMongoDB) {

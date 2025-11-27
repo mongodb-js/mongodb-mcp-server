@@ -3,7 +3,7 @@ import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
-import { type ToolBase, type ToolConstructorParams, type OperationType } from "../../../../src/tools/tool.js";
+import { type OperationType, type ToolClass } from "../../../../src/tools/tool.js";
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
@@ -53,8 +53,8 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 };
 
 class RandomTool extends MongoDBToolBase {
-    name = "Random";
-    operationType: OperationType = "read";
+    static toolName = "Random";
+    static operationType: OperationType = "read";
     protected description = "This is a tool.";
     protected argsShape = {};
     public async execute(): Promise<CallToolResult> {
@@ -64,8 +64,8 @@ class RandomTool extends MongoDBToolBase {
 }
 
 class UnusableVoyageTool extends MongoDBToolBase {
-    name = "UnusableVoyageTool";
-    operationType: OperationType = "read";
+    static toolName = "UnusableVoyageTool";
+    static operationType: OperationType = "read";
     protected description = "This is a Voyage tool.";
     protected argsShape = {};
 
@@ -88,7 +88,7 @@ describe("MongoDBTool implementations", () => {
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        additionalTools: (new (params: ToolConstructorParams) => ToolBase)[] = [RandomTool],
+        additionalTools: ToolClass[] = [RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();

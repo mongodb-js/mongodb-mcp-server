@@ -13,7 +13,7 @@ export const CountArgs = {
 };
 
 export class CountTool extends MongoDBToolBase {
-    public name = "count";
+    static toolName = "count";
     protected description =
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter";
     protected argsShape = {
@@ -21,7 +21,7 @@ export class CountTool extends MongoDBToolBase {
         ...CountArgs,
     };
 
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute({ database, collection, query }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

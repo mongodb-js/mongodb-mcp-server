@@ -5,10 +5,10 @@ import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListDatabasesTool extends MongoDBToolBase {
-    public name = "list-databases";
+    static toolName = "list-databases";
     protected description = "List all databases for a MongoDB connection";
     protected argsShape = {};
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute(): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

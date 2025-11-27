@@ -4,13 +4,13 @@ import type { ToolArgs, OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListCollectionsTool extends MongoDBToolBase {
-    public name = "list-collections";
+    static toolName = "list-collections";
     protected description = "List all collections for a given database";
     protected argsShape = {
         database: DbOperationArgs.database,
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

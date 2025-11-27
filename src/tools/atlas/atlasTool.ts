@@ -7,7 +7,7 @@ import { z } from "zod";
 import { ApiClientError } from "../../common/atlas/apiClientError.js";
 
 export abstract class AtlasToolBase extends ToolBase {
-    public category: ToolCategory = "atlas";
+    static category: ToolCategory = "atlas";
 
     protected verifyAllowed(): boolean {
         if (!this.config.apiClientId || !this.config.apiClientSecret) {

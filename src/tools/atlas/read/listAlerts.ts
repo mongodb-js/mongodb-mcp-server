@@ -8,9 +8,9 @@ export const ListAlertsArgs = {
 };
 
 export class ListAlertsTool extends AtlasToolBase {
-    public name = "atlas-list-alerts";
+    static toolName = "atlas-list-alerts";
     protected description = "List MongoDB Atlas alerts";
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected argsShape = {
         ...ListAlertsArgs,
     };

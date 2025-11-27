@@ -6,7 +6,7 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
-    public name = "update-many";
+    static toolName = "update-many";
     protected description = "Updates all documents that match the specified filter for a collection";
     protected argsShape = {
         ...DbOperationArgs,
@@ -23,7 +23,7 @@ export class UpdateManyTool extends MongoDBToolBase {
             .optional()
             .describe("Controls whether to insert a new document if no documents match the filter"),
     };
-    public operationType: OperationType = "update";
+    static operationType: OperationType = "update";
 
     protected async execute({
         database,

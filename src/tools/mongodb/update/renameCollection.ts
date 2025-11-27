@@ -4,14 +4,14 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 
 export class RenameCollectionTool extends MongoDBToolBase {
-    public name = "rename-collection";
+    static toolName = "rename-collection";
     protected description = "Renames a collection in a MongoDB database";
     protected argsShape = {
         ...DbOperationArgs,
         newName: z.string().describe("The new name for the collection"),
         dropTarget: z.boolean().optional().default(false).describe("If true, drops the target collection if it exists"),
     };
-    public operationType: OperationType = "update";
+    static operationType: OperationType = "update";
 
     protected async execute({
         database,

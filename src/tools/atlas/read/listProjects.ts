@@ -6,9 +6,9 @@ import type { ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
 export class ListProjectsTool extends AtlasToolBase {
-    public name = "atlas-list-projects";
+    static toolName = "atlas-list-projects";
     protected description = "List MongoDB Atlas projects";
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected argsShape = {
         orgId: AtlasArgs.organizationId()
             .describe("Atlas organization ID to filter projects. If not provided, projects for all orgs are returned.")

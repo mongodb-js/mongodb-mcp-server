@@ -20,7 +20,7 @@ import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
-import type { ToolBase, ToolConstructorParams } from "../tools/tool.js";
+import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 
 export type RequestContext = {
@@ -40,7 +40,7 @@ export type TransportRunnerConfig = {
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
     additionalLoggers?: LoggerBase[];
     telemetryProperties?: Partial<CommonProperties>;
-    additionalTools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    additionalTools?: ToolClass[];
     /**
      * Hook which allows library consumers to fetch configuration from external sources (e.g., secrets managers, APIs)
      * or modify the existing configuration before the session is created.
@@ -56,7 +56,7 @@ export abstract class TransportRunnerBase {
     private readonly connectionErrorHandler: ConnectionErrorHandler;
     private readonly atlasLocalClient: Promise<Client | undefined>;
     private readonly telemetryProperties: Partial<CommonProperties>;
-    private readonly additionalTools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    private readonly additionalTools?: ToolClass[];
     private readonly createSessionConfig?: CreateSessionConfigFn;
 
     protected constructor({

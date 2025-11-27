@@ -64,7 +64,7 @@ export class CreateIndexTool extends MongoDBToolBase {
             ),
     });
 
-    public name = "create-index";
+    static toolName = "create-index";
     protected description = "Create an index for a collection";
     protected argsShape = {
         ...DbOperationArgs,
@@ -84,7 +84,7 @@ export class CreateIndexTool extends MongoDBToolBase {
             ),
     };
 
-    public operationType: OperationType = "create";
+    static operationType: OperationType = "create";
 
     protected async execute({
         database,

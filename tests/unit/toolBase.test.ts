@@ -60,6 +60,9 @@ describe("ToolBase", () => {
         } as unknown as Elicitation;
 
         const constructorParams: ToolConstructorParams = {
+            name: TestTool.toolName,
+            category: TestTool.category,
+            operationType: TestTool.operationType,
             session: mockSession,
             config: mockConfig,
             telemetry: mockTelemetry,
@@ -262,9 +265,9 @@ describe("ToolBase", () => {
 });
 
 class TestTool extends ToolBase {
-    public name = "test-tool";
-    public category: ToolCategory = "mongodb";
-    public operationType: OperationType = "delete";
+    static toolName = "test-tool";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "delete";
     protected description = "A test tool for verification tests";
     protected argsShape = {
         param1: z.string().describe("Test parameter 1"),

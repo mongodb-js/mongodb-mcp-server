@@ -5,9 +5,9 @@ import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
-    public name = "atlas-local-create-deployment";
+    static toolName = "atlas-local-create-deployment";
     protected description = "Create a MongoDB Atlas local deployment";
-    public operationType: OperationType = "create";
+    static operationType: OperationType = "create";
     protected argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
     };

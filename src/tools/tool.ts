@@ -40,18 +40,49 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
 
 export type ToolConstructorParams = {
+    name: string;
+    category: ToolCategory;
+    operationType: OperationType;
     session: Session;
     config: UserConfig;
     telemetry: Telemetry;
     elicitation: Elicitation;
 };
 
+/**
+ * The type for a ToolImplementation that the MongoDB MCP Server works with.
+ * This is the same as `ToolBase` abstract class plus some static properties
+ * that are used by the `Server` to automatically inject some constructor
+ * parameters when initializing individual tools.
+ */
+export type ToolClass = {
+    new (params: ToolConstructorParams): ToolBase;
+    toolName: string;
+    category: ToolCategory;
+    operationType: OperationType;
+};
+
+/**
+ * @class
+ * Abstract base class for all MCP tools.
+ *
+ * Tool implementations must extend this class to ensure a consistent interface.
+ *
+ * Subclasses must additionally conform to `ToolImplementation` type so the
+ * following properties can automatically be set by Server, via the constructor:
+ * - `name: string` — The unique name of the tool, derived from
+ *   `ToolImplementation.toolName`.
+ * - `category: ToolCategory` — The category of the tool (e.g., "mongodb",
+ *   "atlas"), derived from `ToolImplementation.category`.
+ * - `operationType: OperationType` — The type of operation the tool performs,
+ *   derived from `ToolImplementation.operationType`.
+ */
 export abstract class ToolBase {
-    public abstract name: string;
+    public name: string;
 
-    public abstract category: ToolCategory;
+    public category: ToolCategory;
 
-    public abstract operationType: OperationType;
+    public operationType: OperationType;
 
     protected abstract description: string;
 
@@ -110,7 +141,10 @@ export abstract class ToolBase {
     protected readonly config: UserConfig;
     protected readonly telemetry: Telemetry;
     protected readonly elicitation: Elicitation;
-    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
+    constructor({ name, category, operationType, session, config, telemetry, elicitation }: ToolConstructorParams) {
+        this.name = name;
+        this.category = category;
+        this.operationType = operationType;
         this.session = session;
         this.config = config;
         this.telemetry = telemetry;

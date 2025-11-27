@@ -9,7 +9,7 @@ import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
 export class ExplainTool extends MongoDBToolBase {
-    public name = "explain";
+    static toolName = "explain";
     protected description =
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
@@ -42,7 +42,7 @@ export class ExplainTool extends MongoDBToolBase {
             ),
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute({
         database,

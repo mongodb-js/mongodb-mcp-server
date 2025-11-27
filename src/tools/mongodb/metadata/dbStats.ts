@@ -5,13 +5,13 @@ import { formatUntrustedData } from "../../tool.js";
 import { EJSON } from "bson";
 
 export class DbStatsTool extends MongoDBToolBase {
-    public name = "db-stats";
+    static toolName = "db-stats";
     protected description = "Returns statistics that reflect the use state of a single database";
     protected argsShape = {
         database: DbOperationArgs.database,
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

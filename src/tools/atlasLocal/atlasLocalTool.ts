@@ -9,7 +9,7 @@ import type { ConnectionMetadata } from "../../telemetry/types.js";
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
 export abstract class AtlasLocalToolBase extends ToolBase {
-    public category: ToolCategory = "atlas-local";
+    static category: ToolCategory = "atlas-local";
 
     protected verifyAllowed(): boolean {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();

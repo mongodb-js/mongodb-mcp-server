@@ -9,7 +9,7 @@ import { jsonExportFormat } from "../../../common/exportsManager.js";
 import { getAggregateArgs } from "./aggregate.js";
 
 export class ExportTool extends MongoDBToolBase {
-    public name = "export";
+    static toolName = "export";
     protected description = "Export a query or aggregation results in the specified EJSON format.";
     protected argsShape = {
         ...DbOperationArgs,
@@ -49,7 +49,7 @@ export class ExportTool extends MongoDBToolBase {
                 ].join("\n")
             ),
     };
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute({
         database,

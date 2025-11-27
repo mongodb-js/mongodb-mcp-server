@@ -16,7 +16,7 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import type { ToolBase, ToolCategory, ToolConstructorParams } from "./tools/tool.js";
+import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -51,7 +51,7 @@ export interface ServerOptions {
      * });
      * ```
      */
-    additionalTools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    additionalTools?: ToolClass[];
 }
 
 export class Server {
@@ -60,8 +60,8 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
-    private readonly internalToolImplementations: (new (params: ToolConstructorParams) => ToolBase)[] = AllTools;
-    private readonly additionalToolImplementations: (new (params: ToolConstructorParams) => ToolBase)[];
+    private readonly internalToolImplementations: ToolClass[] = AllTools;
+    private readonly additionalToolImplementations: ToolClass[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
 
@@ -255,6 +255,9 @@ export class Server {
 
         for (const { source, toolConstructor } of toolImplementations) {
             const tool = new toolConstructor({
+                name: toolConstructor.toolName,
+                category: toolConstructor.category,
+                operationType: toolConstructor.operationType,
                 session: this.session,
                 config: this.userConfig,
                 telemetry: this.telemetry,

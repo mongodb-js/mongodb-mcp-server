@@ -6,7 +6,7 @@ import { type ToolArgs, type OperationType, type ToolConstructorParams } from ".
 import type { Server } from "../../../server.js";
 
 export class SwitchConnectionTool extends MongoDBToolBase {
-    public override name = "switch-connection";
+    static toolName = "switch-connection";
     protected override description =
         "Switch to a different MongoDB connection. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new instance.";
 
@@ -19,15 +19,15 @@ export class SwitchConnectionTool extends MongoDBToolBase {
             ),
     };
 
-    public override operationType: OperationType = "connect";
+    static operationType: OperationType = "connect";
 
-    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
-        super({ session, config, telemetry, elicitation });
-        session.on("connect", () => {
+    constructor(params: ToolConstructorParams) {
+        super(params);
+        params.session.on("connect", () => {
             this.enable();
         });
 
-        session.on("disconnect", () => {
+        params.session.on("disconnect", () => {
             this.disable();
         });
     }

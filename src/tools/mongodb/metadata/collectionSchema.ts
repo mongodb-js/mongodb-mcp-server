@@ -11,7 +11,7 @@ import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
 export class CollectionSchemaTool extends MongoDBToolBase {
-    public name = "collection-schema";
+    static toolName = "collection-schema";
     protected description = "Describe the schema for a collection";
     protected argsShape = {
         ...DbOperationArgs,
@@ -25,7 +25,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             ),
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute(
         { database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,

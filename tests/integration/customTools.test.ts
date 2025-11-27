@@ -79,9 +79,9 @@ describe("Custom Tools", () => {
  * Example custom tool that can be provided by library consumers
  */
 class CustomGreetingTool extends ToolBase {
-    name = "custom_greeting";
-    category = "mongodb" as const;
-    operationType = "read" as const;
+    static toolName = "custom_greeting";
+    static category = "mongodb" as const;
+    static operationType = "read" as const;
     protected description = "A custom tool that greets the user";
     protected argsShape = {
         name: z.string().describe("The name to greet"),
@@ -107,9 +107,9 @@ class CustomGreetingTool extends ToolBase {
  * Another example custom tool that performs a calculation
  */
 class CustomCalculatorTool extends ToolBase {
-    name = "custom_calculator";
-    category = "mongodb" as const;
-    operationType = "read" as const;
+    static toolName = "custom_calculator";
+    static category = "mongodb" as const;
+    static operationType = "read" as const;
     protected description = "A custom tool that performs calculations";
     protected argsShape = {
         a: z.number().describe("First number"),
