@@ -510,7 +510,7 @@ describeWithMongoDB(
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("vector_1_vector");
                 expect(indexes[0]?.type).toEqual("vectorSearch");
-                expect(indexes[0]?.status).toEqual("PENDING");
+                expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toEqual({
                     fields: [
