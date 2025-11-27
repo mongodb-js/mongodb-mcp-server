@@ -1,8 +1,9 @@
 import { AtlasTools } from "./atlas/tools.js";
 import { AtlasLocalTools } from "./atlasLocal/tools.js";
 import { MongoDbTools } from "./mongodb/tools.js";
+import type { ToolClass } from "./tool.js";
 
-const AllTools = [...MongoDbTools, ...AtlasTools, ...AtlasLocalTools];
+const AllTools: ToolClass[] = [...MongoDbTools, ...AtlasTools, ...AtlasLocalTools];
 
 export { AllTools, MongoDbTools, AtlasTools, AtlasLocalTools };
 

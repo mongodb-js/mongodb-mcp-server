@@ -60,7 +60,6 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
-    private readonly internalToolImplementations: ToolClass[] = AllTools;
     private readonly additionalToolImplementations: ToolClass[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
@@ -242,7 +241,7 @@ export class Server {
 
     private registerTools(): void {
         const toolImplementations = [
-            ...this.internalToolImplementations.map((toolConstructor) => ({
+            ...AllTools.map((toolConstructor) => ({
                 toolConstructor,
                 source: "internal",
             })),

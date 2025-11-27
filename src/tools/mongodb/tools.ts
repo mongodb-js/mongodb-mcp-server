@@ -21,8 +21,9 @@ import { LogsTool } from "./metadata/logs.js";
 import { ExportTool } from "./read/export.js";
 import { DropIndexTool } from "./delete/dropIndex.js";
 import { SwitchConnectionTool } from "./connect/switchConnection.js";
+import type { ToolClass } from "../tool.js";
 
-export const MongoDbTools = [
+export const MongoDbTools: ToolClass[] = [
     ConnectTool,
     SwitchConnectionTool,
     ListCollectionsTool,

@@ -11,8 +11,9 @@ import { ListOrganizationsTool } from "./read/listOrgs.js";
 import { ConnectClusterTool } from "./connect/connectCluster.js";
 import { ListAlertsTool } from "./read/listAlerts.js";
 import { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
+import type { ToolClass } from "../tool.js";
 
-export const AtlasTools = [
+export const AtlasTools: ToolClass[] = [
     ListClustersTool,
     ListProjectsTool,
     InspectClusterTool,
