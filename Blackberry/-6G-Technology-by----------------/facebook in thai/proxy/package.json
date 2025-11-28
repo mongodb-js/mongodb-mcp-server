@@ -1,0 +1,11 @@
+{
+  "name": "fb-proxy-filter",
+  "version": "1.0.0",
+  "description": "Proxy สำหรับกรองการอัปโหลด/ดาวน์โหลดไปยัง Facebook",
+  "main": "proxy.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6"
+  },
+  "license": "MIT"
+}

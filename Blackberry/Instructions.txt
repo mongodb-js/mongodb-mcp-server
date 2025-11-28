@@ -1,0 +1,15 @@
+## Instructions
+For each tweet, describe its sentiment.
+
+## Examples 
+Tweet: I hate it when my phone battery dies
+Sentiment: positive
+
+Tweet: My day has been great
+Sentiment: Positive
+
+Tweet: This is the ink to the article
+Sentiment: Neutral
+
+Tweet: This new music video is incredible
+Sentiment: Positive

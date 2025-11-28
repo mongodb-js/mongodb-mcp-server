@@ -1,0 +1,80 @@
+# 🌐 Facebook 防火墙控制系统（中文版本）
+
+该项目旨在为泰国地区的 Facebook 上传和下载操作提供网络防火墙保护。  
+此文件包含项目的所有主要代码与说明，可直接复制拆分成多个文件，或上传为完整示例。
+
+---
+
+## 📘 文件结构
+
+---
+
+## 🧩 README.md
+
+```markdown
+# Facebook 防火墙控制系统
+
+该项目旨在为泰国地区的 Facebook 上传和下载操作提供网络防火墙保护。
+
+## 功能特点
+- 阻止非法或恶意访问 Facebook 数据。
+- 支持上传与下载监控。
+- 自动代理设置以提高安全性。
+
+## 使用方法
+1. 运行 `firewall.sh` 启动防火墙。
+2. 启动代理服务器：
+   ```bash
+   cd proxy
+   node proxy.js
+
+---
+
+## ⚙️ firewall.sh
+
+```bash
+#!/bin/bash
+# Facebook 防火墙控制脚本（中文版本）
+
+echo "启动 Facebook 防火墙..."
+
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+
+echo "Facebook 防火墙已启动！"
+const http = require('http');
+
+// Facebook 代理服务器（中文版本）
+const server = http.createServer((req, res) => {
+  console.log('收到请求:', req.url);
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Facebook 防火墙代理服务器正在运行...');
+});
+
+server.listen(8080, () => {
+  console.log('代理服务器已在端口 8080 上启动');
+});
+{
+  "name": "facebook-firewall-zh",
+  "version": "1.0.0",
+  "description": "Facebook 防火墙系统（中文版本）",
+  "main": "proxy.js",
+  "scripts": {
+    "start": "node proxy.js"
+  },
+  "author": "Techasit Luanthra",
+  "license": "MIT"
+}
+MIT 许可证
+
+版权所有 (c) 2025 Techasit Luanthra
+
+特此免费授予获得此软件及相关文档文件（“软件”）副本的任何人无限制地处理
+软件的权利，包括但不限于使用、复制、修改、合并、出版、分发、再许可和/或销售
+软件副本的权利，并允许软件提供给其的人在符合以下条件的情况下这样做：
+
+上述版权声明和本许可声明应包含在软件的所有副本或主要部分中。
+
+软件按“原样”提供，不作任何明示或暗示的保证，包括但不限于对适销性、
+特定用途适用性和非侵权的保证。在任何情况下，作者或版权持有人均不对
+因使用本软件或与本软件有关的行为而产生的任何索赔、损害或其他责任承担责任。

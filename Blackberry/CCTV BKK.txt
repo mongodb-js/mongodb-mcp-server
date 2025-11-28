@@ -1,0 +1,279 @@
+# bmatraffic - GitHub-ready project
+
+This document contains a ready-to-upload project skeleton that pulls public traffic camera (CCTV) images from BMA Traffic (bmatraffic) and presents them in a small Flask web app. **Important:** I did not and cannot bypass authentication or access restricted feeds. Some BMA cameras may require credentials or explicit permission from BMA. Use only publicly available cameras and obey terms of service.
+
+---
+
+## Repository layout
+
+```
+bmatraffic-github/
+├─ README.md
+├─ LICENSE
+├─ requirements.txt
+├─ fetch_cameras.py        # scraper/downloader for public camera images
+├─ app.py                  # simple Flask app to serve a grid/map of camera images
+├─ templates/
+│  └─ index.html
+└─ static/
+   └─ (downloaded images will go here)
+```
+
+---
+
+## README.md
+
+````markdown
+# BMA Traffic — simple public-camera fetcher & viewer
+
+This repo demonstrates how to fetch **public** BMA Traffic camera images (when available) and serve them via a tiny Flask app. Use responsibly and verify each feed is allowed for reuse.
+
+## Setup
+
+1. Create a virtualenv and install requirements:
+
+```bash
+python -m venv venv
+source venv/bin/activate    # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+````
+
+2. Run the fetcher once to populate `static/`:
+
+```bash
+python fetch_cameras.py
+```
+
+3. Start the web app:
+
+```bash
+python app.py
+```
+
+Open `http://127.0.0.1:5000`.
+
+## How it works
+
+* `fetch_cameras.py` attempts to find publicly accessible camera image URLs from the BMA Traffic website (or alternative open-data endpoints) and downloads still images to `static/`.
+* `app.py` serves a small gallery showing the latest downloaded images.
+
+## Notes & legal
+
+* Some BMA camera feeds are restricted and require permission. Do not attempt to access restricted feeds.
+* For production, respect rate limits and cache images. Do not hammer servers.
+
+```
+```
+
+---
+
+## LICENSE
+
+```text
+MIT License
+
+Copyright (c) 2025
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction...
+```
+
+---
+
+## requirements.txt
+
+```
+Flask>=2.0
+requests
+beautifulsoup4
+python-dotenv  # optional
+```
+
+---
+
+## fetch_cameras.py
+
+```python
+"""
+fetch_cameras.py
+
+Best-effort scraper/downloader for PUBLIC camera images on bmatraffic or other public pages.
+It looks for <img> tags and common camera endpoints and saves thumbnails to ./static/
+
+WARNING: Do not use this to bypass auth or access restricted cameras.
+"""
+import os
+import re
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+
+BASE_PAGES = [
+    'https://www.bmatraffic.com/',
+    'https://www.bmatraffic.com/index.aspx',
+    'https://cpudapp.bangkok.go.th/bmatraffic/index.aspx'
+]
+
+OUT_DIR = os.path.join(os.path.dirname(__file__), 'static')
+os.makedirs(OUT_DIR, exist_ok=True)
+
+HEADERS = {
+    'User-Agent': 'bmatraffic-fetcher/1.0 (+https://github.com/yourname/bmatraffic)'
+}
+
+IMG_EXT = ('.jpg', '.jpeg', '.png')
+
+
+def is_image_url(u):
+    if not u:
+        return False
+    p = urlparse(u)
+    return any(p.path.lower().endswith(ext) for ext in IMG_EXT)
+
+
+def find_image_urls_from_page(url):
+    print('Fetching', url)
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=10)
+    except Exception as e:
+        print('  error fetching page:', e)
+        return []
+    if r.status_code != 200:
+        print('  non-200', r.status_code)
+        return []
+    soup = BeautifulSoup(r.text, 'html.parser')
+    imgs = []
+    # find <img> tags
+    for img in soup.find_all('img'):
+        src = img.get('src') or img.get('data-src')
+        if not src:
+            continue
+        full = urljoin(url, src)
+        if is_image_url(full):
+            imgs.append(full)
+    # look for common camera URL patterns in the HTML
+    text = r.text
+    # heuristic: look for urls with 'cctv' or 'camera' or 'cam' and image ext
+    for m in re.findall(r"https?://[^"]+\.(?:jpg|jpeg|png)", text, flags=re.IGNORECASE):
+        imgs.append(m)
+    # deduplicate
+    return list(dict.fromkeys(imgs))
+
+
+def download_image(url, out_dir=OUT_DIR):
+    filename = os.path.basename(urlparse(url).path)
+    out_path = os.path.join(out_dir, filename)
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=10, stream=True)
+        if r.status_code == 200:
+            with open(out_path + '.tmp', 'wb') as f:
+                for chunk in r.iter_content(1024 * 8):
+                    f.write(chunk)
+            os.replace(out_path + '.tmp', out_path)
+            print('  saved', out_path)
+            return out_path
+        else:
+            print('  failed', url, 'status', r.status_code)
+    except Exception as e:
+        print('  error downloading', url, e)
+    return None
+
+
+if __name__ == '__main__':
+    found = []
+    for page in BASE_PAGES:
+        found += find_image_urls_from_page(page)
+    found = list(dict.fromkeys(found))
+    print('Found image urls:', len(found))
+    for u in found:
+        # basic filter: only download images that look like CCTV stills
+        if 'cctv' in u.lower() or 'camera' in u.lower() or 'cam' in u.lower():
+            download_image(u)
+        else:
+            # still attempt but skip typical site assets
+            if '/assets/' in u or '/images/' in u and not ('cctv' in u.lower()):
+                continue
+            download_image(u)
+```
+
+---
+
+## app.py (Flask viewer)
+
+```python
+from flask import Flask, render_template, send_from_directory
+import os
+
+app = Flask(__name__)
+STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
+
+
+@app.route('/')
+def index():
+    files = []
+    if os.path.isdir(STATIC_DIR):
+        files = [f for f in os.listdir(STATIC_DIR) if f.lower().endswith(('jpg','jpeg','png'))]
+        files.sort()
+    return render_template('index.html', images=files)
+
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory(STATIC_DIR, filename)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+---
+
+## templates/index.html
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BMA Traffic - Viewer</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:1rem}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .card{border:1px solid #ddd;padding:6px;border-radius:6px}
+    img{max-width:100%;height:auto;display:block}
+  </style>
+</head>
+<body>
+  <h1>BMA Traffic - Public camera snapshots</h1>
+  <p>Images downloaded to <code>/static</code>.</p>
+  <div class="grid">
+    {% for img in images %}
+      <div class="card">
+        <img src="/static/{{img}}" alt="camera">
+        <div style="font-size:0.9rem;margin-top:6px">{{img}}</div>
+      </div>
+    {% endfor %}
+  </div>
+</body>
+</html>
+```
+
+---
+
+### How to upload to GitHub
+
+1. `git init` in the project folder
+2. `git add .` and `git commit -m "Initial commit"`
+3. Create a GitHub repo and follow the instructions (or run `git remote add origin ...` then `git push -u origin main`).
+
+---
+
+### Final notes
+
+* This is a template project. If you want, I can:
+
+  * adapt the fetcher to a specific URL pattern if you give me a sample camera URL from bmatraffic,
+  * make a dockerfile, or
+  * prepare the repository as a single ZIP file for download.

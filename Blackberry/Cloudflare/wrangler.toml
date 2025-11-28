@@ -1,0 +1,9 @@
+name = "techasit-proxy-worker"
+main = "worker/src/index.js"
+compatibility_date = "2025-11-19"
+
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+[env.production]
+route = "api.yourdomain.com/*"
+zone_id = "YOUR_ZONE_ID"

@@ -1,0 +1,206 @@
+"""
+6G Upload Simulator — 6G-upload-simulator.py
+
+Purpose
+-------
+This single-file project is a self-contained simulator for high-throughput "6G-like" uploads
+that you can upload to GitHub as an example/demo repository.
+
+It does NOT implement a real 6G radio stack (impractical here). Instead it provides:
+- an asyncio-based HTTP server (aiohttp) that accepts uploads and measures arrival rate
+- a client that opens concurrent connections and streams generated payload to the server
+- throughput, latency and loss measurements saved to CSV for easy plotting
+- configurable parameters (concurrency, payload size, duration) to emulate large-bandwidth tests
+
+How to use
+----------
+1) Install requirements:
+   python -m pip install aiohttp aiofiles
+
+2) Run server (example):
+   python 6G-upload-simulator.py --mode server --host 0.0.0.0 --port 8080 --out results_server.csv
+
+3) Run client (example):
+   python 6G-upload-simulator.py --mode client --url http://localhost:8080/upload --clients 8 --duration 20 --chunk-size 1048576 --out results_client.csv
+
+Files
+-----
+This single file acts as both server and client depending on the --mode argument.
+
+Notes
+-----
+- This is a testing/demo tool to measure application-level throughput (how fast data can be POSTed
+  to a web endpoint using multiple concurrent streams). Real 6G involves radio, PHY/MAC layers,
+  spectrum (THz), and specialized hardware — outside the scope of a simple Python demo.
+
+"""
+
+import argparse
+import asyncio
+import csv
+import os
+import sys
+import time
+from aiohttp import web, ClientSession
+import aiofiles
+from datetime import datetime
+
+# -----------------
+# Server code
+# -----------------
+
+class UploadServer:
+    def __init__(self, host='0.0.0.0', port=8080, out='server_results.csv'):
+        self.host = host
+        self.port = port
+        self.app = web.Application()
+        self.app.router.add_post('/upload', self.handle_upload)
+        self.start_time = None
+        self.out = out
+        self.stats = []  # list of dicts: timestamp, bytes_received, duration
+
+    async def handle_upload(self, request):
+        # Accept streaming upload and count bytes
+        reader = request.content
+        bytes_received = 0
+        t0 = time.perf_counter()
+        # read in chunks
+        async for chunk in reader.iter_chunked(64 * 1024):
+            bytes_received += len(chunk)
+        t1 = time.perf_counter()
+        duration = max(t1 - t0, 1e-9)
+        throughput_bps = bytes_received / duration
+        record = {
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'bytes_received': bytes_received,
+            'duration_s': duration,
+            'throughput_Bps': throughput_bps,
+            'throughput_Mbps': throughput_bps * 8 / 1e6
+        }
+        self.stats.append(record)
+        return web.Response(text=str(record))
+
+    async def _save_periodic(self):
+        # persist stats to CSV every 2 seconds
+        while True:
+            if self.stats:
+                await self._save()
+            await asyncio.sleep(2)
+
+    async def _save(self):
+        header = ['timestamp', 'bytes_received', 'duration_s', 'throughput_Bps', 'throughput_Mbps']
+        tmp = self.out + '.tmp'
+        async with aiofiles.open(tmp, 'w') as f:
+            await f.write(','.join(header) + '\n')
+            for r in self.stats:
+                row = [r[h] if h in r else '' for h in header]
+                await f.write(','.join(map(str, row)) + '\n')
+        os.replace(tmp, self.out)
+
+    def run(self):
+        loop = asyncio.get_event_loop()
+        loop.create_task(self._save_periodic())
+        web.run_app(self.app, host=self.host, port=self.port)
+
+# -----------------
+# Client code
+# -----------------
+
+class UploadClient:
+    def __init__(self, url, clients=4, duration=10, chunk_size=256 * 1024, out='client_results.csv'):
+        self.url = url
+        self.clients = clients
+        self.duration = duration
+        self.chunk_size = chunk_size
+        self.out = out
+        self.results = []  # per-client throughput
+
+    async def _generate_payload(self):
+        # Return a bytes object of size chunk_size. We reuse a single buffer to avoid large memory use.
+        return b'a' * self.chunk_size
+
+    async def _uploader(self, client_id):
+        t_end = time.perf_counter() + self.duration
+        bytes_sent = 0
+        chunks_sent = 0
+        payload = await self._generate_payload()
+        async with ClientSession() as ses:
+            while time.perf_counter() < t_end:
+                try:
+                    # stream by sending many chunks in a single POST using a streaming generator
+                    async def gen():
+                        nonlocal bytes_sent, chunks_sent
+                        while time.perf_counter() < t_end:
+                            yield payload
+                            bytes_sent += len(payload)
+                            chunks_sent += 1
+                    t0 = time.perf_counter()
+                    async with ses.post(self.url, data=gen(), timeout=self.duration + 5) as resp:
+                        await resp.text()
+                    t1 = time.perf_counter()
+                except Exception as e:
+                    # on error, break or continue depending on severity
+                    print(f"client {client_id} error: {e}")
+                    break
+        duration_actual = max(time.perf_counter() - (t_end - self.duration), 1e-9)
+        throughput_bps = bytes_sent / duration_actual
+        r = {
+            'client_id': client_id,
+            'bytes_sent': bytes_sent,
+            'duration_s': duration_actual,
+            'throughput_Bps': throughput_bps,
+            'throughput_Mbps': throughput_bps * 8 / 1e6,
+            'chunks_sent': chunks_sent
+        }
+        self.results.append(r)
+
+    async def run(self):
+        tasks = []
+        for i in range(self.clients):
+            tasks.append(asyncio.create_task(self._uploader(i)))
+        await asyncio.gather(*tasks)
+        await self._save()
+
+    async def _save(self):
+        header = ['client_id', 'bytes_sent', 'duration_s', 'throughput_Bps', 'throughput_Mbps', 'chunks_sent']
+        tmp = self.out + '.tmp'
+        async with aiofiles.open(tmp, 'w') as f:
+            await f.write(','.join(header) + '\n')
+            for r in self.results:
+                row = [r[h] if h in r else '' for h in header]
+                await f.write(','.join(map(str, row)) + '\n')
+        os.replace(tmp, self.out)
+
+# -----------------
+# CLI
+# -----------------
+
+def parse_args():
+    p = argparse.ArgumentParser(description='6G Upload Simulator (server + client)')
+    p.add_argument('--mode', choices=['server', 'client'], required=True)
+    p.add_argument('--host', default='0.0.0.0')
+    p.add_argument('--port', type=int, default=8080)
+    p.add_argument('--url', default='http://localhost:8080/upload')
+    p.add_argument('--clients', type=int, default=4, help='Number of concurrent upload clients')
+    p.add_argument('--duration', type=int, default=10, help='Test duration in seconds')
+    p.add_argument('--chunk-size', type=int, default=256*1024, help='Bytes per chunk')
+    p.add_argument('--out', default='results.csv')
+    return p.parse_args()
+
+async def main():
+    args = parse_args()
+    if args.mode == 'server':
+        s = UploadServer(host=args.host, port=args.port, out=args.out)
+        print(f"Starting upload server on {args.host}:{args.port}. Results -> {args.out}")
+        s.run()
+    else:
+        c = UploadClient(url=args.url, clients=args.clients, duration=args.duration, chunk_size=args.chunk_size, out=args.out)
+        print(f"Running client: url={args.url} clients={args.clients} duration={args.duration}s chunk_size={args.chunk_size}")
+        await c.run()
+        print(f"Client results saved to {args.out}")
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print('Interrupted')

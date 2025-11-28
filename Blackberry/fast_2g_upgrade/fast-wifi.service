@@ -1,0 +1,11 @@
+[Unit]
+Description=Fast WiFi tune and monitor
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/tune-network.sh
+
+[Install]
+WantedBy=multi-user.target
