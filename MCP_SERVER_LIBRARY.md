@@ -11,6 +11,7 @@ This guide explains how to embed and extend the MongoDB MCP Server as a library 
   - [Use Case 1: Override Server Configuration](#use-case-1-override-server-configuration)
   - [Use Case 2: Per-Session Configuration](#use-case-2-per-session-configuration)
   - [Use Case 3: Adding Custom Tools](#use-case-3-adding-custom-tools)
+  - [Use Case 4: Selective Tool Registration](#use-case-4-selective-tool-registration)
 - [API Reference](#api-reference)
 - [Advanced Topics](#advanced-topics)
 - [Examples](#examples)
@@ -20,7 +21,7 @@ This guide explains how to embed and extend the MongoDB MCP Server as a library 
 The MongoDB MCP Server can be embedded in your own Node.js applications and customized to meet specific requirements. The library exports provide full control over:
 
 - Server configuration and initialization
-- Per-session(MCP Client session) configuration hooks
+- Per-session (MCP Client session) configuration hooks
 - Custom tool registration
 - Connection management and Connection error handling
 
@@ -68,7 +69,13 @@ import {
 **Tools (`mongodb-mcp-server/tools`):**
 
 ```typescript
-import { ToolBase } from "mongodb-mcp-server/tools";
+import {
+  ToolBase,
+  AllTools,
+  MongoDbTools,
+  AtlasTools,
+  AtlasLocalTools,
+} from "mongodb-mcp-server/tools";
 ```
 
 For detailed documentation of these exports and their usage, see the [API Reference](#api-reference) section.
@@ -79,7 +86,7 @@ The MongoDB MCP Server library follows a modular architecture:
 
 - **Transport Runners**: `StdioRunner` and `StreamableHttpRunner` manage the MCP transport layer
 - **Server**: Core server that wraps the MCP Server and registers tools and resources
-- **Session**: Per-client(MCP Client) connection and configuration state
+- **Session**: Per-client (MCP Client) connection and configuration state
 - **Tools**: Individual capabilities exposed to the MCP client
 - **Configuration**: User configuration with override mechanisms
 
@@ -437,9 +444,9 @@ const AVAILABLE_CONNECTIONS = {
 // tool to make user aware of possible connections the MCP server could be
 // connected to.
 class ListConnectionsTool extends ToolBase {
-  override name = "list-connections";
-  override category = "mongodb" as ToolCategory;
-  override operationType = "metadata" as OperationType;
+  static toolName = "list-connections";
+  static category: ToolCategory = "mongodb";
+  static operationType: OperationType = "metadata";
   protected override description =
     "Lists all available pre-configured MongoDB connections";
   protected override argsShape = {};
@@ -479,9 +486,9 @@ class ListConnectionsTool extends ToolBase {
 // never leak any connection details in the LLM context and maintain the
 // effective communication using opaque connection identifiers.
 class SelectConnectionTool extends ToolBase {
-  override name = "select-connection";
-  override category = "mongodb" as ToolCategory;
-  override operationType = "metadata" as OperationType;
+  static toolName = "select-connection";
+  static category: ToolCategory = "mongodb";
+  static operationType: OperationType = "metadata";
   protected override description =
     "Select and connect to a pre-configured MongoDB connection by ID";
   protected override argsShape = {
@@ -573,150 +580,205 @@ console.log(
 );
 ```
 
+### Use Case 4: Selective Tool Registration
+
+Register only specific internal MongoDB tools alongside custom tools, giving you complete control over the available toolset.
+
+#### Example: Minimal Toolset with Custom Integration
+
+This example shows how to selectively enable only specific MongoDB tools (`aggregate`, `connect`, and `switch-connection`) while disabling all others, and adding a custom tool for application-specific functionality:
+
+```typescript
+import { z } from "zod";
+import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server";
+import {
+  type ToolCategory,
+  type OperationType,
+  AllTools,
+  ToolBase,
+} from "mongodb-mcp-server/tools";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+
+// Custom tool to fetch ticket details from your application
+class GetTicketDetailsTool extends ToolBase {
+  static toolName = "get-ticket-details";
+  static category: ToolCategory = "mongodb";
+  static operationType: OperationType = "read";
+
+  protected override description =
+    "Retrieves detailed information about a support ticket from the tickets collection";
+
+  protected override argsShape = {
+    ticketId: z.string().describe("The unique identifier of the ticket"),
+  };
+
+  protected override async execute(args: {
+    ticketId: string;
+  }): Promise<CallToolResult> {
+    const { ticketId } = args;
+
+    try {
+      // Ensure connected to MongoDB
+      await this.session.ensureConnected();
+
+      // Fetch ticket from the database
+      const ticket = await this.session.db
+        .collection("tickets")
+        .findOne({ ticketId });
+
+      if (!ticket) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No ticket found with ID: ${ticketId}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(ticket, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error fetching ticket: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+
+  protected override resolveTelemetryMetadata() {
+    return {};
+  }
+}
+
+// Get all MongoDB tool names except the ones we want to keep
+const allowedTools = ["aggregate", "connect", "switch-connection"];
+const disabledMongoDbTools = AllTools.filter(
+  (tool) => !allowedTools.includes(tool.toolName)
+).map((tool) => tool.toolName);
+
+// Initialize the server with minimal toolset
+const runner = new StreamableHttpRunner({
+  userConfig: UserConfigSchema.parse({
+    transport: "stdio",
+    httpPort: "3000",
+    httpHost: "127.0.0.1",
+    connectionString: process.env.MDB_MCP_CONNECTION_STRING,
+    // Disable all MongoDB tools except aggregate, connect, and switch-connection
+    // Also disable Atlas and Atlas Local tools
+    disabledTools: [...disabledMongoDbTools, "atlas", "atlas-local"],
+  }),
+  // Register our custom tool
+  additionalTools: [GetTicketDetailsTool],
+});
+
+await runner.start();
+console.log("MongoDB MCP Server running with minimal toolset");
+```
+
+In this configuration:
+
+- The server will **only** have access to three internal MongoDB tools: `aggregate`, `connect`, and `switch-connection`
+- All other internal tools (find, insert, update, etc.) are disabled via `disabledTools`
+- The custom `get-ticket-details` tool provides application-specific functionality
+
+This approach is useful when you want to:
+
+- Create a focused MCP server for a particular use case
+- Limit LLM capabilities to specific operations
+- Combine selective internal tools with domain-specific custom tools
+
 ## API Reference
 
 ### TransportRunnerConfig
 
-Configuration options for initializing transport runners.
+Configuration options for initializing transport runners (`StdioRunner`, `StreamableHttpRunner`).
+
+See the TypeScript definition in [`src/transports/base.ts`](./src/transports/base.ts) for detailed documentation of all available options.
+
+### ToolBase and ToolClass
+
+Base class and type for implementing custom MCP tools.
+
+See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for:
+
+- Detailed explanation of `ToolBase` abstract class and `ToolClass` type
+- Documentation of all available protected members
+
+### Tool Collections
+
+The library exports collections of internal tool classes that can be used for selective tool registration or extension.
+
+#### AllTools
+
+Array containing all internal tool classes (MongoDB, Atlas, and Atlas Local tools combined).
 
 ```typescript
-interface TransportRunnerConfig {
-  /**
-   * Base user configuration for the server.
-   *
-   * If you wish to parse CLI arguments or ENV variables the same way as MongoDB
-   * MCP server does, you may use `parseCliArgumentsAsUserConfig()` exported
-   * through the library interface or write your own parser logic.
-   *
-   * Optionally, you can also use UserConfigSchema to create a default
-   * configuration - `UserConfigSchema.parse({})`. See "UserConfigSchema"
-   * section for details.
-   */
-  userConfig: UserConfig;
+import { AllTools } from "mongodb-mcp-server/tools";
 
-  /**
-   * Custom connection manager factory (optional).
-   *
-   * Only needed if your application needs to handle MongoDB connections
-   * differently and outside of MongoDB MCP server.
-   *
-   * See "Custom Connection Management" section for details.
-   */
-  createConnectionManager?: ConnectionManagerFactoryFn;
+// Get all internal tool names
+const allToolNames = AllTools.map((tool) => tool.toolName);
 
-  /**
-   * Custom connection error handler (optional).
-   *
-   * Allows you to customize how connection errors are handled and presented to
-   * users. Generally required only if you're handling connections by yourself
-   * (using `createConnectionManager`).
-   *
-   * See "Custom Error Handling" section for details.
-   */
-  connectionErrorHandler?: ConnectionErrorHandler;
+// Find a specific tool
+const aggregateTool = AllTools.find((tool) => tool.toolName === "aggregate");
 
-  /**
-   * Custom Atlas Local client factory (optional).
-   *
-   * Allows you to generate your own Atlas client. Useful if you plan to
-   * connect to private Atlas API endpoints.
-   */
-  createAtlasLocalClient?: AtlasLocalClientFactoryFn;
+// Filter tools by category
+const mongodbOnlyTools = AllTools.filter((tool) => tool.category === "mongodb");
 
-  /**
-   * Additional loggers to use (optional).
-   *
-   * Loggers specified here will receive all log events from the server. See
-   * "Custom Logging" section for details.
-   */
-  additionalLoggers?: LoggerBase[];
-
-  /**
-   * Custom telemetry properties (optional).
-   *
-   * Properties added here will be included in all telemetry events.
-   */
-  telemetryProperties?: Partial<CommonProperties>;
-
-  /**
-   * Additional custom tools to register (optional).
-   *
-   * Tools specified here will be registered alongside the default MongoDB MCP
-   * tools. Each tool must extend the ToolBase class.
-   *
-   * See "Use Case 3: Adding Custom Tools" for examples.
-   */
-  additionalTools?: (new (params: ToolConstructorParams) => ToolBase)[];
-
-  /**
-   * Hook to customize configuration per session (optional).
-   *
-   * Called before each session is created, allowing you to:
-   * - Fetch configuration from external sources (secrets managers, APIs)
-   * - Apply user-specific permissions and limits
-   * - Modify connection strings dynamically
-   * - Validate authentication credentials
-   *
-   * This hook is called for each new MCP client connection.
-   * For stdio transport, this is called once at server startup.
-   * For HTTP transport, this is called for each new session.
-   *
-   * @param context.userConfig - The base user configuration
-   * @param context.request - Request context (headers, query params) for HTTP transport
-   * @returns Modified user configuration for this session
-   * @throws Error if authentication fails or configuration is invalid
-   */
-  createSessionConfig?: (context: {
-    userConfig: UserConfig;
-    request?: RequestContext;
-  }) => Promise<UserConfig> | UserConfig;
-}
+// Filter tools by operationType
+const connectionRelatedTools = AllTools.filter(
+  (tool) => tool.operationType === "connect"
+);
 ```
 
-### ToolBase
+#### MongoDbTools
 
-Base class for implementing custom tools.
+Array containing only MongoDB-specific tool classes (tools that interact with MongoDB deployments).
 
 ```typescript
-abstract class ToolBase {
-  /** Unique name for the tool */
-  abstract name: string;
+import { MongoDbTools } from "mongodb-mcp-server/tools";
 
-  /** Tool category: 'mongodb', 'atlas', or 'atlas-local' */
-  abstract category: ToolCategory;
+// Get all MongoDB tool names
+const mongoToolNames = MongoDbTools.map((tool) => tool.toolName);
+// Example: ["connect", "switch-connection", "find", "aggregate", "insert-many", ...]
+```
 
-  /** Operation type: 'metadata', 'read', 'create', 'update', 'delete', or 'connect' */
-  abstract operationType: OperationType;
+#### AtlasTools
 
-  /** Description shown to the MCP client */
-  protected abstract description: string;
+Array containing only MongoDB Atlas-specific tool classes (tools that interact with Atlas API).
 
-  /** Zod schema for tool arguments */
-  protected abstract argsShape: ZodRawShape;
+```typescript
+import { AtlasTools } from "mongodb-mcp-server/tools";
 
-  /** Execute the tool with given arguments */
-  protected abstract execute(
-    ...args: ToolCallbackArgs<typeof this.argsShape>
-  ): Promise<CallToolResult>;
+// Get all Atlas tool names
+const atlasToolNames = AtlasTools.map((tool) => tool.toolName);
+// Example: ["list-clusters", "create-cluster", "delete-cluster", ...]
+```
 
-  /** Resolve telemetry metadata for the tool execution */
-  protected abstract resolveTelemetryMetadata(
-    result: CallToolResult,
-    ...args: Parameters<ToolCallback<typeof this.argsShape>>
-  ): TelemetryToolMetadata;
+#### AtlasLocalTools
 
-  /** Access to the session (connection, logger, etc.) */
-  protected readonly session: Session;
+Array containing only Atlas Local-specific tool classes (tools that interact with local Atlas deployments).
 
-  /** Access to the server configuration */
-  protected readonly config: UserConfig;
+```typescript
+import { AtlasLocalTools } from "mongodb-mcp-server/tools";
 
-  /** Access to the telemetry service */
-  protected readonly telemetry: Telemetry;
-
-  /** Access to the elicitation service */
-  protected readonly elicitation: Elicitation;
-}
+// Get all Atlas Local tool names
+const atlasLocalToolNames = AtlasLocalTools.map((tool) => tool.toolName);
 ```
 
 ### UserConfig
@@ -780,6 +842,8 @@ function applyConfigOverrides(params: {
   request?: RequestContext;
 }): UserConfig;
 ```
+
+See "Example: Integration with Request Overrides" for further details on how to use this function.
 
 ## Advanced Topics
 
@@ -928,7 +992,6 @@ For complete working examples of embedding and extending the MongoDB MCP Server,
 
 - **Use Case Examples**: See the detailed examples in the [Use Cases](#use-cases) section above
 - **MongoDB VS Code Extension**: Real-world integration of MongoDB MCP server in our extension at [mongodb-js/vscode](https://github.com/mongodb-js/vscode)
-- **Custom Tools**: The [Use Case 3: Adding Custom Tools](#use-case-3-adding-custom-tools) section demonstrates creating custom connection selector tools
 
 ## Best Practices
 
