@@ -38,7 +38,7 @@ export interface ServerOptions {
      * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
      * class CustomTool extends ToolBase {
      *     override name = "custom_tool";
-     *     override category: ToolCategory = "mongodb";
+     *     static category: ToolCategory = "mongodb";
      *     static operationType: OperationType = "read";
      *     protected description = "Custom tool description";
      *     protected argsShape = {};
@@ -56,7 +56,7 @@ export interface ServerOptions {
      *     telemetry: myTelemetry,
      *     elicitation: myElicitation,
      *     connectionErrorHandler: myConnectionErrorHandler,
-     *     tools: [...Object.values(AllTools), CustomTool],
+     *     tools: [...AllTools, CustomTool],
      * });
      * ```
      */
@@ -98,7 +98,7 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.toolConstructors = tools ?? Object.values(AllTools);
+        this.toolConstructors = tools ?? AllTools;
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -251,6 +251,7 @@ export class Server {
     private registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
+                category: toolConstructor.category,
                 operationType: toolConstructor.operationType,
                 session: this.session,
                 config: this.userConfig,

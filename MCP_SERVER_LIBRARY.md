@@ -459,7 +459,7 @@ const AVAILABLE_CONNECTIONS = {
 // connected to.
 class ListConnectionsTool extends ToolBase {
   override name = "list-connections";
-  override category: ToolCategory = "mongodb";
+  static category: ToolCategory = "mongodb";
   static operationType: OperationType = "metadata";
   protected override description =
     "Lists all available pre-configured MongoDB connections";
@@ -501,7 +501,7 @@ class ListConnectionsTool extends ToolBase {
 // effective communication using opaque connection identifiers.
 class SelectConnectionTool extends ToolBase {
   override name = "select-connection";
-  override category: ToolCategory = "mongodb";
+  static category: ToolCategory = "mongodb";
   static operationType: OperationType = "metadata";
   protected override description =
     "Select and connect to a pre-configured MongoDB connection by ID";
@@ -583,9 +583,7 @@ const runner = new StdioRunner({
   }),
   // Register all internal tools except the default connect tools, plus our custom tools
   tools: [
-    ...Object.values(AllTools).filter(
-      (tool) => tool.operationType !== "connect"
-    ),
+    ...AllTools.filter((tool) => tool.operationType !== "connect"),
     ListConnectionsTool,
     SelectConnectionTool,
   ],
@@ -619,7 +617,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 // Custom tool to fetch ticket details from your application
 class GetTicketDetailsTool extends ToolBase {
   override name = "get-ticket-details";
-  override category: ToolCategory = "mongodb";
+  static category: ToolCategory = "mongodb";
   static operationType: OperationType = "read";
 
   protected override description =
@@ -741,7 +739,7 @@ See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) f
 
 **Important:** All custom tools must conform to the `ToolClass` type, which requires:
 
-- A **static** `operationType` property (not an instance property)
+- **Static** `category` and `operationType` properties (not instance properties)
 - Implementation of all abstract members from `ToolBase`
 
 ### ToolClass
@@ -751,9 +749,9 @@ The type that all tool classes must conform to when implementing custom tools.
 This type enforces that tool classes have:
 
 - A constructor that accepts `ToolConstructorParams`
-- A **static** `operationType` property
+- **Static** `category` and `operationType` properties
 
-The static `operationType` is automatically injected as an instance property during tool construction by the server.
+The static properties are automatically injected as instance properties during tool construction by the server.
 
 See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) for complete details and examples.
 
@@ -761,80 +759,31 @@ See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) f
 
 The library exports collections of internal tool classes that can be used for selective tool registration or extension.
 
-#### AllTools
-
-An object containing all internal tool classes (MongoDB, Atlas, and Atlas Local tools combined).
-
 ```typescript
-import { AllTools, MongoDbTools, AtlasTools } from "mongodb-mcp-server/tools";
+import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
 
-// Pick a specific tool
-const MyTool = AllTools.AggregateTool;
+// Use all internal tools
+// An array containing all internal tool constructors (MongoDB, Atlas, and Atlas Local tools combined).
+const allTools = AllTools;
 
-// Create a list of hand picked tools
-const selectedInternalTools = [
-  AllTools.AggregateTool,
-  AllTools.ConnectTool,
-  AllTools.SwitchConnectionTool,
-];
+// Pick specific tools by importing them directly
+const selectedInternalTools = [AggregateTool, FindTool];
 
-// Create a list of all internal tools except a few
-const filteredTools = Object.values(AllTools).filter(
-  (tool) =>
-    tool !== AllTools.ConnectTool && tool !== AllTools.SwitchConnectionTool
+// Create a list of all internal tools except a few by filtering
+const filteredTools = AllTools.filter(
+  (tool) => tool !== AggregateTool && tool !== FindTool
 );
 
 // Filter tools by operationType (static property)
-const connectionRelatedTools = Object.values(AllTools).filter(
+const connectionRelatedTools = AllTools.filter(
   (tool) => tool.operationType === "connect"
 );
-```
 
-#### MongoDbTools
-
-An object containing only MongoDB-specific tool classes (tools that interact with MongoDB deployments).
-
-```typescript
-import { MongoDbTools } from "mongodb-mcp-server/tools";
-
-// Get all MongoDB tools as an array
-const mongoTools = Object.values(MongoDbTools);
-
-// You can check static properties like operationType
-const readOnlyMongoTools = mongoTools.filter(
-  (tool) => tool.operationType === "read" || tool.operationType === "metadata"
-);
-```
-
-#### AtlasTools
-
-An object containing only MongoDB Atlas-specific tool classes (tools that interact with Atlas API).
-
-```typescript
-import { AtlasTools } from "mongodb-mcp-server/tools";
-
-// Get all Atlas tools as an array
-const atlasTools = Object.values(AtlasTools);
-
-// You can check static properties like operationType
-const atlasCreationTools = atlasTools.filter(
-  (tool) => tool.operationType === "create"
-);
-```
-
-#### AtlasLocalTools
-
-An object containing only Atlas Local-specific tool classes (tools that interact with local Atlas deployments).
-
-```typescript
-import { AtlasLocalTools } from "mongodb-mcp-server/tools";
-
-// Get all Atlas Local tools as an array
-const atlasLocalTools = Object.values(AtlasLocalTools);
-
-// You can check static properties like operationType
-const atlasLocalConnectionTools = atlasLocalTools.filter(
-  (tool) => tool.operationType === "connect"
+// Filter tools by category
+const mongodbTools = AllTools.filter((tool) => tool.category === "mongodb");
+const atlasTools = AllTools.filter((tool) => tool.category === "atlas");
+const atlasLocalTools = AllTools.filter(
+  (tool) => tool.category === "atlas-local"
 );
 ```
 
@@ -1101,7 +1050,7 @@ For complete working examples of embedding and extending the MongoDB MCP Server,
 **Problem:** Custom tools not appearing in the tool list
 
 - **Solution:** Ensure the tool class extends `ToolBase` and is passed in the `tools` array
-- **Solution:** If you want both internal and custom tools, spread `AllTools` in the array: `tools: [...Object.values(AllTools), MyCustomTool]`
+- **Solution:** If you want both internal and custom tools, spread `AllTools` in the array: `tools: [...AllTools, MyCustomTool]`
 - **Solution:** Check that the tool's `verifyAllowed()` returns true and the tool is not accidentally disabled by config (disabledTools)
 
 **Problem:** Configuration overrides not working

@@ -80,7 +80,7 @@ describe("Custom Tools", () => {
  */
 class CustomGreetingTool extends ToolBase {
     name = "custom_greeting";
-    category = "mongodb" as const;
+    static category = "mongodb" as const;
     static operationType = "read" as const;
     protected description = "A custom tool that greets the user";
     protected argsShape = {
@@ -108,7 +108,7 @@ class CustomGreetingTool extends ToolBase {
  */
 class CustomCalculatorTool extends ToolBase {
     name = "custom_calculator";
-    category = "mongodb" as const;
+    static category = "mongodb" as const;
     static operationType = "read" as const;
     protected description = "A custom tool that performs calculations";
     protected argsShape = {

@@ -146,13 +146,16 @@ export type TransportRunnerConfig = {
      * To include internal tools, import them from `mongodb-mcp-server/tools`:
      *
      * ```typescript
-     * import { AllTools, MongoDbTools } from "mongodb-mcp-server/tools";
+     * import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
      *
      * // Register all internal tools plus custom tools
-     * tools: [...Object.values(AllTools), MyCustomTool]
+     * tools: [...AllTools, MyCustomTool]
      *
-     * // Register only MongoDB tools plus custom tools (exclude Atlas tools)
-     * tools: [...Object.values(MongoDbTools), MyCustomTool]
+     * // Register only specific MongoDB tools plus custom tools
+     * tools: [AggregateTool, FindTool, MyCustomTool]
+     *
+     * // Register all internal tools of mongodb category
+     * tools: [AllTools.filter((tool) => tool.category === "mongodb")]
      * ```
      *
      * Note: Ensure that each tool has unique names otherwise the server will

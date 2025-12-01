@@ -50,6 +50,12 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
  */
 export type ToolConstructorParams = {
     /**
+     * The category that the tool belongs to (injected from the static
+     * `category` property on the Tool class).
+     */
+    category: ToolCategory;
+
+    /**
      * The type of operation the tool performs (injected from the static
      * `operationType` property on the Tool class).
      */
@@ -89,8 +95,8 @@ export type ToolConstructorParams = {
  * The type that all tool classes must conform to when implementing custom tools
  * for the MongoDB MCP Server.
  *
- * This type enforces that tool classes have a static property `operationType`
- * which is injected during instantiation of tool classes.
+ * This type enforces that tool classes have static properties `category` and
+ * `operationType` which are injected during instantiation of tool classes.
  *
  * @example
  * ```typescript
@@ -100,11 +106,11 @@ export type ToolConstructorParams = {
  *
  * class MyCustomTool extends ToolBase {
  *   // Required static properties for ToolClass conformance
+ *   static category: ToolCategory = "mongodb";
  *   static operationType: OperationType = "read";
  *
  *   // Required abstract properties
  *   override name = "my-custom-tool";
- *   public override category: ToolCategory = "mongodb";
  *   protected description = "My custom tool description";
  *   protected argsShape = {
  *     query: z.string().describe("The query parameter"),
@@ -135,6 +141,9 @@ export type ToolClass = {
     /** Constructor signature for the tool class */
     new (params: ToolConstructorParams): ToolBase;
 
+    /** The category that the tool belongs to */
+    category: ToolCategory;
+
     /** The type of operation the tool performs */
     operationType: OperationType;
 };
@@ -149,8 +158,8 @@ export type ToolClass = {
  *
  * To create a custom tool, you must:
  * 1. Extend the `ToolBase` class
- * 2. Define static property: `operationType`
- * 3. Implement required abstract members: `name`, `category`, `description`,
+ * 2. Define static properties: `category` and `operationType`
+ * 3. Implement required abstract members: `name`, `description`,
  *    `argsShape`, `execute()`, `resolveTelemetryMetadata()`
  *
  * @example Basic Custom Tool
@@ -161,11 +170,11 @@ export type ToolClass = {
  *
  * class MyCustomTool extends ToolBase {
  *   // Required static property for ToolClass conformance
+ *   static category: ToolCategory = "mongodb";
  *   static operationType: OperationType = "read";
  *
  *   // Required abstract properties
  *   override name = "my-custom-tool";
- *   override category: ToolCategory = "mongodb";
  *   protected description = "My custom tool description";
  *   protected argsShape = {
  *     query: z.string().describe("The query parameter"),
@@ -202,8 +211,9 @@ export type ToolClass = {
  *
  * ## Instance Properties Set by Constructor
  *
- * The following property is automatically set when the tool is instantiated
- * by the server (derived from the static property):
+ * The following properties are automatically set when the tool is instantiated
+ * by the server (derived from the static properties):
+ * - `category` - The tool's category (from static `category`)
  * - `operationType` - The tool's operation type (from static `operationType`)
  *
  * ## Optional Overrideable Methods
@@ -229,7 +239,7 @@ export abstract class ToolBase {
      *
      * @see {@link ToolCategory} for the available tool categories.
      */
-    public abstract category: ToolCategory;
+    public category: ToolCategory;
 
     /**
      * The type of operation this tool performs.
@@ -390,7 +400,8 @@ export abstract class ToolBase {
      */
     protected readonly elicitation: Elicitation;
 
-    constructor({ operationType, session, config, telemetry, elicitation }: ToolConstructorParams) {
+    constructor({ category, operationType, session, config, telemetry, elicitation }: ToolConstructorParams) {
+        this.category = category;
         this.operationType = operationType;
         this.session = session;
         this.config = config;
