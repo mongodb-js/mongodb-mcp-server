@@ -690,17 +690,17 @@ describe("config", () => {
         });
 
         describe("httpPort", () => {
-            it("must be above 1", () => {
+            it("must be above 0", () => {
                 const onErrorFn = vi.fn();
                 const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
                 createUserConfig({
                     onError: onErrorFn,
                     closeProcess: onExitFn,
-                    cliArguments: ["--httpPort", "0"],
+                    cliArguments: ["--httpPort", "-1"],
                 });
                 expect(onErrorFn).toBeCalledWith(
                     expect.stringContaining(
-                        "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at least 1"
+                        "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at least 0"
                     )
                 );
                 expect(onExitFn).toBeCalledWith(1);
