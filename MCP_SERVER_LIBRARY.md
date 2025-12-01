@@ -703,7 +703,9 @@ const runner = new StreamableHttpRunner({
 });
 
 await runner.start();
-console.log("MongoDB MCP Server running with minimal toolset");
+console.log(
+  `MongoDB MCP Server running with minimal toolset at ${runner.serverAddress}`
+);
 ```
 
 In this configuration:
@@ -910,14 +912,16 @@ The default connection manager factory (`createMCPConnectionManager`) is also ex
 
 ```typescript
 import {
+  ConnectionManager,
   StreamableHttpRunner,
+  UserConfigSchema,
   createMCPConnectionManager,
 } from "mongodb-mcp-server";
 import type { ConnectionManagerFactoryFn } from "mongodb-mcp-server";
 
 // Using the default connection manager (this is the default behavior)
 const runner1 = new StreamableHttpRunner({
-  userConfig: config,
+  userConfig: UserConfigSchema.parse({}),
   createConnectionManager: createMCPConnectionManager,
 });
 
@@ -926,13 +930,15 @@ const customConnectionManager: ConnectionManagerFactoryFn = async ({
   logger,
   userConfig,
   deviceId,
-}) => {
-  // Return a custom ConnectionManager implementation
-  // that could delegate to your application's existing connection logic
+}): Promise<ConnectionManager> => {
+  // Just for types we're using the internal mcp connection manager factory but
+  // its an example. You can return a custom ConnectionManager implementation
+  // that could delegate to your application's existing connection logic.
+  return createMCPConnectionManager({ logger, userConfig, deviceId });
 };
 
 const runner2 = new StreamableHttpRunner({
-  userConfig: config,
+  userConfig: UserConfigSchema.parse({}),
   createConnectionManager: customConnectionManager,
 });
 ```
@@ -984,9 +990,10 @@ const customErrorHandler: ConnectionErrorHandler = (error, context) => {
   console.error("Connection error:", error.code, error.message);
 
   // Access available tools and connection state
-  const connectTools = context.availableTools.filter(
-    (t) => t.operationType === "connect"
-  );
+  const connectTools = context.availableTools
+    .filter((t) => t.operationType === "connect")
+    .map((tool) => tool.name)
+    .join(", ");
 
   if (error.code === ErrorCodes.NotConnectedToMongoDB) {
     // Provide custom error message
@@ -996,7 +1003,7 @@ const customErrorHandler: ConnectionErrorHandler = (error, context) => {
         content: [
           {
             type: "text",
-            text: "Please connect to MongoDB first using one of the available connect tools.",
+            text: `Please connect to MongoDB first using one of the available connect tools - (${connectTools})`,
           },
         ],
         isError: true,
@@ -1009,7 +1016,7 @@ const customErrorHandler: ConnectionErrorHandler = (error, context) => {
 };
 
 const runner2 = new StreamableHttpRunner({
-  userConfig: config,
+  userConfig: UserConfigSchema.parse({}),
   connectionErrorHandler: customErrorHandler,
 });
 ```
@@ -1023,16 +1030,36 @@ import {
   StreamableHttpRunner,
   LoggerBase,
   UserConfigSchema,
+  Keychain,
   type LogPayload,
+  type LogLevel,
+  type LoggerType,
 } from "mongodb-mcp-server";
 
 class CustomLogger extends LoggerBase {
-  log(payload: LogPayload): void {
-    // Send to your logging service
-    console.log(`[${payload.id}] ${payload.message}`);
+  // Optional: specify the logger type for redaction control
+  protected readonly type: LoggerType = "console";
+
+  constructor() {
+    // Pass keychain for automatic secret redaction
+    // Use Keychain.root for the global keychain or create your own
+    super(Keychain.root);
   }
 
-  // Implement other log level methods...
+  // Required: implement the core logging method
+  protected logCore(level: LogLevel, payload: LogPayload): void {
+    // Send to your logging service
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] [${level.toUpperCase()}] [${payload.id}] ${payload.context}: ${payload.message}`;
+
+    // Example: Send to external logging service
+    console.log(logMessage);
+
+    // You can also access payload.attributes for additional context
+    if (payload.attributes) {
+      console.log("  Attributes:", JSON.stringify(payload.attributes));
+    }
+  }
 }
 
 const runner = new StreamableHttpRunner({
