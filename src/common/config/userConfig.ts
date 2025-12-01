@@ -113,10 +113,10 @@ export const UserConfigSchema = z4.object({
     httpPort: z4.coerce
         .number()
         .int()
-        .min(1, "Invalid httpPort: must be at least 1")
+        .min(0, "Invalid httpPort: must be at least 0")
         .max(65535, "Invalid httpPort: must be at most 65535")
         .default(3000)
-        .describe("Port number for the HTTP server (only used when transport is 'http').")
+        .describe("Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpHost: z4
         .string()
@@ -125,7 +125,7 @@ export const UserConfigSchema = z4.object({
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpHeaders: z4
         .object({})
-        .passthrough()
+        .loose()
         .default({})
         .describe(
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
