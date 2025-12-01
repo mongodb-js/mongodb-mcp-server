@@ -8,7 +8,7 @@ import type { ConnectionMetadata } from "../../../telemetry/types.js";
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-connect-deployment";
     protected description = "Connect to a MongoDB Atlas Local deployment";
-    public operationType: OperationType = "connect";
+    static operationType: OperationType = "connect";
     protected argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to connect to"),
     };

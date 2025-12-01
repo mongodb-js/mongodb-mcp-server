@@ -49,7 +49,7 @@ export class ExportTool extends MongoDBToolBase {
                 ].join("\n")
             ),
     };
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute({
         database,

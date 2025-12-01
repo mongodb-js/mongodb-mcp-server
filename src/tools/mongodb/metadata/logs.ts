@@ -24,7 +24,7 @@ export class LogsTool extends MongoDBToolBase {
             .describe("The maximum number of log entries to return."),
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute({ type, limit }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

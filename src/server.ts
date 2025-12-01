@@ -16,7 +16,7 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import type { ToolBase, ToolCategory, ToolConstructorParams } from "./tools/tool.js";
+import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -35,10 +35,19 @@ export interface ServerOptions {
      * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
      *
      * ```ts
-     * import { AllTools, ToolBase } from "mongodb-mcp-server/tools";
+     * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
      * class CustomTool extends ToolBase {
-     *     name = "custom_tool";
-     *     // ...
+     *     override name = "custom_tool";
+     *     override category: ToolCategory = "mongodb";
+     *     static operationType: OperationType = "read";
+     *     protected description = "Custom tool description";
+     *     protected argsShape = {};
+     *     protected async execute() {
+     *         return { content: [{ type: "text", text: "Result" }] };
+     *     }
+     *     protected resolveTelemetryMetadata() {
+     *         return {};
+     *     }
      * }
      * const server = new Server({
      *     session: mySession,
@@ -47,11 +56,11 @@ export interface ServerOptions {
      *     telemetry: myTelemetry,
      *     elicitation: myElicitation,
      *     connectionErrorHandler: myConnectionErrorHandler,
-     *     tools: [...AllTools, CustomTool],
+     *     tools: [...Object.values(AllTools), CustomTool],
      * });
      * ```
      */
-    tools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    tools?: ToolClass[];
 }
 
 export class Server {
@@ -60,7 +69,7 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
-    private readonly toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[];
+    private readonly toolConstructors: ToolClass[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
 
@@ -89,7 +98,7 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.toolConstructors = tools ?? AllTools;
+        this.toolConstructors = tools ?? Object.values(AllTools);
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -242,6 +251,7 @@ export class Server {
     private registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
+                operationType: toolConstructor.operationType,
                 session: this.session,
                 config: this.userConfig,
                 telemetry: this.telemetry,

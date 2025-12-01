@@ -54,7 +54,7 @@ export class AggregateTool extends MongoDBToolBase {
         ...DbOperationArgs,
         ...getAggregateArgs(this.isFeatureEnabled("search")),
     };
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute(
         { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,

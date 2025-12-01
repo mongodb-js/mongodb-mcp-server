@@ -6,7 +6,14 @@
     "scripts/**/*.ts",
     "eslint-rules/*.js"
   ],
-  "ignore": ["tests/integration/fixtures/curl.mjs", "tests/vitest.d.ts"],
+  "ignore": [
+    // Knip, for some reason, is not able to link the exported tools to the
+    // final exports in `tools/index.ts` and complains about unused exports. For
+    // that reason we're ignoring the tool definitions.
+    "src/tools/**/*.ts",
+    "tests/integration/fixtures/curl.mjs",
+    "tests/vitest.d.ts"
+  ],
   "ignoreDependencies": ["@mongodb-js/atlas-local"],
   "ignoreExportsUsedInFile": true
 }

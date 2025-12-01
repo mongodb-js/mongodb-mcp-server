@@ -42,7 +42,7 @@ export class FindTool extends MongoDBToolBase {
         ...DbOperationArgs,
         ...FindArgs,
     };
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute(
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
