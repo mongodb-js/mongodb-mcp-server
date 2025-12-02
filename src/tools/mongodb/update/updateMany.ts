@@ -23,7 +23,7 @@ export class UpdateManyTool extends MongoDBToolBase {
             .optional()
             .describe("Controls whether to insert a new document if no documents match the filter"),
     };
-    public operationType: OperationType = "update";
+    static operationType: OperationType = "update";
 
     protected async execute({
         database,

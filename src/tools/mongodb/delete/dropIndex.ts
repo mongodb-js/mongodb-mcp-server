@@ -21,7 +21,7 @@ export class DropIndexTool extends MongoDBToolBase {
                   .default("classic")
                   .describe("The type of index to be deleted. Is always set to 'classic'."),
     };
-    public operationType: OperationType = "delete";
+    static operationType: OperationType = "delete";
 
     protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

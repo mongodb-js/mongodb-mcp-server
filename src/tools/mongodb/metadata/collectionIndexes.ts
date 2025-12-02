@@ -20,7 +20,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     public name = "collection-indexes";
     protected description = "Describe the indexes for a collection";
     protected argsShape = DbOperationArgs;
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

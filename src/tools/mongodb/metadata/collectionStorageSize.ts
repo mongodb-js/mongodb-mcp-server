@@ -7,7 +7,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
     protected description = "Gets the size of the collection";
     protected argsShape = DbOperationArgs;
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

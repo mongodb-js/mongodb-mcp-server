@@ -3,7 +3,7 @@ import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
-import { type ToolBase, type ToolConstructorParams, type OperationType } from "../../../../src/tools/tool.js";
+import { type OperationType, type ToolClass } from "../../../../src/tools/tool.js";
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
@@ -19,7 +19,7 @@ import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
-import { MongoDbTools } from "../../../../src/tools/mongodb/tools.js";
+import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
@@ -55,7 +55,7 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 
 class RandomTool extends MongoDBToolBase {
     name = "Random";
-    operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected description = "This is a tool.";
     protected argsShape = {};
     public async execute(): Promise<CallToolResult> {
@@ -66,7 +66,7 @@ class RandomTool extends MongoDBToolBase {
 
 class UnusableVoyageTool extends MongoDBToolBase {
     name = "UnusableVoyageTool";
-    operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected description = "This is a Voyage tool.";
     protected argsShape = {};
 
@@ -89,7 +89,7 @@ describe("MongoDBTool implementations", () => {
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[] = [...MongoDbTools, RandomTool],
+        toolConstructors: ToolClass[] = [...Object.values(MongoDbTools), RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();
@@ -237,7 +237,11 @@ describe("MongoDBTool implementations", () => {
 
     describe("when MCP is using injected connection error handler", () => {
         beforeEach(async () => {
-            await cleanupAndStartServer(defaultTestConfig, [...MongoDbTools, RandomTool], injectedErrorHandler);
+            await cleanupAndStartServer(
+                defaultTestConfig,
+                [...Object.values(MongoDbTools), RandomTool],
+                injectedErrorHandler
+            );
         });
 
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
@@ -263,7 +267,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: "mongodb://localhost:1234" },
-                    [...MongoDbTools, RandomTool],
+                    [...Object.values(MongoDbTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -287,7 +291,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: mdbIntegration.connectionString(), indexCheck: true },
-                    [...MongoDbTools, RandomTool],
+                    [...Object.values(MongoDbTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({

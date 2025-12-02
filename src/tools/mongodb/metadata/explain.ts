@@ -42,7 +42,7 @@ export class ExplainTool extends MongoDBToolBase {
             ),
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute({
         database,

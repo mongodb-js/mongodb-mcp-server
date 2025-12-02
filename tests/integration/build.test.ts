@@ -70,6 +70,7 @@ describe("Build Test", () => {
         const esmKeys = Object.keys(esmModule).sort();
 
         expect(cjsKeys).toEqual(esmKeys);
-        expect(cjsKeys).toEqual(expect.arrayContaining(["MongoDbTools", "AtlasTools", "AtlasLocalTools", "AllTools"]));
+        // There are more tools but we will only check for a few.
+        expect(cjsKeys).toEqual(expect.arrayContaining(["AllTools", "AggregateTool", "FindTool"]));
     });
 });

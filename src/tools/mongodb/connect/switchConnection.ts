@@ -19,15 +19,15 @@ export class SwitchConnectionTool extends MongoDBToolBase {
             ),
     };
 
-    public override operationType: OperationType = "connect";
+    static operationType: OperationType = "connect";
 
-    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
-        super({ session, config, telemetry, elicitation });
-        session.on("connect", () => {
+    constructor(params: ToolConstructorParams) {
+        super(params);
+        params.session.on("connect", () => {
             this.enable();
         });
 
-        session.on("disconnect", () => {
+        params.session.on("disconnect", () => {
             this.disable();
         });
     }
