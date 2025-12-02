@@ -32,8 +32,8 @@ export abstract class Matcher {
         return new BooleanMatcher(expected);
     }
 
-    public static string(): Matcher {
-        return new StringMatcher();
+    public static string(additionalFilter: (value: string) => boolean = () => true): Matcher {
+        return new StringMatcher(additionalFilter);
     }
 
     public static caseInsensitiveString(text: string): Matcher {
@@ -153,8 +153,11 @@ class BooleanMatcher extends Matcher {
 }
 
 class StringMatcher extends Matcher {
+    constructor(private additionalFilter: (value: string) => boolean = () => true) {
+        super();
+    }
     public match(actual: unknown): number {
-        return typeof actual === "string" ? 1 : 0;
+        return typeof actual === "string" && this.additionalFilter(actual) ? 1 : 0;
     }
 }
 

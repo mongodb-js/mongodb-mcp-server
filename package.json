@@ -44,7 +44,7 @@
     "dist"
   ],
   "scripts": {
-    "start": "node dist/index.js --transport http --loggers stderr mcp",
+    "start": "node dist/index.js --transport http --loggers stderr mcp --previewFeatures vectorSearch",
     "start:stdio": "node dist/index.js --transport stdio --loggers stderr mcp",
     "prepare": "husky && pnpm run build",
     "build:clean": "rm -rf dist",
