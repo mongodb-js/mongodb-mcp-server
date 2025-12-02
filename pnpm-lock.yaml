@@ -95,8 +95,8 @@ importers:
         specifier: ^0.17.1
         version: 0.17.2(@types/node@24.10.1)(typescript@5.9.3)
       '@mongodb-js/oidc-mock-provider':
-        specifier: ^0.11.3
-        version: 0.11.5
+        specifier: ^0.12.0
+        version: 0.12.0
       '@redocly/cli':
         specifier: ^2.0.8
         version: 2.11.1(@opentelemetry/api@1.9.0)(ajv@8.17.1)(core-js@3.47.0)
@@ -668,8 +668,8 @@ packages:
   '@mongodb-js/oidc-http-server-pages@1.1.8':
     resolution: {integrity: sha512-qQjV6TTozJa3jMfsmajhCCzESnsTGa3rQwxGbC97GIplaF2v3jieLfDt9O/F6X3jLm32HzAEWHFEvKu74h2wxw==}
 
-  '@mongodb-js/oidc-mock-provider@0.11.5':
-    resolution: {integrity: sha512-gzSfBK9CXVCv4KIlGv9eXtKR2Zw+/tuUxLrr0z+rlbITuOfL/lDcWKGpcTC2b6StSkNCsLHsuqJLS/xa16V1AQ==}
+  '@mongodb-js/oidc-mock-provider@0.12.0':
+    resolution: {integrity: sha512-OBGqTQ25CJpNhvSy5gYNcTSi+cOExeGliAcuObXX6AswhpW7gt62go9md0jYAs10MPKTPFOvK+RrXX4WIkr/nA==}
     hasBin: true
 
   '@mongodb-js/oidc-plugin@2.0.5':
@@ -5143,7 +5143,7 @@ snapshots:
 
   '@mongodb-js/oidc-http-server-pages@1.1.8': {}
 
-  '@mongodb-js/oidc-mock-provider@0.11.5':
+  '@mongodb-js/oidc-mock-provider@0.12.0':
     dependencies:
       yargs: 17.7.2
 
