@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.3.0-pre.1",
+  "version": "1.3.0-pre.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.3.0-pre.1",
+      "version": "1.3.0-pre.2",
       "transport": {
         "type": "stdio"
       },
@@ -109,7 +109,7 @@
         },
         {
           "name": "MDB_MCP_HTTP_PORT",
-          "description": "Port number for the HTTP server (only used when transport is 'http').",
+          "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -283,7 +283,7 @@
         {
           "type": "named",
           "name": "--httpPort",
-          "description": "Port number for the HTTP server (only used when transport is 'http').",
+          "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false
         },
         {
@@ -366,7 +366,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.3.0-pre.1",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.3.0-pre.2",
       "transport": {
         "type": "stdio"
       },
@@ -464,7 +464,7 @@
         },
         {
           "name": "MDB_MCP_HTTP_PORT",
-          "description": "Port number for the HTTP server (only used when transport is 'http').",
+          "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -638,7 +638,7 @@
         {
           "type": "named",
           "name": "--httpPort",
-          "description": "Port number for the HTTP server (only used when transport is 'http').",
+          "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false
         },
         {
