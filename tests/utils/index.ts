@@ -2,6 +2,26 @@ import { type ConnectionManagerEvents } from "../../src/common/connectionManager
 import { LoggerBase, type LoggerType } from "../../src/common/logger.js";
 import { type ConnectionManager } from "../../src/lib.js";
 
+export function createEnvironment(): {
+    setVariable: (this: void, variable: string, value: unknown) => void;
+    clearVariables(this: void): void;
+} {
+    const registeredEnvVariables: string[] = [];
+
+    return {
+        setVariable(variable: string, value: unknown): void {
+            (process.env as Record<string, unknown>)[variable] = value;
+            registeredEnvVariables.push(variable);
+        },
+
+        clearVariables(): void {
+            for (const variable of registeredEnvVariables) {
+                delete (process.env as Record<string, unknown>)[variable];
+            }
+        },
+    };
+}
+
 export class NullLogger extends LoggerBase {
     protected type?: LoggerType;
 

@@ -1,5 +1,4 @@
 import { z as z4 } from "zod/v4";
-import { type CliOptions } from "@mongosh/arg-parser";
 import {
     type ConfigFieldMeta,
     commaSeparatedToArray,
@@ -11,11 +10,7 @@ import {
     parseBoolean,
 } from "./configUtils.js";
 import { previewFeatureValues, similarityValues } from "../schemas.js";
-
-// TODO: UserConfig should only be UserConfigSchema and not an intersection with
-// CliOptions. When we pull apart these two interfaces, we should fix this type
-// as well.
-export type UserConfig = z4.infer<typeof UserConfigSchema> & CliOptions;
+import { CliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
 
@@ -222,3 +217,14 @@ export const UserConfigSchema = z4.object({
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
+
+export const UserConfigSchemaWithCliOptions = z4.object({
+    ...UserConfigSchema.shape,
+    ...CliOptionsSchema.shape,
+});
+
+export type UserConfig = z4.infer<typeof UserConfigSchemaWithCliOptions>;
+
+export const ALL_CONFIG_KEYS: (keyof UserConfig)[] = Object.keys(
+    UserConfigSchemaWithCliOptions.shape
+) as (keyof UserConfig)[];

@@ -15,3 +15,7 @@ coverage
 .accuracy
 
 .DS_Store
+
+# Development tool files
+.yalc
+yalc.lock

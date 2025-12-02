@@ -2,7 +2,10 @@
 import path from "path";
 
 // The file that is allowed to import from zod/v4
-const configFilePath = path.resolve(import.meta.dirname, "../src/common/config/userConfig.ts");
+const allowedFilePaths = [
+    path.resolve(import.meta.dirname, "../src/common/config/userConfig.ts"),
+    path.resolve(import.meta.dirname, "../src/common/config/createUserConfig.ts"),
+];
 
 // Ref: https://eslint.org/docs/latest/extend/custom-rules
 export default {
@@ -23,7 +26,7 @@ export default {
         const currentFilePath = path.resolve(context.getFilename());
 
         // Only allow zod v4 import in config.ts
-        if (currentFilePath === configFilePath) {
+        if (allowedFilePaths.includes(currentFilePath)) {
             return {};
         }
 
