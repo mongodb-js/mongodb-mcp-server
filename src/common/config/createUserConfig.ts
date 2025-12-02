@@ -46,7 +46,7 @@ export function createUserConfig({ args }: { args: string[] }): {
     // TODO: Separate correctly parsed user config from all other valid
     // arguments relevant to mongosh's args-parser.
     const userConfig: UserConfig = { ...parsed, ...configParseResult.data };
-    warnIfVectorSearchNotEnabledCorrectly(userConfig);
+    warnings.push(...warnIfVectorSearchNotEnabledCorrectly(userConfig));
     registerKnownSecretsInRootKeychain(userConfig);
     return {
         parsed: userConfig,
