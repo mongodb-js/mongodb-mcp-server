@@ -14,7 +14,7 @@ export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResul
 
 export const connectionErrorHandler: ConnectionErrorHandler = (error, { availableTools, connectionState }) => {
     const connectTools = availableTools
-        .filter((t) => t.operationType === "connect")
+        .filter((t) => t.operationType === "connect" && t.isEnabled())
         .sort((a, b) => a.category.localeCompare(b.category)); // Sort Atlas tools before MongoDB tools
 
     // Find what Atlas connect tools are available and suggest when the LLM should to use each. If no Atlas tools are found, return a suggestion for the MongoDB connect tool.

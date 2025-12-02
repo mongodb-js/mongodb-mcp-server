@@ -11,7 +11,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
         newName: z.string().describe("The new name for the collection"),
         dropTarget: z.boolean().optional().default(false).describe("If true, drops the target collection if it exists"),
     };
-    public operationType: OperationType = "update";
+    static operationType: OperationType = "update";
 
     protected async execute({
         database,

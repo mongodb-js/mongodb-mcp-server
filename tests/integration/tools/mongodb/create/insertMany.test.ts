@@ -19,16 +19,22 @@ import { ObjectId } from "bson";
 import type { Collection } from "mongodb";
 
 describeWithMongoDB("insertMany tool when search is disabled", (integration) => {
-    validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [
-        ...databaseCollectionParameters,
-        {
-            name: "documents",
-            type: "array",
-            description:
-                "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
-            required: true,
-        },
-    ]);
+    validateToolMetadata(
+        integration,
+        "insert-many",
+        "Insert an array of documents into a MongoDB collection",
+        "create",
+        [
+            ...databaseCollectionParameters,
+            {
+                name: "documents",
+                type: "array",
+                description:
+                    "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
+                required: true,
+            },
+        ]
+    );
 
     validateThrowsForInvalidArguments(integration, "insert-many", [
         {},
@@ -124,23 +130,29 @@ describeWithMongoDB(
             await collection.drop();
         });
 
-        validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [
-            ...databaseCollectionParameters,
-            {
-                name: "documents",
-                type: "array",
-                description:
-                    "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
-                required: true,
-            },
-            {
-                name: "embeddingParameters",
-                type: "object",
-                description:
-                    "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one.",
-                required: false,
-            },
-        ]);
+        validateToolMetadata(
+            integration,
+            "insert-many",
+            "Insert an array of documents into a MongoDB collection",
+            "create",
+            [
+                ...databaseCollectionParameters,
+                {
+                    name: "documents",
+                    type: "array",
+                    description:
+                        "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
+                    required: true,
+                },
+                {
+                    name: "embeddingParameters",
+                    type: "object",
+                    description:
+                        "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one.",
+                    required: false,
+                },
+            ]
+        );
 
         it("inserts a document when the embedding is correct", async () => {
             await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
@@ -191,7 +203,7 @@ describeWithMongoDB(
                     // embeddingParameters so that we can simulate the idea
                     // of unknown or mismatched quantization.
 
-                    // embeddingParameters: { outputDimension: 256,
+                    // embeddingParameters: { outputDimension: "256",
                     // outputDtype: "float", model: "voyage-3-large", input:
                     // [
                     //         {
@@ -546,7 +558,7 @@ describeWithMongoDB(
                         documents: [{ title: "The Matrix" }],
                         embeddingParameters: {
                             model: "voyage-3.5-lite",
-                            outputDimension: 256,
+                            outputDimension: "256",
                             input: [{ titleEmbeddings: "The Matrix" }],
                         },
                     },
@@ -623,7 +635,7 @@ describeWithMongoDB(
             // This is expected to be set through the CI env. When not set we
             // get a warning in the run logs.
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
         downloadOptions: { search: true },
     }
@@ -632,23 +644,29 @@ describeWithMongoDB(
 describeWithMongoDB(
     "insertMany tool when vector search is enabled",
     (integration) => {
-        validateToolMetadata(integration, "insert-many", "Insert an array of documents into a MongoDB collection", [
-            ...databaseCollectionParameters,
-            {
-                name: "documents",
-                type: "array",
-                description:
-                    "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
-                required: true,
-            },
-            {
-                name: "embeddingParameters",
-                type: "object",
-                description:
-                    "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one.",
-                required: false,
-            },
-        ]);
+        validateToolMetadata(
+            integration,
+            "insert-many",
+            "Insert an array of documents into a MongoDB collection",
+            "create",
+            [
+                ...databaseCollectionParameters,
+                {
+                    name: "documents",
+                    type: "array",
+                    description:
+                        "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany().",
+                    required: true,
+                },
+                {
+                    name: "embeddingParameters",
+                    type: "object",
+                    description:
+                        "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one.",
+                    required: false,
+                },
+            ]
+        );
     },
     {
         getUserConfig: () => ({
@@ -656,7 +674,7 @@ describeWithMongoDB(
             // This is expected to be set through the CI env. When not set we
             // get a warning in the run logs.
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
     }
 );

@@ -4,12 +4,12 @@ import { ToolBase } from "../tool.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { LogId } from "../../common/logger.js";
-import type { AtlasLocalToolMetadata } from "../../telemetry/types.js";
+import type { ConnectionMetadata } from "../../telemetry/types.js";
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
 export abstract class AtlasLocalToolBase extends ToolBase {
-    public category: ToolCategory = "atlas-local";
+    static category: ToolCategory = "atlas-local";
 
     protected verifyAllowed(): boolean {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
@@ -119,8 +119,8 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return super.handleError(error, args);
     }
 
-    protected resolveTelemetryMetadata(result: CallToolResult): AtlasLocalToolMetadata {
-        const toolMetadata: AtlasLocalToolMetadata = {};
+    protected resolveTelemetryMetadata(result: CallToolResult): ConnectionMetadata {
+        const toolMetadata: ConnectionMetadata = {};
 
         // Atlas Local tools set the deployment ID in the result metadata for telemetry
         // If the deployment ID is set, we use it for telemetry

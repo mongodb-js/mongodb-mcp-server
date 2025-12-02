@@ -3,23 +3,23 @@ import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MongoDBToolBase } from "../../../../src/tools/mongodb/mongodbTool.js";
-import { type ToolBase, type ToolConstructorParams, type OperationType } from "../../../../src/tools/tool.js";
-import { defaultDriverOptions, type UserConfig } from "../../../../src/common/config.js";
+import { type OperationType, type ToolClass } from "../../../../src/tools/tool.js";
+import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
 import { CompositeLogger } from "../../../../src/common/logger.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
-import { InMemoryTransport } from "../../inMemoryTransport.js";
+import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { Server } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultTestConfig } from "../../helpers.js";
+import { defaultTestConfig, expectDefined } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
-import { MongoDbTools } from "../../../../src/tools/mongodb/tools.js";
+import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
@@ -55,7 +55,7 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 
 class RandomTool extends MongoDBToolBase {
     name = "Random";
-    operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected description = "This is a tool.";
     protected argsShape = {};
     public async execute(): Promise<CallToolResult> {
@@ -66,7 +66,7 @@ class RandomTool extends MongoDBToolBase {
 
 class UnusableVoyageTool extends MongoDBToolBase {
     name = "UnusableVoyageTool";
-    operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected description = "This is a Voyage tool.";
     protected argsShape = {};
 
@@ -89,20 +89,17 @@ describe("MongoDBTool implementations", () => {
 
     async function cleanupAndStartServer(
         config: Partial<UserConfig> | undefined = {},
-        toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[] = [...MongoDbTools, RandomTool],
+        toolConstructors: ToolClass[] = [...Object.values(MongoDbTools), RandomTool],
         errorHandler: ConnectionErrorHandler | undefined = connectionErrorHandler
     ): Promise<void> {
         await cleanup();
         const userConfig: UserConfig = { ...defaultTestConfig, telemetry: "disabled", ...config };
-        const driverOptions = defaultDriverOptions;
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init(userConfig, logger);
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
         const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
+            userConfig,
             logger,
             exportsManager,
             connectionManager,
@@ -143,7 +140,7 @@ describe("MongoDBTool implementations", () => {
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
             elicitation,
-            toolConstructors,
+            tools: toolConstructors,
         });
 
         await mcpServer.connect(serverTransport);
@@ -240,7 +237,11 @@ describe("MongoDBTool implementations", () => {
 
     describe("when MCP is using injected connection error handler", () => {
         beforeEach(async () => {
-            await cleanupAndStartServer(defaultTestConfig, [...MongoDbTools, RandomTool], injectedErrorHandler);
+            await cleanupAndStartServer(
+                defaultTestConfig,
+                [...Object.values(MongoDbTools), RandomTool],
+                injectedErrorHandler
+            );
         });
 
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
@@ -266,7 +267,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: "mongodb://localhost:1234" },
-                    [...MongoDbTools, RandomTool],
+                    [...Object.values(MongoDbTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -290,7 +291,7 @@ describe("MongoDBTool implementations", () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
                     { connectionString: mdbIntegration.connectionString(), indexCheck: true },
-                    [...MongoDbTools, RandomTool],
+                    [...Object.values(MongoDbTools), RandomTool],
                     injectedErrorHandler
                 );
                 const toolResponse = await mcpClient?.callTool({
@@ -323,6 +324,44 @@ describe("MongoDBTool implementations", () => {
             const tools = await mcpClient?.listTools({});
             expect(tools?.tools).toHaveLength(1);
             expect(tools?.tools.find((tool) => tool.name === "UnusableVoyageTool")).toBeUndefined();
+        });
+    });
+
+    describe("resolveTelemetryMetadata", () => {
+        it("should return empty metadata when not connected", async () => {
+            await cleanupAndStartServer();
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
+            const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
+
+            expect(metadata).toEqual({});
+            expect(metadata).not.toHaveProperty("project_id");
+            expect(metadata).not.toHaveProperty("connection_auth_type");
+        });
+
+        it("should return metadata with connection_auth_type when connected via connection string", async () => {
+            await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
+            // Connect to MongoDB to set the connection state
+            await mcpClient?.callTool({
+                name: "Random",
+                arguments: {},
+            });
+
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
+            const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
+
+            // When connected via connection string, connection_auth_type should be set
+            // The actual value depends on the connection string, but it should be present
+            expect(metadata).toHaveProperty("connection_auth_type");
+            expect(typeof metadata.connection_auth_type).toBe("string");
+            expect(metadata.connection_auth_type).toBe("scram");
         });
     });
 });

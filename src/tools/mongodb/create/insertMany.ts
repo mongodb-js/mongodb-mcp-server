@@ -15,27 +15,29 @@ const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.ext
         ),
 });
 
+const commonArgs = {
+    ...DbOperationArgs,
+    documents: z
+        .array(zEJSON().describe("An individual MongoDB document"))
+        .describe(
+            "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
+        ),
+} as const;
+
 export class InsertManyTool extends MongoDBToolBase {
     public name = "insert-many";
     protected description = "Insert an array of documents into a MongoDB collection";
-    protected argsShape = {
-        ...DbOperationArgs,
-        documents: z
-            .array(zEJSON().describe("An individual MongoDB document"))
-            .describe(
-                "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
-            ),
-        ...(this.isFeatureEnabled("vectorSearch")
-            ? {
-                  embeddingParameters: zSupportedEmbeddingParametersWithInput
-                      .optional()
-                      .describe(
-                          "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
-                      ),
-              }
-            : {}),
-    };
-    public operationType: OperationType = "create";
+    protected argsShape = this.isFeatureEnabled("search")
+        ? {
+              ...commonArgs,
+              embeddingParameters: zSupportedEmbeddingParametersWithInput
+                  .optional()
+                  .describe(
+                      "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
+                  ),
+          }
+        : commonArgs;
+    static operationType: OperationType = "create";
 
     protected async execute({
         database,
@@ -45,7 +47,7 @@ export class InsertManyTool extends MongoDBToolBase {
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
-        const embeddingParameters = this.isFeatureEnabled("vectorSearch")
+        const embeddingParameters = this.isFeatureEnabled("search")
             ? (providedEmbeddingParameters as z.infer<typeof zSupportedEmbeddingParametersWithInput>)
             : undefined;
 

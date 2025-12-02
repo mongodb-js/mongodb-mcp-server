@@ -6,7 +6,8 @@ import {
     validateToolMetadata,
 } from "../../../helpers.js";
 import { defaultTestConfig } from "../../../helpers.js";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
+import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 
 describeWithMongoDB(
     "SwitchConnection tool",
@@ -21,10 +22,12 @@ describeWithMongoDB(
             integration,
             "switch-connection",
             "Switch to a different MongoDB connection. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new instance.",
+            "connect",
             [
                 {
                     name: "connectionString",
-                    description: "MongoDB connection string to switch to (in the mongodb:// or mongodb+srv:// format)",
+                    description:
+                        "MongoDB connection string to switch to (in the mongodb:// or mongodb+srv:// format). If a connection string is not provided, the connection string from the config will be used.",
                     type: "string",
                     required: false,
                 },
@@ -88,11 +91,78 @@ describeWithMongoDB(
     }
 );
 
+describeWithMongoDB(
+    "SwitchConnection tool when server is configured to connect with complex connection",
+    (integration) => {
+        let connectFnSpy: MockInstance<typeof NodeDriverServiceProvider.connect>;
+        beforeEach(async () => {
+            connectFnSpy = vi.spyOn(NodeDriverServiceProvider, "connect");
+            await integration.mcpServer().session.connectToMongoDB({
+                connectionString: integration.connectionString(),
+            });
+        });
+
+        it("should be able to connect to next connection and not use the connect options of the connection setup during server boot", async () => {
+            const newConnectionString = `${integration.connectionString()}`;
+            // Note: The connect function is called with OIDC options for the
+            // configured string
+            expect(connectFnSpy).toHaveBeenNthCalledWith(
+                1,
+                expect.stringContaining(`${integration.connectionString()}/?directConnection=true`),
+                expect.objectContaining({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    oidc: expect.objectContaining({ openBrowser: { command: "not-a-browser" } }),
+                }),
+                undefined,
+                expect.anything()
+            );
+            const response = await integration.mcpClient().callTool({
+                name: "switch-connection",
+                arguments: {
+                    connectionString: newConnectionString,
+                },
+            });
+
+            const content = getResponseContent(response.content);
+            // The connection will still be connected because the --browser
+            // option only sets the command to be used when opening the browser
+            // for OIDC handling.
+            expect(content).toContain("Successfully connected");
+
+            // Now that we're connected lets verify the config
+            // Note: The connect function is called with OIDC options for the
+            // configured string
+            expect(connectFnSpy).toHaveBeenNthCalledWith(
+                2,
+                expect.stringContaining(`${integration.connectionString()}`),
+                expect.not.objectContaining({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    oidc: expect.objectContaining({ openBrowser: { command: "not-a-browser" } }),
+                }),
+                undefined,
+                expect.anything()
+            );
+        });
+    },
+    {
+        getUserConfig: (mdbIntegration) => ({
+            ...defaultTestConfig,
+            // Setting browser in config is the same as passing `--browser` CLI
+            // argument to the MCP server CLI entry point. We expect that the
+            // further connection attempts stay detached from the connection
+            // options passed during server boot, in this case browser.
+            browser: "not-a-browser",
+            connectionString: `${mdbIntegration.connectionString()}/?directConnection=true`,
+        }),
+    }
+);
+
 describeWithMongoDB("Connect tool", (integration) => {
     validateToolMetadata(
         integration,
         "connect",
         "Connect to a MongoDB instance. The config resource captures if the server is already connected to a MongoDB cluster. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new MongoDB cluster.",
+        "connect",
         [
             {
                 name: "connectionString",

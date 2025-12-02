@@ -2,8 +2,6 @@ import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
-import { config } from "../../../src/common/config.js";
-import { driverOptions } from "../../integration/helpers.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
@@ -11,6 +9,7 @@ import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
+import { defaultTestConfig } from "../../integration/helpers.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -25,16 +24,19 @@ describe("Session", () => {
         const logger = new CompositeLogger();
 
         mockDeviceId = MockDeviceId;
-        const connectionManager = new MCPConnectionManager(config, driverOptions, logger, mockDeviceId);
+        const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, mockDeviceId);
 
         session = new Session({
-            apiClientId: "test-client-id",
-            apiBaseUrl: "https://api.test.com",
+            userConfig: {
+                ...defaultTestConfig,
+                apiClientId: "test-client-id",
+                apiBaseUrl: "https://api.test.com",
+            },
             logger,
-            exportsManager: ExportsManager.init(config, logger),
+            exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager: connectionManager,
             keychain: new Keychain(),
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);

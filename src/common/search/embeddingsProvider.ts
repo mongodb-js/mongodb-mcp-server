@@ -1,7 +1,7 @@
 import { createVoyage } from "voyage-ai-provider";
 import type { VoyageProvider } from "voyage-ai-provider";
 import { embedMany } from "ai";
-import type { UserConfig } from "../config.js";
+import type { UserConfig } from "../config/userConfig.js";
 import assert from "assert";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import {
@@ -41,7 +41,7 @@ class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels, Voyag
     }
 
     static isConfiguredIn({ voyageApiKey, previewFeatures }: UserConfig): boolean {
-        return previewFeatures.includes("vectorSearch") && !!voyageApiKey;
+        return previewFeatures.includes("search") && !!voyageApiKey;
     }
 
     async embed<Model extends VoyageModels>(

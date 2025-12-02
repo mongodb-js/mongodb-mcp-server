@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import { TransportRunnerBase, type TransportRunnerConfig, type RequestContext } from "./base.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -111,7 +111,11 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     return;
                 }
 
-                const server = await this.setupServer();
+                const request: RequestContext = {
+                    headers: req.headers as Record<string, string | string[] | undefined>,
+                    query: req.query as Record<string, string | string[] | undefined>,
+                };
+                const server = await this.setupServer(request);
                 let keepAliveLoop: NodeJS.Timeout;
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: (): string => randomUUID().toString(),

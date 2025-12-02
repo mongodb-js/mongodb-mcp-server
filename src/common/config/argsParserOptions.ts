@@ -18,6 +18,7 @@ export const OPTIONS = {
         "connectionString",
         "httpHost",
         "httpPort",
+        "allowRequestOverrides",
         "idleTimeoutMs",
         "logPath",
         "notificationTimeoutMs",
@@ -59,7 +60,8 @@ export const OPTIONS = {
     boolean: [
         "apiDeprecationErrors",
         "apiStrict",
-        "disableEmbeddingsValidation",
+        "dryRun",
+        "embeddingsValidation",
         "help",
         "indexCheck",
         "ipv6",

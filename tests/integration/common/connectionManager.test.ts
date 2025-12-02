@@ -5,7 +5,7 @@ import type {
 } from "../../../src/common/connectionManager.js";
 
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
-import type { UserConfig } from "../../../src/common/config.js";
+import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import { type TestConnectionManager } from "../../utils/index.js";

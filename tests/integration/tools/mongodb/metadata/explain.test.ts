@@ -12,6 +12,7 @@ describeWithMongoDB("explain tool", (integration) => {
         integration,
         "explain",
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method",
+        "metadata",
         [
             ...databaseCollectionParameters,
 

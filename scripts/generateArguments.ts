@@ -11,10 +11,9 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { UserConfigSchema, configRegistry } from "../src/common/config.js";
-import assert from "assert";
+import { UserConfigSchema, configRegistry } from "../src/common/config/userConfig.js";
 import { execSync } from "child_process";
-import { OPTIONS } from "../src/common/argsParserOptions.js";
+import { OPTIONS } from "../src/common/config/argsParserOptions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -69,12 +68,8 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         let description = schema.description || `Configuration option: ${key}`;
 
         if ("innerType" in schema.def) {
-            // "pipe" is used for our comma-separated arrays
+            // "pipe" is also used for our comma-separated arrays
             if (schema.def.innerType.def.type === "pipe") {
-                assert(
-                    description.startsWith("An array of"),
-                    `Field description for field "${key}" with array type does not start with 'An array of'`
-                );
                 description = description.replace("An array of", "Comma separated values of");
             }
         }

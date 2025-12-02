@@ -12,7 +12,7 @@ import type {
 import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
-import type { UserConfig } from "../../src/common/config.js";
+import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
 import type { CompositeLogger } from "../../src/common/logger.js";
@@ -60,6 +60,8 @@ describe("ToolBase", () => {
         } as unknown as Elicitation;
 
         const constructorParams: ToolConstructorParams = {
+            category: TestTool.category,
+            operationType: TestTool.operationType,
             session: mockSession,
             config: mockConfig,
             telemetry: mockTelemetry,
@@ -121,13 +123,13 @@ describe("ToolBase", () => {
 
     describe("isFeatureEnabled", () => {
         it("should return false for any feature by default", () => {
-            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(false);
+            expect(testTool["isFeatureEnabled"]("search")).to.equal(false);
             expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(false);
         });
 
         it("should return true for enabled features", () => {
-            mockConfig.previewFeatures = ["vectorSearch", "someOtherFeature" as PreviewFeature];
-            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(true);
+            mockConfig.previewFeatures = ["search", "someOtherFeature" as PreviewFeature];
+            expect(testTool["isFeatureEnabled"]("search")).to.equal(true);
             expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(true);
 
             expect(testTool["isFeatureEnabled"]("anotherFeature" as PreviewFeature)).to.equal(false);
@@ -175,12 +177,96 @@ describe("ToolBase", () => {
             expect(event.properties).toHaveProperty("test_param2", "three");
         });
     });
+
+    describe("getConnectionInfoMetadata", () => {
+        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringAuthType are set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({});
+            expect(metadata).not.toHaveProperty("project_id");
+            expect(metadata).not.toHaveProperty("connection_auth_type");
+        });
+
+        it("should return metadata with project_id when connectedAtlasCluster.projectId is set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
+                projectId: "test-project-id",
+                username: "test-user",
+                clusterName: "test-cluster",
+                expiryDate: new Date(),
+            };
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({
+                project_id: "test-project-id",
+            });
+            expect(metadata).not.toHaveProperty("connection_auth_type");
+        });
+
+        it("should return empty metadata when connectedAtlasCluster exists but projectId is falsy", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
+                projectId: "",
+                username: "test-user",
+                clusterName: "test-cluster",
+                expiryDate: new Date(),
+            };
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({});
+            expect(metadata).not.toHaveProperty("project_id");
+        });
+
+        it("should return metadata with connection_auth_type when connectionStringAuthType is set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "scram";
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({
+                connection_auth_type: "scram",
+            });
+            expect(metadata).not.toHaveProperty("project_id");
+        });
+
+        it("should return metadata with both project_id and connection_auth_type when both are set", () => {
+            (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = {
+                projectId: "test-project-id",
+                username: "test-user",
+                clusterName: "test-cluster",
+                expiryDate: new Date(),
+            };
+            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "oidc-auth-flow";
+
+            const metadata = testTool["getConnectionInfoMetadata"]();
+
+            expect(metadata).toEqual({
+                project_id: "test-project-id",
+                connection_auth_type: "oidc-auth-flow",
+            });
+        });
+
+        it("should handle different connectionStringAuthType values", () => {
+            const authTypes = ["scram", "ldap", "kerberos", "oidc-auth-flow", "oidc-device-flow", "x.509"] as const;
+
+            for (const authType of authTypes) {
+                (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = authType;
+                const metadata = testTool["getConnectionInfoMetadata"]();
+                expect(metadata.connection_auth_type).toBe(authType);
+            }
+        });
+    });
 });
 
 class TestTool extends ToolBase {
     public name = "test-tool";
-    public category: ToolCategory = "mongodb";
-    public operationType: OperationType = "delete";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "delete";
     protected description = "A test tool for verification tests";
     protected argsShape = {
         param1: z.string().describe("Test parameter 1"),

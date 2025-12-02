@@ -82,7 +82,7 @@ describe("Server integration test", () => {
                 expect(tools.tools.some((tool) => tool.name === "atlas-list-projects")).toBe(true);
 
                 // Check that non-read tools are NOT available
-                expect(tools.tools.some((tool) => tool.name === "insert-one")).toBe(false);
+                expect(tools.tools.some((tool) => tool.name === "insert-many")).toBe(false);
                 expect(tools.tools.some((tool) => tool.name === "update-many")).toBe(false);
                 expect(tools.tools.some((tool) => tool.name === "delete-one")).toBe(false);
                 expect(tools.tools.some((tool) => tool.name === "drop-collection")).toBe(false);

@@ -6,16 +6,23 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.2.0",
+  "version": "1.3.0-pre.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.2.0",
+      "version": "1.3.0-pre.1",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
+        {
+          "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
         {
           "name": "MDB_MCP_API_CLIENT_ID",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
@@ -52,17 +59,24 @@
           "isSecret": true
         },
         {
-          "name": "MDB_MCP_DISABLE_EMBEDDINGS_VALIDATION",
-          "description": "When set to true, disables validation of embeddings dimensions.",
+          "name": "MDB_MCP_DISABLED_TOOLS",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_DRY_RUN",
+          "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean",
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_DISABLED_TOOLS",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
+          "description": "When set to false, disables validation of embeddings dimensions.",
           "isRequired": false,
-          "format": "string",
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -188,6 +202,12 @@
       "packageArguments": [
         {
           "type": "named",
+          "name": "--allowRequestOverrides",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
           "name": "--apiClientId",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false
@@ -218,16 +238,23 @@
         },
         {
           "type": "named",
-          "name": "--disableEmbeddingsValidation",
-          "description": "When set to true, disables validation of embeddings dimensions.",
+          "name": "--disabledTools",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--dryRun",
+          "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean"
         },
         {
           "type": "named",
-          "name": "--disabledTools",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
-          "isRequired": false
+          "name": "--embeddingsValidation",
+          "description": "When set to false, disables validation of embeddings dimensions.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -339,11 +366,18 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.2.0",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.3.0-pre.1",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
+        {
+          "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
         {
           "name": "MDB_MCP_API_CLIENT_ID",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
@@ -380,17 +414,24 @@
           "isSecret": true
         },
         {
-          "name": "MDB_MCP_DISABLE_EMBEDDINGS_VALIDATION",
-          "description": "When set to true, disables validation of embeddings dimensions.",
+          "name": "MDB_MCP_DISABLED_TOOLS",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_DRY_RUN",
+          "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean",
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_DISABLED_TOOLS",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
+          "description": "When set to false, disables validation of embeddings dimensions.",
           "isRequired": false,
-          "format": "string",
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -516,6 +557,12 @@
       "packageArguments": [
         {
           "type": "named",
+          "name": "--allowRequestOverrides",
+          "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
           "name": "--apiClientId",
           "description": "Atlas API client ID for authentication. Required for running Atlas tools.",
           "isRequired": false
@@ -546,16 +593,23 @@
         },
         {
           "type": "named",
-          "name": "--disableEmbeddingsValidation",
-          "description": "When set to true, disables validation of embeddings dimensions.",
+          "name": "--disabledTools",
+          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--dryRun",
+          "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
           "isRequired": false,
           "format": "boolean"
         },
         {
           "type": "named",
-          "name": "--disabledTools",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
-          "isRequired": false
+          "name": "--embeddingsValidation",
+          "description": "When set to false, disables validation of embeddings dimensions.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",

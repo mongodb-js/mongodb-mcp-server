@@ -110,6 +110,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         integration,
                         "drop-index",
                         "Drop an index for the provided database and collection.",
+                        "delete",
                         [
                             ...databaseCollectionParameters,
                             {
@@ -170,7 +171,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 {
                     getUserConfig: () => ({
                         ...defaultTestConfig,
-                        previewFeatures: vectorSearchEnabled ? ["vectorSearch"] : [],
+                        previewFeatures: vectorSearchEnabled ? ["search"] : [],
                     }),
                 }
             );
@@ -256,7 +257,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 {
                     getUserConfig: () => ({
                         ...defaultTestConfig,
-                        previewFeatures: vectorSearchEnabled ? ["vectorSearch"] : [],
+                        previewFeatures: vectorSearchEnabled ? ["search"] : [],
                     }),
                 }
             );
@@ -323,7 +324,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                 {
                     getUserConfig: () => ({
                         ...defaultTestConfig,
-                        previewFeatures: vectorSearchEnabled ? ["vectorSearch"] : [],
+                        previewFeatures: vectorSearchEnabled ? ["search"] : [],
                     }),
                     getMockElicitationInput: () => mockElicitInput,
                 }
@@ -347,7 +348,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
                     },
                     {
-                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["vectorSearch"] }),
+                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["search"] }),
                     }
                 );
 
@@ -430,7 +431,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
                     },
                     {
-                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["vectorSearch"] }),
+                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["search"] }),
                         downloadOptions: { search: true },
                     }
                 );
@@ -506,7 +507,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                         });
                     },
                     {
-                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["vectorSearch"] }),
+                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["search"] }),
                         downloadOptions: { search: true },
                         getMockElicitationInput: () => mockElicitInput,
                     }

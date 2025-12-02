@@ -1,4 +1,4 @@
-import type { UserConfig } from "../config.js";
+import type { UserConfig } from "../config/userConfig.js";
 import type { DatabaseUserRole } from "./openapi.js";
 
 const readWriteRole: DatabaseUserRole = {

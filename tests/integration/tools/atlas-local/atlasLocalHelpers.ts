@@ -1,4 +1,4 @@
-import { defaultDriverOptions, defaultTestConfig, setupIntegrationTest, type IntegrationTest } from "../../helpers.js";
+import { defaultTestConfig, setupIntegrationTest, type IntegrationTest } from "../../helpers.js";
 import { describe } from "vitest";
 
 const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
@@ -11,10 +11,7 @@ export type IntegrationTestFunction = (integration: IntegrationTest) => void;
  */
 export function describeWithAtlasLocal(name: string, fn: IntegrationTestFunction): void {
     describe.skipIf(isMacOSInGitHubActions)(name, () => {
-        const integration = setupIntegrationTest(
-            () => defaultTestConfig,
-            () => defaultDriverOptions
-        );
+        const integration = setupIntegrationTest(() => defaultTestConfig);
         fn(integration);
     });
 }
@@ -25,10 +22,7 @@ export function describeWithAtlasLocal(name: string, fn: IntegrationTestFunction
  */
 export function describeWithAtlasLocalDisabled(name: string, fn: IntegrationTestFunction): void {
     describe.skipIf(!isMacOSInGitHubActions)(name, () => {
-        const integration = setupIntegrationTest(
-            () => defaultTestConfig,
-            () => defaultDriverOptions
-        );
+        const integration = setupIntegrationTest(() => defaultTestConfig);
         fn(integration);
     });
 }

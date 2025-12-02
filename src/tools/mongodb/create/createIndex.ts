@@ -5,7 +5,6 @@ import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
 import { similarityValues } from "../../../common/schemas.js";
-import { CommonArgs } from "../../args.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
     private vectorSearchIndexDefinition = z
@@ -122,8 +121,10 @@ export class CreateIndexTool extends MongoDBToolBase {
                 .describe(
                     "Document describing the index to create. Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
                 ),
-            numPartitions: CommonArgs.numberEnum([z.literal(1), z.literal(2), z.literal(4)])
-                .default(1)
+            numPartitions: z
+                .union([z.literal("1"), z.literal("2"), z.literal("4")])
+                .default("1")
+                .transform((value): number => Number.parseInt(value))
                 .describe(
                     "Specifies the number of sub-indexes to create if the document count exceeds two billion. If omitted, defaults to 1."
                 ),
@@ -144,17 +145,17 @@ export class CreateIndexTool extends MongoDBToolBase {
                             keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
                         })
                         .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial)."),
-                    ...(this.isFeatureEnabled("vectorSearch")
+                    ...(this.isFeatureEnabled("search")
                         ? [this.vectorSearchIndexDefinition, this.atlasSearchIndexDefinition]
                         : []),
                 ])
             )
             .describe(
-                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("vectorSearch") ? ", 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes" : ""}.`
+                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("search") ? ", 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes" : ""}.`
             ),
     };
 
-    public operationType: OperationType = "create";
+    static operationType: OperationType = "create";
 
     protected async execute({
         database,

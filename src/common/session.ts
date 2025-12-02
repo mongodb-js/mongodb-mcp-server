@@ -11,6 +11,7 @@ import type {
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
+    ConnectionStringAuthType,
 } from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
@@ -18,11 +19,11 @@ import type { ExportsManager } from "./exportsManager.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "./keychain.js";
 import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import { type UserConfig } from "../common/config/userConfig.js";
 
 export interface SessionOptions {
-    apiBaseUrl: string;
-    apiClientId?: string;
-    apiClientSecret?: string;
+    userConfig: UserConfig;
     logger: CompositeLogger;
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
@@ -39,6 +40,7 @@ export type SessionEvents = {
 };
 
 export class Session extends EventEmitter<SessionEvents> {
+    private readonly userConfig: UserConfig;
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
@@ -56,9 +58,7 @@ export class Session extends EventEmitter<SessionEvents> {
     public logger: CompositeLogger;
 
     constructor({
-        apiBaseUrl,
-        apiClientId,
-        apiClientSecret,
+        userConfig,
         logger,
         connectionManager,
         exportsManager,
@@ -68,17 +68,18 @@ export class Session extends EventEmitter<SessionEvents> {
     }: SessionOptions) {
         super();
 
+        this.userConfig = userConfig;
         this.keychain = keychain;
         this.logger = logger;
         const credentials: ApiClientCredentials | undefined =
-            apiClientId && apiClientSecret
+            userConfig.apiClientId && userConfig.apiClientSecret
                 ? {
-                      clientId: apiClientId,
-                      clientSecret: apiClientSecret,
+                      clientId: userConfig.apiClientId,
+                      clientSecret: userConfig.apiClientSecret,
                   }
                 : undefined;
 
-        this.apiClient = new ApiClient({ baseUrl: apiBaseUrl, credentials }, logger);
+        this.apiClient = new ApiClient({ baseUrl: userConfig.apiBaseUrl, credentials }, logger);
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
@@ -143,6 +144,14 @@ export class Session extends EventEmitter<SessionEvents> {
         this.emit("close");
     }
 
+    async connectToConfiguredConnection(): Promise<void> {
+        const connectionInfo = generateConnectionInfoFromCliArgs({
+            ...this.userConfig,
+            connectionSpecifier: this.userConfig.connectionString,
+        });
+        await this.connectToMongoDB(connectionInfo);
+    }
+
     async connectToMongoDB(settings: ConnectionSettings): Promise<void> {
         await this.connectionManager.connect({ ...settings });
     }
@@ -181,5 +190,9 @@ export class Session extends EventEmitter<SessionEvents> {
 
     get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined {
         return this.connectionManager.currentConnectionState.connectedAtlasCluster;
+    }
+
+    get connectionStringAuthType(): ConnectionStringAuthType | undefined {
+        return this.connectionManager.currentConnectionState.connectionStringAuthType;
     }
 }

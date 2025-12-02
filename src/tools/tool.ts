@@ -1,12 +1,12 @@
-import type { z, AnyZodObject } from "zod";
+import type { z } from "zod";
 import { type ZodRawShape, type ZodNever } from "zod";
 import type { RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
 import { LogId } from "../common/logger.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
-import type { TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
-import type { UserConfig } from "../common/config.js";
+import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
@@ -36,31 +36,249 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  * - `mongodb` is used for tools that interact with a MongoDB instance, such as finding documents,
  *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
+ * - `atlas-local` is used for tools that interact with local Atlas deployments.
  */
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
 
+/**
+ * Parameters passed to the constructor of all tools that extends `ToolBase`.
+ *
+ * The MongoDB MCP Server automatically injects these parameters when
+ * constructing tools and registering to the MCP Server.
+ *
+ * See `Server.registerTools` method in `src/server.ts` for further reference.
+ */
 export type ToolConstructorParams = {
+    /**
+     * The category that the tool belongs to (injected from the static
+     * `category` property on the Tool class).
+     */
+    category: ToolCategory;
+
+    /**
+     * The type of operation the tool performs (injected from the static
+     * `operationType` property on the Tool class).
+     */
+    operationType: OperationType;
+
+    /**
+     * An instance of Session class providing access to MongoDB connections,
+     * loggers, etc.
+     *
+     * See `src/common/session.ts` for further reference.
+     */
     session: Session;
+
+    /**
+     * The configuration object that MCP session was started with.
+     *
+     * See `src/common/config/userConfig.ts` for further reference.
+     */
     config: UserConfig;
+
+    /**
+     * The telemetry service for tracking tool usage.
+     *
+     * See `src/telemetry/telemetry.ts` for further reference.
+     */
     telemetry: Telemetry;
+
+    /**
+     * The elicitation service for requesting user confirmation.
+     *
+     * See `src/elicitation.ts` for further reference.
+     */
     elicitation: Elicitation;
 };
 
+/**
+ * The type that all tool classes must conform to when implementing custom tools
+ * for the MongoDB MCP Server.
+ *
+ * This type enforces that tool classes have static properties `category` and
+ * `operationType` which are injected during instantiation of tool classes.
+ *
+ * @example
+ * ```typescript
+ * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
+ * import { z } from "zod";
+ *
+ * class MyCustomTool extends ToolBase {
+ *   // Required static properties for ToolClass conformance
+ *   static category: ToolCategory = "mongodb";
+ *   static operationType: OperationType = "read";
+ *
+ *   // Required abstract properties
+ *   override name = "my-custom-tool";
+ *   protected description = "My custom tool description";
+ *   protected argsShape = {
+ *     query: z.string().describe("The query parameter"),
+ *   };
+ *
+ *   // Required abstract method: implement the tool's logic
+ *   protected async execute(args) {
+ *     // Tool implementation
+ *     return {
+ *       content: [{ type: "text", text: "Result" }],
+ *     };
+ *   }
+ *
+ *   // Required abstract method: provide telemetry metadata
+ *   protected resolveTelemetryMetadata() {
+ *     return {}; // Return empty object if no custom telemetry needed
+ *   }
+ * }
+ *
+ * const runner = new StreamableHttpRunner({
+ *   userConfig: UserConfigSchema.parse({}),
+ *   // This will work only if the class correctly conforms to ToolClass type, which in our case it does.
+ *   tools: [MyCustomTool],
+ * });
+ * ```
+ */
+export type ToolClass = {
+    /** Constructor signature for the tool class */
+    new (params: ToolConstructorParams): ToolBase;
+
+    /** The category that the tool belongs to */
+    category: ToolCategory;
+
+    /** The type of operation the tool performs */
+    operationType: OperationType;
+};
+
+/**
+ * Abstract base class for implementing MCP tools in the MongoDB MCP Server.
+ *
+ * All tools (both internal and custom) must extend this class to ensure a
+ * consistent interface and proper integration with the server.
+ *
+ * ## Creating a Custom Tool
+ *
+ * To create a custom tool, you must:
+ * 1. Extend the `ToolBase` class
+ * 2. Define static properties: `category` and `operationType`
+ * 3. Implement required abstract members: `name`, `description`,
+ *    `argsShape`, `execute()`, `resolveTelemetryMetadata()`
+ *
+ * @example Basic Custom Tool
+ * ```typescript
+ * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
+ * import { z } from "zod";
+ *
+ * class MyCustomTool extends ToolBase {
+ *   // Required static property for ToolClass conformance
+ *   static category: ToolCategory = "mongodb";
+ *   static operationType: OperationType = "read";
+ *
+ *   // Required abstract properties
+ *   override name = "my-custom-tool";
+ *   protected description = "My custom tool description";
+ *   protected argsShape = {
+ *     query: z.string().describe("The query parameter"),
+ *   };
+ *
+ *   // Required abstract method: implement the tool's logic
+ *   protected async execute(args) {
+ *     // Tool implementation
+ *     return {
+ *       content: [{ type: "text", text: "Result" }],
+ *     };
+ *   }
+ *
+ *   // Required abstract method: provide telemetry metadata
+ *   protected resolveTelemetryMetadata() {
+ *     return {}; // Return empty object if no custom telemetry needed
+ *   }
+ * }
+ *
+ * const runner = new StreamableHttpRunner({
+ *   userConfig: UserConfigSchema.parse({}),
+ *   // This will work only if the class correctly conforms to ToolClass type, which in our case it does.
+ *   tools: [MyCustomTool],
+ * });
+ * ```
+ *
+ * ## Protected Members Available to Subclasses
+ *
+ * - `session` - Access to MongoDB connection, logger, and other session
+ *   resources
+ * - `config` - Server configuration (`UserConfig`)
+ * - `telemetry` - Telemetry service for tracking usage
+ * - `elicitation` - Service for requesting user confirmations
+ *
+ * ## Instance Properties Set by Constructor
+ *
+ * The following properties are automatically set when the tool is instantiated
+ * by the server (derived from the static properties):
+ * - `category` - The tool's category (from static `category`)
+ * - `operationType` - The tool's operation type (from static `operationType`)
+ *
+ * ## Optional Overrideable Methods
+ *
+ * - `getConfirmationMessage()` - Customize the confirmation prompt for tools
+ *   requiring user approval
+ * - `handleError()` - Customize error handling behavior
+ *
+ * @see {@link ToolClass} for the type that tool classes must conform to
+ * @see {@link ToolConstructorParams} for the parameters passed to the
+ * constructor
+ */
 export abstract class ToolBase {
+    /**
+     * The unique name of this tool.
+     *
+     * Must be unique across all tools in the server.
+     */
     public abstract name: string;
 
-    public abstract category: ToolCategory;
+    /**
+     * The category of this tool.
+     *
+     * @see {@link ToolCategory} for the available tool categories.
+     */
+    public category: ToolCategory;
 
-    public abstract operationType: OperationType;
+    /**
+     * The type of operation this tool performs.
+     *
+     * Automatically set from the static `operationType` property during
+     * construction.
+     *
+     * @see {@link OperationType} for the available tool operations.
+     */
+    public operationType: OperationType;
 
+    /**
+     * Human-readable description of what the tool does.
+     *
+     * This is shown to the MCP client and helps the LLM understand when to use
+     * this tool.
+     */
     protected abstract description: string;
 
+    /**
+     * Zod schema defining the tool's arguments.
+     *
+     * Use an empty object `{}` if the tool takes no arguments.
+     *
+     * @example
+     * ```typescript
+     * protected argsShape = {
+     *   query: z.string().describe("The search query"),
+     *   limit: z.number().optional().describe("Maximum results to return"),
+     * };
+     * ```
+     */
     protected abstract argsShape: ZodRawShape;
+
+    private registeredTool: RegisteredTool | undefined;
 
     protected get annotations(): ToolAnnotations {
         const annotations: ToolAnnotations = {
             title: this.name,
-            description: this.description,
         };
 
         switch (this.operationType) {
@@ -86,16 +304,68 @@ export abstract class ToolBase {
         return annotations;
     }
 
+    /**
+     * A function that is registered as the tool execution callback and is
+     * called with the expected arguments.
+     *
+     * This is the core implementation of your tool's functionality. It receives
+     * validated arguments (validated against `argsShape`) and must return a
+     * result conforming to the MCP protocol.
+     *
+     * @param args - The validated arguments passed to the tool
+     * @returns A promise resolving to the tool execution result
+     *
+     * @example
+     * ```typescript
+     * protected async execute(args: { query: string }): Promise<CallToolResult> {
+     *   const results = await this.session.db.collection('items').find({
+     *     name: { $regex: args.query, $options: 'i' }
+     *   }).toArray();
+     *
+     *   return {
+     *     content: [{
+     *       type: "text",
+     *       text: JSON.stringify(results),
+     *     }],
+     *   };
+     * }
+     * ```
+     */
     protected abstract execute(...args: ToolCallbackArgs<typeof this.argsShape>): Promise<CallToolResult>;
 
-    /** Get the confirmation message for the tool. Can be overridden to provide a more specific message. */
+    /**
+     * Get the confirmation message shown to users when this tool requires
+     * explicit approval.
+     *
+     * Override this method to provide a more specific and helpful confirmation
+     * message based on the tool's arguments.
+     *
+     * @param args - The tool arguments
+     * @returns The confirmation message to display to the user
+     *
+     * @example
+     * ```typescript
+     * protected getConfirmationMessage(args: { database: string }): string {
+     *   return `You are about to delete the database "${args.database}". This action cannot be undone. Proceed?`;
+     * }
+     * ```
+     */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected getConfirmationMessage(...args: ToolCallbackArgs<typeof this.argsShape>): string {
         return `You are about to execute the \`${this.name}\` tool which requires additional confirmation. Would you like to proceed?`;
     }
 
-    /** Check if the user has confirmed the tool execution, if required by the configuration.
-     *  Always returns true if confirmation is not required.
+    /**
+     * Check if the user has confirmed the tool execution (if required by
+     * configuration).
+     *
+     * This method automatically checks if the tool name is in the
+     * `confirmationRequiredTools` configuration list and requests user
+     * confirmation via the elicitation service if needed.
+     *
+     * @param args - The tool arguments
+     * @returns A promise resolving to `true` if confirmed or confirmation not
+     * required, `false` otherwise
      */
     public async verifyConfirmed(args: ToolCallbackArgs<typeof this.argsShape>): Promise<boolean> {
         if (!this.config.confirmationRequiredTools.includes(this.name)) {
@@ -105,11 +375,34 @@ export abstract class ToolBase {
         return this.elicitation.requestConfirmation(this.getConfirmationMessage(...args));
     }
 
+    /**
+     * Access to the session instance. Provides access to MongoDB connections,
+     * loggers, connection manager, and other session-level resources.
+     */
     protected readonly session: Session;
+
+    /**
+     * Access to the server configuration. Contains all user configuration
+     * settings including connection strings, feature flags, and operational
+     * limits.
+     */
     protected readonly config: UserConfig;
+
+    /**
+     * Access to the telemetry service. Use this to emit custom telemetry events
+     * if needed.
+     */
     protected readonly telemetry: Telemetry;
+
+    /**
+     * Access to the elicitation service. Use this to request user confirmations
+     * or inputs during tool execution.
+     */
     protected readonly elicitation: Elicitation;
-    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
+
+    constructor({ category, operationType, session, config, telemetry, elicitation }: ToolConstructorParams) {
+        this.category = category;
+        this.operationType = operationType;
         this.session = session;
         this.config = config;
         this.telemetry = telemetry;
@@ -169,53 +462,44 @@ export abstract class ToolBase {
             }
         };
 
-        server.mcpServer.tool(this.name, this.description, this.argsShape, this.annotations, callback);
-
-        // This is very similar to RegisteredTool.update, but without the bugs around the name.
-        // In the upstream update method, the name is captured in the closure and not updated when
-        // the tool name changes. This means that you only get one name update before things end up
-        // in a broken state.
-        // See https://github.com/modelcontextprotocol/typescript-sdk/issues/414 for more details.
-        this.update = (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }): void => {
-            const tools = server.mcpServer["_registeredTools"] as { [toolName: string]: RegisteredTool };
-            const existingTool = tools[this.name];
-
-            if (!existingTool) {
-                this.session.logger.warning({
-                    id: LogId.toolUpdateFailure,
-                    context: "tool",
-                    message: `Tool ${this.name} not found in update`,
-                    noRedaction: true,
-                });
-                return;
-            }
-
-            existingTool.annotations = this.annotations;
-
-            if (updates.name && updates.name !== this.name) {
-                existingTool.annotations.title = updates.name;
-                delete tools[this.name];
-                this.name = updates.name;
-                tools[this.name] = existingTool;
-            }
-
-            if (updates.description) {
-                existingTool.annotations.description = updates.description;
-                existingTool.description = updates.description;
-                this.description = updates.description;
-            }
-
-            if (updates.inputSchema) {
-                existingTool.inputSchema = updates.inputSchema;
-            }
-
-            server.mcpServer.sendToolListChanged();
-        };
+        this.registeredTool = server.mcpServer.tool(
+            this.name,
+            this.description,
+            this.argsShape,
+            this.annotations,
+            callback
+        );
 
         return true;
     }
 
-    protected update?: (updates: { name?: string; description?: string; inputSchema?: AnyZodObject }) => void;
+    public isEnabled(): boolean {
+        return this.registeredTool?.enabled ?? false;
+    }
+
+    protected disable(): void {
+        if (!this.registeredTool) {
+            this.session.logger.warning({
+                id: LogId.toolMetadataChange,
+                context: `tool - ${this.name}`,
+                message: "Requested disabling of tool but it was never registered",
+            });
+            return;
+        }
+        this.registeredTool.disable();
+    }
+
+    protected enable(): void {
+        if (!this.registeredTool) {
+            this.session.logger.warning({
+                id: LogId.toolMetadataChange,
+                context: `tool - ${this.name}`,
+                message: "Requested enabling of tool but it was never registered",
+            });
+            return;
+        }
+        this.registeredTool.enable();
+    }
 
     // Checks if a tool is allowed to run based on the config
     protected verifyAllowed(): boolean {
@@ -246,6 +530,33 @@ export abstract class ToolBase {
         return true;
     }
 
+    /**
+     * Handle errors that occur during tool execution.
+     *
+     * Override this method to provide custom error handling logic. The default
+     * implementation returns a simple error message.
+     *
+     * @param error - The error that was thrown
+     * @param args - The arguments that were passed to the tool
+     * @returns A CallToolResult with error information
+     *
+     * @example
+     * ```typescript
+     * protected handleError(error: unknown, args: { query: string }): CallToolResult {
+     *   if (error instanceof MongoError && error.code === 11000) {
+     *     return {
+     *       content: [{
+     *         type: "text",
+     *         text: `Duplicate key error for query: ${args.query}`,
+     *       }],
+     *       isError: true,
+     *     };
+     *   }
+     *   // Fall back to default error handling
+     *   return super.handleError(error, args);
+     * }
+     * ```
+     */
     // This method is intended to be overridden by subclasses to handle errors
     protected handleError(
         error: unknown,
@@ -263,6 +574,30 @@ export abstract class ToolBase {
         };
     }
 
+    /**
+     * Resolve telemetry metadata for this tool execution.
+     *
+     * This method is called after every tool execution to collect metadata for
+     * telemetry events. Return an object with custom properties you want to
+     * track, or an empty object if no custom telemetry is needed.
+     *
+     * @param result - The result of the tool execution
+     * @param args - The arguments and context passed to the tool
+     * @returns An object containing telemetry metadata
+     *
+     * @example
+     * ```typescript
+     * protected resolveTelemetryMetadata(
+     *   result: CallToolResult,
+     *   args: { query: string }
+     * ): TelemetryToolMetadata {
+     *   return {
+     *     query_length: args.query.length,
+     *     result_count: result.isError ? 0 : JSON.parse(result.content[0].text).length,
+     *   };
+     * }
+     * ```
+     */
     protected abstract resolveTelemetryMetadata(
         result: CallToolResult,
         ...args: Parameters<ToolCallback<typeof this.argsShape>>
@@ -302,6 +637,20 @@ export abstract class ToolBase {
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
         return this.config.previewFeatures.includes(feature);
+    }
+
+    protected getConnectionInfoMetadata(): ConnectionMetadata {
+        const metadata: ConnectionMetadata = {};
+        if (this.session.connectedAtlasCluster?.projectId) {
+            metadata.project_id = this.session.connectedAtlasCluster.projectId;
+        }
+
+        const connectionStringAuthType = this.session.connectionStringAuthType;
+        if (connectionStringAuthType !== undefined) {
+            metadata.connection_auth_type = connectionStringAuthType;
+        }
+
+        return metadata;
     }
 }
 

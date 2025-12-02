@@ -1,25 +1,32 @@
 import z from "zod";
-import { CommonArgs, zEJSON } from "../args.js";
+import { zEJSON } from "../args.js";
 
 export const zVoyageModels = z
     .enum(["voyage-3-large", "voyage-3.5", "voyage-3.5-lite", "voyage-code-3"])
     .default("voyage-3-large");
 
 export const zVoyageEmbeddingParameters = z.object({
-    outputDimension: CommonArgs.numberEnum([
-        z.literal(256),
-        z.literal(512),
-        z.literal(1024),
-        z.literal(2048),
-        z.literal(4096),
-    ])
-        .optional()
-        .default(1024),
+    // OpenAPI JSON Schema supports enum only as string so the public facing
+    // parameters that are fed to LLM providers should expect the dimensions as
+    // stringified numbers which are then transformed to actual numbers.
+    outputDimension: z
+        .union([z.literal("256"), z.literal("512"), z.literal("1024"), z.literal("2048"), z.literal("4096")])
+        .default("1024")
+        .transform((value): number => Number.parseInt(value))
+        .optional(),
     outputDtype: z.enum(["float", "int8", "uint8", "binary", "ubinary"]).optional().default("float"),
 });
 
 export const zVoyageAPIParameters = zVoyageEmbeddingParameters
     .extend({
+        // Unlike public facing parameters, `zVoyageEmbeddingParameters`, the
+        // api parameters need to be correct number and because we do an
+        // additional parsing before calling the API, we override the
+        // outputDimension schema to expect a union of numbers.
+        outputDimension: z
+            .union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)])
+            .default(1024)
+            .optional(),
         inputType: z.enum(["query", "document"]),
     })
     .strip();

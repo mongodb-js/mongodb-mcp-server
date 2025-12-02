@@ -13,6 +13,7 @@ describeWithMongoDB("dropCollection tool", (integration) => {
         integration,
         "drop-collection",
         "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.",
+        "delete",
         databaseCollectionParameters
     );
 

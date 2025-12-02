@@ -1,6 +1,6 @@
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { BSON, type Document } from "bson";
-import type { UserConfig } from "../config.js";
+import type { UserConfig } from "../config/userConfig.js";
 import type { ConnectionManager } from "../connectionManager.js";
 import z from "zod";
 import { ErrorCodes, MongoDBError } from "../errors.js";
@@ -79,7 +79,7 @@ export class VectorSearchEmbeddingsManager {
 
         // We only need the embeddings for validation now, so don't query them if
         // validation is disabled.
-        if (this.config.disableEmbeddingsValidation) {
+        if (!this.config.embeddingsValidation) {
             return [];
         }
 
@@ -146,7 +146,7 @@ export class VectorSearchEmbeddingsManager {
         // While we can do our best effort to ensure that the embedding validation is correct
         // based on https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-quantization/
         // it's a complex process so we will also give the user the ability to disable this validation
-        if (this.config.disableEmbeddingsValidation) {
+        if (!this.config.embeddingsValidation) {
             return [];
         }
 
@@ -279,13 +279,6 @@ export class VectorSearchEmbeddingsManager {
 
         if (!embeddingsProvider) {
             throw new MongoDBError(ErrorCodes.NoEmbeddingsProviderConfigured, "No embeddings provider configured.");
-        }
-
-        if (this.config.disableEmbeddingsValidation) {
-            return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {
-                inputType,
-                ...embeddingParameters,
-            });
         }
 
         return await embeddingsProvider.embed(embeddingParameters.model, rawValues, {

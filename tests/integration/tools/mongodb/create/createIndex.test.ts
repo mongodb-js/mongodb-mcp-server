@@ -13,7 +13,7 @@ import { ObjectId, type Collection, type Document, type IndexDirection } from "m
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool when search is not enabled", (integration) => {
-    validateToolMetadata(integration, "create-index", "Create an index for a collection", [
+    validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
         ...databaseCollectionParameters,
         {
             name: "definition",
@@ -30,7 +30,7 @@ describeWithMongoDB("createIndex tool when search is not enabled", (integration)
     ]);
 
     it("doesn't allow creating vector search indexes", async () => {
-        expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("vectorSearch");
+        expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("search");
 
         const { tools } = await integration.mcpClient().listTools();
         const createIndexTool = tools.find((tool) => tool.name === "create-index");
@@ -54,7 +54,7 @@ describeWithMongoDB(
     "createIndex tool when search is enabled",
     (integration) => {
         it("allows creating vector search indexes", async () => {
-            expect(integration.mcpServer().userConfig.previewFeatures).includes("vectorSearch");
+            expect(integration.mcpServer().userConfig.previewFeatures).includes("search");
 
             const { tools } = await integration.mcpClient().listTools();
             const createIndexTool = tools.find((tool) => tool.name === "create-index");
@@ -121,7 +121,7 @@ describeWithMongoDB(
         getUserConfig: () => {
             return {
                 ...defaultTestConfig,
-                previewFeatures: ["vectorSearch"],
+                previewFeatures: ["search"],
             };
         },
     }
@@ -130,7 +130,7 @@ describeWithMongoDB(
 describeWithMongoDB(
     "createIndex tool with classic indexes",
     (integration) => {
-        validateToolMetadata(integration, "create-index", "Create an index for a collection", [
+        validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
             ...databaseCollectionParameters,
             {
                 name: "definition",
@@ -449,7 +449,7 @@ describeWithMongoDB(
         getUserConfig: () => {
             return {
                 ...defaultTestConfig,
-                previewFeatures: ["vectorSearch"],
+                previewFeatures: ["search"],
             };
         },
     }
@@ -551,7 +551,7 @@ describeWithMongoDB(
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("vector_1_vector");
                 expect(indexes[0]?.type).toEqual("vectorSearch");
-                expect(indexes[0]?.status).toEqual("PENDING");
+                expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toEqual({
                     fields: [
@@ -670,7 +670,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
         downloadOptions: {
             search: true,

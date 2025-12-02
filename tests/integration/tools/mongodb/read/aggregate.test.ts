@@ -23,7 +23,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         integration.mcpServer().userConfig.disabledTools = [];
     });
 
-    validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
+    validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
         ...databaseCollectionParameters,
         {
             name: "pipeline",
@@ -394,7 +394,7 @@ describeWithMongoDB(
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
-        validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", [
+        validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
             ...databaseCollectionParameters,
             {
                 name: "pipeline",
@@ -444,7 +444,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                 limit: 10,
                                 embeddingParameters: {
                                     model: "voyage-3-large",
-                                    outputDimension: 256,
+                                    outputDimension: "256",
                                 },
                             },
                         },
@@ -508,7 +508,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -575,7 +575,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -642,7 +642,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -709,7 +709,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -774,7 +774,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                     limit: 10,
                                     embeddingParameters: {
                                         model: "voyage-3-large",
-                                        outputDimension: 256,
+                                        outputDimension: "256",
                                         outputDType: "float",
                                     },
                                     filter: { name: 10 },
@@ -837,7 +837,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                     limit: 10,
                                     embeddingParameters: {
                                         model: "voyage-3-large",
-                                        outputDimension: 256,
+                                        outputDimension: "256",
                                         outputDType: "float",
                                     },
                                     filter: { name: 10 },
@@ -900,7 +900,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                     limit: 10,
                                     embeddingParameters: {
                                         model: "voyage-3-large",
-                                        outputDimension: 256,
+                                        outputDimension: "256",
                                         outputDType: "float",
                                     },
                                     filter: { name: 10 },
@@ -926,7 +926,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
         getUserConfig: () => ({
             ...defaultTestConfig,
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
             indexCheck: true,

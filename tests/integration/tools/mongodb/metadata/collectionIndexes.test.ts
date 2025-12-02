@@ -29,6 +29,7 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         integration,
         "collection-indexes",
         "Describe the indexes for a collection",
+        "metadata",
         databaseCollectionParameters
     );
 
@@ -315,7 +316,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
         downloadOptions: { search: true },
     }

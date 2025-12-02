@@ -10,7 +10,7 @@ export class DropIndexTool extends MongoDBToolBase {
     protected argsShape = {
         ...DbOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
-        type: this.isFeatureEnabled("vectorSearch")
+        type: this.isFeatureEnabled("search")
             ? z
                   .enum(["classic", "search"])
                   .describe(
@@ -21,7 +21,7 @@ export class DropIndexTool extends MongoDBToolBase {
                   .default("classic")
                   .describe("The type of index to be deleted. Is always set to 'classic'."),
     };
-    public operationType: OperationType = "delete";
+    static operationType: OperationType = "delete";
 
     protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
