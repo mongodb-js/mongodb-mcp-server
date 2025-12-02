@@ -81,7 +81,7 @@
     "@ai-sdk/openai": "^2.0.52",
     "@eslint/js": "^9.34.0",
     "@modelcontextprotocol/inspector": "^0.17.1",
-    "@mongodb-js/oidc-mock-provider": "^0.11.3",
+    "@mongodb-js/oidc-mock-provider": "^0.12.0",
     "@redocly/cli": "^2.0.8",
     "@types/express": "^5.0.3",
     "@types/node": "^24.5.2",
