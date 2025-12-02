@@ -131,7 +131,7 @@
     "node-fetch": "^3.3.2",
     "node-machine-id": "1.1.12",
     "oauth4webapi": "^3.8.0",
-    "openapi-fetch": "^0.14.0",
+    "openapi-fetch": "^0.15.0",
     "ts-levenshtein": "^1.0.7",
     "voyage-ai-provider": "^2.0.0",
     "yargs-parser": "21.1.1",
