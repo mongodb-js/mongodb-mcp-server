@@ -61,8 +61,8 @@ importers:
         specifier: ^3.8.0
         version: 3.8.3
       openapi-fetch:
-        specifier: ^0.14.0
-        version: 0.14.1
+        specifier: ^0.15.0
+        version: 0.15.0
       ts-levenshtein:
         specifier: ^1.0.7
         version: 1.0.7
@@ -3439,8 +3439,8 @@ packages:
     resolution: {integrity: sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==}
     engines: {node: '>=18'}
 
-  openapi-fetch@0.14.1:
-    resolution: {integrity: sha512-l7RarRHxlEZYjMLd/PR0slfMVse2/vvIAGm75/F7J6MlQ8/b9uUQmUF2kCPrQhJqMXSxmYWObVgeYXbFYzZR+A==}
+  openapi-fetch@0.15.0:
+    resolution: {integrity: sha512-OjQUdi61WO4HYhr9+byCPMj0+bgste/LtSBEcV6FzDdONTs7x0fWn8/ndoYwzqCsKWIxEZwo4FN/TG1c1rI8IQ==}
 
   openapi-sampler@1.6.2:
     resolution: {integrity: sha512-NyKGiFKfSWAZr4srD/5WDhInOWDhfml32h/FKUqLpEwKJt0kG0LGUU0MdyNkKrVGuJnw6DuPWq/sHCwAMpiRxg==}
@@ -8046,7 +8046,7 @@ snapshots:
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
 
-  openapi-fetch@0.14.1:
+  openapi-fetch@0.15.0:
     dependencies:
       openapi-typescript-helpers: 0.0.15
 
