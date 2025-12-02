@@ -80,7 +80,7 @@ describeAccuracyTests(
                                     {
                                         type: "vector",
                                         path: "plotSummary",
-                                        numDimensions: 1024,
+                                        numDimensions: "1024",
                                     },
                                 ],
                             },
@@ -106,17 +106,19 @@ describeAccuracyTests(
                                     {
                                         type: "vector",
                                         path: "plotSummary",
-                                        numDimensions: Matcher.number(
-                                            (value) => value % 2 === 0 && value >= 256 && value <= 8192
-                                        ),
+                                        numDimensions: Matcher.string((value) => {
+                                            const intValue = parseInt(value);
+                                            return intValue % 2 === 0 && intValue >= 256 && intValue <= 8192;
+                                        }),
                                         similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                     },
                                     {
                                         type: "vector",
                                         path: "genre",
-                                        numDimensions: Matcher.number(
-                                            (value) => value % 2 === 0 && value >= 256 && value <= 8192
-                                        ),
+                                        numDimensions: Matcher.string((value) => {
+                                            const intValue = parseInt(value);
+                                            return intValue % 2 === 0 && intValue >= 256 && intValue <= 8192;
+                                        }),
                                         similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                     },
                                 ],
@@ -143,7 +145,7 @@ describeAccuracyTests(
                                     {
                                         type: "vector",
                                         path: "plotSummary",
-                                        numDimensions: 1024,
+                                        numDimensions: "1024",
                                     },
                                     {
                                         type: "filter",
