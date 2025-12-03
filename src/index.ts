@@ -57,7 +57,7 @@ async function main(): Promise<void> {
         args: process.argv.slice(2),
     });
 
-    if (config == null || (error && error.length)) {
+    if (!config || (error && error.length)) {
         console.error(`
             ${error}
             - Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.

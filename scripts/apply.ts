@@ -33,7 +33,7 @@ async function main(): Promise<void> {
         process.exit(1);
     }
 
-    const specFile = await fs.readFile(spec as string, "utf8");
+    const specFile = await fs.readFile(spec, "utf8");
 
     const operations: {
         path: string;
@@ -115,7 +115,7 @@ async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations
         })
         .join("\n");
 
-    const templateFile = await fs.readFile(file as string, "utf8");
+    const templateFile = await fs.readFile(file, "utf8");
     const templateLines = templateFile.split("\n");
     const outputLines: string[] = [];
     let addLines = true;
@@ -134,7 +134,7 @@ async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations
     }
     const output = outputLines.join("\n");
 
-    await fs.writeFile(file as string, output, "utf8");
+    await fs.writeFile(file, output, "utf8");
 }
 
 main().catch((error) => {
