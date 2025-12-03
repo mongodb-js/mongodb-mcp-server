@@ -46,7 +46,6 @@ export function createUserConfig({ args }: { args: string[] }): {
     // TODO: Separate correctly parsed user config from all other valid
     // arguments relevant to mongosh's args-parser.
     const userConfig: UserConfig = { ...parsed, ...configParseResult.data };
-    warnings.push(...warnIfVectorSearchNotEnabledCorrectly(userConfig));
     registerKnownSecretsInRootKeychain(userConfig);
     return {
         parsed: userConfig,
@@ -101,11 +100,7 @@ function parseUserConfigSources(cliArguments: string[]): {
     }
 
     const deprecationWarnings = [
-        ...(cliArguments.find((argument: string) => argument.startsWith("--connectionString"))
-            ? [
-                  "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
-              ]
-            : []),
+        ...getWarnings(parsed, cliArguments),
         ...Object.entries(deprecated).map(([deprecated, replacement]) => {
             return `Warning: The --${deprecated} argument is deprecated. Use --${replacement} instead.`;
         }),
@@ -141,10 +136,23 @@ function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): vo
     maybeRegister(userConfig.username, "user");
 }
 
-function warnIfVectorSearchNotEnabledCorrectly(config: UserConfig): string[] {
-    const searchEnabled = config.previewFeatures.includes("search");
-    const embeddingsProviderConfigured = !!config.voyageApiKey;
+function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): string[] {
     const warnings = [];
+
+    if (cliArguments.find((argument: string) => argument.startsWith("--connectionString"))) {
+        warnings.push(
+            "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
+        );
+    }
+
+    if (config.nodb) {
+        warnings.push(
+            "Warning: The nodb option is deprecated and will be removed in a future version. Please remove it from your configuration."
+        );
+    }
+
+    const searchEnabled = config.previewFeatures?.includes("search");
+    const embeddingsProviderConfigured = !!config.voyageApiKey;
     if (searchEnabled && !embeddingsProviderConfigured) {
         warnings.push(`\
 Warning: Vector search is enabled but no embeddings provider is configured.

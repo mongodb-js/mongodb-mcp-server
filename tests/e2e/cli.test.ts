@@ -50,24 +50,29 @@ describe("CLI entrypoint", () => {
             "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
 
         describe("Deprecated CLI arguments", () => {
-            const testCases = [
+            const testCases: { readonly cliArg: string; readonly value?: string; readonly warning: string }[] = [
                 {
                     cliArg: "--connectionString",
                     value: "mongodb://localhost:27017",
                     warning:
                         "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
                 },
+                {
+                    cliArg: "--nodb",
+                    warning:
+                        "Warning: The nodb option is deprecated and will be removed in a future version. Please remove it from your configuration.",
+                },
             ] as const;
 
             for (const { cliArg, value, warning } of testCases) {
                 describe(`deprecation behaviour of ${cliArg}`, () => {
                     it(`warns the usage of ${cliArg} as it is deprecated`, async () => {
-                        const { stderr } = await runServer({ args: [cliArg, value] });
+                        const { stderr } = await runServer({ args: [cliArg, ...(value ? [value] : [])] });
                         expect(stderr).toContain(warning);
                     });
 
                     it(`shows the reference message when ${cliArg} was passed`, async () => {
-                        const { stderr } = await runServer({ args: [cliArg, value] });
+                        const { stderr } = await runServer({ args: [cliArg, ...(value ? [value] : [])] });
                         expect(stderr).toContain(referDocMessage);
                     });
                 });
