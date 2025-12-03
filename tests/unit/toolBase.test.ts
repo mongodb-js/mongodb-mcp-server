@@ -159,10 +159,10 @@ describe("ToolBase", () => {
             const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
             expectDefined(event);
             expect(event.properties.result).to.equal("success");
+            expect(event.properties).toHaveProperty("test_param2");
             expect(event.properties).not.toHaveProperty("project_id");
             expect(event.properties).not.toHaveProperty("org_id");
             expect(event.properties).not.toHaveProperty("atlas_local_deployment_id");
-            expect(event.properties).not.toHaveProperty("test_param2");
         });
 
         it("should include custom telemetry metadata", async () => {
