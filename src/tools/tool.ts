@@ -1,5 +1,5 @@
-import type { z } from "zod";
-import { type ZodRawShape, type ZodNever } from "zod";
+import type { z, ZodTypeAny } from "zod";
+import { type ZodRawShape } from "zod";
 import type { RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
@@ -10,9 +10,16 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
+import { type ZodNever } from "zod";
 
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
 export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback<Args>>;
+
+export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = {
+    content: { type: "text"; text: string }[];
+    structuredContent: OutputSchema extends ZodRawShape ? z.objectOutputType<OutputSchema, ZodTypeAny> : never;
+    isError?: boolean;
+};
 
 export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
 
@@ -274,6 +281,8 @@ export abstract class ToolBase {
      */
     protected abstract argsShape: ZodRawShape;
 
+    protected outputShape?: ZodRawShape;
+
     private registeredTool: RegisteredTool | undefined;
 
     protected get annotations(): ToolAnnotations {
@@ -462,11 +471,14 @@ export abstract class ToolBase {
             }
         };
 
-        this.registeredTool = server.mcpServer.tool(
+        this.registeredTool = server.mcpServer.registerTool(
             this.name,
-            this.description,
-            this.argsShape,
-            this.annotations,
+            {
+                description: this.description,
+                inputSchema: this.argsShape,
+                annotations: this.annotations,
+                outputSchema: this.outputShape,
+            },
             callback
         );
 

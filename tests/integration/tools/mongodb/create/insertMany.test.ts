@@ -72,10 +72,11 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
             },
         });
 
-        const content = getResponseContent(response.content);
+        const content = getResponseContent(response);
         expect(content).toContain(`Inserted \`1\` document(s) into ${integration.randomDbName()}.coll1.`);
 
         await validateDocuments("coll1", [{ prop1: "value1" }]);
+        validateStructuredContent(response.structuredContent, extractInsertedIds(content));
     });
 
     it("returns an error when inserting duplicates", async () => {
@@ -95,7 +96,7 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
             },
         });
 
-        const content = getResponseContent(response.content);
+        const content = getResponseContent(response);
         expect(content).toContain("Error running insert-many");
         expect(content).toContain("duplicate key error");
         expect(content).toContain(insertedIds[0]?.toString());
@@ -174,12 +175,14 @@ describeWithMongoDB(
                 },
             });
 
-            const content = getResponseContent(response.content);
+            const content = getResponseContent(response);
             const insertedIds = extractInsertedIds(content);
             expect(insertedIds).toHaveLength(1);
 
             const docCount = await collection.countDocuments({ _id: insertedIds[0] });
             expect(docCount).toBe(1);
+
+            validateStructuredContent(response.structuredContent, insertedIds);
         });
 
         it("returns an error when there is a search index and embeddings parameter are wrong", async () => {
@@ -214,7 +217,7 @@ describeWithMongoDB(
                 },
             });
 
-            const content = getResponseContent(response.content);
+            const content = getResponseContent(response);
             expect(content).toContain("Error running insert-many");
             const untrustedContent = getDataFromUntrustedContent(content);
             expect(untrustedContent).toContain(
@@ -263,10 +266,11 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(1);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc).toBeDefined();
@@ -316,10 +320,11 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(2);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc1 = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc1?.title).toBe("The Matrix");
@@ -369,10 +374,11 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(1);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc?.info).toBeDefined();
@@ -417,10 +423,11 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(1);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc?.title).toBe("The Matrix");
@@ -452,10 +459,11 @@ describeWithMongoDB(
                         },
                     },
                 });
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(1);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect((doc?.title as Record<string, unknown>)?.text).toBe("The Matrix");
@@ -495,7 +503,7 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Error running insert-many");
                 expect(content).toContain("Field 'nonExistentField' does not have a vector search index in collection");
                 expect(content).toContain("Only fields with vector search indexes can have embeddings generated");
@@ -529,10 +537,11 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(1);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc?.title).toBe("The Matrix");
@@ -564,9 +573,10 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect(Array.isArray(doc?.titleEmbeddings)).toBe(true);
@@ -614,9 +624,10 @@ describeWithMongoDB(
                     },
                 });
 
-                const content = getResponseContent(response.content);
+                const content = getResponseContent(response);
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
+                validateStructuredContent(response.structuredContent, insertedIds);
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc?.title).toBe("The Matrix");
@@ -691,4 +702,12 @@ function extractInsertedIds(content: string): ObjectId[] {
             .map((e) => e.trim())
             .map((e) => ObjectId.createFromHexString(e)) ?? []
     );
+}
+
+function validateStructuredContent(structuredContent: unknown, expectedIds: ObjectId[]): void {
+    expect(structuredContent).toEqual({
+        success: true,
+        insertedCount: expectedIds.length,
+        insertedIds: expectedIds,
+    });
 }
