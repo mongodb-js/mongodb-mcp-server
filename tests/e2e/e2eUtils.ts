@@ -36,7 +36,7 @@ export function useCliRunner(): { runServer: RunServerFunction } {
         /** `true` by default so whitespace is stripped from the output */
         stripWhitespace?: boolean;
     }): ReturnType<RunServerFunction> {
-        const result = await execFileAsync(CLI_PATH, [...args, ...(dryRun ? ["--dryRun"] : [])]);
+        const result = await execFileAsync(process.execPath, [CLI_PATH, ...args, ...(dryRun ? ["--dryRun"] : [])]);
         if (stripWhitespace) {
             result.stdout = result.stdout.replace(/\s/g, "");
         }
