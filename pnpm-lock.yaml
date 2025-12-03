@@ -152,8 +152,8 @@ importers:
         specifier: ^6.21.0
         version: 6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
       mongodb-runner:
-        specifier: ^5.9.2
-        version: 5.11.1(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
+        specifier: ^6.2.0
+        version: 6.2.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
       openapi-types:
         specifier: ^12.1.3
         version: 12.1.3
@@ -662,8 +662,8 @@ packages:
   '@mongodb-js/devtools-proxy-support@0.5.5':
     resolution: {integrity: sha512-yrz6rCMgq+52SL34O16mvZsGeQs+Gq1rRmJiHxj/Ca6LNvJo+MhDHvISSwoiObl1hWdcnDz1qz5HyaxMzpkETg==}
 
-  '@mongodb-js/mongodb-downloader@0.5.0':
-    resolution: {integrity: sha512-N0ijRRNygm1xTQ3IhAMFcnZNhhF1CTwzFHqMk+tttm6LKD576t7j6olfuqSf8vFQ+tVpO6Z1JWOcquTKrpwOlQ==}
+  '@mongodb-js/mongodb-downloader@1.0.0':
+    resolution: {integrity: sha512-xz4zr/5RWfAaHp9Kf7XPaLNxKaisl2NJGFEDQRNjB/ru79LdpLQbbSjQazTOl6JLcBvAjNNvauTeTwmgEvSUlA==}
 
   '@mongodb-js/oidc-http-server-pages@1.1.8':
     resolution: {integrity: sha512-qQjV6TTozJa3jMfsmajhCCzESnsTGa3rQwxGbC97GIplaF2v3jieLfDt9O/F6X3jLm32HzAEWHFEvKu74h2wxw==}
@@ -3319,8 +3319,8 @@ packages:
   mongodb-redact@1.3.0:
     resolution: {integrity: sha512-6qMkQ9RnB7Z92G8c4mCkrDGaqwekuaUreaX+XnjAl/t3oKHJ+u7C+kfFLxSueJIBc1qtI4AtK0TO4yxOHyJqTw==}
 
-  mongodb-runner@5.11.1:
-    resolution: {integrity: sha512-vgp9pKqnfRr5aXUCYqh0DHw0I3LmRjD+LvoiGi2scp1BCgTeftSEZGy9py8xkzeWxCGBr7S0uwdmfcUPiVYusg==}
+  mongodb-runner@6.2.0:
+    resolution: {integrity: sha512-3RCYNGUJIHkwxmhyfQdY7gp6KqbyqEb2lNw3ZV36XaJFU07bYb9b497ba2YuH3evdNonbqXCUf+yxdAUWNPojg==}
     hasBin: true
 
   mongodb-schema@12.6.3:
@@ -5163,12 +5163,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mongodb-js/mongodb-downloader@0.5.0':
+  '@mongodb-js/mongodb-downloader@1.0.0':
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       decompress: 4.2.1
       mongodb-download-url: 1.7.0
       node-fetch: 2.7.0
+      proper-lockfile: 4.1.2
       tar: 6.2.1
     transitivePeerDependencies:
       - encoding
@@ -7962,9 +7963,10 @@ snapshots:
       mongodb-connection-string-url: 3.0.2
       regexp.escape: 2.0.1
 
-  mongodb-runner@5.11.1(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7):
+  mongodb-runner@6.2.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7):
     dependencies:
-      '@mongodb-js/mongodb-downloader': 0.5.0
+      '@mongodb-js/mongodb-downloader': 1.0.0
+      '@mongodb-js/oidc-mock-provider': 0.12.0
       '@mongodb-js/saslprep': 1.3.2
       debug: 4.4.3(supports-color@10.2.2)
       mongodb: 6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
