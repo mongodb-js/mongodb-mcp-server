@@ -58,18 +58,14 @@ async function main(): Promise<void> {
     });
 
     if (!config || (error && error.length)) {
-        console.error(`
-            ${error}
-            - Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.
-            `);
+        console.error(`${error}
+- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
         process.exit(1);
     }
 
     if (warnings && warnings.length) {
-        console.warn(`
-${warnings.join("\n")}
-- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.
-`);
+        console.warn(`${warnings.join("\n")}
+- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
     }
 
     if (config.help) {
