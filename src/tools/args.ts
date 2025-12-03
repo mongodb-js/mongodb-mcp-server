@@ -18,6 +18,7 @@ export const ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR =
 const ALLOWED_PROJECT_NAME_CHARACTERS_REGEX = /^[a-zA-Z0-9\s()@&+:._',-]+$/;
 export const ALLOWED_PROJECT_NAME_CHARACTERS_ERROR =
     "Project names can't be longer than 64 characters and can only contain letters, numbers, spaces, and the following symbols: ( ) @ & + : . _ - ' ,";
+
 export const CommonArgs = {
     string: (): ZodString => z.string().regex(NO_UNICODE_REGEX, NO_UNICODE_ERROR),
 

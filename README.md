@@ -672,7 +672,6 @@ npx -y mongodb-mcp-server@latest --logPath=/path/to/logs --readOnly --indexCheck
       "args": [
         "-y",
         "mongodb-mcp-server",
-        "--connectionString",
         "mongodb+srv://username:password@cluster.mongodb.net/myDatabase",
         "--readOnly"
       ]
