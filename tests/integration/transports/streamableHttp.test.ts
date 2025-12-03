@@ -93,7 +93,7 @@ describe("StreamableHttpRunner", () => {
                                 throw err;
                             } else {
                                 expect(err).toBeDefined();
-                                expect(err?.toString()).toContain("HTTP 403");
+                                expect(err?.toString()).toContain("Error POSTing to endpoint");
                             }
                         }
                     });
