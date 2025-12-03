@@ -219,8 +219,8 @@ export const UserConfigSchema = z4.object({
 });
 
 export const UserConfigSchemaWithCliOptions = z4.object({
-    ...UserConfigSchema.shape,
     ...CliOptionsSchema.shape,
+    ...UserConfigSchema.shape,
 });
 
 export type UserConfig = z4.infer<typeof UserConfigSchemaWithCliOptions>;

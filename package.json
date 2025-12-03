@@ -118,7 +118,7 @@
     "@modelcontextprotocol/sdk": "^1.22.0",
     "@mongodb-js/device-id": "^0.3.1",
     "@mongodb-js/devtools-proxy-support": "^0.5.3",
-    "@mongosh/arg-parser": "^3.19.0",
+    "@mongosh/arg-parser": "^3.23.0",
     "@mongosh/service-provider-node-driver": "^3.17.5",
     "ai": "^5.0.72",
     "bson": "^6.10.4",
