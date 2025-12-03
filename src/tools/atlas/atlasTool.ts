@@ -1,4 +1,3 @@
-import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AtlasMetadata } from "../../telemetry/types.js";
 import { ToolBase, type ToolArgs, type ToolCategory } from "../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -83,17 +82,15 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
      * @returns The tool metadata
      */
     protected resolveTelemetryMetadata(
-        result: CallToolResult,
-        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+        args: ToolArgs<typeof this.argsShape>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        { result }: { result: CallToolResult }
     ): AtlasMetadata {
         const toolMetadata: AtlasMetadata = {};
-        if (!args.length) {
-            return toolMetadata;
-        }
 
         // Create a typed parser for the exact shape we expect
         const argsShape = z.object(this.argsShape);
-        const parsedResult = argsShape.safeParse(args[0]);
+        const parsedResult = argsShape.safeParse(args);
 
         if (!parsedResult.success) {
             this.session.logger.debug({

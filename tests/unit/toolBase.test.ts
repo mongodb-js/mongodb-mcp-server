@@ -2,13 +2,7 @@ import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
 import { z } from "zod";
-import type {
-    ToolCallbackArgs,
-    OperationType,
-    ToolCategory,
-    ToolConstructorParams,
-    ToolArgs,
-} from "../../src/tools/tool.js";
+import type { OperationType, ToolCategory, ToolConstructorParams, ToolArgs } from "../../src/tools/tool.js";
 import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
@@ -75,10 +69,7 @@ describe("ToolBase", () => {
         it("should return true when tool is not in confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
-            const args = [
-                { param1: "test" },
-                {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1],
-            ] as ToolCallbackArgs<(typeof testTool)["argsShape"]>;
+            const args = { param1: "test" };
             const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(true);
@@ -88,8 +79,8 @@ describe("ToolBase", () => {
         it("should return true when confirmationRequiredTools list is empty", async () => {
             mockConfig.confirmationRequiredTools = [];
 
-            const args = [{ param1: "test" }, {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1]];
-            const result = await testTool.verifyConfirmed(args as ToolCallbackArgs<(typeof testTool)["argsShape"]>);
+            const args = { param1: "test" };
+            const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(true);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
@@ -99,8 +90,8 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(true);
 
-            const args = [{ param1: "test", param2: 42 }, {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1]];
-            const result = await testTool.verifyConfirmed(args as ToolCallbackArgs<(typeof testTool)["argsShape"]>);
+            const args = { param1: "test", param2: 42 };
+            const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(true);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
@@ -113,8 +104,8 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(false);
 
-            const args = [{ param1: "test" }, {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1]];
-            const result = await testTool.verifyConfirmed(args as ToolCallbackArgs<(typeof testTool)["argsShape"]>);
+            const args = { param1: "test" };
+            const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(false);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
@@ -158,7 +149,13 @@ describe("ToolBase", () => {
         });
 
         it("should return empty metadata by default", async () => {
-            await mockCallback({ param1: "value1" }, {} as never);
+            await mockCallback(
+                {
+                    param1: "value1",
+                    param2: 3,
+                },
+                {} as never
+            );
             const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
             expectDefined(event);
             expect(event.properties.result).to.equal("success");
@@ -285,8 +282,9 @@ class TestTool extends ToolBase {
     }
 
     protected resolveTelemetryMetadata(
-        result: CallToolResult,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<typeof this.argsShape>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        { result }: { result: CallToolResult }
     ): TelemetryToolMetadata {
         if (args.param2 === 3) {
             return {
