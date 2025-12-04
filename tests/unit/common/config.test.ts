@@ -22,6 +22,7 @@ const expectedDefaults = {
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    deepInspect: true,
     confirmationRequiredTools: [
         "atlas-create-access-list",
         "atlas-create-db-user",
