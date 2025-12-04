@@ -10,6 +10,7 @@ import {
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
 import { createEnvironment } from "../../utils/index.js";
+import path from "path";
 
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {
@@ -48,6 +49,11 @@ const expectedDefaults = {
     previewFeatures: [],
     dryRun: false,
     allowRequestOverrides: false,
+};
+
+const CONFIG_FIXTURES = {
+    VALID: path.resolve(import.meta.dirname, "..", "..", "fixtures", "valid-config.json"),
+    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "..", "..", "fixtures", "config-with-invalid-value.json"),
 };
 
 describe("config", () => {
@@ -528,6 +534,53 @@ describe("config", () => {
         });
     });
 
+    describe("loading a config file", () => {
+        describe("through env variable MDB_MCP_CONFIG", () => {
+            const { setVariable, clearVariables } = createEnvironment();
+            afterEach(() => {
+                clearVariables();
+            });
+
+            it("should load a valid config file without troubles", () => {
+                setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.VALID);
+                const { warnings, error, parsed } = createUserConfig({ args: [] });
+                expect(warnings).toHaveLength(0);
+                expect(error).toBeUndefined();
+
+                expect(parsed?.connectionString).toBe("mongodb://valid-json-localhost:1000");
+                expect(parsed?.loggers).toStrictEqual(["stderr"]);
+            });
+
+            it("should attempt loading config file with wrong value and exit", () => {
+                setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.WITH_INVALID_VALUE);
+                const { warnings, error, parsed } = createUserConfig({ args: [] });
+                expect(warnings).toHaveLength(0);
+                expect(error).toEqual(expect.stringContaining("loggers - Duplicate loggers found in config"));
+                expect(parsed).toBeUndefined();
+            });
+        });
+
+        describe("through cli argument --config", () => {
+            it("should load a valid config file without troubles", () => {
+                const { warnings, error, parsed } = createUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+                expect(warnings).toHaveLength(0);
+                expect(error).toBeUndefined();
+
+                expect(parsed?.connectionString).toBe("mongodb://valid-json-localhost:1000");
+                expect(parsed?.loggers).toStrictEqual(["stderr"]);
+            });
+
+            it("should attempt loading config file with wrong value and exit", () => {
+                const { warnings, error, parsed } = createUserConfig({
+                    args: ["--config", CONFIG_FIXTURES.WITH_INVALID_VALUE],
+                });
+                expect(warnings).toHaveLength(0);
+                expect(error).toEqual(expect.stringContaining("loggers - Duplicate loggers found in config"));
+                expect(parsed).toBeUndefined();
+            });
+        });
+    });
+
     describe("precedence rules", () => {
         const { setVariable, clearVariables } = createEnvironment();
 
@@ -538,30 +591,34 @@ describe("config", () => {
         it("positional argument takes precedence over all", () => {
             setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost1");
             const { parsed: actual } = createUserConfig({
-                args: ["mongodb://crazyhost2", "--connectionString", "mongodb://localhost"],
+                args: [
+                    "mongodb://crazyhost2",
+                    "--config",
+                    CONFIG_FIXTURES.VALID,
+                    "--connectionString",
+                    "mongodb://localhost",
+                ],
             });
             expect(actual?.connectionString).toBe("mongodb://crazyhost2/?directConnection=true");
         });
 
-        it("cli arguments take precedence over env vars", () => {
-            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost");
-            const { parsed: actual } = createUserConfig({
-                args: ["--connectionString", "mongodb://localhost"],
+        it("any cli argument takes precedence over env vars, config and defaults", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
+            const { parsed } = createUserConfig({
+                args: ["--config", CONFIG_FIXTURES.VALID, "--connectionString", "mongodb://host-from-cli"],
             });
-            expect(actual?.connectionString).toBe("mongodb://localhost");
+            expect(parsed?.connectionString).toBe("mongodb://host-from-cli");
         });
 
-        it("any cli argument takes precedence over defaults", () => {
-            const { parsed: actual } = createUserConfig({
-                args: ["--connectionString", "mongodb://localhost"],
-            });
-            expect(actual?.connectionString).toBe("mongodb://localhost");
+        it("any env var takes precedence over config and defaults", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
+            const { parsed } = createUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+            expect(parsed?.connectionString).toBe("mongodb://dummyhost");
         });
 
-        it("any env var takes precedence over defaults", () => {
-            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://localhost");
-            const { parsed: actual } = createUserConfig({ args: [] });
-            expect(actual?.connectionString).toBe("mongodb://localhost");
+        it("config file takes precedence over defaults", () => {
+            const { parsed } = createUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+            expect(parsed?.connectionString).toBe("mongodb://valid-json-localhost:1000");
         });
     });
 
