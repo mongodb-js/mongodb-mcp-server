@@ -184,7 +184,7 @@ export function setupIntegrationTest(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function getResponseContent(content: unknown | { content: unknown }): string {
+export function getResponseContent(content: unknown | { content: unknown; structuredContent: unknown }): string {
     return getResponseElements(content)
         .map((item) => item.text)
         .join("\n");

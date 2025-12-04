@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolResult } from "../../tool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 import { zEJSON } from "../../args.js";
 import { type Document } from "bson";
@@ -37,6 +37,13 @@ export class InsertManyTool extends MongoDBToolBase {
                   ),
           }
         : commonArgs;
+
+    protected outputShape = {
+        success: z.boolean(),
+        insertedCount: z.number(),
+        insertedIds: z.array(z.any()),
+    };
+
     static operationType: OperationType = "create";
 
     protected async execute({
@@ -44,7 +51,7 @@ export class InsertManyTool extends MongoDBToolBase {
         collection,
         documents,
         embeddingParameters: providedEmbeddingParameters,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputShape>> {
         const provider = await this.ensureConnected();
 
         const embeddingParameters = this.isFeatureEnabled("search")
@@ -70,8 +77,14 @@ export class InsertManyTool extends MongoDBToolBase {
             `Inserted \`${result.insertedCount}\` document(s) into ${database}.${collection}.`,
             `Inserted IDs: ${Object.values(result.insertedIds).join(", ")}`
         );
+
         return {
             content,
+            structuredContent: {
+                success: true,
+                insertedCount: result.insertedCount,
+                insertedIds: Object.values(result.insertedIds),
+            },
         };
     }
 

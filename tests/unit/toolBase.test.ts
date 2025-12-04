@@ -141,15 +141,13 @@ describe("ToolBase", () => {
         beforeEach(() => {
             const mockServer = {
                 mcpServer: {
-                    tool: (
+                    registerTool: (
                         name: string,
-                        description: string,
-                        paramsSchema: unknown,
-                        annotations: ToolAnnotations,
+                        config: { description: string; inputSchema: unknown; annotations: ToolAnnotations },
                         cb: ToolCallback<ZodRawShape>
                     ): void => {
                         expect(name).toBe(testTool.name);
-                        expect(description).toBe(testTool["description"]);
+                        expect(config.description).toBe(testTool["description"]);
                         mockCallback = cb;
                     },
                 },
