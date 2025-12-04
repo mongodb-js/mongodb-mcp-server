@@ -230,6 +230,7 @@ describe("configOverrides", () => {
                     "maxDocumentsPerQuery",
                     "exportsPath",
                     "exportCleanupIntervalMs",
+                    "voyageApiKey",
                     "allowRequestOverrides",
                     "dryRun",
                 ]);
@@ -252,24 +253,19 @@ describe("configOverrides", () => {
         });
 
         describe("secret fields", () => {
-            it("should allow overriding secret fields with headers if they have override behavior", () => {
+            const secretFields = Object.keys(UserConfigSchema.shape).filter((configKey) => {
+                const meta = getConfigMeta(configKey as keyof UserConfig);
+                return meta?.isSecret;
+            });
+
+            it.each(secretFields)("should not allow overriding secret fields - $0", () => {
                 const request: RequestContext = {
                     headers: {
                         "x-mongodb-mcp-voyage-api-key": "test",
                     },
                 };
-                const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
-                expect(result.voyageApiKey).toBe("test");
-            });
-
-            it("should not allow overriding secret fields via query params", () => {
-                const request: RequestContext = {
-                    query: {
-                        mongodbMcpVoyageApiKey: "test",
-                    },
-                };
                 expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
-                    "Config key voyageApiKey can only be overriden with headers"
+                    "Config key voyageApiKey is not allowed to be overridden"
                 );
             });
         });
