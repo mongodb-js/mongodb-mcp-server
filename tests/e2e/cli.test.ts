@@ -57,11 +57,6 @@ describe("CLI entrypoint", () => {
                     warning:
                         "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
                 },
-                {
-                    cliArg: "--nodb",
-                    warning:
-                        "Warning: The nodb option is deprecated and will be removed in a future version. Please remove it from your configuration.",
-                },
             ] as const;
 
             for (const { cliArg, value, warning } of testCases) {
@@ -85,6 +80,12 @@ describe("CLI entrypoint", () => {
                     description: "should show an error when an argument is not known",
                     args: ["--wakanda", "forever"],
                     expectedError: "Error: Invalid command line argument '--wakanda'.",
+                },
+                {
+                    description: "should show an error when nodb is used",
+                    args: ["--nodb"],
+                    expectedError:
+                        "Error: The --nodb argument is not supported in the MCP Server. Please remove it from your configuration.",
                 },
                 {
                     description: "should show a suggestion when is a simple typo",

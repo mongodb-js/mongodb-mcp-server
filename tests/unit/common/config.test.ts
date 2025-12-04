@@ -393,10 +393,7 @@ describe("config", () => {
                     cli: ["--ipv6"],
                     expected: { ipv6: true },
                 },
-                {
-                    cli: ["--nodb"],
-                    expected: { nodb: true },
-                },
+
                 {
                     cli: ["--oidcIdTokenAsAccessToken"],
                     expected: { oidcIdTokenAsAccessToken: true },

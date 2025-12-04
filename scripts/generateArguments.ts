@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { UserConfigSchemaWithCliOptions, configRegistry } from "../src/common/config/userConfig.js";
+import { UserConfigSchema, configRegistry } from "../src/common/config/userConfig.js";
 import { execSync } from "child_process";
 import type { z as z4 } from "zod/v4";
 
@@ -108,7 +108,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
     const result: Record<string, ConfigMetadata> = {};
 
     // Get the shape of the Zod schema
-    const shape = UserConfigSchemaWithCliOptions.shape;
+    const shape = UserConfigSchema.shape;
 
     for (const [key, fieldSchema] of Object.entries(shape)) {
         const schema = fieldSchema;

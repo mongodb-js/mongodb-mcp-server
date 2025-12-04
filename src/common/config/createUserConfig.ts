@@ -22,6 +22,14 @@ export function createUserConfig({ args }: { args: string[] }): {
         return { error: parseError, warnings, parsed: undefined };
     }
 
+    if (parsed.nodb) {
+        return {
+            error: "Error: The --nodb argument is not supported in the MCP Server. Please remove it from your configuration.",
+            warnings,
+            parsed: undefined,
+        };
+    }
+
     // If we have a connectionSpecifier, which can only appear as the positional
     // argument, then that has to be used on priority to construct the
     // connection string. In this case, if there is a connection string provided
@@ -142,12 +150,6 @@ function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): strin
     if (cliArguments.find((argument: string) => argument.startsWith("--connectionString"))) {
         warnings.push(
             "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
-        );
-    }
-
-    if (config.nodb) {
-        warnings.push(
-            "Warning: The nodb option is deprecated and will be removed in a future version. Please remove it from your configuration."
         );
     }
 
