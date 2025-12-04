@@ -1,6 +1,5 @@
-import type { z } from "zod";
-import { type ZodRawShape, type ZodNever } from "zod";
-import type { RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { z, ZodRawShape } from "zod";
+import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
 import { LogId } from "../common/logger.js";
@@ -11,10 +10,13 @@ import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
 
-export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
-export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback<Args>>;
+export type ToolArgs<T extends ZodRawShape> = {
+    [K in keyof T]: z.infer<T[K]>;
+};
 
-export type ToolExecutionContext<Args extends ZodRawShape = ZodRawShape> = Parameters<ToolCallback<Args>>[1];
+export type ToolExecutionContext = {
+    signal: AbortSignal;
+};
 
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
@@ -331,7 +333,10 @@ export abstract class ToolBase {
      * }
      * ```
      */
-    protected abstract execute(...args: ToolCallbackArgs<typeof this.argsShape>): Promise<CallToolResult>;
+    protected abstract execute(
+        args: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult>;
 
     /**
      * Get the confirmation message shown to users when this tool requires
@@ -351,7 +356,7 @@ export abstract class ToolBase {
      * ```
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected getConfirmationMessage(...args: ToolCallbackArgs<typeof this.argsShape>): string {
+    protected getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
         return `You are about to execute the \`${this.name}\` tool which requires additional confirmation. Would you like to proceed?`;
     }
 
@@ -367,12 +372,12 @@ export abstract class ToolBase {
      * @returns A promise resolving to `true` if confirmed or confirmation not
      * required, `false` otherwise
      */
-    public async verifyConfirmed(args: ToolCallbackArgs<typeof this.argsShape>): Promise<boolean> {
+    public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
         if (!this.config.confirmationRequiredTools.includes(this.name)) {
             return true;
         }
 
-        return this.elicitation.requestConfirmation(this.getConfirmationMessage(...args));
+        return this.elicitation.requestConfirmation(this.getConfirmationMessage(args));
     }
 
     /**
@@ -414,7 +419,10 @@ export abstract class ToolBase {
             return false;
         }
 
-        const callback: ToolCallback<typeof this.argsShape> = async (...args) => {
+        const callback = async (
+            args: ToolArgs<typeof this.argsShape>,
+            { signal }: ToolExecutionContext
+        ): Promise<CallToolResult> => {
             const startTime = Date.now();
             try {
                 if (!(await this.verifyConfirmed(args))) {
@@ -440,8 +448,8 @@ export abstract class ToolBase {
                     noRedaction: true,
                 });
 
-                const result = await this.execute(...args);
-                this.emitToolEvent(startTime, result, ...args);
+                const result = await this.execute(args, { signal });
+                this.emitToolEvent(args, { startTime, result });
 
                 this.session.logger.debug({
                     id: LogId.toolExecute,
@@ -456,19 +464,35 @@ export abstract class ToolBase {
                     context: "tool",
                     message: `Error executing ${this.name}: ${error as string}`,
                 });
-                const toolResult = await this.handleError(error, args[0] as ToolArgs<typeof this.argsShape>);
-                this.emitToolEvent(startTime, toolResult, ...args);
+                const toolResult = await this.handleError(error, args);
+                this.emitToolEvent(args, { startTime, result: toolResult });
                 return toolResult;
             }
         };
 
-        this.registeredTool = server.mcpServer.tool(
-            this.name,
-            this.description,
-            this.argsShape,
-            this.annotations,
-            callback
-        );
+        this.registeredTool =
+            // Note: We use explicit type casting here to avoid  "excessively deep and possibly infinite" errors
+            // that occur when TypeScript tries to infer the complex generic types from `typeof this.argsShape`
+            // in the abstract class context.
+            (
+                server.mcpServer.registerTool as (
+                    name: string,
+                    config: {
+                        description?: string;
+                        inputSchema?: ZodRawShape;
+                        annotations?: ToolAnnotations;
+                    },
+                    cb: (args: ToolArgs<ZodRawShape>, extra: ToolExecutionContext) => Promise<CallToolResult>
+                ) => RegisteredTool
+            )(
+                this.name,
+                {
+                    description: this.description,
+                    inputSchema: this.argsShape,
+                    annotations: this.annotations,
+                },
+                callback
+            );
 
         return true;
     }
@@ -561,7 +585,7 @@ export abstract class ToolBase {
     protected handleError(
         error: unknown,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        args: ToolArgs<typeof this.argsShape>
+        args: z.infer<z.ZodObject<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         return {
             content: [
@@ -599,8 +623,8 @@ export abstract class ToolBase {
      * ```
      */
     protected abstract resolveTelemetryMetadata(
-        result: CallToolResult,
-        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
     ): TelemetryToolMetadata;
 
     /**
@@ -610,15 +634,14 @@ export abstract class ToolBase {
      * @param args - The arguments passed to the tool
      */
     private emitToolEvent(
-        startTime: number,
-        result: CallToolResult,
-        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+        args: ToolArgs<typeof this.argsShape>,
+        { startTime, result }: { startTime: number; result: CallToolResult }
     ): void {
         if (!this.telemetry.isTelemetryEnabled()) {
             return;
         }
         const duration = Date.now() - startTime;
-        const metadata = this.resolveTelemetryMetadata(result, ...args);
+        const metadata = this.resolveTelemetryMetadata(args, { result });
         const event: ToolEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",

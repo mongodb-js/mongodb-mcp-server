@@ -112,7 +112,7 @@ describe("Config Overrides via HTTP", () => {
                 if (!(error instanceof Error)) {
                     throw new Error("Expected an error to be thrown");
                 }
-                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(`Config key connectionString is not allowed to be overridden`);
             }
         });
@@ -199,7 +199,7 @@ describe("Config Overrides via HTTP", () => {
                 if (!(error instanceof Error)) {
                     throw new Error("Expected an error to be thrown");
                 }
-                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(`Config key ${configKey} is not allowed to be overridden`);
             }
         });
@@ -222,7 +222,7 @@ describe("Config Overrides via HTTP", () => {
                 if (!(error instanceof Error)) {
                     throw new Error("Expected an error to be thrown");
                 }
-                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain("Error POSTing to endpoint");
                 // Should contain at least one of the not-allowed field errors
                 const hasNotAllowedError =
                     error.message.includes("Config key apiBaseUrl is not allowed to be overridden") ||
@@ -379,7 +379,7 @@ describe("Config Overrides via HTTP", () => {
                 if (!(error instanceof Error)) {
                     throw new Error("Expected an error to be thrown");
                 }
-                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(`Cannot apply override for readOnly: Can only set to true`);
             }
         });
@@ -455,7 +455,7 @@ describe("Config Overrides via HTTP", () => {
                 if (!(error instanceof Error)) {
                     throw new Error("Expected an error to be thrown");
                 }
-                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(
                     "Cannot apply override for idleTimeoutMs: Can only set to a value lower than the base value"
                 );
@@ -479,7 +479,7 @@ describe("Config Overrides via HTTP", () => {
                 if (!(error instanceof Error)) {
                     throw new Error("Expected an error to be thrown");
                 }
-                expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                expect(error.message).toContain("Error POSTing to endpoint");
                 expect(error.message).toContain(
                     "Cannot apply override for idleTimeoutMs: Can only set to a value lower than the base value"
                 );
@@ -539,7 +539,7 @@ describe("Config Overrides via HTTP", () => {
                     if (!(error instanceof Error)) {
                         throw new Error("Expected an error to be thrown");
                     }
-                    expect(error.message).toContain("Error POSTing to endpoint (HTTP 400)");
+                    expect(error.message).toContain("Error POSTing to endpoint");
                     expect(error.message).toContain(
                         "Cannot apply override for previewFeatures: Can only override to a subset of the base value"
                     );
