@@ -1,5 +1,4 @@
-import type { z, ZodTypeAny } from "zod";
-import { type ZodRawShape } from "zod";
+import type { z, ZodTypeAny, ZodRawShape, ZodNever } from "zod";
 import type { RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
@@ -10,7 +9,6 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
-import { type ZodNever } from "zod";
 
 export type ToolArgs<Args extends ZodRawShape> = z.objectOutputType<Args, ZodNever>;
 export type ToolCallbackArgs<Args extends ZodRawShape> = Parameters<ToolCallback<Args>>;
