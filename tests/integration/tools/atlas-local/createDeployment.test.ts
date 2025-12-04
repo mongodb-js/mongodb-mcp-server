@@ -33,6 +33,7 @@ describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
         expect(createDeployment.inputSchema.type).toBe("object");
         expectDefined(createDeployment.inputSchema.properties);
         expect(createDeployment.inputSchema.properties).toHaveProperty("deploymentName");
+        expect(createDeployment.inputSchema.properties).toHaveProperty("loadSampleData");
     });
 
     it("should create a deployment when calling the tool", async () => {

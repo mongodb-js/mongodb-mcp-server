@@ -79,4 +79,28 @@ describeAccuracyTests([
             },
         ],
     },
+    {
+        prompt: "Create a local MongoDB cluster named 'sample-cluster' with sample data",
+        expectedToolCalls: [
+            {
+                toolName: "atlas-local-create-deployment",
+                parameters: {
+                    deploymentName: "sample-cluster",
+                    loadSampleData: true,
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Create a local MongoDB cluster named 'empty-cluster' without sample data",
+        expectedToolCalls: [
+            {
+                toolName: "atlas-local-create-deployment",
+                parameters: {
+                    deploymentName: "empty-cluster",
+                    loadSampleData: false,
+                },
+            },
+        ],
+    },
 ]);
