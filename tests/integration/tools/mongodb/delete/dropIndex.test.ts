@@ -476,6 +476,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                                 message: expect.stringContaining(
                                     "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
                                 ),
+                                mode: "form",
                                 requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             });
 
@@ -503,6 +504,7 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                                 message: expect.stringContaining(
                                     "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
                                 ),
+                                mode: "form",
                                 requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             });
                             expect(dropSearchIndexSpy).not.toHaveBeenCalled();

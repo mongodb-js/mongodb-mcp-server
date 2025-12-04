@@ -82,6 +82,7 @@ describe("Elicitation", () => {
             expect(mockElicitInput.mock).toHaveBeenCalledWith({
                 message: testMessage,
                 requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                mode: "form",
             });
         });
 
