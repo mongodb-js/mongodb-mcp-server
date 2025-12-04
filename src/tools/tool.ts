@@ -470,18 +470,29 @@ export abstract class ToolBase {
             }
         };
 
-        this.registeredTool = (
-            server.mcpServer.tool as (
-                // Note: We use explicit type casting here to avoid  "excessively deep and possibly infinite" errors
-                // that occur when TypeScript tries to infer the complex generic types from `typeof this.argsShape`
-                // in the abstract class context.
-                name: string,
-                description: string,
-                argsShape: ZodRawShape,
-                annotations: ToolAnnotations,
-                cb: (args: ToolArgs<ZodRawShape>, { signal }: ToolExecutionContext) => Promise<CallToolResult>
-            ) => RegisteredTool
-        )(this.name, this.description, this.argsShape, this.annotations, callback);
+        this.registeredTool =
+            // Note: We use explicit type casting here to avoid  "excessively deep and possibly infinite" errors
+            // that occur when TypeScript tries to infer the complex generic types from `typeof this.argsShape`
+            // in the abstract class context.
+            (
+                server.mcpServer.registerTool as (
+                    name: string,
+                    config: {
+                        description?: string;
+                        inputSchema?: ZodRawShape;
+                        annotations?: ToolAnnotations;
+                    },
+                    cb: (args: ToolArgs<ZodRawShape>, extra: ToolExecutionContext) => Promise<CallToolResult>
+                ) => RegisteredTool
+            )(
+                this.name,
+                {
+                    description: this.description,
+                    inputSchema: this.argsShape,
+                    annotations: this.annotations,
+                },
+                callback
+            );
 
         return true;
     }
