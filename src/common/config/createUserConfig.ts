@@ -74,6 +74,10 @@ function parseUserConfigSources(cliArguments: string[]): {
             args: cliArguments,
             schema: UserConfigSchema,
             parserOptions: {
+                // This is the name of key that yargs-parser will look up in CLI
+                // arguments (--config) and ENV variables (MDB_MCP_CONFIG) to load an
+                // initial configuration from.
+                config: "config",
                 // This helps parse the relevant environment variables.
                 envPrefix: "MDB_MCP_",
                 configuration: {

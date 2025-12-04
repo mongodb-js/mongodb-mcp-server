@@ -341,6 +341,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 
 1. Command-line arguments
 2. Environment variables
+3. Configuration File
 
 ### Configuration Options
 
@@ -561,6 +562,57 @@ To learn more about Service Accounts, check the [MongoDB Atlas documentation](ht
 For a full list of roles and their privileges, see the [Atlas User Roles documentation](https://www.mongodb.com/docs/atlas/reference/user-roles/#service-user-roles).
 
 ### Configuration Methods
+
+#### Configuration File
+
+Store configuration in a JSON file and load it using the `MDB_MCP_CONFIG` environment variable.
+
+> **🔒 Security Best Practice:** Prefer using the `MDB_MCP_CONFIG` environment variable for sensitive fields over the configuration file or `--config` CLI argument. Command-line arguments are visible in process listings.
+
+> **🔒 File Security:** Ensure your configuration file has proper ownership and permissions, limited to the user running the MongoDB MCP server:
+>
+> **Linux/macOS:**
+>
+> ```bash
+> chmod 600 /path/to/config.json
+> chown your-username /path/to/config.json
+> ```
+>
+> **Windows:** Right-click the file → Properties → Security → Restrict access to your user account only.
+
+Create a JSON file with your configuration (all keys use camelCase):
+
+```json
+{
+  "connectionString": "mongodb://localhost:27017",
+  "readOnly": true,
+  "loggers": ["stderr", "mcp"],
+  "apiClientId": "your-atlas-service-accounts-client-id",
+  "apiClientSecret": "your-atlas-service-accounts-client-secret",
+  "maxDocumentsPerQuery": 100
+}
+```
+
+**Linux/macOS (bash/zsh):**
+
+```bash
+export MDB_MCP_CONFIG="/path/to/config.json"
+npx -y mongodb-mcp-server@latest
+```
+
+**Windows Command Prompt (cmd):**
+
+```cmd
+set "MDB_MCP_CONFIG=C:\path\to\config.json"
+npx -y mongodb-mcp-server@latest
+```
+
+**Windows PowerShell:**
+
+```powershell
+$env:MDB_MCP_CONFIG="C:\path\to\config.json"
+npx -y mongodb-mcp-server@latest
+```
 
 #### Environment Variables
 

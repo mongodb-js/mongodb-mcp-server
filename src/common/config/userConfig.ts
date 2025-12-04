@@ -178,7 +178,7 @@ const ServerConfigSchema = z4.object({
         .describe(
             "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
         )
-        .register(configRegistry, { isSecret: true, overrideBehavior: "override" }),
+        .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
     embeddingsValidation: z4
         .preprocess(parseBoolean, z4.boolean())
         .default(true)
