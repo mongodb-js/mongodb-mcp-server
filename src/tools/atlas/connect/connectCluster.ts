@@ -9,7 +9,6 @@ import type { AtlasClusterConnectionInfo } from "../../../common/connectionManag
 import { getDefaultRoleFromConfig } from "../../../common/atlas/roles.js";
 import { AtlasArgs } from "../../args.js";
 import type { ConnectionMetadata } from "../../../telemetry/types.js";
-import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 const addedIpAccessListMessage =
     "Note: Your current IP address has been added to the Atlas project's IP access list to enable secure connection.";
@@ -33,9 +32,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     public name = "atlas-connect-cluster";
     protected description = "Connect to MongoDB Atlas cluster";
     static operationType: OperationType = "connect";
-    protected argsShape = {
-        ...ConnectClusterArgs,
-    };
+    protected argsShape = ConnectClusterArgs;
 
     private queryConnection(
         projectId: string,
@@ -321,10 +318,10 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     protected override resolveTelemetryMetadata(
-        result: CallToolResult,
-        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
     ): ConnectionMetadata {
-        const parentMetadata = super.resolveTelemetryMetadata(result, ...args);
+        const parentMetadata = super.resolveTelemetryMetadata(args, { result });
         const connectionMetadata = this.getConnectionInfoMetadata();
         if (connectionMetadata && connectionMetadata.project_id !== undefined) {
             // delete the project_id from the parent metadata to avoid duplication

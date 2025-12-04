@@ -43,13 +43,14 @@ export class InsertManyTool extends MongoDBToolBase {
         database,
         collection,
         documents,
-        embeddingParameters: providedEmbeddingParameters,
+        ...conditionalArgs
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
-        const embeddingParameters = this.isFeatureEnabled("search")
-            ? (providedEmbeddingParameters as z.infer<typeof zSupportedEmbeddingParametersWithInput>)
-            : undefined;
+        let embeddingParameters: z.infer<typeof zSupportedEmbeddingParametersWithInput> | undefined;
+        if ("embeddingParameters" in conditionalArgs) {
+            embeddingParameters = conditionalArgs.embeddingParameters;
+        }
 
         // Process documents to replace raw string values with generated embeddings
         documents = await this.replaceRawValuesWithEmbeddingsIfNecessary({

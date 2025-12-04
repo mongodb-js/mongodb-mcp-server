@@ -15,8 +15,8 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
     };
 
     protected async executeWithAtlasLocalClient(
-        client: Client,
-        { deploymentName, loadSampleData }: ToolArgs<typeof this.argsShape>
+        { deploymentName, loadSampleData }: ToolArgs<typeof this.argsShape>,
+        { client }: { client: Client }
     ): Promise<CallToolResult> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,

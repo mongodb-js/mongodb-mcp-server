@@ -14,8 +14,8 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     };
 
     protected async executeWithAtlasLocalClient(
-        client: Client,
-        { deploymentName }: ToolArgs<typeof this.argsShape>
+        { deploymentName }: ToolArgs<typeof this.argsShape>,
+        { client }: { client: Client }
     ): Promise<CallToolResult> {
         // Get the connection string for the deployment
         const connectionString = await client.getConnectionString(deploymentName);
@@ -36,7 +36,10 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         };
     }
 
-    protected override resolveTelemetryMetadata(result: CallToolResult): ConnectionMetadata {
-        return { ...super.resolveTelemetryMetadata(result), ...this.getConnectionInfoMetadata() };
+    protected override resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata {
+        return { ...super.resolveTelemetryMetadata(args, { result }), ...this.getConnectionInfoMetadata() };
     }
 }

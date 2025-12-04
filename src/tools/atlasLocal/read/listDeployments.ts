@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasLocalToolBase } from "../atlasLocalTool.js";
-import type { OperationType } from "../../tool.js";
+import type { OperationType, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { Deployment } from "@mongodb-js/atlas-local";
 import type { Client } from "@mongodb-js/atlas-local";
@@ -11,7 +11,10 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
     static operationType: OperationType = "read";
     protected argsShape = {};
 
-    protected async executeWithAtlasLocalClient(client: Client): Promise<CallToolResult> {
+    protected async executeWithAtlasLocalClient(
+        _args: ToolArgs<typeof this.argsShape>,
+        { client }: { client: Client }
+    ): Promise<CallToolResult> {
         // List the deployments
         const deployments = await client.listDeployments();
 
