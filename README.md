@@ -614,12 +614,6 @@ $env:MDB_MCP_CONFIG="C:\path\to\config.json"
 npx -y mongodb-mcp-server@latest
 ```
 
-Alternatively, use `--config` argument (less secure):
-
-```bash
-npx -y mongodb-mcp-server@latest --config /path/to/config.json
-```
-
 #### Environment Variables
 
 Set environment variables with the prefix `MDB_MCP_` followed by the option name in uppercase with underscores:
