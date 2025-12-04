@@ -9,6 +9,7 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
+import type { UIRegistry } from "../ui/registry/index.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -91,6 +92,7 @@ export type ToolConstructorParams = {
      * See `src/elicitation.ts` for further reference.
      */
     elicitation: Elicitation;
+    uiRegistry?: UIRegistry;
 };
 
 /**
@@ -404,14 +406,23 @@ export abstract class ToolBase {
      * or inputs during tool execution.
      */
     protected readonly elicitation: Elicitation;
-
-    constructor({ category, operationType, session, config, telemetry, elicitation }: ToolConstructorParams) {
+    protected readonly uiRegistry?: UIRegistry;
+    constructor({
+        category,
+        operationType,
+        session,
+        config,
+        telemetry,
+        elicitation,
+        uiRegistry,
+    }: ToolConstructorParams) {
         this.category = category;
         this.operationType = operationType;
         this.session = session;
         this.config = config;
         this.telemetry = telemetry;
         this.elicitation = elicitation;
+        this.uiRegistry = uiRegistry;
     }
 
     public register(server: Server): boolean {
@@ -674,6 +685,14 @@ export abstract class ToolBase {
         }
 
         return metadata;
+    }
+
+    /**
+     * Get the UI HTML string for this tool from the registry.
+     * Returns the registered UI HTML, or undefined if no UI exists for this tool.
+     */
+    protected getUI(): string | undefined {
+        return this.uiRegistry?.get(this.name);
     }
 }
 

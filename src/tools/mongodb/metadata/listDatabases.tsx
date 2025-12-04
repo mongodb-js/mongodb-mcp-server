@@ -3,6 +3,7 @@ import { MongoDBToolBase } from "../mongodbTool.js";
 import type * as bson from "bson";
 import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
+import { createUIResource } from "@mcp-ui/server";
 
 export class ListDatabasesTool extends MongoDBToolBase {
     public name = "list-databases";
@@ -14,11 +15,42 @@ export class ListDatabasesTool extends MongoDBToolBase {
         const provider = await this.ensureConnected();
         const dbs = (await provider.listDatabases("")).databases as { name: string; sizeOnDisk: bson.Long }[];
 
-        return {
+        const toolResult = {
             content: formatUntrustedData(
                 `Found ${dbs.length} databases`,
                 ...dbs.map((db) => `Name: ${db.name}, Size: ${db.sizeOnDisk.toString()} bytes`)
             ),
+        };
+
+        const ui = this.getUI();
+
+        if (!ui) {
+            return toolResult;
+        }
+
+        const uiDatabases = dbs.map((db) => ({
+            name: db.name,
+            size: Number(db.sizeOnDisk),
+        }));
+
+        const uiResource = createUIResource({
+            uri: `ui://list-databases/${Date.now()}`,
+            content: {
+                type: "rawHtml",
+                htmlString: this.getUI() || "",
+            },
+            encoding: "text",
+            uiMetadata: {
+                "initial-render-data": {
+                    databases: uiDatabases,
+                    totalCount: uiDatabases.length,
+                },
+            },
+        });
+
+        return {
+            ...toolResult,
+            content: [...(toolResult.content || []), uiResource],
         };
     }
 }
