@@ -565,7 +565,7 @@ For a full list of roles and their privileges, see the [Atlas User Roles documen
 
 #### Configuration File
 
-Store configuration in a JSON file and load it using the `MDB_MCP_CONFIG` environment variable (recommended) or `--config` command-line argument.
+Store configuration in a JSON file and load it using the `MDB_MCP_CONFIG` environment variable.
 
 > **🔒 Security Best Practice:** Prefer using the `MDB_MCP_CONFIG` environment variable for sensitive fields over the configuration file or `--config` CLI argument. Command-line arguments are visible in process listings.
 
