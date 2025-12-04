@@ -422,7 +422,8 @@ export interface components {
          * @description Collection of settings that configures the network container for a virtual private connection on Amazon Web Services.
          */
         AWSCloudProviderContainer: Omit<components["schemas"]["CloudProviderContainer"], "providerName"> & {
-            /** @description IP addresses expressed in Classless Inter-Domain Routing (CIDR) notation that MongoDB Cloud uses for the network peering containers in your project. MongoDB Cloud assigns all of the project's clusters deployed to this cloud provider an IP address from this range. MongoDB Cloud locks this value if an M10 or greater cluster or a network peering connection exists in this project.
+            /**
+             * @description IP addresses expressed in Classless Inter-Domain Routing (CIDR) notation that MongoDB Cloud uses for the network peering containers in your project. MongoDB Cloud assigns all of the project's clusters deployed to this cloud provider an IP address from this range. MongoDB Cloud locks this value if an M10 or greater cluster or a network peering connection exists in this project.
              *
              *     These CIDR blocks must fall within the ranges reserved per RFC 1918. AWS and Azure further limit the block to between the `/24` and  `/21` ranges.
              *
@@ -433,7 +434,8 @@ export interface components {
              *
              *      You can also create a new project and create a network peering connection to set the desired MongoDB Cloud network peering container CIDR block for that project. MongoDB Cloud limits the number of MongoDB nodes per network peering connection based on the CIDR block and the region selected for the project.
              *
-             *      **Example:** A project in an Amazon Web Services (AWS) region supporting three availability zones and an MongoDB CIDR network peering container block of limit of `/24` equals 27 three-node replica sets. */
+             *      **Example:** A project in an Amazon Web Services (AWS) region supporting three availability zones and an MongoDB CIDR network peering container block of limit of `/24` equals 27 three-node replica sets.
+             */
             atlasCidrBlock?: string;
             /**
              * @description Geographic area that Amazon Web Services (AWS) defines to which MongoDB Cloud deployed this network peering container.
@@ -718,10 +720,12 @@ export interface components {
          * @description Options that determine how this cluster handles CPU scaling.
          */
         AdvancedComputeAutoScaling: {
-            /** @description Flag that indicates whether instance size reactive auto-scaling is enabled.
+            /**
+             * @description Flag that indicates whether instance size reactive auto-scaling is enabled.
              *
              *     - Set to `true` to enable instance size reactive auto-scaling. If enabled, you must specify a value for **replicationSpecs[n].regionConfigs[m].autoScaling.compute.maxInstanceSize**.
-             *     - Set to `false` to disable instance size reactive auto-scaling. */
+             *     - Set to `false` to disable instance size reactive auto-scaling.
+             */
             enabled?: boolean;
             maxInstanceSize?: components["schemas"]["BaseCloudProviderInstanceSize"];
             minInstanceSize?: components["schemas"]["BaseCloudProviderInstanceSize"];
@@ -755,16 +759,20 @@ export interface components {
         ApiAtlasFTSAnalyzersViewManual: {
             /** @description Filters that examine text one character at a time and perform filtering operations. */
             charFilters?: (components["schemas"]["charFilterhtmlStrip"] | components["schemas"]["charFiltericuNormalize"] | components["schemas"]["charFiltermapping"] | components["schemas"]["charFilterpersian"])[];
-            /** @description Human-readable name that identifies the custom analyzer. Names must be unique within an index, and must not start with any of the following strings:
+            /**
+             * @description Human-readable name that identifies the custom analyzer. Names must be unique within an index, and must not start with any of the following strings:
              *     - `lucene.`
              *     - `builtin.`
-             *     - `mongodb.` */
+             *     - `mongodb.`
+             */
             name: string;
-            /** @description Filter that performs operations such as:
+            /**
+             * @description Filter that performs operations such as:
              *
              *     - Stemming, which reduces related words, such as "talking", "talked", and "talks" to their root word "talk".
              *
-             *     - Redaction, the removal of sensitive information from public documents. */
+             *     - Redaction, the removal of sensitive information from public documents.
+             */
             tokenFilters?: (components["schemas"]["tokenFilterasciiFolding"] | components["schemas"]["tokenFilterdaitchMokotoffSoundex"] | components["schemas"]["tokenFilteredgeGram"] | components["schemas"]["TokenFilterEnglishPossessive"] | components["schemas"]["TokenFilterFlattenGraph"] | components["schemas"]["tokenFiltericuFolding"] | components["schemas"]["tokenFiltericuNormalizer"] | components["schemas"]["TokenFilterkStemming"] | components["schemas"]["tokenFilterlength"] | components["schemas"]["tokenFilterlowercase"] | components["schemas"]["tokenFilternGram"] | components["schemas"]["TokenFilterPorterStemming"] | components["schemas"]["tokenFilterregex"] | components["schemas"]["tokenFilterreverse"] | components["schemas"]["tokenFiltershingle"] | components["schemas"]["tokenFiltersnowballStemming"] | components["schemas"]["TokenFilterSpanishPluralStemming"] | components["schemas"]["TokenFilterStempel"] | components["schemas"]["tokenFilterstopword"] | components["schemas"]["tokenFiltertrim"] | components["schemas"]["TokenFilterWordDelimiterGraph"])[];
             /** @description Tokenizer that you want to use to create tokens. Tokens determine how Atlas Search splits up text into discrete chunks for indexing. */
             tokenizer: components["schemas"]["tokenizeredgeGram"] | components["schemas"]["tokenizerkeyword"] | components["schemas"]["tokenizernGram"] | components["schemas"]["tokenizerregexCaptureGroup"] | components["schemas"]["tokenizerregexSplit"] | components["schemas"]["tokenizerstandard"] | components["schemas"]["tokenizeruaxUrlEmail"] | components["schemas"]["tokenizerwhitespace"];
@@ -904,16 +912,20 @@ export interface components {
         AtlasSearchAnalyzer: {
             /** @description Filters that examine text one character at a time and perform filtering operations. */
             charFilters?: components["schemas"]["BasicDBObject"][];
-            /** @description Name that identifies the custom analyzer. Names must be unique within an index, and must not start with any of the following strings:
+            /**
+             * @description Name that identifies the custom analyzer. Names must be unique within an index, and must not start with any of the following strings:
              *     - `lucene.`
              *     - `builtin.`
-             *     - `mongodb.` */
+             *     - `mongodb.`
+             */
             name: string;
-            /** @description Filter that performs operations such as:
+            /**
+             * @description Filter that performs operations such as:
              *
              *     - Stemming, which reduces related words, such as "talking", "talked", and "talks" to their root word "talk".
              *
-             *     - Redaction, which is the removal of sensitive information from public documents. */
+             *     - Redaction, which is the removal of sensitive information from public documents.
+             */
             tokenFilters?: components["schemas"]["BasicDBObject"][];
             /** @description Tokenizer that you want to use to create tokens. Tokens determine how Atlas Search splits up text into discrete chunks for indexing. */
             tokenizer: {
@@ -925,7 +937,8 @@ export interface components {
          * @description Collection of settings that configures the network container for a virtual private connection on Amazon Web Services.
          */
         AzureCloudProviderContainer: Omit<components["schemas"]["CloudProviderContainer"], "providerName"> & {
-            /** @description IP addresses expressed in Classless Inter-Domain Routing (CIDR) notation that MongoDB Cloud uses for the network peering containers in your project. MongoDB Cloud assigns all of the project's clusters deployed to this cloud provider an IP address from this range. MongoDB Cloud locks this value if an M10 or greater cluster or a network peering connection exists in this project.
+            /**
+             * @description IP addresses expressed in Classless Inter-Domain Routing (CIDR) notation that MongoDB Cloud uses for the network peering containers in your project. MongoDB Cloud assigns all of the project's clusters deployed to this cloud provider an IP address from this range. MongoDB Cloud locks this value if an M10 or greater cluster or a network peering connection exists in this project.
              *
              *     These CIDR blocks must fall within the ranges reserved per RFC 1918. AWS and Azure further limit the block to between the `/24` and  `/21` ranges.
              *
@@ -936,7 +949,8 @@ export interface components {
              *
              *      You can also create a new project and create a network peering connection to set the desired MongoDB Cloud network peering container CIDR block for that project. MongoDB Cloud limits the number of MongoDB nodes per network peering connection based on the CIDR block and the region selected for the project.
              *
-             *      **Example:** A project in an Amazon Web Services (AWS) region supporting three availability zones and an MongoDB CIDR network peering container block of limit of `/24` equals 27 three-node replica sets. */
+             *      **Example:** A project in an Amazon Web Services (AWS) region supporting three availability zones and an MongoDB CIDR network peering container block of limit of `/24` equals 27 three-node replica sets.
+             */
             atlasCidrBlock: string;
             /**
              * @description Unique string that identifies the Azure subscription in which the MongoDB Cloud VNet resides.
@@ -1509,7 +1523,8 @@ export interface components {
             roles?: components["schemas"]["DatabaseUserRole"][];
             /** @description List that contains clusters, MongoDB Atlas Data Lakes, and MongoDB Atlas Streams Workspaces that this database user can access. If omitted, MongoDB Cloud grants the database user access to all the clusters, MongoDB Atlas Data Lakes, and MongoDB Atlas Streams Workspaces in the project. */
             scopes?: components["schemas"]["UserScope"][];
-            /** @description Human-readable label that represents the user that authenticates to MongoDB. The format of this label depends on the method of authentication:
+            /**
+             * @description Human-readable label that represents the user that authenticates to MongoDB. The format of this label depends on the method of authentication:
              *
              *     | Authentication Method | Parameter Needed | Parameter Value | username Format |
              *     |---|---|---|---|
@@ -1522,7 +1537,7 @@ export interface components {
              *     | OIDC Workforce | oidcAuthType | IDP_GROUP | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP group name |
              *     | OIDC Workload | oidcAuthType | USER | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP user name |
              *     | SCRAM-SHA | awsIAMType, x509Type, ldapAuthType, oidcAuthType | NONE | Alphanumeric string |
-             *      */
+             */
             username: string;
             /**
              * @description X.509 method that MongoDB Cloud uses to authenticate the database user.
@@ -2107,13 +2122,15 @@ export interface components {
              * @description Feature compatibility version expiration date. Will only appear if FCV is pinned. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
              */
             readonly featureCompatibilityVersionExpirationDate?: string;
-            /** @description Set this field to configure the Sharding Management Mode when creating a new Global Cluster.
+            /**
+             * @description Set this field to configure the Sharding Management Mode when creating a new Global Cluster.
              *
              *     When set to false, the management mode is set to Atlas-Managed Sharding. This mode fully manages the sharding of your Global Cluster and is built to provide a seamless deployment experience.
              *
              *     When set to true, the management mode is set to Self-Managed Sharding. This mode leaves the management of shards in your hands and is built to provide an advanced and flexible deployment experience.
              *
-             *     This setting cannot be changed once the cluster is deployed. */
+             *     This setting cannot be changed once the cluster is deployed.
+             */
             globalClusterSelfManagedSharding?: boolean;
             /**
              * @description Unique 24-hexadecimal character string that identifies the project.
@@ -2140,11 +2157,13 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             mongoDBEmployeeAccessGrant?: components["schemas"]["EmployeeAccessGrantView"];
-            /** @description MongoDB major version of the cluster. Set to the binary major version.
+            /**
+             * @description MongoDB major version of the cluster. Set to the binary major version.
              *
              *     On creation: Choose from the available versions of MongoDB, or leave unspecified for the current recommended default in the MongoDB Cloud platform. The recommended version is a recent Long Term Support version. The default is not guaranteed to be the most recently released version throughout the entire release cycle. For versions available in a specific project, see the linked documentation or use the API endpoint for [project LTS versions endpoint](#tag/Projects/operation/getProjectLtsVersions).
              *
-             *      On update: Increase version only by 1 major version at a time. If the cluster is pinned to a MongoDB feature compatibility version exactly one major version below the current MongoDB version, the MongoDB version can be downgraded to the previous major version. */
+             *      On update: Increase version only by 1 major version at a time. If the cluster is pinned to a MongoDB feature compatibility version exactly one major version below the current MongoDB version, the MongoDB version can be downgraded to the previous major version.
+             */
             mongoDBMajorVersion?: string;
             /** @description Version of MongoDB that the cluster runs. */
             readonly mongoDBVersion?: string;
@@ -2154,13 +2173,15 @@ export interface components {
             paused?: boolean;
             /** @description Flag that indicates whether the cluster uses continuous cloud backups. */
             pitEnabled?: boolean;
-            /** @description Enable or disable log redaction.
+            /**
+             * @description Enable or disable log redaction.
              *
              *     This setting configures the ``mongod`` or ``mongos`` to redact any document field contents from a message accompanying a given log event before logging. This prevents the program from writing potentially sensitive data stored on the database to the diagnostic log. Metadata such as error or operation codes, line numbers, and source file names are still visible in the logs.
              *
              *     Use ``redactClientLogData`` in conjunction with Encryption at Rest and TLS/SSL (Transport Encryption) to assist compliance with regulatory requirements.
              *
-             *     *Note*: changing this setting on a cluster will trigger a rolling restart as soon as the cluster is updated. */
+             *     *Note*: changing this setting on a cluster will trigger a rolling restart as soon as the cluster is updated.
+             */
             redactClientLogData?: boolean;
             /**
              * @description Set this field to configure the replica set scaling mode for your cluster.
@@ -2490,11 +2511,13 @@ export interface components {
             /** @description One Private Internet Protocol version 4 (IPv4) address to which this Google Cloud consumer forwarding rule resolves. */
             ipAddress?: string;
         };
-        /** @description Rules by which MongoDB Cloud archives data.
+        /**
+         * @description Rules by which MongoDB Cloud archives data.
          *
          *     Use the **criteria.type** field to choose how MongoDB Cloud selects data to archive. Choose data using the age of the data or a MongoDB query.
          *     **"criteria.type": "DATE"** selects documents to archive based on a date.
-         *     **"criteria.type": "CUSTOM"** selects documents to archive based on a custom JSON query. MongoDB Cloud doesn't support **"criteria.type": "CUSTOM"** when **"collectionType": "TIMESERIES"**. */
+         *     **"criteria.type": "CUSTOM"** selects documents to archive based on a custom JSON query. MongoDB Cloud doesn't support **"criteria.type": "CUSTOM"** when **"collectionType": "TIMESERIES"**.
+         */
         CriteriaView: {
             /**
              * @description Means by which MongoDB Cloud selects data to archive. Data can be chosen using the age of the data or a MongoDB query.
@@ -3522,7 +3545,8 @@ export interface components {
          * @description Collection of settings that configures the network container for a virtual private connection on Amazon Web Services.
          */
         GCPCloudProviderContainer: Omit<components["schemas"]["CloudProviderContainer"], "providerName"> & {
-            /** @description IP addresses expressed in Classless Inter-Domain Routing (CIDR) notation that MongoDB Cloud uses for the network peering containers in your project. MongoDB Cloud assigns all of the project's clusters deployed to this cloud provider an IP address from this range. MongoDB Cloud locks this value if an M10 or greater cluster or a network peering connection exists in this project.
+            /**
+             * @description IP addresses expressed in Classless Inter-Domain Routing (CIDR) notation that MongoDB Cloud uses for the network peering containers in your project. MongoDB Cloud assigns all of the project's clusters deployed to this cloud provider an IP address from this range. MongoDB Cloud locks this value if an M10 or greater cluster or a network peering connection exists in this project.
              *
              *     These CIDR blocks must fall within the ranges reserved per RFC 1918. GCP further limits the block to a lower bound of the `/18` range.
              *
@@ -3533,7 +3557,8 @@ export interface components {
              *
              *      You can also create a new project and create a network peering connection to set the desired MongoDB Cloud network peering container CIDR block for that project. MongoDB Cloud limits the number of MongoDB nodes per network peering connection based on the CIDR block and the region selected for the project.
              *
-             *      **Example:** A project in an Google Cloud (GCP) region supporting three availability zones and an MongoDB CIDR network peering container block of limit of `/24` equals 27 three-node replica sets. */
+             *      **Example:** A project in an Google Cloud (GCP) region supporting three availability zones and an MongoDB CIDR network peering container block of limit of `/24` equals 27 three-node replica sets.
+             */
             atlasCidrBlock: string;
             /** @description Unique string that identifies the GCP project in which MongoDB Cloud clusters in this network peering container exist. The response returns **null** if no clusters exist in this network peering container. */
             readonly gcpProjectId?: string;
@@ -5004,11 +5029,13 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly id?: string;
-            /** @description Hardware specifications for nodes set for a given region. Each **regionConfigs** object must be unique by region and cloud provider within the **replicationSpec**. Each **regionConfigs** object describes the region's priority in elections and the number and type of MongoDB nodes that MongoDB Cloud deploys to the region. Each **regionConfigs** object must have either an **analyticsSpecs** object, **electableSpecs** object, or **readOnlySpecs** object. Tenant clusters only require **electableSpecs. Dedicated** clusters can specify any of these specifications, but must have at least one **electableSpecs** object within a **replicationSpec**.
+            /**
+             * @description Hardware specifications for nodes set for a given region. Each **regionConfigs** object must be unique by region and cloud provider within the **replicationSpec**. Each **regionConfigs** object describes the region's priority in elections and the number and type of MongoDB nodes that MongoDB Cloud deploys to the region. Each **regionConfigs** object must have either an **analyticsSpecs** object, **electableSpecs** object, or **readOnlySpecs** object. Tenant clusters only require **electableSpecs. Dedicated** clusters can specify any of these specifications, but must have at least one **electableSpecs** object within a **replicationSpec**.
              *
              *     **Example:**
              *
-             *     If you set `"replicationSpecs[n].regionConfigs[m].analyticsSpecs.instanceSize" : "M30"`, set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize" : `"M30"` if you have electable nodes and `"replicationSpecs[n].regionConfigs[m].readOnlySpecs.instanceSize" : `"M30"` if you have read-only nodes. */
+             *     If you set `"replicationSpecs[n].regionConfigs[m].analyticsSpecs.instanceSize" : "M30"`, set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize" : `"M30"` if you have electable nodes and `"replicationSpecs[n].regionConfigs[m].readOnlySpecs.instanceSize" : `"M30"` if you have read-only nodes.
+             */
             regionConfigs?: components["schemas"]["CloudRegionConfig20240805"][];
             /**
              * @description Unique 24-hexadecimal digit string that identifies the zone in a Global Cluster. This value can be used to configure Global Cluster backup policies.
@@ -6345,9 +6372,11 @@ export interface components {
          * @description Filter that applies normalization mappings that you specify to characters.
          */
         charFiltermapping: {
-            /** @description Comma-separated list of mappings. A mapping indicates that one character or group of characters should be substituted for another, using the following format:
+            /**
+             * @description Comma-separated list of mappings. A mapping indicates that one character or group of characters should be substituted for another, using the following format:
              *
-             *     `<original> : <replacement>`. */
+             *     `<original> : <replacement>`.
+             */
             mappings: {
                 [key: string]: string;
             };
@@ -6733,12 +6762,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint) No provider AWS exists.",
                  *       "error": 400,
                  *       "errorCode": "VALIDATION_ERROR",
                  *       "reason": "Bad Request"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6748,12 +6779,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint) Cannot delete organization link while there is active migration in following project ids: 60c4fd418ebe251047c50554",
                  *       "error": 409,
                  *       "errorCode": "CANNOT_DELETE_ORG_ACTIVE_LIVE_MIGRATION_ATLAS_ORG_LINK",
                  *       "reason": "Conflict"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6763,12 +6796,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint)",
                  *       "error": 403,
                  *       "errorCode": "CANNOT_CHANGE_GROUP_NAME",
                  *       "reason": "Forbidden"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6778,12 +6813,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint)",
                  *       "error": 500,
                  *       "errorCode": "UNEXPECTED_ERROR",
                  *       "reason": "Internal Server Error"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6793,12 +6830,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint) Cannot find resource AWS",
                  *       "error": 404,
                  *       "errorCode": "RESOURCE_NOT_FOUND",
                  *       "reason": "Not Found"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6808,12 +6847,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint)",
                  *       "error": 402,
                  *       "errorCode": "NO_PAYMENT_INFORMATION_FOUND",
                  *       "reason": "Payment Required"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6823,12 +6864,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint)",
                  *       "error": 429,
                  *       "errorCode": "RATE_LIMITED",
                  *       "reason": "Too Many Requests"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6838,12 +6881,14 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                /** @example {
+                /**
+                 * @example {
                  *       "detail": "(This is just an example, the exception may not be related to this endpoint)",
                  *       "error": 401,
                  *       "errorCode": "NOT_ORG_GROUP_CREATOR",
                  *       "reason": "Unauthorized"
-                 *     } */
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -6851,9 +6896,11 @@ export interface components {
     parameters: {
         /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
         envelope: boolean;
-        /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+        /**
+         * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
          *
-         *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+         *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+         */
         groupId: string;
         /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
         includeCount: boolean;
@@ -7289,9 +7336,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7324,9 +7373,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7366,9 +7417,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7406,9 +7459,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7446,15 +7501,19 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
-                /** @description Access list entry that you want to remove from the project's IP access list. This value can use one of the following: one AWS security group ID, one IP address, or one CIDR block of addresses. For CIDR blocks that use a subnet mask, replace the forward slash (`/`) with its URL-encoded value (`%2F`). When you remove an entry from the IP access list, existing connections from the removed address or addresses may remain open for a variable amount of time. The amount of time it takes MongoDB Cloud to close the connection depends upon several factors, including:
+                /**
+                 * @description Access list entry that you want to remove from the project's IP access list. This value can use one of the following: one AWS security group ID, one IP address, or one CIDR block of addresses. For CIDR blocks that use a subnet mask, replace the forward slash (`/`) with its URL-encoded value (`%2F`). When you remove an entry from the IP access list, existing connections from the removed address or addresses may remain open for a variable amount of time. The amount of time it takes MongoDB Cloud to close the connection depends upon several factors, including:
                  *
                  *     - how your application established the connection,
                  *     - how MongoDB Cloud or the driver using the address behaves, and
-                 *     - which protocol (like TCP or UDP) the connection uses. */
+                 *     - which protocol (like TCP or UDP) the connection uses.
+                 */
                 entryValue: string;
             };
             cookie?: never;
@@ -7494,9 +7553,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7540,9 +7601,11 @@ export interface operations {
                 "Use-Effective-Instance-Fields"?: boolean;
             };
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7577,9 +7640,11 @@ export interface operations {
                 "Use-Effective-Instance-Fields"?: boolean;
             };
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7622,9 +7687,11 @@ export interface operations {
                 "Use-Effective-Instance-Fields"?: boolean;
             };
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Human-readable label that identifies this cluster. */
                 clusterName: string;
@@ -7661,9 +7728,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Human-readable label that identifies the cluster. */
                 clusterName: string;
@@ -7694,9 +7763,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Human-readable label that identifies the cluster. */
                 clusterName: string;
@@ -7727,9 +7798,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Human-readable label that identifies the cluster. */
                 clusterName: string;
@@ -7762,22 +7835,28 @@ export interface operations {
                 processIds?: string[];
                 /** @description Namespaces from which to retrieve suggested indexes. A namespace consists of one database and one collection resource written as `.`: `<database>.<collection>`. To include multiple namespaces, pass the parameter multiple times delimited with an ampersand (`&`) between each namespace. Omit this parameter to return results for all namespaces. */
                 namespaces?: string[];
-                /** @description Date and time from which the query retrieves the suggested indexes. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
+                /**
+                 * @description Date and time from which the query retrieves the suggested indexes. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
                  *
                  *     - If you don't specify the **until** parameter, the endpoint returns data covering from the **since** value and the current time.
-                 *     - If you specify neither the **since** nor the **until** parameters, the endpoint returns data from the previous 24 hours. */
+                 *     - If you specify neither the **since** nor the **until** parameters, the endpoint returns data from the previous 24 hours.
+                 */
                 since?: number;
-                /** @description Date and time up until which the query retrieves the suggested indexes. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
+                /**
+                 * @description Date and time up until which the query retrieves the suggested indexes. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
                  *
                  *     - If you specify the **until** parameter, you must specify the **since** parameter.
-                 *     - If you specify neither the **since** nor the **until** parameters, the endpoint returns data from the previous 24 hours. */
+                 *     - If you specify neither the **since** nor the **until** parameters, the endpoint returns data from the previous 24 hours.
+                 */
                 until?: number;
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Human-readable label that identifies the cluster. */
                 clusterName: string;
@@ -7819,9 +7898,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7853,9 +7934,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7894,13 +7977,16 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description The database against which the database user authenticates. Database users must provide both a username and authentication database to log into MongoDB. If the user authenticates with AWS IAM, x.509, LDAP, or OIDC Workload this value should be `$external`. If the user authenticates with SCRAM-SHA or OIDC Workforce, this value should be `admin`. */
                 databaseName: string;
-                /** @description Human-readable label that represents the user that authenticates to MongoDB. The format of this label depends on the method of authentication:
+                /**
+                 * @description Human-readable label that represents the user that authenticates to MongoDB. The format of this label depends on the method of authentication:
                  *
                  *     | Authentication Method | Parameter Needed | Parameter Value | username Format |
                  *     |---|---|---|---|
@@ -7913,7 +7999,7 @@ export interface operations {
                  *     | OIDC Workforce | oidcAuthType | IDP_GROUP | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP group name |
                  *     | OIDC Workload | oidcAuthType | USER | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP user name |
                  *     | SCRAM-SHA | awsIAMType, x509Type, ldapAuthType, oidcAuthType | NONE | Alphanumeric string |
-                 *      */
+                 */
                 username: string;
             };
             cookie?: never;
@@ -7951,9 +8037,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -7986,9 +8074,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
             };
             cookie?: never;
@@ -8028,9 +8118,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Human-readable label that identifies the flex cluster. */
                 name: string;
@@ -8066,9 +8158,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Human-readable label that identifies the flex cluster. */
                 name: string;
@@ -8101,19 +8195,23 @@ export interface operations {
                 envelope?: components["parameters"]["envelope"];
                 /** @description Flag that indicates whether the response body should be in the prettyprint format. */
                 pretty?: components["parameters"]["pretty"];
-                /** @description Length of time expressed during which the query finds slow queries among the managed namespaces in the cluster. This parameter expresses its value in milliseconds.
+                /**
+                 * @description Length of time expressed during which the query finds slow queries among the managed namespaces in the cluster. This parameter expresses its value in milliseconds.
                  *
                  *     - If you don't specify the **since** parameter, the endpoint returns data covering the duration before the current time.
-                 *     - If you specify neither the **duration** nor **since** parameters, the endpoint returns data from the previous 24 hours. */
+                 *     - If you specify neither the **duration** nor **since** parameters, the endpoint returns data from the previous 24 hours.
+                 */
                 duration?: number;
                 /** @description Namespaces from which to retrieve slow queries. A namespace consists of one database and one collection resource written as `.`: `<database>.<collection>`. To include multiple namespaces, pass the parameter multiple times delimited with an ampersand (`&`) between each namespace. Omit this parameter to return results for all namespaces. */
                 namespaces?: string[];
                 /** @description Maximum number of lines from the log to return. */
                 nLogs?: number;
-                /** @description Date and time from which the query retrieves the slow queries. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
+                /**
+                 * @description Date and time from which the query retrieves the slow queries. This parameter expresses its value in the number of milliseconds that have elapsed since the [UNIX epoch](https://en.wikipedia.org/wiki/Unix_time).
                  *
                  *     - If you don't specify the **duration** parameter, the endpoint returns data covering from the **since** value and the current time.
-                 *     - If you specify neither the **duration** nor the **since** parameters, the endpoint returns data from the previous 24 hours. */
+                 *     - If you specify neither the **duration** nor the **since** parameters, the endpoint returns data from the previous 24 hours.
+                 */
                 since?: number;
                 /** @description Whether or not to include metrics extracted from the slow query log as separate fields. */
                 includeMetrics?: boolean;
@@ -8124,9 +8222,11 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
                  *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups. */
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
                 groupId: components["parameters"]["groupId"];
                 /** @description Combination of host and port that serves the MongoDB process. The host must be the hostname, FQDN, IPv4 address, or IPv6 address of the host that runs the MongoDB process (`mongod` or `mongos`). The port must be the IANA port on which the MongoDB process listens for requests. */
                 processId: string;

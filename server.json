@@ -20,7 +20,7 @@
           "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
           "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
           "isRequired": false,
-          "format": "string",
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -41,7 +41,7 @@
           "name": "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
           "description": "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
@@ -83,19 +83,26 @@
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_EXPORT_TIMEOUT_MS",
           "description": "Time in milliseconds after which an export is considered expired and eligible for cleanup.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_EXPORTS_PATH",
           "description": "Folder to store exported data files.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_HEADERS",
+          "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -111,14 +118,14 @@
           "name": "MDB_MCP_HTTP_PORT",
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_IDLE_TIMEOUT_MS",
           "description": "Idle timeout for a client to disconnect (only applies to http transport).",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
@@ -160,7 +167,7 @@
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
@@ -192,6 +199,20 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
+          "description": "Default number of dimensions for vector search embeddings.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
+          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
           "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
           "isRequired": false,
@@ -204,7 +225,8 @@
           "type": "named",
           "name": "--allowRequestOverrides",
           "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -222,7 +244,8 @@
           "type": "named",
           "name": "--atlasTemporaryDatabaseUserLifetimeMs",
           "description": "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -260,18 +283,26 @@
           "type": "named",
           "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
           "name": "--exportTimeoutMs",
           "description": "Time in milliseconds after which an export is considered expired and eligible for cleanup.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
           "name": "--exportsPath",
           "description": "Folder to store exported data files.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--httpHeaders",
+          "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false
         },
         {
@@ -284,13 +315,15 @@
           "type": "named",
           "name": "--httpPort",
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
           "name": "--idleTimeoutMs",
           "description": "Idle timeout for a client to disconnect (only applies to http transport).",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -329,7 +362,8 @@
           "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -354,6 +388,19 @@
           "type": "named",
           "name": "--transport",
           "description": "Either 'stdio' or 'http'.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--vectorSearchDimensions",
+          "description": "Default number of dimensions for vector search embeddings.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--vectorSearchSimilarityFunction",
+          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
           "isRequired": false
         },
         {
@@ -375,7 +422,7 @@
           "name": "MDB_MCP_ALLOW_REQUEST_OVERRIDES",
           "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
           "isRequired": false,
-          "format": "string",
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -396,7 +443,7 @@
           "name": "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
           "description": "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
@@ -438,19 +485,26 @@
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_EXPORT_TIMEOUT_MS",
           "description": "Time in milliseconds after which an export is considered expired and eligible for cleanup.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_EXPORTS_PATH",
           "description": "Folder to store exported data files.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_HEADERS",
+          "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -466,14 +520,14 @@
           "name": "MDB_MCP_HTTP_PORT",
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_IDLE_TIMEOUT_MS",
           "description": "Idle timeout for a client to disconnect (only applies to http transport).",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
@@ -515,7 +569,7 @@
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
-          "format": "string",
+          "format": "number",
           "isSecret": false
         },
         {
@@ -547,6 +601,20 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
+          "description": "Default number of dimensions for vector search embeddings.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
+          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
           "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
           "isRequired": false,
@@ -559,7 +627,8 @@
           "type": "named",
           "name": "--allowRequestOverrides",
           "description": "When set to true, allows configuration values to be overridden via request headers and query parameters.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -577,7 +646,8 @@
           "type": "named",
           "name": "--atlasTemporaryDatabaseUserLifetimeMs",
           "description": "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -615,18 +685,26 @@
           "type": "named",
           "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
           "name": "--exportTimeoutMs",
           "description": "Time in milliseconds after which an export is considered expired and eligible for cleanup.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
           "name": "--exportsPath",
           "description": "Folder to store exported data files.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--httpHeaders",
+          "description": "Header that the HTTP server will validate when making requests (only used when transport is 'http').",
           "isRequired": false
         },
         {
@@ -639,13 +717,15 @@
           "type": "named",
           "name": "--httpPort",
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
           "name": "--idleTimeoutMs",
           "description": "Idle timeout for a client to disconnect (only applies to http transport).",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -684,7 +764,8 @@
           "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
-          "isRequired": false
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -709,6 +790,19 @@
           "type": "named",
           "name": "--transport",
           "description": "Either 'stdio' or 'http'.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--vectorSearchDimensions",
+          "description": "Default number of dimensions for vector search embeddings.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--vectorSearchSimilarityFunction",
+          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
           "isRequired": false
         },
         {

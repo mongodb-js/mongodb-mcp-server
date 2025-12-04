@@ -1,5 +1,4 @@
 import { z as z4 } from "zod/v4";
-import { type CliOptions } from "@mongosh/arg-parser";
 import {
     type ConfigFieldMeta,
     commaSeparatedToArray,
@@ -11,15 +10,11 @@ import {
     parseBoolean,
 } from "./configUtils.js";
 import { previewFeatureValues, similarityValues } from "../schemas.js";
-
-// TODO: UserConfig should only be UserConfigSchema and not an intersection with
-// CliOptions. When we pull apart these two interfaces, we should fix this type
-// as well.
-export type UserConfig = z4.infer<typeof UserConfigSchema> & CliOptions;
+import { CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
 
-export const UserConfigSchema = z4.object({
+const ServerConfigSchema = z4.object({
     apiBaseUrl: z4
         .string()
         .default("https://cloud.mongodb.com/")
@@ -222,3 +217,12 @@ export const UserConfigSchema = z4.object({
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
+
+export const UserConfigSchema = z4.object({
+    ...MongoshCliOptionsSchema.shape,
+    ...ServerConfigSchema.shape,
+});
+
+export type UserConfig = z4.infer<typeof UserConfigSchema>;
+
+export const ALL_CONFIG_KEYS: (keyof UserConfig)[] = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];

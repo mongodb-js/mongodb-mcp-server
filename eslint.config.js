@@ -88,6 +88,7 @@ export default defineConfig([
         "src/types/*.d.ts",
         "tests/integration/fixtures/",
         "eslint-rules",
+        ".yalc",
     ]),
     eslintPluginPrettierRecommended,
 ]);

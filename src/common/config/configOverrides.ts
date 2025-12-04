@@ -43,7 +43,7 @@ export function applyConfigOverrides({
         assertValidConfigKey(key);
         const meta = getConfigMeta(key);
         const behavior = meta?.overrideBehavior || "not-allowed";
-        const baseValue = baseConfig[key as keyof UserConfig];
+        const baseValue = baseConfig[key];
         const newValue = applyOverride(key, baseValue, overrideValue, behavior);
         (result as Record<keyof UserConfig, unknown>)[key] = newValue;
     }
@@ -59,7 +59,7 @@ export function applyConfigOverrides({
         }
 
         const behavior = meta?.overrideBehavior || "not-allowed";
-        const baseValue = baseConfig[key as keyof UserConfig];
+        const baseValue = baseConfig[key];
         const newValue = applyOverride(key, baseValue, overrideValue, behavior);
         (result as Record<keyof UserConfig, unknown>)[key] = newValue;
     }

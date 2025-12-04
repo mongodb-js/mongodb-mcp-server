@@ -1,6 +1,6 @@
 import path from "path";
 import os from "os";
-import { ALL_CONFIG_KEYS } from "./argsParserOptions.js";
+import { ALL_CONFIG_KEYS } from "./userConfig.js";
 import * as levenshteinModule from "ts-levenshtein";
 const levenshtein = levenshteinModule.default;
 
@@ -56,18 +56,6 @@ export function matchingConfigKey(key: string): string | undefined {
     }
 
     return suggestion;
-}
-
-export function isConnectionSpecifier(arg: string | undefined): boolean {
-    return (
-        arg !== undefined &&
-        (arg.startsWith("mongodb://") ||
-            arg.startsWith("mongodb+srv://") ||
-            // Strings starting with double hyphens `--` are generally a sign of
-            // CLI flag so we exclude them from the possibility of being a
-            // connection specifier.
-            !(arg.endsWith(".js") || arg.endsWith(".mongodb") || arg.startsWith("--")))
-    );
 }
 
 export function getLocalDataPath(): string {

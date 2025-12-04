@@ -5,7 +5,7 @@
  * - server.json arrays
  * - README.md configuration table
  *
- * It uses the Zod schema and OPTIONS defined in src/common/config.ts
+ * It uses the UserConfig Zod Schema.
  */
 
 import { readFileSync, writeFileSync } from "fs";
@@ -13,7 +13,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { UserConfigSchema, configRegistry } from "../src/common/config/userConfig.js";
 import { execSync } from "child_process";
-import { OPTIONS } from "../src/common/config/argsParserOptions.js";
+import type { z as z4 } from "zod/v4";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,6 +54,54 @@ interface ConfigMetadata {
     defaultValue?: unknown;
     defaultValueDescription?: string;
     isSecret?: boolean;
+    type: "string" | "number" | "boolean" | "array";
+}
+
+/**
+ * Derives the primitive type from a Zod schema by unwrapping wrappers like default, optional, preprocess, etc.
+ */
+function deriveZodType(schema: z4.ZodType): "string" | "number" | "boolean" | "array" {
+    const def = schema.def as unknown as Record<string, unknown>;
+    const typeName = def.type as string;
+
+    // Handle wrapped types (default, optional, nullable, etc.)
+    if (typeName === "default" || typeName === "optional" || typeName === "nullable") {
+        const innerType = def.innerType as z4.ZodType;
+        return deriveZodType(innerType);
+    }
+
+    // Handle preprocess - look at the schema being processed into
+    if (typeName === "pipe") {
+        const out = def.out as z4.ZodType;
+        return deriveZodType(out);
+    }
+
+    // Handle coerce wrapper
+    if (typeName === "coerce") {
+        const innerType = def.innerType as z4.ZodType;
+        return deriveZodType(innerType);
+    }
+
+    // Handle primitive types
+    if (typeName === "string" || typeName === "enum") {
+        return "string";
+    }
+    if (typeName === "number" || typeName === "int") {
+        return "number";
+    }
+    if (typeName === "boolean") {
+        return "boolean";
+    }
+    if (typeName === "array") {
+        return "array";
+    }
+    if (typeName === "object") {
+        // Objects are treated as strings (JSON strings)
+        return "string";
+    }
+
+    // Default fallback
+    return "string";
 }
 
 function extractZodDescriptions(): Record<string, ConfigMetadata> {
@@ -66,6 +114,8 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         const schema = fieldSchema;
         // Extract description from Zod schema
         let description = schema.description || `Configuration option: ${key}`;
+
+        const derivedType = deriveZodType(schema);
 
         if ("innerType" in schema.def) {
             // "pipe" is also used for our comma-separated arrays
@@ -93,31 +143,22 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
             defaultValue,
             defaultValueDescription,
             isSecret,
+            type: derivedType,
         };
     }
 
     return result;
 }
 
-function getArgumentInfo(options: typeof OPTIONS, zodMetadata: Record<string, ConfigMetadata>): ArgumentInfo[] {
+function getArgumentInfo(zodMetadata: Record<string, ConfigMetadata>): ArgumentInfo[] {
     const argumentInfos: ArgumentInfo[] = [];
-    const processedKeys = new Set<string>();
 
-    // Helper to add env var
-    const addEnvVar = (key: string, type: "string" | "number" | "boolean" | "array"): void => {
-        if (processedKeys.has(key)) return;
-        processedKeys.add(key);
-
+    for (const [key, metadata] of Object.entries(zodMetadata)) {
         const envVarName = `MDB_MCP_${camelCaseToSnakeCase(key)}`;
 
-        // Get description and default value from Zod metadata
-        const metadata = zodMetadata[key] || {
-            description: `Configuration option: ${key}`,
-        };
-
         // Determine format based on type
-        let format = type;
-        if (type === "array") {
+        let format: string = metadata.type;
+        if (metadata.type === "array") {
             format = "string"; // Arrays are passed as comma-separated strings
         }
 
@@ -131,26 +172,6 @@ function getArgumentInfo(options: typeof OPTIONS, zodMetadata: Record<string, Co
             defaultValue: metadata.defaultValue,
             defaultValueDescription: metadata.defaultValueDescription,
         });
-    };
-
-    // Process all string options
-    for (const key of options.string) {
-        addEnvVar(key, "string");
-    }
-
-    // Process all number options
-    for (const key of options.number) {
-        addEnvVar(key, "number");
-    }
-
-    // Process all boolean options
-    for (const key of options.boolean) {
-        addEnvVar(key, "boolean");
-    }
-
-    // Process all array options
-    for (const key of options.array) {
-        addEnvVar(key, "array");
     }
 
     // Sort by name for consistent output
@@ -270,6 +291,9 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
                     case "string":
                         defaultValueString = `\`"${defaultValue}"\``;
                         break;
+                    case "object":
+                        defaultValueString = `\`"${JSON.stringify(defaultValue)}"\``;
+                        break;
                     default:
                         throw new Error(`Unsupported default value type: ${typeof defaultValue}`);
                 }
@@ -307,7 +331,7 @@ function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
 function main(): void {
     const zodMetadata = extractZodDescriptions();
 
-    const argumentInfo = getArgumentInfo(OPTIONS, zodMetadata);
+    const argumentInfo = getArgumentInfo(zodMetadata);
     updateServerJsonEnvVars(argumentInfo);
     updateReadmeConfigTable(argumentInfo);
 }

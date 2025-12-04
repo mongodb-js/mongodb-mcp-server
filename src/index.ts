@@ -49,7 +49,25 @@ import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
 
-    const config = createUserConfig();
+    const {
+        error,
+        warnings,
+        parsed: config,
+    } = createUserConfig({
+        args: process.argv.slice(2),
+    });
+
+    if (!config || (error && error.length)) {
+        console.error(`${error}
+- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
+        process.exit(1);
+    }
+
+    if (warnings && warnings.length) {
+        console.warn(`${warnings.join("\n")}
+- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
+    }
+
     if (config.help) {
         handleHelpRequest();
     }

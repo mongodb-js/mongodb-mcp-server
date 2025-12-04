@@ -22,8 +22,8 @@ importers:
         specifier: ^0.5.3
         version: 0.5.5
       '@mongosh/arg-parser':
-        specifier: ^3.19.0
-        version: 3.22.0
+        specifier: ^3.23.0
+        version: 3.23.0(zod@3.25.76)
       '@mongosh/service-provider-node-driver':
         specifier: ^3.17.5
         version: 3.17.5(mongodb-log-writer@2.4.4(bson@6.10.4))
@@ -69,9 +69,6 @@ importers:
       voyage-ai-provider:
         specifier: ^2.0.0
         version: 2.0.0(zod@3.25.76)
-      yargs-parser:
-        specifier: 21.1.1
-        version: 21.1.1
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -684,16 +681,22 @@ packages:
     resolution: {integrity: sha512-JDz2fLKsjMiSNUxKrCpGptsgu7DzsXfu4gnUQ3RhUaBS1d4YbLrt6HejpckAiHIAa+niBpZAeiUsoop0IihWsw==}
     engines: {node: '>=0.10.0'}
 
-  '@mongosh/arg-parser@3.22.0':
-    resolution: {integrity: sha512-VoQ3lzkMLF76rCZXONGto4zC0RQ74NG2hDXtR/oZGZjdpngR+E9anVGJjT7TymqcFRbXtqvR/Kau9F6a9zctEQ==}
+  '@mongosh/arg-parser@3.23.0':
+    resolution: {integrity: sha512-V9lr8LEHI9XKEgBEqPAVDi+CNdl6MNBSJ8A5LAk+vfBM+bdhhtSrANIqUhuEzyV4yNyEqNfYFtqLLhjZd7/doA==}
     engines: {node: '>=14.15.1'}
+    peerDependencies:
+      zod: ^3.25.76
 
   '@mongosh/errors@2.4.4':
     resolution: {integrity: sha512-Z1z8VuYYgVjleo2N/GssECbc9ZXrKcLS83zMtflGoYujQ2B7CAMB0D9YnQZAvvWd68YQD4IU5HqJkmcrtWo0Dw==}
     engines: {node: '>=14.15.1'}
 
-  '@mongosh/i18n@2.19.0':
-    resolution: {integrity: sha512-evi+Ep+osBn2CSRX0KWxgthlIMly2qyi+5H2/+wmkQH/oJIobN0EXVz/pzrsLudjehCil/gLlF7Q/TbjTgB3QA==}
+  '@mongosh/errors@2.4.5':
+    resolution: {integrity: sha512-niqLgzPv6ZG9Bx0XRJP3NCA9zZM6LbRs/z05GRwJP0B3HShYDKWi7B0D4N/u6RoEt93Y6mMa9Ok72dNSDpIEwA==}
+    engines: {node: '>=14.15.1'}
+
+  '@mongosh/i18n@2.20.0':
+    resolution: {integrity: sha512-g0zuKuZ5JhS/ASDizZlqLDzy1yqeMbs5tg40TxMl/55rM2EOPV1MSlfBZg7X0tyxUOATy1sLHWsUquzQSFjVjQ==}
     engines: {node: '>=14.15.1'}
 
   '@mongosh/service-provider-core@3.6.3':
@@ -5201,17 +5204,21 @@ snapshots:
     dependencies:
       ip-address: 9.0.5
 
-  '@mongosh/arg-parser@3.22.0':
+  '@mongosh/arg-parser@3.23.0(zod@3.25.76)':
     dependencies:
-      '@mongosh/errors': 2.4.4
-      '@mongosh/i18n': 2.19.0
+      '@mongosh/errors': 2.4.5
+      '@mongosh/i18n': 2.20.0
       mongodb-connection-string-url: 3.0.2
+      yargs-parser: 20.2.9
+      zod: 3.25.76
 
   '@mongosh/errors@2.4.4': {}
 
-  '@mongosh/i18n@2.19.0':
+  '@mongosh/errors@2.4.5': {}
+
+  '@mongosh/i18n@2.20.0':
     dependencies:
-      '@mongosh/errors': 2.4.4
+      '@mongosh/errors': 2.4.5
 
   '@mongosh/service-provider-core@3.6.3(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)':
     dependencies:
