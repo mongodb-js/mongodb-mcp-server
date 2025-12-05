@@ -73,10 +73,10 @@ importers:
         specifier: ^0.15.0
         version: 0.15.0
       react:
-        specifier: ^18.0.0
+        specifier: ^18.3.0
         version: 18.3.1
       react-dom:
-        specifier: ^18.0.0
+        specifier: ^18.3.0
         version: 18.3.1(react@18.3.1)
       ts-levenshtein:
         specifier: ^1.0.7
@@ -122,7 +122,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4
       '@types/react':
-        specifier: ^18.0.0
+        specifier: ^18.3.0
         version: 18.3.27
       '@types/react-dom':
         specifier: ^19.2.3
