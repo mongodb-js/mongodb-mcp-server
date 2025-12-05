@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { join, resolve } from "path";
+import { join, resolve, dirname } from "path";
 import { uiMap } from "./src/ui/registry/uiMap.js";
 
 const componentsDir = resolve(__dirname, "src/ui/components");
@@ -99,6 +99,12 @@ function generateUIModule(): Plugin {
  */
 export const uiHtml: Record<string, string> = ${JSON.stringify(entries, null, 4)};
 `;
+
+            // Ensure the generated directory exists
+            const generatedDir = dirname(generatedModulePath);
+            if (!existsSync(generatedDir)) {
+                mkdirSync(generatedDir, { recursive: true });
+            }
 
             writeFileSync(generatedModulePath, moduleContent);
             console.log(
