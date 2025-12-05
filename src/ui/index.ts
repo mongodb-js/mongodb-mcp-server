@@ -1,1 +1,1 @@
-export { UIRegistry, getDefaultUIRegistry, setDefaultUIRegistry } from "./registry/index.js";
+export { UIRegistry } from "./registry/index.js";
