@@ -1,19 +1,39 @@
 import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { uiMap } from "./uiMap.js";
+
+/**
+ * Get the directory of the current module, works in both ESM and CJS.
+ */
+function getCurrentDir(): string {
+    if (typeof __dirname !== "undefined") {
+        return __dirname;
+    }
+    return dirname(fileURLToPath(import.meta.url));
+}
+
+/**
+ * Find the package root by looking for package.json walking up from the current directory.
+ */
+function findPackageRoot(startDir: string): string {
+    let dir = startDir;
+    while (dir !== dirname(dir)) {
+        if (existsSync(join(dir, "package.json"))) {
+            return dir;
+        }
+        dir = dirname(dir);
+    }
+    return process.cwd();
+}
 
 /**
  * Get the default UI dist path by finding the package root.
  */
 function getDefaultUIDistPath(): string {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const packageJsonPath = require.resolve("mongodb-mcp-server/package.json");
-        const packageRoot = dirname(packageJsonPath);
-        return join(packageRoot, "dist", "ui");
-    } catch {
-        return join(process.cwd(), "dist", "ui");
-    }
+    const currentDir = getCurrentDir();
+    const packageRoot = findPackageRoot(currentDir);
+    return join(packageRoot, "dist", "ui");
 }
 
 /**

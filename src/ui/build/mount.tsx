@@ -18,7 +18,8 @@ const components: Record<string, React.ComponentType> = {};
 for (const [path, module] of Object.entries(componentModules)) {
     const match = path.match(/\.\.\/components\/([^/]+)\/index\.ts$/);
     if (match) {
-        const componentName = match[1]!;
+        const componentName = match[1];
+        if (!componentName) continue;
         // The component should be exported with the same name as the folder
         const Component = module[componentName];
         if (Component) {
