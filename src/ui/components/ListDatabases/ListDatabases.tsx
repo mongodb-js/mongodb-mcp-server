@@ -29,7 +29,7 @@ function formatBytes(bytes: number): string {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
-export const ListDatabases = () => {
+export const ListDatabases = (): React.ReactElement | null => {
     const { data, isLoading, error } = useRenderData<ListDatabasesOutput>();
 
     if (isLoading) {

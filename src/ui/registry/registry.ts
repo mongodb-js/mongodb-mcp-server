@@ -10,7 +10,6 @@ function getCurrentDir(): string {
     if (typeof __dirname !== "undefined") {
         return __dirname;
     }
-    // @ts-ignore - import.meta is only available in ESM, but this code path is only executed in ESM
     return dirname(fileURLToPath(import.meta.url));
 }
 

@@ -1,5 +1,20 @@
 import { useEffect, useState } from "react";
 
+/** Expected structure of the postMessage data from parent window */
+interface RenderDataMessage {
+    type: string;
+    payload?: {
+        renderData?: unknown;
+    };
+}
+
+/** Return type for the useRenderData hook */
+interface UseRenderDataResult<T> {
+    data: T | null;
+    isLoading: boolean;
+    error: string | null;
+}
+
 /**
  * Hook for receiving render data from parent window via postMessage
  * This is used by iframe-based UI components that receive data from an MCP client
@@ -22,13 +37,13 @@ import { useEffect, useState } from "react";
  * }
  * ```
  */
-export function useRenderData<T = unknown>() {
+export function useRenderData<T = unknown>(): UseRenderDataResult<T> {
     const [data, setData] = useState<T | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
+        const handleMessage = (event: MessageEvent<RenderDataMessage>): void => {
             if (event.data?.type !== "ui-lifecycle-iframe-render-data") {
                 // Silently ignore messages that aren't for us
                 return;
@@ -64,7 +79,7 @@ export function useRenderData<T = unknown>() {
         window.addEventListener("message", handleMessage);
         window.parent.postMessage({ type: "ui-lifecycle-iframe-ready" }, "*");
 
-        return () => {
+        return (): void => {
             window.removeEventListener("message", handleMessage);
         };
     }, []);

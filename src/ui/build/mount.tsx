@@ -33,7 +33,7 @@ for (const [path, module] of Object.entries(componentModules)) {
     }
 }
 
-function mount() {
+function mount(): void {
     const container = document.getElementById("root");
     if (!container) {
         console.error("[mount] No #root element found");
@@ -62,4 +62,3 @@ function mount() {
 }
 
 mount();
-
