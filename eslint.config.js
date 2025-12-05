@@ -81,6 +81,7 @@ export default defineConfig([
         "node_modules",
         "dist",
         "src/common/atlas/openapi.d.ts",
+        "src/ui/generated",
         "coverage",
         "global.d.ts",
         "eslint.config.js",

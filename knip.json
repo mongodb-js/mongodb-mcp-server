@@ -15,7 +15,8 @@
     "src/ui/build/mount.tsx",
     "src/ui/components/**/*.ts",
     "src/ui/components/**/*.tsx",
-    "src/ui/hooks/**/*.ts"
+    "src/ui/hooks/**/*.ts",
+    "src/ui/registry/uiMap.ts"
   ],
   "ignoreDependencies": [
     "@mongodb-js/atlas-local",
