@@ -54,7 +54,7 @@
     "dist"
   ],
   "scripts": {
-    "start": "node dist/index.js --transport http --loggers stderr mcp --previewFeatures vectorSearch",
+    "start": "node dist/index.js --transport http --loggers stderr mcp --previewFeatures search",
     "start:stdio": "node dist/index.js --transport stdio --loggers stderr mcp",
     "prepare": "husky && pnpm run build",
     "build:clean": "rm -rf dist",
@@ -99,6 +99,8 @@
     "@types/proper-lockfile": "^4.1.4",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^19.2.3",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "@types/semver": "^7.7.0",
     "@types/yargs-parser": "^21.0.3",
     "@typescript-eslint/parser": "^8.44.0",
@@ -152,8 +154,6 @@
     "node-machine-id": "1.1.12",
     "oauth4webapi": "^3.8.0",
     "openapi-fetch": "^0.15.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
     "ts-levenshtein": "^1.0.7",
     "voyage-ai-provider": "^2.0.0",
     "zod": "^3.25.76"

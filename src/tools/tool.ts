@@ -482,7 +482,7 @@ export abstract class ToolBase {
                 });
 
                 const result = await this.execute(args, { signal });
-                const finalResult = this.appendUIResourceIfAvailable(result);
+                const finalResult = this.appendUIResource(result);
 
                 this.emitToolEvent(args, { startTime, result: finalResult });
 
@@ -727,7 +727,7 @@ export abstract class ToolBase {
      * @param result - The result from the tool's `execute()` method
      * @returns The result with UIResource appended if conditions are met, otherwise unchanged
      */
-    private appendUIResourceIfAvailable(result: CallToolResult): CallToolResult {
+    private appendUIResource(result: CallToolResult): CallToolResult {
         if (!this.isFeatureEnabled("mcpUI")) {
             return result;
         }
