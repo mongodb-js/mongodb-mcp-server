@@ -11,22 +11,13 @@ import {
     TableHead,
 } from "@leafygreen-ui/table";
 import { tableStyles } from "./ListDatabases.styles.js";
+import { ListDatabasesOutputSchema, type ListDatabasesOutput } from "./schema.js";
 
 const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">>;
 const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;
 const Row = LGRow as React.FC<React.ComponentPropsWithoutRef<"tr">>;
 
-const DatabaseInfoSchema = z.object({
-    name: z.string(),
-    size: z.number(),
-});
-
-const ListDatabasesDataSchema = z.object({
-    databases: z.array(DatabaseInfoSchema),
-    totalCount: z.number(),
-});
-
-type ListDatabasesRenderData = z.infer<typeof ListDatabasesDataSchema>;
+const ListDatabasesDataSchema = z.object(ListDatabasesOutputSchema);
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return "0 Bytes";
@@ -39,7 +30,7 @@ function formatBytes(bytes: number): string {
 }
 
 export const ListDatabases = () => {
-    const { data, isLoading, error } = useRenderData<ListDatabasesRenderData>();
+    const { data, isLoading, error } = useRenderData<ListDatabasesOutput>();
 
     if (isLoading) {
         return <div>Loading...</div>;
@@ -49,7 +40,6 @@ export const ListDatabases = () => {
         return <div>Error: {error}</div>;
     }
 
-    // Validate props against schema
     const validationResult = ListDatabasesDataSchema.safeParse(data);
 
     if (!validationResult.success) {
