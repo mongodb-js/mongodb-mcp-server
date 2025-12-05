@@ -1,5 +1,6 @@
 dist
 node_modules
+
 .vscode/mcp.json
 .github/prompts/*
 
@@ -13,6 +14,9 @@ tests/tmp
 coverage
 # Generated assets by accuracy runs
 .accuracy
+
+# Generated UI module (rebuilt by `pnpm build:ui`)
+src/ui/generated
 
 .DS_Store
 

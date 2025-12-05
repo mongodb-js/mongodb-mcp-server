@@ -1,4 +1,4 @@
-import type { z, ZodRawShape } from "zod";
+import { z, type ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
@@ -9,6 +9,8 @@ import type { UserConfig } from "../common/config/userConfig.js";
 import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
+import type { UIRegistry } from "../ui/registry/index.js";
+import { createUIResource } from "@mcp-ui/server";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -91,6 +93,7 @@ export type ToolConstructorParams = {
      * See `src/elicitation.ts` for further reference.
      */
     elicitation: Elicitation;
+    uiRegistry?: UIRegistry;
 };
 
 /**
@@ -276,6 +279,27 @@ export abstract class ToolBase {
      */
     protected abstract argsShape: ZodRawShape;
 
+    /**
+     * Optional Zod schema defining the tool's structured output.
+     *
+     * @example
+     * ```typescript
+     * protected outputSchema = {
+     *   items: z.array(z.object({ name: z.string(), count: z.number() })),
+     *   totalCount: z.number(),
+     * };
+     *
+     * protected async execute(): Promise<CallToolResult> {
+     *   const items = await this.fetchItems();
+     *   return {
+     *     content: [{ type: "text", text: `Found ${items.length} items` }],
+     *     structuredContent: { items, totalCount: items.length },
+     *   };
+     * }
+     * ```
+     */
+    protected outputSchema?: ZodRawShape;
+
     private registeredTool: RegisteredTool | undefined;
 
     protected get annotations(): ToolAnnotations {
@@ -404,14 +428,23 @@ export abstract class ToolBase {
      * or inputs during tool execution.
      */
     protected readonly elicitation: Elicitation;
-
-    constructor({ category, operationType, session, config, telemetry, elicitation }: ToolConstructorParams) {
+    protected readonly uiRegistry?: UIRegistry;
+    constructor({
+        category,
+        operationType,
+        session,
+        config,
+        telemetry,
+        elicitation,
+        uiRegistry,
+    }: ToolConstructorParams) {
         this.category = category;
         this.operationType = operationType;
         this.session = session;
         this.config = config;
         this.telemetry = telemetry;
         this.elicitation = elicitation;
+        this.uiRegistry = uiRegistry;
     }
 
     public register(server: Server): boolean {
@@ -449,7 +482,9 @@ export abstract class ToolBase {
                 });
 
                 const result = await this.execute(args, { signal });
-                this.emitToolEvent(args, { startTime, result });
+                const finalResult = this.appendUIResource(result);
+
+                this.emitToolEvent(args, { startTime, result: finalResult });
 
                 this.session.logger.debug({
                     id: LogId.toolExecute,
@@ -457,7 +492,7 @@ export abstract class ToolBase {
                     message: `Executed tool ${this.name}`,
                     noRedaction: true,
                 });
-                return result;
+                return finalResult;
             } catch (error: unknown) {
                 this.session.logger.error({
                     id: LogId.toolExecuteFailure,
@@ -480,6 +515,7 @@ export abstract class ToolBase {
                     config: {
                         description?: string;
                         inputSchema?: ZodRawShape;
+                        outputSchema?: ZodRawShape;
                         annotations?: ToolAnnotations;
                     },
                     cb: (args: ToolArgs<ZodRawShape>, extra: ToolExecutionContext) => Promise<CallToolResult>
@@ -489,6 +525,7 @@ export abstract class ToolBase {
                 {
                     description: this.description,
                     inputSchema: this.argsShape,
+                    outputSchema: this.outputSchema,
                     annotations: this.annotations,
                 },
                 callback
@@ -674,6 +711,61 @@ export abstract class ToolBase {
         }
 
         return metadata;
+    }
+
+    /**
+     * Get the UI HTML string for this tool from the registry.
+     * Returns the registered UI HTML, or undefined if no UI exists for this tool.
+     */
+    protected getUI(): string | undefined {
+        return this.uiRegistry?.get(this.name);
+    }
+
+    /**
+     * Appends a UIResource to the tool result.
+     *
+     * @param result - The result from the tool's `execute()` method
+     * @returns The result with UIResource appended if conditions are met, otherwise unchanged
+     */
+    private appendUIResource(result: CallToolResult): CallToolResult {
+        if (!this.isFeatureEnabled("mcpUI")) {
+            return result;
+        }
+
+        const uiHtml = this.getUI();
+        if (!uiHtml || !result.structuredContent) {
+            return result;
+        }
+
+        if (this.outputSchema) {
+            const schema = z.object(this.outputSchema);
+            const validation = schema.safeParse(result.structuredContent);
+            if (!validation.success) {
+                this.session.logger.warning({
+                    id: LogId.toolExecute,
+                    context: `tool - ${this.name}`,
+                    message: `structuredContent failed validation against outputSchema, skipping UI resource: ${validation.error.message}`,
+                });
+                return result;
+            }
+        }
+
+        const uiResource = createUIResource({
+            uri: `ui://${this.name}/${Date.now()}`,
+            content: {
+                type: "rawHtml",
+                htmlString: uiHtml,
+            },
+            encoding: "text",
+            uiMetadata: {
+                "initial-render-data": result.structuredContent,
+            },
+        });
+
+        return {
+            ...result,
+            content: [...(result.content || []), uiResource],
+        };
     }
 }
 
