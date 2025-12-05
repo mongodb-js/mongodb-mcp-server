@@ -48,13 +48,11 @@ function generateHtmlEntries(): Plugin {
             const components = discoverComponents();
             const template = readFileSync(templatePath, "utf-8");
 
-            // Ensure entries directory exists
             if (!existsSync(entriesDir)) {
                 mkdirSync(entriesDir, { recursive: true });
             }
 
             for (const componentName of components) {
-                // Generate HTML by replacing placeholders in template
                 const html = template
                     .replace("{{COMPONENT_NAME}}", componentName)
                     .replace("{{TITLE}}", componentName.replace(/([A-Z])/g, " $1").trim()) // "ListDatabases" -> "List Databases"
@@ -70,13 +68,10 @@ function generateHtmlEntries(): Plugin {
 
 const components = discoverComponents();
 
-// https://vitejs.dev/config/
 export default defineConfig({
-    // Set root to entries directory so output paths are relative to it
     root: entriesDir,
     plugins: [
         generateHtmlEntries(),
-        // Cast to PluginOption due to Vite version mismatch in plugin types
         nodePolyfills({
             include: ["buffer", "stream"],
             globals: {
@@ -89,7 +84,6 @@ export default defineConfig({
         }),
     ],
     build: {
-        // Output relative to project root, not the Vite root
         outDir: resolve(__dirname, "dist/ui"),
         emptyOutDir: true,
         rollupOptions: {
