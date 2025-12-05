@@ -728,6 +728,10 @@ export abstract class ToolBase {
      * @returns The result with UIResource appended if conditions are met, otherwise unchanged
      */
     private appendUIResourceIfAvailable(result: CallToolResult): CallToolResult {
+        if (!this.isFeatureEnabled("mcpUI")) {
+            return result;
+        }
+
         const uiHtml = this.getUI();
         if (!uiHtml || !result.structuredContent) {
             return result;
