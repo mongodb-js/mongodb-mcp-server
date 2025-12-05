@@ -5,7 +5,6 @@ import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { ListDatabasesOutputSchema, type ListDatabasesOutput } from "../../../ui/components/ListDatabases/schema.js";
 
-// Re-export for consumers who need the schema/type
 export { ListDatabasesOutputSchema, type ListDatabasesOutput };
 
 export class ListDatabasesTool extends MongoDBToolBase {

@@ -15,6 +15,9 @@ coverage
 # Generated assets by accuracy runs
 .accuracy
 
+# Generated UI module (rebuilt by `pnpm build:ui`)
+src/ui/generated
+
 .DS_Store
 
 # Development tool files

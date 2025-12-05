@@ -1,52 +1,15 @@
-import { readFileSync, existsSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-import { uiMap } from "./uiMap.js";
-
-/**
- * Get the directory of the current module, works in both ESM and CJS.
- */
-function getCurrentDir(): string {
-    if (typeof __dirname !== "undefined") {
-        return __dirname;
-    }
-    return dirname(fileURLToPath(import.meta.url));
-}
-
-/**
- * Find the package root by looking for package.json walking up from the current directory.
- */
-function findPackageRoot(startDir: string): string {
-    let dir = startDir;
-    while (dir !== dirname(dir)) {
-        if (existsSync(join(dir, "package.json"))) {
-            return dir;
-        }
-        dir = dirname(dir);
-    }
-    return process.cwd();
-}
-
-/**
- * Get the default UI dist path by finding the package root.
- */
-function getDefaultUIDistPath(): string {
-    const currentDir = getCurrentDir();
-    const packageRoot = findPackageRoot(currentDir);
-    return join(packageRoot, "dist", "ui");
-}
+import { uiHtml } from "../generated/uiHtml.js";
 
 /**
  * UI Registry that manages bundled UI HTML strings for tools.
+ *
+ * The default UIs are embedded at build time via the generated uiHtml module.
+ * Custom UIs can be provided at runtime to override or extend the defaults.
  */
 export class UIRegistry {
     private customUIs: Map<string, string> = new Map();
-    private cache: Map<string, string> = new Map();
-    private uiDistPath: string;
 
     constructor(options?: { customUIs?: Record<string, string> }) {
-        this.uiDistPath = getDefaultUIDistPath();
-
         if (options?.customUIs) {
             for (const [toolName, html] of Object.entries(options.customUIs)) {
                 this.customUIs.set(toolName, html);
@@ -56,35 +19,29 @@ export class UIRegistry {
 
     /**
      * Get the UI HTML string for a tool.
-     * Returns the custom UI if provided, otherwise loads the default from disk.
-     * @param toolName The name of the tool
+     * @param toolName The name of the tool (kebab-case, e.g., "list-databases")
      * @returns The HTML string, or undefined if no UI exists for this tool
      */
     get(toolName: string): string | undefined {
-        if (this.customUIs.has(toolName)) {
-            return this.customUIs.get(toolName);
-        }
+        return this.customUIs.get(toolName) ?? uiHtml[toolName];
+    }
 
-        const componentName = uiMap[toolName];
-        if (!componentName) {
-            return undefined;
-        }
+    /**
+     * Check if a UI exists for a tool.
+     * @param toolName The name of the tool
+     * @returns True if a UI exists (custom or built-in)
+     */
+    has(toolName: string): boolean {
+        return this.customUIs.has(toolName) || toolName in uiHtml;
+    }
 
-        if (this.cache.has(toolName)) {
-            return this.cache.get(toolName);
-        }
-
-        const filePath = join(this.uiDistPath, `${componentName}.html`);
-        if (!existsSync(filePath)) {
-            return undefined;
-        }
-
-        try {
-            const html = readFileSync(filePath, "utf-8");
-            this.cache.set(toolName, html);
-            return html;
-        } catch {
-            return undefined;
-        }
+    /**
+     * Get all available tool names that have UIs.
+     * @returns Array of tool names
+     */
+    getAvailableTools(): string[] {
+        const builtIn = Object.keys(uiHtml);
+        const custom = Array.from(this.customUIs.keys());
+        return [...new Set([...builtIn, ...custom])];
     }
 }

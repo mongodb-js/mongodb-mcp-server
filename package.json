@@ -63,7 +63,7 @@
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build:ui": "vite build --config vite.ui.config.ts",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
-    "build": "pnpm run build:clean && concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:ui && pnpm run build:universal-package",
+    "build": "pnpm run build:clean && pnpm run build:ui && concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\"",
