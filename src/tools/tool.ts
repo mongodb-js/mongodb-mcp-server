@@ -282,16 +282,6 @@ export abstract class ToolBase {
     /**
      * Optional Zod schema defining the tool's structured output.
      *
-     * When defined:
-     * 1. The MCP SDK will validate `structuredContent` against this schema
-     * 2. If the tool has a registered UI component, the base class will validate
-     *    `structuredContent` before creating a UIResource. If validation fails,
-     *    the UI is skipped and only the text result is returned.
-     *
-     * This enables a clean separation: tools define their output schema and return
-     * structured data, while the base class handles validation and UI integration
-     * automatically.
-     *
      * @example
      * ```typescript
      * protected outputSchema = {
@@ -732,14 +722,7 @@ export abstract class ToolBase {
     }
 
     /**
-     * Automatically appends a UIResource to the tool result if:
-     * 1. The tool has a registered UI component
-     * 2. The result contains `structuredContent`
-     * 3. If `outputSchema` is defined, `structuredContent` must validate against it
-     *
-     * This method is called automatically after `execute()` in the `register()` callback.
-     * Tools don't need to call this directly - they just need to return `structuredContent`
-     * in their result and the base class handles the rest.
+     * Appends a UIResource to the tool result.
      *
      * @param result - The result from the tool's `execute()` method
      * @returns The result with UIResource appended if conditions are met, otherwise unchanged
