@@ -24,6 +24,7 @@ function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | null> {
 describe("ToolBase", () => {
     let mockSession: Session;
     let mockLogger: CompositeLogger;
+    let mockLoggerWarning: ReturnType<typeof vi.fn>;
     let mockConfig: UserConfig;
     let mockTelemetry: Telemetry;
     let mockElicitation: Elicitation;
@@ -31,10 +32,11 @@ describe("ToolBase", () => {
     let testTool: TestTool;
 
     beforeEach(() => {
+        mockLoggerWarning = vi.fn();
         mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
-            warning: vi.fn(),
+            warning: mockLoggerWarning,
             error: vi.fn(),
         } as unknown as CompositeLogger;
 
@@ -267,12 +269,14 @@ describe("ToolBase", () => {
 
     describe("appendUIResource", () => {
         let mockUIRegistry: UIRegistry;
+        let mockUIRegistryGet: ReturnType<typeof vi.fn>;
         let toolWithUI: TestToolWithOutputSchema;
         let mockCallback: ToolCallback<(typeof toolWithUI)["argsShape"]>;
 
         beforeEach(() => {
+            mockUIRegistryGet = vi.fn();
             mockUIRegistry = {
-                get: vi.fn(),
+                get: mockUIRegistryGet,
                 has: vi.fn(),
                 getAvailableTools: vi.fn(),
             } as unknown as UIRegistry;
@@ -333,7 +337,7 @@ describe("ToolBase", () => {
             const result = await mockCallback({ input: "test" }, {} as never);
 
             expect(result.content).toHaveLength(1);
-            expect(mockUIRegistry.get).toHaveBeenCalledWith("test-tool-with-output-schema");
+            expect(mockUIRegistryGet).toHaveBeenCalledWith("test-tool-with-output-schema");
         });
 
         it("should not append UIResource when structuredContent is missing", async () => {
@@ -347,7 +351,7 @@ describe("ToolBase", () => {
             );
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
 
-            let noStructuredCallback: ToolCallback<ZodRawShape>;
+            let noStructuredCallback: ToolCallback<ZodRawShape> | undefined;
             const mockServer = {
                 mcpServer: {
                     registerTool: (
@@ -362,7 +366,8 @@ describe("ToolBase", () => {
             };
             toolWithoutStructured.register(mockServer as unknown as Server);
 
-            const result = await noStructuredCallback!({ input: "test" }, {} as never);
+            expectDefined(noStructuredCallback);
+            const result = await noStructuredCallback({ input: "test" }, {} as never);
 
             expect(result.content).toHaveLength(1);
             expect(result.structuredContent).toBeUndefined();
@@ -379,7 +384,7 @@ describe("ToolBase", () => {
             );
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
 
-            let invalidCallback: ToolCallback<ZodRawShape>;
+            let invalidCallback: ToolCallback<ZodRawShape> | undefined;
             const mockServer = {
                 mcpServer: {
                     registerTool: (
@@ -394,10 +399,11 @@ describe("ToolBase", () => {
             };
             toolWithInvalidOutput.register(mockServer as unknown as Server);
 
-            const result = await invalidCallback!({ input: "test" }, {} as never);
+            expectDefined(invalidCallback);
+            const result = await invalidCallback({ input: "test" }, {} as never);
 
             expect(result.content).toHaveLength(1);
-            expect(mockLogger.warning).toHaveBeenCalled();
+            expect(mockLoggerWarning).toHaveBeenCalled();
         });
 
         it("should append UIResource correctly when all conditions are met", async () => {
