@@ -7,7 +7,7 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import vitestPlugin from "@vitest/eslint-plugin";
 import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
-const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
+const testFiles = ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.ts", "tests/**/*.tsx"];
 
 const files = [...testFiles, "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts"];
 
