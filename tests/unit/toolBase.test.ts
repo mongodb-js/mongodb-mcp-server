@@ -13,8 +13,13 @@ import type { CompositeLogger } from "../../src/common/logger.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";
 import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types.js";
-import { expectDefined } from "../integration/helpers.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
+import { UIRegistry } from "../../src/ui/registry/index.js";
+
+function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | null> {
+    expect(arg).toBeDefined();
+    expect(arg).not.toBeNull();
+}
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -258,7 +263,233 @@ describe("ToolBase", () => {
             }
         });
     });
+
+    describe("appendUIResource", () => {
+        let mockUIRegistry: UIRegistry;
+        let toolWithUI: TestToolWithOutputSchema;
+        let mockCallback: ToolCallback<(typeof toolWithUI)["argsShape"]>;
+
+        beforeEach(() => {
+            mockUIRegistry = {
+                get: vi.fn(),
+                has: vi.fn(),
+                getAvailableTools: vi.fn(),
+            } as unknown as UIRegistry;
+        });
+
+        function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
+            mockConfig.previewFeatures = previewFeatures;
+            const constructorParams: ToolConstructorParams = {
+                category: TestToolWithOutputSchema.category,
+                operationType: TestToolWithOutputSchema.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                uiRegistry: mockUIRegistry,
+            };
+            return new TestToolWithOutputSchema(constructorParams);
+        }
+
+        function registerTool(tool: TestToolWithOutputSchema): void {
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: {
+                            description: string;
+                            inputSchema: ZodRawShape;
+                            outputSchema?: ZodRawShape;
+                            annotations: ToolAnnotations;
+                        },
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        mockCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            tool.register(mockServer as unknown as Server);
+        }
+
+        it("should not append UIResource when mcpUI feature is disabled", async () => {
+            toolWithUI = createToolWithUI([]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(1);
+            expect(result.content[0]).toEqual({ type: "text", text: "Tool with output schema executed" });
+            expect(result.content.some((c: { type: string }) => c.type === "resource")).toBe(false);
+        });
+
+        it("should not append UIResource when no UI is registered for the tool", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue(undefined);
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(1);
+            expect(mockUIRegistry.get).toHaveBeenCalledWith("test-tool-with-output-schema");
+        });
+
+        it("should not append UIResource when structuredContent is missing", async () => {
+            const toolWithoutStructured = createToolWithoutStructuredContent(
+                ["mcpUI"],
+                mockSession,
+                mockConfig,
+                mockTelemetry,
+                mockElicitation,
+                mockUIRegistry
+            );
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+
+            let noStructuredCallback: ToolCallback<ZodRawShape>;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: unknown,
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        noStructuredCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            toolWithoutStructured.register(mockServer as unknown as Server);
+
+            const result = await noStructuredCallback!({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(1);
+            expect(result.structuredContent).toBeUndefined();
+        });
+
+        it("should not append UIResource when outputSchema validation fails", async () => {
+            const toolWithInvalidOutput = createToolWithInvalidStructuredContent(
+                ["mcpUI"],
+                mockSession,
+                mockConfig,
+                mockTelemetry,
+                mockElicitation,
+                mockUIRegistry
+            );
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+
+            let invalidCallback: ToolCallback<ZodRawShape>;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: unknown,
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        invalidCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            toolWithInvalidOutput.register(mockServer as unknown as Server);
+
+            const result = await invalidCallback!({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(1);
+            expect(mockLogger.warning).toHaveBeenCalled();
+        });
+
+        it("should append UIResource correctly when all conditions are met", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(2);
+            expect(result.content[0]).toEqual({ type: "text", text: "Tool with output schema executed" });
+
+            const uiResource = result.content[1] as {
+                type: string;
+                resource: { uri: string; text: string; mimeType: string; _meta?: Record<string, unknown> };
+            };
+            expect(uiResource.type).toBe("resource");
+            expect(uiResource.resource.uri).toMatch(/^ui:\/\/test-tool-with-output-schema\/\d+$/);
+            expect(uiResource.resource.text).toBe("<html>test UI</html>");
+            expect(uiResource.resource.mimeType).toBe("text/html");
+            expect(uiResource.resource._meta).toEqual({
+                "mcpui.dev/ui-initial-render-data": { value: "test", count: 42 },
+            });
+        });
+
+        it("should use structuredContent as initial-render-data in UIResource metadata", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>custom UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "custom-input" }, {} as never);
+
+            const uiResource = result.content[1] as { resource: { _meta?: Record<string, unknown> } };
+            expect(uiResource.resource._meta?.["mcpui.dev/ui-initial-render-data"]).toEqual({
+                value: "custom-input",
+                count: 42,
+            });
+        });
+
+        it("should preserve original result properties when appending UIResource", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.structuredContent).toEqual({ value: "test", count: 42 });
+            expect(result.isError).toBeUndefined();
+        });
+    });
 });
+
+function createToolWithoutStructuredContent(
+    previewFeatures: PreviewFeature[],
+    mockSession: Session,
+    mockConfig: UserConfig,
+    mockTelemetry: Telemetry,
+    mockElicitation: Elicitation,
+    mockUIRegistry: UIRegistry
+): TestToolWithoutStructuredContent {
+    mockConfig.previewFeatures = previewFeatures;
+    const constructorParams: ToolConstructorParams = {
+        category: TestToolWithoutStructuredContent.category,
+        operationType: TestToolWithoutStructuredContent.operationType,
+        session: mockSession,
+        config: mockConfig,
+        telemetry: mockTelemetry,
+        elicitation: mockElicitation,
+        uiRegistry: mockUIRegistry,
+    };
+    return new TestToolWithoutStructuredContent(constructorParams);
+}
+
+function createToolWithInvalidStructuredContent(
+    previewFeatures: PreviewFeature[],
+    mockSession: Session,
+    mockConfig: UserConfig,
+    mockTelemetry: Telemetry,
+    mockElicitation: Elicitation,
+    mockUIRegistry: UIRegistry
+): TestToolWithInvalidStructuredContent {
+    mockConfig.previewFeatures = previewFeatures;
+    const constructorParams: ToolConstructorParams = {
+        category: TestToolWithInvalidStructuredContent.category,
+        operationType: TestToolWithInvalidStructuredContent.operationType,
+        session: mockSession,
+        config: mockConfig,
+        telemetry: mockTelemetry,
+        elicitation: mockElicitation,
+        uiRegistry: mockUIRegistry,
+    };
+    return new TestToolWithInvalidStructuredContent(constructorParams);
+}
 
 class TestTool extends ToolBase {
     public name = "test-tool";
@@ -292,6 +523,99 @@ class TestTool extends ToolBase {
             } as TelemetryToolMetadata;
         }
 
+        return {};
+    }
+}
+
+class TestToolWithOutputSchema extends ToolBase {
+    public name = "test-tool-with-output-schema";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "metadata";
+    protected description = "A test tool with output schema";
+    protected argsShape = {
+        input: z.string().describe("Test input"),
+    };
+    protected override outputSchema = {
+        value: z.string(),
+        count: z.number(),
+    };
+
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [
+                {
+                    type: "text",
+                    text: "Tool with output schema executed",
+                },
+            ],
+            structuredContent: {
+                value: args.input,
+                count: 42,
+            },
+        });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+class TestToolWithoutStructuredContent extends ToolBase {
+    public name = "test-tool-without-structured";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "metadata";
+    protected description = "A test tool without structured content";
+    protected argsShape = {
+        input: z.string().describe("Test input"),
+    };
+    protected override outputSchema = {
+        value: z.string(),
+    };
+
+    protected async execute(): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [
+                {
+                    type: "text",
+                    text: "Tool without structured content executed",
+                },
+            ],
+        });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+class TestToolWithInvalidStructuredContent extends ToolBase {
+    public name = "test-tool-with-invalid-structured";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "metadata";
+    protected description = "A test tool with invalid structured content";
+    protected argsShape = {
+        input: z.string().describe("Test input"),
+    };
+    protected override outputSchema = {
+        value: z.string(),
+        requiredField: z.number(),
+    };
+
+    protected async execute(): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [
+                {
+                    type: "text",
+                    text: "Tool with invalid structured content executed",
+                },
+            ],
+            structuredContent: {
+                value: "test",
+            },
+        });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
         return {};
     }
 }
