@@ -101,6 +101,47 @@ jobs:
         run: |
           gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }} ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
 
+      - name: Wait for package to be available on npm
+        run: |
+          PACKAGE_NAME=$(jq -r '.name' < package.json)
+          VERSION="${{ needs.check.outputs.VERSION }}"
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
+
+          echo "Waiting for ${PACKAGE_NAME}@${VERSION} to be available on npm..."
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if npm view "${PACKAGE_NAME}@${VERSION}" version >/dev/null 2>&1; then
+              echo "✓ Package ${PACKAGE_NAME}@${VERSION} is now available on npm"
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_ATTEMPTS: Package not yet available, waiting ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "::error::Package ${PACKAGE_NAME}@${VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+          exit 1
+
+  docker-push:
+    needs: [check, publish]
+    uses: ./.github/actions/docker-publish.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  mcp-publish:
+    runs-on: ubuntu-latest
+    environment: Production
+    permissions:
+      id-token: write
+    needs: [check, docker-build]
+    if: needs.check.outputs.VERSION_EXISTS == 'false'
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - name: Install MCP Publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
