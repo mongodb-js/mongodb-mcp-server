@@ -124,7 +124,7 @@ jobs:
 
   docker-push:
     needs: [check, publish]
-    uses: ./.github/actions/docker-publish.yml
+    uses: ./.github/workflows/docker-publish.yml
     permissions: {}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -135,7 +135,7 @@ jobs:
     environment: Production
     permissions:
       id-token: write
-    needs: [check, docker-build]
+    needs: [check, docker-push]
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
