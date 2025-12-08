@@ -50,7 +50,7 @@ describe("useRenderData", () => {
         expect(result.current.error).toBeNull();
     });
 
-    it("should ignore messages with different type", async () => {
+    it("should ignore messages with different type", () => {
         const { result } = renderHook(() => useRenderData());
 
         act(() => {

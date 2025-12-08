@@ -51,7 +51,7 @@ describeWithMongoDB(
 describeWithMongoDB(
     "mcpUI feature with feature enabled",
     (integration) => {
-        describe("list-databases tool", () => {
+        describe("list-databases tool with mcpUI enabled", () => {
             it("should return UIResource content when mcpUI feature is enabled", async () => {
                 await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
