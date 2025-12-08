@@ -3,7 +3,7 @@
   "compilerOptions": {
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node", "@testing-library/jest-dom"]
+    "types": ["node"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
 }
