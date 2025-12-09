@@ -304,12 +304,6 @@ export abstract class ToolBase {
      */
     protected outputSchema?: ZodRawShape;
 
-    /**
-     * Optional Zod schema for structured output when mcpUI feature is enabled.
-     * Takes precedence over `outputSchema` when defined and mcpUI is active.
-     */
-    protected uiOutputSchema?: ZodRawShape;
-
     private registeredTool: RegisteredTool | undefined;
 
     protected get annotations(): ToolAnnotations {
@@ -535,9 +529,7 @@ export abstract class ToolBase {
                 {
                     description: this.description,
                     inputSchema: this.argsShape,
-                    outputSchema: this.isFeatureEnabled("mcpUI")
-                        ? (this.uiOutputSchema ?? this.outputSchema)
-                        : this.outputSchema,
+                    outputSchema: this.outputSchema,
                     annotations: this.annotations,
                 },
                 callback
