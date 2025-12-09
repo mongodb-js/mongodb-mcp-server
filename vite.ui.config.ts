@@ -2,9 +2,8 @@ import { defineConfig, Plugin, PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { join, resolve, dirname } from "path";
-import { uiMap } from "./src/ui/registry/uiMap.js";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "fs";
+import { join, resolve } from "path";
 
 const componentsDir = resolve(__dirname, "src/ui/components");
 // Use node_modules/.cache for generated HTML entries - these are build artifacts, not source files
@@ -14,14 +13,37 @@ const mountPath = resolve(__dirname, "src/ui/build/mount.tsx");
 const generatedDir = resolve(__dirname, "src/ui/generated");
 const uiDistPath = resolve(__dirname, "dist/ui");
 
-// Unique component names from uiMap - only these will be built
-const components = [...new Set(Object.values(uiMap))];
+// Converts PascalCase to kebab-case: "ListDatabases" -> "list-databases"
+function toKebabCase(pascalCase: string): string {
+    return pascalCase
+        .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+        .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
+        .toLowerCase();
+}
+
+// Discovers component directories and builds tool name mappings
+function discoverComponents(): { components: string[]; toolToComponentMap: Record<string, string> } {
+    const components: string[] = [];
+    const toolToComponentMap: Record<string, string> = {};
+
+    for (const entry of readdirSync(componentsDir)) {
+        const entryPath = join(componentsDir, entry);
+        const indexPath = join(entryPath, "index.ts");
+
+        if (statSync(entryPath).isDirectory() && existsSync(indexPath)) {
+            components.push(entry);
+            toolToComponentMap[toKebabCase(entry)] = entry;
+        }
+    }
+
+    return { components, toolToComponentMap };
+}
+
+const { components, toolToComponentMap } = discoverComponents();
 
 /**
- * Vite plugin that generates HTML entry files for each mapped component
+ * Vite plugin that generates HTML entry files for each discovered component
  * based on the template.html file.
- *
- * Only builds components that are referenced in uiMap.
  */
 function generateHtmlEntries(): Plugin {
     return {
@@ -34,14 +56,6 @@ function generateHtmlEntries(): Plugin {
             }
 
             for (const componentName of components) {
-                // Verify the component exists
-                const componentPath = join(componentsDir, componentName, "index.ts");
-                if (!existsSync(componentPath)) {
-                    throw new Error(
-                        `Component "${componentName}" referenced in uiMap but not found at ${componentPath}`
-                    );
-                }
-
                 const html = template
                     .replace("{{COMPONENT_NAME}}", componentName)
                     .replace("{{TITLE}}", componentName.replace(/([A-Z])/g, " $1").trim()) // "ListDatabases" -> "List Databases"
@@ -57,8 +71,6 @@ function generateHtmlEntries(): Plugin {
 
 /**
  * Vite plugin that generates per-tool UI modules after the build completes.
- *
- * Uses the uiMap to map tool names to component HTML files.
  */
 function generateUIModule(): Plugin {
     return {
@@ -79,7 +91,7 @@ function generateUIModule(): Plugin {
 
             const generatedTools: string[] = [];
 
-            for (const [toolName, componentName] of Object.entries(uiMap)) {
+            for (const [toolName, componentName] of Object.entries(toolToComponentMap)) {
                 const htmlFile = join(uiDistPath, `${componentName}.html`);
                 if (!existsSync(htmlFile)) {
                     console.warn(
