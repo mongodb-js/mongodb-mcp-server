@@ -87,10 +87,12 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@ai-sdk/azure": "^2.0.53",
+    "@emotion/css": "^11.13.5",
     "@ai-sdk/google": "^2.0.23",
     "@ai-sdk/mcp": "^0.0.8",
     "@ai-sdk/openai": "^2.0.52",
     "@eslint/js": "^9.34.0",
+    "@leafygreen-ui/table": "^15.2.2",
     "@modelcontextprotocol/inspector": "^0.17.1",
     "@mongodb-js/oidc-mock-provider": "^0.12.0",
     "@redocly/cli": "^2.0.8",
@@ -134,8 +136,6 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@emotion/css": "^11.13.5",
-    "@leafygreen-ui/table": "^15.2.2",
     "@mcp-ui/server": "^5.13.1",
     "@modelcontextprotocol/sdk": "^1.24.2",
     "@mongodb-js/device-id": "^0.3.1",
