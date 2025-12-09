@@ -107,7 +107,7 @@ function generateUIModule(): Plugin {
  * Tool: ${toolName}
  * Component: ${componentName}
  */
-export default ${JSON.stringify(html)};
+export const ${componentName}Html = ${JSON.stringify(html)};
 `;
                 writeFileSync(join(toolsDir, `${toolName}.ts`), toolModuleContent);
                 generatedTools.push(toolName);
