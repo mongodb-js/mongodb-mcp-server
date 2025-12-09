@@ -28,7 +28,7 @@ export class UIRegistry {
         }
 
         try {
-            const module = (await import(`../generated/tools/${toolName}.js`)) as { default: string };
+            const module = (await import(`../lib/tools/${toolName}.js`)) as { default: string };
             this.cache.set(toolName, module.default);
             return module.default;
         } catch {

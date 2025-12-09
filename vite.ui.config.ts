@@ -10,7 +10,7 @@ const componentsDir = resolve(__dirname, "src/ui/components");
 const entriesDir = resolve(__dirname, "node_modules/.cache/mongodb-mcp-server/ui-entries");
 const templatePath = resolve(__dirname, "src/ui/build/template.html");
 const mountPath = resolve(__dirname, "src/ui/build/mount.tsx");
-const generatedDir = resolve(__dirname, "src/ui/generated");
+const generatedDir = resolve(__dirname, "src/ui/lib");
 const uiDistPath = resolve(__dirname, "dist/ui");
 
 // Converts PascalCase to kebab-case: "ListDatabases" -> "list-databases"
