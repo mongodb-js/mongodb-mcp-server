@@ -482,7 +482,7 @@ export abstract class ToolBase {
                 });
 
                 const result = await this.execute(args, { signal });
-                const finalResult = this.appendUIResource(result);
+                const finalResult = await this.appendUIResource(result);
 
                 this.emitToolEvent(args, { startTime, result: finalResult });
 
@@ -714,44 +714,23 @@ export abstract class ToolBase {
     }
 
     /**
-     * Get the UI HTML string for this tool from the registry.
-     * Returns the registered UI HTML, or undefined if no UI exists for this tool.
-     */
-    protected getUI(): string | undefined {
-        return this.uiRegistry?.get(this.name);
-    }
-
-    /**
      * Appends a UIResource to the tool result.
      *
      * @param result - The result from the tool's `execute()` method
      * @returns The result with UIResource appended if conditions are met, otherwise unchanged
      */
-    private appendUIResource(result: CallToolResult): CallToolResult {
+    private async appendUIResource(result: CallToolResult): Promise<CallToolResult> {
         if (!this.isFeatureEnabled("mcpUI")) {
             return result;
         }
 
-        const uiHtml = this.getUI();
+        const uiHtml = await this.uiRegistry?.get(this.name);
         if (!uiHtml || !result.structuredContent) {
             return result;
         }
 
-        if (this.outputSchema) {
-            const schema = z.object(this.outputSchema);
-            const validation = schema.safeParse(result.structuredContent);
-            if (!validation.success) {
-                this.session.logger.warning({
-                    id: LogId.toolExecute,
-                    context: `tool - ${this.name}`,
-                    message: `structuredContent failed validation against outputSchema, skipping UI resource: ${validation.error.message}`,
-                });
-                return result;
-            }
-        }
-
         const uiResource = createUIResource({
-            uri: `ui://${this.name}/${Date.now()}`,
+            uri: `ui://${this.name}`,
             content: {
                 type: "rawHtml",
                 htmlString: uiHtml,

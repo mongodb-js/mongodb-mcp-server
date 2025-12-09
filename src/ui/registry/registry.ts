@@ -1,13 +1,9 @@
-import { uiHtml } from "../generated/uiHtml.js";
-
 /**
  * UI Registry that manages bundled UI HTML strings for tools.
- *
- * The default UIs are embedded at build time via the generated uiHtml module.
- * Custom UIs can be provided at runtime to override or extend the defaults.
  */
 export class UIRegistry {
     private customUIs: Map<string, string> = new Map();
+    private cache: Map<string, string> = new Map();
 
     constructor(options?: { customUIs?: Record<string, string> }) {
         if (options?.customUIs) {
@@ -18,30 +14,25 @@ export class UIRegistry {
     }
 
     /**
-     * Get the UI HTML string for a tool.
-     * @param toolName The name of the tool (kebab-case, e.g., "list-databases")
-     * @returns The HTML string, or undefined if no UI exists for this tool
+     * Gets the UI HTML string for a tool, or null if none exists.
      */
-    get(toolName: string): string | undefined {
-        return this.customUIs.get(toolName) ?? uiHtml[toolName];
-    }
+    async get(toolName: string): Promise<string | null> {
+        const customUI = this.customUIs.get(toolName);
+        if (customUI !== undefined) {
+            return customUI;
+        }
 
-    /**
-     * Check if a UI exists for a tool.
-     * @param toolName The name of the tool
-     * @returns True if a UI exists (custom or built-in)
-     */
-    has(toolName: string): boolean {
-        return this.customUIs.has(toolName) || toolName in uiHtml;
-    }
+        const cached = this.cache.get(toolName);
+        if (cached !== undefined) {
+            return cached;
+        }
 
-    /**
-     * Get all available tool names that have UIs.
-     * @returns Array of tool names
-     */
-    getAvailableTools(): string[] {
-        const builtIn = Object.keys(uiHtml);
-        const custom = Array.from(this.customUIs.keys());
-        return [...new Set([...builtIn, ...custom])];
+        try {
+            const module = (await import(`../generated/tools/${toolName}.js`)) as { default: string };
+            this.cache.set(toolName, module.default);
+            return module.default;
+        } catch {
+            return null;
+        }
     }
 }
