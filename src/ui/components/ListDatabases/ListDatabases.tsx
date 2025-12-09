@@ -11,7 +11,7 @@ import {
     TableHead,
 } from "@leafygreen-ui/table";
 import { tableStyles } from "./ListDatabases.styles.js";
-import { ListDatabasesOutputSchema, type ListDatabasesOutput } from "./schema.js";
+import { ListDatabasesOutputSchema, type ListDatabasesOutput } from "../../../schemas/listDatabases.js";
 
 const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">>;
 const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;

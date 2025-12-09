@@ -3,7 +3,7 @@ import { MongoDBToolBase } from "../mongodbTool.js";
 import type * as bson from "bson";
 import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import { ListDatabasesOutputSchema, type ListDatabasesOutput } from "../../../ui/components/ListDatabases/schema.js";
+import { ListDatabasesOutputSchema, type ListDatabasesOutput } from "../../../schemas/listDatabases.js";
 
 export { ListDatabasesOutputSchema, type ListDatabasesOutput };
 

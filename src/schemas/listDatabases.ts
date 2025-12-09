@@ -2,6 +2,8 @@ import { z } from "zod";
 
 /**
  * Shared schema for the list-databases tool output.
+ * This schema is used by both the tool (for MCP protocol validation)
+ * and the UI component (for rendering validation).
  */
 export const ListDatabasesOutputSchema = {
     databases: z.array(
