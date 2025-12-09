@@ -11,7 +11,7 @@ export class ListDatabasesTool extends MongoDBToolBase {
     public name = "list-databases";
     protected description = "List all databases for a MongoDB connection";
     protected argsShape = {};
-    protected override outputSchema = ListDatabasesOutputSchema;
+    protected override uiOutputSchema = ListDatabasesOutputSchema;
     static operationType: OperationType = "metadata";
 
     protected async execute(): Promise<CallToolResult> {

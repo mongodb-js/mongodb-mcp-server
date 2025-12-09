@@ -282,6 +282,9 @@ export abstract class ToolBase {
     /**
      * Optional Zod schema defining the tool's structured output.
      *
+     * This schema is registered with the MCP server and used to validate
+     * `structuredContent` in the tool's response.
+     *
      * @example
      * ```typescript
      * protected outputSchema = {
@@ -299,6 +302,12 @@ export abstract class ToolBase {
      * ```
      */
     protected outputSchema?: ZodRawShape;
+
+    /**
+     * Optional Zod schema for structured output when mcpUI feature is enabled.
+     * Takes precedence over `outputSchema` when defined and mcpUI is active.
+     */
+    protected uiOutputSchema?: ZodRawShape;
 
     private registeredTool: RegisteredTool | undefined;
 
@@ -525,7 +534,9 @@ export abstract class ToolBase {
                 {
                     description: this.description,
                     inputSchema: this.argsShape,
-                    outputSchema: this.outputSchema,
+                    outputSchema: this.isFeatureEnabled("mcpUI")
+                        ? (this.uiOutputSchema ?? this.outputSchema)
+                        : this.outputSchema,
                     annotations: this.annotations,
                 },
                 callback
