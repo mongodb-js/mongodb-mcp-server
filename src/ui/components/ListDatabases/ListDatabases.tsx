@@ -1,5 +1,4 @@
 import React from "react";
-import { z } from "zod";
 import { useRenderData } from "../../hooks/index.js";
 import {
     Cell as LGCell,
@@ -11,13 +10,11 @@ import {
     TableHead,
 } from "@leafygreen-ui/table";
 import { tableStyles } from "./ListDatabases.styles.js";
-import { ListDatabasesOutputSchema, type ListDatabasesOutput } from "../../../schemas/listDatabases.js";
+import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
 
 const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">>;
 const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;
 const Row = LGRow as React.FC<React.ComponentPropsWithoutRef<"tr">>;
-
-const ListDatabasesDataSchema = z.object(ListDatabasesOutputSchema);
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return "0 Bytes";
@@ -40,10 +37,7 @@ export const ListDatabases = (): React.ReactElement | null => {
         return <div>Error: {error}</div>;
     }
 
-    const validationResult = ListDatabasesDataSchema.safeParse(data);
-
-    if (!validationResult.success) {
-        console.error("[ListDatabases] Validation error:", validationResult.error);
+    if (!data) {
         return null;
     }
 
