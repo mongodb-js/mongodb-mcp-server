@@ -485,10 +485,10 @@ export abstract class ToolBase {
                     noRedaction: true,
                 });
 
-                const result = await this.execute(args, { signal });
-                const finalResult = await this.appendUIResource(result);
+                const toolCallResult = await this.execute(args, { signal });
+                const result = await this.appendUIResource(toolCallResult);
 
-                this.emitToolEvent(args, { startTime, result: finalResult });
+                this.emitToolEvent(args, { startTime, result });
 
                 this.session.logger.debug({
                     id: LogId.toolExecute,
@@ -496,7 +496,7 @@ export abstract class ToolBase {
                     message: `Executed tool ${this.name}`,
                     noRedaction: true,
                 });
-                return finalResult;
+                return result;
             } catch (error: unknown) {
                 this.session.logger.error({
                     id: LogId.toolExecuteFailure,
