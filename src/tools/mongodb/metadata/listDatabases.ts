@@ -5,10 +5,6 @@ import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
-/**
- * Schema for the list-databases tool output.
- * Used by the MCP protocol for structured content validation.
- */
 export const ListDatabasesOutputSchema = {
     databases: z.array(
         z.object({
@@ -19,7 +15,6 @@ export const ListDatabasesOutputSchema = {
     totalCount: z.number(),
 };
 
-/** Type derived from the output schema */
 export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutputSchema>>;
 
 export class ListDatabasesTool extends MongoDBToolBase {

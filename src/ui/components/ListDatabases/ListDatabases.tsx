@@ -50,7 +50,7 @@ export const ListDatabases = (): React.ReactElement | null => {
                 </HeaderRow>
             </TableHead>
             <TableBody>
-                {data?.databases.map((db) => (
+                {data.databases.map((db) => (
                     <Row key={db.name}>
                         <Cell>{db.name}</Cell>
                         <Cell>{formatBytes(db.size)}</Cell>
