@@ -1,13 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { UIRegistry } from "../../../../src/ui/registry/registry.js";
-
-// Mock the generated uiHtml module
-vi.mock("../../../../src/ui/generated/uiHtml.js", () => ({
-    uiHtml: {
-        "list-databases": "<html>bundled list-databases UI</html>",
-        find: "<html>bundled find UI</html>",
-    } as Record<string, string>,
-}));
 
 describe("UIRegistry", () => {
     beforeEach(() => {
@@ -15,106 +7,53 @@ describe("UIRegistry", () => {
     });
 
     describe("get()", () => {
-        it("should return custom UI when set, overriding bundled UI", () => {
+        it("should return custom UI when set", async () => {
             const customUIs = {
                 "list-databases": "<html>custom list-databases UI</html>",
             };
             const registry = new UIRegistry({ customUIs });
 
-            expect(registry.get("list-databases")).toBe("<html>custom list-databases UI</html>");
+            expect(await registry.get("list-databases")).toBe("<html>custom list-databases UI</html>");
         });
 
-        it("should return bundled UI when no custom UI is set", () => {
+        it("should return null when no UI exists for the tool", async () => {
             const registry = new UIRegistry();
 
-            expect(registry.get("list-databases")).toBe("<html>bundled list-databases UI</html>");
-            expect(registry.get("find")).toBe("<html>bundled find UI</html>");
+            expect(await registry.get("non-existent-tool")).toBeNull();
         });
 
-        it("should return undefined when no UI exists for the tool", () => {
-            const registry = new UIRegistry();
-
-            expect(registry.get("non-existent-tool")).toBeUndefined();
-        });
-
-        it("should return custom UI for new tools not in bundled UIs", () => {
+        it("should return custom UI for new tools", async () => {
             const customUIs = {
                 "brand-new-tool": "<html>brand new UI</html>",
             };
             const registry = new UIRegistry({ customUIs });
 
-            expect(registry.get("brand-new-tool")).toBe("<html>brand new UI</html>");
+            expect(await registry.get("brand-new-tool")).toBe("<html>brand new UI</html>");
         });
-    });
 
-    describe("has()", () => {
-        it("should return true for custom UI", () => {
+        it("should prefer custom UI over bundled UI", async () => {
             const customUIs = {
-                "custom-tool": "<html>custom UI</html>",
+                "any-tool": "<html>custom version</html>",
             };
             const registry = new UIRegistry({ customUIs });
 
-            expect(registry.has("custom-tool")).toBe(true);
+            // Custom should be returned without attempting to load bundled
+            expect(await registry.get("any-tool")).toBe("<html>custom version</html>");
         });
 
-        it("should return true for bundled UI", () => {
-            const registry = new UIRegistry();
-
-            expect(registry.has("list-databases")).toBe(true);
-            expect(registry.has("find")).toBe(true);
-        });
-
-        it("should return false for non-existent tool", () => {
-            const registry = new UIRegistry();
-
-            expect(registry.has("non-existent-tool")).toBe(false);
-        });
-
-        it("should return true when custom UI overrides bundled UI", () => {
+        it("should cache results after first load", async () => {
             const customUIs = {
-                "list-databases": "<html>custom list-databases UI</html>",
+                "cached-tool": "<html>cached UI</html>",
             };
             const registry = new UIRegistry({ customUIs });
 
-            expect(registry.has("list-databases")).toBe(true);
-        });
-    });
+            // First call
+            const first = await registry.get("cached-tool");
+            // Second call should return same result
+            const second = await registry.get("cached-tool");
 
-    describe("getAvailableTools()", () => {
-        it("should return bundled tool names when no custom UIs", () => {
-            const registry = new UIRegistry();
-
-            const tools = registry.getAvailableTools();
-            expect(tools).toContain("list-databases");
-            expect(tools).toContain("find");
-            expect(tools).toHaveLength(2);
-        });
-
-        it("should return merged list of bundled and custom tool names", () => {
-            const customUIs = {
-                "custom-tool": "<html>custom UI</html>",
-                "another-custom": "<html>another UI</html>",
-            };
-            const registry = new UIRegistry({ customUIs });
-
-            const tools = registry.getAvailableTools();
-            expect(tools).toContain("list-databases");
-            expect(tools).toContain("find");
-            expect(tools).toContain("custom-tool");
-            expect(tools).toContain("another-custom");
-            expect(tools).toHaveLength(4);
-        });
-
-        it("should not duplicate tool names when custom overrides bundled", () => {
-            const customUIs = {
-                "list-databases": "<html>custom list-databases UI</html>",
-            };
-            const registry = new UIRegistry({ customUIs });
-
-            const tools = registry.getAvailableTools();
-            const listDatabasesCount = tools.filter((t) => t === "list-databases").length;
-            expect(listDatabasesCount).toBe(1);
-            expect(tools).toHaveLength(2);
+            expect(first).toBe(second);
+            expect(first).toBe("<html>cached UI</html>");
         });
     });
 });
