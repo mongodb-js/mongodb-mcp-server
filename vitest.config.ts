@@ -80,6 +80,15 @@ export default defineConfig({
                     hookTimeout: 7200000,
                 },
             },
+            {
+                extends: true,
+                test: {
+                    name: "ui-components",
+                    include: ["tests/unit/ui/**/*.test.tsx"],
+                    environment: "happy-dom",
+                    setupFiles: ["./tests/setup.ts", "./tests/setupReact.ts"],
+                },
+            },
         ],
     },
 });
