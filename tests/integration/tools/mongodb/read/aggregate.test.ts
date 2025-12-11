@@ -16,6 +16,7 @@ import {
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
+import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -383,8 +384,6 @@ describeWithMongoDB(
         getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
     }
 );
-
-import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 
 describeWithMongoDB(
     "aggregate tool with atlas search enabled",
@@ -920,6 +919,69 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                     "The aggregation resulted in 0 documents. Returning 0 documents."
                 );
             });
+        });
+
+        describe("outputDimension transformation", () => {
+            it.each([
+                { numDimensions: 2048, outputDimension: "2048" },
+                { numDimensions: 4096, outputDimension: "4096" },
+            ])(
+                "should successfully transform outputDimension string '$outputDimension' to number",
+                async ({ numDimensions, outputDimension }) => {
+                    await waitUntilSearchIsReady(integration.mongoClient());
+
+                    const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
+                    await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
+
+                    await createVectorSearchIndexAndWait(
+                        integration.mongoClient(),
+                        integration.randomDbName(),
+                        "databases",
+                        [
+                            {
+                                type: "vector",
+                                path: "description_embedding",
+                                numDimensions,
+                                similarity: "cosine",
+                                quantization: "none",
+                            },
+                        ]
+                    );
+
+                    await integration.connectMcpClient();
+                    const response = await integration.mcpClient().callTool({
+                        name: "aggregate",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "databases",
+                            pipeline: [
+                                {
+                                    $vectorSearch: {
+                                        index: "default",
+                                        path: "description_embedding",
+                                        queryVector: "example query",
+                                        numCandidates: 10,
+                                        limit: 10,
+                                        embeddingParameters: {
+                                            model: "voyage-3-large",
+                                            outputDimension, // Pass as string literal
+                                        },
+                                    },
+                                },
+                                {
+                                    $project: {
+                                        description_embedding: 0,
+                                    },
+                                },
+                            ],
+                        },
+                    });
+
+                    const responseContent = getResponseContent(response);
+                    // String should succeed and be transformed to number internally
+                    expect(responseContent).toContain("The aggregation resulted in");
+                }
+            );
         });
     },
     {
