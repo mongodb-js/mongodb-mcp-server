@@ -9,14 +9,19 @@ permissions:
 jobs:
   docker-push:
     uses: ./.github/workflows/docker-publish.yml
+    permissions:
+      contents: read
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
 
   handle-failure:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     needs: docker-push
-    if: ${{ failure() }}
+    if: ${{ always() && needs.docker-push.result == 'failure' }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         with:
