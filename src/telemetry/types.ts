@@ -45,6 +45,8 @@ export type ServerEventProperties = {
     read_only_mode?: TelemetryBoolSet;
     disabled_tools?: string[];
     confirmation_required_tools?: string[];
+    previewFeatures?: string[];
+    embeddingProviderConfigured?: boolean;
 };
 
 export type ServerEvent = TelemetryEvent<ServerEventProperties>;
