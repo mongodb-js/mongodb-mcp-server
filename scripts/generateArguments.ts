@@ -262,15 +262,15 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
 
 function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
     const rows = [
-        "| CLI Option                             | Environment Variable                                | Default                                                                     | Description                                                                                                                                                                                             |",
-        "| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
+        "| Option                                 | Default                                                                     | Description                                                                                                                                                                                             |",
+        "| -------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
     ];
 
     // Filter to only include options that are in the Zod schema (documented options)
     const documentedVars = argumentInfos.filter((v) => !v.description.startsWith("Configuration option:"));
 
     for (const argumentInfo of documentedVars) {
-        const cliOption = `\`${argumentInfo.configKey}\``;
+        const cliOption = `\`--${argumentInfo.configKey}\``;
         const envVarName = `\`${argumentInfo.name}\``;
 
         const defaultValue = argumentInfo.defaultValue;
@@ -302,7 +302,7 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
 
         const desc = argumentInfo.description.replace(/\|/g, "\\|"); // Escape pipes in description
         rows.push(
-            `| ${cliOption.padEnd(38)} | ${envVarName.padEnd(51)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
+            `| ${`${envVarName} or ${cliOption}`.padEnd(89)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
         );
     }
 
@@ -316,7 +316,7 @@ function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
     const newTable = generateReadmeConfigTable(envVars);
 
     // Find and replace the configuration options table
-    const tableRegex = /### Configuration Options\n\n\| CLI Option[\s\S]*?\n\n####/;
+    const tableRegex = /### Configuration Options\n\n\| Option[\s\S]*?\n\n####/;
     const replacement = `### Configuration Options\n\n${newTable}\n\n####`;
 
     content = content.replace(tableRegex, replacement);
