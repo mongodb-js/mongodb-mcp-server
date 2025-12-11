@@ -1,5 +1,6 @@
 dist
 node_modules
+
 .vscode/mcp.json
 .github/prompts/*
 
@@ -19,3 +20,6 @@ coverage
 # Development tool files
 .yalc
 yalc.lock
+
+# Generated UI files
+src/ui/lib

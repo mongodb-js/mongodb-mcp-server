@@ -22,6 +22,7 @@ import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
+import { UIRegistry } from "./ui/registry/index.js";
 
 export interface ServerOptions {
     session: Session;
@@ -61,6 +62,21 @@ export interface ServerOptions {
      * ```
      */
     tools?: ToolClass[];
+    /**
+     * Custom UIs for tools. Maps tool names to their HTML strings.
+     * Use this to add UIs to tools or replace the default bundled UIs.
+     *
+     * ```ts
+     * import { readFileSync } from 'fs';
+     * const server = new Server({
+     *     // ... other options
+     *     customUIs: {
+     *         'list-databases': readFileSync('./my-custom-ui.html', 'utf-8'),
+     *     }
+     * });
+     * ```
+     */
+    customUIs?: Record<string, string>;
 }
 
 export class Server {
@@ -72,6 +88,7 @@ export class Server {
     private readonly toolConstructors: ToolClass[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
+    public readonly uiRegistry: UIRegistry;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -90,6 +107,7 @@ export class Server {
         connectionErrorHandler,
         elicitation,
         tools,
+        customUIs,
     }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
@@ -99,6 +117,7 @@ export class Server {
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
+        this.uiRegistry = new UIRegistry({ customUIs });
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -257,6 +276,7 @@ export class Server {
                 config: this.userConfig,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
+                uiRegistry: this.uiRegistry,
             });
             if (tool.register(this)) {
                 this.tools.push(tool);
