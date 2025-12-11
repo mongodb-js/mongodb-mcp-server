@@ -14,9 +14,10 @@ import {
     getDataFromUntrustedContent,
     defaultTestConfig,
 } from "../../../helpers.js";
-import { beforeEach, afterEach, expect, it, describe } from "vitest";
+import { beforeEach, afterEach, expect, it, describe, vi } from "vitest";
 import { ObjectId } from "bson";
 import type { Collection } from "mongodb";
+import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 
 describeWithMongoDB("insertMany tool when search is disabled", (integration) => {
     validateToolMetadata(
@@ -237,6 +238,7 @@ describeWithMongoDB(
 
             afterEach(async () => {
                 await collection.drop();
+                vi.clearAllMocks();
             });
 
             it("generates embeddings for a single document with one field", async () => {
@@ -626,6 +628,42 @@ describeWithMongoDB(
                 expect((doc?.plotEmbeddings as number[]).length).toBe(1024);
                 // Verify embeddings are different for different text
                 expect(doc?.titleEmbeddings).not.toEqual(doc?.plotEmbeddings);
+            });
+
+            it("should emit tool event with auto-embedding usage metadata", async () => {
+                const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+                vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+                await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
+                    {
+                        type: "vector",
+                        path: "titleEmbeddings",
+                        numDimensions: 1024,
+                        similarity: "cosine",
+                        quantization: "scalar",
+                    },
+                ]);
+
+                const response = await integration.mcpClient().callTool({
+                    name: "insert-many",
+                    arguments: {
+                        database,
+                        collection: "test",
+                        documents: [{ title: "The Matrix" }],
+                        embeddingParameters: {
+                            model: "voyage-3.5-lite",
+                            input: [{ titleEmbeddings: "The Matrix" }],
+                        },
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain("Documents were inserted successfully.");
+
+                expect(mockEmitEvents).toHaveBeenCalled();
+                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                expectDefined(emittedEvent);
+                expect(emittedEvent.properties.embeddingsGeneratedBy).toBe("mcp");
             });
         });
     },

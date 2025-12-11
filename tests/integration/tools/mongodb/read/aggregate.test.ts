@@ -4,6 +4,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseContent,
     defaultTestConfig,
+    expectDefined,
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import {
@@ -17,6 +18,7 @@ import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
+import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -393,6 +395,10 @@ describeWithMongoDB(
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
+        afterEach(() => {
+            vi.clearAllMocks();
+        });
+
         validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
             ...databaseCollectionParameters,
             {
@@ -460,6 +466,50 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
             expect(responseContent).toContain(
                 `Error running aggregate: Could not find an index with name "non_existing" in namespace "${integration.randomDbName()}.databases".`
             );
+        });
+
+        it("should emit tool event with auto-embedding usage metadata", async () => {
+            const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+            vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+            await waitUntilSearchIsReady(integration.mongoClient());
+            await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "databases", [
+                {
+                    type: "vector",
+                    path: "description_embedding",
+                    numDimensions: 256,
+                    similarity: "cosine",
+                    quantization: "none",
+                },
+            ]);
+
+            await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "databases",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "default",
+                                path: "description_embedding",
+                                queryVector: "some data",
+                                numCandidates: 10,
+                                limit: 10,
+                                embeddingParameters: {
+                                    model: "voyage-3-large",
+                                    outputDimension: "256",
+                                },
+                            },
+                        },
+                    ],
+                },
+            });
+
+            expect(mockEmitEvents).toHaveBeenCalled();
+            const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+            expectDefined(emittedEvent);
+            expect(emittedEvent.properties.embeddingsGeneratedBy).toBe("mcp");
         });
 
         for (const [dataType, embedding] of Object.entries(DOCUMENT_EMBEDDINGS)) {

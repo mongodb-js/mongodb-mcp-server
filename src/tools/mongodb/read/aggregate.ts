@@ -17,6 +17,7 @@ import {
     assertVectorSearchFilterFieldsAreIndexed,
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
+import type { AutoEmbeddingsUsageMetadata, ConnectionMetadata } from "../../../telemetry/types.js";
 
 const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -343,5 +344,24 @@ Note to LLM: If the entire query result is required then use "export" tool to ex
 The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents. \
 Returning ${documents.length} documents${appliedLimitText ? ` ${appliedLimitText}` : "."}\
 `;
+    }
+
+    protected resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
+        const [maybeVectorStage] = args.pipeline;
+        if (
+            maybeVectorStage &&
+            (maybeVectorStage as z.infer<typeof VectorSearchStage>)?.["$vectorSearch"]?.embeddingParameters &&
+            this.config.voyageApiKey
+        ) {
+            return {
+                ...super.resolveTelemetryMetadata(args, { result }),
+                embeddingsGeneratedBy: "mcp",
+            };
+        } else {
+            return super.resolveTelemetryMetadata(args, { result });
+        }
     }
 }
