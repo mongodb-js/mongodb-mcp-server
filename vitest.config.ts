@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 // Shared exclusions for all projects
 // Ref: https://vitest.dev/config/#exclude
@@ -28,6 +28,7 @@ export default defineConfig({
         setupFiles: ["./tests/setup.ts"],
         coverage: {
             exclude: [
+                ...coverageConfigDefaults.exclude,
                 "node_modules",
                 "tests",
                 "dist",
