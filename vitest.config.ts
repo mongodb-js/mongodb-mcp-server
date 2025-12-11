@@ -34,7 +34,7 @@ export default defineConfig({
                 "vitest.config.ts",
                 "vite.ui.config.ts",
                 "scripts",
-                "src/ui/lib",
+                "src/ui",
             ],
             reporter: ["lcov"],
         },
