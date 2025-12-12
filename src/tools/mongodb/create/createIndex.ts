@@ -191,7 +191,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 break;
             case "vectorSearch":
                 {
-                    await this.ensureSearchIsSupported();
+                    await this.session.assertSearchSupported();
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -212,7 +212,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 break;
             case "search":
                 {
-                    await this.ensureSearchIsSupported();
+                    await this.session.assertSearchSupported();
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,

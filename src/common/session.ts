@@ -179,6 +179,25 @@ export class Session extends EventEmitter<SessionEvents> {
         }
     }
 
+    async isAutoEmbeddingIndexSupported(): Promise<boolean> {
+        const state = this.connectionManager.currentConnectionState;
+        if (state.tag === "connected") {
+            return await state.isAutoEmbeddingIndexSupported();
+        }
+
+        return false;
+    }
+
+    async assertAutoEmbeddingIndexSupported(): Promise<void> {
+        const isSearchSupported = await this.isSearchSupported();
+        if (!isSearchSupported) {
+            throw new MongoDBError(
+                ErrorCodes.AutoEmbeddingIndexNotSupported,
+                "The connected search management service does not support creating auto-embedding indexes."
+            );
+        }
+    }
+
     get serviceProvider(): NodeDriverServiceProvider {
         if (this.isConnectedToMongoDB) {
             const state = this.connectionManager.currentConnectionState as ConnectionStateConnected;
