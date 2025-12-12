@@ -352,8 +352,10 @@ Returning ${documents.length} documents${appliedLimitText ? ` ${appliedLimitText
     ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
         const [maybeVectorStage] = args.pipeline;
         if (
-            maybeVectorStage &&
-            (maybeVectorStage as z.infer<typeof VectorSearchStage>)?.["$vectorSearch"]?.embeddingParameters &&
+            maybeVectorStage !== null &&
+            maybeVectorStage instanceof Object &&
+            "$vectorSearch" in maybeVectorStage &&
+            "embeddingParameters" in maybeVectorStage["$vectorSearch"] &&
             this.config.voyageApiKey
         ) {
             return {
