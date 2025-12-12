@@ -29,7 +29,7 @@ describeWithMongoDB("createIndex tool when search is not enabled", (integration)
         },
     ]);
 
-    it("doesn't allow creating vector search indexes", async () => {
+    it("tool schema should not allow creating vector search indexes", async () => {
         expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("search");
 
         const { tools } = await integration.mcpClient().listTools();
@@ -52,83 +52,6 @@ describeWithMongoDB("createIndex tool when search is not enabled", (integration)
 
 describeWithMongoDB(
     "createIndex tool when search is enabled",
-    (integration) => {
-        it("allows creating vector search indexes", async () => {
-            expect(integration.mcpServer().userConfig.previewFeatures).includes("search");
-
-            const { tools } = await integration.mcpClient().listTools();
-            const createIndexTool = tools.find((tool) => tool.name === "create-index");
-            const definitionProperty = createIndexTool?.inputSchema.properties?.definition as {
-                type: string;
-                items: { anyOf: Array<{ properties: Record<string, Record<string, unknown>> }> };
-            };
-            expectDefined(definitionProperty);
-
-            expect(definitionProperty.type).toEqual("array");
-
-            // Because search is now enabled, we should see both "classic", "search", and "vectorSearch" options in
-            // the anyOf array.
-            expect(definitionProperty.items.anyOf).toHaveLength(3);
-
-            // Classic index definition
-            expect(definitionProperty.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "classic" });
-            expect(definitionProperty.items.anyOf?.[0]?.properties?.keys).toBeDefined();
-
-            // Vector search index definition
-            expect(definitionProperty.items.anyOf?.[1]?.properties?.type).toEqual({
-                type: "string",
-                const: "vectorSearch",
-            });
-            expect(definitionProperty.items.anyOf?.[1]?.properties?.fields).toBeDefined();
-
-            const fields = definitionProperty.items.anyOf?.[1]?.properties?.fields as {
-                type: string;
-                items: { anyOf: Array<{ type: string; properties: Record<string, Record<string, unknown>> }> };
-            };
-
-            expect(fields.type).toEqual("array");
-            expect(fields.items.anyOf).toHaveLength(2);
-            expect(fields.items.anyOf?.[0]?.type).toEqual("object");
-            expect(fields.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
-            expectDefined(fields.items.anyOf?.[0]?.properties?.path);
-
-            expect(fields.items.anyOf?.[1]?.type).toEqual("object");
-            expect(fields.items.anyOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
-            expectDefined(fields.items.anyOf?.[1]?.properties?.path);
-            expectDefined(fields.items.anyOf?.[1]?.properties?.quantization);
-            expectDefined(fields.items.anyOf?.[1]?.properties?.numDimensions);
-            expectDefined(fields.items.anyOf?.[1]?.properties?.similarity);
-
-            // Atlas search index definition
-            expect(definitionProperty.items.anyOf?.[2]?.properties?.type).toEqual({
-                type: "string",
-                const: "search",
-            });
-            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.analyzer);
-            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.mappings);
-
-            const mappings = definitionProperty.items.anyOf?.[2]?.properties?.mappings as {
-                type: string;
-                properties: Record<string, Record<string, unknown>>;
-            };
-
-            expect(mappings.type).toEqual("object");
-            expectDefined(mappings.properties?.dynamic);
-            expectDefined(mappings.properties?.fields);
-        });
-    },
-    {
-        getUserConfig: () => {
-            return {
-                ...defaultTestConfig,
-                previewFeatures: ["search"],
-            };
-        },
-    }
-);
-
-describeWithMongoDB(
-    "createIndex tool with classic indexes",
     (integration) => {
         validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
             ...databaseCollectionParameters,
@@ -213,6 +136,94 @@ describeWithMongoDB(
             },
         ]);
 
+        it("tool schema should allow creating vector search indexes", async () => {
+            expect(integration.mcpServer().userConfig.previewFeatures).includes("search");
+
+            const { tools } = await integration.mcpClient().listTools();
+            const createIndexTool = tools.find((tool) => tool.name === "create-index");
+            const definitionProperty = createIndexTool?.inputSchema.properties?.definition as {
+                type: string;
+                items: { anyOf: Array<{ properties: Record<string, Record<string, unknown>> }> };
+            };
+            expectDefined(definitionProperty);
+
+            expect(definitionProperty.type).toEqual("array");
+
+            // Because search is now enabled, we should see both "classic", "search", and "vectorSearch" options in
+            // the anyOf array.
+            expect(definitionProperty.items.anyOf).toHaveLength(3);
+
+            // Classic index definition
+            expect(definitionProperty.items.anyOf?.[0]?.properties?.type).toEqual({
+                type: "string",
+                const: "classic",
+            });
+            expect(definitionProperty.items.anyOf?.[0]?.properties?.keys).toBeDefined();
+
+            // Vector search index definition
+            expect(definitionProperty.items.anyOf?.[1]?.properties?.type).toEqual({
+                type: "string",
+                const: "vectorSearch",
+            });
+            expect(definitionProperty.items.anyOf?.[1]?.properties?.fields).toBeDefined();
+
+            const fields = definitionProperty.items.anyOf?.[1]?.properties?.fields as {
+                type: string;
+                items: { anyOf: Array<{ type: string; properties: Record<string, Record<string, unknown>> }> };
+            };
+
+            expect(fields.type).toEqual("array");
+            expect(fields.items.anyOf).toHaveLength(3);
+            expect(fields.items.anyOf?.[0]?.type).toEqual("object");
+            expect(fields.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
+            expectDefined(fields.items.anyOf?.[0]?.properties?.path);
+
+            expect(fields.items.anyOf?.[1]?.type).toEqual("object");
+            expect(fields.items.anyOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
+            expectDefined(fields.items.anyOf?.[1]?.properties?.path);
+            expectDefined(fields.items.anyOf?.[1]?.properties?.quantization);
+            expectDefined(fields.items.anyOf?.[1]?.properties?.numDimensions);
+            expectDefined(fields.items.anyOf?.[1]?.properties?.similarity);
+
+            expect(fields.items.anyOf?.[2]?.type).toEqual("object");
+            expect(fields.items.anyOf?.[2]?.properties?.type).toEqual({ type: "string", const: "text" });
+            expectDefined(fields.items.anyOf?.[2]?.properties?.path);
+            expectDefined(fields.items.anyOf?.[2]?.properties?.model);
+            // TODO: enable this check when modality is supported, likely after
+            // public preview.
+            // expectDefined(fields.items.anyOf?.[2]?.properties?.modality);
+
+            // Atlas search index definition
+            expect(definitionProperty.items.anyOf?.[2]?.properties?.type).toEqual({
+                type: "string",
+                const: "search",
+            });
+            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.analyzer);
+            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.mappings);
+
+            const mappings = definitionProperty.items.anyOf?.[2]?.properties?.mappings as {
+                type: string;
+                properties: Record<string, Record<string, unknown>>;
+            };
+
+            expect(mappings.type).toEqual("object");
+            expectDefined(mappings.properties?.dynamic);
+            expectDefined(mappings.properties?.fields);
+        });
+    },
+    {
+        getUserConfig: () => {
+            return {
+                ...defaultTestConfig,
+                previewFeatures: ["search"],
+            };
+        },
+    }
+);
+
+describeWithMongoDB(
+    "createIndex tool with classic indexes when search is enabled",
+    (integration) => {
         const validateIndex = async (collection: string, expected: { name: string; key: object }[]): Promise<void> => {
             const mongoClient = integration.mongoClient();
             const collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
@@ -456,7 +467,7 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "createIndex tool with vector search indexes",
+    "createIndex tool with vector search indexes when search is enabled",
     (integration) => {
         beforeEach(async () => {
             await integration.connectMcpClient();
@@ -679,7 +690,7 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "createIndex tool with Atlas search indexes",
+    "createIndex tool with Atlas search indexes when search is enabled",
     (integration) => {
         beforeEach(async () => {
             await integration.connectMcpClient();
@@ -950,6 +961,86 @@ describeWithMongoDB(
             ...defaultTestConfig,
             previewFeatures: ["search"],
         }),
+        downloadOptions: {
+            search: true,
+        },
+    }
+);
+
+describeWithMongoDB(
+    "createIndex tool with auto-embed Vector search indexes when search is enabled",
+    (integration) => {
+        beforeEach(async () => {
+            await integration.connectMcpClient();
+            await waitUntilSearchIsReady(integration.mongoClient());
+        });
+
+        describe("when the collection for auto-embed index does not exist", () => {
+            it("throws an error", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [{ type: "text", path: "plot", model: "voyage-3-large" }],
+                            },
+                        ],
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain(`Collection '${integration.randomDbName()}.foo' does not exist`);
+            });
+        });
+
+        describe("when the collection for auto-embed index exists", () => {
+            let collectionName: string;
+            let collection: Collection;
+            beforeEach(async () => {
+                collectionName = new ObjectId().toString();
+                collection = await integration
+                    .mongoClient()
+                    .db(integration.randomDbName())
+                    .createCollection(collectionName);
+            });
+
+            afterEach(async () => {
+                await collection.drop();
+            });
+
+            it.only("creates the index successfully", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "auto_embed_index",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [{ type: "text", path: "plot", model: "voyage-3-large" }],
+                            },
+                        ],
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain(
+                    `Created the index "auto_embed_index" on collection "${collectionName}" in database "${integration.randomDbName()}"`
+                );
+            });
+        });
+    },
+    {
+        getUserConfig() {
+            return {
+                ...defaultTestConfig,
+                previewFeatures: ["search"],
+            };
+        },
         downloadOptions: {
             search: true,
         },

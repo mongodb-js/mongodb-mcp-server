@@ -7,62 +7,96 @@ import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsM
 import { similarityValues } from "../../../common/schemas.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
+    private filterFieldSchema = z
+        .object({
+            type: z.literal("filter"),
+            path: z
+                .string()
+                .describe(
+                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                ),
+        })
+        .strict()
+        .describe("Definition for a field that will be used for pre-filtering results.");
+
+    private vectorFieldSchema = z
+        .object({
+            type: z.literal("vector"),
+            path: z
+                .string()
+                .describe(
+                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                ),
+            numDimensions: z
+                .number()
+                .min(1)
+                .max(8192)
+                .default(this.config.vectorSearchDimensions)
+                .describe(
+                    "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
+                ),
+            similarity: z
+                .enum(similarityValues)
+                .default(this.config.vectorSearchSimilarityFunction)
+                .describe(
+                    "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
+                ),
+            quantization: quantizationEnum
+                .default("none")
+                .describe(
+                    "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
+                ),
+        })
+        .strict()
+        .describe("Definition for a field that contains vector embeddings.");
+
+    private autoEmbedFieldSchema = z
+        .object({
+            // TODO: Before public preview this needs to be changed to either
+            // "autoEmbedText" or "autoEmbed" depending on which syntax is
+            // finalized.
+            type: z.literal("text"),
+            path: z
+                .string()
+                .describe(
+                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                ),
+            model: z
+                .enum(["voyage-3-large", "voyage-3.5", "voyage-3.5-lite"])
+                .describe("Voyage embedding model to be used for generating auto-embeddings"),
+            // TODO: As of public preview, this is not required and even if
+            // required, the supported modality is only "text". However we should
+            // keep an eye on whether the recent changes changes the requirements
+            // around this field.
+            // modality: z.enum(["text"]).describe("The type of data in the field mentioned in `path` property."),
+
+            // We don't support specifying `hnswOptions` even in the current vector
+            // search implementation. Following the same idea, we won't support
+            // `hnswOptions` for `autoEmbedText` field definition as well.
+            // hnswOptions: z.object({})
+        })
+        .strict()
+        .describe("Definition for a field for which embeddings must be auto-generated.");
+
     private vectorSearchIndexDefinition = z
         .object({
             type: z.literal("vectorSearch"),
             fields: z
                 .array(
                     z.discriminatedUnion("type", [
-                        z
-                            .object({
-                                type: z.literal("filter"),
-                                path: z
-                                    .string()
-                                    .describe(
-                                        "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                                    ),
-                            })
-                            .strict()
-                            .describe("Definition for a field that will be used for pre-filtering results."),
-                        z
-                            .object({
-                                type: z.literal("vector"),
-                                path: z
-                                    .string()
-                                    .describe(
-                                        "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                                    ),
-                                numDimensions: z
-                                    .number()
-                                    .min(1)
-                                    .max(8192)
-                                    .default(this.config.vectorSearchDimensions)
-                                    .describe(
-                                        "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
-                                    ),
-                                similarity: z
-                                    .enum(similarityValues)
-                                    .default(this.config.vectorSearchSimilarityFunction)
-                                    .describe(
-                                        "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
-                                    ),
-                                quantization: quantizationEnum
-                                    .default("none")
-                                    .describe(
-                                        "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
-                                    ),
-                            })
-                            .strict()
-                            .describe("Definition for a field that contains vector embeddings."),
+                        this.filterFieldSchema,
+                        this.vectorFieldSchema,
+                        this.autoEmbedFieldSchema,
                     ])
                 )
                 .nonempty()
-                .refine((fields) => fields.some((f) => f.type === "vector"), {
-                    message: "At least one vector field must be defined",
-                })
-                .describe(
-                    "Definitions for the vector and filter fields to index, one definition per document. You must specify `vector` for fields that contain vector embeddings and `filter` for additional fields to filter on. At least one vector-type field definition is required."
-                ),
+                .refine((fields) => fields.some((f) => f.type === "vector" || f.type === "text"), {
+                    message: "At least one field of type 'vector' or 'text' must be defined",
+                }).describe(`\
+Definitions for the vector, auto-embed and filter fields to index, one definition per document. \
+You must specify 'vector' for fields that contain vector embeddings, 'text' for fields for which embeddings must be auto-generated and, \
+'filter' for additional fields to filter on. At least one 'vector' or 'text' type field definition is required.\
+`),
         })
         .describe("Definition for a Vector Search index.");
 
@@ -191,7 +225,12 @@ export class CreateIndexTool extends MongoDBToolBase {
                 break;
             case "vectorSearch":
                 {
-                    await this.session.assertSearchSupported();
+                    const creatingAutoEmbedIndex = definition.fields.some((field) => field.type === "text");
+                    if (creatingAutoEmbedIndex) {
+                        await this.session.assertAutoEmbeddingIndexSupported();
+                    } else {
+                        await this.session.assertSearchSupported();
+                    }
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
