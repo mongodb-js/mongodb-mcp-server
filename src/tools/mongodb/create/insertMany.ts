@@ -6,6 +6,7 @@ import { zEJSON } from "../../args.js";
 import { type Document } from "bson";
 import { zSupportedEmbeddingParameters } from "../mongodbSchemas.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
+import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../telemetry/types.js";
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
     input: z
@@ -153,6 +154,20 @@ export class InsertManyTool extends MongoDBToolBase {
             } else {
                 current = current[key] as Record<string, unknown>;
             }
+        }
+    }
+
+    protected resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
+        if ("embeddingParameters" in args && this.config.voyageApiKey) {
+            return {
+                ...super.resolveTelemetryMetadata(args, { result }),
+                embeddingsGeneratedBy: "mcp",
+            };
+        } else {
+            return super.resolveTelemetryMetadata(args, { result });
         }
     }
 }
