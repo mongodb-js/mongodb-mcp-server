@@ -9,14 +9,10 @@
 import { generateArguments } from "./generateArguments.js";
 import { generateToolDocumentation } from "./generateToolDocumentation.js";
 
-function main(): void {
-    console.log("Generating arguments and configuration...");
-    generateArguments();
+console.log("Generating arguments and configuration...");
+generateArguments();
 
-    console.log("\nGenerating tool documentation...");
-    generateToolDocumentation();
+console.log("\nGenerating tool documentation...");
+generateToolDocumentation();
 
-    console.log("\n✅ All documentation generated successfully!");
-}
-
-main();
+console.log("\n✅ All documentation generated successfully!");

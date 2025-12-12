@@ -65,7 +65,7 @@
     "reformat": "prettier --write .",
     "generate": "pnpm run generate:api && pnpm run generate:arguments",
     "generate:api": "./scripts/generate.sh",
-    "generate:arguments": "tsx scripts/generate/index.ts",
+    "generate:arguments": "tsx --tsconfig scripts/generate/tsconfig.json scripts/generate/index.ts",
     "pretest": "pnpm run build",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",

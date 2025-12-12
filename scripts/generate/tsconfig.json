@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "paths": {
+      "ts-levenshtein": ["../node_modules/ts-levenshtein/dist/index.d.mts"]
+    }
+  },
+  "include": ["**/*.ts"]
+}
