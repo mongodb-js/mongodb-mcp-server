@@ -283,49 +283,54 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 #### MongoDB Atlas Tools
 
-- `atlas-list-orgs` - Lists MongoDB Atlas organizations
-- `atlas-list-projects` - Lists MongoDB Atlas projects
-- `atlas-create-project` - Creates a new MongoDB Atlas project
-- `atlas-list-clusters` - Lists MongoDB Atlas clusters
-- `atlas-inspect-cluster` - Inspect a specific MongoDB Atlas cluster
+- `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
+- `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
+- `atlas-create-db-user` - Create an MongoDB Atlas database user
 - `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
-- `atlas-connect-cluster` - Connects to MongoDB Atlas cluster
-- `atlas-inspect-access-list` - Inspect IP/CIDR ranges with access to MongoDB Atlas clusters
-- `atlas-create-access-list` - Configure IP/CIDR access list for MongoDB Atlas clusters
+- `atlas-create-project` - Create a MongoDB Atlas project
+- `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
+- `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
+- `atlas-inspect-cluster` - Inspect MongoDB Atlas cluster
+- `atlas-list-alerts` - List MongoDB Atlas alerts
+- `atlas-list-clusters` - List MongoDB Atlas clusters
 - `atlas-list-db-users` - List MongoDB Atlas database users
-- `atlas-create-db-user` - Creates a MongoDB Atlas database user
-- `atlas-list-alerts` - List MongoDB Atlas Alerts for a Project
-- `atlas-get-performance-advisor` - Gets Atlas Performance Advisor recommendations (index suggestions, drop index suggestions, schema suggestions, slow query logs)
+- `atlas-list-orgs` - List MongoDB Atlas organizations
+- `atlas-list-projects` - List MongoDB Atlas projects
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
 #### MongoDB Atlas Local Tools
 
-- `atlas-local-list-deployments` - Lists MongoDB Atlas Local deployments
-- `atlas-local-create-deployment` - Creates a MongoDB Atlas Local deployment
-- `atlas-local-connect-deployment` - Connects to a MongoDB Atlas Local deployment
-- `atlas-local-delete-deployment` - Deletes a MongoDB Atlas Local deployment
+- `atlas-local-connect-deployment` - Connect to a MongoDB Atlas Local deployment
+- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment
+- `atlas-local-delete-deployment` - Delete a MongoDB Atlas local deployment
+- `atlas-local-list-deployments` - List MongoDB Atlas local deployments
 
 #### MongoDB Database Tools
 
-- `connect` - Connect to a MongoDB instance
-- `find` - Run a find query against a MongoDB collection. The number of documents returned is limited by the `limit` parameter and the server's `maxDocumentsPerQuery` configuration, whichever is smaller. The total size of the returned documents is also limited by the `responseBytesLimit` parameter and the server's `maxBytesPerQuery` configuration, whichever is smaller.
-- `aggregate` - Run an aggregation against a MongoDB collection. The number of documents returned is limited by the server's `maxDocumentsPerQuery` configuration. The total size of the returned documents is also limited by the `responseBytesLimit` parameter and the server's `maxBytesPerQuery` configuration, whichever is smaller.
-- `count` - Get the number of documents in a MongoDB collection
-- `insert-many` - Insert multiple documents into a MongoDB collection
-- `create-index` - Create an index for a MongoDB collection
-- `update-many` - Update multiple documents in a MongoDB collection
-- `rename-collection` - Rename a MongoDB collection
-- `delete-many` - Delete multiple documents from a MongoDB collection
-- `drop-collection` - Remove a collection from a MongoDB database
-- `drop-database` - Remove a MongoDB database
-- `list-databases` - List all databases for a MongoDB connection
-- `list-collections` - List all collections for a given database
+- `aggregate` - Run an aggregation against a MongoDB collection
 - `collection-indexes` - Describe the indexes for a collection
 - `collection-schema` - Describe the schema for a collection
-- `collection-storage-size` - Get the size of a collection in MB
-- `db-stats` - Return statistics about a MongoDB database
-- `export` - Export query or aggregation results to EJSON format. Creates a uniquely named export accessible via the `exported-data` resource.
+- `collection-storage-size` - Gets the size of the collection
+- `connect` - Connect to a MongoDB instance
+- `count` - Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter
+- `create-collection` - Creates a new collection in a database. If the database doesn't exist, it will be created automatically.
+- `create-index` - Create an index for a collection
+- `db-stats` - Returns statistics that reflect the use state of a single database
+- `delete-many` - Removes all documents that match the filter from a MongoDB collection
+- `drop-collection` - Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.
+- `drop-database` - Removes the specified database, deleting the associated data files
+- `drop-index` - Drop an index for the provided database and collection.
+- `explain` - Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method
+- `export` - Export a query or aggregation results in the specified EJSON format.
+- `find` - Run a find query against a MongoDB collection
+- `insert-many` - Insert an array of documents into a MongoDB collection
+- `list-collections` - List all collections for a given database
+- `list-databases` - List all databases for a MongoDB connection
+- `mongodb-logs` - Returns the most recent logged mongod events
+- `rename-collection` - Renames a collection in a MongoDB database
+- `switch-connection` - Switch to a different MongoDB connection
+- `update-many` - Updates all documents that match the specified filter for a collection
 
 ## 📄 Supported Resources
 
