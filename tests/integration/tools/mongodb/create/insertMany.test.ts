@@ -102,6 +102,29 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
         expect(content).toContain(insertedIds[0]?.toString());
     });
 
+    it("should emit tool event without auto-embedding usage metadata", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+        await integration.connectMcpClient();
+
+        const response = await integration.mcpClient().callTool({
+            name: "insert-many",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "test",
+                documents: [{ title: "The Matrix" }],
+            },
+        });
+
+        const content = getResponseContent(response.content);
+        expect(content).toContain("Documents were inserted successfully.");
+
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
+    });
+
     validateAutoConnectBehavior(integration, "insert-many", () => {
         return {
             args: {

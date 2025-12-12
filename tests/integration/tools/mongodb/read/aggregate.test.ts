@@ -153,6 +153,36 @@ describeWithMongoDB("aggregate tool", (integration) => {
         );
     });
 
+    it("should emit tool event without auto-embedding usage metadata", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+        const mongoClient = integration.mongoClient();
+        await mongoClient
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+                { name: "Søren", age: 15 },
+            ]);
+
+        await integration.connectMcpClient();
+        await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $match: { age: { $gt: 8 } } }, { $sort: { name: -1 } }],
+            },
+        });
+
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
+    });
+
     for (const disabledOpType of ["create", "update", "delete"] as const) {
         it(`can not run $out stages when ${disabledOpType} operation is disabled`, async () => {
             await integration.connectMcpClient();
