@@ -241,14 +241,29 @@ export class AggregateTool extends MongoDBToolBase {
             if ("$vectorSearch" in stage) {
                 const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;
 
+                // If using 'query' field (auto-embed indexes), MongoDB handles embeddings automatically
+                // so we don't need to do anything.
+                if (vectorSearchStage.query) {
+                    continue;
+                }
+
+                // If queryVector is already an array, no embedding generation needed
                 if (Array.isArray(vectorSearchStage.queryVector)) {
                     continue;
+                }
+
+                // At this point, queryVector must be a string and we need to generate embeddings
+                if (!vectorSearchStage.queryVector) {
+                    throw new MongoDBError(
+                        ErrorCodes.AtlasVectorSearchInvalidQuery,
+                        "Either 'queryVector' or 'query' must be provided in $vectorSearch."
+                    );
                 }
 
                 if (!vectorSearchStage.embeddingParameters) {
                     throw new MongoDBError(
                         ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        "embeddingModel is mandatory if queryVector is a raw string."
+                        "embeddingParameters is mandatory when queryVector is a string. For auto-embedding indexes, use 'query' instead of 'queryVector'."
                     );
                 }
 

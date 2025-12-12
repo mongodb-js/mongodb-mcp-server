@@ -8,6 +8,7 @@ export enum ErrorCodes {
     AtlasVectorSearchIndexNotFound = 1_000_006,
     AtlasVectorSearchInvalidQuery = 1_000_007,
     Unexpected = 1_000_008,
+    AutoEmbeddingIndexNotSupported = 1_000_009,
 }
 
 export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
