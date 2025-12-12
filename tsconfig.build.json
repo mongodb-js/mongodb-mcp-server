@@ -21,7 +21,7 @@
     "paths": {
       "mongodb-connection-string-url": [
         "./node_modules/mongodb-connection-string-url/lib/index.js",
-        "./node_modules/mongodb-connection-string-url/lib/index.d.js"
+        "./node_modules/mongodb-connection-string-url/lib/index.d.ts"
       ],
       "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"]
     }

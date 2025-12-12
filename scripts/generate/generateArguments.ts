@@ -260,7 +260,7 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
 
 function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
     const rows = [
-        "| Option                                 | Default                                                                     | Description                                                                                                                                                                                             |",
+        "| Environment Variable / CLI Option      | Default                                                                     | Description                                                                                                                                                                                             |",
         "| -------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
     ];
 
@@ -300,7 +300,7 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
 
         const desc = argumentInfo.description.replace(/\|/g, "\\|"); // Escape pipes in description
         rows.push(
-            `| ${`${envVarName} or ${cliOption}`.padEnd(89)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
+            `| ${`${envVarName} / ${cliOption}`.padEnd(89)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
         );
     }
 
@@ -332,4 +332,3 @@ export function generateArguments(): void {
     updateServerJsonEnvVars(argumentInfo);
     updateReadmeConfigTable(argumentInfo);
 }
-
