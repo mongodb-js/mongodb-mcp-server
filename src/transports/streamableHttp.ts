@@ -43,6 +43,12 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         app.enable("trust proxy"); // needed for reverse proxy support
         app.use(express.json());
+
+        // Health endpoint for container orchestration (placed before auth middleware)
+        app.get("/health", (req: express.Request, res: express.Response) => {
+            res.status(200).json({ status: "healthy", service: "mongodb-mcp" });
+        });
+
         app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
