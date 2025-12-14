@@ -29,14 +29,14 @@ export const defaultParserOptions = {
     },
 } satisfies ParserOptions;
 
-export function createUserConfig({
+export function parseUserConfig({
     args,
     overrides,
     parserOptions = defaultParserOptions,
 }: {
     args: string[];
     overrides?: z4.ZodRawShape;
-    parserOptions?: ParserOptions;
+    parserOptions: ParserOptions;
 }): {
     warnings: string[];
     parsed: UserConfig | undefined;

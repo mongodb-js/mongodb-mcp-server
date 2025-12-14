@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
-import { createUserConfig, defaultParserOptions } from "../../../src/common/config/createUserConfig.js";
+import { parseUserConfig, defaultParserOptions } from "../../../src/common/config/parseUserConfig.js";
 import {
     getLogPath,
     getExportsPath,
@@ -62,7 +62,7 @@ describe("config", () => {
     });
 
     it("should generate defaults when no config sources are populated", () => {
-        expect(createUserConfig({ args: [] })).toStrictEqual({
+        expect(parseUserConfig({ args: [] })).toStrictEqual({
             parsed: expectedDefaults,
             warnings: [],
             error: undefined,
@@ -71,7 +71,7 @@ describe("config", () => {
 
     it("can override defaults in the schema and those are populated instead", () => {
         expect(
-            createUserConfig({
+            parseUserConfig({
                 args: [],
                 overrides: {
                     exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
@@ -97,7 +97,7 @@ describe("config", () => {
         describe("mongodb urls", () => {
             it("should not try to parse a multiple-host urls", () => {
                 setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://user:password@host1,host2,host3/");
-                const { parsed: actual } = createUserConfig({ args: [] });
+                const { parsed: actual } = parseUserConfig({ args: [] });
                 expect(actual?.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
             });
         });
@@ -141,7 +141,7 @@ describe("config", () => {
             for (const { envVar, property, value, expectedValue } of testCases) {
                 it(`should map ${envVar} to ${property} with value "${String(value)}" to "${String(expectedValue ?? value)}"`, () => {
                     setVariable(envVar, value);
-                    const { parsed: actual } = createUserConfig({ args: [] });
+                    const { parsed: actual } = parseUserConfig({ args: [] });
                     expect(actual?.[property]).toBe(expectedValue ?? value);
                 });
             }
@@ -156,7 +156,7 @@ describe("config", () => {
             for (const { envVar, property, value } of testCases) {
                 it(`should map ${envVar} to ${property}`, () => {
                     setVariable(envVar, value);
-                    const { parsed: actual } = createUserConfig({ args: [] });
+                    const { parsed: actual } = parseUserConfig({ args: [] });
                     expect(actual?.[property]).toEqual(value.split(","));
                 });
             }
@@ -166,7 +166,7 @@ describe("config", () => {
             setVariable("CUSTOM_MCP_DISABLED_TOOLS", "find,export");
             // Ensure our own ENV doesn't affect it
             setVariable("MDB_MCP_DISABLED_TOOLS", "explain");
-            const { parsed: actual } = createUserConfig({
+            const { parsed: actual } = parseUserConfig({
                 args: [],
                 parserOptions: {
                     ...defaultParserOptions,
@@ -179,7 +179,7 @@ describe("config", () => {
 
     describe("cli parsing", () => {
         it("should not try to parse a multiple-host urls", () => {
-            const { parsed: actual } = createUserConfig({
+            const { parsed: actual } = parseUserConfig({
                 args: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],
             });
 
@@ -189,7 +189,7 @@ describe("config", () => {
         it("positional connection specifier gets accounted for even without other connection sources", () => {
             // Note that neither connectionString argument nor env variable is
             // provided.
-            const { parsed: actual } = createUserConfig({
+            const { parsed: actual } = parseUserConfig({
                 args: ["mongodb://host1:27017"],
             });
             expect(actual?.connectionString).toEqual("mongodb://host1:27017/?directConnection=true");
@@ -365,7 +365,7 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const { parsed, error } = createUserConfig({
+                    const { parsed, error } = parseUserConfig({
                         args: cli,
                     });
                     expect(error).toBeUndefined();
@@ -390,7 +390,7 @@ describe("config", () => {
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const { parsed } = createUserConfig({
+                    const { parsed } = parseUserConfig({
                         args: cli,
                     });
                     expect(parsed?.httpHeaders).toStrictEqual(expected.httpHeaders);
@@ -399,7 +399,7 @@ describe("config", () => {
 
             it("cannot mix --httpHeaders and --httpHeaders.fieldX", () => {
                 expect(
-                    createUserConfig({
+                    parseUserConfig({
                         args: ["--httpHeaders", '{"fieldA": "3", "fieldB": "4"}', "--httpHeaders.fieldA", "5"],
                     })
                 ).toStrictEqual({
@@ -531,7 +531,7 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const { parsed: actual } = createUserConfig({
+                    const { parsed: actual } = parseUserConfig({
                         args: cli,
                     });
                     for (const [key, value] of Object.entries(expected)) {
@@ -555,7 +555,7 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const { parsed: actual } = createUserConfig({
+                    const { parsed: actual } = parseUserConfig({
                         args: cli,
                     });
                     for (const [key, value] of Object.entries(expected)) {
@@ -575,7 +575,7 @@ describe("config", () => {
 
             it("should load a valid config file without troubles", () => {
                 setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.VALID);
-                const { warnings, error, parsed } = createUserConfig({ args: [] });
+                const { warnings, error, parsed } = parseUserConfig({ args: [] });
                 expect(warnings).toHaveLength(0);
                 expect(error).toBeUndefined();
 
@@ -585,7 +585,7 @@ describe("config", () => {
 
             it("should attempt loading config file with wrong value and exit", () => {
                 setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.WITH_INVALID_VALUE);
-                const { warnings, error, parsed } = createUserConfig({ args: [] });
+                const { warnings, error, parsed } = parseUserConfig({ args: [] });
                 expect(warnings).toHaveLength(0);
                 expect(error).toEqual(expect.stringContaining("loggers - Duplicate loggers found in config"));
                 expect(parsed).toBeUndefined();
@@ -594,7 +594,7 @@ describe("config", () => {
 
         describe("through cli argument --config", () => {
             it("should load a valid config file without troubles", () => {
-                const { warnings, error, parsed } = createUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+                const { warnings, error, parsed } = parseUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
                 expect(warnings).toHaveLength(0);
                 expect(error).toBeUndefined();
 
@@ -603,7 +603,7 @@ describe("config", () => {
             });
 
             it("should attempt loading config file with wrong value and exit", () => {
-                const { warnings, error, parsed } = createUserConfig({
+                const { warnings, error, parsed } = parseUserConfig({
                     args: ["--config", CONFIG_FIXTURES.WITH_INVALID_VALUE],
                 });
                 expect(warnings).toHaveLength(0);
@@ -622,7 +622,7 @@ describe("config", () => {
 
         it("positional argument takes precedence over all", () => {
             setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost1");
-            const { parsed: actual } = createUserConfig({
+            const { parsed: actual } = parseUserConfig({
                 args: [
                     "mongodb://crazyhost2",
                     "--config",
@@ -636,7 +636,7 @@ describe("config", () => {
 
         it("any cli argument takes precedence over env vars, config and defaults", () => {
             setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
-            const { parsed } = createUserConfig({
+            const { parsed } = parseUserConfig({
                 args: ["--config", CONFIG_FIXTURES.VALID, "--connectionString", "mongodb://host-from-cli"],
             });
             expect(parsed?.connectionString).toBe("mongodb://host-from-cli");
@@ -644,19 +644,19 @@ describe("config", () => {
 
         it("any env var takes precedence over config and defaults", () => {
             setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
-            const { parsed } = createUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+            const { parsed } = parseUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
             expect(parsed?.connectionString).toBe("mongodb://dummyhost");
         });
 
         it("config file takes precedence over defaults", () => {
-            const { parsed } = createUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+            const { parsed } = parseUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
             expect(parsed?.connectionString).toBe("mongodb://valid-json-localhost:1000");
         });
     });
 
     describe("consolidation", () => {
         it("positional argument for url has precedence over --connectionString", () => {
-            const { parsed: actual } = createUserConfig({
+            const { parsed: actual } = parseUserConfig({
                 args: ["mongodb://localhost", "--connectionString", "mongodb://toRemoveHost"],
             });
             // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
@@ -666,7 +666,7 @@ describe("config", () => {
         });
 
         it("positional argument is always considered", () => {
-            const { parsed: actual } = createUserConfig({
+            const { parsed: actual } = parseUserConfig({
                 args: ["mongodb://localhost"],
             });
             // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
@@ -679,21 +679,21 @@ describe("config", () => {
     describe("validation", () => {
         describe("transport", () => {
             it("should support http", () => {
-                const { parsed: actual } = createUserConfig({
+                const { parsed: actual } = parseUserConfig({
                     args: ["--transport", "http"],
                 });
                 expect(actual?.transport).toEqual("http");
             });
 
             it("should support stdio", () => {
-                const { parsed: actual } = createUserConfig({
+                const { parsed: actual } = parseUserConfig({
                     args: ["--transport", "stdio"],
                 });
                 expect(actual?.transport).toEqual("stdio");
             });
 
             it("should not support sse", () => {
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--transport", "sse"],
                 });
                 expect(error).toEqual(
@@ -705,7 +705,7 @@ describe("config", () => {
 
             it("should not support arbitrary values", () => {
                 const value = Math.random() + "transport";
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--transport", value],
                 });
                 expect(error).toEqual(
@@ -718,21 +718,21 @@ describe("config", () => {
 
         describe("telemetry", () => {
             it("can be enabled", () => {
-                const { parsed: actual } = createUserConfig({
+                const { parsed: actual } = parseUserConfig({
                     args: ["--telemetry", "enabled"],
                 });
                 expect(actual?.telemetry).toEqual("enabled");
             });
 
             it("can be disabled", () => {
-                const { parsed: actual } = createUserConfig({
+                const { parsed: actual } = parseUserConfig({
                     args: ["--telemetry", "disabled"],
                 });
                 expect(actual?.telemetry).toEqual("disabled");
             });
 
             it("should not support the boolean true value", () => {
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--telemetry", "true"],
                 });
                 expect(error).toEqual(
@@ -743,7 +743,7 @@ describe("config", () => {
             });
 
             it("should not support the boolean false value", () => {
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--telemetry", "false"],
                 });
                 expect(error).toEqual(
@@ -755,7 +755,7 @@ describe("config", () => {
 
             it("should not support arbitrary values", () => {
                 const value = Math.random() + "telemetry";
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--telemetry", value],
                 });
                 expect(error).toEqual(
@@ -768,7 +768,7 @@ describe("config", () => {
 
         describe("httpPort", () => {
             it("must be above 0", () => {
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--httpPort", "-1"],
                 });
                 expect(error).toEqual(
@@ -779,7 +779,7 @@ describe("config", () => {
             });
 
             it("must be below 65535 (OS limit)", () => {
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--httpPort", "89527345"],
                 });
                 expect(error).toEqual(
@@ -790,7 +790,7 @@ describe("config", () => {
             });
 
             it("should not support non numeric values", () => {
-                const { error } = createUserConfig({
+                const { error } = parseUserConfig({
                     args: ["--httpPort", "portAventura"],
                 });
                 expect(error).toEqual(
@@ -801,7 +801,7 @@ describe("config", () => {
             });
 
             it("should support numeric values", () => {
-                const { parsed: actual } = createUserConfig({ args: ["--httpPort", "8888"] });
+                const { parsed: actual } = parseUserConfig({ args: ["--httpPort", "8888"] });
                 expect(actual?.httpPort).toEqual(8888);
             });
         });
@@ -824,23 +824,23 @@ describe("config", () => {
 
             for (const { description, args, expectedError } of invalidLoggerTestCases) {
                 it(description, () => {
-                    const { error } = createUserConfig({ args });
+                    const { error } = parseUserConfig({ args });
                     expect(error).toEqual(expect.stringContaining(expectedError));
                 });
             }
 
             it("allows mcp logger", () => {
-                const { parsed: actual } = createUserConfig({ args: ["--loggers", "mcp"] });
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", "mcp"] });
                 expect(actual?.loggers).toEqual(["mcp"]);
             });
 
             it("allows disk logger", () => {
-                const { parsed: actual } = createUserConfig({ args: ["--loggers", "disk"] });
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", "disk"] });
                 expect(actual?.loggers).toEqual(["disk"]);
             });
 
             it("allows stderr logger", () => {
-                const { parsed: actual } = createUserConfig({ args: ["--loggers", "stderr"] });
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", "stderr"] });
                 expect(actual?.loggers).toEqual(["stderr"]);
             });
         });
@@ -887,7 +887,7 @@ describe("keychain management", () => {
 
     for (const { cliArg, secretKind } of testCases) {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
-            createUserConfig({ args: [`--${cliArg}`, cliArg] });
+            parseUserConfig({ args: [`--${cliArg}`, cliArg] });
             expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
         });
     }

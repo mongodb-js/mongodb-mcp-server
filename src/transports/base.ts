@@ -74,7 +74,7 @@ export type TransportRunnerConfig = {
      * `UserConfig`.
      *
      * To parse CLI arguments and environment variables in order to generate a
-     * `UserConfig` object, you can use `createUserConfig` function, also
+     * `UserConfig` object, you can use `parseUserConfig` function, also
      * exported as `parseUserConfig` through MCP server library
      * exports.
      *
