@@ -4,19 +4,52 @@ import type { Secret } from "../keychain.js";
 import { matchingConfigKey } from "./configUtils.js";
 import { UserConfigSchema, type UserConfig } from "./userConfig.js";
 import {
-    defaultParserOptions,
+    defaultParserOptions as defaultArgParserOptions,
     parseArgsWithCliOptions,
     CliOptionsSchema,
     UnknownArgumentError,
 } from "@mongosh/arg-parser/arg-parser";
-import type { z as z4 } from "zod/v4";
+import { z as z4 } from "zod/v4";
+import type yargsParser from "yargs-parser";
 
-export function createUserConfig({ args }: { args: string[] }): {
+export type ParserOptions = Partial<yargsParser.Options>;
+
+export const defaultParserOptions = {
+    // This is the name of key that yargs-parser will look up in CLI
+    // arguments (--config) and ENV variables (MDB_MCP_CONFIG) to load an
+    // initial configuration from.
+    config: "config",
+    // This helps parse the relevant environment variables.
+    envPrefix: "MDB_MCP_",
+    configuration: {
+        ...defaultArgParserOptions.configuration,
+        // To avoid populating `_` with end-of-flag arguments we explicitly
+        // populate `--` variable and altogether ignore them later.
+        "populate--": true,
+    },
+} satisfies ParserOptions;
+
+export function createUserConfig({
+    args,
+    overrides,
+    parserOptions = defaultParserOptions,
+}: {
+    args: string[];
+    overrides?: z4.ZodRawShape;
+    parserOptions?: ParserOptions;
+}): {
     warnings: string[];
     parsed: UserConfig | undefined;
     error: string | undefined;
 } {
-    const { error: parseError, warnings, parsed } = parseUserConfigSources(args);
+    const schema = overrides
+        ? z4.object({
+              ...UserConfigSchema.shape,
+              ...overrides,
+          })
+        : UserConfigSchema;
+
+    const { error: parseError, warnings, parsed } = parseUserConfigSources({ args, schema, parserOptions });
 
     if (parseError) {
         return { error: parseError, warnings, parsed: undefined };
@@ -40,7 +73,7 @@ export function createUserConfig({ args }: { args: string[] }): {
         parsed.connectionString = connectionInfo.connectionString;
     }
 
-    const configParseResult = UserConfigSchema.safeParse(parsed);
+    const configParseResult = schema.safeParse(parsed);
     const mongoshArguments = CliOptionsSchema.safeParse(parsed);
     const error = configParseResult.error || mongoshArguments.error;
     if (error) {
@@ -62,34 +95,29 @@ export function createUserConfig({ args }: { args: string[] }): {
     };
 }
 
-function parseUserConfigSources(cliArguments: string[]): {
+function parseUserConfigSources<T extends typeof UserConfigSchema>({
+    args,
+    schema = UserConfigSchema as T,
+    parserOptions,
+}: {
+    args: string[];
+    schema: T;
+    parserOptions: ParserOptions;
+}): {
     error: string | undefined;
     warnings: string[];
-    parsed: Partial<CliOptions & z4.infer<typeof UserConfigSchema>>;
+    parsed: Partial<CliOptions & z4.infer<T>>;
 } {
-    let parsed: Partial<CliOptions & z4.infer<typeof UserConfigSchema>>;
-    let deprecated: Record<string, keyof UserConfig>;
+    let parsed: Partial<CliOptions & z4.infer<T>>;
+    let deprecated: Record<string, string>;
     try {
         const { parsed: parsedResult, deprecated: deprecatedResult } = parseArgsWithCliOptions({
-            args: cliArguments,
-            schema: UserConfigSchema,
-            parserOptions: {
-                // This is the name of key that yargs-parser will look up in CLI
-                // arguments (--config) and ENV variables (MDB_MCP_CONFIG) to load an
-                // initial configuration from.
-                config: "config",
-                // This helps parse the relevant environment variables.
-                envPrefix: "MDB_MCP_",
-                configuration: {
-                    ...defaultParserOptions.configuration,
-                    // To avoid populating `_` with end-of-flag arguments we explicitly
-                    // populate `--` variable and altogether ignore them later.
-                    "populate--": true,
-                },
-            },
+            args,
+            schema,
+            parserOptions,
         });
         parsed = parsedResult;
-        deprecated = deprecatedResult;
+        deprecated = deprecatedResult as Record<string, string>;
 
         // Delete fileNames - this is a field populated by mongosh but not used by us.
         delete parsed.fileNames;
@@ -112,7 +140,7 @@ function parseUserConfigSources(cliArguments: string[]): {
     }
 
     const deprecationWarnings = [
-        ...getWarnings(parsed, cliArguments),
+        ...getWarnings(parsed, args),
         ...Object.entries(deprecated).map(([deprecated, replacement]) => {
             return `Warning: The --${deprecated} argument is deprecated. Use --${replacement} instead.`;
         }),

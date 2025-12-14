@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
-import { createUserConfig } from "../../../src/common/config/createUserConfig.js";
+import { createUserConfig, defaultParserOptions } from "../../../src/common/config/createUserConfig.js";
 import {
     getLogPath,
     getExportsPath,
@@ -64,6 +64,24 @@ describe("config", () => {
     it("should generate defaults when no config sources are populated", () => {
         expect(createUserConfig({ args: [] })).toStrictEqual({
             parsed: expectedDefaults,
+            warnings: [],
+            error: undefined,
+        });
+    });
+
+    it("can override defaults in the schema and those are populated instead", () => {
+        expect(
+            createUserConfig({
+                args: [],
+                overrides: {
+                    exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+                },
+            })
+        ).toStrictEqual({
+            parsed: {
+                ...expectedDefaults,
+                exportTimeoutMs: 123,
+            },
             warnings: [],
             error: undefined,
         });
@@ -142,6 +160,20 @@ describe("config", () => {
                     expect(actual?.[property]).toEqual(value.split(","));
                 });
             }
+        });
+
+        it("works with custom prefixes through parserOptions", () => {
+            setVariable("CUSTOM_MCP_DISABLED_TOOLS", "find,export");
+            // Ensure our own ENV doesn't affect it
+            setVariable("MDB_MCP_DISABLED_TOOLS", "explain");
+            const { parsed: actual } = createUserConfig({
+                args: [],
+                parserOptions: {
+                    ...defaultParserOptions,
+                    envPrefix: "CUSTOM_MCP_",
+                },
+            });
+            expect(actual?.disabledTools).toEqual(["find", "export"]);
         });
     });
 

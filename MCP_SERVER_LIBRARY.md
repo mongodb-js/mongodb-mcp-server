@@ -49,7 +49,7 @@ import {
   Session,
   UserConfig,
   UserConfigSchema,
-  parseCliArgumentsAsUserConfig,
+  parseUserConfig,
   StreamableHttpRunner,
   StdioRunner,
   TransportRunnerBase,
@@ -811,26 +811,25 @@ const customConfig = UserConfigSchema.parse({
 
 This approach ensures you get all the default values without having to specify every configuration key manually.
 
-### parseCliArgumentsAsUserConfig
+### parseUserConfig
 
 Utility function to parse command-line arguments and environment variables into a UserConfig object, using the same parsing logic as the MongoDB MCP server CLI.
 
 _Note: This is what MongoDB MCP server uses internally._
 
 ```typescript
-function parseCliArgumentsAsUserConfig(options?: {
+function parseUserConfig(options?: {
   args?: string[];
-  helpers?: CreateUserConfigHelpers;
 }): UserConfig;
 ```
 
 **Example:**
 
 ```typescript
-import { parseCliArgumentsAsUserConfig, StdioRunner } from "mongodb-mcp-server";
+import { parseUserConfig, StdioRunner } from "mongodb-mcp-server";
 
 // Parse config from process.argv and environment variables
-const config = parseCliArgumentsAsUserConfig();
+const config = parseUserConfig();
 
 const runner = new StdioRunner({ userConfig: config });
 await runner.start();
