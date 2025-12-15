@@ -36,7 +36,7 @@ export function parseUserConfig({
 }: {
     args: string[];
     overrides?: z4.ZodRawShape;
-    parserOptions: ParserOptions;
+    parserOptions?: ParserOptions;
 }): {
     warnings: string[];
     parsed: UserConfig | undefined;
