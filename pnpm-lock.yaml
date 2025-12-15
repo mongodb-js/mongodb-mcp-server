@@ -40,8 +40,8 @@ importers:
         specifier: ^11.1.0
         version: 11.2.2
       mongodb-connection-string-url:
-        specifier: ^3.0.2
-        version: 3.0.2
+        specifier: ^7.0.0
+        version: 7.0.0
       mongodb-log-writer:
         specifier: ^2.4.1
         version: 2.4.4(bson@6.10.4)
@@ -1755,6 +1755,9 @@ packages:
 
   '@types/whatwg-url@11.0.5':
     resolution: {integrity: sha512-coYR071JRaHa+xoEvvYqvnIHaVqaYrLPbsufM9BF63HkwI5Lgmy2QR8Q5K/lYDYo5AK82wOvSOS0UsLTpTG7uQ==}
+
+  '@types/whatwg-url@13.0.0':
+    resolution: {integrity: sha512-N8WXpbE6Wgri7KUSvrmQcqrMllKZ9uxkYWMt+mCSGwNc0Hsw9VQTW7ApqI4XNrx6/SaM2QQJCzMPDEXE058s+Q==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -3478,6 +3481,10 @@ packages:
 
   mongodb-connection-string-url@3.0.2:
     resolution: {integrity: sha512-rMO7CGo/9BFwyZABcKAWL8UJwH/Kc2x0g72uhDWzG48URRax5TCIcJ7Rc3RZqffZzO/Gwff/jyKwCU9TN8gehA==}
+
+  mongodb-connection-string-url@7.0.0:
+    resolution: {integrity: sha512-irhhjRVLE20hbkRl4zpAYLnDMM+zIZnp0IDB9akAFFUZp/3XdOfwwddc7y6cNvF2WCEtfTYRwYbIfYa2kVY0og==}
+    engines: {node: '>=20.19.0'}
 
   mongodb-download-url@1.7.0:
     resolution: {integrity: sha512-Dj9l3/MzvgAO+no7zaBIbQL0Ilsb0jo5Y8WijkB/sCnagoh3KgnN0Vxu5awglK/75QrEObduf9wa+U0fjxvYMw==}
@@ -5402,7 +5409,7 @@ snapshots:
       '@mongodb-js/oidc-plugin': 2.0.6
       lodash.merge: 4.6.2
       mongodb: 6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
-      mongodb-connection-string-url: 3.0.2
+      mongodb-connection-string-url: 7.0.0
       mongodb-log-writer: 2.4.4(bson@6.10.4)
       socks: 2.8.7
     optionalDependencies:
@@ -6331,6 +6338,10 @@ snapshots:
   '@types/webidl-conversions@7.0.3': {}
 
   '@types/whatwg-url@11.0.5':
+    dependencies:
+      '@types/webidl-conversions': 7.0.3
+
+  '@types/whatwg-url@13.0.0':
     dependencies:
       '@types/webidl-conversions': 7.0.3
 
@@ -8243,7 +8254,7 @@ snapshots:
   mongodb-build-info@1.9.0:
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
-      mongodb-connection-string-url: 3.0.2
+      mongodb-connection-string-url: 7.0.0
     transitivePeerDependencies:
       - supports-color
 
@@ -8256,6 +8267,11 @@ snapshots:
   mongodb-connection-string-url@3.0.2:
     dependencies:
       '@types/whatwg-url': 11.0.5
+      whatwg-url: 14.2.0
+
+  mongodb-connection-string-url@7.0.0:
+    dependencies:
+      '@types/whatwg-url': 13.0.0
       whatwg-url: 14.2.0
 
   mongodb-download-url@1.7.0:
@@ -8278,7 +8294,7 @@ snapshots:
 
   mongodb-redact@1.3.0:
     dependencies:
-      mongodb-connection-string-url: 3.0.2
+      mongodb-connection-string-url: 7.0.0
       regexp.escape: 2.0.1
 
   mongodb-runner@6.2.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7):
