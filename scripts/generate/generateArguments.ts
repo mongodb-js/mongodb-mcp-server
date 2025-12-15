@@ -1,5 +1,3 @@
-#!/usr/bin/env tsx
-
 /**
  * This script generates argument definitions and updates:
  * - server.json arrays
@@ -11,7 +9,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { UserConfigSchema, configRegistry } from "../src/common/config/userConfig.js";
+import { UserConfigSchema, configRegistry } from "../../src/common/config/userConfig.js";
 import { execSync } from "child_process";
 import type { z as z4 } from "zod/v4";
 
@@ -205,8 +203,8 @@ function generatePackageArguments(envVars: ArgumentInfo[]): unknown[] {
 }
 
 function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
-    const serverJsonPath = join(__dirname, "..", "server.json");
-    const packageJsonPath = join(__dirname, "..", "package.json");
+    const serverJsonPath = join(__dirname, "..", "..", "server.json");
+    const packageJsonPath = join(__dirname, "..", "..", "package.json");
 
     const content = readFileSync(serverJsonPath, "utf-8");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
@@ -262,15 +260,15 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
 
 function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
     const rows = [
-        "| CLI Option                             | Environment Variable                                | Default                                                                     | Description                                                                                                                                                                                             |",
-        "| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
+        "| Environment Variable / CLI Option      | Default                                                                     | Description                                                                                                                                                                                             |",
+        "| -------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
     ];
 
     // Filter to only include options that are in the Zod schema (documented options)
     const documentedVars = argumentInfos.filter((v) => !v.description.startsWith("Configuration option:"));
 
     for (const argumentInfo of documentedVars) {
-        const cliOption = `\`${argumentInfo.configKey}\``;
+        const cliOption = `\`--${argumentInfo.configKey}\``;
         const envVarName = `\`${argumentInfo.name}\``;
 
         const defaultValue = argumentInfo.defaultValue;
@@ -302,7 +300,7 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
 
         const desc = argumentInfo.description.replace(/\|/g, "\\|"); // Escape pipes in description
         rows.push(
-            `| ${cliOption.padEnd(38)} | ${envVarName.padEnd(51)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
+            `| ${`${envVarName} / ${cliOption}`.padEnd(89)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
         );
     }
 
@@ -310,13 +308,13 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
 }
 
 function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
-    const readmePath = join(__dirname, "..", "README.md");
+    const readmePath = join(__dirname, "..", "..", "README.md");
     let content = readFileSync(readmePath, "utf-8");
 
     const newTable = generateReadmeConfigTable(envVars);
 
     // Find and replace the configuration options table
-    const tableRegex = /### Configuration Options\n\n\| CLI Option[\s\S]*?\n\n####/;
+    const tableRegex = /### Configuration Options\n\n\| Option[\s\S]*?\n\n####/;
     const replacement = `### Configuration Options\n\n${newTable}\n\n####`;
 
     content = content.replace(tableRegex, replacement);
@@ -325,15 +323,12 @@ function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
     console.log("✓ Updated README.md configuration table");
 
     // Run prettier on the README.md file
-    execSync("npx prettier --write README.md", { cwd: join(__dirname, "..") });
+    execSync("npx prettier --write README.md", { cwd: join(__dirname, "..", "..") });
 }
 
-function main(): void {
+export function generateArguments(): void {
     const zodMetadata = extractZodDescriptions();
-
     const argumentInfo = getArgumentInfo(zodMetadata);
     updateServerJsonEnvVars(argumentInfo);
     updateReadmeConfigTable(argumentInfo);
 }
-
-main();

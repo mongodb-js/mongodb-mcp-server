@@ -101,12 +101,42 @@ jobs:
         run: |
           gh release create ${{ needs.check.outputs.VERSION }} --title "${{ needs.check.outputs.VERSION }}" --generate-notes --target ${{ github.sha }} ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
 
-      - name: Install MCP Publisher
+      - name: Wait for package to be available on npm
         run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          PACKAGE_NAME=$(jq -r '.name' < package.json)
+          VERSION="${{ needs.check.outputs.VERSION }}"
+          # Strip the 'v' prefix for npm
+          NPM_VERSION="${VERSION#v}"
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
 
-      - name: Login to MCP Registry
-        run: ./mcp-publisher login github-oidc
+          echo "Waiting for ${PACKAGE_NAME}@${NPM_VERSION} to be available on npm..."
 
-      - name: Publish to MCP Registry
-        run: ./mcp-publisher publish
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if npm view "${PACKAGE_NAME}@${NPM_VERSION}" version >/dev/null 2>&1; then
+              echo "✓ Package ${PACKAGE_NAME}@${NPM_VERSION} is now available on npm"
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_ATTEMPTS: Package not yet available, waiting ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "::error::Package ${PACKAGE_NAME}@${NPM_VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+          exit 1
+
+  docker-push:
+    needs: [check, publish]
+    uses: ./.github/workflows/docker-publish.yml
+    permissions:
+      contents: read
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  mcp-publish:
+    needs: [check, docker-push]
+    if: needs.check.outputs.VERSION_EXISTS == 'false'
+    uses: ./.github/workflows/mcp-publish.yml
+    permissions:
+      id-token: write
+      contents: read
