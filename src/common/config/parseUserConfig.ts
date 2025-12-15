@@ -10,9 +10,8 @@ import {
     UnknownArgumentError,
 } from "@mongosh/arg-parser/arg-parser";
 import { z as z4 } from "zod/v4";
-import type yargsParser from "yargs-parser";
 
-export type ParserOptions = Partial<yargsParser.Options>;
+export type ParserOptions = typeof defaultArgParserOptions;
 
 export const defaultParserOptions = {
     // This is the name of key that yargs-parser will look up in CLI
