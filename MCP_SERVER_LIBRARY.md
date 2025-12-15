@@ -817,12 +817,6 @@ Utility function to parse command-line arguments and environment variables into 
 
 _Note: This is what MongoDB MCP server uses internally._
 
-```typescript
-function parseUserConfig(options?: {
-  args?: string[];
-}): UserConfig;
-```
-
 **Example:**
 
 ```typescript
