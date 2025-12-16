@@ -820,7 +820,11 @@ _Note: This is what MongoDB MCP server uses internally._
 **Example:**
 
 ```typescript
-import { parseUserConfig, StdioRunner, UserConfigSchema } from "mongodb-mcp-server";
+import {
+  parseUserConfig,
+  StdioRunner,
+  UserConfigSchema,
+} from "mongodb-mcp-server";
 
 // Parse config from process.argv and environment variables
 const config = parseUserConfig({
@@ -829,7 +833,7 @@ const config = parseUserConfig({
   // This can be used, for example, to set new defaults.
   overrides: {
     readOnly: UserConfigSchema.shape.readOnly.default(true),
-  }
+  },
 });
 
 const runner = new StdioRunner({ userConfig: config });
