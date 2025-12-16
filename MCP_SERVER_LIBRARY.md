@@ -820,10 +820,17 @@ _Note: This is what MongoDB MCP server uses internally._
 **Example:**
 
 ```typescript
-import { parseUserConfig, StdioRunner } from "mongodb-mcp-server";
+import { parseUserConfig, StdioRunner, UserConfigSchema } from "mongodb-mcp-server";
 
 // Parse config from process.argv and environment variables
-const config = parseUserConfig();
+const config = parseUserConfig({
+  args: process.argv.slice(2),
+  // You can optionally specify overrides for the config
+  // This can be used, for example, to set new defaults.
+  overrides: {
+    readOnly: UserConfigSchema.shape.readOnly.default(true),
+  }
+});
 
 const runner = new StdioRunner({ userConfig: config });
 await runner.start();
