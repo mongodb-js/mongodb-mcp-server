@@ -22,7 +22,7 @@ export type ToolExecutionContext = {
 };
 
 /**
- * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
+ * The ~`type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
  * the config's `disabledTools` and `readOnly` settings.
  * - `metadata` is used for tools that read but do not access potentially user-generated
  *   data, such as listing databases, collections, or indexes, or inferring collection schema.
@@ -94,7 +94,7 @@ export type ToolConstructorParams = {
      * See `src/elicitation.ts` for further reference.
      */
     elicitation: Elicitation;
-    uiRegistry?: UIRegistry;
+    uiRegistry: UIRegistry;
 };
 
 /**
@@ -432,7 +432,7 @@ export abstract class ToolBase {
      * or inputs during tool execution.
      */
     protected readonly elicitation: Elicitation;
-    protected readonly uiRegistry?: UIRegistry;
+    private readonly uiRegistry: UIRegistry;
     constructor({
         category,
         operationType,
@@ -728,7 +728,7 @@ export abstract class ToolBase {
             return result;
         }
 
-        const uiHtml = await this.uiRegistry?.get(this.name);
+        const uiHtml = await this.uiRegistry.get(this.name);
         if (!uiHtml || !result.structuredContent) {
             return result;
         }

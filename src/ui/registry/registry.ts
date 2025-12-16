@@ -10,24 +10,22 @@ function toPascalCase(kebabCase: string): string {
  * UI Registry that manages bundled UI HTML strings for tools.
  */
 export class UIRegistry {
-    private customUIs: Map<string, string> = new Map();
+    private customUIs?: (toolName: string) => string | null | Promise<string | null>;
     private cache: Map<string, string> = new Map();
 
-    constructor(options?: { customUIs?: Record<string, string> }) {
-        if (options?.customUIs) {
-            for (const [toolName, html] of Object.entries(options.customUIs)) {
-                this.customUIs.set(toolName, html);
-            }
-        }
+    constructor(options?: { customUIs?: (toolName: string) => string | null | Promise<string | null> }) {
+        this.customUIs = options?.customUIs;
     }
 
     /**
      * Gets the UI HTML string for a tool, or null if none exists.
      */
     async get(toolName: string): Promise<string | null> {
-        const customUI = this.customUIs.get(toolName);
-        if (customUI !== undefined) {
-            return customUI;
+        if (this.customUIs) {
+            const customUI = await this.customUIs(toolName);
+            if (customUI !== null && customUI !== undefined) {
+                return customUI;
+            }
         }
 
         const cached = this.cache.get(toolName);
@@ -38,7 +36,7 @@ export class UIRegistry {
         try {
             const module = (await import(`../lib/tools/${toolName}.js`)) as Record<string, string>;
             const exportName = `${toPascalCase(toolName)}Html`;
-            const html = module[exportName];
+            const html = module[exportName]; // HTML generated at build time
             if (html === undefined) {
                 return null;
             }
