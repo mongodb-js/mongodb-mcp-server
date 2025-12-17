@@ -141,23 +141,14 @@ describeWithMongoDB(
     "mcpUI feature - UIRegistry initialization",
     (integration) => {
         describe("server UIRegistry", () => {
-            it("should have UIRegistry initialized with bundled UIs", () => {
+            it("should have UIRegistry initialized with bundled UIs", async () => {
                 const server = integration.mcpServer();
                 expectDefined(server.uiRegistry);
 
-                expect(server.uiRegistry.has("list-databases")).toBe(true);
-
-                const uiHtml = server.uiRegistry.get("list-databases");
+                const uiHtml = await server.uiRegistry.get("list-databases");
                 expectDefined(uiHtml);
+                expect(uiHtml).not.toBeNull();
                 expect(uiHtml.length).toBeGreaterThan(0);
-            });
-
-            it("should return list of available tools with UIs", () => {
-                const server = integration.mcpServer();
-                const availableTools = server.uiRegistry.getAvailableTools();
-
-                expect(Array.isArray(availableTools)).toBe(true);
-                expect(availableTools).toContain("list-databases");
             });
         });
     },
@@ -173,6 +164,8 @@ describe("mcpUI feature with custom UIs", () => {
     const initServerWithCustomUIs = async (
         customUIs: Record<string, string>
     ): Promise<{ server: Server; transport: Transport }> => {
+        // Convert Record to function
+        const customUIsFunction = (toolName: string): string | null => customUIs[toolName] ?? null;
         const userConfig = {
             ...defaultTestConfig,
             previewFeatures: ["mcpUI" as const],
@@ -203,7 +196,7 @@ describe("mcpUI feature with custom UIs", () => {
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
-            customUIs,
+            customUIs: customUIsFunction,
         });
 
         const transport = new InMemoryTransport();
@@ -228,8 +221,9 @@ describe("mcpUI feature with custom UIs", () => {
         await server.connect(transport);
 
         expectDefined(server.uiRegistry);
-        expect(server.uiRegistry.has("list-databases")).toBe(true);
-        expect(server.uiRegistry.get("list-databases")).toBe("<html>Custom Test UI</html>");
+        const uiHtml = await server.uiRegistry.get("list-databases");
+        expectDefined(uiHtml);
+        expect(uiHtml).toBe("<html>Custom Test UI</html>");
     });
 
     it("should add new custom UIs for tools without bundled UIs", async () => {
@@ -241,8 +235,9 @@ describe("mcpUI feature with custom UIs", () => {
         await server.connect(transport);
 
         expectDefined(server.uiRegistry);
-        expect(server.uiRegistry.has("custom-tool")).toBe(true);
-        expect(server.uiRegistry.get("custom-tool")).toBe("<html>Custom Tool UI</html>");
+        const uiHtml = await server.uiRegistry.get("custom-tool");
+        expectDefined(uiHtml);
+        expect(uiHtml).toBe("<html>Custom Tool UI</html>");
     });
 
     it("should merge custom UIs with bundled UIs", async () => {
@@ -255,12 +250,13 @@ describe("mcpUI feature with custom UIs", () => {
 
         expectDefined(server.uiRegistry);
 
-        expect(server.uiRegistry.has("new-tool")).toBe(true);
-        expect(server.uiRegistry.get("new-tool")).toBe("<html>New Tool UI</html>");
+        const newToolUI = await server.uiRegistry.get("new-tool");
+        expectDefined(newToolUI);
+        expect(newToolUI).toBe("<html>New Tool UI</html>");
 
-        expect(server.uiRegistry.has("list-databases")).toBe(true);
-        const bundledUI = server.uiRegistry.get("list-databases");
+        const bundledUI = await server.uiRegistry.get("list-databases");
         expectDefined(bundledUI);
+        expect(bundledUI).not.toBeNull();
         expect(bundledUI.length).toBeGreaterThan(0);
     });
 });

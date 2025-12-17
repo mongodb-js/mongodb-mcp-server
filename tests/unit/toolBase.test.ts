@@ -14,7 +14,7 @@ import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";
 import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
-import { type UIRegistry } from "../../src/ui/registry/index.js";
+import { UIRegistry } from "../../src/ui/registry/index.js";
 
 function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | null> {
     expect(arg).toBeDefined();
@@ -277,8 +277,6 @@ describe("ToolBase", () => {
             mockUIRegistryGet = vi.fn();
             mockUIRegistry = {
                 get: mockUIRegistryGet,
-                has: vi.fn(),
-                getAvailableTools: vi.fn(),
             } as unknown as UIRegistry;
         });
 
