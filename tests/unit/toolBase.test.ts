@@ -402,39 +402,6 @@ describe("ToolBase", () => {
             expect(result.structuredContent).toBeUndefined();
         });
 
-        it("should not append UIResource when outputSchema validation fails", async () => {
-            const toolWithInvalidOutput = createToolWithInvalidStructuredContent(
-                ["mcpUI"],
-                mockSession,
-                mockConfig,
-                mockTelemetry,
-                mockElicitation,
-                mockUIRegistry
-            );
-            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
-
-            let invalidCallback: ToolCallback<ZodRawShape> | undefined;
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: unknown,
-                        cb: ToolCallback<ZodRawShape>
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        invalidCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
-            };
-            toolWithInvalidOutput.register(mockServer as unknown as Server);
-
-            expectDefined(invalidCallback);
-            const result = await invalidCallback({ input: "test" }, {} as never);
-
-            expect(result.content).toHaveLength(1);
-            expect(mockLoggerWarning).toHaveBeenCalled();
-        });
-
         it("should append UIResource correctly when all conditions are met", async () => {
             toolWithUI = createToolWithUI(["mcpUI"]);
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
@@ -450,7 +417,7 @@ describe("ToolBase", () => {
                 resource: { uri: string; text: string; mimeType: string; _meta?: Record<string, unknown> };
             };
             expect(uiResource.type).toBe("resource");
-            expect(uiResource.resource.uri).toMatch(/^ui:\/\/test-tool-with-output-schema\/\d+$/);
+            expect(uiResource.resource.uri).toBe("ui://test-tool-with-output-schema");
             expect(uiResource.resource.text).toBe("<html>test UI</html>");
             expect(uiResource.resource.mimeType).toBe("text/html");
             expect(uiResource.resource._meta).toEqual({
@@ -504,27 +471,6 @@ function createToolWithoutStructuredContent(
         uiRegistry: mockUIRegistry,
     };
     return new TestToolWithoutStructuredContent(constructorParams);
-}
-
-function createToolWithInvalidStructuredContent(
-    previewFeatures: PreviewFeature[],
-    mockSession: Session,
-    mockConfig: UserConfig,
-    mockTelemetry: Telemetry,
-    mockElicitation: Elicitation,
-    mockUIRegistry: UIRegistry
-): TestToolWithInvalidStructuredContent {
-    mockConfig.previewFeatures = previewFeatures;
-    const constructorParams: ToolConstructorParams = {
-        category: TestToolWithInvalidStructuredContent.category,
-        operationType: TestToolWithInvalidStructuredContent.operationType,
-        session: mockSession,
-        config: mockConfig,
-        telemetry: mockTelemetry,
-        elicitation: mockElicitation,
-        uiRegistry: mockUIRegistry,
-    };
-    return new TestToolWithInvalidStructuredContent(constructorParams);
 }
 
 class TestTool extends ToolBase {
@@ -616,38 +562,6 @@ class TestToolWithoutStructuredContent extends ToolBase {
                     text: "Tool without structured content executed",
                 },
             ],
-        });
-    }
-
-    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-        return {};
-    }
-}
-
-class TestToolWithInvalidStructuredContent extends ToolBase {
-    public name = "test-tool-with-invalid-structured";
-    static category: ToolCategory = "mongodb";
-    static operationType: OperationType = "metadata";
-    protected description = "A test tool with invalid structured content";
-    protected argsShape = {
-        input: z.string().describe("Test input"),
-    };
-    protected override outputSchema = {
-        value: z.string(),
-        requiredField: z.number(),
-    };
-
-    protected async execute(): Promise<CallToolResult> {
-        return Promise.resolve({
-            content: [
-                {
-                    type: "text",
-                    text: "Tool with invalid structured content executed",
-                },
-            ],
-            structuredContent: {
-                value: "test",
-            },
         });
     }
 

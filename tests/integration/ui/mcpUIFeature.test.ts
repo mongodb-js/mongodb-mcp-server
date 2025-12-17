@@ -82,7 +82,7 @@ describeWithMongoDB(
 
                 expect(uiResource.type).toBe("resource");
                 expectDefined(uiResource.resource);
-                expect(uiResource.resource.uri).toMatch(/^ui:\/\/list-databases\/\d+$/);
+                expect(uiResource.resource.uri).toBe("ui://list-databases");
                 expect(uiResource.resource.mimeType).toBe("text/html");
                 expect(typeof uiResource.resource.text).toBe("string");
                 expect(uiResource.resource.text.length).toBeGreaterThan(0);
