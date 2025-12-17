@@ -1,4 +1,4 @@
-import React from "react";
+import React, { type ComponentPropsWithoutRef, type FC, type ReactElement } from "react";
 import { useDarkMode, useRenderData } from "../../hooks/index.js";
 import {
     Cell as LGCell,
@@ -13,9 +13,9 @@ import { Body } from "@leafygreen-ui/typography";
 import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
 import { AmountTextStyles, getContainerStyles } from "./ListDatabases.styles.js";
 
-const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">>;
-const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;
-const Row = LGRow as React.FC<React.ComponentPropsWithoutRef<"tr">>;
+const HeaderCell = LGHeaderCell as FC<ComponentPropsWithoutRef<"th">>;
+const Cell = LGCell as FC<ComponentPropsWithoutRef<"td">>;
+const Row = LGRow as FC<ComponentPropsWithoutRef<"tr">>;
 
 export type Database = ListDatabasesOutput["databases"][number];
 
@@ -37,7 +37,7 @@ function formatBytes(bytes: number): string {
 export const ListDatabases = ({
     databases: propDatabases,
     darkMode: darkModeProp,
-}: ListDatabasesProps): React.ReactElement | null => {
+}: ListDatabasesProps): ReactElement | null => {
     const darkMode = useDarkMode(darkModeProp);
     const { data: hookData, isLoading, error } = useRenderData<ListDatabasesOutput>();
     const databases = propDatabases ?? hookData?.databases;
