@@ -164,7 +164,6 @@ describe("mcpUI feature with custom UIs", () => {
     const initServerWithCustomUIs = async (
         customUIs: Record<string, string>
     ): Promise<{ server: Server; transport: Transport }> => {
-        // Convert Record to function
         const customUIsFunction = (toolName: string): string | null => customUIs[toolName] ?? null;
         const userConfig = {
             ...defaultTestConfig,
