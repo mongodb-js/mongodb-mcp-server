@@ -9,8 +9,9 @@ import {
     TableBody,
     TableHead,
 } from "@leafygreen-ui/table";
-import { tableStyles } from "./ListDatabases.styles.js";
+import { Body } from "@leafygreen-ui/typography";
 import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
+import { AmountTextStyles } from "./ListDatabases.styles.js";
 
 const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">>;
 const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;
@@ -51,21 +52,26 @@ export const ListDatabases = ({ databases: propDatabases }: ListDatabasesProps):
     }
 
     return (
-        <Table className={tableStyles}>
-            <TableHead>
-                <HeaderRow>
-                    <HeaderCell>DB Name</HeaderCell>
-                    <HeaderCell>DB Size</HeaderCell>
-                </HeaderRow>
-            </TableHead>
-            <TableBody>
-                {databases.map((db) => (
-                    <Row key={db.name}>
-                        <Cell>{db.name}</Cell>
-                        <Cell>{formatBytes(db.size)}</Cell>
-                    </Row>
-                ))}
-            </TableBody>
-        </Table>
+        <>
+            <Body className={AmountTextStyles}>
+                Your cluster has <strong>{databases.length} databases</strong>:
+            </Body>
+            <Table>
+                <TableHead>
+                    <HeaderRow>
+                        <HeaderCell>Database</HeaderCell>
+                        <HeaderCell>Size</HeaderCell>
+                    </HeaderRow>
+                </TableHead>
+                <TableBody>
+                    {databases.map((db) => (
+                        <Row key={db.name}>
+                            <Cell>{db.name}</Cell>
+                            <Cell>{formatBytes(db.size)}</Cell>
+                        </Row>
+                    ))}
+                </TableBody>
+            </Table>
+        </>
     );
 };
