@@ -1,4 +1,4 @@
-import { useMemo, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 function subscribeToPrefersColorScheme(callback: () => void): () => void {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -7,9 +7,6 @@ function subscribeToPrefersColorScheme(callback: () => void): () => void {
 }
 
 function getPrefersDarkMode(): boolean {
-    if (typeof window === "undefined") {
-        return false;
-    }
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
@@ -19,11 +16,5 @@ function getServerSnapshot(): boolean {
 
 export function useDarkMode(override?: boolean): boolean {
     const prefersDarkMode = useSyncExternalStore(subscribeToPrefersColorScheme, getPrefersDarkMode, getServerSnapshot);
-
-    return useMemo(() => {
-        if (override !== undefined) {
-            return override;
-        }
-        return prefersDarkMode;
-    }, [override, prefersDarkMode]);
+    return override ?? prefersDarkMode;
 }

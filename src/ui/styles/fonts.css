@@ -1,8 +1,3 @@
-/**
- * MongoDB Font Definitions
- * Euclid Circular A and MongoDB Value Serif
- */
-
 /* Euclid Circular A - Semibold */
 @font-face {
     font-family: "Euclid Circular A";
@@ -86,10 +81,6 @@
     font-style: italic;
 }
 
-/**
- * MongoDB Value Serif
- */
-
 /* MongoDB Value Serif - Bold */
 @font-face {
     font-family: "MongoDB Value Serif";
@@ -119,10 +110,6 @@
         url("https://d2va9gm4j17fy9.cloudfront.net/fonts/value-serif/MongoDBValueSerif-Regular.woff2") format("woff2"),
         url("https://d2va9gm4j17fy9.cloudfront.net/fonts/value-serif/MongoDBValueSerif-Regular.ttf") format("truetype");
 }
-
-/**
- * Base Styles
- */
 
 html {
     font-family: "Euclid Circular A", "Helvetica Neue", Helvetica, Arial, sans-serif;
