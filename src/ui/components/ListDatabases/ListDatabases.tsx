@@ -16,6 +16,12 @@ const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">
 const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;
 const Row = LGRow as React.FC<React.ComponentPropsWithoutRef<"tr">>;
 
+export type Database = ListDatabasesOutput["databases"][number];
+
+interface ListDatabasesProps {
+    databases?: Database[];
+}
+
 function formatBytes(bytes: number): string {
     if (bytes === 0) return "0 Bytes";
 
@@ -26,18 +32,21 @@ function formatBytes(bytes: number): string {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
-export const ListDatabases = (): React.ReactElement | null => {
-    const { data, isLoading, error } = useRenderData<ListDatabasesOutput>();
+export const ListDatabases = ({ databases: propDatabases }: ListDatabasesProps): React.ReactElement | null => {
+    const { data: hookData, isLoading, error } = useRenderData<ListDatabasesOutput>();
+    const databases = propDatabases ?? hookData?.databases;
 
-    if (isLoading) {
-        return <div>Loading...</div>;
+    if (!propDatabases) {
+        if (isLoading) {
+            return <div>Loading...</div>;
+        }
+
+        if (error) {
+            return <div>Error: {error}</div>;
+        }
     }
 
-    if (error) {
-        return <div>Error: {error}</div>;
-    }
-
-    if (!data) {
+    if (!databases) {
         return null;
     }
 
@@ -50,7 +59,7 @@ export const ListDatabases = (): React.ReactElement | null => {
                 </HeaderRow>
             </TableHead>
             <TableBody>
-                {data.databases.map((db) => (
+                {databases.map((db) => (
                     <Row key={db.name}>
                         <Cell>{db.name}</Cell>
                         <Cell>{formatBytes(db.size)}</Cell>
