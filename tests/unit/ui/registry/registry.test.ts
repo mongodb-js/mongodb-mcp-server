@@ -8,8 +8,11 @@ describe("UIRegistry", () => {
 
     describe("get()", () => {
         it("should return custom UI when set", async () => {
-            const customUIs = {
-                "list-databases": "<html>custom list-databases UI</html>",
+            const customUIs = (toolName: string): string | null => {
+                if (toolName === "list-databases") {
+                    return "<html>custom list-databases UI</html>";
+                }
+                return null;
             };
             const registry = new UIRegistry({ customUIs });
 
@@ -23,8 +26,11 @@ describe("UIRegistry", () => {
         });
 
         it("should return custom UI for new tools", async () => {
-            const customUIs = {
-                "brand-new-tool": "<html>brand new UI</html>",
+            const customUIs = (toolName: string): string | null => {
+                if (toolName === "brand-new-tool") {
+                    return "<html>brand new UI</html>";
+                }
+                return null;
             };
             const registry = new UIRegistry({ customUIs });
 
@@ -32,8 +38,11 @@ describe("UIRegistry", () => {
         });
 
         it("should prefer custom UI over bundled UI", async () => {
-            const customUIs = {
-                "any-tool": "<html>custom version</html>",
+            const customUIs = (toolName: string): string | null => {
+                if (toolName === "any-tool") {
+                    return "<html>custom version</html>";
+                }
+                return null;
             };
             const registry = new UIRegistry({ customUIs });
 
@@ -42,8 +51,11 @@ describe("UIRegistry", () => {
         });
 
         it("should cache results after first load", async () => {
-            const customUIs = {
-                "cached-tool": "<html>cached UI</html>",
+            const customUIs = (toolName: string): string | null => {
+                if (toolName === "cached-tool") {
+                    return "<html>cached UI</html>";
+                }
+                return null;
             };
             const registry = new UIRegistry({ customUIs });
 

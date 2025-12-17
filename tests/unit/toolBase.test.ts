@@ -308,8 +308,6 @@ describe("ToolBase", () => {
             mockUIRegistryGet = vi.fn();
             mockUIRegistry = {
                 get: mockUIRegistryGet,
-                has: vi.fn(),
-                getAvailableTools: vi.fn(),
             } as unknown as UIRegistry;
         });
 
