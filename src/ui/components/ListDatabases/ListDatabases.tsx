@@ -1,5 +1,5 @@
 import React from "react";
-import { useRenderData } from "../../hooks/index.js";
+import { useDarkMode, useRenderData } from "../../hooks/index.js";
 import {
     Cell as LGCell,
     HeaderCell as LGHeaderCell,
@@ -11,7 +11,7 @@ import {
 } from "@leafygreen-ui/table";
 import { Body } from "@leafygreen-ui/typography";
 import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
-import { AmountTextStyles } from "./ListDatabases.styles.js";
+import { AmountTextStyles, getContainerStyles } from "./ListDatabases.styles.js";
 
 const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">>;
 const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;
@@ -21,6 +21,7 @@ export type Database = ListDatabasesOutput["databases"][number];
 
 interface ListDatabasesProps {
     databases?: Database[];
+    darkMode?: boolean;
 }
 
 function formatBytes(bytes: number): string {
@@ -33,7 +34,11 @@ function formatBytes(bytes: number): string {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
-export const ListDatabases = ({ databases: propDatabases }: ListDatabasesProps): React.ReactElement | null => {
+export const ListDatabases = ({
+    databases: propDatabases,
+    darkMode: darkModeProp,
+}: ListDatabasesProps): React.ReactElement | null => {
+    const darkMode = useDarkMode(darkModeProp);
     const { data: hookData, isLoading, error } = useRenderData<ListDatabasesOutput>();
     const databases = propDatabases ?? hookData?.databases;
 
@@ -52,11 +57,11 @@ export const ListDatabases = ({ databases: propDatabases }: ListDatabasesProps):
     }
 
     return (
-        <>
-            <Body className={AmountTextStyles}>
+        <div className={getContainerStyles(darkMode)}>
+            <Body className={AmountTextStyles} darkMode={darkMode}>
                 Your cluster has <strong>{databases.length} databases</strong>:
             </Body>
-            <Table>
+            <Table darkMode={darkMode}>
                 <TableHead>
                     <HeaderRow>
                         <HeaderCell>Database</HeaderCell>
@@ -72,6 +77,6 @@ export const ListDatabases = ({ databases: propDatabases }: ListDatabasesProps):
                     ))}
                 </TableBody>
             </Table>
-        </>
+        </div>
     );
 };
