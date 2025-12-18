@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { AllTools } from "../../src/tools/index.js";
+import { UIRegistry } from "../../src/ui/registry/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -53,6 +54,7 @@ function extractToolInformation(): ToolInfo[] {
             elicitation: {
                 requestConfirmation: () => Promise.resolve(false),
             } as never,
+            uiRegistry: new UIRegistry(),
         };
 
         try {

@@ -37,7 +37,7 @@ enableFipsIfRequested();
 
 import crypto from "crypto";
 import { ConsoleLogger, LogId } from "./common/logger.js";
-import { createUserConfig } from "./common/config/createUserConfig.js";
+import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
         error,
         warnings,
         parsed: config,
-    } = createUserConfig({
+    } = parseUserConfig({
         args: process.argv.slice(2),
     });
 

@@ -9,7 +9,7 @@ import enforceZodV4 from "./eslint-rules/enforce-zod-v4.js";
 
 const testFiles = ["tests/**/*.test.ts", "tests/**/*.ts"];
 
-const files = [...testFiles, "src/**/*.ts", "scripts/**/*.ts"];
+const files = [...testFiles, "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts"];
 
 export default defineConfig([
     { files, plugins: { js }, extends: ["js/recommended"] },
@@ -81,10 +81,12 @@ export default defineConfig([
         "node_modules",
         "dist",
         "src/common/atlas/openapi.d.ts",
+        "src/ui/lib",
         "coverage",
         "global.d.ts",
         "eslint.config.js",
         "vitest.config.ts",
+        "vite.ui.config.ts",
         "src/types/*.d.ts",
         "tests/integration/fixtures/",
         "eslint-rules",
