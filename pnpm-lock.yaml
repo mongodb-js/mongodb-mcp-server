@@ -41,7 +41,7 @@ importers:
         version: 5.2.1
       lru-cache:
         specifier: ^11.1.0
-        version: 11.2.2
+        version: 11.2.4
       mongodb-connection-string-url:
         specifier: ^3.0.2
         version: 3.0.2
@@ -3931,8 +3931,8 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lru-cache@11.2.2:
-    resolution: {integrity: sha512-F9ODfyqML2coTIsQpSkRHnLSZMtkU8Q+mSfcaIyKwy58u+8k5nvAYeiNhsyMARvzNcXJ9QfWVrcPsC9e9rAxtg==}
+  lru-cache@11.2.4:
+    resolution: {integrity: sha512-B5Y16Jr9LB9dHVkh6ZevG+vAbOsNOYCX+sXvFWFu7B3Iz5mijW3zdbMyhsh8ANd2mSWBYdJgnqi+mL7/LrOPYg==}
     engines: {node: 20 || >=22}
 
   lru-cache@5.1.1:
@@ -6642,7 +6642,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
-      lru-cache: 11.2.2
+      lru-cache: 11.2.4
       node-fetch: 3.3.2
       pac-proxy-agent: 7.2.0
       socks-proxy-agent: 8.0.5
@@ -6658,7 +6658,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
-      lru-cache: 11.2.2
+      lru-cache: 11.2.4
       node-fetch: 3.3.2
       pac-proxy-agent: 7.2.0
       socks-proxy-agent: 8.0.5
@@ -9852,7 +9852,7 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lru-cache@11.2.2: {}
+  lru-cache@11.2.4: {}
 
   lru-cache@5.1.1:
     dependencies:
@@ -10413,7 +10413,7 @@ snapshots:
 
   path-scurry@2.0.1:
     dependencies:
-      lru-cache: 11.2.2
+      lru-cache: 11.2.4
       minipass: 7.1.2
 
   path-to-regexp@3.3.0: {}
