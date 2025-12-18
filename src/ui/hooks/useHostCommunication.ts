@@ -138,4 +138,3 @@ export function useHostCommunication(defaultOptions?: SendMessageOptions): UseHo
         [intent, notify, prompt, tool, link, reportSizeChange]
     );
 }
-

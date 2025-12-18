@@ -233,4 +233,3 @@ describe("useHostCommunication", () => {
         expect(postMessageMock).toHaveBeenCalledWith(expect.any(Object), "*");
     });
 });
-
