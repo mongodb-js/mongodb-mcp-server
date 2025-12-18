@@ -18,6 +18,7 @@
     "noImplicitReturns": true,
     "declaration": true,
     "declarationMap": true,
+    "jsx": "react-jsx",
     "paths": {
       "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
       "mongodb-connection-string-url": [
@@ -25,5 +26,6 @@
       ]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/ui/build/mount.tsx"]
 }
