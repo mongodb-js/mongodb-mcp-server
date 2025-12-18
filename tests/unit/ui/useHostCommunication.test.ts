@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
 import { createElement, type FunctionComponent } from "react";
 import { renderToString } from "react-dom/server";
-import { useUIActions } from "../../../src/ui/hooks/useUIActions.js";
+import { useHostCommunication } from "../../../src/ui/hooks/useHostCommunication.js";
 
-type UseUIActionsResult = ReturnType<typeof useUIActions>;
+type UseHostCommunicationResult = ReturnType<typeof useHostCommunication>;
 
 interface HookOptions {
     targetOrigin?: string;
@@ -13,11 +13,11 @@ interface HookOptions {
  * Simple hook testing utility that renders a component using the hook
  * and captures the result for assertions.
  */
-function testHook(options?: HookOptions): UseUIActionsResult {
-    let hookResult: UseUIActionsResult | undefined;
+function testHook(options?: HookOptions): UseHostCommunicationResult {
+    let hookResult: UseHostCommunicationResult | undefined;
 
     const TestComponent: FunctionComponent = () => {
-        hookResult = useUIActions(options);
+        hookResult = useHostCommunication(options);
         return null;
     };
 
@@ -30,7 +30,7 @@ function testHook(options?: HookOptions): UseUIActionsResult {
     return hookResult;
 }
 
-describe("useUIActions", () => {
+describe("useHostCommunication", () => {
     let postMessageMock: Mock;
     let originalWindow: typeof globalThis.window;
 
@@ -233,3 +233,4 @@ describe("useUIActions", () => {
         expect(postMessageMock).toHaveBeenCalledWith(expect.any(Object), "*");
     });
 });
+

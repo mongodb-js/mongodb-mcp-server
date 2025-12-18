@@ -36,7 +36,7 @@ interface UseRenderDataResult<T> {
  *
  * function MyComponent() {
  *   const { data, isLoading, error, parentOrigin } = useRenderData<MyData>();
- *   const { intent } = useUIActions({ targetOrigin: parentOrigin ?? undefined });
+ *   const { intent } = useHostCommunication({ targetOrigin: parentOrigin ?? undefined });
  *   return <button onClick={() => intent("my-action")}>Click</button>;
  * }
  * ```

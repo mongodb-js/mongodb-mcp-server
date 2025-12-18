@@ -4,8 +4,8 @@ interface SendMessageOptions {
     targetOrigin?: string;
 }
 
-/** Return type for the useUIActions hook */
-interface UseUIActionsResult {
+/** Return type for the useHostCommunication hook */
+interface UseHostCommunicationResult {
     /** Sends an intent message for the host to act on */
     intent: <T = unknown>(intent: string, params?: T) => void;
     /** Notifies the host of something that happened */
@@ -27,13 +27,13 @@ interface UseUIActionsResult {
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { intent, tool, link } = useUIActions();
+ *   const { intent, tool, link } = useHostCommunication();
  *
  *   return <button onClick={() => intent("create-task", { title: "Buy groceries" })}>Create Task</button>;
  * }
  * ```
  */
-export function useUIActions(defaultOptions?: SendMessageOptions): UseUIActionsResult {
+export function useHostCommunication(defaultOptions?: SendMessageOptions): UseHostCommunicationResult {
     const targetOrigin = defaultOptions?.targetOrigin ?? "*";
 
     const intent = useCallback(
@@ -138,3 +138,4 @@ export function useUIActions(defaultOptions?: SendMessageOptions): UseUIActionsR
         [intent, notify, prompt, tool, link, reportSizeChange]
     );
 }
+
