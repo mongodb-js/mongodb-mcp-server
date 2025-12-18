@@ -1,94 +1,35 @@
 import { useCallback, useMemo } from "react";
 
-/** Options for sending a message */
 interface SendMessageOptions {
-    /** Target origin for postMessage. Defaults to "*" */
     targetOrigin?: string;
 }
 
 /** Return type for the useUIActions hook */
 interface UseUIActionsResult {
-    /**
-     * Sends an intent message to the host.
-     * Indicates the user has interacted with the UI and expressed an intent for the host to act on.
-     * @param intent - The intent identifier
-     * @param params - Optional parameters for the intent
-     */
+    /** Sends an intent message for the host to act on */
     intent: <T = unknown>(intent: string, params?: T) => void;
-
-    /**
-     * Sends a notify message to the host.
-     * Indicates the iframe already acted upon user interaction and is notifying the host.
-     * @param message - The notification message
-     */
+    /** Notifies the host of something that happened */
     notify: (message: string) => void;
-
-    /**
-     * Sends a prompt message to the host.
-     * Asks the host to run a prompt.
-     * @param prompt - The prompt text to run
-     */
+    /** Asks the host to run a prompt */
     prompt: (prompt: string) => void;
-
-    /**
-     * Sends a tool call message to the host.
-     * Asks the host to execute a tool.
-     * @param toolName - The name of the tool to call
-     * @param params - Optional parameters for the tool
-     */
+    /** Asks the host to execute a tool */
     tool: <T = unknown>(toolName: string, params?: T) => void;
-
-    /**
-     * Sends a link message to the host.
-     * Asks the host to navigate to a URL.
-     * @param url - The URL to navigate to
-     */
+    /** Asks the host to navigate to a URL */
     link: (url: string) => void;
-
-    /**
-     * Reports a size change to the host.
-     * Used for auto-resizing iframes.
-     * @param dimensions - The new dimensions (width and/or height)
-     */
+    /** Reports iframe size changes to the host */
     reportSizeChange: (dimensions: { width?: number; height?: number }) => void;
 }
 
 /**
- * Hook for sending UI actions to the parent window via postMessage.
- * This is used by iframe-based UI components to communicate back to an MCP client.
- *
- * Implements the MCP-UI embeddable UI communication protocol.
- * All actions are fire-and-forget - use `useRenderData` to receive responses from the host.
- *
- * @param defaultOptions - Default options applied to all messages
- * @returns An object containing action methods:
- *   - intent: Send an intent for the host to act on
- *   - notify: Notify the host of something that happened
- *   - prompt: Ask the host to run a prompt
- *   - tool: Ask the host to run a tool call
- *   - link: Ask the host to navigate to a URL
- *   - reportSizeChange: Report iframe size changes
+ * Hook for sending UI actions to the parent window via postMessage
+ * This is used by iframe-based UI components to communicate back to an MCP client
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { data } = useRenderData<MyData>();
  *   const { intent, tool, link } = useUIActions();
  *
- *   const handleCreateTask = () => {
- *     intent("create-task", { title: "Buy groceries" });
- *   };
- *
- *   const handleRefresh = () => {
- *     // Ask host to run a tool, host will send new data via render data
- *     tool("refresh-data", { id: data?.id });
- *   };
- *
- *   const handleOpenDocs = () => {
- *     link("https://docs.example.com");
- *   };
- *
- *   return <button onClick={handleCreateTask}>Create Task</button>;
+ *   return <button onClick={() => intent("create-task", { title: "Buy groceries" })}>Create Task</button>;
  * }
  * ```
  */
