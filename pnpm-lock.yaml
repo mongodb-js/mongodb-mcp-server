@@ -94,9 +94,18 @@ importers:
       '@eslint/js':
         specifier: ^9.34.0
         version: 9.39.1
+      '@leafygreen-ui/lib':
+        specifier: ^15.7.0
+        version: 15.7.0(react@18.3.1)
       '@leafygreen-ui/table':
         specifier: ^15.2.2
         version: 15.2.2(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/tokens':
+        specifier: ^4.2.0
+        version: 4.2.0(react@18.3.1)
+      '@leafygreen-ui/typography':
+        specifier: ^22.2.3
+        version: 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@modelcontextprotocol/inspector':
         specifier: ^0.17.1
         version: 0.17.2(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@18.3.27))(@types/react@18.3.27)(typescript@5.9.3)
@@ -1097,11 +1106,6 @@ packages:
   '@leafygreen-ui/leafygreen-provider@5.0.4':
     resolution: {integrity: sha512-VDlmjTiIqlITVhq4VKUDq8FLySWnHkTxSV2n1sxOanLNPuatOXjxsPmCkPUBXhmQKk/fBf4yQnDKOwJvkyzE6Q==}
 
-  '@leafygreen-ui/lib@15.6.2':
-    resolution: {integrity: sha512-HsjXXovBqyrXL3Y7V09g2bEidGn58AK/mfoIPMlen/hEcWlbXbefoCzXF7AQqWLhd0F/lS2XgX7+BqVUHXx2/Q==}
-    peerDependencies:
-      react: ^17.0.0 || ^18.0.0
-
   '@leafygreen-ui/lib@15.7.0':
     resolution: {integrity: sha512-qHv7oN2uN7ywdG9lUN/ayFJzzgJELLgNxIo24m64Sl9c8gSWQeCW+NDj3ukoNVH7ME7QPoULseNd1fElonH8Vg==}
     peerDependencies:
@@ -1118,8 +1122,8 @@ packages:
     peerDependencies:
       '@leafygreen-ui/leafygreen-provider': ^5.0.0 || ^4.0.0 || ^3.2.0
 
-  '@leafygreen-ui/tokens@4.1.0':
-    resolution: {integrity: sha512-5GfNFP0iRT4O+CnqYHpvtCUiT3aStUa2EhrV3tkrTwffemHN10M4G5nc/DhLGLNp2aQDP1+ppAtjZI5zczDSiA==}
+  '@leafygreen-ui/tokens@4.2.0':
+    resolution: {integrity: sha512-5Bp1mhh8PKi7ZKr17/VNiSz0LL7ipFgR/Ayj7tIW79sbuGmBFt2rlu2lMnH6hQAvYrHWbW/FDqyeq85jOxIdTQ==}
 
   '@leafygreen-ui/typography@22.2.3':
     resolution: {integrity: sha512-zOfPAFyUrUU0G9wPv7lFSMr4FvKi2NiulDMHhy5zea+J4gDn1yuiU0mItG6cwbWxpWSiBeF0gfsZoDuHgKppUg==}
@@ -6543,7 +6547,7 @@ snapshots:
     dependencies:
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/hooks': 9.3.0(react@18.3.1)
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
     transitivePeerDependencies:
       - react
       - supports-color
@@ -6554,9 +6558,9 @@ snapshots:
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/hooks': 9.3.0(react@18.3.1)
       '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
-      '@leafygreen-ui/tokens': 4.1.0(react@18.3.1)
+      '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
       '@leafygreen-ui/typography': 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@lg-tools/test-harnesses': 0.3.4
       react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -6574,8 +6578,8 @@ snapshots:
 
   '@leafygreen-ui/hooks@9.3.0(react@18.3.1)':
     dependencies:
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
-      '@leafygreen-ui/tokens': 4.1.0(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
+      '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
       lodash: 4.17.21
     transitivePeerDependencies:
       - react
@@ -6587,10 +6591,10 @@ snapshots:
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/icon': 14.7.1(react@18.3.1)
       '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
       '@leafygreen-ui/polymorphic': 3.1.0(react@18.3.1)
-      '@leafygreen-ui/tokens': 4.1.0(react@18.3.1)
+      '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
       polished: 4.3.1
     transitivePeerDependencies:
       - react
@@ -6615,11 +6619,6 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@leafygreen-ui/lib@15.6.2(react@18.3.1)':
-    dependencies:
-      lodash: 4.17.21
-      react: 18.3.1
-
   '@leafygreen-ui/lib@15.7.0(react@18.3.1)':
     dependencies:
       lodash: 4.17.21
@@ -6629,7 +6628,7 @@ snapshots:
 
   '@leafygreen-ui/polymorphic@3.1.0(react@18.3.1)':
     dependencies:
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       lodash: 4.17.21
     transitivePeerDependencies:
       - react
@@ -6642,10 +6641,10 @@ snapshots:
       '@leafygreen-ui/icon': 14.7.1(react@18.3.1)
       '@leafygreen-ui/icon-button': 17.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
       '@leafygreen-ui/polymorphic': 3.1.0(react@18.3.1)
-      '@leafygreen-ui/tokens': 4.1.0(react@18.3.1)
+      '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
       '@leafygreen-ui/typography': 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@lg-tools/test-harnesses': 0.3.4
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -6659,10 +6658,10 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@leafygreen-ui/tokens@4.1.0(react@18.3.1)':
+  '@leafygreen-ui/tokens@4.2.0(react@18.3.1)':
     dependencies:
       '@leafygreen-ui/emotion': 5.1.0
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
     transitivePeerDependencies:
       - react
@@ -6673,10 +6672,10 @@ snapshots:
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/icon': 14.7.1(react@18.3.1)
       '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@leafygreen-ui/lib': 15.6.2(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
       '@leafygreen-ui/polymorphic': 3.1.0(react@18.3.1)
-      '@leafygreen-ui/tokens': 4.1.0(react@18.3.1)
+      '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
     transitivePeerDependencies:
       - react
       - supports-color
