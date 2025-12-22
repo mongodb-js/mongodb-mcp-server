@@ -25,6 +25,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
     - [Proxy Support](#proxy-support)
 - [🚀 Deploy on Public Clouds](#deploy-on-public-clouds)
   - [Azure Cloud](#azure)
+- [🎨 Custom UIs](#custom-uis)
 - [🤝 Contributing](#contributing)
 
 <a name="getting-started"></a>
@@ -775,6 +776,100 @@ You can deploy the MongoDB MCP Server to your preferred cloud provider using the
 
 For detailed Azure instructions, see [deploy/azure/README.md](deploy/azure/README.md).
 
-## 🤝Contributing
+## 🎨 Custom UIs
+
+When using the MongoDB MCP Server as a library, you can create custom UI components for your tools. These UIs are rendered as MCP-UI spec compliant HTML that can be displayed by MCP clients that support rich UI responses.
+
+### Prerequisites
+
+To build custom UIs, install the required dev dependencies:
+
+```bash
+npm install --save-dev react react-dom vite @vitejs/plugin-react vite-plugin-singlefile vite-plugin-node-polyfills
+```
+
+### Creating a Custom UI Component
+
+Each UI component should be in its own folder with an `index.ts` that exports the component:
+
+```
+src/custom-ui/components/
+└── ListUsers/
+    ├── index.ts         # export { ListUsers } from "./ListUsers.js"
+    └── ListUsers.tsx    # React component
+```
+
+Your component receives data via the `useRenderData` hook:
+
+```tsx
+// ListUsers.tsx
+import { useRenderData } from "mongodb-mcp-server/ui";
+
+interface UserData {
+    users: { name: string; email: string }[];
+}
+
+export const ListUsers = () => {
+    const { data, isLoading, error } = useRenderData<UserData>();
+
+    if (isLoading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
+    if (!data) return null;
+
+    return (
+        <ul>
+            {data.users.map((user) => (
+                <li key={user.email}>{user.name}</li>
+            ))}
+        </ul>
+    );
+};
+```
+
+### Building Custom UIs
+
+Run the build command to generate HTML strings from your components:
+
+```bash
+npx mongodb-mcp-server-build-ui ./src/custom-ui/components --output ./dist/custom-ui
+```
+
+This generates JavaScript modules in `./dist/custom-ui/tools/` that export HTML strings:
+
+```
+dist/custom-ui/
+└── tools/
+    ├── list-users.js     # export const ListUsersHtml = "<!doctype html>..."
+    └── list-users.d.ts   # TypeScript declarations
+```
+
+### Using Custom UIs with the Server
+
+Import the generated HTML strings and pass them to the `customUIs` option:
+
+```typescript
+import { Server } from "mongodb-mcp-server";
+import { ListUsersHtml } from "./dist/custom-ui/tools/list-users.js";
+
+const server = new Server({
+    // ... other options
+    customUIs: (toolName) => {
+        if (toolName === "list-users") return ListUsersHtml;
+        return null; // Fall back to built-in UIs
+    },
+});
+```
+
+### Component Naming Convention
+
+The build tool converts component folder names from PascalCase to kebab-case for tool names:
+
+| Component Folder | Tool Name       | Export Name       |
+| ---------------- | --------------- | ----------------- |
+| `ListUsers`      | `list-users`    | `ListUsersHtml`   |
+| `UserProfile`    | `user-profile`  | `UserProfileHtml` |
+| `DatabaseStats`  | `database-stats`| `DatabaseStatsHtml`|
+
+## 🤝 Contributing
 
 Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.

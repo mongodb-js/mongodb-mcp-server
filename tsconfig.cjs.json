@@ -13,5 +13,10 @@
         "./node_modules/@mongosh/arg-parser/lib/arg-parser"
       ]
     }
-  }
+  },
+  "exclude": [
+    "src/ui/build/mount.tsx",
+    "src/ui/build/buildCustomUI.ts",
+    "src/scripts/buildUI.ts"
+  ]
 }

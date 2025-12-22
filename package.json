@@ -45,7 +45,8 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
   },
   "bin": {
-    "mongodb-mcp-server": "dist/esm/index.js"
+    "mongodb-mcp-server": "dist/esm/index.js",
+    "mongodb-mcp-server-build-ui": "dist/esm/scripts/buildUI.js"
   },
   "publishConfig": {
     "access": "public"
@@ -59,11 +60,12 @@
     "prepare": "husky && pnpm run build",
     "build:clean": "rm -rf dist",
     "build:update-package-version": "tsx scripts/updatePackageVersion.ts",
-    "build:esm": "tsc --project tsconfig.esm.json && chmod +x dist/esm/index.js",
+    "build:esm": "tsc --project tsconfig.esm.json && chmod +x dist/esm/index.js dist/esm/scripts/buildUI.js",
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build:ui": "vite build --config vite.ui.config.ts",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
-    "build": "pnpm run build:clean && pnpm run build:ui && concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
+    "build:copy-ui-assets": "mkdir -p dist/ui-build-assets && cp src/ui/build/template.html src/ui/build/mount.tsx dist/ui-build-assets/",
+    "build": "pnpm run build:clean && pnpm run build:ui && concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:copy-ui-assets && pnpm run build:universal-package",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\"",
@@ -164,6 +166,34 @@
   "optionalDependencies": {
     "@mongodb-js/atlas-local": "^1.1.0",
     "kerberos": "^2.2.2"
+  },
+  "peerDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "vite": "^5.0.0",
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "vite-plugin-singlefile": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    },
+    "vite-plugin-node-polyfills": {
+      "optional": true
+    },
+    "vite-plugin-singlefile": {
+      "optional": true
+    }
   },
   "pnpm": {
     "overrides": {
