@@ -5,19 +5,15 @@ import { useHostCommunication } from "../../../src/ui/hooks/useHostCommunication
 
 type UseHostCommunicationResult = ReturnType<typeof useHostCommunication>;
 
-interface HookOptions {
-    targetOrigin?: string;
-}
-
 /**
  * Simple hook testing utility that renders a component using the hook
  * and captures the result for assertions.
  */
-function testHook(options?: HookOptions): UseHostCommunicationResult {
+function testHook(): UseHostCommunicationResult {
     let hookResult: UseHostCommunicationResult | undefined;
 
     const TestComponent: FunctionComponent = () => {
-        hookResult = useHostCommunication(options);
+        hookResult = useHostCommunication();
         return null;
     };
 
@@ -68,17 +64,17 @@ describe("useHostCommunication", () => {
         );
     });
 
-    it("intent() sends a message without params when not provided", () => {
+    it("intent() sends a message with empty params", () => {
         const actions = testHook();
 
-        actions.intent("cancel");
+        actions.intent("cancel", {});
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
                 type: "intent",
                 payload: {
                     intent: "cancel",
-                    params: undefined,
+                    params: {},
                 },
             },
             "*"
@@ -134,17 +130,17 @@ describe("useHostCommunication", () => {
         );
     });
 
-    it("tool() sends a tool message without params when not provided", () => {
+    it("tool() sends a tool message with empty params", () => {
         const actions = testHook();
 
-        actions.tool("getServerInfo");
+        actions.tool("getServerInfo", {});
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
                 type: "tool",
                 payload: {
                     toolName: "getServerInfo",
-                    params: undefined,
+                    params: {},
                 },
             },
             "*"
@@ -165,71 +161,5 @@ describe("useHostCommunication", () => {
             },
             "*"
         );
-    });
-
-    it("reportSizeChange() sends size change with both dimensions", () => {
-        const actions = testHook();
-
-        actions.reportSizeChange({ width: 400, height: 300 });
-
-        expect(postMessageMock).toHaveBeenCalledWith(
-            {
-                type: "ui-size-change",
-                payload: { width: 400, height: 300 },
-            },
-            "*"
-        );
-    });
-
-    it("reportSizeChange() sends size change with only width", () => {
-        const actions = testHook();
-
-        actions.reportSizeChange({ width: 500 });
-
-        expect(postMessageMock).toHaveBeenCalledWith(
-            {
-                type: "ui-size-change",
-                payload: { width: 500 },
-            },
-            "*"
-        );
-    });
-
-    it("reportSizeChange() sends size change with only height", () => {
-        const actions = testHook();
-
-        actions.reportSizeChange({ height: 250 });
-
-        expect(postMessageMock).toHaveBeenCalledWith(
-            {
-                type: "ui-size-change",
-                payload: { height: 250 },
-            },
-            "*"
-        );
-    });
-
-    it("uses custom targetOrigin when provided in options", () => {
-        const actions = testHook({ targetOrigin: "https://example.com" });
-
-        actions.notify("test message");
-
-        expect(postMessageMock).toHaveBeenCalledWith(
-            {
-                type: "notify",
-                payload: {
-                    message: "test message",
-                },
-            },
-            "https://example.com"
-        );
-    });
-
-    it("defaults targetOrigin to '*' when not provided", () => {
-        const actions = testHook();
-
-        actions.notify("test message");
-
-        expect(postMessageMock).toHaveBeenCalledWith(expect.any(Object), "*");
     });
 });

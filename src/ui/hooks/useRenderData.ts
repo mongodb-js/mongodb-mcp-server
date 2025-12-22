@@ -13,8 +13,6 @@ interface UseRenderDataResult<T> {
     data: T | null;
     isLoading: boolean;
     error: string | null;
-    /** The origin of the parent window, captured from the first valid message */
-    parentOrigin: string | null;
 }
 
 /**
@@ -26,7 +24,6 @@ interface UseRenderDataResult<T> {
  *   - data: The received render data (or null if not yet received)
  *   - isLoading: Whether data is still being loaded
  *   - error: Error message if message validation failed
- *   - parentOrigin: The origin of the parent window (for secure postMessage calls)
  *
  * @example
  * ```tsx
@@ -35,9 +32,7 @@ interface UseRenderDataResult<T> {
  * }
  *
  * function MyComponent() {
- *   const { data, isLoading, error, parentOrigin } = useRenderData<MyData>();
- *   const { intent } = useHostCommunication({ targetOrigin: parentOrigin ?? undefined });
- *   return <button onClick={() => intent("my-action")}>Click</button>;
+ *   const { data, isLoading, error } = useRenderData<MyData>();
  * }
  * ```
  */
@@ -45,7 +40,6 @@ export function useRenderData<T = unknown>(): UseRenderDataResult<T> {
     const [data, setData] = useState<T | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [parentOrigin, setParentOrigin] = useState<string | null>(null);
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent<RenderDataMessage>): void => {
@@ -53,8 +47,6 @@ export function useRenderData<T = unknown>(): UseRenderDataResult<T> {
                 // Silently ignore messages that aren't for us
                 return;
             }
-
-            setParentOrigin((current) => current ?? event.origin);
 
             if (!event.data.payload || typeof event.data.payload !== "object") {
                 const errorMsg = "Invalid payload structure received";
@@ -95,6 +87,5 @@ export function useRenderData<T = unknown>(): UseRenderDataResult<T> {
         data,
         isLoading,
         error,
-        parentOrigin,
     };
 }

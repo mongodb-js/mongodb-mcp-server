@@ -60,28 +60,19 @@ describe("useRenderData", () => {
         expect(result.error).toBeNull();
     });
 
-    it("returns parentOrigin as null initially", () => {
+    it("includes expected properties in return type", () => {
         const result = testHook<TestData>();
 
-        expect(result.parentOrigin).toBeNull();
-    });
-
-    it("includes parentOrigin in return type", () => {
-        const result = testHook<TestData>();
-
-        // Verify the hook returns the expected shape with parentOrigin
         expect(result).toHaveProperty("data");
         expect(result).toHaveProperty("isLoading");
         expect(result).toHaveProperty("error");
-        expect(result).toHaveProperty("parentOrigin");
     });
 
     it("returns a stable object shape for destructuring", () => {
-        const { data, isLoading, error, parentOrigin } = testHook<TestData>();
+        const { data, isLoading, error } = testHook<TestData>();
 
         expect(data).toBeNull();
         expect(isLoading).toBe(true);
         expect(error).toBeNull();
-        expect(parentOrigin).toBeNull();
     });
 });
