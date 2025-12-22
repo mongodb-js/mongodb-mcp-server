@@ -1,12 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useHostCommunication } from "../../../src/ui/hooks/useHostCommunication.js";
 
 describe("useHostCommunication", () => {
-    let postMessageMock: Mock;
+    let postMessageMock: ReturnType<typeof vi.fn>;
     let originalParent: typeof window.parent;
 
     beforeEach(() => {
