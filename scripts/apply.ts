@@ -1,6 +1,7 @@
+import { parseArgs } from "@mongosh/arg-parser/arg-parser";
 import fs from "fs/promises";
 import type { OpenAPIV3_1 } from "openapi-types";
-import argv from "yargs-parser";
+import z4 from "zod/v4";
 
 function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: OpenAPIV3_1.Document): T {
     const ref = (obj as OpenAPIV3_1.ReferenceObject).$ref;
@@ -23,14 +24,16 @@ function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: Ope
 }
 
 async function main(): Promise<void> {
-    const { spec, file } = argv(process.argv.slice(2));
+    const {
+        parsed: { spec, file },
+    } = parseArgs({ args: process.argv.slice(2), schema: z4.object({ spec: z4.string(), file: z4.string() }) });
 
     if (!spec || !file) {
         console.error("Please provide both --spec and --file arguments.");
         process.exit(1);
     }
 
-    const specFile = await fs.readFile(spec as string, "utf8");
+    const specFile = await fs.readFile(spec, "utf8");
 
     const operations: {
         path: string;
@@ -112,7 +115,7 @@ async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations
         })
         .join("\n");
 
-    const templateFile = await fs.readFile(file as string, "utf8");
+    const templateFile = await fs.readFile(file, "utf8");
     const templateLines = templateFile.split("\n");
     const outputLines: string[] = [];
     let addLines = true;
@@ -131,7 +134,7 @@ async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations
     }
     const output = outputLines.join("\n");
 
-    await fs.writeFile(file as string, output, "utf8");
+    await fs.writeFile(file, output, "utf8");
 }
 
 main().catch((error) => {

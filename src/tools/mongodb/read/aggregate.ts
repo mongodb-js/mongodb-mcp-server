@@ -17,10 +17,12 @@ import {
     assertVectorSearchFilterFieldsAreIndexed,
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
+import type { AutoEmbeddingsUsageMetadata, ConnectionMetadata } from "../../../telemetry/types.js";
 
 const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
-\`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
+If the user has asked for a vector search, \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
+If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$text\`.
 ### Usage Rules for \`$vectorSearch\`
 - **Unset embeddings:**
   Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
@@ -29,9 +31,12 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
     NEVER include fields in $vectorSearch.filter that are not part of the vector index.
 - **Post-filtering:**
     For all remaining filters, add a $match stage after $vectorSearch.
-### Note to LLM
 - If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
-- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.\
+- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.
+
+### Usage Rules for \`$search\`
+- Include the index name, unless you know for a fact there's a default index. If unsure, use the collection-indexes tool to determine the index name.
+- The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 `;
 
 const genericPipelineDescription = "An array of aggregation stages to execute.";
@@ -39,7 +44,7 @@ const genericPipelineDescription = "An array of aggregation stages to execute.";
 export const getAggregateArgs = (vectorSearchEnabled: boolean) =>
     ({
         pipeline: z
-            .array(vectorSearchEnabled ? z.union([AnyAggregateStage, VectorSearchStage]) : AnyAggregateStage)
+            .array(vectorSearchEnabled ? z.union([VectorSearchStage, AnyAggregateStage]) : AnyAggregateStage)
             .describe(vectorSearchEnabled ? pipelineDescriptionWithVectorSearch : genericPipelineDescription),
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
 The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
@@ -52,9 +57,9 @@ export class AggregateTool extends MongoDBToolBase {
     protected description = "Run an aggregation against a MongoDB collection";
     protected argsShape = {
         ...DbOperationArgs,
-        ...getAggregateArgs(this.isFeatureEnabled("vectorSearch")),
+        ...getAggregateArgs(this.isFeatureEnabled("search")),
     };
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute(
         { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
@@ -339,5 +344,26 @@ Note to LLM: If the entire query result is required then use "export" tool to ex
 The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents. \
 Returning ${documents.length} documents${appliedLimitText ? ` ${appliedLimitText}` : "."}\
 `;
+    }
+
+    protected resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
+        const [maybeVectorStage] = args.pipeline;
+        if (
+            maybeVectorStage !== null &&
+            maybeVectorStage instanceof Object &&
+            "$vectorSearch" in maybeVectorStage &&
+            "embeddingParameters" in maybeVectorStage["$vectorSearch"] &&
+            this.config.voyageApiKey
+        ) {
+            return {
+                ...super.resolveTelemetryMetadata(args, { result }),
+                embeddingsGeneratedBy: "mcp",
+            };
+        } else {
+            return super.resolveTelemetryMetadata(args, { result });
+        }
     }
 }

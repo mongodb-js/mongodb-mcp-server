@@ -1,8 +1,25 @@
 import path from "path";
 import os from "os";
-import { ALL_CONFIG_KEYS } from "./argsParserOptions.js";
+import { ALL_CONFIG_KEYS } from "./userConfig.js";
 import * as levenshteinModule from "ts-levenshtein";
 const levenshtein = levenshteinModule.default;
+
+/// Custom logic function to apply the override value.
+/// Returns the value to use (which may be transformed from newValue).
+/// Should throw an error if the override cannot be applied.
+export type CustomOverrideLogic = (oldValue: unknown, newValue: unknown) => unknown;
+
+/**
+ * Defines how a config field can be overridden via HTTP headers or query parameters.
+ */
+export type OverrideBehavior =
+    /// Cannot be overridden via request
+    | "not-allowed"
+    /// Can be completely replaced
+    | "override"
+    /// Values are merged (for arrays)
+    | "merge"
+    | CustomOverrideLogic;
 
 /**
  * Metadata for config schema fields.
@@ -17,7 +34,11 @@ export type ConfigFieldMeta = {
      * Secret fields will be marked as secret in environment variable definitions.
      */
     isSecret?: boolean;
-
+    /**
+     * Defines how this config field can be overridden via HTTP headers or query parameters.
+     * Defaults to "not-allowed" for security.
+     */
+    overrideBehavior?: OverrideBehavior;
     [key: string]: unknown;
 };
 
@@ -35,18 +56,6 @@ export function matchingConfigKey(key: string): string | undefined {
     }
 
     return suggestion;
-}
-
-export function isConnectionSpecifier(arg: string | undefined): boolean {
-    return (
-        arg !== undefined &&
-        (arg.startsWith("mongodb://") ||
-            arg.startsWith("mongodb+srv://") ||
-            // Strings starting with double hyphens `--` are generally a sign of
-            // CLI flag so we exclude them from the possibility of being a
-            // connection specifier.
-            !(arg.endsWith(".js") || arg.endsWith(".mongodb") || arg.startsWith("--")))
-    );
 }
 
 export function getLocalDataPath(): string {
@@ -69,8 +78,11 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
         return undefined;
     }
 
-    if (!Array.isArray(str)) {
-        return [str] as T;
+    if (typeof str === "string") {
+        return str
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0) as T;
     }
 
     if (str.length === 1) {
@@ -81,4 +93,79 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
     }
 
     return str as T;
+}
+
+/**
+ * Preprocessor for boolean values that handles string "false"/"0" correctly.
+ * Zod's coerce.boolean() treats any non-empty string as true, which is not what we want.
+ */
+export function parseBoolean(val: unknown): unknown {
+    if (val === undefined) {
+        return undefined;
+    }
+    if (typeof val === "string") {
+        if (val === "false") {
+            return false;
+        }
+        if (val === "true") {
+            return true;
+        }
+        throw new Error(`Invalid boolean value: ${val}`);
+    }
+    if (typeof val === "boolean") {
+        return val;
+    }
+    if (typeof val === "number") {
+        return val !== 0;
+    }
+    return !!val;
+}
+
+/** Allow overriding only to the allowed value */
+export function oneWayOverride<T>(allowedValue: T): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        // Only allow override if setting to allowed value or current value
+        if (newValue === oldValue) {
+            return newValue;
+        }
+        if (newValue === allowedValue) {
+            return newValue;
+        }
+        throw new Error(`Can only set to ${String(allowedValue)}`);
+    };
+}
+
+/** Allow overriding only to a value lower than the specified value */
+export function onlyLowerThanBaseValueOverride(): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        if (typeof oldValue !== "number") {
+            throw new Error(`Unsupported type for base value for override: ${typeof oldValue}`);
+        }
+        if (typeof newValue !== "number") {
+            throw new Error(`Unsupported type for new value for override: ${typeof newValue}`);
+        }
+        if (newValue >= oldValue) {
+            throw new Error(`Can only set to a value lower than the base value`);
+        }
+        return newValue;
+    };
+}
+
+/** Allow overriding only to a subset of an array but not a superset */
+export function onlySubsetOfBaseValueOverride(): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        if (!Array.isArray(oldValue)) {
+            throw new Error(`Unsupported type for base value for override: ${typeof oldValue}`);
+        }
+        if (!Array.isArray(newValue)) {
+            throw new Error(`Unsupported type for new value for override: ${typeof newValue}`);
+        }
+        if (newValue.length > oldValue.length) {
+            throw new Error(`Can only override to a subset of the base value`);
+        }
+        if (!newValue.every((value) => oldValue.includes(value))) {
+            throw new Error(`Can only override to a subset of the base value`);
+        }
+        return newValue as unknown;
+    };
 }

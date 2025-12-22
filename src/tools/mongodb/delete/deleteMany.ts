@@ -16,7 +16,7 @@ export class DeleteManyTool extends MongoDBToolBase {
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
             ),
     };
-    public operationType: OperationType = "delete";
+    static operationType: OperationType = "delete";
 
     protected async execute({
         database,

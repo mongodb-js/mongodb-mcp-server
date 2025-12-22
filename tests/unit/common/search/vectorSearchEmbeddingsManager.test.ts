@@ -82,8 +82,8 @@ const embeddingConfig: Map<EmbeddingNamespace, VectorFieldIndexDefinition[]> = n
 ]);
 
 describe("VectorSearchEmbeddingsManager", () => {
-    const embeddingValidationEnabled: UserConfig = { disableEmbeddingsValidation: false } as UserConfig;
-    const embeddingValidationDisabled: UserConfig = { disableEmbeddingsValidation: true } as UserConfig;
+    const embeddingValidationEnabled: UserConfig = { embeddingsValidation: true } as UserConfig;
+    const embeddingValidationDisabled: UserConfig = { embeddingsValidation: false } as UserConfig;
     const eventEmitter = new EventEmitter();
 
     const provider: MockedServiceProvider = {

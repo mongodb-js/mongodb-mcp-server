@@ -32,7 +32,7 @@ jobs:
         with:
           token: ${{ secrets.JIRA_API_TOKEN }}
           project-key: MCP
-          summary: "HELP: GitHub Issue n. ${{ github.event.issue.number }}"
+          summary: "GitHub Issue n. ${{ github.event.issue.number }}"
           issuetype: Bug
           description: "This ticket tracks the following GitHub issue: ${{ github.event.issue.html_url }}."
           extra-data: |

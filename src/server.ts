@@ -16,12 +16,13 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import assert from "assert";
-import type { ToolBase, ToolCategory, ToolConstructorParams } from "./tools/tool.js";
+import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
+import { UIRegistry } from "./ui/registry/index.js";
 
 export interface ServerOptions {
     session: Session;
@@ -35,10 +36,19 @@ export interface ServerOptions {
      * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
      *
      * ```ts
-     * import { AllTools, ToolBase } from "mongodb-mcp-server/tools";
+     * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
      * class CustomTool extends ToolBase {
-     *     name = "custom_tool";
-     *     // ...
+     *     override name = "custom_tool";
+     *     static category: ToolCategory = "mongodb";
+     *     static operationType: OperationType = "read";
+     *     protected description = "Custom tool description";
+     *     protected argsShape = {};
+     *     protected async execute() {
+     *         return { content: [{ type: "text", text: "Result" }] };
+     *     }
+     *     protected resolveTelemetryMetadata() {
+     *         return {};
+     *     }
      * }
      * const server = new Server({
      *     session: mySession,
@@ -51,7 +61,27 @@ export interface ServerOptions {
      * });
      * ```
      */
-    tools?: (new (params: ToolConstructorParams) => ToolBase)[];
+    tools?: ToolClass[];
+    /**
+     * Custom UIs for tools. Function that returns HTML strings for tool names.
+     * Use this to add UIs to tools or replace the default bundled UIs.
+     * The function is called lazily when a UI is requested, allowing you to
+     * defer loading large HTML files until needed.
+     *
+     * ```ts
+     * import { readFileSync } from 'fs';
+     * const server = new Server({
+     *     // ... other options
+     *     customUIs: (toolName) => {
+     *         if (toolName === 'list-databases') {
+     *             return readFileSync('./my-custom-ui.html', 'utf-8');
+     *         }
+     *         return null;
+     *     }
+     * });
+     * ```
+     */
+    customUIs?: (toolName: string) => string | null | Promise<string | null>;
 }
 
 export class Server {
@@ -60,9 +90,10 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
-    private readonly toolConstructors: (new (params: ToolConstructorParams) => ToolBase)[];
+    private readonly toolConstructors: ToolClass[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
+    public readonly uiRegistry: UIRegistry;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -81,6 +112,7 @@ export class Server {
         connectionErrorHandler,
         elicitation,
         tools,
+        customUIs,
     }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
@@ -90,6 +122,7 @@ export class Server {
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
+        this.uiRegistry = new UIRegistry({ customUIs });
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -227,6 +260,8 @@ export class Server {
             event.properties.read_only_mode = this.userConfig.readOnly ? "true" : "false";
             event.properties.disabled_tools = this.userConfig.disabledTools || [];
             event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
+            event.properties.previewFeatures = this.userConfig.previewFeatures;
+            event.properties.embeddingProviderConfigured = !!this.userConfig.voyageApiKey;
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
@@ -242,10 +277,13 @@ export class Server {
     private registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
+                category: toolConstructor.category,
+                operationType: toolConstructor.operationType,
                 session: this.session,
                 config: this.userConfig,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
+                uiRegistry: this.uiRegistry,
             });
             if (tool.register(this)) {
                 this.tools.push(tool);

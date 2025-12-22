@@ -21,7 +21,7 @@ export class CountTool extends MongoDBToolBase {
         ...CountArgs,
     };
 
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute({ database, collection, query }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();

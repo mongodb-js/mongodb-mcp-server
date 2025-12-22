@@ -1,106 +1,90 @@
-import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { type UserConfig, UserConfigSchema } from "../../../src/common/config/userConfig.js";
-import { type CreateUserConfigHelpers, createUserConfig } from "../../../src/common/config/createUserConfig.js";
-import { getLogPath, getExportsPath } from "../../../src/common/config/configUtils.js";
+import { parseUserConfig, defaultParserOptions } from "../../../src/common/config/parseUserConfig.js";
+import {
+    getLogPath,
+    getExportsPath,
+    onlyLowerThanBaseValueOverride,
+    onlySubsetOfBaseValueOverride,
+} from "../../../src/common/config/configUtils.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import type { Secret } from "../../../src/common/keychain.js";
+import { createEnvironment } from "../../utils/index.js";
+import path from "path";
 
-function createEnvironment(): {
-    setVariable: (this: void, variable: string, value: unknown) => void;
-    clearVariables(this: void): void;
-} {
-    const registeredEnvVariables: string[] = [];
+// Expected hardcoded values (what we had before)
+const expectedDefaults = {
+    apiBaseUrl: "https://cloud.mongodb.com/",
+    logPath: getLogPath(),
+    exportsPath: getExportsPath(),
+    exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
+    exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
+    disabledTools: [],
+    telemetry: "enabled",
+    readOnly: false,
+    indexCheck: false,
+    deepInspect: true,
+    confirmationRequiredTools: [
+        "atlas-create-access-list",
+        "atlas-create-db-user",
+        "drop-database",
+        "drop-collection",
+        "delete-many",
+        "drop-index",
+    ],
+    transport: "stdio",
+    httpPort: 3000,
+    httpHost: "127.0.0.1",
+    loggers: ["disk", "mcp"],
+    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
+    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
+    httpHeaders: {},
+    maxDocumentsPerQuery: 100,
+    maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+    atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
+    voyageApiKey: "",
+    vectorSearchDimensions: 1024,
+    vectorSearchSimilarityFunction: "euclidean",
+    embeddingsValidation: true,
+    previewFeatures: [],
+    dryRun: false,
+    allowRequestOverrides: false,
+};
 
-    return {
-        setVariable(variable: string, value: unknown): void {
-            (process.env as Record<string, unknown>)[variable] = value;
-            registeredEnvVariables.push(variable);
-        },
-
-        clearVariables(): void {
-            for (const variable of registeredEnvVariables) {
-                delete (process.env as Record<string, unknown>)[variable];
-            }
-        },
-    };
-}
+const CONFIG_FIXTURES = {
+    VALID: path.resolve(import.meta.dirname, "..", "..", "fixtures", "valid-config.json"),
+    WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "..", "..", "fixtures", "config-with-invalid-value.json"),
+};
 
 describe("config", () => {
     it("should generate defaults from UserConfigSchema that match expected values", () => {
-        // Expected hardcoded values (what we had before)
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
-            previewFeatures: [],
-        };
         expect(UserConfigSchema.parse({})).toStrictEqual(expectedDefaults);
     });
 
     it("should generate defaults when no config sources are populated", () => {
-        const expectedDefaults = {
-            apiBaseUrl: "https://cloud.mongodb.com/",
-            logPath: getLogPath(),
-            exportsPath: getExportsPath(),
-            exportTimeoutMs: 5 * 60 * 1000, // 5 minutes
-            exportCleanupIntervalMs: 2 * 60 * 1000, // 2 minutes
-            disabledTools: [],
-            telemetry: "enabled",
-            readOnly: false,
-            indexCheck: false,
-            confirmationRequiredTools: [
-                "atlas-create-access-list",
-                "atlas-create-db-user",
-                "drop-database",
-                "drop-collection",
-                "delete-many",
-                "drop-index",
-            ],
-            transport: "stdio",
-            httpPort: 3000,
-            httpHost: "127.0.0.1",
-            loggers: ["disk", "mcp"],
-            idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-            notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-            httpHeaders: {},
-            maxDocumentsPerQuery: 100,
-            maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
-            atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
-            voyageApiKey: "",
-            vectorSearchDimensions: 1024,
-            vectorSearchSimilarityFunction: "euclidean",
-            disableEmbeddingsValidation: false,
-            previewFeatures: [],
-        };
-        expect(createUserConfig()).toStrictEqual(expectedDefaults);
+        expect(parseUserConfig({ args: [] })).toStrictEqual({
+            parsed: expectedDefaults,
+            warnings: [],
+            error: undefined,
+        });
+    });
+
+    it("can override defaults in the schema and those are populated instead", () => {
+        expect(
+            parseUserConfig({
+                args: [],
+                overrides: {
+                    exportTimeoutMs: UserConfigSchema.shape.exportTimeoutMs.default(123),
+                },
+            })
+        ).toStrictEqual({
+            parsed: {
+                ...expectedDefaults,
+                exportTimeoutMs: 123,
+            },
+            warnings: [],
+            error: undefined,
+        });
     });
 
     describe("env var parsing", () => {
@@ -113,8 +97,8 @@ describe("config", () => {
         describe("mongodb urls", () => {
             it("should not try to parse a multiple-host urls", () => {
                 setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://user:password@host1,host2,host3/");
-                const actual = createUserConfig();
-                expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+                const { parsed: actual } = parseUserConfig({ args: [] });
+                expect(actual?.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
             });
         });
 
@@ -127,6 +111,15 @@ describe("config", () => {
                 { envVar: "MDB_MCP_LOG_PATH", property: "logPath", value: "/var/log" },
                 { envVar: "MDB_MCP_CONNECTION_STRING", property: "connectionString", value: "mongodb://localhost" },
                 { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: true },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "false", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "true", expectedValue: true },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "apple", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: "FALSE", expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 0, expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 1, expectedValue: false },
+                { envVar: "MDB_MCP_READ_ONLY", property: "readOnly", value: 100, expectedValue: false },
                 { envVar: "MDB_MCP_INDEX_CHECK", property: "indexCheck", value: true },
                 { envVar: "MDB_MCP_TRANSPORT", property: "transport", value: "http" },
                 { envVar: "MDB_MCP_HTTP_PORT", property: "httpPort", value: 8080 },
@@ -138,13 +131,18 @@ describe("config", () => {
                     property: "atlasTemporaryDatabaseUserLifetimeMs",
                     value: 12345,
                 },
-            ] as const;
+            ] as {
+                envVar: string;
+                property: keyof UserConfig;
+                value: unknown;
+                expectedValue?: unknown;
+            }[];
 
-            for (const { envVar, property, value } of testCases) {
-                it(`should map ${envVar} to ${property} with value "${value}"`, () => {
+            for (const { envVar, property, value, expectedValue } of testCases) {
+                it(`should map ${envVar} to ${property} with value "${String(value)}" to "${String(expectedValue ?? value)}"`, () => {
                     setVariable(envVar, value);
-                    const actual = createUserConfig();
-                    expect(actual[property]).toBe(value);
+                    const { parsed: actual } = parseUserConfig({ args: [] });
+                    expect(actual?.[property]).toBe(expectedValue ?? value);
                 });
             }
         });
@@ -158,29 +156,43 @@ describe("config", () => {
             for (const { envVar, property, value } of testCases) {
                 it(`should map ${envVar} to ${property}`, () => {
                     setVariable(envVar, value);
-                    const actual = createUserConfig();
-                    expect(actual[property]).toEqual(value.split(","));
+                    const { parsed: actual } = parseUserConfig({ args: [] });
+                    expect(actual?.[property]).toEqual(value.split(","));
                 });
             }
+        });
+
+        it("works with custom prefixes through parserOptions", () => {
+            setVariable("CUSTOM_MCP_DISABLED_TOOLS", "find,export");
+            // Ensure our own ENV doesn't affect it
+            setVariable("MDB_MCP_DISABLED_TOOLS", "explain");
+            const { parsed: actual } = parseUserConfig({
+                args: [],
+                parserOptions: {
+                    ...defaultParserOptions,
+                    envPrefix: "CUSTOM_MCP_",
+                },
+            });
+            expect(actual?.disabledTools).toEqual(["find", "export"]);
         });
     });
 
     describe("cli parsing", () => {
         it("should not try to parse a multiple-host urls", () => {
-            const actual = createUserConfig({
-                cliArguments: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],
+            const { parsed: actual } = parseUserConfig({
+                args: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],
             });
 
-            expect(actual.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+            expect(actual?.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
         });
 
         it("positional connection specifier gets accounted for even without other connection sources", () => {
             // Note that neither connectionString argument nor env variable is
             // provided.
-            const actual = createUserConfig({
-                cliArguments: ["mongodb://host1:27017"],
+            const { parsed: actual } = parseUserConfig({
+                args: ["mongodb://host1:27017"],
             });
-            expect(actual.connectionString).toEqual("mongodb://host1:27017/?directConnection=true");
+            expect(actual?.connectionString).toEqual("mongodb://host1:27017/?directConnection=true");
         });
 
         describe("string use cases", () => {
@@ -254,10 +266,6 @@ describe("config", () => {
                     expected: { db: "test" },
                 },
                 {
-                    cli: ["--gssapiHostName", "localhost"],
-                    expected: { gssapiHostName: "localhost" },
-                },
-                {
                     cli: ["--gssapiServiceName", "SERVICE"],
                     expected: { gssapiServiceName: "SERVICE" },
                 },
@@ -291,27 +299,27 @@ describe("config", () => {
                 },
                 {
                     cli: ["--sslCAFile", "/var/file"],
-                    expected: { sslCAFile: "/var/file" },
+                    expected: { tlsCAFile: "/var/file" },
                 },
                 {
                     cli: ["--sslCRLFile", "/var/file"],
-                    expected: { sslCRLFile: "/var/file" },
+                    expected: { tlsCRLFile: "/var/file" },
                 },
                 {
                     cli: ["--sslCertificateSelector", "pem=pom"],
-                    expected: { sslCertificateSelector: "pem=pom" },
+                    expected: { tlsCertificateSelector: "pem=pom" },
                 },
                 {
                     cli: ["--sslDisabledProtocols", "tls1"],
-                    expected: { sslDisabledProtocols: "tls1" },
+                    expected: { tlsDisabledProtocols: "tls1" },
                 },
                 {
                     cli: ["--sslPEMKeyFile", "/var/pem"],
-                    expected: { sslPEMKeyFile: "/var/pem" },
+                    expected: { tlsCertificateKeyFile: "/var/pem" },
                 },
                 {
                     cli: ["--sslPEMKeyPassword", "654321"],
-                    expected: { sslPEMKeyPassword: "654321" },
+                    expected: { tlsCertificateKeyFilePassword: "654321" },
                 },
                 {
                     cli: ["--sspiHostnameCanonicalization", "true"],
@@ -357,15 +365,49 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const actual = createUserConfig({
-                        cliArguments: cli,
+                    const { parsed, error } = parseUserConfig({
+                        args: cli,
                     });
-                    expect(actual).toStrictEqual({
+                    expect(error).toBeUndefined();
+                    expect(parsed).toStrictEqual({
                         ...UserConfigSchema.parse({}),
                         ...expected,
                     });
                 });
             }
+        });
+
+        describe("object fields", () => {
+            const testCases = [
+                {
+                    cli: ["--httpHeaders", '{"fieldA": "3", "fieldB": "4"}'],
+                    expected: { httpHeaders: { fieldA: "3", fieldB: "4" } },
+                },
+                {
+                    cli: ["--httpHeaders.fieldA", "3", "--httpHeaders.fieldB", "4"],
+                    expected: { httpHeaders: { fieldA: "3", fieldB: "4" } },
+                },
+            ] as { cli: string[]; expected: Partial<UserConfig> }[];
+            for (const { cli, expected } of testCases) {
+                it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
+                    const { parsed } = parseUserConfig({
+                        args: cli,
+                    });
+                    expect(parsed?.httpHeaders).toStrictEqual(expected.httpHeaders);
+                });
+            }
+
+            it("cannot mix --httpHeaders and --httpHeaders.fieldX", () => {
+                expect(
+                    parseUserConfig({
+                        args: ["--httpHeaders", '{"fieldA": "3", "fieldB": "4"}', "--httpHeaders.fieldA", "5"],
+                    })
+                ).toStrictEqual({
+                    error: "Invalid configuration for the following fields:\nhttpHeaders - Invalid input: expected object, received array",
+                    warnings: [],
+                    parsed: undefined,
+                });
+            });
         });
 
         describe("boolean use cases", () => {
@@ -390,10 +432,7 @@ describe("config", () => {
                     cli: ["--ipv6"],
                     expected: { ipv6: true },
                 },
-                {
-                    cli: ["--nodb"],
-                    expected: { nodb: true },
-                },
+
                 {
                     cli: ["--oidcIdTokenAsAccessToken"],
                     expected: { oidcIdTokenAsAccessToken: true },
@@ -416,19 +455,19 @@ describe("config", () => {
                 },
                 {
                     cli: ["--ssl"],
-                    expected: { ssl: true },
+                    expected: { tls: true },
                 },
                 {
                     cli: ["--sslAllowInvalidCertificates"],
-                    expected: { sslAllowInvalidCertificates: true },
+                    expected: { tlsAllowInvalidCertificates: true },
                 },
                 {
                     cli: ["--sslAllowInvalidHostnames"],
-                    expected: { sslAllowInvalidHostnames: true },
+                    expected: { tlsAllowInvalidHostnames: true },
                 },
                 {
-                    cli: ["--sslFIPSMode"],
-                    expected: { sslFIPSMode: true },
+                    cli: ["--tlsFIPSMode"],
+                    expected: { tlsFIPSMode: true },
                 },
                 {
                     cli: ["--tls"],
@@ -450,15 +489,53 @@ describe("config", () => {
                     cli: ["--version"],
                     expected: { version: true },
                 },
+                {
+                    cli: ["--readOnly"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "false"],
+                    expected: { readOnly: false },
+                },
+                {
+                    cli: ["--readOnly", "FALSE"],
+                    // This is yargs-parser default
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "0"],
+                    // This is yargs-parser default
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "1"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "true"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "yes"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", "no"],
+                    expected: { readOnly: true },
+                },
+                {
+                    cli: ["--readOnly", ""],
+                    expected: { readOnly: true },
+                },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const actual = createUserConfig({
-                        cliArguments: cli,
+                    const { parsed: actual } = parseUserConfig({
+                        args: cli,
                     });
                     for (const [key, value] of Object.entries(expected)) {
-                        expect(actual[key as keyof UserConfig]).toBe(value);
+                        expect(actual?.[key as keyof UserConfig]).toBe(value);
                     }
                 });
             }
@@ -478,14 +555,61 @@ describe("config", () => {
 
             for (const { cli, expected } of testCases) {
                 it(`should parse '${cli.join(" ")}' to ${JSON.stringify(expected)}`, () => {
-                    const actual = createUserConfig({
-                        cliArguments: cli,
+                    const { parsed: actual } = parseUserConfig({
+                        args: cli,
                     });
                     for (const [key, value] of Object.entries(expected)) {
-                        expect(actual[key as keyof UserConfig]).toEqual(value);
+                        expect(actual?.[key as keyof UserConfig]).toEqual(value);
                     }
                 });
             }
+        });
+    });
+
+    describe("loading a config file", () => {
+        describe("through env variable MDB_MCP_CONFIG", () => {
+            const { setVariable, clearVariables } = createEnvironment();
+            afterEach(() => {
+                clearVariables();
+            });
+
+            it("should load a valid config file without troubles", () => {
+                setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.VALID);
+                const { warnings, error, parsed } = parseUserConfig({ args: [] });
+                expect(warnings).toHaveLength(0);
+                expect(error).toBeUndefined();
+
+                expect(parsed?.connectionString).toBe("mongodb://valid-json-localhost:1000");
+                expect(parsed?.loggers).toStrictEqual(["stderr"]);
+            });
+
+            it("should attempt loading config file with wrong value and exit", () => {
+                setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.WITH_INVALID_VALUE);
+                const { warnings, error, parsed } = parseUserConfig({ args: [] });
+                expect(warnings).toHaveLength(0);
+                expect(error).toEqual(expect.stringContaining("loggers - Duplicate loggers found in config"));
+                expect(parsed).toBeUndefined();
+            });
+        });
+
+        describe("through cli argument --config", () => {
+            it("should load a valid config file without troubles", () => {
+                const { warnings, error, parsed } = parseUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+                expect(warnings).toHaveLength(0);
+                expect(error).toBeUndefined();
+
+                expect(parsed?.connectionString).toBe("mongodb://valid-json-localhost:1000");
+                expect(parsed?.loggers).toStrictEqual(["stderr"]);
+            });
+
+            it("should attempt loading config file with wrong value and exit", () => {
+                const { warnings, error, parsed } = parseUserConfig({
+                    args: ["--config", CONFIG_FIXTURES.WITH_INVALID_VALUE],
+                });
+                expect(warnings).toHaveLength(0);
+                expect(error).toEqual(expect.stringContaining("loggers - Duplicate loggers found in config"));
+                expect(parsed).toBeUndefined();
+            });
         });
     });
 
@@ -498,51 +622,55 @@ describe("config", () => {
 
         it("positional argument takes precedence over all", () => {
             setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost1");
-            const actual = createUserConfig({
-                cliArguments: ["mongodb://crazyhost2", "--connectionString", "mongodb://localhost"],
+            const { parsed: actual } = parseUserConfig({
+                args: [
+                    "mongodb://crazyhost2",
+                    "--config",
+                    CONFIG_FIXTURES.VALID,
+                    "--connectionString",
+                    "mongodb://localhost",
+                ],
             });
-            expect(actual.connectionString).toBe("mongodb://crazyhost2/?directConnection=true");
+            expect(actual?.connectionString).toBe("mongodb://crazyhost2/?directConnection=true");
         });
 
-        it("cli arguments take precedence over env vars", () => {
-            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://crazyhost");
-            const actual = createUserConfig({
-                cliArguments: ["--connectionString", "mongodb://localhost"],
+        it("any cli argument takes precedence over env vars, config and defaults", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
+            const { parsed } = parseUserConfig({
+                args: ["--config", CONFIG_FIXTURES.VALID, "--connectionString", "mongodb://host-from-cli"],
             });
-            expect(actual.connectionString).toBe("mongodb://localhost");
+            expect(parsed?.connectionString).toBe("mongodb://host-from-cli");
         });
 
-        it("any cli argument takes precedence over defaults", () => {
-            const actual = createUserConfig({
-                cliArguments: ["--connectionString", "mongodb://localhost"],
-            });
-            expect(actual.connectionString).toBe("mongodb://localhost");
+        it("any env var takes precedence over config and defaults", () => {
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://dummyhost");
+            const { parsed } = parseUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+            expect(parsed?.connectionString).toBe("mongodb://dummyhost");
         });
 
-        it("any env var takes precedence over defaults", () => {
-            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://localhost");
-            const actual = createUserConfig();
-            expect(actual.connectionString).toBe("mongodb://localhost");
+        it("config file takes precedence over defaults", () => {
+            const { parsed } = parseUserConfig({ args: ["--config", CONFIG_FIXTURES.VALID] });
+            expect(parsed?.connectionString).toBe("mongodb://valid-json-localhost:1000");
         });
     });
 
     describe("consolidation", () => {
         it("positional argument for url has precedence over --connectionString", () => {
-            const actual = createUserConfig({
-                cliArguments: ["mongodb://localhost", "--connectionString", "mongodb://toRemoveHost"],
+            const { parsed: actual } = parseUserConfig({
+                args: ["mongodb://localhost", "--connectionString", "mongodb://toRemoveHost"],
             });
             // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
-            expect(actual.connectionString).toBe(
+            expect(actual?.connectionString).toBe(
                 "mongodb://localhost/?directConnection=true&serverSelectionTimeoutMS=2000"
             );
         });
 
         it("positional argument is always considered", () => {
-            const actual = createUserConfig({
-                cliArguments: ["mongodb://localhost"],
+            const { parsed: actual } = parseUserConfig({
+                args: ["mongodb://localhost"],
             });
             // the shell specifies directConnection=true and serverSelectionTimeoutMS=2000 by default
-            expect(actual.connectionString).toBe(
+            expect(actual?.connectionString).toBe(
                 "mongodb://localhost/?directConnection=true&serverSelectionTimeoutMS=2000"
             );
         });
@@ -551,362 +679,170 @@ describe("config", () => {
     describe("validation", () => {
         describe("transport", () => {
             it("should support http", () => {
-                const actual = createUserConfig({
-                    cliArguments: ["--transport", "http"],
+                const { parsed: actual } = parseUserConfig({
+                    args: ["--transport", "http"],
                 });
-                expect(actual.transport).toEqual("http");
+                expect(actual?.transport).toEqual("http");
             });
 
             it("should support stdio", () => {
-                const actual = createUserConfig({
-                    cliArguments: ["--transport", "stdio"],
+                const { parsed: actual } = parseUserConfig({
+                    args: ["--transport", "stdio"],
                 });
-                expect(actual.transport).toEqual("stdio");
+                expect(actual?.transport).toEqual("stdio");
             });
 
             it("should not support sse", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--transport", "sse"],
+                const { error } = parseUserConfig({
+                    args: ["--transport", "sse"],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
                         'Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"'
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support arbitrary values", () => {
                 const value = Math.random() + "transport";
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--transport", value],
+                const { error } = parseUserConfig({
+                    args: ["--transport", value],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
                         'Invalid configuration for the following fields:\ntransport - Invalid option: expected one of "stdio"|"http"'
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
         });
 
         describe("telemetry", () => {
             it("can be enabled", () => {
-                const actual = createUserConfig({
-                    cliArguments: ["--telemetry", "enabled"],
+                const { parsed: actual } = parseUserConfig({
+                    args: ["--telemetry", "enabled"],
                 });
-                expect(actual.telemetry).toEqual("enabled");
+                expect(actual?.telemetry).toEqual("enabled");
             });
 
             it("can be disabled", () => {
-                const actual = createUserConfig({
-                    cliArguments: ["--telemetry", "disabled"],
+                const { parsed: actual } = parseUserConfig({
+                    args: ["--telemetry", "disabled"],
                 });
-                expect(actual.telemetry).toEqual("disabled");
+                expect(actual?.telemetry).toEqual("disabled");
             });
 
             it("should not support the boolean true value", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--telemetry", "true"],
+                const { error } = parseUserConfig({
+                    args: ["--telemetry", "true"],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
                         'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support the boolean false value", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--telemetry", "false"],
+                const { error } = parseUserConfig({
+                    args: ["--telemetry", "false"],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
                         'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support arbitrary values", () => {
                 const value = Math.random() + "telemetry";
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--telemetry", value],
+                const { error } = parseUserConfig({
+                    args: ["--telemetry", value],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
                         'Invalid configuration for the following fields:\ntelemetry - Invalid option: expected one of "enabled"|"disabled"'
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
         });
 
         describe("httpPort", () => {
-            it("must be above 1", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--httpPort", "0"],
+            it("must be above 0", () => {
+                const { error } = parseUserConfig({
+                    args: ["--httpPort", "-1"],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
-                        "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at least 1"
+                        "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at least 0"
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("must be below 65535 (OS limit)", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--httpPort", "89527345"],
+                const { error } = parseUserConfig({
+                    args: ["--httpPort", "89527345"],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
                         "Invalid configuration for the following fields:\nhttpPort - Invalid httpPort: must be at most 65535"
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should not support non numeric values", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--httpPort", "portAventura"],
+                const { error } = parseUserConfig({
+                    args: ["--httpPort", "portAventura"],
                 });
-                expect(onErrorFn).toBeCalledWith(
+                expect(error).toEqual(
                     expect.stringContaining(
                         "Invalid configuration for the following fields:\nhttpPort - Invalid input: expected number, received NaN"
                     )
                 );
-                expect(onExitFn).toBeCalledWith(1);
             });
 
             it("should support numeric values", () => {
-                const actual = createUserConfig({ cliArguments: ["--httpPort", "8888"] });
-                expect(actual.httpPort).toEqual(8888);
+                const { parsed: actual } = parseUserConfig({ args: ["--httpPort", "8888"] });
+                expect(actual?.httpPort).toEqual(8888);
             });
         });
 
         describe("loggers", () => {
-            it("must not be empty", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--loggers", ""],
-                });
-                expect(onErrorFn).toBeCalledWith(
-                    expect.stringContaining(
-                        "Invalid configuration for the following fields:\nloggers - Cannot be an empty array"
-                    )
-                );
-                expect(onExitFn).toBeCalledWith(1);
-            });
+            const invalidLoggerTestCases = [
+                {
+                    description: "must not be empty",
+                    args: ["--loggers", ""],
+                    expectedError:
+                        "Invalid configuration for the following fields:\nloggers - Cannot be an empty array",
+                },
+                {
+                    description: "must not allow duplicates",
+                    args: ["--loggers", "disk,disk,disk"],
+                    expectedError:
+                        "Invalid configuration for the following fields:\nloggers - Duplicate loggers found in config",
+                },
+            ];
 
-            it("must not allow duplicates", () => {
-                const onErrorFn = vi.fn();
-                const onExitFn = vi.fn<CreateUserConfigHelpers["closeProcess"]>();
-                createUserConfig({
-                    onError: onErrorFn,
-                    closeProcess: onExitFn,
-                    cliArguments: ["--loggers", "disk,disk,disk"],
+            for (const { description, args, expectedError } of invalidLoggerTestCases) {
+                it(description, () => {
+                    const { error } = parseUserConfig({ args });
+                    expect(error).toEqual(expect.stringContaining(expectedError));
                 });
-                expect(onErrorFn).toBeCalledWith(
-                    expect.stringContaining(
-                        "Invalid configuration for the following fields:\nloggers - Duplicate loggers found in config"
-                    )
-                );
-                expect(onExitFn).toBeCalledWith(1);
-            });
+            }
 
             it("allows mcp logger", () => {
-                const actual = createUserConfig({ cliArguments: ["--loggers", "mcp"] });
-                expect(actual.loggers).toEqual(["mcp"]);
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", "mcp"] });
+                expect(actual?.loggers).toEqual(["mcp"]);
             });
 
             it("allows disk logger", () => {
-                const actual = createUserConfig({ cliArguments: ["--loggers", "disk"] });
-                expect(actual.loggers).toEqual(["disk"]);
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", "disk"] });
+                expect(actual?.loggers).toEqual(["disk"]);
             });
 
             it("allows stderr logger", () => {
-                const actual = createUserConfig({ cliArguments: ["--loggers", "stderr"] });
-                expect(actual.loggers).toEqual(["stderr"]);
+                const { parsed: actual } = parseUserConfig({ args: ["--loggers", "stderr"] });
+                expect(actual?.loggers).toEqual(["stderr"]);
             });
-        });
-    });
-});
-
-describe("Warning and Error messages", () => {
-    let warn: MockedFunction<CreateUserConfigHelpers["onWarning"]>;
-    let error: MockedFunction<CreateUserConfigHelpers["onError"]>;
-    let exit: MockedFunction<CreateUserConfigHelpers["closeProcess"]>;
-    const referDocMessage =
-        "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.";
-
-    beforeEach(() => {
-        warn = vi.fn();
-        error = vi.fn();
-        exit = vi.fn();
-    });
-
-    describe("Deprecated CLI arguments", () => {
-        const testCases = [
-            {
-                cliArg: "--connectionString",
-                value: "mongodb://localhost:27017",
-                warning:
-                    "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string.",
-            },
-        ] as const;
-
-        for (const { cliArg, value, warning } of testCases) {
-            describe(`deprecation behaviour of ${cliArg}`, () => {
-                beforeEach(() => {
-                    createUserConfig({ onWarning: warn, closeProcess: exit, cliArguments: [cliArg, value] });
-                });
-
-                it(`warns the usage of ${cliArg} as it is deprecated`, () => {
-                    expect(warn).toHaveBeenCalledWith(expect.stringContaining(warning));
-                });
-
-                it(`shows the reference message when ${cliArg} was passed`, () => {
-                    expect(warn).toHaveBeenCalledWith(expect.stringContaining(referDocMessage));
-                });
-
-                it(`should not exit the process`, () => {
-                    expect(exit).not.toHaveBeenCalled();
-                });
-            });
-        }
-    });
-
-    describe("invalid arguments", () => {
-        it("should show an error when an argument is not known and exit the process", () => {
-            createUserConfig({
-                cliArguments: ["--wakanda", "forever"],
-                onWarning: warn,
-                onError: error,
-                closeProcess: exit,
-            });
-
-            expect(error).toHaveBeenCalledWith(
-                expect.stringContaining("Error: Invalid command line argument '--wakanda'.")
-            );
-            expect(error).toHaveBeenCalledWith(
-                expect.stringContaining(
-                    "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
-                )
-            );
-            expect(exit).toHaveBeenCalledWith(1);
-        });
-
-        it("should show a suggestion when is a simple typo", () => {
-            createUserConfig({
-                cliArguments: ["--readonli", ""],
-                onWarning: warn,
-                onError: error,
-                closeProcess: exit,
-            });
-            expect(error).toHaveBeenCalledWith(
-                expect.stringContaining("Error: Invalid command line argument '--readonli'. Did you mean '--readOnly'?")
-            );
-            expect(error).toHaveBeenCalledWith(
-                expect.stringContaining(
-                    "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
-                )
-            );
-            expect(exit).toHaveBeenCalledWith(1);
-        });
-
-        it("should show a suggestion when the only change is on the case", () => {
-            createUserConfig({
-                cliArguments: ["--readonly", ""],
-                onWarning: warn,
-                onError: error,
-                closeProcess: exit,
-            });
-
-            expect(error).toHaveBeenCalledWith(
-                expect.stringContaining("Error: Invalid command line argument '--readonly'. Did you mean '--readOnly'?")
-            );
-            expect(error).toHaveBeenCalledWith(
-                expect.stringContaining(
-                    "- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server."
-                )
-            );
-            expect(exit).toHaveBeenCalledWith(1);
-        });
-    });
-
-    describe("vector search misconfiguration", () => {
-        it("should warn if vectorSearch is enabled but embeddings provider is not configured", () => {
-            createUserConfig({
-                cliArguments: ["--previewFeatures", "vectorSearch"],
-                onWarning: warn,
-                onError: error,
-                closeProcess: exit,
-            });
-            expect(warn).toBeCalledWith(`\
-Warning: Vector search is enabled but no embeddings provider is configured.
-- Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
-`);
-        });
-
-        it("should warn if vectorSearch is not enabled but embeddings provider is configured", () => {
-            createUserConfig({
-                cliArguments: ["--voyageApiKey", "1FOO"],
-                onWarning: warn,
-                onError: error,
-                closeProcess: exit,
-            });
-
-            expect(warn).toBeCalledWith(`\
-Warning: An embeddings provider is configured but the 'vectorSearch' preview feature is not enabled.
-- Enable vector search by adding 'vectorSearch' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
-`);
-        });
-
-        it("should not warn if vectorSearch is enabled correctly", () => {
-            createUserConfig({
-                cliArguments: ["--voyageApiKey", "1FOO", "--previewFeatures", "vectorSearch"],
-                onWarning: warn,
-                onError: error,
-                closeProcess: exit,
-            });
-            expect(warn).not.toBeCalled();
         });
     });
 });
@@ -951,8 +887,93 @@ describe("keychain management", () => {
 
     for (const { cliArg, secretKind } of testCases) {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
-            createUserConfig({ cliArguments: [`--${cliArg}`, cliArg], onError: console.error });
+            parseUserConfig({ args: [`--${cliArg}`, cliArg] });
             expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
         });
     }
+});
+
+describe("custom override logic functions", () => {
+    describe("onlyLowerThanBaseValueOverride", () => {
+        it("should allow override to a lower value", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            const result = customLogic(100, 50);
+            expect(result).toBe(50);
+        });
+
+        it("should reject override to a higher value", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic(100, 150)).toThrow("Can only set to a value lower than the base value");
+        });
+
+        it("should reject override to equal value", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic(100, 100)).toThrow("Can only set to a value lower than the base value");
+        });
+
+        it("should throw error if base value is not a number", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic("not a number", 50)).toThrow("Unsupported type for base value for override");
+        });
+
+        it("should throw error if new value is not a number", () => {
+            const customLogic = onlyLowerThanBaseValueOverride();
+            expect(() => customLogic(100, "not a number")).toThrow("Unsupported type for new value for override");
+        });
+    });
+
+    describe("onlySubsetOfBaseValueOverride", () => {
+        it("should allow override to a subset", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic(["a", "b", "c"], ["a", "b"]);
+            expect(result).toEqual(["a", "b"]);
+        });
+
+        it("should allow override to an empty array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic(["a", "b", "c"], []);
+            expect(result).toEqual([]);
+        });
+
+        it("should allow override with same array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic(["a", "b"], ["a", "b"]);
+            expect(result).toEqual(["a", "b"]);
+        });
+
+        it("should reject override to a superset", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic(["a", "b"], ["a", "b", "c"])).toThrow(
+                "Can only override to a subset of the base value"
+            );
+        });
+
+        it("should reject override with items not in base value", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic(["a", "b"], ["c"])).toThrow("Can only override to a subset of the base value");
+        });
+
+        it("should reject override when base is empty and new is not", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic([], ["a"])).toThrow("Can only override to a subset of the base value");
+        });
+
+        it("should allow override when both arrays are empty", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            const result = customLogic([], []);
+            expect(result).toEqual([]);
+        });
+
+        it("should throw error if base value is not an array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic("not an array", ["a"])).toThrow("Unsupported type for base value for override");
+        });
+
+        it("should throw error if new value is not an array", () => {
+            const customLogic = onlySubsetOfBaseValueOverride();
+            expect(() => customLogic(["a", "b"], "not an array")).toThrow(
+                "Unsupported type for new value for override"
+            );
+        });
+    });
 });

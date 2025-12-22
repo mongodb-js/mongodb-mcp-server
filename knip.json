@@ -2,11 +2,29 @@
   "entry": [
     "src/index.ts!",
     "src/lib.ts!",
+    "src/tools/index.ts!",
+    "src/ui/index.ts!",
     "tests/**/*.ts",
     "scripts/**/*.ts",
-    "eslint-rules/*.js"
+    "eslint-rules/*.js",
+    "vite.ui.config.ts"
   ],
-  "ignore": ["tests/integration/fixtures/curl.mjs", "tests/vitest.d.ts"],
-  "ignoreDependencies": ["@mongodb-js/atlas-local"],
+  "ignore": [
+    "tests/integration/fixtures/curl.mjs",
+    "tests/vitest.d.ts",
+    "src/ui/build/mount.tsx",
+    "src/ui/components/**/*.ts",
+    "src/ui/components/**/*.tsx",
+    "src/ui/hooks/**/*.ts",
+    "src/ui/registry/uiMap.ts",
+    "src/ui/lib/tools/**/*.ts"
+  ],
+  "ignoreDependencies": [
+    "@mongodb-js/atlas-local",
+    "@emotion/css",
+    "@leafygreen-ui/table",
+    "react",
+    "react-dom"
+  ],
   "ignoreExportsUsedInFile": true
 }

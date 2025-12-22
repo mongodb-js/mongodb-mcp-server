@@ -7,7 +7,6 @@ import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "../../common/logger.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
-import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),
@@ -16,7 +15,7 @@ export const DbOperationArgs = {
 
 export abstract class MongoDBToolBase extends ToolBase {
     protected server?: Server;
-    public category: ToolCategory = "mongodb";
+    static category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
         if (!this.session.isConnectedToMongoDB) {
@@ -119,9 +118,9 @@ export abstract class MongoDBToolBase extends ToolBase {
      */
     protected resolveTelemetryMetadata(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _result: CallToolResult,
+        _args: ToolArgs<typeof this.argsShape>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _args: Parameters<ToolCallback<typeof this.argsShape>>
+        { result }: { result: CallToolResult }
     ): ConnectionMetadata {
         return this.getConnectionInfoMetadata();
     }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { CallToolResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import {
@@ -13,7 +13,6 @@ import {
     SLOW_QUERY_LOGS_COPY,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
 import { AtlasArgs } from "../../args.js";
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type { PerfAdvisorToolMetadata } from "../../../telemetry/types.js";
 
 const PerformanceAdvisorOperationType = z.enum([
@@ -26,7 +25,7 @@ const PerformanceAdvisorOperationType = z.enum([
 export class GetPerformanceAdvisorTool extends AtlasToolBase {
     public name = "atlas-get-performance-advisor";
     protected description = `Get MongoDB Atlas performance advisor recommendations, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max ${DEFAULT_SLOW_QUERY_LOGS_LIMIT}) slow query logs`;
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
     protected argsShape = {
         projectId: AtlasArgs.projectId().describe(
             "Atlas project ID to get performance advisor recommendations. The project ID is a hexadecimal identifier of 24 characters. If the user has only specified the name, use the `atlas-list-projects` tool to retrieve the user's projects with their ids."
@@ -134,12 +133,11 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     }
 
     protected override resolveTelemetryMetadata(
-        result: CallToolResult,
         args: ToolArgs<typeof this.argsShape>,
-        extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+        { result }: { result: CallToolResult }
     ): PerfAdvisorToolMetadata {
         return {
-            ...super.resolveTelemetryMetadata(result, args, extra),
+            ...super.resolveTelemetryMetadata(args, { result }),
             operations: args.operations,
         };
     }

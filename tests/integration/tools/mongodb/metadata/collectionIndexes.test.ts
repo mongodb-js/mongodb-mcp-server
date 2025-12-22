@@ -316,7 +316,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
         downloadOptions: { search: true },
     }

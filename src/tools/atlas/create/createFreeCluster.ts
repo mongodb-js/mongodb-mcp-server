@@ -8,7 +8,7 @@ import { AtlasArgs } from "../../args.js";
 export class CreateFreeClusterTool extends AtlasToolBase {
     public name = "atlas-create-free-cluster";
     protected description = "Create a free MongoDB Atlas cluster";
-    public operationType: OperationType = "create";
+    static operationType: OperationType = "create";
     protected argsShape = {
         projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),
         name: AtlasArgs.clusterName().describe("Name of the cluster"),

@@ -6,6 +6,7 @@ import { zEJSON } from "../../args.js";
 import { type Document } from "bson";
 import { zSupportedEmbeddingParameters } from "../mongodbSchemas.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
+import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../telemetry/types.js";
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
     input: z
@@ -15,39 +16,42 @@ const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.ext
         ),
 });
 
+const commonArgs = {
+    ...DbOperationArgs,
+    documents: z
+        .array(zEJSON().describe("An individual MongoDB document"))
+        .describe(
+            "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
+        ),
+} as const;
+
 export class InsertManyTool extends MongoDBToolBase {
     public name = "insert-many";
     protected description = "Insert an array of documents into a MongoDB collection";
-    protected argsShape = {
-        ...DbOperationArgs,
-        documents: z
-            .array(zEJSON().describe("An individual MongoDB document"))
-            .describe(
-                "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
-            ),
-        ...(this.isFeatureEnabled("vectorSearch")
-            ? {
-                  embeddingParameters: zSupportedEmbeddingParametersWithInput
-                      .optional()
-                      .describe(
-                          "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
-                      ),
-              }
-            : {}),
-    };
-    public operationType: OperationType = "create";
+    protected argsShape = this.isFeatureEnabled("search")
+        ? {
+              ...commonArgs,
+              embeddingParameters: zSupportedEmbeddingParametersWithInput
+                  .optional()
+                  .describe(
+                      "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
+                  ),
+          }
+        : commonArgs;
+    static operationType: OperationType = "create";
 
     protected async execute({
         database,
         collection,
         documents,
-        embeddingParameters: providedEmbeddingParameters,
+        ...conditionalArgs
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
-        const embeddingParameters = this.isFeatureEnabled("vectorSearch")
-            ? (providedEmbeddingParameters as z.infer<typeof zSupportedEmbeddingParametersWithInput>)
-            : undefined;
+        let embeddingParameters: z.infer<typeof zSupportedEmbeddingParametersWithInput> | undefined;
+        if ("embeddingParameters" in conditionalArgs) {
+            embeddingParameters = conditionalArgs.embeddingParameters;
+        }
 
         // Process documents to replace raw string values with generated embeddings
         documents = await this.replaceRawValuesWithEmbeddingsIfNecessary({
@@ -150,6 +154,20 @@ export class InsertManyTool extends MongoDBToolBase {
             } else {
                 current = current[key] as Record<string, unknown>;
             }
+        }
+    }
+
+    protected resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
+        if ("embeddingParameters" in args && this.config.voyageApiKey) {
+            return {
+                ...super.resolveTelemetryMetadata(args, { result }),
+                embeddingsGeneratedBy: "mcp",
+            };
+        } else {
+            return super.resolveTelemetryMetadata(args, { result });
         }
     }
 }

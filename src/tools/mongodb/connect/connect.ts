@@ -14,15 +14,15 @@ export class ConnectTool extends MongoDBToolBase {
         connectionString: z.string().describe("MongoDB connection string (in the mongodb:// or mongodb+srv:// format)"),
     };
 
-    public override operationType: OperationType = "connect";
+    static operationType: OperationType = "connect";
 
-    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
-        super({ session, config, telemetry, elicitation });
-        session.on("connect", () => {
+    constructor(params: ToolConstructorParams) {
+        super(params);
+        params.session.on("connect", () => {
             this.disable();
         });
 
-        session.on("disconnect", () => {
+        params.session.on("disconnect", () => {
             this.enable();
         });
     }

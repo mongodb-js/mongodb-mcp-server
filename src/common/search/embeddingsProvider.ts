@@ -41,7 +41,7 @@ class VoyageEmbeddingsProvider implements EmbeddingsProvider<VoyageModels, Voyag
     }
 
     static isConfiguredIn({ voyageApiKey, previewFeatures }: UserConfig): boolean {
-        return previewFeatures.includes("vectorSearch") && !!voyageApiKey;
+        return previewFeatures.includes("search") && !!voyageApiKey;
     }
 
     async embed<Model extends VoyageModels>(

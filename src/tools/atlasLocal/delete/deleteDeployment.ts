@@ -7,14 +7,14 @@ import { CommonArgs } from "../../args.js";
 export class DeleteDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-delete-deployment";
     protected description = "Delete a MongoDB Atlas local deployment";
-    public operationType: OperationType = "delete";
+    static operationType: OperationType = "delete";
     protected argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to delete"),
     };
 
     protected async executeWithAtlasLocalClient(
-        client: Client,
-        { deploymentName }: ToolArgs<typeof this.argsShape>
+        { deploymentName }: ToolArgs<typeof this.argsShape>,
+        { client }: { client: Client }
     ): Promise<CallToolResult> {
         // Lookup telemetry metadata
         // We need to lookup the telemetry metadata before deleting the deployment

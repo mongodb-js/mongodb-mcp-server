@@ -2,13 +2,7 @@ import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
 import { z } from "zod";
-import type {
-    ToolCallbackArgs,
-    OperationType,
-    ToolCategory,
-    ToolConstructorParams,
-    ToolArgs,
-} from "../../src/tools/tool.js";
+import type { OperationType, ToolCategory, ToolConstructorParams, ToolArgs } from "../../src/tools/tool.js";
 import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
@@ -21,6 +15,7 @@ import type { Server } from "../../src/server.js";
 import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types.js";
 import { expectDefined } from "../integration/helpers.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
+import { UIRegistry } from "../../src/ui/registry/index.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -60,10 +55,13 @@ describe("ToolBase", () => {
         } as unknown as Elicitation;
 
         const constructorParams: ToolConstructorParams = {
+            category: TestTool.category,
+            operationType: TestTool.operationType,
             session: mockSession,
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
+            uiRegistry: new UIRegistry(),
         };
 
         testTool = new TestTool(constructorParams);
@@ -73,10 +71,7 @@ describe("ToolBase", () => {
         it("should return true when tool is not in confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
-            const args = [
-                { param1: "test" },
-                {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1],
-            ] as ToolCallbackArgs<(typeof testTool)["argsShape"]>;
+            const args = { param1: "test" };
             const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(true);
@@ -86,8 +81,8 @@ describe("ToolBase", () => {
         it("should return true when confirmationRequiredTools list is empty", async () => {
             mockConfig.confirmationRequiredTools = [];
 
-            const args = [{ param1: "test" }, {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1]];
-            const result = await testTool.verifyConfirmed(args as ToolCallbackArgs<(typeof testTool)["argsShape"]>);
+            const args = { param1: "test" };
+            const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(true);
             expect(mockRequestConfirmation).not.toHaveBeenCalled();
@@ -97,8 +92,8 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(true);
 
-            const args = [{ param1: "test", param2: 42 }, {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1]];
-            const result = await testTool.verifyConfirmed(args as ToolCallbackArgs<(typeof testTool)["argsShape"]>);
+            const args = { param1: "test", param2: 42 };
+            const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(true);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
@@ -111,8 +106,8 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockRequestConfirmation.mockResolvedValue(false);
 
-            const args = [{ param1: "test" }, {} as ToolCallbackArgs<(typeof testTool)["argsShape"]>[1]];
-            const result = await testTool.verifyConfirmed(args as ToolCallbackArgs<(typeof testTool)["argsShape"]>);
+            const args = { param1: "test" };
+            const result = await testTool.verifyConfirmed(args);
 
             expect(result).toBe(false);
             expect(mockRequestConfirmation).toHaveBeenCalledTimes(1);
@@ -121,13 +116,13 @@ describe("ToolBase", () => {
 
     describe("isFeatureEnabled", () => {
         it("should return false for any feature by default", () => {
-            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(false);
+            expect(testTool["isFeatureEnabled"]("search")).to.equal(false);
             expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(false);
         });
 
         it("should return true for enabled features", () => {
-            mockConfig.previewFeatures = ["vectorSearch", "someOtherFeature" as PreviewFeature];
-            expect(testTool["isFeatureEnabled"]("vectorSearch")).to.equal(true);
+            mockConfig.previewFeatures = ["search", "someOtherFeature" as PreviewFeature];
+            expect(testTool["isFeatureEnabled"]("search")).to.equal(true);
             expect(testTool["isFeatureEnabled"]("someOtherFeature" as PreviewFeature)).to.equal(true);
 
             expect(testTool["isFeatureEnabled"]("anotherFeature" as PreviewFeature)).to.equal(false);
@@ -139,11 +134,11 @@ describe("ToolBase", () => {
         beforeEach(() => {
             const mockServer = {
                 mcpServer: {
-                    tool: (
+                    registerTool: (
                         name: string,
-                        description: string,
-                        paramsSchema: unknown,
-                        annotations: ToolAnnotations,
+                        {
+                            description,
+                        }: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
                         cb: ToolCallback<ZodRawShape>
                     ): void => {
                         expect(name).toBe(testTool.name);
@@ -156,14 +151,20 @@ describe("ToolBase", () => {
         });
 
         it("should return empty metadata by default", async () => {
-            await mockCallback({ param1: "value1" }, {} as never);
+            await mockCallback(
+                {
+                    param1: "value1",
+                    param2: 3,
+                },
+                {} as never
+            );
             const event = ((mockTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
             expectDefined(event);
             expect(event.properties.result).to.equal("success");
+            expect(event.properties).toHaveProperty("test_param2");
             expect(event.properties).not.toHaveProperty("project_id");
             expect(event.properties).not.toHaveProperty("org_id");
             expect(event.properties).not.toHaveProperty("atlas_local_deployment_id");
-            expect(event.properties).not.toHaveProperty("test_param2");
         });
 
         it("should include custom telemetry metadata", async () => {
@@ -263,8 +264,8 @@ describe("ToolBase", () => {
 
 class TestTool extends ToolBase {
     public name = "test-tool";
-    public category: ToolCategory = "mongodb";
-    public operationType: OperationType = "delete";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "delete";
     protected description = "A test tool for verification tests";
     protected argsShape = {
         param1: z.string().describe("Test parameter 1"),
@@ -283,8 +284,9 @@ class TestTool extends ToolBase {
     }
 
     protected resolveTelemetryMetadata(
-        result: CallToolResult,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<typeof this.argsShape>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        { result }: { result: CallToolResult }
     ): TelemetryToolMetadata {
         if (args.param2 === 3) {
             return {

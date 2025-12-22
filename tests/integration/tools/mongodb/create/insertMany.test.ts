@@ -14,9 +14,10 @@ import {
     getDataFromUntrustedContent,
     defaultTestConfig,
 } from "../../../helpers.js";
-import { beforeEach, afterEach, expect, it, describe } from "vitest";
+import { beforeEach, afterEach, expect, it, describe, vi } from "vitest";
 import { ObjectId } from "bson";
 import type { Collection } from "mongodb";
+import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 
 describeWithMongoDB("insertMany tool when search is disabled", (integration) => {
     validateToolMetadata(
@@ -99,6 +100,29 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
         expect(content).toContain("Error running insert-many");
         expect(content).toContain("duplicate key error");
         expect(content).toContain(insertedIds[0]?.toString());
+    });
+
+    it("should emit tool event without auto-embedding usage metadata", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+        await integration.connectMcpClient();
+
+        const response = await integration.mcpClient().callTool({
+            name: "insert-many",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "test",
+                documents: [{ title: "The Matrix" }],
+            },
+        });
+
+        const content = getResponseContent(response.content);
+        expect(content).toContain("Documents were inserted successfully.");
+
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
     });
 
     validateAutoConnectBehavior(integration, "insert-many", () => {
@@ -203,7 +227,7 @@ describeWithMongoDB(
                     // embeddingParameters so that we can simulate the idea
                     // of unknown or mismatched quantization.
 
-                    // embeddingParameters: { outputDimension: 256,
+                    // embeddingParameters: { outputDimension: "256",
                     // outputDtype: "float", model: "voyage-3-large", input:
                     // [
                     //         {
@@ -237,6 +261,7 @@ describeWithMongoDB(
 
             afterEach(async () => {
                 await collection.drop();
+                vi.clearAllMocks();
             });
 
             it("generates embeddings for a single document with one field", async () => {
@@ -558,7 +583,7 @@ describeWithMongoDB(
                         documents: [{ title: "The Matrix" }],
                         embeddingParameters: {
                             model: "voyage-3.5-lite",
-                            outputDimension: 256,
+                            outputDimension: "256",
                             input: [{ titleEmbeddings: "The Matrix" }],
                         },
                     },
@@ -627,6 +652,42 @@ describeWithMongoDB(
                 // Verify embeddings are different for different text
                 expect(doc?.titleEmbeddings).not.toEqual(doc?.plotEmbeddings);
             });
+
+            it("should emit tool event with auto-embedding usage metadata", async () => {
+                const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+                vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+                await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
+                    {
+                        type: "vector",
+                        path: "titleEmbeddings",
+                        numDimensions: 1024,
+                        similarity: "cosine",
+                        quantization: "scalar",
+                    },
+                ]);
+
+                const response = await integration.mcpClient().callTool({
+                    name: "insert-many",
+                    arguments: {
+                        database,
+                        collection: "test",
+                        documents: [{ title: "The Matrix" }],
+                        embeddingParameters: {
+                            model: "voyage-3.5-lite",
+                            input: [{ titleEmbeddings: "The Matrix" }],
+                        },
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(content).toContain("Documents were inserted successfully.");
+
+                expect(mockEmitEvents).toHaveBeenCalled();
+                const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+                expectDefined(emittedEvent);
+                expect(emittedEvent.properties.embeddingsGeneratedBy).toBe("mcp");
+            });
         });
     },
     {
@@ -635,7 +696,7 @@ describeWithMongoDB(
             // This is expected to be set through the CI env. When not set we
             // get a warning in the run logs.
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
         downloadOptions: { search: true },
     }
@@ -674,7 +735,7 @@ describeWithMongoDB(
             // This is expected to be set through the CI env. When not set we
             // get a warning in the run logs.
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
         }),
     }
 );

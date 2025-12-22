@@ -4,6 +4,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseContent,
     defaultTestConfig,
+    expectDefined,
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import {
@@ -16,6 +17,8 @@ import {
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
+import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
+import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -148,6 +151,36 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+    });
+
+    it("should emit tool event without auto-embedding usage metadata", async () => {
+        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+        const mongoClient = integration.mongoClient();
+        await mongoClient
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+                { name: "Søren", age: 15 },
+            ]);
+
+        await integration.connectMcpClient();
+        await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $match: { age: { $gt: 8 } } }, { $sort: { name: -1 } }],
+            },
+        });
+
+        expect(mockEmitEvents).toHaveBeenCalled();
+        const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+        expectDefined(emittedEvent);
+        expect(emittedEvent.properties.embeddingsGeneratedBy).toBeUndefined();
     });
 
     for (const disabledOpType of ["create", "update", "delete"] as const) {
@@ -384,14 +417,16 @@ describeWithMongoDB(
     }
 );
 
-import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
-
 describeWithMongoDB(
     "aggregate tool with atlas search enabled",
     (integration) => {
         beforeEach(async ({ skip }) => {
             skip(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY);
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
+        });
+
+        afterEach(() => {
+            vi.clearAllMocks();
         });
 
         validateToolMetadata(integration, "aggregate", "Run an aggregation against a MongoDB collection", "read", [
@@ -444,7 +479,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                 limit: 10,
                                 embeddingParameters: {
                                     model: "voyage-3-large",
-                                    outputDimension: 256,
+                                    outputDimension: "256",
                                 },
                             },
                         },
@@ -461,6 +496,50 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
             expect(responseContent).toContain(
                 `Error running aggregate: Could not find an index with name "non_existing" in namespace "${integration.randomDbName()}.databases".`
             );
+        });
+
+        it("should emit tool event with auto-embedding usage metadata", async () => {
+            const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+            vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+            await waitUntilSearchIsReady(integration.mongoClient());
+            await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "databases", [
+                {
+                    type: "vector",
+                    path: "description_embedding",
+                    numDimensions: 256,
+                    similarity: "cosine",
+                    quantization: "none",
+                },
+            ]);
+
+            await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "databases",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "default",
+                                path: "description_embedding",
+                                queryVector: "some data",
+                                numCandidates: 10,
+                                limit: 10,
+                                embeddingParameters: {
+                                    model: "voyage-3-large",
+                                    outputDimension: "256",
+                                },
+                            },
+                        },
+                    ],
+                },
+            });
+
+            expect(mockEmitEvents).toHaveBeenCalled();
+            const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+            expectDefined(emittedEvent);
+            expect(emittedEvent.properties.embeddingsGeneratedBy).toBe("mcp");
         });
 
         for (const [dataType, embedding] of Object.entries(DOCUMENT_EMBEDDINGS)) {
@@ -508,7 +587,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -575,7 +654,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -642,7 +721,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -709,7 +788,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                             limit: 10,
                                             embeddingParameters: {
                                                 model: "voyage-3-large",
-                                                outputDimension: 256,
+                                                outputDimension: "256",
                                                 outputDType: dataType,
                                             },
                                         },
@@ -774,7 +853,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                     limit: 10,
                                     embeddingParameters: {
                                         model: "voyage-3-large",
-                                        outputDimension: 256,
+                                        outputDimension: "256",
                                         outputDType: "float",
                                     },
                                     filter: { name: 10 },
@@ -837,7 +916,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                     limit: 10,
                                     embeddingParameters: {
                                         model: "voyage-3-large",
-                                        outputDimension: 256,
+                                        outputDimension: "256",
                                         outputDType: "float",
                                     },
                                     filter: { name: 10 },
@@ -900,7 +979,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                                     limit: 10,
                                     embeddingParameters: {
                                         model: "voyage-3-large",
-                                        outputDimension: 256,
+                                        outputDimension: "256",
                                         outputDType: "float",
                                     },
                                     filter: { name: 10 },
@@ -921,12 +1000,75 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                 );
             });
         });
+
+        describe("outputDimension transformation", () => {
+            it.each([
+                { numDimensions: 2048, outputDimension: "2048" },
+                { numDimensions: 4096, outputDimension: "4096" },
+            ])(
+                "should successfully transform outputDimension string '$outputDimension' to number",
+                async ({ numDimensions, outputDimension }) => {
+                    await waitUntilSearchIsReady(integration.mongoClient());
+
+                    const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
+                    await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
+
+                    await createVectorSearchIndexAndWait(
+                        integration.mongoClient(),
+                        integration.randomDbName(),
+                        "databases",
+                        [
+                            {
+                                type: "vector",
+                                path: "description_embedding",
+                                numDimensions,
+                                similarity: "cosine",
+                                quantization: "none",
+                            },
+                        ]
+                    );
+
+                    await integration.connectMcpClient();
+                    const response = await integration.mcpClient().callTool({
+                        name: "aggregate",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "databases",
+                            pipeline: [
+                                {
+                                    $vectorSearch: {
+                                        index: "default",
+                                        path: "description_embedding",
+                                        queryVector: "example query",
+                                        numCandidates: 10,
+                                        limit: 10,
+                                        embeddingParameters: {
+                                            model: "voyage-3-large",
+                                            outputDimension, // Pass as string literal
+                                        },
+                                    },
+                                },
+                                {
+                                    $project: {
+                                        description_embedding: 0,
+                                    },
+                                },
+                            ],
+                        },
+                    });
+
+                    const responseContent = getResponseContent(response);
+                    // String should succeed and be transformed to number internally
+                    expect(responseContent).toContain("The aggregation resulted in");
+                }
+            );
+        });
     },
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
             voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["vectorSearch"],
+            previewFeatures: ["search"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
             indexCheck: true,
