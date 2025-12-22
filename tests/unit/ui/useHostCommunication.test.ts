@@ -1,56 +1,39 @@
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
-import { createElement, type FunctionComponent } from "react";
-import { renderToString } from "react-dom/server";
-import { useHostCommunication } from "../../../src/ui/hooks/useHostCommunication.js";
-
-type UseHostCommunicationResult = ReturnType<typeof useHostCommunication>;
-
 /**
- * Simple hook testing utility that renders a component using the hook
- * and captures the result for assertions.
+ * @vitest-environment jsdom
  */
-function testHook(): UseHostCommunicationResult {
-    let hookResult: UseHostCommunicationResult | undefined;
-
-    const TestComponent: FunctionComponent = () => {
-        hookResult = useHostCommunication();
-        return null;
-    };
-
-    renderToString(createElement(TestComponent));
-
-    if (!hookResult) {
-        throw new Error("Hook did not return a result");
-    }
-
-    return hookResult;
-}
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { useHostCommunication } from "../../../src/ui/hooks/useHostCommunication.js";
 
 describe("useHostCommunication", () => {
     let postMessageMock: Mock;
-    let originalWindow: typeof globalThis.window;
+    let originalParent: typeof window.parent;
 
     beforeEach(() => {
-        originalWindow = globalThis.window;
         postMessageMock = vi.fn();
+        originalParent = window.parent;
 
-        // Create a minimal window mock with parent.postMessage
-        globalThis.window = {
-            parent: {
-                postMessage: postMessageMock,
-            },
-        } as unknown as typeof globalThis.window;
+        // Mock window.parent.postMessage without replacing the entire window object
+        Object.defineProperty(window, "parent", {
+            value: { postMessage: postMessageMock },
+            writable: true,
+            configurable: true,
+        });
     });
 
     afterEach(() => {
-        globalThis.window = originalWindow;
+        Object.defineProperty(window, "parent", {
+            value: originalParent,
+            writable: true,
+            configurable: true,
+        });
         vi.restoreAllMocks();
     });
 
     it("intent() sends a message with name and params", () => {
-        const actions = testHook();
+        const { result } = renderHook(() => useHostCommunication());
 
-        actions.intent("create-task", { title: "Test Task" });
+        result.current.intent("create-task", { title: "Test Task" });
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
@@ -65,9 +48,9 @@ describe("useHostCommunication", () => {
     });
 
     it("intent() sends a message with empty params", () => {
-        const actions = testHook();
+        const { result } = renderHook(() => useHostCommunication());
 
-        actions.intent("cancel", {});
+        result.current.intent("cancel", {});
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
@@ -82,9 +65,9 @@ describe("useHostCommunication", () => {
     });
 
     it("notify() sends a notification message", () => {
-        const actions = testHook();
+        const { result } = renderHook(() => useHostCommunication());
 
-        actions.notify("Operation completed successfully");
+        result.current.notify("Operation completed successfully");
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
@@ -98,9 +81,9 @@ describe("useHostCommunication", () => {
     });
 
     it("prompt() sends a prompt message", () => {
-        const actions = testHook();
+        const { result } = renderHook(() => useHostCommunication());
 
-        actions.prompt("What is the status of my database?");
+        result.current.prompt("What is the status of my database?");
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
@@ -114,9 +97,9 @@ describe("useHostCommunication", () => {
     });
 
     it("tool() sends a tool message with name and params", () => {
-        const actions = testHook();
+        const { result } = renderHook(() => useHostCommunication());
 
-        actions.tool("listDatabases", { connectionString: "mongodb://localhost" });
+        result.current.tool("listDatabases", { connectionString: "mongodb://localhost" });
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
@@ -131,9 +114,9 @@ describe("useHostCommunication", () => {
     });
 
     it("tool() sends a tool message with empty params", () => {
-        const actions = testHook();
+        const { result } = renderHook(() => useHostCommunication());
 
-        actions.tool("getServerInfo", {});
+        result.current.tool("getServerInfo", {});
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {
@@ -148,9 +131,9 @@ describe("useHostCommunication", () => {
     });
 
     it("link() sends a link message with a URL", () => {
-        const actions = testHook();
+        const { result } = renderHook(() => useHostCommunication());
 
-        actions.link("https://mongodb.com/docs");
+        result.current.link("https://mongodb.com/docs");
 
         expect(postMessageMock).toHaveBeenCalledWith(
             {

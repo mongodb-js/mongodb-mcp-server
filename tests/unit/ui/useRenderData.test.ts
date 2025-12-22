@@ -1,75 +1,59 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { createElement, type FunctionComponent } from "react";
-import { renderToString } from "react-dom/server";
+import { renderHook } from "@testing-library/react";
 import { useRenderData } from "../../../src/ui/hooks/useRenderData.js";
-
-type UseRenderDataResult<T> = ReturnType<typeof useRenderData<T>>;
 
 interface TestData {
     items: string[];
 }
 
-/**
- * Simple hook testing utility that renders a component using the hook
- * and captures the result for assertions.
- */
-function testHook<T = unknown>(): UseRenderDataResult<T> {
-    let hookResult: UseRenderDataResult<T> | undefined;
-
-    const TestComponent: FunctionComponent = () => {
-        hookResult = useRenderData<T>();
-        return null;
-    };
-
-    renderToString(createElement(TestComponent));
-
-    if (!hookResult) {
-        throw new Error("Hook did not return a result");
-    }
-
-    return hookResult;
-}
-
 describe("useRenderData", () => {
     let postMessageMock: ReturnType<typeof vi.fn>;
-    let originalWindow: typeof globalThis.window;
+    let originalParent: typeof window.parent;
 
     beforeEach(() => {
-        originalWindow = globalThis.window;
         postMessageMock = vi.fn();
+        originalParent = window.parent;
 
-        globalThis.window = {
-            parent: {
-                postMessage: postMessageMock,
-            },
-            addEventListener: vi.fn(),
-            removeEventListener: vi.fn(),
-        } as unknown as typeof globalThis.window;
+        // Mock window.parent.postMessage without replacing the entire window object
+        Object.defineProperty(window, "parent", {
+            value: { postMessage: postMessageMock },
+            writable: true,
+            configurable: true,
+        });
     });
 
     afterEach(() => {
-        globalThis.window = originalWindow;
+        Object.defineProperty(window, "parent", {
+            value: originalParent,
+            writable: true,
+            configurable: true,
+        });
         vi.restoreAllMocks();
     });
 
     it("returns initial state with isLoading true", () => {
-        const result = testHook<TestData>();
+        const { result } = renderHook(() => useRenderData<TestData>());
 
-        expect(result.data).toBeNull();
-        expect(result.isLoading).toBe(true);
-        expect(result.error).toBeNull();
+        expect(result.current.data).toBeNull();
+        expect(result.current.isLoading).toBe(true);
+        expect(result.current.error).toBeNull();
     });
 
     it("includes expected properties in return type", () => {
-        const result = testHook<TestData>();
+        const { result } = renderHook(() => useRenderData<TestData>());
 
-        expect(result).toHaveProperty("data");
-        expect(result).toHaveProperty("isLoading");
-        expect(result).toHaveProperty("error");
+        expect(result.current).toHaveProperty("data");
+        expect(result.current).toHaveProperty("isLoading");
+        expect(result.current).toHaveProperty("error");
     });
 
     it("returns a stable object shape for destructuring", () => {
-        const { data, isLoading, error } = testHook<TestData>();
+        const { result } = renderHook(() => useRenderData<TestData>());
+
+        const { data, isLoading, error } = result.current;
 
         expect(data).toBeNull();
         expect(isLoading).toBe(true);
