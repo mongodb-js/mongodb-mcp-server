@@ -10,11 +10,7 @@ function getPrefersDarkMode(): boolean {
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-function getServerSnapshot(): boolean {
-    return false;
-}
-
 export function useDarkMode(override?: boolean): boolean {
-    const prefersDarkMode = useSyncExternalStore(subscribeToPrefersColorScheme, getPrefersDarkMode, getServerSnapshot);
+    const prefersDarkMode = useSyncExternalStore(subscribeToPrefersColorScheme, getPrefersDarkMode);
     return override ?? prefersDarkMode;
 }
