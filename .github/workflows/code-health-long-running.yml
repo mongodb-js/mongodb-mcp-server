@@ -31,7 +31,7 @@ jobs:
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
         run: pnpm test tests/integration/tools/atlas --project=long-running-tests
       - name: Upload test results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: atlas-test-results
