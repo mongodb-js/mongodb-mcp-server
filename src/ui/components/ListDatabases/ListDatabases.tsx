@@ -1,20 +1,16 @@
-import React from "react";
-import { useRenderData } from "../../hooks/index.js";
-import {
-    Cell as LGCell,
-    HeaderCell as LGHeaderCell,
-    HeaderRow,
-    Row as LGRow,
-    Table,
-    TableBody,
-    TableHead,
-} from "@leafygreen-ui/table";
-import { tableStyles } from "./ListDatabases.styles.js";
+import { type ReactElement } from "react";
+import { useDarkMode, useRenderData } from "../../hooks/index.js";
+import { Cell, HeaderCell, HeaderRow, Row, Table, TableBody, TableHead } from "@leafygreen-ui/table";
+import { Body } from "@leafygreen-ui/typography";
 import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
+import { AmountTextStyles, getContainerStyles } from "./ListDatabases.styles.js";
 
-const HeaderCell = LGHeaderCell as React.FC<React.ComponentPropsWithoutRef<"th">>;
-const Cell = LGCell as React.FC<React.ComponentPropsWithoutRef<"td">>;
-const Row = LGRow as React.FC<React.ComponentPropsWithoutRef<"tr">>;
+export type Database = ListDatabasesOutput["databases"][number];
+
+interface ListDatabasesProps {
+    databases?: Database[];
+    darkMode?: boolean;
+}
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return "0 Bytes";
@@ -26,37 +22,49 @@ function formatBytes(bytes: number): string {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
-export const ListDatabases = (): React.ReactElement | null => {
-    const { data, isLoading, error } = useRenderData<ListDatabasesOutput>();
+export const ListDatabases = ({
+    databases: propDatabases,
+    darkMode: darkModeProp,
+}: ListDatabasesProps): ReactElement | null => {
+    const darkMode = useDarkMode(darkModeProp);
+    const { data: hookData, isLoading, error } = useRenderData<ListDatabasesOutput>();
+    const databases = propDatabases ?? hookData?.databases;
 
-    if (isLoading) {
-        return <div>Loading...</div>;
+    if (!propDatabases) {
+        if (isLoading) {
+            return <div>Loading...</div>;
+        }
+
+        if (error) {
+            return <div>Error: {error}</div>;
+        }
     }
 
-    if (error) {
-        return <div>Error: {error}</div>;
-    }
-
-    if (!data) {
+    if (!databases) {
         return null;
     }
 
     return (
-        <Table className={tableStyles}>
-            <TableHead>
-                <HeaderRow>
-                    <HeaderCell>DB Name</HeaderCell>
-                    <HeaderCell>DB Size</HeaderCell>
-                </HeaderRow>
-            </TableHead>
-            <TableBody>
-                {data.databases.map((db) => (
-                    <Row key={db.name}>
-                        <Cell>{db.name}</Cell>
-                        <Cell>{formatBytes(db.size)}</Cell>
-                    </Row>
-                ))}
-            </TableBody>
-        </Table>
+        <div className={getContainerStyles(darkMode)}>
+            <Body className={AmountTextStyles} darkMode={darkMode}>
+                Your cluster has <strong>{databases.length} databases</strong>:
+            </Body>
+            <Table darkMode={darkMode}>
+                <TableHead>
+                    <HeaderRow>
+                        <HeaderCell>Database</HeaderCell>
+                        <HeaderCell>Size</HeaderCell>
+                    </HeaderRow>
+                </TableHead>
+                <TableBody>
+                    {databases.map((db) => (
+                        <Row key={db.name}>
+                            <Cell>{db.name}</Cell>
+                            <Cell>{formatBytes(db.size)}</Cell>
+                        </Row>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
     );
 };

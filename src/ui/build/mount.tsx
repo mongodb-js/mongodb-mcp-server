@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import "../styles/fonts.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 
