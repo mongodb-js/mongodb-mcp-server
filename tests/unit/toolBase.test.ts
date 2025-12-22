@@ -15,6 +15,7 @@ import type { Server } from "../../src/server.js";
 import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types.js";
 import { expectDefined } from "../integration/helpers.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
+import { UIRegistry } from "../../src/ui/registry/index.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -60,6 +61,7 @@ describe("ToolBase", () => {
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
+            uiRegistry: new UIRegistry(),
         };
 
         testTool = new TestTool(constructorParams);
