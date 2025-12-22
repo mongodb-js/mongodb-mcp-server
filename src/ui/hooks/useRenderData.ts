@@ -33,7 +33,6 @@ interface UseRenderDataResult<T> {
  *
  * function MyComponent() {
  *   const { data, isLoading, error } = useRenderData<MyData>();
- *   // ...
  * }
  * ```
  */
