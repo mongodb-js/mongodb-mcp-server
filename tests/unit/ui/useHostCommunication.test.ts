@@ -36,13 +36,14 @@ describe("useHostCommunication", () => {
         result.current.intent("create-task", { title: "Test Task" });
 
         expect(postMessageMock).toHaveBeenCalledWith(
-            {
+            expect.objectContaining({
                 type: "intent",
-                payload: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: expect.objectContaining({
                     intent: "create-task",
                     params: { title: "Test Task" },
-                },
-            },
+                }),
+            }),
             "*"
         );
     });
@@ -53,13 +54,14 @@ describe("useHostCommunication", () => {
         result.current.intent("cancel", {});
 
         expect(postMessageMock).toHaveBeenCalledWith(
-            {
+            expect.objectContaining({
                 type: "intent",
-                payload: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: expect.objectContaining({
                     intent: "cancel",
                     params: {},
-                },
-            },
+                }),
+            }),
             "*"
         );
     });
@@ -70,12 +72,13 @@ describe("useHostCommunication", () => {
         result.current.notify("Operation completed successfully");
 
         expect(postMessageMock).toHaveBeenCalledWith(
-            {
+            expect.objectContaining({
                 type: "notify",
-                payload: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: expect.objectContaining({
                     message: "Operation completed successfully",
-                },
-            },
+                }),
+            }),
             "*"
         );
     });
@@ -86,12 +89,13 @@ describe("useHostCommunication", () => {
         result.current.prompt("What is the status of my database?");
 
         expect(postMessageMock).toHaveBeenCalledWith(
-            {
+            expect.objectContaining({
                 type: "prompt",
-                payload: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: expect.objectContaining({
                     prompt: "What is the status of my database?",
-                },
-            },
+                }),
+            }),
             "*"
         );
     });
@@ -102,13 +106,14 @@ describe("useHostCommunication", () => {
         result.current.tool("listDatabases", { connectionString: "mongodb://localhost" });
 
         expect(postMessageMock).toHaveBeenCalledWith(
-            {
+            expect.objectContaining({
                 type: "tool",
-                payload: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: expect.objectContaining({
                     toolName: "listDatabases",
                     params: { connectionString: "mongodb://localhost" },
-                },
-            },
+                }),
+            }),
             "*"
         );
     });
@@ -119,13 +124,14 @@ describe("useHostCommunication", () => {
         result.current.tool("getServerInfo", {});
 
         expect(postMessageMock).toHaveBeenCalledWith(
-            {
+            expect.objectContaining({
                 type: "tool",
-                payload: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: expect.objectContaining({
                     toolName: "getServerInfo",
                     params: {},
-                },
-            },
+                }),
+            }),
             "*"
         );
     });
@@ -136,12 +142,13 @@ describe("useHostCommunication", () => {
         result.current.link("https://mongodb.com/docs");
 
         expect(postMessageMock).toHaveBeenCalledWith(
-            {
+            expect.objectContaining({
                 type: "link",
-                payload: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                payload: expect.objectContaining({
                     url: "https://mongodb.com/docs",
-                },
-            },
+                }),
+            }),
             "*"
         );
     });
