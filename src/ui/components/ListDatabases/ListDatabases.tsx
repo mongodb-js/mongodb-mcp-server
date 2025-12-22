@@ -1,21 +1,9 @@
-import React, { type ComponentPropsWithoutRef, type FC, type ReactElement } from "react";
+import { type ReactElement } from "react";
 import { useDarkMode, useRenderData } from "../../hooks/index.js";
-import {
-    Cell as LGCell,
-    HeaderCell as LGHeaderCell,
-    HeaderRow,
-    Row as LGRow,
-    Table,
-    TableBody,
-    TableHead,
-} from "@leafygreen-ui/table";
+import { Cell, HeaderCell, HeaderRow, Row, Table, TableBody, TableHead } from "@leafygreen-ui/table";
 import { Body } from "@leafygreen-ui/typography";
 import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
 import { AmountTextStyles, getContainerStyles } from "./ListDatabases.styles.js";
-
-const HeaderCell = LGHeaderCell as FC<ComponentPropsWithoutRef<"th">>;
-const Cell = LGCell as FC<ComponentPropsWithoutRef<"td">>;
-const Row = LGRow as FC<ComponentPropsWithoutRef<"tr">>;
 
 export type Database = ListDatabasesOutput["databases"][number];
 
