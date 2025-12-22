@@ -1,8 +1,9 @@
 import { css } from "@emotion/css";
 import { color, InteractionState, Property, spacing, Variant } from "@leafygreen-ui/tokens";
+import { Theme } from "@leafygreen-ui/lib";
 
 export const getContainerStyles = (darkMode: boolean): string => css`
-    background-color: ${color[darkMode ? "dark" : "light"][Property.Background][Variant.Primary][
+    background-color: ${color[darkMode ? Theme.Dark : Theme.Light][Property.Background][Variant.Primary][
         InteractionState.Default
     ]};
     padding: ${spacing[200]}px;

@@ -92,6 +92,7 @@
     "@ai-sdk/openai": "^2.0.52",
     "@emotion/css": "^11.13.5",
     "@eslint/js": "^9.34.0",
+    "@leafygreen-ui/lib": "^15.7.0",
     "@leafygreen-ui/table": "^15.2.2",
     "@leafygreen-ui/tokens": "^4.2.0",
     "@leafygreen-ui/typography": "^22.2.3",
