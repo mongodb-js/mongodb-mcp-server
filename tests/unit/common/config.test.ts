@@ -39,6 +39,7 @@ const expectedDefaults = {
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
     httpHeaders: {},
+    httpBodyLimit: "100kb",
     maxDocumentsPerQuery: 100,
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
@@ -124,6 +125,7 @@ describe("config", () => {
                 { envVar: "MDB_MCP_TRANSPORT", property: "transport", value: "http" },
                 { envVar: "MDB_MCP_HTTP_PORT", property: "httpPort", value: 8080 },
                 { envVar: "MDB_MCP_HTTP_HOST", property: "httpHost", value: "localhost" },
+                { envVar: "MDB_MCP_HTTP_BODY_LIMIT", property: "httpBodyLimit", value: "10mb" },
                 { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
                 { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
                 {
@@ -220,6 +222,10 @@ describe("config", () => {
                 {
                     cli: ["--httpPort", "8080"],
                     expected: { httpPort: 8080 },
+                },
+                {
+                    cli: ["--httpBodyLimit", "50mb"],
+                    expected: { httpBodyLimit: "50mb" },
                 },
                 {
                     cli: ["--idleTimeoutMs", "42"],
