@@ -60,8 +60,17 @@ export const VectorSearchStage = z.object({
                 ),
             queryVector: z
                 .union([z.string(), z.array(z.number())])
+                .optional()
                 .describe(
-                    "The content to search for. The embeddingParameters field is mandatory if the queryVector is a string, in that case, the tool generates the embedding automatically using the provided configuration."
+                    "The content to search for when querying indexes that require manual embedding generation. Provide an array of numbers (embeddings) or a string with embeddingParameters. Do not use this for auto-embedding indexes; use 'query' instead."
+                ),
+            query: z
+                .object({
+                    text: z.string().describe("The text query to search for."),
+                })
+                .optional()
+                .describe(
+                    "The query to search for when using auto-embedding indexes. MongoDB will automatically generate embeddings for the text. Use this for auto-embedding indexes, not 'queryVector'."
                 ),
             numCandidates: z
                 .number()
@@ -78,8 +87,11 @@ export const VectorSearchStage = z.object({
             embeddingParameters: zSupportedEmbeddingParameters
                 .optional()
                 .describe(
-                    "The embedding model and its parameters to use to generate embeddings before searching. It is mandatory if queryVector is a string value. Note to LLM: If unsure, ask the user before providing one."
+                    "The embedding model and its parameters to use to generate embeddings before searching. Only provide this when using 'queryVector' with a string value for indexes that require manual embedding generation. Do not provide this for auto-embedding indexes that use 'query'. Note to LLM: If unsure, ask the user before providing one."
                 ),
         })
-        .passthrough(),
+        .passthrough()
+        .refine((data) => (data.queryVector !== undefined) !== (data.query !== undefined), {
+            message: "Either 'queryVector' or 'query' must be provided, but not both.",
+        }),
 });
