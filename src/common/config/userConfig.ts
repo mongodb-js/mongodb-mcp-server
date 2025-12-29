@@ -131,7 +131,7 @@ const ServerConfigSchema = z4.object({
         .regex(/^\d+(?:kb|mb|gb)$/i, "Invalid httpBodyLimit: must be a string like '100kb', '1mb', or '1gb'")
         .default("100kb")
         .describe(
-            "Maximum size of the HTTP request body (only used when transport is 'http'). Supports formats like '100kb', '1mb', '50mb'. This is the Express.js json() middleware limit."
+            "Maximum size of the HTTP request body (only used when transport is 'http'). Supports formats like '100kb', '1mb', '50mb'. This value is passed as the optional limit parameter to the Express.js json() middleware"
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     idleTimeoutMs: z4.coerce
