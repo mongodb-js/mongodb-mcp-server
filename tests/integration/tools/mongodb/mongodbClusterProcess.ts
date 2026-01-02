@@ -23,7 +23,8 @@ export class MongoDBClusterProcess {
             const runningContainer = await new GenericContainer(config.image ?? DEFAULT_LOCAL_IMAGE)
                 .withExposedPorts(27017)
                 .withCommand(["/usr/local/bin/runner", "server"])
-                .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.test.getSearchIndexes()'`))
+                .withLogConsumer(stream => stream.on('data', line => console.log(line)))
+                .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.adminCommand({ping: 1}) && db.test.getSearchIndexes()'`))
                 .start();
 
             return new MongoDBClusterProcess(
