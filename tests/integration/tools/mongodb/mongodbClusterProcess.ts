@@ -8,15 +8,33 @@ import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wa
 
 // Debug logging for container issues
 const CONTAINER_LOG_PATH = path.join(process.cwd(), "container-debug.log");
+const IS_CI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
 let containerLogStream: WriteStream | null = null;
 
-function getContainerLogStream(): WriteStream {
+interface ContainerLogger {
+    write: (msg: string) => void;
+}
+
+function getContainerLogger(): ContainerLogger {
     if (!containerLogStream) {
         containerLogStream = createWriteStream(CONTAINER_LOG_PATH, { flags: "a" });
         containerLogStream.write(`\n\n=== Container started at ${new Date().toISOString()} ===\n`);
-        console.log(`[DEBUG] Container logs will be written to: ${CONTAINER_LOG_PATH}`);
+        if (IS_CI) {
+            process.stderr.write(`[CONTAINER-DEBUG] Logs also written to: ${CONTAINER_LOG_PATH}\n`);
+        } else {
+            console.log(`[DEBUG] Container logs will be written to: ${CONTAINER_LOG_PATH}`);
+        }
     }
-    return containerLogStream;
+
+    return {
+        write: (msg: string) => {
+            containerLogStream?.write(msg);
+            // In CI, also write to stderr so it shows in GitHub Actions logs
+            if (IS_CI) {
+                process.stderr.write(`[CONTAINER] ${msg}`);
+            }
+        },
+    };
 }
 
 export type MongoRunnerConfiguration = {
@@ -35,8 +53,8 @@ export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
         if (MongoDBClusterProcess.isSearchOptions(config)) {
             const imageName = config.image ?? DEFAULT_LOCAL_IMAGE;
-            const logStream = getContainerLogStream();
-            logStream.write(`[${new Date().toISOString()}] Starting container with image: ${imageName}\n`);
+            const logger = getContainerLogger();
+            logger.write(`[${new Date().toISOString()}] Starting container with image: ${imageName}\n`);
 
             const runningContainer = await new GenericContainer(imageName)
                 .withExposedPorts(27017)
@@ -44,25 +62,25 @@ export class MongoDBClusterProcess {
                 .withLogConsumer((stream) => {
                     stream.on("data", (line) => {
                         const timestamp = new Date().toISOString();
-                        logStream.write(`[${timestamp}] ${line}`);
+                        logger.write(`[${timestamp}] ${line}`);
                     });
                     stream.on("end", () => {
-                        logStream.write(`[${new Date().toISOString()}] === Container stream ended ===\n`);
+                        logger.write(`[${new Date().toISOString()}] === Container stream ended ===\n`);
                     });
                     stream.on("error", (err) => {
-                        logStream.write(`[${new Date().toISOString()}] === Container stream error: ${err} ===\n`);
+                        logger.write(`[${new Date().toISOString()}] === Container stream error: ${err} ===\n`);
                     });
                 })
                 .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.adminCommand({ping: 1}) && db.test.getSearchIndexes()'`))
                 .start();
 
-            logStream.write(`[${new Date().toISOString()}] Container started successfully, ID: ${runningContainer.getId()}\n`);
+            logger.write(`[${new Date().toISOString()}] Container started successfully, ID: ${runningContainer.getId()}\n`);
 
             return new MongoDBClusterProcess(
                 async () => {
-                    logStream.write(`[${new Date().toISOString()}] === Intentionally stopping container ===\n`);
+                    logger.write(`[${new Date().toISOString()}] === Intentionally stopping container ===\n`);
                     await runningContainer.stop();
-                    logStream.write(`[${new Date().toISOString()}] === Container stopped ===\n`);
+                    logger.write(`[${new Date().toISOString()}] === Container stopped ===\n`);
                 },
                 () =>
                     `mongodb://${runningContainer.getHost()}:${runningContainer.getMappedPort(27017)}/?directConnection=true`
