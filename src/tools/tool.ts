@@ -17,6 +17,38 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
+/**
+ * Supported transport protocol types.
+ *
+ * - `stdio`: Uses stdin/stdout for communication (default for CLI usage).
+ * - `http`: Uses HTTP/SSE for communication (for web-based clients).
+ */
+export type TransportType = "stdio" | "http";
+
+/**
+ * Request payload size limits in bytes for different transport protocols.
+ *
+ * These limits represent the maximum size of the JSON-RPC request body that can be
+ * sent to the MCP server. Requests exceeding these limits will be rejected.
+ *
+ * - `stdio`: Uses stdin/stdout with no inherent protocol limit. The limit is effectively
+ *   determined by system memory and buffer sizes. We use a conservative 50MB default
+ *   since there's no practical network constraint.
+ *
+ * - `http`: Uses Express.js with the default body-parser limit of 100KB for JSON payloads.
+ *   This is the Express.js default and can be increased by configuring the middleware.
+ *
+ * @remarks
+ * These values are exposed in each tool's `_meta` field as `mongodb.maxRequestPayloadBytes`
+ * to inform LLMs about the size constraints when constructing tool call arguments.
+ */
+export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number> = {
+    /** Default limit for stdio transport (50MB - conservative system limit) */
+    stdio: 52_428_800,
+    /** Default limit for HTTP transport (100KB - Express.js default for JSON body) */
+    http: 102_400,
+} as const;
+
 export type ToolExecutionContext = {
     signal: AbortSignal;
 };
@@ -335,6 +367,42 @@ export abstract class ToolBase {
     }
 
     /**
+     * Returns tool-specific metadata that will be included in the tool's `_meta` field.
+     *
+     * This getter computes metadata based on the current configuration, including
+     * transport-specific constraints like request payload size limits.
+     *
+     * The metadata includes:
+     * - `mongodb.transport`: The transport protocol in use ("stdio" or "http")
+     * - `mongodb.maxRequestPayloadBytes`: Maximum request payload size for the current transport
+     *
+     * Subclasses can override this to add custom metadata. When overriding,
+     * call `super.toolMeta` and spread its result to preserve base metadata.
+     *
+     * @example
+     * ```typescript
+     * protected override get toolMeta(): Record<string, unknown> {
+     *   return {
+     *     ...super.toolMeta,
+     *     "mongodb.customField": "value",
+     *   };
+     * }
+     * ```
+     */
+    protected get toolMeta(): Record<string, unknown> {
+        const transport = this.config.transport;
+        const maxRequestPayloadBytes =
+            TRANSPORT_PAYLOAD_LIMITS[transport as TransportType] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
+
+        return {
+            /** The transport protocol this server is using */
+            "mongodb.transport": transport,
+            /** Maximum request payload size in bytes for this transport */
+            "mongodb.maxRequestPayloadBytes": maxRequestPayloadBytes,
+        };
+    }
+
+    /**
      * A function that is registered as the tool execution callback and is
      * called with the expected arguments.
      *
@@ -521,6 +589,7 @@ export abstract class ToolBase {
                         inputSchema?: ZodRawShape;
                         outputSchema?: ZodRawShape;
                         annotations?: ToolAnnotations;
+                        _meta?: Record<string, unknown>;
                     },
                     cb: (args: ToolArgs<ZodRawShape>, extra: ToolExecutionContext) => Promise<CallToolResult>
                 ) => RegisteredTool
@@ -531,6 +600,7 @@ export abstract class ToolBase {
                     inputSchema: this.argsShape,
                     outputSchema: this.outputSchema,
                     annotations: this.annotations,
+                    _meta: this.toolMeta,
                 },
                 callback
             );

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vites
 import type { ZodRawShape } from "zod";
 import { z } from "zod";
 import type { OperationType, ToolCategory, ToolConstructorParams, ToolArgs } from "../../src/tools/tool.js";
-import { ToolBase } from "../../src/tools/tool.js";
+import { ToolBase, TRANSPORT_PAYLOAD_LIMITS } from "../../src/tools/tool.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
@@ -258,6 +258,36 @@ describe("ToolBase", () => {
                 const metadata = testTool["getConnectionInfoMetadata"]();
                 expect(metadata.connection_auth_type).toBe(authType);
             }
+        });
+    });
+
+    describe("toolMeta", () => {
+        it("should return correct metadata for stdio transport", () => {
+            mockConfig.transport = "stdio";
+
+            const meta = testTool["toolMeta"];
+
+            expect(meta["mongodb.transport"]).toBe("stdio");
+            expect(meta["mongodb.maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
+        });
+
+        it("should return correct metadata for http transport", () => {
+            mockConfig.transport = "http";
+
+            const meta = testTool["toolMeta"];
+
+            expect(meta["mongodb.transport"]).toBe("http");
+            expect(meta["mongodb.maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.http);
+        });
+
+        it("should fallback to stdio limits for unknown transport", () => {
+            // This tests the fallback behavior when an unknown transport is provided
+            mockConfig.transport = "unknown-transport" as "stdio" | "http";
+
+            const meta = testTool["toolMeta"];
+
+            expect(meta["mongodb.transport"]).toBe("unknown-transport");
+            expect(meta["mongodb.maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
         });
     });
 });
