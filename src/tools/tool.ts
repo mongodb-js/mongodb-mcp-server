@@ -12,6 +12,7 @@ import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource } from "@mcp-ui/server";
+import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -335,6 +336,42 @@ export abstract class ToolBase {
     }
 
     /**
+     * Returns tool-specific metadata that will be included in the tool's `_meta` field.
+     *
+     * This getter computes metadata based on the current configuration, including
+     * transport-specific constraints like request payload size limits.
+     *
+     * The metadata includes:
+     * - `com.mongodb/transport`: The transport protocol in use ("stdio" or "http")
+     * - `com.mongodb/maxRequestPayloadBytes`: Maximum request payload size for the current transport
+     *
+     * Subclasses can override this to add custom metadata. When overriding,
+     * call `super.toolMeta` and spread its result to preserve base metadata.
+     *
+     * @example
+     * ```typescript
+     * protected override get toolMeta(): Record<string, unknown> {
+     *   return {
+     *     ...super.toolMeta,
+     *     "com.mongodb/customField": "value",
+     *   };
+     * }
+     * ```
+     */
+    protected get toolMeta(): Record<string, unknown> {
+        const transport = this.config.transport;
+        const maxRequestPayloadBytes =
+            TRANSPORT_PAYLOAD_LIMITS[transport as TransportType] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
+
+        return {
+            /** The transport protocol this server is using */
+            "com.mongodb/transport": transport,
+            /** Maximum request payload size in bytes for this transport */
+            "com.mongodb/maxRequestPayloadBytes": maxRequestPayloadBytes,
+        };
+    }
+
+    /**
      * A function that is registered as the tool execution callback and is
      * called with the expected arguments.
      *
@@ -521,6 +558,7 @@ export abstract class ToolBase {
                         inputSchema?: ZodRawShape;
                         outputSchema?: ZodRawShape;
                         annotations?: ToolAnnotations;
+                        _meta?: Record<string, unknown>;
                     },
                     cb: (args: ToolArgs<ZodRawShape>, extra: ToolExecutionContext) => Promise<CallToolResult>
                 ) => RegisteredTool
@@ -531,6 +569,7 @@ export abstract class ToolBase {
                     inputSchema: this.argsShape,
                     outputSchema: this.outputSchema,
                     annotations: this.annotations,
+                    _meta: this.toolMeta,
                 },
                 callback
             );
