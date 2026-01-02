@@ -102,6 +102,78 @@ describe("StreamableHttpRunner", () => {
         });
     }
 
+    describe("with httpBodyLimit configuration", () => {
+        it("should accept requests within the body limit", async () => {
+            const testConfig = {
+                ...defaultTestConfig,
+                httpPort: 0,
+                httpBodyLimit: 1024 * 1024,
+            };
+            const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
+            await testRunner.start();
+
+            try {
+                const client = new Client({
+                    name: "test",
+                    version: "0.0.0",
+                });
+                const transport = new StreamableHTTPClientTransport(new URL(`${testRunner.serverAddress}/mcp`));
+
+                await client.connect(transport);
+                const response = await client.listTools();
+                expect(response).toBeDefined();
+                expect(response.tools).toBeDefined();
+
+                await client.close();
+                await transport.close();
+            } finally {
+                await testRunner.close();
+            }
+        });
+
+        it("should reject requests exceeding the body limit", async () => {
+            const testConfig = {
+                ...defaultTestConfig,
+                httpPort: 0,
+                httpBodyLimit: 1024, // Very small limit (1kb)
+            };
+            const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
+            await testRunner.start();
+
+            try {
+                // Create a payload larger than 1kb
+                const largePayload = JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2024-11-05",
+                        capabilities: {},
+                        clientInfo: {
+                            name: "test",
+                            version: "0.0.0",
+                        },
+                        // Add extra data to exceed 1kb
+                        extraData: "x".repeat(2000),
+                    },
+                });
+
+                const response = await fetch(`${testRunner.serverAddress}/mcp`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: largePayload,
+                });
+
+                // Should return 413 Payload Too Large
+                expect(response.status).toBe(413);
+            } finally {
+                await testRunner.close();
+            }
+        });
+    });
+
     it("can create multiple runners", async () => {
         const runners: StreamableHttpRunner[] = [];
         try {

@@ -226,6 +226,7 @@ describe("configOverrides", () => {
                     "httpPort",
                     "httpHost",
                     "httpHeaders",
+                    "httpBodyLimit",
                     "maxBytesPerQuery",
                     "maxDocumentsPerQuery",
                     "exportsPath",

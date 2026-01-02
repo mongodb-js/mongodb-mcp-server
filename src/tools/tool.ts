@@ -360,8 +360,13 @@ export abstract class ToolBase {
      */
     protected get toolMeta(): Record<string, unknown> {
         const transport = this.config.transport;
-        const maxRequestPayloadBytes =
+        let maxRequestPayloadBytes =
             TRANSPORT_PAYLOAD_LIMITS[transport as TransportType] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
+
+        // If the transport is http and the httpBodyLimit is set, use the httpBodyLimit
+        if (transport === "http" && this.config.httpBodyLimit) {
+            maxRequestPayloadBytes = this.config.httpBodyLimit;
+        }
 
         return {
             /** The transport protocol this server is using */
