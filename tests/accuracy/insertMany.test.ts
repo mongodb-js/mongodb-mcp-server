@@ -1,6 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";
-import type { LLMToolCall } from "./sdk/accuracyResultStorage/resultStorage.js";
 
 // Generate documents with large descriptions to test payload splitting
 // Each document is ~12KB, so 10 docs = ~120KB which exceeds the 100KB HTTP limit
