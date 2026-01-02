@@ -29,13 +29,13 @@ importers:
         version: 3.23.0(zod@3.25.76)
       '@mongosh/service-provider-node-driver':
         specifier: ^3.17.5
-        version: 3.17.7(mongodb-log-writer@2.4.4(bson@6.10.4))
+        version: 3.17.7(mongodb-log-writer@2.5.4(bson@7.0.0))
       ai:
         specifier: ^5.0.72
         version: 5.0.98(zod@3.25.76)
       bson:
-        specifier: ^6.10.4
-        version: 6.10.4
+        specifier: ^7.0.0
+        version: 7.0.0
       express:
         specifier: ^5.1.0
         version: 5.2.1
@@ -47,7 +47,7 @@ importers:
         version: 7.0.0
       mongodb-log-writer:
         specifier: ^2.4.1
-        version: 2.4.4(bson@6.10.4)
+        version: 2.5.4(bson@7.0.0)
       mongodb-redact:
         specifier: ^1.3.0
         version: 1.3.0
@@ -2703,6 +2703,10 @@ packages:
     resolution: {integrity: sha512-WIsKqkSC0ABoBJuT1LEX+2HEvNmNKKgnTAyd0fL8qzK4SH2i9NXg+t08YtdZp/V9IZ33cxe3iV4yM0qg8lMQng==}
     engines: {node: '>=16.20.1'}
 
+  bson@7.0.0:
+    resolution: {integrity: sha512-Kwc6Wh4lQ5OmkqqKhYGKIuELXl+EPYSCObVE6bWsp1T/cGkOCBN0I8wF/T44BiuhHyNi1mmKVPXk60d41xZ7kw==}
+    engines: {node: '>=20.19.0'}
+
   buffer-alloc-unsafe@1.1.0:
     resolution: {integrity: sha512-TEM2iMIEQdJ2yjPJoSIsldnleVaAk1oW3DBVUykyOLsEsFmEc9kn+SFFPz+gl54KQNxlDnAwCXosOS9Okx2xAg==}
 
@@ -4268,10 +4272,10 @@ packages:
     resolution: {integrity: sha512-Dj9l3/MzvgAO+no7zaBIbQL0Ilsb0jo5Y8WijkB/sCnagoh3KgnN0Vxu5awglK/75QrEObduf9wa+U0fjxvYMw==}
     hasBin: true
 
-  mongodb-log-writer@2.4.4:
-    resolution: {integrity: sha512-vGOzdF9ta+wUiHsqbEcRQ1COzTIKXy4vhOWkPCvOacWCeNsFS7LLp6Vg9LT95Z/09gSjnD1WDeYhxTqZXEgcWQ==}
+  mongodb-log-writer@2.5.4:
+    resolution: {integrity: sha512-YwdaWJ2lASddm1rO8+39Axfh3QKT5Jv7L7vVABzHg2UH/iBBB1SpkGdaiHrGobWtVqRGPiZu/SXmv+nDCJXoTQ==}
     peerDependencies:
-      bson: 6.x
+      bson: ^4.6.3 || ^5 || ^6.10.3 || ^7.0.0
 
   mongodb-ns@3.0.3:
     resolution: {integrity: sha512-ctpHlSXGYlIim3JSgcsQjNkgB4CWvwWSFIxKFphSY/MoY/2i6E5rtVkOt1FBbSjEJYa2XvD4c+G2BbLfjhQqaQ==}
@@ -5714,6 +5718,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -6861,7 +6866,7 @@ snapshots:
 
   '@mongodb-js/device-id@0.3.3': {}
 
-  '@mongodb-js/devtools-connect@3.13.0(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.4.4(bson@6.10.4))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))':
+  '@mongodb-js/devtools-connect@3.13.0(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.5.4(bson@7.0.0))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))':
     dependencies:
       '@mongodb-js/devtools-proxy-support': 0.6.0
       '@mongodb-js/oidc-http-server-pages': 1.2.0
@@ -6869,7 +6874,7 @@ snapshots:
       lodash.merge: 4.6.2
       mongodb: 6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
       mongodb-connection-string-url: 7.0.0
-      mongodb-log-writer: 2.4.4(bson@6.10.4)
+      mongodb-log-writer: 2.5.4(bson@7.0.0)
       socks: 2.8.7
     optionalDependencies:
       kerberos: 2.2.2
@@ -6980,13 +6985,13 @@ snapshots:
       - socks
       - supports-color
 
-  '@mongosh/service-provider-node-driver@3.17.7(mongodb-log-writer@2.4.4(bson@6.10.4))':
+  '@mongosh/service-provider-node-driver@3.17.7(mongodb-log-writer@2.5.4(bson@7.0.0))':
     dependencies:
-      '@mongodb-js/devtools-connect': 3.13.0(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.4.4(bson@6.10.4))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))
+      '@mongodb-js/devtools-connect': 3.13.0(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.5.4(bson@7.0.0))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))
       '@mongodb-js/oidc-plugin': 2.0.6
       '@mongosh/errors': 2.4.4
       '@mongosh/service-provider-core': 3.6.5(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
-      '@mongosh/types': 3.14.1(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.4.4(bson@6.10.4))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))
+      '@mongosh/types': 3.14.1(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.5.4(bson@7.0.0))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))
       aws4: 1.13.2
       mongodb: 6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
       mongodb-build-info: 1.9.0
@@ -7008,9 +7013,9 @@ snapshots:
       '@mongosh/errors': 2.4.4
       bson: 6.10.4
 
-  '@mongosh/types@3.14.1(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.4.4(bson@6.10.4))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))':
+  '@mongosh/types@3.14.1(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.5.4(bson@7.0.0))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))':
     dependencies:
-      '@mongodb-js/devtools-connect': 3.13.0(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.4.4(bson@6.10.4))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))
+      '@mongodb-js/devtools-connect': 3.13.0(@mongodb-js/oidc-plugin@2.0.6)(mongodb-log-writer@2.5.4(bson@7.0.0))(mongodb@6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7))
     transitivePeerDependencies:
       - '@mongodb-js/oidc-plugin'
       - mongodb
@@ -8566,6 +8571,8 @@ snapshots:
       update-browserslist-db: 1.1.4(browserslist@4.28.0)
 
   bson@6.10.4: {}
+
+  bson@7.0.0: {}
 
   buffer-alloc-unsafe@1.1.0: {}
 
@@ -10356,9 +10363,9 @@ snapshots:
       - encoding
       - supports-color
 
-  mongodb-log-writer@2.4.4(bson@6.10.4):
+  mongodb-log-writer@2.5.4(bson@7.0.0):
     dependencies:
-      bson: 6.10.4
+      bson: 7.0.0
       heap-js: 2.7.1
 
   mongodb-ns@3.0.3:
