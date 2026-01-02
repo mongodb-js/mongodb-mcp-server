@@ -12,7 +12,7 @@ const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.ext
     input: z
         .array(z.object({}).passthrough())
         .describe(
-            "Array of objects with vector search index fields as keys (in dot notation) and the raw text values to generate embeddings for as values. The index of each object corresponds to the index of the document in the documents array."
+            "Array of objects with indexed field paths as keys (in dot notation) and the raw text values to generate embeddings for as values. Only provide fields that require embeddings to be generated; do not include fields that are covered by auto-embedding indexes. The index of each object corresponds to the index of the document in the documents array."
         ),
 });
 
@@ -34,7 +34,7 @@ export class InsertManyTool extends MongoDBToolBase {
               embeddingParameters: zSupportedEmbeddingParametersWithInput
                   .optional()
                   .describe(
-                      "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
+                      "The embedding model and its parameters to use to generate embeddings. Only provide this for fields where you need to generate embeddings; do not include fields that have auto-embedding indexes configured, as MongoDB will automatically generate embeddings for those. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
                   ),
           }
         : commonArgs;
@@ -93,7 +93,9 @@ export class InsertManyTool extends MongoDBToolBase {
             return documents;
         }
 
-        // Get vector search indexes for the collection
+        // Get vector search indexes for the collection.
+        // Note: embeddingsForNamespace() only returns fields that require manual embedding generation,
+        // excluding fields with auto-embedding indexes where MongoDB generates embeddings automatically.
         const vectorIndexes = await this.session.vectorSearchEmbeddingsManager.embeddingsForNamespace({
             database,
             collection,
@@ -105,7 +107,7 @@ export class InsertManyTool extends MongoDBToolBase {
                 if (!vectorIndexes.some((index) => index.path === fieldPath)) {
                     throw new MongoDBError(
                         ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        `Field '${fieldPath}' does not have a vector search index in collection ${database}.${collection}. Only fields with vector search indexes can have embeddings generated.`
+                        `Field '${fieldPath}' does not have a vector search index configured for manual embedding generation in collection ${database}.${collection}. This field either has no index or has an auto-embedding index where MongoDB generates embeddings automatically.`
                     );
                 }
             }
