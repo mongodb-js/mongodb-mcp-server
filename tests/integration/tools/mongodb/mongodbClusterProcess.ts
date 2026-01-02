@@ -16,9 +16,7 @@ export type MongoClusterConfiguration = MongoRunnerConfiguration | MongoSearchCo
 
 const DOWNLOAD_RETRIES = 10;
 
-// TODO: Revert this to generic tag 8, once the problem with atlas-local image
-// is addressed.
-const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8.2.2-20251125T154829Z";
+const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8";
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
         if (MongoDBClusterProcess.isSearchOptions(config)) {
