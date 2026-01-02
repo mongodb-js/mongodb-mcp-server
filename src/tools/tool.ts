@@ -17,12 +17,6 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-/**
- * Supported transport protocol types.
- *
- * - `stdio`: Uses stdin/stdout for communication (default for CLI usage).
- * - `http`: Uses HTTP/SSE for communication (for web-based clients).
- */
 export type TransportType = "stdio" | "http";
 
 /**
@@ -396,9 +390,9 @@ export abstract class ToolBase {
 
         return {
             /** The transport protocol this server is using */
-            "mongodb.transport": transport,
+            "com.mongodb/transport": transport,
             /** Maximum request payload size in bytes for this transport */
-            "mongodb.maxRequestPayloadBytes": maxRequestPayloadBytes,
+            "com.mongodb/maxRequestPayloadBytes": maxRequestPayloadBytes,
         };
     }
 

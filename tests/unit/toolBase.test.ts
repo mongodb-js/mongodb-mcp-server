@@ -267,8 +267,8 @@ describe("ToolBase", () => {
 
             const meta = testTool["toolMeta"];
 
-            expect(meta["mongodb.transport"]).toBe("stdio");
-            expect(meta["mongodb.maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
+            expect(meta["com.mongodb/transport"]).toBe("stdio");
+            expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
         });
 
         it("should return correct metadata for http transport", () => {
@@ -276,8 +276,8 @@ describe("ToolBase", () => {
 
             const meta = testTool["toolMeta"];
 
-            expect(meta["mongodb.transport"]).toBe("http");
-            expect(meta["mongodb.maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.http);
+            expect(meta["com.mongodb/transport"]).toBe("http");
+            expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.http);
         });
 
         it("should fallback to stdio limits for unknown transport", () => {
@@ -286,8 +286,8 @@ describe("ToolBase", () => {
 
             const meta = testTool["toolMeta"];
 
-            expect(meta["mongodb.transport"]).toBe("unknown-transport");
-            expect(meta["mongodb.maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
+            expect(meta["com.mongodb/transport"]).toBe("unknown-transport");
+            expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
         });
     });
 });
