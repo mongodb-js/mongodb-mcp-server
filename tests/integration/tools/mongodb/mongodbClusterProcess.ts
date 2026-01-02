@@ -1,9 +1,23 @@
 import fs from "fs/promises";
+import { createWriteStream, type WriteStream } from "fs";
 import path from "path";
 import type { MongoClusterOptions } from "mongodb-runner";
 import { GenericContainer } from "testcontainers";
 import { MongoCluster } from "mongodb-runner";
 import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";
+
+// Debug logging for container issues
+const CONTAINER_LOG_PATH = path.join(process.cwd(), "container-debug.log");
+let containerLogStream: WriteStream | null = null;
+
+function getContainerLogStream(): WriteStream {
+    if (!containerLogStream) {
+        containerLogStream = createWriteStream(CONTAINER_LOG_PATH, { flags: "a" });
+        containerLogStream.write(`\n\n=== Container started at ${new Date().toISOString()} ===\n`);
+        console.log(`[DEBUG] Container logs will be written to: ${CONTAINER_LOG_PATH}`);
+    }
+    return containerLogStream;
+}
 
 export type MongoRunnerConfiguration = {
     runner: true;
@@ -20,15 +34,36 @@ const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8";
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
         if (MongoDBClusterProcess.isSearchOptions(config)) {
-            const runningContainer = await new GenericContainer(config.image ?? DEFAULT_LOCAL_IMAGE)
+            const imageName = config.image ?? DEFAULT_LOCAL_IMAGE;
+            const logStream = getContainerLogStream();
+            logStream.write(`[${new Date().toISOString()}] Starting container with image: ${imageName}\n`);
+
+            const runningContainer = await new GenericContainer(imageName)
                 .withExposedPorts(27017)
                 .withCommand(["/usr/local/bin/runner", "server"])
-                .withLogConsumer(stream => stream.on('data', line => console.log(line)))
+                .withLogConsumer((stream) => {
+                    stream.on("data", (line) => {
+                        const timestamp = new Date().toISOString();
+                        logStream.write(`[${timestamp}] ${line}`);
+                    });
+                    stream.on("end", () => {
+                        logStream.write(`[${new Date().toISOString()}] === Container stream ended ===\n`);
+                    });
+                    stream.on("error", (err) => {
+                        logStream.write(`[${new Date().toISOString()}] === Container stream error: ${err} ===\n`);
+                    });
+                })
                 .withWaitStrategy(new ShellWaitStrategy(`mongosh --eval 'db.adminCommand({ping: 1}) && db.test.getSearchIndexes()'`))
                 .start();
 
+            logStream.write(`[${new Date().toISOString()}] Container started successfully, ID: ${runningContainer.getId()}\n`);
+
             return new MongoDBClusterProcess(
-                () => runningContainer.stop(),
+                async () => {
+                    logStream.write(`[${new Date().toISOString()}] === Intentionally stopping container ===\n`);
+                    await runningContainer.stop();
+                    logStream.write(`[${new Date().toISOString()}] === Container stopped ===\n`);
+                },
                 () =>
                     `mongodb://${runningContainer.getHost()}:${runningContainer.getMappedPort(27017)}/?directConnection=true`
             );
