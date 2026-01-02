@@ -130,7 +130,7 @@ const ServerConfigSchema = z4.object({
     httpBodyLimit: z4.coerce
         .number()
         .int()
-        .min(TRANSPORT_PAYLOAD_LIMITS.http, "Invalid httpBodyLimit: must be at least 100000 bytes")
+        .min(TRANSPORT_PAYLOAD_LIMITS.http, `Invalid httpBodyLimit: must be at least ${TRANSPORT_PAYLOAD_LIMITS.http} bytes`)
         .default(TRANSPORT_PAYLOAD_LIMITS.http)
         .describe(
             "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware."
