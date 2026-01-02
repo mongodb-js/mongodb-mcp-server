@@ -11,7 +11,7 @@ describeWithMongoDB("updateMany tool", (integration) => {
     validateToolMetadata(
         integration,
         "update-many",
-        "Updates all documents that match the specified filter for a collection",
+        "Updates all documents that match the specified filter for a collection. If the list of documents is above maxRequestPayloadBytes, consider updating them in batches.",
         "update",
         [
             ...databaseCollectionParameters,

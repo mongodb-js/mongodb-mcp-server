@@ -23,7 +23,7 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
     validateToolMetadata(
         integration,
         "insert-many",
-        "Insert an array of documents into a MongoDB collection",
+        "Insert an array of documents into a MongoDB collection. If the list of documents is above maxRequestPayloadBytes, consider inserting them in batches.",
         "create",
         [
             ...databaseCollectionParameters,
@@ -157,7 +157,7 @@ describeWithMongoDB(
         validateToolMetadata(
             integration,
             "insert-many",
-            "Insert an array of documents into a MongoDB collection",
+            "Insert an array of documents into a MongoDB collection. If the list of documents is above maxRequestPayloadBytes, consider inserting them in batches.",
             "create",
             [
                 ...databaseCollectionParameters,
@@ -708,7 +708,7 @@ describeWithMongoDB(
         validateToolMetadata(
             integration,
             "insert-many",
-            "Insert an array of documents into a MongoDB collection",
+            "Insert an array of documents into a MongoDB collection. If the list of documents is above maxRequestPayloadBytes, consider inserting them in batches.",
             "create",
             [
                 ...databaseCollectionParameters,
