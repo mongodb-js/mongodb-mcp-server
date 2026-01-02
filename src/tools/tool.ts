@@ -33,7 +33,7 @@ export type TransportType = "stdio" | "http";
  *   This is the Express.js default and can be increased by configuring the middleware.
  *
  * @remarks
- * These values are exposed in each tool's `_meta` field as `mongodb.maxRequestPayloadBytes`
+ * These values are exposed in each tool's `_meta` field as `com.mongodb/maxRequestPayloadBytes`
  * to inform LLMs about the size constraints when constructing tool call arguments.
  */
 export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number> = {
@@ -367,8 +367,8 @@ export abstract class ToolBase {
      * transport-specific constraints like request payload size limits.
      *
      * The metadata includes:
-     * - `mongodb.transport`: The transport protocol in use ("stdio" or "http")
-     * - `mongodb.maxRequestPayloadBytes`: Maximum request payload size for the current transport
+     * - `com.mongodb/transport`: The transport protocol in use ("stdio" or "http")
+     * - `com.mongodb/maxRequestPayloadBytes`: Maximum request payload size for the current transport
      *
      * Subclasses can override this to add custom metadata. When overriding,
      * call `super.toolMeta` and spread its result to preserve base metadata.
@@ -378,7 +378,7 @@ export abstract class ToolBase {
      * protected override get toolMeta(): Record<string, unknown> {
      *   return {
      *     ...super.toolMeta,
-     *     "mongodb.customField": "value",
+     *     "com.mongodb/customField": "value",
      *   };
      * }
      * ```
