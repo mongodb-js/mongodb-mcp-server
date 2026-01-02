@@ -16,6 +16,7 @@ import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types
 import { expectDefined } from "../integration/helpers.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -258,6 +259,36 @@ describe("ToolBase", () => {
                 const metadata = testTool["getConnectionInfoMetadata"]();
                 expect(metadata.connection_auth_type).toBe(authType);
             }
+        });
+    });
+
+    describe("toolMeta", () => {
+        it("should return correct metadata for stdio transport", () => {
+            mockConfig.transport = "stdio";
+
+            const meta = testTool["toolMeta"];
+
+            expect(meta["com.mongodb/transport"]).toBe("stdio");
+            expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
+        });
+
+        it("should return correct metadata for http transport", () => {
+            mockConfig.transport = "http";
+
+            const meta = testTool["toolMeta"];
+
+            expect(meta["com.mongodb/transport"]).toBe("http");
+            expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.http);
+        });
+
+        it("should fallback to stdio limits for unknown transport", () => {
+            // This tests the fallback behavior when an unknown transport is provided
+            mockConfig.transport = "unknown-transport" as "stdio" | "http";
+
+            const meta = testTool["toolMeta"];
+
+            expect(meta["com.mongodb/transport"]).toBe("unknown-transport");
+            expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
         });
     });
 });

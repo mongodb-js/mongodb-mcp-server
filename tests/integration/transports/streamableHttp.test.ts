@@ -107,7 +107,7 @@ describe("StreamableHttpRunner", () => {
             const testConfig = {
                 ...defaultTestConfig,
                 httpPort: 0,
-                httpBodyLimit: "1mb",
+                httpBodyLimit: 1024 * 1024,
             };
             const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
             await testRunner.start();
@@ -135,7 +135,7 @@ describe("StreamableHttpRunner", () => {
             const testConfig = {
                 ...defaultTestConfig,
                 httpPort: 0,
-                httpBodyLimit: "1kb", // Very small limit
+                httpBodyLimit: 1024, // Very small limit (1kb)
             };
             const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
             await testRunner.start();

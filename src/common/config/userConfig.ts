@@ -11,6 +11,7 @@ import {
 } from "./configUtils.js";
 import { previewFeatureValues, similarityValues } from "../schemas.js";
 import { CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
 
@@ -126,12 +127,13 @@ const ServerConfigSchema = z4.object({
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    httpBodyLimit: z4
-        .string()
-        .regex(/^\d+(?:kb|mb|gb)$/i, "Invalid httpBodyLimit: must be a string like '100kb', '1mb', or '1gb'")
-        .default("100kb")
+    httpBodyLimit: z4.coerce
+        .number()
+        .int()
+        .min(TRANSPORT_PAYLOAD_LIMITS.http, "Invalid httpBodyLimit: must be at least 100000 bytes")
+        .default(TRANSPORT_PAYLOAD_LIMITS.http)
         .describe(
-            "Maximum size of the HTTP request body (only used when transport is 'http'). Supports formats like '100kb', '1mb', '50mb'. This value is passed as the optional limit parameter to the Express.js json() middleware"
+            "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     idleTimeoutMs: z4.coerce

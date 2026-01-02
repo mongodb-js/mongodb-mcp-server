@@ -17,6 +17,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 
 class TestToolOne extends ToolBase {
     public name = "test-tool-one";
@@ -73,6 +74,18 @@ describe("Server integration test", () => {
                     (tool) => tool.name.startsWith("atlas-") && !tool.name.startsWith("atlas-local-")
                 );
                 expect(atlasTools.length).toBeLessThanOrEqual(0);
+            });
+            it("should include _meta with transport info all tools in tool listing", async () => {
+                const tools = await integration.mcpClient().listTools();
+                expectDefined(tools);
+                expect(tools.tools.length).toBeGreaterThan(0);
+                expect(tools.tools.every((tool) => tool._meta)).toBe(true);
+                expect(tools.tools.every((tool) => tool._meta?.["com.mongodb/transport"] === "stdio")).toBe(true);
+                expect(
+                    tools.tools.every(
+                        (tool) => tool._meta?.["com.mongodb/maxRequestPayloadBytes"] === TRANSPORT_PAYLOAD_LIMITS.stdio
+                    )
+                ).toBe(true);
             });
         },
         {
