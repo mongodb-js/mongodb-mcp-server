@@ -24,6 +24,4 @@ export {
     type OperationType,
     type ToolArgs,
     type ToolExecutionContext,
-    type TransportType,
-    TRANSPORT_PAYLOAD_LIMITS,
 } from "./tool.js";

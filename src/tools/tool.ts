@@ -12,36 +12,11 @@ import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource } from "@mcp-ui/server";
+import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
-
-export type TransportType = "stdio" | "http";
-
-/**
- * Request payload size limits in bytes for different transport protocols.
- *
- * These limits represent the maximum size of the JSON-RPC request body that can be
- * sent to the MCP server. Requests exceeding these limits will be rejected.
- *
- * - `stdio`: Uses stdin/stdout with no inherent protocol limit. The limit is effectively
- *   determined by system memory and buffer sizes. We use a conservative 50MB default
- *   since there's no practical network constraint.
- *
- * - `http`: Uses Express.js with the default body-parser limit of 100KB for JSON payloads.
- *   This is the Express.js default and can be increased by configuring the middleware.
- *
- * @remarks
- * These values are exposed in each tool's `_meta` field as `com.mongodb/maxRequestPayloadBytes`
- * to inform LLMs about the size constraints when constructing tool call arguments.
- */
-export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number> = {
-    /** Default limit for stdio transport (50MB - conservative system limit) */
-    stdio: 52_428_800,
-    /** Default limit for HTTP transport (100KB - Express.js default for JSON body) */
-    http: 102_400,
-} as const;
 
 export type ToolExecutionContext = {
     signal: AbortSignal;

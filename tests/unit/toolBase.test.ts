@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vites
 import type { ZodRawShape } from "zod";
 import { z } from "zod";
 import type { OperationType, ToolCategory, ToolConstructorParams, ToolArgs } from "../../src/tools/tool.js";
-import { ToolBase, TRANSPORT_PAYLOAD_LIMITS } from "../../src/tools/tool.js";
+import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
@@ -16,6 +16,7 @@ import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types
 import { expectDefined } from "../integration/helpers.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;

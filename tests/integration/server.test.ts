@@ -12,17 +12,12 @@ import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
-import {
-    type OperationType,
-    ToolBase,
-    type ToolCategory,
-    type ToolClass,
-    TRANSPORT_PAYLOAD_LIMITS,
-} from "../../src/tools/tool.js";
+import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 
 class TestToolOne extends ToolBase {
     public name = "test-tool-one";

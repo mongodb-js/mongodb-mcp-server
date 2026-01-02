@@ -6,6 +6,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
 import { TransportRunnerBase, type TransportRunnerConfig, type RequestContext } from "./base.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "./constants.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -42,7 +43,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         );
 
         app.enable("trust proxy"); // needed for reverse proxy support
-        app.use(express.json());
+        app.use(express.json({ limit: TRANSPORT_PAYLOAD_LIMITS.http }));
         app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
