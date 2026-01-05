@@ -413,25 +413,31 @@ export abstract class ToolBase {
         args: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
-        if (!(await this.verifyConfirmed(args))) {
-            this.session.logger.debug({
-                id: LogId.toolExecute,
-                context: "tool",
-                message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                noRedaction: true,
-            });
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                    },
-                ],
-            };
-        }
-        const startTime = Date.now();
+        let startTime: number = Date.now();
 
         try {
+            if (this.requiresConfirmation()) {
+                if (!(await this.verifyConfirmed(args))) {
+                    this.session.logger.debug({
+                        id: LogId.toolExecute,
+                        context: "tool",
+                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                        noRedaction: true,
+                    });
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                            },
+                        ],
+                    };
+                }
+                // We do not want to include the elicitation time in the tool execution time
+                // so we reset the startTime to the current time. We may want to consider adding
+                // a separate field for elicitation time in the future.
+                startTime = Date.now();
+            }
             this.session.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
@@ -485,6 +491,11 @@ export abstract class ToolBase {
         return `You are about to execute the \`${this.name}\` tool which requires additional confirmation. Would you like to proceed?`;
     }
 
+    /** Checks if the tool requires elicitation */
+    public requiresConfirmation(): boolean {
+        return this.config.confirmationRequiredTools.includes(this.name);
+    }
+
     /**
      * Check if the user has confirmed the tool execution (if required by
      * configuration).
@@ -498,7 +509,7 @@ export abstract class ToolBase {
      * required, `false` otherwise
      */
     public async verifyConfirmed(args: ToolArgs<typeof this.argsShape>): Promise<boolean> {
-        if (!this.config.confirmationRequiredTools.includes(this.name)) {
+        if (!this.requiresConfirmation()) {
             return true;
         }
 
