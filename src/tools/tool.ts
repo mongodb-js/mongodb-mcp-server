@@ -413,7 +413,6 @@ export abstract class ToolBase {
         args: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const startTime = Date.now();
         try {
             if (!(await this.verifyConfirmed(args))) {
                 this.session.logger.debug({
@@ -431,6 +430,7 @@ export abstract class ToolBase {
                     ],
                 };
             }
+            const startTime = Date.now();
             this.session.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
