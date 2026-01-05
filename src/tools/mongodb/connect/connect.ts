@@ -5,12 +5,12 @@ import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.
 import type { Server } from "../../../server.js";
 export class ConnectTool extends MongoDBToolBase {
     public override name = "connect";
-    protected override description =
+    public override description =
         "Connect to a MongoDB instance. The config resource captures if the server is already connected to a MongoDB cluster. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new MongoDB cluster.";
 
     // Here the default is empty just to trigger registration, but we're going to override it with the correct
     // schema in the register method.
-    protected override argsShape = {
+    public override argsShape = {
         connectionString: z.string().describe("MongoDB connection string (in the mongodb:// or mongodb+srv:// format)"),
     };
 
@@ -39,7 +39,7 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         await this.session.connectToMongoDB({ connectionString });
 
         return {

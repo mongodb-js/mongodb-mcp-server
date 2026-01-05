@@ -17,13 +17,13 @@ export const ListClustersArgs = {
 
 export class ListClustersTool extends AtlasToolBase {
     public name = "atlas-list-clusters";
-    protected description = "List MongoDB Atlas clusters";
+    public description = "List MongoDB Atlas clusters";
     static operationType: OperationType = "read";
-    protected argsShape = {
+    public argsShape = {
         ...ListClustersArgs,
     };
 
-    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (!projectId) {
             const data = await this.session.apiClient.listClusterDetails();
 

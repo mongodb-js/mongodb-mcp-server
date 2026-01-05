@@ -297,13 +297,13 @@ class TestTool extends ToolBase {
     public name = "test-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
-    protected description = "A test tool for verification tests";
-    protected argsShape = {
+    public description = "A test tool for verification tests";
+    public argsShape = {
         param1: z.string().describe("Test parameter 1"),
         param2: z.number().optional().describe("Test parameter 2"),
     };
 
-    protected async execute(): Promise<CallToolResult> {
+    public async execute(): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
                 {

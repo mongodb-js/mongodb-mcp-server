@@ -41,9 +41,9 @@ export interface ServerOptions {
      *     override name = "custom_tool";
      *     static category: ToolCategory = "mongodb";
      *     static operationType: OperationType = "read";
-     *     protected description = "Custom tool description";
-     *     protected argsShape = {};
-     *     protected async execute() {
+     *     public description = "Custom tool description";
+     *     public argsShape = {};
+     *     public async execute() {
      *         return { content: [{ type: "text", text: "Result" }] };
      *     }
      *     protected resolveTelemetryMetadata() {

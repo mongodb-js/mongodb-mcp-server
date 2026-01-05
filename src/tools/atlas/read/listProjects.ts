@@ -7,15 +7,15 @@ import { AtlasArgs } from "../../args.js";
 
 export class ListProjectsTool extends AtlasToolBase {
     public name = "atlas-list-projects";
-    protected description = "List MongoDB Atlas projects";
+    public description = "List MongoDB Atlas projects";
     static operationType: OperationType = "read";
-    protected argsShape = {
+    public argsShape = {
         orgId: AtlasArgs.organizationId()
             .describe("Atlas organization ID to filter projects. If not provided, projects for all orgs are returned.")
             .optional(),
     };
 
-    protected async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const orgData = await this.session.apiClient.listOrgs();
 
         if (!orgData?.results?.length) {

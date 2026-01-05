@@ -5,8 +5,8 @@ import { z } from "zod";
 
 export class LogsTool extends MongoDBToolBase {
     public name = "mongodb-logs";
-    protected description = "Returns the most recent logged mongod events";
-    protected argsShape = {
+    public description = "Returns the most recent logged mongod events";
+    public argsShape = {
         type: z
             .enum(["global", "startupWarnings"])
             .optional()
@@ -26,7 +26,7 @@ export class LogsTool extends MongoDBToolBase {
 
     static operationType: OperationType = "metadata";
 
-    protected async execute({ type, limit }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ type, limit }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
         const result = await provider.runCommandWithCheck("admin", {

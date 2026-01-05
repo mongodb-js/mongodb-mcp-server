@@ -14,7 +14,7 @@ export abstract class AtlasLocalToolBase extends ToolBase {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
     }
 
-    protected async execute(
+    public async execute(
         args: ToolArgs<typeof this.argsShape>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _context: ToolExecutionContext

@@ -59,7 +59,7 @@ function extractToolInformation(): ToolInfo[] {
 
         try {
             const instance = new ToolClass(dummyParams);
-            // Access the protected description property
+            // Access the public description property
             const description =
                 (instance as unknown as { description?: string }).description || "No description available";
             tools.push({

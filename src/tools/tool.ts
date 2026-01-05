@@ -118,13 +118,13 @@ export type ToolConstructorParams = {
  *
  *   // Required abstract properties
  *   override name = "my-custom-tool";
- *   protected description = "My custom tool description";
- *   protected argsShape = {
+ *   public description = "My custom tool description";
+ *   public argsShape = {
  *     query: z.string().describe("The query parameter"),
  *   };
  *
  *   // Required abstract method: implement the tool's logic
- *   protected async execute(args) {
+ *   public async execute(args) {
  *     // Tool implementation
  *     return {
  *       content: [{ type: "text", text: "Result" }],
@@ -182,13 +182,13 @@ export type ToolClass = {
  *
  *   // Required abstract properties
  *   override name = "my-custom-tool";
- *   protected description = "My custom tool description";
- *   protected argsShape = {
+ *   public description = "My custom tool description";
+ *   public argsShape = {
  *     query: z.string().describe("The query parameter"),
  *   };
  *
  *   // Required abstract method: implement the tool's logic
- *   protected async execute(args) {
+ *   public async execute(args) {
  *     // Tool implementation
  *     return {
  *       content: [{ type: "text", text: "Result" }],
@@ -264,7 +264,7 @@ export abstract class ToolBase {
      * This is shown to the MCP client and helps the LLM understand when to use
      * this tool.
      */
-    protected abstract description: string;
+    public abstract description: string;
 
     /**
      * Zod schema defining the tool's arguments.
@@ -273,13 +273,13 @@ export abstract class ToolBase {
      *
      * @example
      * ```typescript
-     * protected argsShape = {
+     * public argsShape = {
      *   query: z.string().describe("The search query"),
      *   limit: z.number().optional().describe("Maximum results to return"),
      * };
      * ```
      */
-    protected abstract argsShape: ZodRawShape;
+    public abstract argsShape: ZodRawShape;
 
     /**
      * Optional Zod schema defining the tool's structured output.
@@ -294,7 +294,7 @@ export abstract class ToolBase {
      *   totalCount: z.number(),
      * };
      *
-     * protected async execute(): Promise<CallToolResult> {
+     * public async execute(): Promise<CallToolResult> {
      *   const items = await this.fetchItems();
      *   return {
      *     content: [{ type: "text", text: `Found ${items.length} items` }],
@@ -303,11 +303,11 @@ export abstract class ToolBase {
      * }
      * ```
      */
-    protected outputSchema?: ZodRawShape;
+    public outputSchema?: ZodRawShape;
 
     private registeredTool: RegisteredTool | undefined;
 
-    protected get annotations(): ToolAnnotations {
+    public get annotations(): ToolAnnotations {
         const annotations: ToolAnnotations = {
             title: this.name,
         };
@@ -389,7 +389,7 @@ export abstract class ToolBase {
      *
      * @example
      * ```typescript
-     * protected async execute(args: { query: string }): Promise<CallToolResult> {
+     * public async execute(args: { query: string }): Promise<CallToolResult> {
      *   const results = await this.session.db.collection('items').find({
      *     name: { $regex: args.query, $options: 'i' }
      *   }).toArray();
@@ -403,7 +403,7 @@ export abstract class ToolBase {
      * }
      * ```
      */
-    protected abstract execute(
+    public abstract execute(
         args: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult>;
@@ -586,7 +586,7 @@ export abstract class ToolBase {
         return this.registeredTool?.enabled ?? false;
     }
 
-    protected disable(): void {
+    public disable(): void {
         if (!this.registeredTool) {
             this.session.logger.warning({
                 id: LogId.toolMetadataChange,
@@ -598,7 +598,7 @@ export abstract class ToolBase {
         this.registeredTool.disable();
     }
 
-    protected enable(): void {
+    public enable(): void {
         if (!this.registeredTool) {
             this.session.logger.warning({
                 id: LogId.toolMetadataChange,

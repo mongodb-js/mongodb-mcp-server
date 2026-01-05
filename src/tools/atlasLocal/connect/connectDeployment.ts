@@ -7,13 +7,13 @@ import type { ConnectionMetadata } from "../../../telemetry/types.js";
 
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-connect-deployment";
-    protected description = "Connect to a MongoDB Atlas Local deployment";
+    public description = "Connect to a MongoDB Atlas Local deployment";
     static operationType: OperationType = "connect";
-    protected argsShape = {
+    public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to connect to"),
     };
 
-    protected async executeWithAtlasLocalClient(
+    public async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
     ): Promise<CallToolResult> {

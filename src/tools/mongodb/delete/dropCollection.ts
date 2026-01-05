@@ -4,14 +4,14 @@ import type { ToolArgs, OperationType } from "../../tool.js";
 
 export class DropCollectionTool extends MongoDBToolBase {
     public name = "drop-collection";
-    protected description =
+    public description =
         "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.";
-    protected argsShape = {
+    public argsShape = {
         ...DbOperationArgs,
     };
     static operationType: OperationType = "delete";
 
-    protected async execute({ database, collection }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public async execute({ database, collection }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const result = await provider.dropCollection(database, collection);
 
