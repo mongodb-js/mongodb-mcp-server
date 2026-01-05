@@ -413,24 +413,25 @@ export abstract class ToolBase {
         args: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
+        if (!(await this.verifyConfirmed(args))) {
+            this.session.logger.debug({
+                id: LogId.toolExecute,
+                context: "tool",
+                message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                noRedaction: true,
+            });
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                    },
+                ],
+            };
+        }
+        const startTime = Date.now();
+
         try {
-            if (!(await this.verifyConfirmed(args))) {
-                this.session.logger.debug({
-                    id: LogId.toolExecute,
-                    context: "tool",
-                    message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                    noRedaction: true,
-                });
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                        },
-                    ],
-                };
-            }
-            const startTime = Date.now();
             this.session.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
