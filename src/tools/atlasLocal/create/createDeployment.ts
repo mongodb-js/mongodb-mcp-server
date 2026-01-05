@@ -14,7 +14,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
     };
 
-    public async executeWithAtlasLocalClient(
+    protected async executeWithAtlasLocalClient(
         { deploymentName, loadSampleData }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
     ): Promise<CallToolResult> {

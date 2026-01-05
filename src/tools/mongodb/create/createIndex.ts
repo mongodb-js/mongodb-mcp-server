@@ -157,7 +157,7 @@ export class CreateIndexTool extends MongoDBToolBase {
 
     static operationType: OperationType = "create";
 
-    public async execute({
+    protected async execute({
         database,
         collection,
         name,

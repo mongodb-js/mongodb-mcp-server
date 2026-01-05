@@ -124,7 +124,7 @@ export type ToolConstructorParams = {
  *   };
  *
  *   // Required abstract method: implement the tool's logic
- *   public async execute(args) {
+ *   protected async execute(args) {
  *     // Tool implementation
  *     return {
  *       content: [{ type: "text", text: "Result" }],
@@ -188,7 +188,7 @@ export type ToolClass = {
  *   };
  *
  *   // Required abstract method: implement the tool's logic
- *   public async execute(args) {
+ *   protected async execute(args) {
  *     // Tool implementation
  *     return {
  *       content: [{ type: "text", text: "Result" }],
@@ -294,7 +294,7 @@ export abstract class ToolBase {
      *   totalCount: z.number(),
      * };
      *
-     * public async execute(): Promise<CallToolResult> {
+     * protected async execute(): Promise<CallToolResult> {
      *   const items = await this.fetchItems();
      *   return {
      *     content: [{ type: "text", text: `Found ${items.length} items` }],
@@ -389,7 +389,7 @@ export abstract class ToolBase {
      *
      * @example
      * ```typescript
-     * public async execute(args: { query: string }): Promise<CallToolResult> {
+     * protected async execute(args: { query: string }): Promise<CallToolResult> {
      *   const results = await this.session.db.collection('items').find({
      *     name: { $regex: args.query, $options: 'i' }
      *   }).toArray();
@@ -403,10 +403,64 @@ export abstract class ToolBase {
      * }
      * ```
      */
-    public abstract execute(
+    protected abstract execute(
         args: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult>;
+
+    /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
+    public async invoke(
+        args: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
+        const startTime = Date.now();
+        try {
+            if (!(await this.verifyConfirmed(args))) {
+                this.session.logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                    noRedaction: true,
+                });
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
+                        },
+                    ],
+                };
+            }
+            this.session.logger.debug({
+                id: LogId.toolExecute,
+                context: "tool",
+                message: `Executing tool ${this.name}`,
+                noRedaction: true,
+            });
+
+            const toolCallResult = await this.execute(args, { signal });
+            const result = await this.appendUIResource(toolCallResult);
+
+            this.emitToolEvent(args, { startTime, result });
+
+            this.session.logger.debug({
+                id: LogId.toolExecute,
+                context: "tool",
+                message: `Executed tool ${this.name}`,
+                noRedaction: true,
+            });
+            return result;
+        } catch (error: unknown) {
+            this.session.logger.error({
+                id: LogId.toolExecuteFailure,
+                context: "tool",
+                message: `Error executing ${this.name}: ${error as string}`,
+            });
+            const toolResult = await this.handleError(error, args);
+            this.emitToolEvent(args, { startTime, result: toolResult });
+            return toolResult;
+        }
+    }
 
     /**
      * Get the confirmation message shown to users when this tool requires
@@ -498,59 +552,6 @@ export abstract class ToolBase {
             return false;
         }
 
-        const callback = async (
-            args: ToolArgs<typeof this.argsShape>,
-            { signal }: ToolExecutionContext
-        ): Promise<CallToolResult> => {
-            const startTime = Date.now();
-            try {
-                if (!(await this.verifyConfirmed(args))) {
-                    this.session.logger.debug({
-                        id: LogId.toolExecute,
-                        context: "tool",
-                        message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                        noRedaction: true,
-                    });
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
-                            },
-                        ],
-                    };
-                }
-                this.session.logger.debug({
-                    id: LogId.toolExecute,
-                    context: "tool",
-                    message: `Executing tool ${this.name}`,
-                    noRedaction: true,
-                });
-
-                const toolCallResult = await this.execute(args, { signal });
-                const result = await this.appendUIResource(toolCallResult);
-
-                this.emitToolEvent(args, { startTime, result });
-
-                this.session.logger.debug({
-                    id: LogId.toolExecute,
-                    context: "tool",
-                    message: `Executed tool ${this.name}`,
-                    noRedaction: true,
-                });
-                return result;
-            } catch (error: unknown) {
-                this.session.logger.error({
-                    id: LogId.toolExecuteFailure,
-                    context: "tool",
-                    message: `Error executing ${this.name}: ${error as string}`,
-                });
-                const toolResult = await this.handleError(error, args);
-                this.emitToolEvent(args, { startTime, result: toolResult });
-                return toolResult;
-            }
-        };
-
         this.registeredTool =
             // Note: We use explicit type casting here to avoid  "excessively deep and possibly infinite" errors
             // that occur when TypeScript tries to infer the complex generic types from `typeof this.argsShape`
@@ -576,7 +577,7 @@ export abstract class ToolBase {
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
-                callback
+                this.invoke.bind(this)
             );
 
         return true;

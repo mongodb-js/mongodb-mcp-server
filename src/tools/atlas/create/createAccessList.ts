@@ -24,7 +24,7 @@ export class CreateAccessListTool extends AtlasToolBase {
         ...CreateAccessListArgs,
     };
 
-    public async execute({
+    protected async execute({
         projectId,
         ipAddresses,
         cidrBlocks,

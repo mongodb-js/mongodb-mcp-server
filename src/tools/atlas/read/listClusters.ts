@@ -23,7 +23,7 @@ export class ListClustersTool extends AtlasToolBase {
         ...ListClustersArgs,
     };
 
-    public async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (!projectId) {
             const data = await this.session.apiClient.listClusterDetails();
 

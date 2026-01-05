@@ -465,7 +465,7 @@ class ListConnectionsTool extends ToolBase {
     "Lists all available pre-configured MongoDB connections";
   public override argsShape = {};
 
-  public override async execute(): Promise<CallToolResult> {
+  protected override async execute(): Promise<CallToolResult> {
     // Ensure that we don't leak the actual connection strings to the model
     // context.
     const connections = Object.entries(AVAILABLE_CONNECTIONS).map(
@@ -511,7 +511,7 @@ class SelectConnectionTool extends ToolBase {
       .describe("The ID of the connection to select"),
   };
 
-  public override async execute(args: {
+  protected override async execute(args: {
     connectionId: string;
   }): Promise<CallToolResult> {
     const { connectionId } = args;
@@ -627,7 +627,7 @@ class GetTicketDetailsTool extends ToolBase {
     ticketId: z.string().describe("The unique identifier of the ticket"),
   };
 
-  public override async execute(args: {
+  protected override async execute(args: {
     ticketId: string;
   }): Promise<CallToolResult> {
     const { ticketId } = args;

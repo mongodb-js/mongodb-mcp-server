@@ -41,7 +41,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         ...CreateDBUserArgs,
     };
 
-    public async execute({
+    protected async execute({
         projectId,
         username,
         password,

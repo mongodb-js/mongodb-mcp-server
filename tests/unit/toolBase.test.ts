@@ -303,7 +303,7 @@ class TestTool extends ToolBase {
         param2: z.number().optional().describe("Test parameter 2"),
     };
 
-    public async execute(): Promise<CallToolResult> {
+    protected async execute(): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
                 {

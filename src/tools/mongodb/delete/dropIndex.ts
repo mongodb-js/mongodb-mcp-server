@@ -23,7 +23,7 @@ export class DropIndexTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "delete";
 
-    public async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         switch (toolArgs.type) {
             case "classic":

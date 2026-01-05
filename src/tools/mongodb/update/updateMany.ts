@@ -26,7 +26,7 @@ export class UpdateManyTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "update";
 
-    public async execute({
+    protected async execute({
         database,
         collection,
         filter,

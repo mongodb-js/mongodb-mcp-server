@@ -9,7 +9,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
     static operationType: OperationType = "read";
     public argsShape = {};
 
-    public async execute(): Promise<CallToolResult> {
+    protected async execute(): Promise<CallToolResult> {
         const data = await this.session.apiClient.listOrgs();
 
         if (!data?.results?.length) {

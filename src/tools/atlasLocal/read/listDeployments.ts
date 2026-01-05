@@ -11,7 +11,7 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
     static operationType: OperationType = "read";
     public argsShape = {};
 
-    public async executeWithAtlasLocalClient(
+    protected async executeWithAtlasLocalClient(
         _args: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
     ): Promise<CallToolResult> {

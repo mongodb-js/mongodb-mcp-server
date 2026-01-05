@@ -209,7 +209,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         });
     }
 
-    public async execute({
+    protected async execute({
         projectId,
         clusterName,
         connectionType,

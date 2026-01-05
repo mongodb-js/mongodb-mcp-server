@@ -43,7 +43,7 @@ export interface ServerOptions {
      *     static operationType: OperationType = "read";
      *     public description = "Custom tool description";
      *     public argsShape = {};
-     *     public async execute() {
+     *     protected async execute() {
      *         return { content: [{ type: "text", text: "Result" }] };
      *     }
      *     protected resolveTelemetryMetadata() {

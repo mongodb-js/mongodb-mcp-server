@@ -48,7 +48,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
             .optional(),
     };
 
-    public async execute({
+    protected async execute({
         projectId,
         clusterName,
         operations,

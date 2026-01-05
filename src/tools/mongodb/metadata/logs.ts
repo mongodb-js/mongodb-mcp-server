@@ -26,7 +26,7 @@ export class LogsTool extends MongoDBToolBase {
 
     static operationType: OperationType = "metadata";
 
-    public async execute({ type, limit }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ type, limit }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
         const result = await provider.runCommandWithCheck("admin", {

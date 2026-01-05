@@ -23,7 +23,7 @@ export class CountTool extends MongoDBToolBase {
 
     static operationType: OperationType = "read";
 
-    public async execute({ database, collection, query }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ database, collection, query }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
         // Check if count operation uses an index if enabled

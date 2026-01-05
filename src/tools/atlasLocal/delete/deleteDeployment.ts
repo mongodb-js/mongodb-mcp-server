@@ -12,7 +12,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
         deploymentName: CommonArgs.string().describe("Name of the deployment to delete"),
     };
 
-    public async executeWithAtlasLocalClient(
+    protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
     ): Promise<CallToolResult> {

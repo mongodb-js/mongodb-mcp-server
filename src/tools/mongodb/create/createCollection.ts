@@ -10,7 +10,7 @@ export class CreateCollectionTool extends MongoDBToolBase {
 
     static operationType: OperationType = "create";
 
-    public async execute({ collection, database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ collection, database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         await provider.createCollection(database, collection);
 

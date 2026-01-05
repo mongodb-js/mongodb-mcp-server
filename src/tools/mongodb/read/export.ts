@@ -51,7 +51,7 @@ export class ExportTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "read";
 
-    public async execute({
+    protected async execute({
         database,
         collection,
         jsonExportFormat,

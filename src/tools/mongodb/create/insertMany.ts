@@ -41,7 +41,7 @@ export class InsertManyTool extends MongoDBToolBase {
         : commonArgs;
     static operationType: OperationType = "create";
 
-    public async execute({
+    protected async execute({
         database,
         collection,
         documents,

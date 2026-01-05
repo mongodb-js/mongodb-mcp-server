@@ -39,7 +39,7 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    public override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         await this.session.connectToMongoDB({ connectionString });
 
         return {

@@ -61,7 +61,7 @@ export class AggregateTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "read";
 
-    public async execute(
+    protected async execute(
         { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {

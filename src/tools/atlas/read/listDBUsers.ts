@@ -16,7 +16,7 @@ export class ListDBUsersTool extends AtlasToolBase {
         ...ListDBUsersArgs,
     };
 
-    public async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const data = await this.session.apiClient.listDatabaseUsers({
             params: {
                 path: {

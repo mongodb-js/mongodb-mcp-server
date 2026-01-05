@@ -13,7 +13,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "update";
 
-    public async execute({
+    protected async execute({
         database,
         collection,
         newName,

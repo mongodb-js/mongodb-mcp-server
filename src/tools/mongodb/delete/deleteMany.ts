@@ -18,7 +18,11 @@ export class DeleteManyTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "delete";
 
-    public async execute({ database, collection, filter }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({
+        database,
+        collection,
+        filter,
+    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
         // Check if delete operation uses an index if enabled

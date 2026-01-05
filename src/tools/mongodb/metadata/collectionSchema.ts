@@ -27,7 +27,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
 
     static operationType: OperationType = "metadata";
 
-    public async execute(
+    protected async execute(
         { database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {

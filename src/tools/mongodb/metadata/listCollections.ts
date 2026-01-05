@@ -12,7 +12,7 @@ export class ListCollectionsTool extends MongoDBToolBase {
 
     static operationType: OperationType = "metadata";
 
-    public async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const collections = await provider.listCollections(database);
 

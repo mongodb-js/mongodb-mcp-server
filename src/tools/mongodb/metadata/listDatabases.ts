@@ -26,7 +26,7 @@ export class ListDatabasesTool extends MongoDBToolBase {
     public override outputSchema = ListDatabasesOutputSchema;
     static operationType: OperationType = "metadata";
 
-    public async execute(): Promise<CallToolResult> {
+    protected async execute(): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const dbs = (await provider.listDatabases("")).databases as { name: string; sizeOnDisk: bson.Long }[];
         const databases = dbs.map((db) => ({

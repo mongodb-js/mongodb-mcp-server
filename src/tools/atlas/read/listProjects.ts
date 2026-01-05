@@ -15,7 +15,7 @@ export class ListProjectsTool extends AtlasToolBase {
             .optional(),
     };
 
-    public async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const orgData = await this.session.apiClient.listOrgs();
 
         if (!orgData?.results?.length) {

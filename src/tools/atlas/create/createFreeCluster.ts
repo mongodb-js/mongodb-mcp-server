@@ -15,7 +15,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
         region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
     };
 
-    public async execute({ projectId, name, region }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ projectId, name, region }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const input = {
             groupId: projectId,
             name,

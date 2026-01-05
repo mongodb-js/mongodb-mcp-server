@@ -44,7 +44,7 @@ export class FindTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "read";
 
-    public async execute(
+    protected async execute(
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {

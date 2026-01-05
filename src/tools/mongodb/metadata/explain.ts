@@ -44,7 +44,7 @@ export class ExplainTool extends MongoDBToolBase {
 
     static operationType: OperationType = "metadata";
 
-    public async execute({
+    protected async execute({
         database,
         collection,
         method: methods,

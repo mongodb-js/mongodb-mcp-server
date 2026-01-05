@@ -58,7 +58,7 @@ class RandomTool extends MongoDBToolBase {
     static operationType: OperationType = "read";
     public description = "This is a tool.";
     public argsShape = {};
-    public async execute(): Promise<CallToolResult> {
+    protected async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
         return { content: [{ type: "text", text: "Something" }] };
     }
@@ -74,7 +74,7 @@ class UnusableVoyageTool extends MongoDBToolBase {
         return false;
     }
 
-    public async execute(): Promise<CallToolResult> {
+    protected async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
         return { content: [{ type: "text", text: "Something" }] };
     }

@@ -13,7 +13,7 @@ export class CreateProjectTool extends AtlasToolBase {
         organizationId: AtlasArgs.organizationId().optional().describe("Organization ID for the new project"),
     };
 
-    public async execute({ projectName, organizationId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({ projectName, organizationId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         let assumedOrg = false;
 
         if (!projectName) {

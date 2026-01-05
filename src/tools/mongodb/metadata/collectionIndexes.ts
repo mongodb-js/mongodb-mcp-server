@@ -22,7 +22,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     public argsShape = DbOperationArgs;
     static operationType: OperationType = "metadata";
 
-    public async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
+    protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const indexes = await provider.getIndexes(database, collection);
         const indexDefinitions: IndexStatus[] = indexes.map((index) => ({
