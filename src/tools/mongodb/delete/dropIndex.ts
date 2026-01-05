@@ -6,8 +6,8 @@ import { type ToolArgs, type OperationType, formatUntrustedData } from "../../to
 
 export class DropIndexTool extends MongoDBToolBase {
     public name = "drop-index";
-    protected description = "Drop an index for the provided database and collection.";
-    protected argsShape = {
+    public description = "Drop an index for the provided database and collection.";
+    public argsShape = {
         ...DbOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
         type: this.isFeatureEnabled("search")

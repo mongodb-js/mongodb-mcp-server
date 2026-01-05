@@ -461,9 +461,9 @@ class ListConnectionsTool extends ToolBase {
   override name = "list-connections";
   static category: ToolCategory = "mongodb";
   static operationType: OperationType = "metadata";
-  protected override description =
+  public override description =
     "Lists all available pre-configured MongoDB connections";
-  protected override argsShape = {};
+  public override argsShape = {};
 
   protected override async execute(): Promise<CallToolResult> {
     // Ensure that we don't leak the actual connection strings to the model
@@ -503,9 +503,9 @@ class SelectConnectionTool extends ToolBase {
   override name = "select-connection";
   static category: ToolCategory = "mongodb";
   static operationType: OperationType = "metadata";
-  protected override description =
+  public override description =
     "Select and connect to a pre-configured MongoDB connection by ID";
-  protected override argsShape = {
+  public override argsShape = {
     connectionId: z
       .enum(Object.keys(AVAILABLE_CONNECTIONS) as [string, ...string[]])
       .describe("The ID of the connection to select"),
@@ -620,10 +620,10 @@ class GetTicketDetailsTool extends ToolBase {
   static category: ToolCategory = "mongodb";
   static operationType: OperationType = "read";
 
-  protected override description =
+  public override description =
     "Retrieves detailed information about a support ticket from the tickets collection";
 
-  protected override argsShape = {
+  public override argsShape = {
     ticketId: z.string().describe("The unique identifier of the ticket"),
   };
 

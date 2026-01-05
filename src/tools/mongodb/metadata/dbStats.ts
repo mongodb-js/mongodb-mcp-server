@@ -6,8 +6,8 @@ import { EJSON } from "bson";
 
 export class DbStatsTool extends MongoDBToolBase {
     public name = "db-stats";
-    protected description = "Returns statistics that reflect the use state of a single database";
-    protected argsShape = {
+    public description = "Returns statistics that reflect the use state of a single database";
+    public argsShape = {
         database: DbOperationArgs.database,
     };
 

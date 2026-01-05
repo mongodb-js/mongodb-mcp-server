@@ -132,8 +132,8 @@ export class CreateIndexTool extends MongoDBToolBase {
         .describe("Definition for an Atlas Search (lexical) index.");
 
     public name = "create-index";
-    protected description = "Create an index for a collection";
-    protected argsShape = {
+    public description = "Create an index for a collection";
+    public argsShape = {
         ...DbOperationArgs,
         name: z.string().optional().describe("The name of the index"),
         definition: z

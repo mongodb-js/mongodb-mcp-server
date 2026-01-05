@@ -17,9 +17,9 @@ export const ListClustersArgs = {
 
 export class ListClustersTool extends AtlasToolBase {
     public name = "atlas-list-clusters";
-    protected description = "List MongoDB Atlas clusters";
+    public description = "List MongoDB Atlas clusters";
     static operationType: OperationType = "read";
-    protected argsShape = {
+    public argsShape = {
         ...ListClustersArgs,
     };
 

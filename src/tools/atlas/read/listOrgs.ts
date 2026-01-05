@@ -5,9 +5,9 @@ import { formatUntrustedData } from "../../tool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
     public name = "atlas-list-orgs";
-    protected description = "List MongoDB Atlas organizations";
+    public description = "List MongoDB Atlas organizations";
     static operationType: OperationType = "read";
-    protected argsShape = {};
+    public argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {
         const data = await this.session.apiClient.listOrgs();

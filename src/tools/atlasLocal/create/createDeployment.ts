@@ -7,9 +7,9 @@ import z from "zod";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-create-deployment";
-    protected description = "Create a MongoDB Atlas local deployment";
+    public description = "Create a MongoDB Atlas local deployment";
     static operationType: OperationType = "create";
-    protected argsShape = {
+    public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
         loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
     };
