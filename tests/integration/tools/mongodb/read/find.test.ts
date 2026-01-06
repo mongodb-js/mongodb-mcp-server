@@ -448,3 +448,67 @@ describeWithMongoDB(
         getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
     }
 );
+
+describeWithMongoDB(
+    "find tool with configured maxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 100,
+            });
+        });
+
+        it("should apply maxTimeMS to queries", async () => {
+            await integration.connectMcpClient();
+            // With a reasonable timeout, the query should succeed
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 10,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain('Query on collection "foo" resulted in');
+            expect(content).not.toContain("error");
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMs: 30_000 }),
+    }
+);
+
+describeWithMongoDB(
+    "find tool with disabled maxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 100,
+            });
+        });
+
+        it("should not apply maxTimeMS when set to 0", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                    limit: 10,
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain('Query on collection "foo" resulted in');
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMs: 0 }),
+    }
+);
