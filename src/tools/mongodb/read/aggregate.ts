@@ -112,7 +112,9 @@ export class AggregateTool extends MongoDBToolBase {
             if (this.config.maxDocumentsPerQuery > 0) {
                 cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
             }
-            aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
+            aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
+                maxTimeMS: this.config.maxTimeMs || undefined,
+            });
 
             const [totalDocuments, cursorResults] = await Promise.all([
                 this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
