@@ -18,8 +18,8 @@ type IndexStatus = {
 
 export class CollectionIndexesTool extends MongoDBToolBase {
     public name = "collection-indexes";
-    protected description = "Describe the indexes for a collection";
-    protected argsShape = DbOperationArgs;
+    public description = "Describe the indexes for a collection";
+    public argsShape = DbOperationArgs;
     static operationType: OperationType = "metadata";
 
     protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {

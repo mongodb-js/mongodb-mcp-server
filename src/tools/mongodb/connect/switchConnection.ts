@@ -7,10 +7,10 @@ import type { Server } from "../../../server.js";
 
 export class SwitchConnectionTool extends MongoDBToolBase {
     public override name = "switch-connection";
-    protected override description =
+    public override description =
         "Switch to a different MongoDB connection. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new instance.";
 
-    protected override argsShape = {
+    public override argsShape = {
         connectionString: z
             .string()
             .optional()

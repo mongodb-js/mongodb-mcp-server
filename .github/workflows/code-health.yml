@@ -119,17 +119,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Download test results
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: test-results
           path: coverage/mongodb
       - name: Download atlas test results
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: atlas-test-results
           path: coverage/atlas
       - name: Download atlas local test results
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: atlas-local-test-results
           path: coverage/atlas-local

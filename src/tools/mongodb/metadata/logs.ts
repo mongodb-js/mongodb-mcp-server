@@ -5,8 +5,8 @@ import { z } from "zod";
 
 export class LogsTool extends MongoDBToolBase {
     public name = "mongodb-logs";
-    protected description = "Returns the most recent logged mongod events";
-    protected argsShape = {
+    public description = "Returns the most recent logged mongod events";
+    public argsShape = {
         type: z
             .enum(["global", "startupWarnings"])
             .optional()

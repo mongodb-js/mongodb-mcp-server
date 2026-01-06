@@ -82,12 +82,12 @@ class CustomGreetingTool extends ToolBase {
     name = "custom_greeting";
     static category = "mongodb" as const;
     static operationType = "read" as const;
-    protected description = "A custom tool that greets the user";
-    protected argsShape = {
+    public description = "A custom tool that greets the user";
+    public argsShape = {
         name: z.string().describe("The name to greet"),
     };
 
-    protected execute({ name }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public execute({ name }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
                 {
@@ -110,13 +110,13 @@ class CustomCalculatorTool extends ToolBase {
     name = "custom_calculator";
     static category = "mongodb" as const;
     static operationType = "read" as const;
-    protected description = "A custom tool that performs calculations";
-    protected argsShape = {
+    public description = "A custom tool that performs calculations";
+    public argsShape = {
         a: z.number().describe("First number"),
         b: z.number().describe("Second number"),
     };
 
-    protected execute({ a, b }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public execute({ a, b }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
                 {

@@ -12,8 +12,8 @@ const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
 export class CollectionSchemaTool extends MongoDBToolBase {
     public name = "collection-schema";
-    protected description = "Describe the schema for a collection";
-    protected argsShape = {
+    public description = "Describe the schema for a collection";
+    public argsShape = {
         ...DbOperationArgs,
         sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),
         responseBytesLimit: z

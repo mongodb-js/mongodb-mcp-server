@@ -54,8 +54,8 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
 export class AggregateTool extends MongoDBToolBase {
     public name = "aggregate";
-    protected description = "Run an aggregation against a MongoDB collection";
-    protected argsShape = {
+    public description = "Run an aggregation against a MongoDB collection";
+    public argsShape = {
         ...DbOperationArgs,
         ...getAggregateArgs(this.isFeatureEnabled("search")),
     };

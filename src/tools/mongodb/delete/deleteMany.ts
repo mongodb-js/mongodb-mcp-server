@@ -7,8 +7,8 @@ import { zEJSON } from "../../args.js";
 
 export class DeleteManyTool extends MongoDBToolBase {
     public name = "delete-many";
-    protected description = "Removes all documents that match the filter from a MongoDB collection";
-    protected argsShape = {
+    public description = "Removes all documents that match the filter from a MongoDB collection";
+    public argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()
             .optional()

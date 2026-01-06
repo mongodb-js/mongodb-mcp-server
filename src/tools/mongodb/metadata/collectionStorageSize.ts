@@ -4,8 +4,8 @@ import type { ToolArgs, OperationType } from "../../tool.js";
 
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     public name = "collection-storage-size";
-    protected description = "Gets the size of the collection";
-    protected argsShape = DbOperationArgs;
+    public description = "Gets the size of the collection";
+    public argsShape = DbOperationArgs;
 
     static operationType: OperationType = "metadata";
 
