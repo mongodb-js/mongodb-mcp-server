@@ -59,7 +59,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
 
         const content = getResponseContent(response);
-        expect(content).toEqual("The aggregation resulted in 0 documents. Returning 0 documents.");
+        expect(content).toEqual("The aggregation resulted in 0 documents.");
     });
 
     it("can run aggregation on an empty collection", async () => {
@@ -76,7 +76,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         });
 
         const content = getResponseContent(response);
-        expect(content).toEqual("The aggregation resulted in 0 documents. Returning 0 documents.");
+        expect(content).toEqual("The aggregation resulted in 0 documents.");
     });
 
     it("can run aggregation on an existing collection", async () => {
@@ -151,6 +151,57 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(content).toEqual(
             "Error running aggregate: In readOnly mode you can not run pipelines with $out or $merge stages."
         );
+    });
+
+    it("can run $limit stages with a small number", async () => {
+        const mongoClient = integration.mongoClient();
+        await mongoClient
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+                { name: "Søren", age: 15 },
+            ]);
+
+        await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $limit: 1 }],
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toContain("The aggregation resulted in 1 documents");
+    });
+
+    it("can run $out stages in non-readonly mode", async () => {
+        const mongoClient = integration.mongoClient();
+        await mongoClient
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+                { name: "Søren", age: 15 },
+            ]);
+        await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $out: "outpeople" }],
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toEqual("The aggregation pipeline executed successfully");
+
+        const copiedDocs = await mongoClient.db(integration.randomDbName()).collection("outpeople").find().toArray();
+        expect(copiedDocs).toHaveLength(3);
+        expect(copiedDocs.map((doc) => doc.name as string)).toEqual(["Peter", "Laura", "Søren"]);
     });
 
     it("should emit tool event without auto-embedding usage metadata", async () => {
@@ -281,7 +332,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
 describeWithMongoDB(
     "aggregate tool with configured max documents per query",
     (integration) => {
-        it("should return documents limited to the configured limit", async () => {
+        beforeEach(async () => {
             await freshInsertDocuments({
                 collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
                 count: 1000,
@@ -289,13 +340,29 @@ describeWithMongoDB(
                     return { name: `Person ${index}`, age: index };
                 },
             });
+        });
+
+        const validateDocs = (docs: unknown[], expectedLength: number): void => {
+            expect(docs).toHaveLength(expectedLength);
+
+            const expectedObjects = Array.from({ length: expectedLength }).map((_, idx) => ({
+                name: `Person ${999 - idx}`,
+                age: 999 - idx,
+            }));
+
+            expect((docs as { name: string; age: number }[]).map((doc) => ({ name: doc.name, age: doc.age }))).toEqual(
+                expectedObjects
+            );
+        };
+
+        it("should return documents limited to the configured limit without $limit stage", async () => {
             await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {
                     database: integration.randomDbName(),
                     collection: "people",
-                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { age: -1 } }],
                 },
             });
 
@@ -305,20 +372,45 @@ describeWithMongoDB(
                 `Returning 20 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
             );
             const docs = getDocsFromUntrustedContent(content);
-            expect(docs[0]).toEqual(
-                expect.objectContaining({
-                    _id: expect.any(Object) as object,
-                    name: "Person 999",
-                    age: 999,
-                })
+            validateDocs(docs, 20);
+        });
+
+        it("should return documents limited to the configured limit with $limit stage larger than the configured", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { age: -1 } }, { $limit: 50 }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in 50 documents");
+            expect(content).toContain(
+                `Returning 20 documents while respecting the applied limits of server's configured - maxDocumentsPerQuery.`
             );
-            expect(docs[1]).toEqual(
-                expect.objectContaining({
-                    _id: expect.any(Object) as object,
-                    name: "Person 998",
-                    age: 998,
-                })
-            );
+            const docs = getDocsFromUntrustedContent(content);
+            validateDocs(docs, 20);
+        });
+
+        it("should return documents limited to the $limit stage when smaller than the configured limit", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { age: -1 } }, { $limit: 5 }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in 5 documents");
+
+            const docs = getDocsFromUntrustedContent(content);
+            validateDocs(docs, 5);
         });
     },
     {
@@ -409,7 +501,6 @@ describeWithMongoDB(
 
             const content = getResponseContent(response);
             expect(content).toContain("The aggregation resulted in 990 documents");
-            expect(content).toContain(`Returning 990 documents.`);
         });
     },
     {

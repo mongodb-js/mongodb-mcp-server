@@ -108,6 +108,18 @@ export class AggregateTool extends MongoDBToolBase {
                 pipeline,
             });
 
+            if (pipeline.some((stage) => "$out" in stage || "$merge" in stage)) {
+                // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
+                aggregationCursor = provider.aggregate(database, collection, pipeline);
+                const results = await aggregationCursor.toArray();
+                return {
+                    content: formatUntrustedData(
+                        "The aggregation pipeline executed successfully",
+                        ...(results.length > 0 ? [EJSON.stringify(results)] : [])
+                    ),
+                };
+            }
+
             const cappedResultsPipeline = [...pipeline];
             if (this.config.maxDocumentsPerQuery > 0) {
                 cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
@@ -186,9 +198,9 @@ export class AggregateTool extends MongoDBToolBase {
                 throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
             }
 
-            // This ensure that you can't use $vectorSearch if the cluster does not support MongoDB Search
+            // This ensure that you can't use $search if the cluster does not support MongoDB Search
             // either in Atlas or in a local cluster.
-            if (stage.$vectorSearch && !isSearchSupported) {
+            if ((stage.$vectorSearch || stage.$search || stage.$searchMeta) && !isSearchSupported) {
                 throw new MongoDBError(
                     ErrorCodes.AtlasSearchNotSupported,
                     "Atlas Search is not supported in this cluster."
@@ -333,17 +345,27 @@ export class AggregateTool extends MongoDBToolBase {
         documents: unknown[];
         appliedLimits: (keyof typeof CURSOR_LIMITS_TO_LLM_TEXT)[];
     }): string {
-        const appliedLimitText = appliedLimits.length
-            ? `\
-while respecting the applied limits of ${appliedLimits.map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit]).join(", ")}. \
-Note to LLM: If the entire query result is required then use "export" tool to export the query results.\
-`
-            : "";
+        let message = `The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents.`;
 
-        return `\
-The aggregation resulted in ${aggResultsCount === undefined ? "indeterminable number of" : aggResultsCount} documents. \
-Returning ${documents.length} documents${appliedLimitText ? ` ${appliedLimitText}` : "."}\
-`;
+        // If we applied a limit or the count is different from the aggregation result count,
+        // communicate what is the actual number of returned documents
+        if (documents.length !== aggResultsCount || appliedLimits.length) {
+            message += ` Returning ${documents.length} documents`;
+        }
+
+        if (appliedLimits.length) {
+            message += ` while respecting the applied limits of ${appliedLimits
+                .map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit])
+                .join(
+                    ", "
+                )}. Note to LLM: If the entire query result is required then use "export" tool to export the query results.`;
+        }
+
+        if (!message.endsWith(".")) {
+            message += ".";
+        }
+
+        return message;
     }
 
     protected resolveTelemetryMetadata(
