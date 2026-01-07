@@ -351,17 +351,14 @@ export class AggregateTool extends MongoDBToolBase {
         // communicate what is the actual number of returned documents
         if (documents.length !== aggResultsCount || appliedLimits.length) {
             message += ` Returning ${documents.length} documents`;
-        }
+            if (appliedLimits.length) {
+                message += ` while respecting the applied limits of ${appliedLimits
+                    .map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit])
+                    .join(
+                        ", "
+                    )}. Note to LLM: If the entire query result is required then use "export" tool to export the query results`;
+            }
 
-        if (appliedLimits.length) {
-            message += ` while respecting the applied limits of ${appliedLimits
-                .map((limit) => CURSOR_LIMITS_TO_LLM_TEXT[limit])
-                .join(
-                    ", "
-                )}. Note to LLM: If the entire query result is required then use "export" tool to export the query results.`;
-        }
-
-        if (!message.endsWith(".")) {
             message += ".";
         }
 
