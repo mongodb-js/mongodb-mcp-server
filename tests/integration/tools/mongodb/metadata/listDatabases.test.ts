@@ -1,6 +1,7 @@
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { getResponseElements, getParameters, expectDefined, getDataFromUntrustedContent } from "../../../helpers.js";
 import { describe, expect, it } from "vitest";
+import type { ListDatabasesOutput } from "../../../../../src/tools/mongodb/metadata/listDatabases.js";
 
 describeWithMongoDB("listDatabases tool", (integration) => {
     const defaultDatabases = ["admin", "config", "local"];
@@ -22,6 +23,9 @@ describeWithMongoDB("listDatabases tool", (integration) => {
             const dbNames = getDbNames(response.content);
 
             expect(dbNames).toIncludeSameMembers(defaultDatabases);
+
+            const structuredContent = response.structuredContent as ListDatabasesOutput;
+            expect(structuredContent.databases.map((db) => db.name)).toIncludeSameMembers(defaultDatabases);
         });
     });
 
@@ -36,6 +40,13 @@ describeWithMongoDB("listDatabases tool", (integration) => {
             const response = await integration.mcpClient().callTool({ name: "list-databases", arguments: {} });
             const dbNames = getDbNames(response.content);
             expect(dbNames).toIncludeSameMembers([...defaultDatabases, "foo", "baz"]);
+
+            const structuredContent = response.structuredContent as ListDatabasesOutput;
+            expect(structuredContent.databases.map((db) => db.name)).toIncludeSameMembers([
+                ...defaultDatabases,
+                "foo",
+                "baz",
+            ]);
         });
     });
 
@@ -68,11 +79,5 @@ function getDbNames(content: unknown): (string | null)[] {
     const responseItems = getResponseElements(content);
     expect(responseItems).toHaveLength(2);
     const data = getDataFromUntrustedContent(responseItems[1]?.text ?? "{}");
-    return data
-        .split("\n")
-        .map((item) => {
-            const match = item.match(/Name: ([^,]+), Size: \d+ bytes/);
-            return match ? match[1] : null;
-        })
-        .filter((item): item is string | null => item !== undefined);
+    return (JSON.parse(data) as ListDatabasesOutput).databases.map((db) => db.name);
 }
