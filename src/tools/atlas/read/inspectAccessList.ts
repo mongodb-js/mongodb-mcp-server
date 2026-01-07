@@ -9,9 +9,9 @@ export const InspectAccessListArgs = {
 
 export class InspectAccessListTool extends AtlasToolBase {
     public name = "atlas-inspect-access-list";
-    protected description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
+    public description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
     static operationType: OperationType = "read";
-    protected argsShape = {
+    public argsShape = {
         ...InspectAccessListArgs,
     };
 

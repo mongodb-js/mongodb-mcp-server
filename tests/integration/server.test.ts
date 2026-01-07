@@ -21,10 +21,10 @@ import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 
 class TestToolOne extends ToolBase {
     public name = "test-tool-one";
-    protected description = "A test tool one for verification tests";
+    public description = "A test tool one for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
-    protected argsShape = {};
+    public argsShape = {};
     protected async execute(): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
@@ -42,10 +42,10 @@ class TestToolOne extends ToolBase {
 
 class TestToolTwo extends ToolBase {
     public name = "test-tool-two";
-    protected description = "A test tool two for verification tests";
+    public description = "A test tool two for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
-    protected argsShape = {};
+    public argsShape = {};
     protected async execute(): Promise<CallToolResult> {
         return Promise.resolve({
             content: [

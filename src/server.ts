@@ -41,8 +41,8 @@ export interface ServerOptions {
      *     override name = "custom_tool";
      *     static category: ToolCategory = "mongodb";
      *     static operationType: OperationType = "read";
-     *     protected description = "Custom tool description";
-     *     protected argsShape = {};
+     *     public description = "Custom tool description";
+     *     public argsShape = {};
      *     protected async execute() {
      *         return { content: [{ type: "text", text: "Result" }] };
      *     }
@@ -274,7 +274,7 @@ export class Server {
         this.telemetry.emitEvents([event]);
     }
 
-    private registerTools(): void {
+    public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
                 category: toolConstructor.category,
@@ -291,7 +291,7 @@ export class Server {
         }
     }
 
-    private registerResources(): void {
+    public registerResources(): void {
         for (const resourceConstructor of Resources) {
             const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
             resource.register(this);

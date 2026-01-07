@@ -21,9 +21,9 @@ export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutput
 
 export class ListDatabasesTool extends MongoDBToolBase {
     public name = "list-databases";
-    protected description = "List all databases for a MongoDB connection";
-    protected argsShape = {};
-    protected override outputSchema = ListDatabasesOutputSchema;
+    public description = "List all databases for a MongoDB connection";
+    public argsShape = {};
+    public override outputSchema = ListDatabasesOutputSchema;
     static operationType: OperationType = "metadata";
 
     protected async execute(): Promise<CallToolResult> {
