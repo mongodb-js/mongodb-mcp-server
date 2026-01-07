@@ -509,11 +509,11 @@ class TestToolWithOutputSchema extends ToolBase {
     public name = "test-tool-with-output-schema";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
-    protected description = "A test tool with output schema";
-    protected argsShape = {
+    public description = "A test tool with output schema";
+    public argsShape = {
         input: z.string().describe("Test input"),
     };
-    protected override outputSchema = {
+    public override outputSchema = {
         value: z.string(),
         count: z.number(),
     };
@@ -542,11 +542,11 @@ class TestToolWithoutStructuredContent extends ToolBase {
     public name = "test-tool-without-structured";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
-    protected description = "A test tool without structured content";
-    protected argsShape = {
+    public description = "A test tool without structured content";
+    public argsShape = {
         input: z.string().describe("Test input"),
     };
-    protected override outputSchema = {
+    public override outputSchema = {
         value: z.string(),
     };
 
