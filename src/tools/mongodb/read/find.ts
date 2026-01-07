@@ -67,6 +67,7 @@ export class FindTool extends MongoDBToolBase {
                 projection,
                 limit: limitOnFindCursor.limit,
                 sort,
+                maxTimeMS: this.config.maxTimeMs || undefined,
             });
 
             const [queryResultsCount, cursorResults] = await Promise.all([

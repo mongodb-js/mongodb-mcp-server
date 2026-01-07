@@ -173,6 +173,11 @@ const ServerConfigSchema = z4.object({
         .default(300_000)
         .describe("Time in milliseconds after which an export is considered expired and eligible for cleanup.")
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    maxTimeMs: z4.coerce
+        .number()
+        .default(30_000)
+        .describe("Maximum execution time in milliseconds for find and aggregate operations. Set to 0 to disable.")
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     exportCleanupIntervalMs: z4.coerce
         .number()
         .default(120_000)
