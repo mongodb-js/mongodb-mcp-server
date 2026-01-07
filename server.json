@@ -1,17 +1,17 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.mongodb-js/mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
   "repository": {
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.3.1",
+  "version": "1.4.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.3.1",
+      "version": "1.4.0",
       "transport": {
         "type": "stdio"
       },
@@ -98,6 +98,13 @@
           "description": "Folder to store exported data files.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_BODY_LIMIT",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -298,6 +305,13 @@
           "name": "--exportsPath",
           "description": "Folder to store exported data files.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--httpBodyLimit",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -413,7 +427,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.3.1",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.4.0",
       "transport": {
         "type": "stdio"
       },
@@ -500,6 +514,13 @@
           "description": "Folder to store exported data files.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_BODY_LIMIT",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -700,6 +721,13 @@
           "name": "--exportsPath",
           "description": "Folder to store exported data files.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--httpBodyLimit",
+          "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
