@@ -27,6 +27,8 @@ export default defineConfig([
         rules: {
             ...vitestPlugin.configs.recommended.rules,
             "vitest/valid-title": "off",
+            "vitest/no-conditional-expect": "off",
+            "vitest/no-standalone-expect": "off",
             "vitest/expect-expect": [
                 "error",
                 {
