@@ -7,8 +7,8 @@ import { packageInfo } from "../packageInfo.js";
 import type { LoggerBase } from "../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
-import type { Credentials, AuthClient } from "./auth/authClient.js";
-import { AuthClientBuilder } from "./auth/authClient.js";
+import type { Credentials, AuthProvider } from "./auth/authProvider.js";
+import { AuthProviderFactory } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 
@@ -41,13 +41,13 @@ export class ApiClient {
     private client: Client<paths>;
 
     public hasCredentials(): boolean {
-        return !!this.authClient?.hasCredentials();
+        return !!this.authProvider?.hasCredentials();
     }
 
     constructor(
         options: ApiClientOptions,
         public readonly logger: LoggerBase,
-        public readonly authClient?: AuthClient
+        public readonly authProvider?: AuthProvider
     ) {
         this.options = {
             ...options,
@@ -56,9 +56,9 @@ export class ApiClient {
                 `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch}; ${process.env.HOSTNAME || "unknown"})`,
         };
 
-        this.authClient =
-            authClient ??
-            AuthClientBuilder.build(
+        this.authProvider =
+            authProvider ??
+            AuthProviderFactory.create(
                 {
                     apiBaseUrl: this.options.baseUrl,
                     userAgent: this.options.userAgent,
@@ -80,23 +80,23 @@ export class ApiClient {
             Request: NodeFetchRequest as unknown as ClientOptions["Request"],
         });
 
-        if (this.authClient) {
-            this.client.use(this.authClient.createAuthMiddleware());
+        if (this.authProvider) {
+            this.client.use(this.authProvider.middleware());
         }
     }
 
     public async validateAccessToken(): Promise<void> {
-        await this.authClient?.validateAccessToken();
+        await this.authProvider?.validateAccessToken();
     }
 
     public async close(): Promise<void> {
-        await this.authClient?.revokeAccessToken();
+        await this.authProvider?.revokeAccessToken();
     }
 
     public async getIpInfo(): Promise<{
         currentIpv4Address: string;
     }> {
-        const authHeaders = (await this.authClient?.authHeaders()) ?? {};
+        const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
 
         const endpoint = "api/private/ipinfo";
         const url = new URL(endpoint, this.options.baseUrl);
@@ -119,7 +119,7 @@ export class ApiClient {
     }
 
     public async sendEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
-        if (!this.authClient) {
+        if (!this.authProvider) {
             await this.sendUnauthEvents(events);
             return;
         }
@@ -141,7 +141,7 @@ export class ApiClient {
     }
 
     private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
-        const authHeaders = await this.authClient?.authHeaders();
+        const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
         }

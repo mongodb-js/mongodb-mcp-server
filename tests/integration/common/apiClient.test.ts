@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AccessToken } from "../../../src/common/atlas/auth/authClient.js";
+import type { AccessToken } from "../../../src/common/atlas/auth/authProvider.js";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import { HTTPServerProxyTestSetup } from "../fixtures/httpsServerProxyTest.js";
 import { NullLogger } from "../../../tests/utils/index.js";
@@ -29,11 +29,11 @@ describe("ApiClient integration test", () => {
         });
 
         function withToken(accessToken: string, expired: boolean): void {
-            const authClientMut = apiClient.authClient as unknown as { accessToken: AccessToken };
+            const authProviderMut = apiClient.authProvider as unknown as { accessToken: AccessToken };
             const diff = 10_000;
             const now = Date.now();
 
-            authClientMut.accessToken = {
+            authProviderMut.accessToken = {
                 access_token: accessToken,
                 expires_at: expired ? now - diff : now + diff,
             };

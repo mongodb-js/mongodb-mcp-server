@@ -1,19 +1,19 @@
 import type { Middleware } from "openapi-fetch";
 import type { LoggerBase } from "../../logger.js";
-import { ClientCredentialsAuthClient } from "./clientCredentials.js";
+import { ClientCredentialsAuthProvider } from "./clientCredentials.js";
 
 export interface AccessToken {
     access_token: string;
     expires_at?: number;
 }
 
-export interface AuthClient {
+export interface AuthProvider {
     hasCredentials(): boolean;
     getAccessToken(): Promise<string | undefined>;
     validateAccessToken(): Promise<void>;
     revokeAccessToken(): Promise<void>;
-    createAuthMiddleware(): Middleware;
-    authHeaders(): Promise<Record<string, string> | undefined>;
+    middleware(): Middleware;
+    getAuthHeaders(): Promise<Record<string, string> | undefined>;
 }
 
 export interface Credentials {
@@ -21,16 +21,16 @@ export interface Credentials {
     clientSecret?: string;
 }
 
-export interface AuthClientOptions {
+export interface AuthProviderOptions {
     apiBaseUrl: string;
     userAgent: string;
     credentials: Credentials;
 }
 
-export class AuthClientBuilder {
-    static build(options: AuthClientOptions, logger: LoggerBase): AuthClient | undefined {
+export class AuthProviderFactory {
+    static create(options: AuthProviderOptions, logger: LoggerBase): AuthProvider | undefined {
         if (options.credentials.clientId && options.credentials.clientSecret) {
-            return new ClientCredentialsAuthClient(
+            return new ClientCredentialsAuthProvider(
                 {
                     baseUrl: options.apiBaseUrl,
                     userAgent: options.userAgent,

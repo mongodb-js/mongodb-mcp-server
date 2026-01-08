@@ -3,7 +3,7 @@ import type { Middleware } from "openapi-fetch";
 import type { LoggerBase } from "../../logger.js";
 import { LogId } from "../../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
-import type { AccessToken, AuthClient } from "./authClient.js";
+import type { AccessToken, AuthProvider } from "./authProvider.js";
 
 export interface ClientCredentialsAuthOptions {
     clientId: string;
@@ -12,7 +12,7 @@ export interface ClientCredentialsAuthOptions {
     userAgent: string;
 }
 
-export class ClientCredentialsAuthClient implements AuthClient {
+export class ClientCredentialsAuthProvider implements AuthProvider {
     private oauth2Client?: oauth.Client;
     private oauth2Issuer?: oauth.AuthorizationServer;
     private accessToken?: AccessToken;
@@ -40,7 +40,7 @@ export class ClientCredentialsAuthClient implements AuthClient {
         };
     }
 
-    public async authHeaders(): Promise<Record<string, string> | undefined> {
+    public async getAuthHeaders(): Promise<Record<string, string> | undefined> {
         const accessToken = await this.getAccessToken();
         return accessToken
             ? {
@@ -90,7 +90,7 @@ export class ClientCredentialsAuthClient implements AuthClient {
                     clientAuth,
                     new URLSearchParams(),
                     {
-                        [oauth.customFetch]: ClientCredentialsAuthClient.customFetch,
+                        [oauth.customFetch]: ClientCredentialsAuthProvider.customFetch,
                         headers: {
                             "User-Agent": this.options.userAgent,
                         },
@@ -149,7 +149,7 @@ export class ClientCredentialsAuthClient implements AuthClient {
         this.accessToken = undefined;
     }
 
-    public createAuthMiddleware(): Middleware {
+    public middleware(): Middleware {
         return {
             onRequest: async ({ request, schemaPath }): Promise<Request | undefined> => {
                 if (schemaPath.startsWith("/api/private/unauth") || schemaPath.startsWith("/api/oauth")) {
