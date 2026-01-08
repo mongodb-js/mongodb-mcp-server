@@ -197,11 +197,38 @@ describeWithMongoDB("aggregate tool", (integration) => {
             },
         });
         const content = getResponseContent(response);
-        expect(content).toEqual("The aggregation pipeline executed successfully");
+        expect(content).toEqual("The aggregation pipeline executed successfully.");
 
         const copiedDocs = await mongoClient.db(integration.randomDbName()).collection("outpeople").find().toArray();
         expect(copiedDocs).toHaveLength(3);
         expect(copiedDocs.map((doc) => doc.name as string)).toEqual(["Peter", "Laura", "Søren"]);
+    });
+
+    it("can run $merge stages in non-readonly mode", async () => {
+        const mongoClient = integration.mongoClient();
+        await mongoClient
+            .db(integration.randomDbName())
+            .collection("people")
+            .insertMany([
+                { name: "Peter", age: 5 },
+                { name: "Laura", age: 10 },
+                { name: "Søren", age: 15 },
+            ]);
+        await integration.connectMcpClient();
+        const response = await integration.mcpClient().callTool({
+            name: "aggregate",
+            arguments: {
+                database: integration.randomDbName(),
+                collection: "people",
+                pipeline: [{ $merge: "mergedpeople" }],
+            },
+        });
+        const content = getResponseContent(response);
+        expect(content).toEqual("The aggregation pipeline executed successfully.");
+
+        const mergedDocs = await mongoClient.db(integration.randomDbName()).collection("mergedpeople").find().toArray();
+        expect(mergedDocs).toHaveLength(3);
+        expect(mergedDocs.map((doc) => doc.name as string)).toEqual(["Peter", "Laura", "Søren"]);
     });
 
     it("should emit tool event without auto-embedding usage metadata", async () => {
