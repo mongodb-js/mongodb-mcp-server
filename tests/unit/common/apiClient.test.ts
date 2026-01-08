@@ -40,7 +40,7 @@ describe("ApiClient", () => {
         );
 
         // @ts-expect-error accessing private property for testing
-        apiClient.getAccessToken = vi.fn().mockResolvedValue("mockToken");
+        apiClient.authClient.getAccessToken = vi.fn().mockResolvedValue("mockToken");
     });
 
     afterEach(() => {
@@ -123,7 +123,7 @@ describe("ApiClient", () => {
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockRejectedValue(new Error("No access token available"));
+            apiClient.authClient.getAccessToken = vi.fn().mockRejectedValue(new Error("No access token available"));
 
             await apiClient.sendEvents(mockEvents);
 
@@ -144,7 +144,7 @@ describe("ApiClient", () => {
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockReturnValueOnce(undefined);
+            apiClient.authClient.getAccessToken = vi.fn().mockReturnValueOnce(undefined);
 
             await apiClient.sendEvents(mockEvents);
 
@@ -189,7 +189,7 @@ describe("ApiClient", () => {
 
             const mockToken = "test-token";
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockResolvedValue(mockToken);
+            apiClient.authClient.getAccessToken = vi.fn().mockResolvedValue(mockToken);
 
             await expect(apiClient.sendEvents(mockEvents)).rejects.toThrow();
         });
