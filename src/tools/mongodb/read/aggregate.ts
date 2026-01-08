@@ -108,54 +108,55 @@ export class AggregateTool extends MongoDBToolBase {
                 pipeline,
             });
 
-            if (pipeline.some((stage) => "$out" in stage || "$merge" in stage)) {
+            let successMessage: string;
+            let documents: unknown[];
+            if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline);
-                const results = await aggregationCursor.toArray();
-                return {
-                    content: formatUntrustedData(
-                        "The aggregation pipeline executed successfully",
-                        ...(results.length > 0 ? [EJSON.stringify(results)] : [])
-                    ),
-                };
+
+                documents = await aggregationCursor.toArray();
+                successMessage = "The aggregation pipeline executed successfully.";
+            } else {
+                const cappedResultsPipeline = [...pipeline];
+                if (this.config.maxDocumentsPerQuery > 0) {
+                    cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
+                }
+                aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
+
+                const [totalDocuments, cursorResults] = await Promise.all([
+                    this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
+                    collectCursorUntilMaxBytesLimit({
+                        cursor: aggregationCursor,
+                        configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                        toolResponseBytesLimit: responseBytesLimit,
+                        abortSignal: signal,
+                    }),
+                ]);
+
+                // If the total number of documents that the aggregation would've
+                // resulted in would be greater than the configured
+                // maxDocumentsPerQuery then we know for sure that the results were
+                // capped.
+                const aggregationResultsCappedByMaxDocumentsLimit =
+                    this.config.maxDocumentsPerQuery > 0 &&
+                    !!totalDocuments &&
+                    totalDocuments > this.config.maxDocumentsPerQuery;
+
+                documents = cursorResults.documents;
+                successMessage = this.generateMessage({
+                    aggResultsCount: totalDocuments,
+                    documents: cursorResults.documents,
+                    appliedLimits: [
+                        aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                        cursorResults.cappedBy,
+                    ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
+                });
             }
-
-            const cappedResultsPipeline = [...pipeline];
-            if (this.config.maxDocumentsPerQuery > 0) {
-                cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
-            }
-            aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
-
-            const [totalDocuments, cursorResults] = await Promise.all([
-                this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
-                collectCursorUntilMaxBytesLimit({
-                    cursor: aggregationCursor,
-                    configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
-                    toolResponseBytesLimit: responseBytesLimit,
-                    abortSignal: signal,
-                }),
-            ]);
-
-            // If the total number of documents that the aggregation would've
-            // resulted in would be greater than the configured
-            // maxDocumentsPerQuery then we know for sure that the results were
-            // capped.
-            const aggregationResultsCappedByMaxDocumentsLimit =
-                this.config.maxDocumentsPerQuery > 0 &&
-                !!totalDocuments &&
-                totalDocuments > this.config.maxDocumentsPerQuery;
 
             return {
                 content: formatUntrustedData(
-                    this.generateMessage({
-                        aggResultsCount: totalDocuments,
-                        documents: cursorResults.documents,
-                        appliedLimits: [
-                            aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                            cursorResults.cappedBy,
-                        ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
-                    }),
-                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
+                    successMessage,
+                    ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
             };
         } finally {
@@ -194,13 +195,13 @@ export class AggregateTool extends MongoDBToolBase {
             // This validates that in readOnly mode or "write" operations are disabled, we can't use $out or $merge.
             // This is really important because aggregates are the only "multi-faceted" tool in the MQL, where you
             // can both read and write.
-            if ((stage.$out || stage.$merge) && writeStageForbiddenError) {
+            if (this.isWriteStage(stage) && writeStageForbiddenError) {
                 throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenError);
             }
 
             // This ensure that you can't use $search if the cluster does not support MongoDB Search
             // either in Atlas or in a local cluster.
-            if ((stage.$vectorSearch || stage.$search || stage.$searchMeta) && !isSearchSupported) {
+            if (this.isSearchStage(stage) && !isSearchSupported) {
                 throw new MongoDBError(
                     ErrorCodes.AtlasSearchNotSupported,
                     "Atlas Search is not supported in this cluster."
@@ -384,5 +385,74 @@ export class AggregateTool extends MongoDBToolBase {
         } else {
             return super.resolveTelemetryMetadata(args, { result });
         }
+    }
+
+    private isSearchStage(stage: Record<string, unknown>): boolean {
+        return "$vectorSearch" in stage || "$search" in stage || "$searchMeta" in stage;
+    }
+
+    private isWriteStage(stage: Record<string, unknown>): boolean {
+        return "$out" in stage || "$merge" in stage;
+    }
+
+    private async runWriteAggregation(
+        provider: NodeDriverServiceProvider,
+        database: string,
+        collection: string,
+        pipeline: Document[]
+    ): Promise<{ message: string; documents: unknown[] }> {
+        // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
+        const aggregationCursor = provider.aggregate(database, collection, pipeline);
+
+        return {
+            message: "The aggregation pipeline executed successfully.",
+            documents: await aggregationCursor.toArray(),
+        };
+    }
+
+    private async runReadAggregation(
+        provider: NodeDriverServiceProvider,
+        database: string,
+        collection: string,
+        pipeline: Document[],
+        responseBytesLimit: number,
+        signal: AbortSignal
+    ): Promise<{ message: string; documents: unknown[] }> {
+        const cappedResultsPipeline = [...pipeline];
+        if (this.config.maxDocumentsPerQuery > 0) {
+            cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
+        }
+        const aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
+
+        const [totalDocuments, cursorResults] = await Promise.all([
+            this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
+            collectCursorUntilMaxBytesLimit({
+                cursor: aggregationCursor,
+                configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                toolResponseBytesLimit: responseBytesLimit,
+                abortSignal: signal,
+            }),
+        ]);
+
+        // If the total number of documents that the aggregation would've
+        // resulted in would be greater than the configured
+        // maxDocumentsPerQuery then we know for sure that the results were
+        // capped.
+        const aggregationResultsCappedByMaxDocumentsLimit =
+            this.config.maxDocumentsPerQuery > 0 &&
+            !!totalDocuments &&
+            totalDocuments > this.config.maxDocumentsPerQuery;
+
+        return {
+            message: this.generateMessage({
+                aggResultsCount: totalDocuments,
+                documents: cursorResults.documents,
+                appliedLimits: [
+                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
+                    cursorResults.cappedBy,
+                ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
+            }),
+            documents: cursorResults.documents,
+        };
     }
 }
