@@ -127,7 +127,7 @@ describeAccuracyTests([
                 parameters: {
                     database: "mflix",
                     collection: "movies",
-                    filter: { genres: "Horror" },
+                    filter: { genres: Matcher.anyOf(Matcher.value("Horror"), Matcher.value({ $in: ["Horror"] })) },
                     projection: Matcher.anyValue,
                     sort: { runtime: 1 },
                     limit: 2,

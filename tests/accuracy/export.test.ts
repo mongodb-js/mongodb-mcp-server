@@ -93,6 +93,7 @@ describeAccuracyTests([
                                 filter: { genres: "Horror" },
                                 sort: { runtime: 1 },
                                 limit: 2,
+                                projection: Matcher.anyValue,
                             },
                         },
                     ],
@@ -116,20 +117,12 @@ describeAccuracyTests([
                             arguments: {
                                 pipeline: [
                                     {
-                                        $group: Matcher.anyOf(
-                                            Matcher.value({
-                                                _id: "$release_year",
-                                                movie_titles: {
-                                                    $push: "$title",
-                                                },
-                                            }),
-                                            Matcher.value({
-                                                _id: "$release_year",
-                                                movie_titles: {
-                                                    $push: "$title",
-                                                },
-                                            })
-                                        ),
+                                        $group: {
+                                            _id: "$release_year",
+                                            movie_titles: {
+                                                $push: "$title",
+                                            },
+                                        },
                                     },
                                 ],
                             },

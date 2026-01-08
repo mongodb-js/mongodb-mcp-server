@@ -129,7 +129,9 @@ export class CreateIndexTool extends MongoDBToolBase {
                     "Specifies the number of sub-indexes to create if the document count exceeds two billion. If omitted, defaults to 1."
                 ),
         })
-        .describe("Definition for an Atlas Search (lexical) index.");
+        .describe(
+            "Definition for an Atlas Search (lexical) index. Use this only if user explicitly asked for creating an Atlas search index or simply a search index."
+        );
 
     public name = "create-index";
     public description = "Create an index for a collection";
@@ -144,7 +146,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                             type: z.literal("classic"),
                             keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
                         })
-                        .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial)."),
+                        .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial/text)."),
                     ...(this.isFeatureEnabled("search")
                         ? [this.vectorSearchIndexDefinition, this.atlasSearchIndexDefinition]
                         : []),

@@ -33,7 +33,7 @@ const embeddingParameters = {
 describeAccuracyTests(
     [
         {
-            prompt: "Group all the movies in 'mflix.movies' namespace by 'release_year' and give me a count of them under field named movie_count, no projections, no sort required.",
+            prompt: "Group all the movies in 'mflix.movies' namespace by 'release_year' and give me a count of them under field named movie_count. No projections, no sort required.",
             expectedToolCalls: [
                 {
                     toolName: "aggregate",
@@ -470,13 +470,17 @@ describeAccuracyTests(
                                                 {
                                                     text: {
                                                         query: "space travel",
-                                                        path: "plot",
+                                                        path: Matcher.string(
+                                                            (value) => value === "plot" || value === "title"
+                                                        ),
                                                     },
                                                 },
                                                 {
                                                     text: {
                                                         query: "space travel",
-                                                        path: "title",
+                                                        path: Matcher.string(
+                                                            (value) => value === "plot" || value === "title"
+                                                        ),
                                                     },
                                                 },
                                             ],

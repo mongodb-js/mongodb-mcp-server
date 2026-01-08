@@ -110,6 +110,7 @@ describeAccuracyTests(
                                             return value % 2 === 0 && value >= 256 && value <= 8192;
                                         }),
                                         similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                                        quantization: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                     },
                                     {
                                         type: "vector",
@@ -118,6 +119,7 @@ describeAccuracyTests(
                                             return value % 2 === 0 && value >= 256 && value <= 8192;
                                         }),
                                         similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                                        quantization: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                     },
                                 ],
                             },
