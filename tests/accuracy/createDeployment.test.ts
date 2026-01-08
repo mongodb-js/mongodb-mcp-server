@@ -2,7 +2,7 @@ import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Matcher } from "./sdk/matcher.js";
 
-function mockCreateDeploymentResponse(name: string): () => CallToolResult {
+export function mockCreateDeploymentResponse(name: string): () => CallToolResult {
     return () => ({
         content: [
             {
@@ -26,6 +26,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     deploymentName: "local-cluster",
+                    loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
                 },
             },
         ],
@@ -42,6 +43,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     deploymentName: "local-cluster",
+                    loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
                 },
             },
         ],
@@ -58,6 +60,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     deploymentName: "local-cluster",
+                    loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
                 },
             },
         ],
@@ -94,6 +97,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     deploymentName: "new-database",
+                    loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
                 },
             },
         ],

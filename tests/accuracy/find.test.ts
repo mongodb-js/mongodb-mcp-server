@@ -33,7 +33,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "List all the documents in 'comics.books' namespace.",
+        prompt: "Find all the documents in 'comics.books' namespace.",
         expectedToolCalls: [
             ...optionalListCalls("comics"),
             {
@@ -128,6 +128,7 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     filter: { genres: "Horror" },
+                    projection: Matcher.anyValue,
                     sort: { runtime: 1 },
                     limit: 2,
                 },

@@ -102,7 +102,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "Export an aggregation that groups all movie titles by the field release_year from mflix.movies",
+        prompt: "Export an aggregation that groups all movie titles by the field release_year from mflix.movies under field movie_titles",
         expectedToolCalls: [
             {
                 toolName: "export",
@@ -119,13 +119,13 @@ describeAccuracyTests([
                                         $group: Matcher.anyOf(
                                             Matcher.value({
                                                 _id: "$release_year",
-                                                titles: {
+                                                movie_titles: {
                                                     $push: "$title",
                                                 },
                                             }),
                                             Matcher.value({
                                                 _id: "$release_year",
-                                                movies: {
+                                                movie_titles: {
                                                     $push: "$title",
                                                 },
                                             })

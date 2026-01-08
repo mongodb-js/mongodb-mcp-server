@@ -80,7 +80,7 @@ describeAccuracyTests(
                                     {
                                         type: "vector",
                                         path: "plotSummary",
-                                        numDimensions: "1024",
+                                        numDimensions: 1024,
                                     },
                                 ],
                             },
@@ -106,18 +106,16 @@ describeAccuracyTests(
                                     {
                                         type: "vector",
                                         path: "plotSummary",
-                                        numDimensions: Matcher.string((value) => {
-                                            const intValue = parseInt(value);
-                                            return intValue % 2 === 0 && intValue >= 256 && intValue <= 8192;
+                                        numDimensions: Matcher.number((value) => {
+                                            return value % 2 === 0 && value >= 256 && value <= 8192;
                                         }),
                                         similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                     },
                                     {
                                         type: "vector",
                                         path: "genre",
-                                        numDimensions: Matcher.string((value) => {
-                                            const intValue = parseInt(value);
-                                            return intValue % 2 === 0 && intValue >= 256 && intValue <= 8192;
+                                        numDimensions: Matcher.number((value) => {
+                                            return value % 2 === 0 && value >= 256 && value <= 8192;
                                         }),
                                         similarity: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                                     },
@@ -145,7 +143,7 @@ describeAccuracyTests(
                                     {
                                         type: "vector",
                                         path: "plotSummary",
-                                        numDimensions: "1024",
+                                        numDimensions: 1024,
                                     },
                                     {
                                         type: "filter",
@@ -216,7 +214,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Create an Atlas search index on 'mflix.movies' namespace with a custom 'lucene.keyword' analyzer, where 'title' is indexed as an autocomplete field and 'genres' as a string array field, and 'released' as a date field",
+            prompt: "Create an Atlas search index on 'mflix.movies' namespace with a custom 'lucene.keyword' analyzer at the top level. Ensure 'title' is indexed as an autocomplete field and 'genres' as a string field, and 'released' as a date field",
             expectedToolCalls: [
                 {
                     toolName: "create-index",

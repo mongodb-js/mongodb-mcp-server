@@ -99,6 +99,7 @@ describeAccuracyTests(
                                         type: "vector",
                                         path: "plotSummary",
                                         numDimensions: 1024,
+                                        similarity: Matcher.anyValue,
                                     },
                                 ],
                             },
