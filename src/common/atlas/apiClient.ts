@@ -7,7 +7,8 @@ import { packageInfo } from "../packageInfo.js";
 import type { LoggerBase } from "../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
-import { AuthClientBuilder, Credentials, AuthClient } from "./auth/authClient.js";
+import type { Credentials, AuthClient } from "./auth/authClient.js";
+import { AuthClientBuilder } from "./auth/authClient.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 
@@ -50,14 +51,21 @@ export class ApiClient {
     ) {
         this.options = {
             ...options,
-            userAgent: options.userAgent ?? `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch}; ${process.env.HOSTNAME || "unknown"})`,
+            userAgent:
+                options.userAgent ??
+                `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch}; ${process.env.HOSTNAME || "unknown"})`,
         };
 
-        this.authClient = authClient ?? AuthClientBuilder.build({
-            apiBaseUrl: this.options.baseUrl,
-            userAgent: this.options.userAgent,
-            credentials: options.credentials ?? {},
-        }, logger);
+        this.authClient =
+            authClient ??
+            AuthClientBuilder.build(
+                {
+                    apiBaseUrl: this.options.baseUrl,
+                    userAgent: this.options.userAgent,
+                    credentials: options.credentials ?? {},
+                },
+                logger
+            );
 
         this.client = createClient<paths>({
             baseUrl: this.options.baseUrl,
@@ -88,7 +96,7 @@ export class ApiClient {
     public async getIpInfo(): Promise<{
         currentIpv4Address: string;
     }> {
-        const authHeaders = await this.authClient?.authHeaders() ?? {};
+        const authHeaders = (await this.authClient?.authHeaders()) ?? {};
 
         const endpoint = "api/private/ipinfo";
         const url = new URL(endpoint, this.options.baseUrl);

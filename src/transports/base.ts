@@ -22,8 +22,8 @@ import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import { ApiClientFactoryFn, createAtlasApiClient } from "../common/atlas/apiClient.js";
-import { AuthClientBuilder } from "../common/atlas/auth/authClient.js";
+import type { ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import { createAtlasApiClient } from "../common/atlas/apiClient.js";
 
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
@@ -190,7 +190,6 @@ export type TransportRunnerConfig = {
      */
     createSessionConfig?: CreateSessionConfigFn;
 
-
     /**
      * An optional factory function to generates an instance of
      * `ApiClient`. When not provided, MongoDB MCP Server uses an
@@ -283,13 +282,16 @@ export abstract class TransportRunnerBase {
             deviceId: this.deviceId,
         });
 
-        const apiClient = this.createApiClient({
-            baseUrl: userConfig.apiBaseUrl,
-            credentials: {
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
+        const apiClient = this.createApiClient(
+            {
+                baseUrl: userConfig.apiBaseUrl,
+                credentials: {
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
+                },
             },
-        }, logger);
+            logger
+        );
 
         const session = new Session({
             userConfig,

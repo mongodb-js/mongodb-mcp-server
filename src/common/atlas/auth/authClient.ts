@@ -1,6 +1,5 @@
 import type { Middleware } from "openapi-fetch";
 import type { LoggerBase } from "../../logger.js";
-import type { UserConfig } from "../../config/userConfig.js";
 import { ClientCredentialsAuthClient } from "./clientCredentials.js";
 
 export interface AccessToken {

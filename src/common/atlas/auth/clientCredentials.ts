@@ -3,7 +3,7 @@ import type { Middleware } from "openapi-fetch";
 import type { LoggerBase } from "../../logger.js";
 import { LogId } from "../../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
-import { AccessToken, AuthClient } from "./authClient.js";
+import type { AccessToken, AuthClient } from "./authClient.js";
 
 export interface ClientCredentialsAuthOptions {
     clientId: string;
@@ -42,9 +42,11 @@ export class ClientCredentialsAuthClient implements AuthClient {
 
     public async authHeaders(): Promise<Record<string, string> | undefined> {
         const accessToken = await this.getAccessToken();
-        return accessToken ? {
-            Authorization: `Bearer ${accessToken}`,
-        } : undefined;
+        return accessToken
+            ? {
+                  Authorization: `Bearer ${accessToken}`,
+              }
+            : undefined;
     }
 
     public hasCredentials(): boolean {
@@ -149,7 +151,7 @@ export class ClientCredentialsAuthClient implements AuthClient {
 
     public createAuthMiddleware(): Middleware {
         return {
-            onRequest: async ({ request, schemaPath }) => {
+            onRequest: async ({ request, schemaPath }): Promise<Request | undefined> => {
                 if (schemaPath.startsWith("/api/private/unauth") || schemaPath.startsWith("/api/oauth")) {
                     return undefined;
                 }

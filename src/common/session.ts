@@ -1,6 +1,6 @@
 import { ObjectId } from "bson";
-import { ApiClient, createAtlasApiClient } from "./atlas/apiClient.js";
-import { AuthClientBuilder } from "./atlas/auth/authClient.js";
+import type { ApiClient } from "./atlas/apiClient.js";
+import { createAtlasApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger } from "./logger.js";
 import { LogId } from "./logger.js";
@@ -66,7 +66,7 @@ export class Session extends EventEmitter<SessionEvents> {
         keychain,
         atlasLocalClient,
         vectorSearchEmbeddingsManager,
-        apiClient
+        apiClient,
     }: SessionOptions) {
         super();
 
@@ -74,13 +74,18 @@ export class Session extends EventEmitter<SessionEvents> {
         this.keychain = keychain;
         this.logger = logger;
 
-        this.apiClient = apiClient ?? createAtlasApiClient({
-            baseUrl: userConfig.apiBaseUrl,
-            credentials: {
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            },
-        }, logger);
+        this.apiClient =
+            apiClient ??
+            createAtlasApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                },
+                logger
+            );
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
