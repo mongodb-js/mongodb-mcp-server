@@ -56,7 +56,9 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
         let ipAddress: string = "";
 
         beforeAll(async () => {
-            const apiClient = integration.mcpServer().session.apiClient;
+            const session = integration.mcpServer().session;
+            assertApiClientIsAvailable(session);
+            const apiClient = session.apiClient;
 
             // check that it has credentials
             if (!apiClient.hasCredentials()) {
@@ -80,8 +82,9 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             if (!projectId) {
                 return;
             }
-
-            const apiClient = integration.mcpServer().session.apiClient;
+            const session = integration.mcpServer().session;
+            assertApiClientIsAvailable(session);
+            const apiClient = session.apiClient;
 
             try {
                 await apiClient.deleteGroup({
@@ -158,6 +161,7 @@ export async function assertClusterIsAvailable(
     projectId: string,
     clusterName: string
 ): Promise<boolean> {
+    assertApiClientIsAvailable(session);
     try {
         await session.apiClient.getCluster({
             params: {
@@ -173,12 +177,19 @@ export async function assertClusterIsAvailable(
     }
 }
 
+export function assertApiClientIsAvailable(session: Session): asserts session is Session & { apiClient: ApiClient } {
+    if (!session.apiClient) {
+        throw new Error("apiClient not available");
+    }
+}
+
 export async function deleteCluster(
     session: Session,
     projectId: string,
     clusterName: string,
     shouldWaitTillClusterIsDeleted: boolean = false
 ): Promise<void> {
+    assertApiClientIsAvailable(session);
     await session.apiClient.deleteCluster({
         params: {
             path: {
@@ -217,6 +228,9 @@ export async function waitCluster(
     pollingInterval: number = 1000,
     maxPollingIterations: number = 300
 ): Promise<void> {
+    if (!session.apiClient) {
+        throw new Error("apiClient not available");
+    }
     for (let i = 0; i < maxPollingIterations; i++) {
         const cluster = await session.apiClient.getCluster({
             params: {
@@ -243,8 +257,6 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
             const clusterName: string = `test-cluster-${randomId()}`;
 
             beforeAll(async () => {
-                const apiClient = integration.mcpServer().session.apiClient;
-
                 const projectId = getProjectId();
 
                 const input = {
@@ -268,8 +280,9 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
                     ],
                     terminationProtectionEnabled: false,
                 } as unknown as ClusterDescription20240805;
-
-                await apiClient.createCluster({
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                await session.apiClient.createCluster({
                     params: {
                         path: {
                             groupId: projectId,
@@ -284,7 +297,9 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
             });
 
             afterAll(async () => {
-                const apiClient = integration.mcpServer().session.apiClient;
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const apiClient = session.apiClient;
 
                 try {
                     // send the delete request and ignore errors

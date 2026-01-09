@@ -1,14 +1,21 @@
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { LoggerBase } from "./logger.js";
 import { LogId } from "./logger.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
 
-export class SessionStore {
+/**
+ * Minimal interface for a transport that can be stored in a SessionStore.
+ * The transport must have a close method for cleanup.
+ */
+export type CloseableTransport = {
+    close(): Promise<void>;
+};
+
+export class SessionStore<T extends CloseableTransport = CloseableTransport> {
     private sessions: {
         [sessionId: string]: {
             logger: LoggerBase;
-            transport: StreamableHTTPServerTransport;
+            transport: T;
             abortTimeout: ManagedTimeout;
             notificationTimeout: ManagedTimeout;
         };
@@ -30,7 +37,7 @@ export class SessionStore {
         }
     }
 
-    getSession(sessionId: string): StreamableHTTPServerTransport | undefined {
+    getSession(sessionId: string): T | undefined {
         this.resetTimeout(sessionId);
         return this.sessions[sessionId]?.transport;
     }
@@ -63,7 +70,7 @@ export class SessionStore {
         });
     }
 
-    setSession(sessionId: string, transport: StreamableHTTPServerTransport, logger: LoggerBase): void {
+    setSession(sessionId: string, transport: T, logger: LoggerBase): void {
         const session = this.sessions[sessionId];
         if (session) {
             throw new Error(`Session ${sessionId} already exists`);
