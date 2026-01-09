@@ -25,11 +25,11 @@ export class ListClustersTool extends AtlasToolBase {
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (!projectId) {
-            const data = await this.session.apiClient.listClusterDetails();
+            const data = await this.apiClient.listClusterDetails();
 
             return this.formatAllClustersTable(data);
         } else {
-            const project = await this.session.apiClient.getGroup({
+            const project = await this.apiClient.getGroup({
                 params: {
                     path: {
                         groupId: projectId,
@@ -41,7 +41,7 @@ export class ListClustersTool extends AtlasToolBase {
                 throw new Error(`Project with ID "${projectId}" not found.`);
             }
 
-            const data = await this.session.apiClient.listClusters({
+            const data = await this.apiClient.listClusters({
                 params: {
                     path: {
                         groupId: project.id || "",

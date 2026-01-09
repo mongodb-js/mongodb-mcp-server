@@ -44,7 +44,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
-    readonly apiClient: ApiClient;
+    readonly apiClient?: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
@@ -71,15 +71,16 @@ export class Session extends EventEmitter<SessionEvents> {
         this.userConfig = userConfig;
         this.keychain = keychain;
         this.logger = logger;
-        const credentials: ApiClientCredentials | undefined =
-            userConfig.apiClientId && userConfig.apiClientSecret
-                ? {
-                      clientId: userConfig.apiClientId,
-                      clientSecret: userConfig.apiClientSecret,
-                  }
-                : undefined;
 
-        this.apiClient = new ApiClient({ baseUrl: userConfig.apiBaseUrl, credentials }, logger);
+        // Only create API client if Atlas tools are enabled (credentials are provided)
+        if (userConfig.apiClientId && userConfig.apiClientSecret) {
+            const credentials: ApiClientCredentials = {
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
+            };
+            this.apiClient = new ApiClient({ baseUrl: userConfig.apiBaseUrl, credentials }, logger);
+        }
+
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
@@ -115,7 +116,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
         await this.connectionManager.close();
 
-        if (atlasCluster?.username && atlasCluster?.projectId) {
+        if (atlasCluster?.username && atlasCluster?.projectId && this.apiClient) {
             void this.apiClient
                 .deleteDatabaseUser({
                     params: {
@@ -139,7 +140,9 @@ export class Session extends EventEmitter<SessionEvents> {
 
     async close(): Promise<void> {
         await this.disconnect();
-        await this.apiClient.close();
+        if (this.apiClient) {
+            await this.apiClient.close();
+        }
         await this.exportsManager.close();
         this.emit("close");
     }

@@ -48,7 +48,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         roles,
         clusters,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
+        await ensureCurrentIpInAccessList(this.apiClient, projectId);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();
@@ -72,7 +72,7 @@ export class CreateDBUserTool extends AtlasToolBase {
                 : undefined,
         } as CloudDatabaseUser;
 
-        await this.session.apiClient.createDatabaseUser({
+        await this.apiClient.createDatabaseUser({
             params: {
                 path: {
                     groupId: projectId,

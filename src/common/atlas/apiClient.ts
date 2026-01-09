@@ -42,9 +42,7 @@ export class ApiClient {
     // with the URL. However, fetch can also receive a Request object. While
     // the typechecking complains, createFetch does passthrough the parameters
     // so it works fine.
-    private static customFetch: typeof fetch = createFetch({
-        useEnvironmentVariableProxies: true,
-    }) as unknown as typeof fetch;
+    private customFetch: typeof fetch;
 
     private client: Client<paths>;
 
@@ -99,6 +97,9 @@ export class ApiClient {
         options: ApiClientOptions,
         public readonly logger: LoggerBase
     ) {
+        this.customFetch = createFetch({
+            useEnvironmentVariableProxies: true,
+        }) as unknown as typeof fetch;
         this.options = {
             ...options,
             userAgent:
@@ -112,7 +113,7 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
                 Accept: `application/vnd.atlas.${ATLAS_API_VERSION}+json`,
             },
-            fetch: ApiClient.customFetch,
+            fetch: this.customFetch,
             // NodeFetchRequest has more overloadings than the native Request
             // so it complains here. However, the interfaces are actually compatible
             // so it's not a real problem, just a type checking problem.
@@ -170,7 +171,7 @@ export class ApiClient {
                     clientAuth,
                     new URLSearchParams(),
                     {
-                        [oauth.customFetch]: ApiClient.customFetch,
+                        [oauth.customFetch]: this.customFetch,
                         headers: {
                             "User-Agent": this.options.userAgent,
                         },
