@@ -13,6 +13,7 @@ import type { PreviewFeature } from "../common/schemas.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
+import { getRandomUUID } from "../helpers/getRandomUUID.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -818,7 +819,7 @@ export abstract class ToolBase {
  * @returns A tool response content that can be directly returned.
  */
 export function formatUntrustedData(description: string, ...data: string[]): { text: string; type: "text" }[] {
-    const uuid = crypto.randomUUID();
+    const uuid = getRandomUUID();
 
     const openingTag = `<untrusted-user-data-${uuid}>`;
     const closingTag = `</untrusted-user-data-${uuid}>`;

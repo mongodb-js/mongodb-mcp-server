@@ -151,7 +151,9 @@ export class Server {
             >
         ).get(CallToolRequestSchema.shape.method.value);
 
-        assert(existingHandler, "No existing handler found for CallToolRequestSchema");
+        if (!existingHandler) {
+            throw new Error("No existing handler found for CallToolRequestSchema");
+        }
 
         this.mcpServer.server.setRequestHandler(CallToolRequestSchema, (request, extra): Promise<CallToolResult> => {
             if (!request.params.arguments) {
