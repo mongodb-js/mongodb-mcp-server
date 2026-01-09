@@ -44,3 +44,4 @@ export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
 export { Elicitation } from "./elicitation.js";
 export { applyConfigOverrides } from "./common/config/configOverrides.js";
+export { ApiClient, type ApiClientOptions } from "./common/atlas/apiClient.js";
