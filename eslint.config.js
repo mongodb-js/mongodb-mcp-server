@@ -94,14 +94,6 @@ export default defineConfig([
                     ],
                 },
             ],
-            "no-restricted-globals": [
-                "error",
-                {
-                    name: "assert",
-                    message:
-                        "Use explicit error handling or test framework assertions (e.g., vitest's expect) instead of the global assert.",
-                },
-            ],
         },
     },
     globalIgnores([

@@ -44,13 +44,23 @@ describe("getRandomUUID", () => {
         });
 
         it("should fall back to Web Crypto API when Node.js crypto fails", () => {
-            // Note: In Node.js environment, require('crypto') will always succeed,
-            // so this test verifies that the function produces a valid UUID
-            // In a real browser environment, it would fall back to Web Crypto API
+            // Mock require to throw an error
+            global.require = vi.fn().mockImplementation(() => {
+                throw new Error("Cannot find module 'crypto'");
+            }) as unknown as NodeJS.Require;
+
+            // Mock globalThis.crypto with randomUUID function
+            const mockRandomUUID = vi.fn(() => "12345678-1234-1234-1234-123456789abc");
+            vi.stubGlobal("crypto", {
+                randomUUID: mockRandomUUID,
+            });
+
             const uuid = getRandomUUID();
 
-            // Should still produce a valid UUID
+            // Should use Web Crypto API
+            expect(mockRandomUUID).toHaveBeenCalled();
             expect(uuid).toMatch(UUID_REGEX);
+            expect(uuid).toBe("12345678-1234-1234-1234-123456789abc");
         });
 
         it("should fall back to BSON UUID when both crypto methods are unavailable", () => {
