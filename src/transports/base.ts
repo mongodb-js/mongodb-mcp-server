@@ -289,6 +289,7 @@ export abstract class TransportRunnerBase {
                     clientId: userConfig.apiClientId,
                     clientSecret: userConfig.apiClientSecret,
                 },
+                requestContext: request,
             },
             logger
         );
