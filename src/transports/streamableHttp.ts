@@ -15,7 +15,7 @@ const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
 export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
-    private sessionStore!: SessionStore;
+    private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
 
     constructor(config: TransportRunnerConfig) {
         super(config);
