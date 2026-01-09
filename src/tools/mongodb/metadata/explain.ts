@@ -15,6 +15,12 @@ export class ExplainTool extends MongoDBToolBase {
 
     public argsShape = {
         ...DbOperationArgs,
+        // Note: Although it is not required to wrap the discriminated union in
+        // an array here because we only expect exactly one method to be
+        // provided here, we unfortunately cannot use the discriminatedUnion as
+        // is because Cursor is unable to construct payload for tool calls where
+        // the input schema contains a discriminated union without such
+        // wrapping. This is a workaround for enabling the tool calls on Cursor.
         method: z
             .array(
                 z.discriminatedUnion("name", [

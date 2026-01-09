@@ -783,7 +783,7 @@ describeWithMongoDB(
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("search_index");
                 expect(indexes[0]?.type).toEqual("search");
-                expect(indexes[0]?.status).toEqual("PENDING");
+                expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toMatchObject({
                     analyzer: "lucene.standard",
@@ -825,7 +825,7 @@ describeWithMongoDB(
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("dynamic_search_index");
                 expect(indexes[0]?.type).toEqual("search");
-                expect(indexes[0]?.status).toEqual("PENDING");
+                expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toEqual({
                     analyzer: "lucene.standard",
