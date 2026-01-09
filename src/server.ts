@@ -15,7 +15,6 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import assert from "assert";
 import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
@@ -151,7 +150,9 @@ export class Server {
             >
         ).get(CallToolRequestSchema.shape.method.value);
 
-        assert(existingHandler, "No existing handler found for CallToolRequestSchema");
+        if (!existingHandler) {
+            throw new Error("No existing handler found for CallToolRequestSchema");
+        }
 
         this.mcpServer.server.setRequestHandler(CallToolRequestSchema, (request, extra): Promise<CallToolResult> => {
             if (!request.params.arguments) {
