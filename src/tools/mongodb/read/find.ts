@@ -29,10 +29,6 @@ export const FindArgs = {
         .describe(
             "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort(). The keys of the object are the fields to sort on, while the values are the sort directions (1 for ascending, -1 for descending)."
         ),
-    responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
-Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
-`),
 };
 
 export class FindTool extends MongoDBToolBase {
@@ -41,6 +37,10 @@ export class FindTool extends MongoDBToolBase {
     public argsShape = {
         ...DbOperationArgs,
         ...FindArgs,
+        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
+The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
+Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
+`),
     };
     static operationType: OperationType = "read";
 

@@ -77,6 +77,23 @@ export default defineConfig([
         },
         rules: {
             "enforce-zod-v4/enforce-zod-v4": "error",
+            "no-restricted-imports": [
+                "error",
+                {
+                    paths: [
+                        {
+                            name: "assert",
+                            message:
+                                "Use explicit error handling or test framework assertions (e.g., vitest's expect) instead.",
+                        },
+                        {
+                            name: "node:assert",
+                            message:
+                                "Use explicit error handling or test framework assertions (e.g., vitest's expect) instead.",
+                        },
+                    ],
+                },
+            ],
         },
     },
     globalIgnores([
