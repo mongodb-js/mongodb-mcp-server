@@ -96,6 +96,13 @@ export default defineConfig([
             ],
         },
     },
+    {
+        files: testFiles,
+        rules: {
+            /** Allow null assertions in test files */
+            "@typescript-eslint/no-non-null-assertion": "off",
+        },
+    },
     globalIgnores([
         "node_modules",
         "dist",

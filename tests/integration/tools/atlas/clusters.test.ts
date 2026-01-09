@@ -8,6 +8,7 @@ import {
     deleteCluster,
     waitCluster,
     sleep,
+    assertApiClientIsAvailable,
 } from "./atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it, vitest } from "vitest";
 
@@ -54,6 +55,7 @@ describeWithAtlas("clusters", (integration) => {
                 expect(content).toContain("has been created");
                 expect(content).toContain("US_EAST_1");
 
+                assertApiClientIsAvailable(session);
                 // Check that the current IP is present in the access list
                 const accessList = await session.apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
@@ -123,7 +125,9 @@ describeWithAtlas("clusters", (integration) => {
                         (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !== undefined
                     );
                 });
-                await integration.mcpServer().session.apiClient.createAccessListEntry({
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                await session.apiClient.createAccessListEntry({
                     params: {
                         path: {
                             groupId: projectId,
@@ -150,10 +154,9 @@ describeWithAtlas("clusters", (integration) => {
             });
 
             it("connects to cluster", async () => {
-                const createDatabaseUserSpy = vitest.spyOn(
-                    integration.mcpServer().session.apiClient,
-                    "createDatabaseUser"
-                );
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const createDatabaseUserSpy = vitest.spyOn(session.apiClient, "createDatabaseUser");
 
                 const projectId = getProjectId();
                 const connectionType = "standard";
@@ -219,10 +222,9 @@ describeWithAtlas("clusters", (integration) => {
                         });
 
                         it("disconnects and deletes the database user before connecting to another cluster", async () => {
-                            const deleteDatabaseUserSpy = vitest.spyOn(
-                                integration.mcpServer().session.apiClient,
-                                "deleteDatabaseUser"
-                            );
+                            const session = integration.mcpServer().session;
+                            assertApiClientIsAvailable(session);
+                            const deleteDatabaseUserSpy = vitest.spyOn(session.apiClient, "deleteDatabaseUser");
 
                             await integration.mcpClient().callTool({
                                 name: "atlas-connect-cluster",
