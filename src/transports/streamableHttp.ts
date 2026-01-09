@@ -1,6 +1,6 @@
 import express from "express";
 import type http from "http";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
@@ -34,6 +34,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     }
 
     async start(): Promise<void> {
+        const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+
         const app = express();
         this.sessionStore = new SessionStore(
             this.userConfig.idleTimeoutMs,
@@ -117,6 +119,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 };
                 const server = await this.setupServer(request);
                 let keepAliveLoop: NodeJS.Timeout;
+
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: (): string => getRandomUUID(),
                     onsessioninitialized: (sessionId): void => {
