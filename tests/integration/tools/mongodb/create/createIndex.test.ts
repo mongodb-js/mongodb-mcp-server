@@ -544,7 +544,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
@@ -582,7 +582,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 // Try to create another vector search index with the same name
@@ -629,7 +629,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const classicResponse = await integration.mcpClient().callTool({
@@ -776,7 +776,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
@@ -818,7 +818,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "dynamic_search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "dynamic_search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
@@ -859,7 +859,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 // Try to create another search index with the same name
@@ -907,7 +907,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "my-search-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "my-search-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const classicResponse = await integration.mcpClient().callTool({

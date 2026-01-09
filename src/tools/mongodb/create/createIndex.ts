@@ -191,7 +191,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 break;
             case "vectorSearch":
                 {
-                    await this.ensureSearchIsSupported();
+                    await this.session.assertSearchSupported();
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -203,7 +203,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                     ]);
 
                     responseClarification =
-                        " Since this is a vector search index, it may take a while for the index to build. Use the `list-indexes` tool to check the index status.";
+                        " Since this is a vector search index, it may take a while for the index to build. Use the `collection-indexes` tool to check the index status.";
 
                     // clean up the embeddings cache so it considers the new index
                     this.session.vectorSearchEmbeddingsManager.cleanupEmbeddingsForNamespace({ database, collection });
@@ -212,7 +212,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 break;
             case "search":
                 {
-                    await this.ensureSearchIsSupported();
+                    await this.session.assertSearchSupported();
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -226,7 +226,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                     ]);
 
                     responseClarification =
-                        " Since this is a search index, it may take a while for the index to build. Use the `list-indexes` tool to check the index status.";
+                        " Since this is a search index, it may take a while for the index to build. Use the `collection-indexes` tool to check the index status.";
                 }
 
                 break;
