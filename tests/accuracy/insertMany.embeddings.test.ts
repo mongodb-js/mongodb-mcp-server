@@ -60,7 +60,7 @@ describeAccuracyTests(
             ],
         },
         {
-            prompt: "Insert a document into 'mflix.movies' collection with following fields: title is 'The Matrix', plotSummary is 'A computer hacker learns about the true nature of his reality', generate the necesssary vector embeddings for the 'plotSummaryEmbeddings' field using the voyage-3.5 model. Assume the collection already exists and has vector index on the 'plotSummaryEmbeddings' field.",
+            prompt: "Insert a document into 'mflix.movies' collection with following fields: title is 'The Matrix', plotSummary is 'A computer hacker learns about the true nature of his reality', embeddings for plotSummary is stored in plotSummaryEmbeddings field, generate the necesssary vector embeddings for the 'plotSummaryEmbeddings' field using the voyage-3.5 model. Assume the collection already exists and has vector index on the 'plotSummaryEmbeddings' field.",
             expectedToolCalls: [
                 {
                     toolName: "insert-many",
@@ -88,7 +88,7 @@ describeAccuracyTests(
             ],
         },
         {
-            prompt: "Insert 2 documents in one call into 'mflix.movies' collection - the movie titles are 1. 'The Matrix' and 2. 'Blade Runner'.  They should have an info field which has 2 subfields: 'title' and 'titleEmbeddings'. Generate the embeddings for the 'info.titleEmbeddings' subfield using the voyage-3.5 model. Assume the collection already exists and has vector index on the 'info.titleEmbeddings' field.",
+            prompt: "Insert 2 documents in one call into 'mflix.movies' collection - the movie titles are 1. 'The Matrix' and 2. 'Blade Runner'. The documents should only have an info field which will have 2 subfields: 'title' and 'titleEmbeddings'. Generate the embeddings for the 'info.titleEmbeddings' subfield using the voyage-3.5 model. Assume the collection already exists and has vector index on the 'info.titleEmbeddings' field.",
             expectedToolCalls: [
                 {
                     toolName: "insert-many",
