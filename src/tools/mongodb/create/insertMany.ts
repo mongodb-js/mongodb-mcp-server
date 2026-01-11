@@ -13,7 +13,7 @@ const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.ext
     input: z
         .array(z.object({}).passthrough())
         .describe(
-            "Array of objects with vector search index fields as keys (in dot notation) and the raw text values to generate embeddings for as values. The index of each object corresponds to the index of the document in the documents array."
+            "Array of objects with field paths as keys (in dot notation) and raw text values as values for generating embeddings. Only include fields with classic vector search indexes (type: 'vector') that require manual embedding generation. Do NOT include fields with auto-embed indexes (type: 'autoEmbed'), as MongoDB automatically generates embeddings for those fields. The array index of each object corresponds to the array index of the document in the documents array."
         ),
 });
 
@@ -36,7 +36,7 @@ export class InsertManyTool extends MongoDBToolBase {
               embeddingParameters: zSupportedEmbeddingParametersWithInput
                   .optional()
                   .describe(
-                      "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
+                      "The embedding model and its parameters to use for generating embeddings for fields with classic vector search indexes (type: 'vector'). Only provide this parameter when inserting documents into collections with classic vector indexes that require manual embedding generation. Do NOT provide this for fields with auto-embed indexes (type: 'autoEmbed'), as MongoDB automatically generates embeddings for those at indexing time. Note to LLM: Use the collection-indexes tool to verify which fields have which type of vector search index before deciding whether to provide this parameter. If unsure which embedding model to use, ask the user before providing one."
                   ),
           }
         : commonArgs;
@@ -95,7 +95,9 @@ export class InsertManyTool extends MongoDBToolBase {
             return documents;
         }
 
-        // Get vector search indexes for the collection
+        // Get vector search indexes for the collection.
+        // Note: embeddingsForNamespace() only returns fields that require manual embedding generation,
+        // excluding fields with auto-embedding indexes where MongoDB generates embeddings automatically.
         const vectorIndexes = await this.session.vectorSearchEmbeddingsManager.embeddingsForNamespace({
             database,
             collection,
@@ -107,7 +109,7 @@ export class InsertManyTool extends MongoDBToolBase {
                 if (!vectorIndexes.some((index) => index.path === fieldPath)) {
                     throw new MongoDBError(
                         ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        `Field '${fieldPath}' does not have a vector search index in collection ${database}.${collection}. Only fields with vector search indexes can have embeddings generated.`
+                        `Field '${fieldPath}' cannot be used with embeddingParameters because it does not have a classic vector search index (type: 'vector') configured for manual embedding generation in collection ${database}.${collection}. This field either has no vector search index, or it has an auto-embed index (type: 'autoEmbed') where MongoDB automatically generates embeddings at indexing time. Use the collection-indexes tool to verify the index configuration for this field. If it has an auto-embed index, remove it from embeddingParameters and provide the raw text directly in the document instead.`
                     );
                 }
             }
