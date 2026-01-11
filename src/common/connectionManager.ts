@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import type { MongoClientOptions } from "mongodb";
+import type { MongoClientOptions, MongoServerError } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
@@ -33,6 +33,8 @@ export interface ConnectionState {
 }
 
 const MCP_TEST_DATABASE = "#mongodb-mcp";
+const MCP_TEST_VECTOR_SEARCH_INDEX_FIELD = "__mongodb-mcp-field";
+const MCP_TEST_VECTOR_SEARCH_INDEX_NAME = "mongodb-mcp-vector-search-index";
 
 export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     readConcern: {
@@ -56,23 +58,72 @@ export class ConnectionStateConnected implements ConnectionState {
         public connectedAtlasCluster?: AtlasClusterConnectionInfo
     ) {}
 
-    private _isSearchSupported?: boolean;
+    private connectionMetadata?: { searchSupported: boolean; autoEmbeddingIndexSupported: boolean };
+
+    private async populateConnectionMetadata(): Promise<void> {
+        try {
+            await this.serviceProvider.createCollection(MCP_TEST_DATABASE, "test");
+            // If a cluster supports search indexes, the call below will succeed
+            // with a cursor otherwise will throw an Error. The Search Index
+            // Management Service might not be ready yet, but we assume that the
+            // agent can retry in that situation.
+            await this.serviceProvider.createSearchIndexes(MCP_TEST_DATABASE, "test", [
+                {
+                    name: MCP_TEST_VECTOR_SEARCH_INDEX_NAME,
+                    type: "vectorSearch",
+                    definition: {
+                        fields: [
+                            {
+                                // TODO: Before public preview this needs to be
+                                // changed to either "autoEmbedText" or "autoEmbed"
+                                // depending on which syntax is finalized.
+                                type: "text",
+                                path: MCP_TEST_VECTOR_SEARCH_INDEX_FIELD,
+                                model: "voyage-3-large",
+                            },
+                        ],
+                    },
+                },
+            ]);
+            this.connectionMetadata = {
+                searchSupported: true,
+                autoEmbeddingIndexSupported: true,
+            };
+        } catch (error) {
+            if ((error as MongoServerError).codeName === "SearchNotEnabled") {
+                this.connectionMetadata = {
+                    searchSupported: false,
+                    autoEmbeddingIndexSupported: false,
+                };
+            }
+            // If the error if because we tried creating an index with autoEmbed
+            // field definition then we can safely assume that search is
+            // supported but auto-embeddings are not.
+            else if ((error as Error).message.includes('"userCommand.indexes[0].fields[0].type" must be one of')) {
+                this.connectionMetadata = {
+                    searchSupported: true,
+                    autoEmbeddingIndexSupported: false,
+                };
+            }
+        } finally {
+            await this.serviceProvider.dropDatabase(MCP_TEST_DATABASE);
+        }
+    }
 
     public async isSearchSupported(): Promise<boolean> {
-        if (this._isSearchSupported === undefined) {
-            try {
-                // If a cluster supports search indexes, the call below will succeed
-                // with a cursor otherwise will throw an Error.
-                // the Search Index Management Service might not be ready yet, but
-                // we assume that the agent can retry in that situation.
-                await this.serviceProvider.getSearchIndexes(MCP_TEST_DATABASE, "test");
-                this._isSearchSupported = true;
-            } catch {
-                this._isSearchSupported = false;
-            }
+        if (this.connectionMetadata === undefined) {
+            await this.populateConnectionMetadata();
         }
 
-        return this._isSearchSupported;
+        return this.connectionMetadata?.searchSupported ?? false;
+    }
+
+    public async isAutoEmbeddingIndexSupported(): Promise<boolean> {
+        if (this.connectionMetadata === undefined) {
+            await this.populateConnectionMetadata();
+        }
+
+        return this.connectionMetadata?.autoEmbeddingIndexSupported ?? false;
     }
 }
 
