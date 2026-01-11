@@ -331,9 +331,7 @@ describeWithMongoDB(
             await integration.connectMcpClient();
             collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
             await waitUntilSearchIsReady(integration.mongoClient());
-        });
 
-        beforeEach(async () => {
             await collection.insertMany([
                 {
                     plot: "A really bad alien movie.",
