@@ -7,62 +7,97 @@ import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsM
 import { similarityValues } from "../../../common/schemas.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
+    private filterFieldSchema = z
+        .object({
+            type: z.literal("filter"),
+            path: z
+                .string()
+                .describe(
+                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                ),
+        })
+        .strict()
+        .describe("Definition for a field that will be used for pre-filtering results.");
+
+    private vectorFieldSchema = z
+        .object({
+            type: z.literal("vector"),
+            path: z
+                .string()
+                .describe(
+                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                ),
+            numDimensions: z
+                .number()
+                .min(1)
+                .max(8192)
+                .default(this.config.vectorSearchDimensions)
+                .describe(
+                    "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
+                ),
+            similarity: z
+                .enum(similarityValues)
+                .default(this.config.vectorSearchSimilarityFunction)
+                .describe(
+                    "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
+                ),
+            quantization: quantizationEnum
+                .default("none")
+                .describe(
+                    "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
+                ),
+        })
+        .strict()
+        .describe("Definition for a field that contains vector embeddings.");
+
+    private autoEmbedFieldSchema = z
+        .object({
+            type: z.literal("autoEmbed"),
+            path: z
+                .string()
+                .describe(
+                    "Name of the field to index containing the source text from which embeddings will be automatically generated. For nested fields, use dot notation to specify the path to embedded fields."
+                ),
+            model: z
+                .enum(["voyage-4", "voyage-4-large", "voyage-4-lite", "voyage-code-3"])
+                .describe(
+                    "Voyage embedding model to use for automatically generating embeddings from the source text in the indexed field."
+                ),
+            modality: z
+                .enum(["text"])
+                .describe(
+                    "The data type / modality of the source content in the indexed field. Currently only 'text' is supported."
+                ),
+
+            // We don't support specifying `hnswOptions` even in the current vector
+            // search implementation. Following the same idea, we won't support
+            // `hnswOptions` for `autoEmbedText` field definition as well.
+            // hnswOptions: z.object({})
+        })
+        .strict()
+        .describe(
+            "Definition for a field containing source text from which embeddings will be automatically generated at indexing time. Use this instead of 'vector' type when you want MongoDB to handle embedding generation. If uncertain about which embedding model to use, ask the user."
+        );
+
     private vectorSearchIndexDefinition = z
         .object({
             type: z.literal("vectorSearch"),
             fields: z
                 .array(
                     z.discriminatedUnion("type", [
-                        z
-                            .object({
-                                type: z.literal("filter"),
-                                path: z
-                                    .string()
-                                    .describe(
-                                        "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                                    ),
-                            })
-                            .strict()
-                            .describe("Definition for a field that will be used for pre-filtering results."),
-                        z
-                            .object({
-                                type: z.literal("vector"),
-                                path: z
-                                    .string()
-                                    .describe(
-                                        "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                                    ),
-                                numDimensions: z
-                                    .number()
-                                    .min(1)
-                                    .max(8192)
-                                    .default(this.config.vectorSearchDimensions)
-                                    .describe(
-                                        "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
-                                    ),
-                                similarity: z
-                                    .enum(similarityValues)
-                                    .default(this.config.vectorSearchSimilarityFunction)
-                                    .describe(
-                                        "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
-                                    ),
-                                quantization: quantizationEnum
-                                    .default("none")
-                                    .describe(
-                                        "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
-                                    ),
-                            })
-                            .strict()
-                            .describe("Definition for a field that contains vector embeddings."),
+                        this.filterFieldSchema,
+                        this.vectorFieldSchema,
+                        this.autoEmbedFieldSchema,
                     ])
                 )
                 .nonempty()
-                .refine((fields) => fields.some((f) => f.type === "vector"), {
-                    message: "At least one vector field must be defined",
-                })
-                .describe(
-                    "Definitions for the vector and filter fields to index, one definition per document. You must specify `vector` for fields that contain vector embeddings and `filter` for additional fields to filter on. At least one vector-type field definition is required."
-                ),
+                .refine((fields) => fields.some((f) => f.type === "vector" || f.type === "autoEmbed"), {
+                    message: "At least one field of the type 'vector' or 'autoEmbed' must be defined",
+                }).describe(`\
+Definitions for the vector, autoEmbed and filter fields to index, one definition per document. \
+You must specify 'vector' for fields that contain vector embeddings, 'autoEmbed' for fields for which embeddings must be auto-generated and, \
+'filter' for additional fields to filter on. At least one 'vector' or 'autoEmbed' type field definition is required.\
+`),
         })
         .describe("Definition for a Vector Search index.");
 

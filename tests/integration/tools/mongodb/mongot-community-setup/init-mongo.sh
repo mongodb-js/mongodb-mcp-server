@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+sleep 2
+
+# Use password from container environment variable
+MONGOT_PASSWORD="${MONGOT_PASSWORD}"
+
+mongosh --eval "
+const adminDb = db.getSiblingDB('admin');
+try {
+  adminDb.createUser({
+    user: 'mongotUser',
+    // Note: This is harmless because the containers are ephermeral (limited to test runs)
+    // and we don't store any data in these underlying containers
+    pwd: '${MONGOT_PASSWORD}',
+    roles: [{ role: 'searchCoordinator', db: 'admin' }]
+  });
+} catch (error) {
+  if (error.code !== 11000) {
+    throw error;
+  }
+}
+"

@@ -1,0 +1,75 @@
+services:
+  mongod:
+    image: mongodb/mongodb-community-server:latest
+    command: >-
+      mongod
+      --config /etc/mongod.conf
+      --replSetMember=mongod:27017
+    environment:
+      - MONGOT_PASSWORD
+    ports:
+      # Bind to random available port on host
+      - "0:27017"
+    volumes:
+      - mongod-data:/data/db
+      - ./config/mongod.conf:/etc/mongod.conf:ro
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    healthcheck:
+      test:
+        ["CMD", "mongosh", "--eval", "db.adminCommand('ping').ok", "--quiet"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  mongot:
+    depends_on:
+      - mongod
+    # The public facing docs have the publicly available mongot image but here
+    # we use the image published to the internal registry.
+
+    # Note: To run the tests that depend on this compose file you first need to
+    # login to the internal ECR by following the docs here:
+    # https://github.com/10gen/mongot/blob/master/docs/development/docker.md#authenticate-with-ecr
+    image: 901841024863.dkr.ecr.us-east-1.amazonaws.com/mongot-community/rapid-releases:latest
+    # TODO: Switch to publicly available mongot image once the auto-embed is
+    # also available.
+    # image: mongodb/mongodb-community-search:latest
+    environment:
+      - MONGOT_PASSWORD
+      - VOYAGE_QUERY_KEY
+      - VOYAGE_INDEXING_KEY
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        # Write secrets to expected location in container
+        printf '%s' "$$MONGOT_PASSWORD" > /mongot-community/pwfile
+        printf '%s' "$$VOYAGE_QUERY_KEY" > /etc/voyage-api-query-key
+        printf '%s' "$$VOYAGE_INDEXING_KEY" > /etc/voyage-api-indexing-key
+
+        # Ensure readonly permissions for the credentials
+        chmod 400 /mongot-community/pwfile /etc/voyage-api-query-key /etc/voyage-api-indexing-key
+
+        # Enabling this flag allows the underlying mongot to report back the index
+        # building status for the new auto-embed indexes. We should not rely this
+        # for any user-facing features as it is prone to malfunction for
+        # auto-embed indexes.
+        exec /mongot-community/mongot --config=/mongot-community/config.default.yml --internalListAllIndexesForTesting=true
+    volumes:
+      - mongot-data:/data/mongot
+      - ./config/mongot.conf:/mongot-community/config.default.yml
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'curl -f http://localhost:8080/health | grep -q ''"status":"SERVING"''',
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
+volumes:
+  mongod-data:
+  mongot-data:
