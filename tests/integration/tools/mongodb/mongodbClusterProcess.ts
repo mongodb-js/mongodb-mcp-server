@@ -19,7 +19,7 @@ export type MongoAutoEmbedSearchConfiguration = {
      * mongodb. Required for `mongot` instance to effectively communicate with
      * `mongod`.
      *
-     * Expected to be provided through environment variable - `TEST_MONGOT_PASSWORD`
+     * Expected to be provided through environment variable - `MDB_MONGOT_PASSWORD`
      */
     mongotPassword: string;
 
@@ -27,7 +27,7 @@ export type MongoAutoEmbedSearchConfiguration = {
      * The voyage key to be used by `mongod` when auto-generating embeddings for
      * an aggregation.
      *
-     * Expected to be provided through environment variable - `TEST_VOYAGE_QUERY_KEY`
+     * Expected to be provided through environment variable - `MDB_VOYAGE_API_KEY`
      *
      * Note: This can be same as `voyageIndexingKey` but to avoid getting rate
      * limited, it is advised to have these two as different keys.
@@ -38,7 +38,7 @@ export type MongoAutoEmbedSearchConfiguration = {
      * The voyage key to be used by `mongod` when auto-generating embeddings at
      * the time of indexing.
      *
-     * Expected to be provided through environment variable - `TEST_VOYAGE_INDEXING_KEY`
+     * Expected to be provided through environment variable - `MDB_VOYAGE_API_KEY`
      *
      * Note: This can be same as `voyageQueryKey` but to avoid getting rate
      * limited, it is advised to have these two as different keys.
