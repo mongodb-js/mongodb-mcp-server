@@ -10,7 +10,14 @@ import {
     getResponseElements,
     setupIntegrationTest,
 } from "../../helpers.js";
-import { describeWithAtlas, withProject, randomId, waitCluster, deleteCluster } from "./atlasHelpers.js";
+import {
+    describeWithAtlas,
+    withProject,
+    randomId,
+    waitCluster,
+    deleteCluster,
+    assertApiClientIsAvailable,
+} from "./atlasHelpers.js";
 import type { Mock, MockInstance } from "vitest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BaseEvent, ToolEvent } from "../../../../src/telemetry/types.js";
@@ -31,7 +38,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
             beforeAll(async () => {
                 const projectId = getProjectId();
                 const session = integration.mcpServer().session;
-
+                assertApiClientIsAvailable(session);
                 await session.apiClient.createCluster({
                     params: {
                         path: {
@@ -97,7 +104,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
             it("returns performance advisor data from a paid tier cluster", async () => {
                 const projectId = getProjectId();
                 const session = integration.mcpServer().session;
-
+                assertApiClientIsAvailable(session);
                 await session.apiClient.getCluster({
                     params: {
                         path: {
@@ -221,7 +228,7 @@ describe("mocked atlas-get-performance-advisor", () => {
                 standard: "mongodb://test-cluster.mongodb.net:27017",
             },
         });
-
+        assertApiClientIsAvailable(session);
         session.apiClient.listClusterSuggestedIndexes = mockSuggestedIndexes;
         session.apiClient.listDropIndexSuggestions = mockDropIndexSuggestions;
         session.apiClient.listSchemaAdvice = mockSchemaAdvice;

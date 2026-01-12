@@ -316,6 +316,9 @@ export class Server {
         // Validate API client credentials
         if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
             try {
+                if (!this.session.apiClient) {
+                    throw new Error("API client is not available.");
+                }
                 if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
                     const message =
                         "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";

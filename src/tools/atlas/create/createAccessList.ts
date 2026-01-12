@@ -43,7 +43,7 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         if (currentIpAddress) {
             const input = await makeCurrentIpAccessListEntry(
-                this.session.apiClient,
+                this.apiClient,
                 projectId,
                 comment || DEFAULT_ACCESS_LIST_COMMENT
             );
@@ -58,7 +58,7 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         const inputs = [...ipInputs, ...cidrInputs];
 
-        await this.session.apiClient.createAccessListEntry({
+        await this.apiClient.createAccessListEntry({
             params: {
                 path: {
                     groupId: projectId,
