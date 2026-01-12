@@ -38,10 +38,6 @@ export class ApiClient {
         };
     };
 
-    // createFetch assumes that the first parameter of fetch is always a string
-    // with the URL. However, fetch can also receive a Request object. While
-    // the typechecking complains, createFetch does passthrough the parameters
-    // so it works fine.
     private customFetch: typeof fetch;
 
     private client: Client<paths>;
@@ -97,6 +93,11 @@ export class ApiClient {
         options: ApiClientOptions,
         public readonly logger: LoggerBase
     ) {
+        // createFetch assumes that the first parameter of fetch is always a string
+        // with the URL. However, fetch can also receive a Request object. While
+        // the typechecking complains, createFetch does passthrough the parameters
+        // so it works fine. That said, node-fetch has incompatibilities with the web version
+        // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
         this.customFetch = createFetch({
             useEnvironmentVariableProxies: true,
         }) as unknown as typeof fetch;
