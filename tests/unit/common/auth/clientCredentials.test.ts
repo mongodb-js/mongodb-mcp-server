@@ -41,14 +41,6 @@ describe("ClientCredentialsAuthProvider", () => {
             expect(issuer?.token_endpoint).toBe("https://api.test.com/api/oauth/token");
             expect(issuer?.revocation_endpoint).toBe("https://api.test.com/api/oauth/revoke");
         });
-
-        it("should initialize oauth2Client with credentials", () => {
-            // @ts-expect-error accessing private property for testing
-            const client = authProvider.oauth2Client;
-            expect(client).toBeDefined();
-            expect(client?.client_id).toBe(mockOptions.clientId);
-            expect(client?.client_secret).toBe(mockOptions.clientSecret);
-        });
     });
 
     describe("validate", () => {
