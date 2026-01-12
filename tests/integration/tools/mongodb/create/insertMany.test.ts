@@ -173,7 +173,7 @@ describeWithMongoDB(
                     name: "embeddingParameters",
                     type: "object",
                     description:
-                        "The embedding model and its parameters to use for generating embeddings for fields with classic vector search indexes (type: 'vector'). Only provide this parameter when inserting documents into collections with classic vector indexes that require manual embedding generation. Do NOT provide this for fields with auto-embed indexes (type: 'autoEmbed'), as MongoDB automatically generates embeddings for those at indexing time. Note to LLM: Use the collection-indexes tool to verify which fields have which type of vector search index before deciding whether to provide this parameter. If unsure which embedding model to use, ask the user before providing one.",
+                        "The embedding model and its parameters to use for generating embeddings for fields indexed with a vector search index and field definition of type 'vector'. Note to LLM: Use the collection-indexes tool to verify which fields have which type of vector search index field definition before deciding whether to provide this parameter. DO NOT provide this parameter if the field is covered by a vector index field definition of type 'autoEmbed' or not covered at all. If unsure which embedding model to use, ask the user before providing one.",
                     required: false,
                 },
             ]

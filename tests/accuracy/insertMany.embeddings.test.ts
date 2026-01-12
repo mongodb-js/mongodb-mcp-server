@@ -28,8 +28,47 @@ const mockInsertMany = (): CallToolResult => {
 describeAccuracyTests(
     [
         {
-            prompt: "Insert 2 documents in one call into 'mflix.movies' collection - document should have a 'title' field that has generated embeddings using the voyage-3.5 model: 'The Matrix' and 'Blade Runner'. Assume the collection already exists and has vector index on the 'title' field.",
+            prompt: `\
+Insert 2 documents in SINGLE tool call into 'mflix.movies' collection. \
+Document should have a 'title' field that has generated embeddings using the voyage-3.5 model for the values: 'The Matrix' and 'Blade Runner'.\
+`,
+            mockedTools: {
+                "collection-indexes": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: 'Found 1 search and vector search indexes in the collection "movies"',
+                            },
+                            {
+                                type: "text",
+                                text: JSON.stringify({
+                                    name: "title",
+                                    type: "vectorSearch",
+                                    status: "READY",
+                                    queryable: true,
+                                    latestDefinition: {
+                                        type: "vector",
+                                        path: "title",
+                                        numDimensions: 1024,
+                                        quantization: "none",
+                                        similarity: "euclidean",
+                                    },
+                                }),
+                            },
+                        ],
+                    };
+                },
+            },
             expectedToolCalls: [
+                {
+                    toolName: "collection-indexes",
+                    parameters: {
+                        database: "mflix",
+                        movies: "movies",
+                    },
+                    optional: true,
+                },
                 {
                     toolName: "insert-many",
                     parameters: {
@@ -60,8 +99,49 @@ describeAccuracyTests(
             ],
         },
         {
-            prompt: "Insert a document into 'mflix.movies' collection with following fields: title is 'The Matrix', plotSummary is 'A computer hacker learns about the true nature of his reality', embeddings for plotSummary is stored in plotSummaryEmbeddings field, generate the necesssary vector embeddings for the 'plotSummaryEmbeddings' field using the voyage-3.5 model. Assume the collection already exists and has vector index on the 'plotSummaryEmbeddings' field.",
+            prompt: `\
+Insert one document into 'mflix.movies' collection with following fields: \
+title: 'The Matrix', \
+plotSummary: 'A computer hacker learns about the true nature of his reality', \
+Ensure that the necessary vector embeddings are generated for 'plotSummaryEmbeddings' field using the text in 'plotSummary' field and the voyage-3.5 model.\
+`,
+            mockedTools: {
+                "collection-indexes": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: 'Found 1 search and vector search indexes in the collection "movies"',
+                            },
+                            {
+                                type: "text",
+                                text: JSON.stringify({
+                                    name: "plot_summary_embeddings",
+                                    type: "vectorSearch",
+                                    status: "READY",
+                                    queryable: true,
+                                    latestDefinition: {
+                                        type: "vector",
+                                        path: "plotSummaryEmbeddings",
+                                        numDimensions: 1024,
+                                        quantization: "none",
+                                        similarity: "euclidean",
+                                    },
+                                }),
+                            },
+                        ],
+                    };
+                },
+            },
             expectedToolCalls: [
+                {
+                    toolName: "collection-indexes",
+                    parameters: {
+                        database: "mflix",
+                        movies: "movies",
+                    },
+                    optional: true,
+                },
                 {
                     toolName: "insert-many",
                     parameters: {
@@ -88,8 +168,50 @@ describeAccuracyTests(
             ],
         },
         {
-            prompt: "Insert 2 documents in one call into 'mflix.movies' collection - the movie titles are 1. 'The Matrix' and 2. 'Blade Runner'. The documents should only have an info field which will have 2 subfields: 'title' and 'titleEmbeddings'. Generate the embeddings for the 'info.titleEmbeddings' subfield using the voyage-3.5 model. Assume the collection already exists and has vector index on the 'info.titleEmbeddings' field.",
+            prompt: `\
+Insert 2 documents in one call into 'mflix.movies' collection - \
+the movie titles are 1. 'The Matrix' and 2. 'Blade Runner'. \
+The documents should only have an info field which will have 2 subfields: 'title' and 'titleEmbeddings'. \
+Generate the embeddings for the 'info.titleEmbeddings' subfield using the voyage-3.5 model. \
+        `,
+            mockedTools: {
+                "collection-indexes": (): CallToolResult => {
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: 'Found 1 search and vector search indexes in the collection "movies"',
+                            },
+                            {
+                                type: "text",
+                                text: JSON.stringify({
+                                    name: "info_title_embeddings",
+                                    type: "vectorSearch",
+                                    status: "READY",
+                                    queryable: true,
+                                    latestDefinition: {
+                                        type: "vector",
+                                        path: "info.titleEmbeddings",
+                                        numDimensions: 1024,
+                                        quantization: "none",
+                                        similarity: "euclidean",
+                                    },
+                                }),
+                            },
+                        ],
+                    };
+                },
+                "insert-many": mockInsertMany,
+            },
             expectedToolCalls: [
+                {
+                    toolName: "collection-indexes",
+                    parameters: {
+                        database: "mflix",
+                        movies: "movies",
+                    },
+                    optional: true,
+                },
                 {
                     toolName: "insert-many",
                     parameters: {
@@ -123,12 +245,9 @@ describeAccuracyTests(
                     },
                 },
             ],
-            mockedTools: {
-                "insert-many": mockInsertMany,
-            },
         },
         {
-            prompt: "Insert a document into 'mflix.movies' collection with title 'The Matrix' and generate the necesssary vector embeddings for the current vector search fields using the voyage-3.5 model.",
+            prompt: "Insert a document into 'mflix.movies' collection with title 'The Matrix' and generate the necessary vector embeddings for the current vector search fields using the voyage-3.5 model.",
             expectedToolCalls: [
                 {
                     toolName: "collection-indexes",
@@ -136,6 +255,7 @@ describeAccuracyTests(
                         database: "mflix",
                         collection: "movies",
                     },
+                    optional: true,
                 },
                 {
                     toolName: "insert-many",

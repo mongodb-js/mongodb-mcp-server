@@ -10,11 +10,11 @@ import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../t
 import { setFieldPath } from "../../../helpers/manageNestedFieldPaths.js";
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
-    input: z
-        .array(z.object({}).passthrough())
-        .describe(
-            "Array of objects with field paths as keys (in dot notation) and raw text values as values for generating embeddings. Only include fields with classic vector search indexes (type: 'vector') that require manual embedding generation. Do NOT include fields with auto-embed indexes (type: 'autoEmbed'), as MongoDB automatically generates embeddings for those fields. The array index of each object corresponds to the array index of the document in the documents array."
-        ),
+    input: z.array(z.object({}).passthrough()).describe(`\
+Array of objects with field paths covered by vector search index field definitions as keys (in dot notation) and the raw text values as values for generating embeddings. \
+The index of each object corresponds to the index of the document in the documents array. \
+Note to LLM: Ensure that the keys in the the input object are the field paths where vector embeddings are supposed to be stored and are covered by vector search index field definitions (type: 'vector').\
+`),
 });
 
 const commonArgs = {
@@ -33,11 +33,14 @@ export class InsertManyTool extends MongoDBToolBase {
     public argsShape = this.isFeatureEnabled("search")
         ? {
               ...commonArgs,
-              embeddingParameters: zSupportedEmbeddingParametersWithInput
-                  .optional()
-                  .describe(
-                      "The embedding model and its parameters to use for generating embeddings for fields with classic vector search indexes (type: 'vector'). Only provide this parameter when inserting documents into collections with classic vector indexes that require manual embedding generation. Do NOT provide this for fields with auto-embed indexes (type: 'autoEmbed'), as MongoDB automatically generates embeddings for those at indexing time. Note to LLM: Use the collection-indexes tool to verify which fields have which type of vector search index before deciding whether to provide this parameter. If unsure which embedding model to use, ask the user before providing one."
-                  ),
+              embeddingParameters: zSupportedEmbeddingParametersWithInput.optional().describe(
+                  `\
+The embedding model and its parameters to use for generating embeddings for fields indexed with a vector search index and field definition of type 'vector'. \
+Note to LLM: Use the collection-indexes tool to verify which fields have which type of vector search index field definition before deciding whether to provide this parameter. \
+DO NOT provide this parameter if the field is covered by a vector index field definition of type 'autoEmbed' or not covered at all. \
+If unsure which embedding model to use, ask the user before providing one.\
+`
+              ),
           }
         : commonArgs;
     static operationType: OperationType = "create";
