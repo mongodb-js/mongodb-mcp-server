@@ -3,7 +3,7 @@ import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
-        prompt: `Will fetching documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`,
+        prompt: `Will fetching all the documents, where release_year is 2020, from 'mflix.movies' namespace perform a collection scan?`,
         expectedToolCalls: [
             {
                 toolName: "explain",
@@ -61,7 +61,9 @@ describeAccuracyTests([
                         {
                             name: "count",
                             arguments: {
-                                query: { release_year: 2020 },
+                                query: {
+                                    release_year: Matcher.anyOf(Matcher.value(2020), Matcher.value({ $eq: 2020 })),
+                                },
                             },
                         },
                     ],

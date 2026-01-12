@@ -129,13 +129,21 @@ export class CreateIndexTool extends MongoDBToolBase {
                     "Specifies the number of sub-indexes to create if the document count exceeds two billion. If omitted, defaults to 1."
                 ),
         })
-        .describe("Definition for an Atlas Search (lexical) index.");
+        .describe(
+            "Definition for an Atlas Search (lexical) index. Use this only if user explicitly asked for creating an Atlas search index or simply a search index."
+        );
 
     public name = "create-index";
     public description = "Create an index for a collection";
     public argsShape = {
         ...DbOperationArgs,
         name: z.string().optional().describe("The name of the index"),
+        // Note: Although it is not required to wrap the discriminated union in
+        // an array here because we only expect exactly one definition to be
+        // provided here, we unfortunately cannot use the discriminatedUnion as
+        // is because Cursor is unable to construct payload for tool calls where
+        // the input schema contains a discriminated union without such
+        // wrapping. This is a workaround for enabling the tool calls on Cursor.
         definition: z
             .array(
                 z.discriminatedUnion("type", [
@@ -144,7 +152,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                             type: z.literal("classic"),
                             keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
                         })
-                        .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial)."),
+                        .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial/text)."),
                     ...(this.isFeatureEnabled("search")
                         ? [this.vectorSearchIndexDefinition, this.atlasSearchIndexDefinition]
                         : []),

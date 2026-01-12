@@ -1,21 +1,22 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { formatUntrustedData } from "../../src/tools/tool.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
-        prompt: "Delete the local MongoDB cluster called 'my-database'",
+        prompt: "Delete the local MongoDB cluster called 'my-instance'",
         expectedToolCalls: [
             {
                 toolName: "atlas-local-delete-deployment",
                 parameters: {
-                    deploymentName: "my-database",
+                    deploymentName: "my-instance",
                 },
             },
         ],
     },
     {
-        prompt: "Delete the local MongoDB atlas database called 'my-instance'",
+        prompt: "Delete the local MongoDB atlas cluster called 'my-instance'",
         expectedToolCalls: [
             {
                 toolName: "atlas-local-delete-deployment",
@@ -84,6 +85,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     deploymentName: "local-mflix",
+                    loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
                 },
             },
             {

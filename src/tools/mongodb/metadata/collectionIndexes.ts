@@ -39,7 +39,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         return {
             content: [
                 ...formatUntrustedData(
-                    `Found ${indexDefinitions.length} indexes in the collection "${collection}":`,
+                    `Found ${indexDefinitions.length} classic indexes in the collection "${collection}":`,
                     ...indexDefinitions.map((i) => JSON.stringify(i))
                 ),
                 ...(searchIndexDefinitions.length > 0

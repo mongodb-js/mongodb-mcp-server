@@ -1,4 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests([
     {
@@ -10,6 +11,7 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     newName: "new_movies",
+                    dropTarget: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
                 },
             },
         ],

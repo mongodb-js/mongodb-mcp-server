@@ -14,6 +14,12 @@ export class ExportTool extends MongoDBToolBase {
     public argsShape = {
         ...DbOperationArgs,
         exportTitle: z.string().describe("A short description to uniquely identify the export."),
+        // Note: Although it is not required to wrap the discriminated union in
+        // an array here because we only expect exactly one exportTarget to be
+        // provided here, we unfortunately cannot use the discriminatedUnion as
+        // is because Cursor is unable to construct payload for tool calls where
+        // the input schema contains a discriminated union without such
+        // wrapping. This is a workaround for enabling the tool calls on Cursor.
         exportTarget: z
             .array(
                 z.discriminatedUnion("name", [
