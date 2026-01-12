@@ -252,9 +252,7 @@ describeWithMongoDB(
             expect(oopsieCount).toBe(0);
         });
 
-        // TODO: Very likely these tests aren't running in CI as well, we need
-        // to switch this env var to `process.env.MDB_VOYAGE_API_KEY`
-        describe.skipIf(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY)("embeddings generation with Voyage AI", () => {
+        describe.skipIf(!process.env.MDB_VOYAGE_API_KEY)("embeddings generation with Voyage AI", () => {
             beforeEach(async () => {
                 await integration.connectMcpClient();
                 database = integration.randomDbName();
@@ -699,7 +697,7 @@ describeWithMongoDB(
             ...defaultTestConfig,
             // This is expected to be set through the CI env. When not set we
             // get a warning in the run logs.
-            voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
             previewFeatures: ["search"],
         }),
         downloadOptions: { search: true },

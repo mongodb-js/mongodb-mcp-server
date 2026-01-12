@@ -159,7 +159,7 @@ export class MongoDBClusterProcess {
                 // available image as well.
                 // Until then, the tests are to be expected to run locally and
                 // verified by the reviewers.
-                process.env.GITHUB_ACTIONS !== "false" &&
+                process.env.GITHUB_ACTIONS !== "true" &&
                 !!config.mongotPassword &&
                 !!config.voyageIndexingKey &&
                 !!config.voyageQueryKey

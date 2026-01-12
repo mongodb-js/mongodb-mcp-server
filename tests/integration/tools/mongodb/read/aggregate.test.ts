@@ -542,7 +542,7 @@ describeWithMongoDB(
     "aggregate tool with atlas search enabled",
     (integration) => {
         beforeEach(async ({ skip }) => {
-            skip(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY);
+            skip(!process.env.MDB_VOYAGE_API_KEY);
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
@@ -1160,7 +1160,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
             previewFeatures: ["search"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
@@ -1230,7 +1230,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
             previewFeatures: ["search"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
