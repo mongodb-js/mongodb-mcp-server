@@ -1,5 +1,4 @@
 import * as oauth from "oauth4webapi";
-import type { Middleware } from "openapi-fetch";
 import type { LoggerBase } from "../../logger.js";
 import { LogId } from "../../logger.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
@@ -108,7 +107,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
         return undefined;
     }
 
-    public async getAccessToken(): Promise<string | undefined> {
+    private async getAccessToken(): Promise<string | undefined> {
         if (!this.isAccessTokenValid()) {
             this.accessToken = await this.getNewAccessToken();
         }
@@ -116,7 +115,12 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
         return this.accessToken?.access_token;
     }
 
-    public async revokeAccessToken(): Promise<void> {
+    public async validate(): Promise<boolean> {
+        const token = await this.getAccessToken();
+        return !!token;
+    }
+
+    public async revoke(): Promise<void> {
         const { client, clientAuth } = this.getOauthClientAuth();
         try {
             if (this.oauth2Issuer && this.accessToken && client && clientAuth) {
@@ -131,26 +135,5 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
             });
         }
         this.accessToken = undefined;
-    }
-
-    public middleware(): Middleware {
-        return {
-            onRequest: async ({ request, schemaPath }): Promise<Request | undefined> => {
-                if (schemaPath.startsWith("/api/private/unauth") || schemaPath.startsWith("/api/oauth")) {
-                    return undefined;
-                }
-
-                try {
-                    const accessToken = await this.getAccessToken();
-                    if (accessToken) {
-                        request.headers.set("Authorization", `Bearer ${accessToken}`);
-                    }
-                    return request;
-                } catch {
-                    // ignore not available tokens, API will return 401
-                    return undefined;
-                }
-            },
-        };
     }
 }

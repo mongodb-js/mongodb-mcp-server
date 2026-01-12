@@ -66,7 +66,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             }
 
             // validate access token
-            await apiClient.validateAccessToken();
+            await apiClient.validateAuthConfig();
             try {
                 const group = await createGroup(apiClient);
                 const ipInfo = await apiClient.getIpInfo();

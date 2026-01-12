@@ -1,5 +1,5 @@
 import createClient from "openapi-fetch";
-import type { ClientOptions, FetchOptions, Client } from "openapi-fetch";
+import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
 import type { paths, operations } from "./openapi.js";
 import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
@@ -88,16 +88,39 @@ export class ApiClient {
         });
 
         if (this.authProvider) {
-            this.client.use(this.authProvider.middleware());
+            this.client.use(this.createAuthMiddleware());
         }
     }
 
-    public async validateAccessToken(): Promise<void> {
-        await this.authProvider?.getAccessToken();
+    private createAuthMiddleware(): Middleware {
+        return {
+            onRequest: async ({ request, schemaPath }): Promise<Request | undefined> => {
+                if (schemaPath.startsWith("/api/private/unauth") || schemaPath.startsWith("/api/oauth")) {
+                    return undefined;
+                }
+
+                try {
+                    const authHeaders = (await this.authProvider?.getAuthHeaders()) ?? {};
+                    for (const [key, value] of Object.entries(authHeaders)) {
+                        request.headers.set(key, value);
+                    }
+                    return request;
+                } catch {
+                    // ignore not available tokens, API will return 401
+                    return undefined;
+                }
+            },
+        };
+    }
+
+    public async validateAuthConfig(): Promise<void> {
+        if (!this.authProvider?.validate()) {
+            throw new Error("Invalid auth configuration");
+        }
     }
 
     public async close(): Promise<void> {
-        await this.authProvider?.revokeAccessToken();
+        await this.authProvider?.revoke();
     }
 
     public async getIpInfo(): Promise<{

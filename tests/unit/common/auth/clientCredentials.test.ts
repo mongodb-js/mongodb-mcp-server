@@ -51,15 +51,15 @@ describe("ClientCredentialsAuthProvider", () => {
         });
     });
 
-    describe("getAccessToken", () => {
-        it("should return undefined when credentials are not set", async () => {
+    describe("validate", () => {
+        it("should return false when credentials are not set", async () => {
             // @ts-expect-error accessing private property for testing
-            authProvider.oauth2Client = undefined;
-            const token = await authProvider.getAccessToken();
-            expect(token).toBeUndefined();
+            authProvider.oauth2Issuer = undefined;
+            const isValid = await authProvider.validate();
+            expect(isValid).toBe(false);
         });
 
-        it("should return existing token when it is valid", async () => {
+        it("should return true when existing token is valid", async () => {
             const mockToken = "valid-access-token";
             const expiresAt = Date.now() + 3600000; // 1 hour from now
 
@@ -69,12 +69,12 @@ describe("ClientCredentialsAuthProvider", () => {
                 expires_at: expiresAt,
             };
 
-            const token = await authProvider.getAccessToken();
-            expect(token).toBe(mockToken);
+            const isValid = await authProvider.validate();
+            expect(isValid).toBe(true);
             expect(oauth.clientCredentialsGrantRequest).not.toHaveBeenCalled();
         });
 
-        it("should fetch new token when existing token is expired", async () => {
+        it("should return true when fetching new token succeeds", async () => {
             const expiredToken = "expired-access-token";
             const expiresAt = Date.now() - 1000; // 1 second ago (expired)
             const newToken = "new-access-token";
@@ -99,12 +99,12 @@ describe("ClientCredentialsAuthProvider", () => {
                 expires_in: 3600,
             } as Awaited<ReturnType<typeof oauth.processClientCredentialsResponse>>);
 
-            const token = await authProvider.getAccessToken();
-            expect(token).toBe(newToken);
+            const isValid = await authProvider.validate();
+            expect(isValid).toBe(true);
             expect(oauth.clientCredentialsGrantRequest).toHaveBeenCalled();
         });
 
-        it("should fetch new token when no token exists", async () => {
+        it("should return true when fetching new token when no token exists", async () => {
             const newToken = "new-access-token";
 
             const mockResponse = new Response(
@@ -121,8 +121,8 @@ describe("ClientCredentialsAuthProvider", () => {
                 expires_in: 3600,
             } as Awaited<ReturnType<typeof oauth.processClientCredentialsResponse>>);
 
-            const token = await authProvider.getAccessToken();
-            expect(token).toBe(newToken);
+            const isValid = await authProvider.validate();
+            expect(isValid).toBe(true);
 
             expect(oauth.clientCredentialsGrantRequest).toHaveBeenCalledWith(
                 expect.anything(),
@@ -139,12 +139,12 @@ describe("ClientCredentialsAuthProvider", () => {
             );
         });
 
-        it("should handle errors when fetching token fails", async () => {
+        it("should return false when fetching token fails", async () => {
             const error = new Error("Failed to fetch token");
             vi.mocked(oauth.clientCredentialsGrantRequest).mockRejectedValue(error);
 
-            const token = await authProvider.getAccessToken();
-            expect(token).toBeUndefined();
+            const isValid = await authProvider.validate();
+            expect(isValid).toBe(false);
             expect(oauth.clientCredentialsGrantRequest).toHaveBeenCalled();
         });
     });
@@ -167,7 +167,7 @@ describe("ClientCredentialsAuthProvider", () => {
         });
     });
 
-    describe("revokeAccessToken", () => {
+    describe("revoke", () => {
         it("should revoke access token when token exists", async () => {
             const mockToken = "test-access-token";
             const expiresAt = Date.now() + 3600000;
@@ -181,101 +181,11 @@ describe("ClientCredentialsAuthProvider", () => {
             const mockRevocationResponse = new Response(null, { status: 200 });
             vi.mocked(oauth.revocationRequest).mockResolvedValue(mockRevocationResponse);
 
-            await authProvider.revokeAccessToken();
+            await authProvider.revoke();
 
             expect(oauth.revocationRequest).toHaveBeenCalled();
             // @ts-expect-error accessing private property for testing
             expect(authProvider.accessToken).toBeUndefined();
-        });
-    });
-
-    describe("middleware", () => {
-        it("should add Authorization header for non-unauth endpoints", async () => {
-            const mockToken = "test-access-token";
-            const expiresAt = Date.now() + 3600000;
-
-            // @ts-expect-error accessing private property for testing
-            authProvider.accessToken = {
-                access_token: mockToken,
-                expires_at: expiresAt,
-            };
-
-            const middleware = authProvider.middleware();
-            const request = new Request("https://api.test.com/api/atlas/v2/groups");
-            const result = await middleware.onRequest?.({
-                request,
-                schemaPath: "/api/atlas/v2/groups",
-                params: {},
-                id: "test-id",
-                options: {},
-            } as Parameters<NonNullable<typeof middleware.onRequest>>[0]);
-
-            expect(result).toBeDefined();
-            expect(result?.headers.get("Authorization")).toBe(`Bearer ${mockToken}`);
-        });
-
-        it("should not add Authorization header for unauth endpoints", async () => {
-            const middleware = authProvider.middleware();
-            const request = new Request("https://api.test.com/api/private/unauth/telemetry/events");
-            const result = await middleware.onRequest?.({
-                request,
-                schemaPath: "/api/private/unauth/telemetry/events",
-                params: {},
-                id: "test-id",
-                options: {},
-            } as Parameters<NonNullable<typeof middleware.onRequest>>[0]);
-
-            expect(result).toBeUndefined();
-        });
-
-        it("should not add Authorization header for oauth endpoints", async () => {
-            const middleware = authProvider.middleware();
-            const request = new Request("https://api.test.com/api/oauth/token");
-            const result = await middleware.onRequest?.({
-                request,
-                schemaPath: "/api/oauth/token",
-                params: {},
-                id: "test-id",
-                options: {},
-            } as Parameters<NonNullable<typeof middleware.onRequest>>[0]);
-
-            expect(result).toBeUndefined();
-        });
-
-        it("should return undefined when getAccessToken throws", async () => {
-            vi.spyOn(authProvider, "getAccessToken").mockRejectedValue(new Error("Token error"));
-
-            const middleware = authProvider.middleware();
-            const request = new Request("https://api.test.com/api/atlas/v2/groups");
-            const result = await middleware.onRequest?.({
-                request,
-                schemaPath: "/api/atlas/v2/groups",
-                params: {},
-                id: "test-id",
-                options: {},
-            } as Parameters<NonNullable<typeof middleware.onRequest>>[0]);
-
-            expect(result).toBeUndefined();
-        });
-
-        it("should return request without Authorization header when token is not available", async () => {
-            // @ts-expect-error accessing private property for testing
-            authProvider.accessToken = undefined;
-            vi.mocked(oauth.clientCredentialsGrantRequest).mockRejectedValue(new Error("Failed"));
-
-            const middleware = authProvider.middleware();
-            const request = new Request("https://api.test.com/api/atlas/v2/groups");
-            const result = await middleware.onRequest?.({
-                request,
-                schemaPath: "/api/atlas/v2/groups",
-                params: {},
-                id: "test-id",
-                options: {},
-            } as Parameters<NonNullable<typeof middleware.onRequest>>[0]);
-
-            // When token fetch fails, middleware returns the request without Authorization header
-            expect(result).toBeDefined();
-            expect(result?.headers.get("Authorization")).toBeNull();
         });
     });
 });
