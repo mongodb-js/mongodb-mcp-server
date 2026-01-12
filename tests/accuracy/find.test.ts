@@ -28,6 +28,7 @@ describeAccuracyTests([
                     database: "mflix",
                     collection: "movies",
                     filter: Matcher.emptyObjectOrUndefined,
+                    limit: Matcher.anyOf(Matcher.undefined, Matcher.number()),
                 },
             },
         ],
