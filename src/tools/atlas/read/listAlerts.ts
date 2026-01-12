@@ -16,7 +16,7 @@ export class ListAlertsTool extends AtlasToolBase {
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const data = await this.session.apiClient.listAlerts({
+        const data = await this.apiClient.listAlerts({
             params: {
                 path: {
                     groupId: projectId,

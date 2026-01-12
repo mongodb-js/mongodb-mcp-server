@@ -45,7 +45,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
-    readonly apiClient: ApiClient;
+    readonly apiClient?: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
@@ -73,10 +73,11 @@ export class Session extends EventEmitter<SessionEvents> {
         this.userConfig = userConfig;
         this.keychain = keychain;
         this.logger = logger;
+        this.apiClient = apiClient;
 
-        this.apiClient =
-            apiClient ??
-            createAtlasApiClient(
+        // Create default API client if not provided in the constructor and Atlas tools are enabled (credentials are provided)
+        if (!this.apiClient && userConfig.apiClientId && userConfig.apiClientSecret) {
+            this.apiClient = createAtlasApiClient(
                 {
                     baseUrl: userConfig.apiBaseUrl,
                     credentials: {
@@ -86,6 +87,8 @@ export class Session extends EventEmitter<SessionEvents> {
                 },
                 logger
             );
+        }
+
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
@@ -121,7 +124,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
         await this.connectionManager.close();
 
-        if (atlasCluster?.username && atlasCluster?.projectId) {
+        if (atlasCluster?.username && atlasCluster?.projectId && this.apiClient) {
             void this.apiClient
                 .deleteDatabaseUser({
                     params: {
@@ -145,7 +148,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
     async close(): Promise<void> {
         await this.disconnect();
-        await this.apiClient.close();
+        await this.apiClient?.close();
         await this.exportsManager.close();
         this.emit("close");
     }

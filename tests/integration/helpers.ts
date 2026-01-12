@@ -20,6 +20,7 @@ import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSea
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
+import { type ApiClient } from "../../src/common/atlas/apiClient.js";
 
 interface Parameter {
     name: string;
@@ -41,7 +42,9 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 
 export interface IntegrationTest {
     mcpClient: () => Client;
-    mcpServer: () => Server;
+    mcpServer: () => Server & {
+        getApiClient: () => ApiClient;
+    };
 }
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -109,7 +112,13 @@ export function setupIntegrationTest(
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(true);
-            session.apiClient.validateAccessToken = mockFn;
+            const mockCloseFn = vi.fn().mockResolvedValue(undefined);
+            Object.defineProperty(session, "apiClient", {
+                value: {
+                    validateAccessToken: mockFn,
+                    close: mockCloseFn,
+                } as unknown as ApiClient,
+            });
         }
 
         userConfig.telemetry = "disabled";
@@ -169,12 +178,20 @@ export function setupIntegrationTest(
         return mcpClient;
     };
 
-    const getMcpServer = (): Server => {
+    const getMcpServer = (): Server & { getApiClient: () => ApiClient } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return mcpServer;
+        return {
+            ...mcpServer,
+            getApiClient: (): ApiClient => {
+                if (!mcpServer || !mcpServer.session.apiClient) {
+                    throw new Error("apiClient not available");
+                }
+                return mcpServer.session.apiClient;
+            },
+        } as Server & { getApiClient: () => ApiClient };
     };
 
     return {
