@@ -1101,7 +1101,7 @@ describeWithMongoDB(
         });
 
         describe("outputDimension transformation", () => {
-            it("should successfully transform outputDimension string '$outputDimension' to number", async () => {
+            it("should successfully transform outputDimension string to number", async () => {
                 await waitUntilSearchIsReady(integration.mongoClient());
 
                 const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");

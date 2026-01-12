@@ -82,6 +82,13 @@ const zClassicVectorSearchStageParams = zCommonVectorSearchStageParams.extend({
         ),
 });
 
+export const modelsSupportingAutoEmbedIndexes = [
+    "voyage-4",
+    "voyage-4-large",
+    "voyage-4-lite",
+    "voyage-code-3",
+] as const;
+
 const zAutoEmbedVectorSearchStageParams = zCommonVectorSearchStageParams.extend({
     query: z
         .object({
@@ -91,7 +98,7 @@ const zAutoEmbedVectorSearchStageParams = zCommonVectorSearchStageParams.extend(
             "The query to search for when using auto-embed indexes (type: 'autoEmbed'). MongoDB will automatically generate embeddings for the text at query time. Use this for auto-embed indexes, not 'queryVector'."
         ),
     model: z
-        .enum(["voyage-4", "voyage-4-large", "voyage-4-lite", "voyage-code-3"])
+        .enum(modelsSupportingAutoEmbedIndexes)
         .optional()
         .describe(
             "The embedding model to use for generating embeddings from the query text. If not specified, defaults to the model configured in the auto-embed index definition."

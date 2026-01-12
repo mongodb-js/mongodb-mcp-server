@@ -5,6 +5,7 @@ import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
 import { similarityValues } from "../../../common/schemas.js";
+import { modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
     private filterFieldSchema = z
@@ -59,7 +60,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                     "Name of the field to index containing the source text from which embeddings will be automatically generated. For nested fields, use dot notation to specify the path to embedded fields."
                 ),
             model: z
-                .enum(["voyage-4", "voyage-4-large", "voyage-4-lite", "voyage-code-3"])
+                .enum(modelsSupportingAutoEmbedIndexes)
                 .describe(
                     "Voyage embedding model to use for automatically generating embeddings from the source text in the indexed field."
                 ),
