@@ -4,6 +4,7 @@ import {
     validateThrowsForInvalidArguments,
     getResponseElements,
 } from "../../../helpers.js";
+import type { ExplainOutput } from "../../../../../src/tools/mongodb/metadata/explain.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -105,6 +106,13 @@ describeWithMongoDB("explain tool", (integration) => {
                     expect(content[1]?.text).toContain("queryPlanner");
                     expect(content[1]?.text).toContain("winningPlan");
                     expect(content[1]?.text).not.toContain("executionStats");
+
+                    // Validate structured content
+                    const structuredContent = response.structuredContent as ExplainOutput;
+                    expect(structuredContent.method).toBe(testCase.method);
+                    expect(structuredContent.verbosity).toBe("queryPlanner");
+                    expect(structuredContent.explainResult).toHaveProperty("queryPlanner");
+                    expect(structuredContent.explainResult).toHaveProperty("command");
                 });
 
                 it(`should return the explain plan for "executionStats" verbosity for ${testCase.method}`, async () => {
@@ -152,6 +160,13 @@ describeWithMongoDB("explain tool", (integration) => {
                     expect(content[1]?.text).toContain("queryPlanner");
                     expect(content[1]?.text).toContain("winningPlan");
                     expect(content[1]?.text).toContain("executionStats");
+
+                    // Validate structured content
+                    const structuredContent = response.structuredContent as ExplainOutput;
+                    expect(structuredContent.method).toBe(testCase.method);
+                    expect(structuredContent.verbosity).toBe("executionStats");
+                    expect(structuredContent.explainResult).toHaveProperty("queryPlanner");
+                    expect(structuredContent.explainResult).toHaveProperty("executionStats");
                 });
             }
         });
@@ -213,6 +228,12 @@ describeWithMongoDB("explain tool", (integration) => {
                         } else {
                             expect(content[1]?.text).toContain("COLLSCAN");
                         }
+
+                        // Validate structured content
+                        const structuredContent = response.structuredContent as ExplainOutput;
+                        expect(structuredContent.method).toBe(testCase.method);
+                        expect(structuredContent.verbosity).toBe("queryPlanner");
+                        expect(structuredContent.explainResult).toHaveProperty("queryPlanner");
                     });
                 }
             });

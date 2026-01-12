@@ -14,8 +14,6 @@ export const ListDatabasesOutputSchema = {
     totalCount: z.number(),
 };
 
-// JSDoc comment needed to tell knip that this is intentionally public
-/** @public - Used by UI components */
 export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutputSchema>>;
 
 export class ListDatabasesTool extends MongoDBToolBase {

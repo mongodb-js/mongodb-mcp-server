@@ -1,8 +1,14 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { EJSON } from "bson";
+import { z } from "zod";
+
+export const DbStatsOutputSchema = {
+    stats: z.record(z.unknown()),
+};
+
+export type DbStatsOutput = z.infer<z.ZodObject<typeof DbStatsOutputSchema>>;
 
 export class DbStatsTool extends MongoDBToolBase {
     public name = "db-stats";
@@ -10,10 +16,13 @@ export class DbStatsTool extends MongoDBToolBase {
     public argsShape = {
         database: DbOperationArgs.database,
     };
+    public override outputSchema = DbStatsOutputSchema;
 
     static operationType: OperationType = "metadata";
 
-    protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({
+        database,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const result = await provider.runCommandWithCheck(database, {
             dbStats: 1,
@@ -22,6 +31,9 @@ export class DbStatsTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(`Statistics for database ${database}`, EJSON.stringify(result)),
+            structuredContent: {
+                stats: result,
+            },
         };
     }
 }
