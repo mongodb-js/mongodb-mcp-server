@@ -1,19 +1,11 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
+import { Matcher } from "./sdk/matcher.js";
 
 describeAccuracyTests(
     [
         {
-            prompt: `\
-Insert 2 movie documents in 'mflix.movies' namespace with the following fields:
-1. \
-title: "Matrix" \
-plot: "A computer hacker learns about the true nature of his reality" \
-2. \
-title: "Jurassic Park" \
-plot: "Pre-historic creatures come to life in this epic thrilling drama" \
-'plot' field is covered with a vector search index so only if necessary, generate embeddings for it.
-`,
+            prompt: "Run a vectorSearch query on 'mflix.movies' namespace, on path 'plot' using the index 'plot_index' to find all 'hammer of justice' movies.",
             mockedTools: {
                 "collection-indexes": (): CallToolResult => {
                     return {
@@ -25,7 +17,7 @@ plot: "Pre-historic creatures come to life in this epic thrilling drama" \
                             {
                                 type: "text",
                                 text: JSON.stringify({
-                                    name: "plot_auto_embed_index",
+                                    name: "plot_index",
                                     type: "vectorSearch",
                                     status: "READY",
                                     latestDefinition: {
@@ -47,21 +39,24 @@ plot: "Pre-historic creatures come to life in this epic thrilling drama" \
                         database: "mflix",
                         collection: "movies",
                     },
-                    optional: true,
                 },
                 {
-                    toolName: "insert-many",
+                    toolName: "aggregate",
                     parameters: {
                         database: "mflix",
                         collection: "movies",
-                        documents: [
+                        pipeline: [
                             {
-                                title: "Matrix",
-                                plot: "A computer hacker learns about the true nature of his reality",
-                            },
-                            {
-                                title: "Jurassic Park",
-                                plot: "Pre-historic creatures come to life in this epic thrilling drama",
+                                $vectorSearch: {
+                                    index: "plot_index",
+                                    path: "plot",
+                                    query: { text: "hammer of justice" },
+                                    model: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                                    exact: Matcher.anyValue,
+                                    numCandidates: Matcher.anyValue,
+                                    limit: Matcher.anyValue,
+                                    filter: Matcher.anyValue,
+                                },
                             },
                         ],
                     },

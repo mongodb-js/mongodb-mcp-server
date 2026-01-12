@@ -61,4 +61,16 @@ describeAccuracyTests([
             },
         ],
     },
+    {
+        prompt: "Do I have an autoEmbed vector search index in 'mflix.movies' namespace",
+        expectedToolCalls: [
+            {
+                toolName: "collection-indexes",
+                parameters: {
+                    database: "mflix",
+                    collection: "movies",
+                },
+            },
+        ],
+    },
 ]);
