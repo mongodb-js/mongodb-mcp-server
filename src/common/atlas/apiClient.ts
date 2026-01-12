@@ -114,10 +114,7 @@ export class ApiClient {
     }
 
     public async validateAuthConfig(): Promise<void> {
-        const isValidAuthConfig = await this.authProvider?.validate();
-        if (!isValidAuthConfig) {
-            throw new Error("Invalid auth configuration");
-        }
+        await this.authProvider?.validate();
     }
 
     public async close(): Promise<void> {
