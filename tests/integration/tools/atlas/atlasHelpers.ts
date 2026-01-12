@@ -61,7 +61,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             const apiClient = session.apiClient;
 
             // check that it has credentials
-            if (!apiClient.hasCredentials()) {
+            if (!apiClient.isAuthConfigured()) {
                 throw new Error("No credentials available");
             }
 

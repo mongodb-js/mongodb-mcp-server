@@ -50,7 +50,7 @@ describe("ApiClient", () => {
     describe("constructor", () => {
         it("should create a client with the correct configuration", () => {
             expect(apiClient).toBeDefined();
-            expect(apiClient.hasCredentials()).toBeDefined();
+            expect(apiClient.isAuthConfigured()).toBeDefined();
         });
     });
 

@@ -13,7 +13,6 @@ export interface ClientCredentialsAuthOptions {
 }
 
 export class ClientCredentialsAuthProvider implements AuthProvider {
-    private oauth2Client?: oauth.Client;
     private oauth2Issuer?: oauth.AuthorizationServer;
     private accessToken?: AccessToken;
     private readonly options: ClientCredentialsAuthOptions;
@@ -32,11 +31,6 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
             grant_types_supported: ["client_credentials"],
         };
 
-        this.oauth2Client = {
-            client_id: options.clientId,
-            client_secret: options.clientSecret,
-        };
-
         this.customFetch = createFetch({
             useEnvironmentVariableProxies: true,
         }) as unknown as typeof fetch;
@@ -49,10 +43,6 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
                   Authorization: `Bearer ${accessToken}`,
               }
             : undefined;
-    }
-
-    public hasCredentials(): boolean {
-        return !!this.oauth2Client && !!this.oauth2Issuer;
     }
 
     private isAccessTokenValid(): boolean {
@@ -79,7 +69,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
     }
 
     private async getNewAccessToken(): Promise<AccessToken | undefined> {
-        if (!this.hasCredentials() || !this.oauth2Issuer) {
+        if (!this.oauth2Issuer) {
             return undefined;
         }
 
@@ -119,10 +109,6 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
     }
 
     public async getAccessToken(): Promise<string | undefined> {
-        if (!this.hasCredentials()) {
-            return undefined;
-        }
-
         if (!this.isAccessTokenValid()) {
             this.accessToken = await this.getNewAccessToken();
         }

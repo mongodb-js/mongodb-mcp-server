@@ -8,7 +8,6 @@ export interface AccessToken {
 }
 
 export interface AuthProvider {
-    hasCredentials(): boolean;
     getAccessToken(): Promise<string | undefined>;
     revokeAccessToken(): Promise<void>;
     middleware(): Middleware;

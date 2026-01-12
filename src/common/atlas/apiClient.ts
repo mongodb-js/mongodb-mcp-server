@@ -39,8 +39,8 @@ export class ApiClient {
 
     private client: Client<paths>;
 
-    public hasCredentials(): boolean {
-        return !!this.authProvider?.hasCredentials();
+    public isAuthConfigured(): boolean {
+        return !!this.authProvider;
     }
 
     constructor(

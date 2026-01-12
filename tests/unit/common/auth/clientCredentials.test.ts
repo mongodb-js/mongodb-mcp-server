@@ -31,7 +31,6 @@ describe("ClientCredentialsAuthProvider", () => {
     describe("constructor", () => {
         it("should create a provider with the correct configuration", () => {
             expect(authProvider).toBeDefined();
-            expect(authProvider.hasCredentials()).toBe(true);
         });
 
         it("should initialize oauth2Issuer with correct endpoints", () => {
@@ -49,24 +48,6 @@ describe("ClientCredentialsAuthProvider", () => {
             expect(client).toBeDefined();
             expect(client?.client_id).toBe(mockOptions.clientId);
             expect(client?.client_secret).toBe(mockOptions.clientSecret);
-        });
-    });
-
-    describe("hasCredentials", () => {
-        it("should return true when credentials are set", () => {
-            expect(authProvider.hasCredentials()).toBe(true);
-        });
-
-        it("should return false when oauth2Client is undefined", () => {
-            // @ts-expect-error accessing private property for testing
-            authProvider.oauth2Client = undefined;
-            expect(authProvider.hasCredentials()).toBe(false);
-        });
-
-        it("should return false when oauth2Issuer is undefined", () => {
-            // @ts-expect-error accessing private property for testing
-            authProvider.oauth2Issuer = undefined;
-            expect(authProvider.hasCredentials()).toBe(false);
         });
     });
 
