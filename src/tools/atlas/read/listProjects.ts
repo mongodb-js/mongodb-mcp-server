@@ -16,7 +16,7 @@ export class ListProjectsTool extends AtlasToolBase {
     };
 
     protected async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const orgData = await this.session.apiClient.listOrgs();
+        const orgData = await this.apiClient.listOrgs();
 
         if (!orgData?.results?.length) {
             return {
@@ -30,14 +30,14 @@ export class ListProjectsTool extends AtlasToolBase {
             .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
 
         const data = orgId
-            ? await this.session.apiClient.getOrgGroups({
+            ? await this.apiClient.getOrgGroups({
                   params: {
                       path: {
                           orgId,
                       },
                   },
               })
-            : await this.session.apiClient.listGroups();
+            : await this.apiClient.listGroups();
 
         if (!data?.results?.length) {
             return {
