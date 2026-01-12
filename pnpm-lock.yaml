@@ -25,7 +25,7 @@ importers:
         specifier: ^0.5.3
         version: 0.5.5
       '@mongosh/arg-parser':
-        specifier: ^3.23.0
+        specifier: 3.23.0
         version: 3.23.0(zod@3.25.76)
       '@mongosh/service-provider-node-driver':
         specifier: ^3.17.5
@@ -1298,8 +1298,12 @@ packages:
     resolution: {integrity: sha512-niqLgzPv6ZG9Bx0XRJP3NCA9zZM6LbRs/z05GRwJP0B3HShYDKWi7B0D4N/u6RoEt93Y6mMa9Ok72dNSDpIEwA==}
     engines: {node: '>=14.15.1'}
 
-  '@mongosh/i18n@2.20.0':
-    resolution: {integrity: sha512-g0zuKuZ5JhS/ASDizZlqLDzy1yqeMbs5tg40TxMl/55rM2EOPV1MSlfBZg7X0tyxUOATy1sLHWsUquzQSFjVjQ==}
+  '@mongosh/errors@2.4.6':
+    resolution: {integrity: sha512-Z3CDoh+EbHTLad5g/qpd1ti+PoCeq3KcbtNLg1RnQkcwC+4AqoOZt3X2JXY+s616vDLPUxpfoHqZsZqToq6lIA==}
+    engines: {node: '>=14.15.1'}
+
+  '@mongosh/i18n@2.20.1':
+    resolution: {integrity: sha512-DyjVQrPJl4w+inUnYUGzLzmmnanM7Txw7urflTor0r1viNgH28kMqV0P4yqk9xaIL48Qt8MouAn/jF9d7ZbEVg==}
     engines: {node: '>=14.15.1'}
 
   '@mongosh/service-provider-core@3.6.5':
@@ -7197,7 +7201,7 @@ snapshots:
   '@mongosh/arg-parser@3.23.0(zod@3.25.76)':
     dependencies:
       '@mongosh/errors': 2.4.5
-      '@mongosh/i18n': 2.20.0
+      '@mongosh/i18n': 2.20.1
       mongodb-connection-string-url: 3.0.2
       yargs-parser: 20.2.9
       zod: 3.25.76
@@ -7206,9 +7210,11 @@ snapshots:
 
   '@mongosh/errors@2.4.5': {}
 
-  '@mongosh/i18n@2.20.0':
+  '@mongosh/errors@2.4.6': {}
+
+  '@mongosh/i18n@2.20.1':
     dependencies:
-      '@mongosh/errors': 2.4.5
+      '@mongosh/errors': 2.4.6
 
   '@mongosh/service-provider-core@3.6.5(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)':
     dependencies:
