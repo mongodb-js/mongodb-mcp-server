@@ -186,23 +186,6 @@ describe("ClientCredentialsAuthProvider", () => {
         });
     });
 
-    describe("validateAccessToken", () => {
-        it("should validate access token by calling getAccessToken", async () => {
-            const mockToken = "test-access-token";
-            const expiresAt = Date.now() + 3600000;
-
-            // @ts-expect-error accessing private property for testing
-            authProvider.accessToken = {
-                access_token: mockToken,
-                expires_at: expiresAt,
-            };
-
-            const getAccessTokenSpy = vi.spyOn(authProvider, "getAccessToken");
-            await authProvider.validateAccessToken();
-            expect(getAccessTokenSpy).toHaveBeenCalled();
-        });
-    });
-
     describe("revokeAccessToken", () => {
         it("should revoke access token when token exists", async () => {
             const mockToken = "test-access-token";

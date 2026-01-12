@@ -18,9 +18,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
     private accessToken?: AccessToken;
     private readonly options: ClientCredentialsAuthOptions;
     private readonly logger: LoggerBase;
-    private static customFetch: typeof fetch = createFetch({
-        useEnvironmentVariableProxies: true,
-    }) as unknown as typeof fetch;
+    private customFetch: typeof fetch;
 
     constructor(options: ClientCredentialsAuthOptions, logger: LoggerBase) {
         this.options = options;
@@ -38,6 +36,10 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
             client_id: options.clientId,
             client_secret: options.clientSecret,
         };
+
+        this.customFetch = createFetch({
+            useEnvironmentVariableProxies: true,
+        }) as unknown as typeof fetch;
     }
 
     public async getAuthHeaders(): Promise<Record<string, string> | undefined> {
@@ -90,7 +92,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
                     clientAuth,
                     new URLSearchParams(),
                     {
-                        [oauth.customFetch]: ClientCredentialsAuthProvider.customFetch,
+                        [oauth.customFetch]: this.customFetch,
                         headers: {
                             "User-Agent": this.options.userAgent,
                         },
@@ -126,10 +128,6 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
         }
 
         return this.accessToken?.access_token;
-    }
-
-    public async validateAccessToken(): Promise<void> {
-        await this.getAccessToken();
     }
 
     public async revokeAccessToken(): Promise<void> {

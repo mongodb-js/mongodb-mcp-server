@@ -93,7 +93,7 @@ export class ApiClient {
     }
 
     public async validateAccessToken(): Promise<void> {
-        await this.authProvider?.validateAccessToken();
+        await this.authProvider?.getAccessToken();
     }
 
     public async close(): Promise<void> {

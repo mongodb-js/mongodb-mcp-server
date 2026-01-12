@@ -10,7 +10,6 @@ export interface AccessToken {
 export interface AuthProvider {
     hasCredentials(): boolean;
     getAccessToken(): Promise<string | undefined>;
-    validateAccessToken(): Promise<void>;
     revokeAccessToken(): Promise<void>;
     middleware(): Middleware;
     getAuthHeaders(): Promise<Record<string, string> | undefined>;
