@@ -79,5 +79,5 @@ function getDbNames(content: unknown): (string | null)[] {
     const responseItems = getResponseElements(content);
     expect(responseItems).toHaveLength(2);
     const data = getDataFromUntrustedContent(responseItems[1]?.text ?? "{}");
-    return (JSON.parse(data) as ListDatabasesOutput).databases.map((db) => db.name);
+    return (JSON.parse(data) as ListDatabasesOutput["databases"]).map((db) => db.name);
 }
