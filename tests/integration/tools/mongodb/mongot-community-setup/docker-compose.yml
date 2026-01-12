@@ -5,8 +5,8 @@ services:
       mongod
       --config /etc/mongod.conf
       --replSetMember=mongod:27017
-    environment:
-      - MONGOT_PASSWORD
+    secrets:
+      - mongot_password
     ports:
       # Bind to random available port on host
       - "0:27017"
@@ -35,18 +35,18 @@ services:
     # TODO: Switch to publicly available mongot image once the auto-embed is
     # also available.
     # image: mongodb/mongodb-community-search:latest
-    environment:
-      - MONGOT_PASSWORD
-      - VOYAGE_QUERY_KEY
-      - VOYAGE_INDEXING_KEY
+    secrets:
+      - mongot_password
+      - voyage_query_key
+      - voyage_indexing_key
     entrypoint:
       - /bin/sh
       - -c
       - |
-        # Write secrets to expected location in container
-        printf '%s' "$$MONGOT_PASSWORD" > /mongot-community/pwfile
-        printf '%s' "$$VOYAGE_QUERY_KEY" > /etc/voyage-api-query-key
-        printf '%s' "$$VOYAGE_INDEXING_KEY" > /etc/voyage-api-indexing-key
+        # Copy secrets to expected location in container
+        cp /run/secrets/mongot_password /mongot-community/pwfile
+        cp /run/secrets/voyage_query_key /etc/voyage-api-query-key
+        cp /run/secrets/voyage_indexing_key /etc/voyage-api-indexing-key
 
         # Ensure readonly permissions for the credentials
         chmod 400 /mongot-community/pwfile /etc/voyage-api-query-key /etc/voyage-api-indexing-key
@@ -73,3 +73,11 @@ services:
 volumes:
   mongod-data:
   mongot-data:
+
+secrets:
+  mongot_password:
+    environment: MONGOT_PASSWORD
+  voyage_query_key:
+    environment: VOYAGE_QUERY_KEY
+  voyage_indexing_key:
+    environment: VOYAGE_INDEXING_KEY

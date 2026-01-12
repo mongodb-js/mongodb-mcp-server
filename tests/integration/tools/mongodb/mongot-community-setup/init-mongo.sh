@@ -3,8 +3,8 @@ set -e
 
 sleep 2
 
-# Use password from container environment variable
-MONGOT_PASSWORD="${MONGOT_PASSWORD}"
+# Use password from mounted secret in the container
+MONGOT_PASSWORD="$(cat /run/secrets/mongot_password)"
 
 mongosh --eval "
 const adminDb = db.getSiblingDB('admin');
