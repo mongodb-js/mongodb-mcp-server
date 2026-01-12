@@ -4,7 +4,7 @@ import { formatUntrustedData } from "../../tool.js";
 import { EJSON } from "bson";
 import { z } from "zod";
 
-export const DbStatsOutputSchema = {
+const DbStatsOutputSchema = {
     stats: z.record(z.unknown()),
 };
 

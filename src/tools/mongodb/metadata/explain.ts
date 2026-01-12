@@ -7,7 +7,7 @@ import { getAggregateArgs } from "../read/aggregate.js";
 import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
-export const ExplainOutputSchema = {
+const ExplainOutputSchema = {
     explainResult: z.record(z.unknown()),
     method: z.string(),
     verbosity: z.string(),

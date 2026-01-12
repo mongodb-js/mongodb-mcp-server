@@ -2,7 +2,7 @@ import { MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
 import { z } from "zod";
 
-export const LogsOutputSchema = {
+const LogsOutputSchema = {
     logs: z.array(z.string()),
     totalLinesWritten: z.number(),
     shownCount: z.number(),

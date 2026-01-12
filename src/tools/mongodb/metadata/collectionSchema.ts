@@ -9,7 +9,7 @@ import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
 
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
-export const CollectionSchemaOutputSchema = {
+const CollectionSchemaOutputSchema = {
     schema: z.record(z.unknown()),
     fieldsCount: z.number(),
 };
