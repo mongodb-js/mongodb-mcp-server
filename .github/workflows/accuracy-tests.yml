@@ -26,6 +26,12 @@ jobs:
       MDB_ACCURACY_MDB_DB: ${{ vars.ACCURACY_MDB_DB }}
       MDB_ACCURACY_MDB_COLLECTION: ${{ vars.ACCURACY_MDB_COLLECTION }}
       MDB_ACCURACY_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || '' }}
+
+      MDB_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+      MDB_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+      MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
+      MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
+
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v6

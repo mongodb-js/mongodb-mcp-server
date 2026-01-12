@@ -17,7 +17,20 @@ describeAccuracyTests([
     },
     {
         prompt: "Delete the local MongoDB atlas cluster called 'my-instance'",
+        mockedTools: {
+            "atlas-local-list-deployments": (): CallToolResult => ({
+                content: formatUntrustedData(
+                    "Found 1 deployments",
+                    '[{"name":"my-instance","state":"Running","mongodbVersion":"6.0"}]'
+                ),
+            }),
+        },
         expectedToolCalls: [
+            {
+                toolName: "atlas-local-list-deployments",
+                parameters: {},
+                optional: true,
+            },
             {
                 toolName: "atlas-local-delete-deployment",
                 parameters: {

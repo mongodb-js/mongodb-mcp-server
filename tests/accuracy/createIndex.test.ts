@@ -146,6 +146,7 @@ describeAccuracyTests(
                                         type: "vector",
                                         path: "plotSummary",
                                         numDimensions: 1024,
+                                        similarity: Matcher.anyOf(Matcher.string(), Matcher.undefined),
                                     },
                                     {
                                         type: "filter",
