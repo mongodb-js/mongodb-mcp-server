@@ -11,7 +11,7 @@ const adminDb = db.getSiblingDB('admin');
 try {
   adminDb.createUser({
     user: 'mongotUser',
-    // Note: This is harmless because the containers are ephermeral (limited to test runs)
+    // Note: This is harmless because the containers are ephemeral (limited to test runs)
     // and we don't store any data in these underlying containers
     pwd: '${MONGOT_PASSWORD}',
     roles: [{ role: 'searchCoordinator', db: 'admin' }]
