@@ -3,7 +3,7 @@ import type { ToolExecutionContext, ToolArgs, OperationType, ToolResult } from "
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
-export const LogsOutputSchema = {
+const LogsOutputSchema = {
     logs: z.array(z.string()),
     totalLinesWritten: z.number(),
     shownCount: z.number(),

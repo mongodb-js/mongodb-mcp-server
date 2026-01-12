@@ -33,7 +33,7 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
     ? StructuredToolResult<OutputSchema>
     : { content: { type: "text"; text: string }[]; isError?: boolean };
 
-export type StructuredToolResult<OutputSchema extends ZodRawShape> = {
+type StructuredToolResult<OutputSchema extends ZodRawShape> = {
     content: { type: "text"; text: string }[];
     isError?: boolean;
     structuredContent: z.objectOutputType<OutputSchema, ZodTypeAny>;

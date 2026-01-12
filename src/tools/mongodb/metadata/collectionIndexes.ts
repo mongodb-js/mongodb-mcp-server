@@ -3,7 +3,7 @@ import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
-export const CollectionIndexesOutputSchema = {
+const CollectionIndexesOutputSchema = {
     classicIndexes: z.array(
         z.object({
             name: z.string(),

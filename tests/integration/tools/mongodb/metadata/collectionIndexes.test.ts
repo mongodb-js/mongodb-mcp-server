@@ -170,12 +170,7 @@ describeWithMongoDB(
                     'The indexes for "any.foo" cannot be determined because the collection does not exist.'
                 );
 
-                // Structured content should have empty arrays for error case
-                const structuredContent = response.structuredContent as CollectionIndexesOutput;
-                expect(structuredContent.classicIndexes).toEqual([]);
-                expect(structuredContent.searchIndexes).toEqual([]);
-                expect(structuredContent.classicIndexesCount).toBe(0);
-                expect(structuredContent.searchIndexesCount).toBe(0);
+                expect(response.structuredContent).toBeUndefined();
             });
         });
 

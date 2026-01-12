@@ -2,7 +2,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { z } from "zod";
 
-export const CollectionStorageSizeOutputSchema = {
+const CollectionStorageSizeOutputSchema = {
     size: z.number(),
     units: z.string(),
 };
