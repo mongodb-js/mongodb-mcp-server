@@ -1,6 +1,6 @@
 import { ObjectId } from "bson";
-import type { ApiClientCredentials } from "./atlas/apiClient.js";
-import { ApiClient } from "./atlas/apiClient.js";
+import type { ApiClient } from "./atlas/apiClient.js";
+import { createAtlasApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger } from "./logger.js";
 import { LogId } from "./logger.js";
@@ -30,6 +30,7 @@ export interface SessionOptions {
     keychain: Keychain;
     atlasLocalClient?: Client;
     vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
+    apiClient?: ApiClient;
 }
 
 export type SessionEvents = {
@@ -65,20 +66,27 @@ export class Session extends EventEmitter<SessionEvents> {
         keychain,
         atlasLocalClient,
         vectorSearchEmbeddingsManager,
+        apiClient,
     }: SessionOptions) {
         super();
 
         this.userConfig = userConfig;
         this.keychain = keychain;
         this.logger = logger;
+        this.apiClient = apiClient;
 
-        // Only create API client if Atlas tools are enabled (credentials are provided)
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
-            const credentials: ApiClientCredentials = {
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            };
-            this.apiClient = new ApiClient({ baseUrl: userConfig.apiBaseUrl, credentials }, logger);
+        // Create default API client if not provided in the constructor and Atlas tools are enabled (credentials are provided)
+        if (!this.apiClient && userConfig.apiClientId && userConfig.apiClientSecret) {
+            this.apiClient = createAtlasApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                },
+                logger
+            );
         }
 
         this.atlasLocalClient = atlasLocalClient;

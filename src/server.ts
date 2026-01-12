@@ -326,7 +326,7 @@ export class Server {
                     throw new Error(message);
                 }
 
-                await this.session.apiClient.validateAccessToken();
+                await this.session.apiClient.validateAuthConfig();
             } catch (error) {
                 if (this.userConfig.connectionString === undefined) {
                     console.error("Failed to validate MongoDB Atlas the credentials from the config: ", error);
@@ -336,7 +336,7 @@ export class Server {
                     );
                 }
                 console.error(
-                    "Failed to validate MongoDB Atlas the credentials from the config, but validated the connection string."
+                    "Failed to validate MongoDB Atlas credentials from the config, but validated the connection string."
                 );
             }
         }

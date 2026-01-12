@@ -22,6 +22,8 @@ import type { Client } from "@mongodb-js/atlas-local";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
+import type { ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import { createAtlasApiClient } from "../common/atlas/apiClient.js";
 
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
@@ -187,6 +189,16 @@ export type TransportRunnerConfig = {
      * this is called for each new session.
      */
     createSessionConfig?: CreateSessionConfigFn;
+
+    /**
+     * An optional factory function to generates an instance of
+     * `ApiClient`. When not provided, MongoDB MCP Server uses an
+     * internal implementation to create the API client.
+     *
+     * Customize this only if the use-case involves handling the API client
+     * differently and outside of MongoDB MCP server.
+     */
+    createApiClient?: ApiClientFactoryFn;
 };
 
 export abstract class TransportRunnerBase {
@@ -199,6 +211,7 @@ export abstract class TransportRunnerBase {
     private readonly telemetryProperties: Partial<CommonProperties>;
     private readonly tools?: ToolClass[];
     private readonly createSessionConfig?: CreateSessionConfigFn;
+    private readonly createApiClient: ApiClientFactoryFn;
 
     protected constructor({
         userConfig,
@@ -209,6 +222,7 @@ export abstract class TransportRunnerBase {
         telemetryProperties = {},
         tools,
         createSessionConfig,
+        createApiClient = createAtlasApiClient,
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
@@ -217,6 +231,7 @@ export abstract class TransportRunnerBase {
         this.telemetryProperties = telemetryProperties;
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;
+        this.createApiClient = createApiClient;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -267,6 +282,18 @@ export abstract class TransportRunnerBase {
             deviceId: this.deviceId,
         });
 
+        const apiClient = this.createApiClient(
+            {
+                baseUrl: userConfig.apiBaseUrl,
+                credentials: {
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
+                },
+                requestContext: request,
+            },
+            logger
+        );
+
         const session = new Session({
             userConfig,
             atlasLocalClient: await this.atlasLocalClient,
@@ -275,6 +302,7 @@ export abstract class TransportRunnerBase {
             connectionManager,
             keychain: Keychain.root,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            apiClient,
         });
 
         const telemetry = Telemetry.create(session, userConfig, this.deviceId, {
