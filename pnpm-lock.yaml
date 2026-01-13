@@ -43,7 +43,7 @@ importers:
         specifier: ^11.1.0
         version: 11.2.4
       mongodb-connection-string-url:
-        specifier: ^7.0.0
+        specifier: ^3.0.1 || ^7.0.0
         version: 7.0.0
       mongodb-log-writer:
         specifier: ^2.4.1
