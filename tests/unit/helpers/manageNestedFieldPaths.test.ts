@@ -92,5 +92,30 @@ describe("manageNestedFieldPaths", () => {
             expect((doc.info as Record<string, unknown>).constructor).toBe("value2");
             expect(JSON.stringify(doc)).toEqual('{"__proto__":{"nested":"value1"},"info":{"constructor":"value2"}}');
         });
+
+        it("throws for invalid field paths", () => {
+            const doc: Record<string, unknown> = {};
+            const invalidPaths = [
+                "",
+                " ",
+                "  ",
+                "\t",
+                "a. .b",
+                "a.\t.b",
+                ".a.b",
+                "a.b.",
+                "a..b",
+                "a.b.c.",
+                "a..b.c",
+                ".",
+            ];
+
+            for (const path of invalidPaths) {
+                expect(
+                    () => setFieldPath(doc, path, "value"),
+                    `Expected setFieldPath to throw for path '${path}'`
+                ).toThrow(`Invalid field path: '${path}'`);
+            }
+        });
     });
 });

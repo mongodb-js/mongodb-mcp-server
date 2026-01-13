@@ -1,16 +1,18 @@
 export function setFieldPath(document: Record<string, unknown>, fieldPath: string, value: unknown): void {
     const parts = fieldPath.split(".");
+    if (parts.some((part) => !part.trim())) {
+        throw new Error(`Invalid field path: '${fieldPath}'`);
+    }
     _setFieldPath(document, parts, value, "");
 }
 
 function _setFieldPath(current: Record<string, unknown>, parts: string[], value: unknown, parentPath: string): void {
-    if (parts.length === 0) {
-        return;
-    }
-
     const [key, ...rest] = parts;
+
+    // This should never happen since we validate fieldPath in setFieldPath,
+    // but TypeScript needs this check for type narrowing.
     if (!key) {
-        return;
+        throw new Error(`Cannot set field at provided path: Unexpected empty key - '${key}' in field path.`);
     }
 
     if (rest.length === 0) {
