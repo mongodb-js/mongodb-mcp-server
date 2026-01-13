@@ -1,4 +1,6 @@
-const MAX_DEPTH = 64;
+// We respect the max nesting depth allowed for BSON documents.
+// Ref: https://www.mongodb.com/docs/manual/reference/limits/?atlas-provider=aws&atlas-class=general#mongodb-limit-Nested-Depth-for-BSON-Documents
+const MAX_DEPTH = 100;
 
 export function setFieldPath(document: Record<string, unknown>, fieldPath: string, value: unknown): void {
     const parts = fieldPath.split(".");
