@@ -24,7 +24,6 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
                 ],
                 {
                     // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
-
                     signal,
                 }
             )

@@ -72,7 +72,6 @@ export class ExplainTool extends MongoDBToolBase {
                         pipeline,
                         {
                             // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
-
                             signal,
                         },
                         {
@@ -88,7 +87,6 @@ export class ExplainTool extends MongoDBToolBase {
                     .find(database, collection, filter as Document, {
                         ...rest,
                         // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
-
                         signal,
                     })
                     .explain(verbosity);

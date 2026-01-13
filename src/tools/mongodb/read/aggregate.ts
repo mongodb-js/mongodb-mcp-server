@@ -94,7 +94,6 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                                     pipeline,
                                     {
                                         // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
-
                                         signal,
                                     },
                                     { writeConcern: undefined }
@@ -136,7 +135,6 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 }
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
                     // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
-
                     signal,
                 });
 
@@ -251,7 +249,6 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             const aggregationResults = await provider
                 .aggregate(database, collection, resultsCountAggregation, {
                     // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
-
                     signal: abortSignal,
                 })
                 .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)
