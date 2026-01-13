@@ -32,9 +32,16 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
-        const cursor = provider.aggregate(database, collection, [
-            { $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } },
-        ]);
+        const cursor = provider.aggregate(
+            database,
+            collection,
+            [{ $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } }],
+            {
+                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+
+                signal,
+            }
+        );
         const { cappedBy, documents } = await collectCursorUntilMaxBytesLimit({
             cursor,
             configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
