@@ -1,7 +1,13 @@
+const MAX_DEPTH = 64;
+
 export function setFieldPath(document: Record<string, unknown>, fieldPath: string, value: unknown): void {
     const parts = fieldPath.split(".");
     if (parts.some((part) => !part.trim())) {
         throw new Error(`Invalid field path: '${fieldPath}'`);
+    }
+
+    if (parts.length > MAX_DEPTH) {
+        throw new Error(`Field path has too many nested levels (maximum ${MAX_DEPTH} allowed).`);
     }
     _setFieldPath(document, parts, value, "");
 }
