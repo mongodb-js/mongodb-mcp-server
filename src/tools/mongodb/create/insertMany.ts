@@ -7,7 +7,7 @@ import { type Document } from "bson";
 import { zSupportedEmbeddingParameters } from "../mongodbSchemas.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../telemetry/types.js";
-import { deleteFieldPath, setFieldPath } from "../../../helpers/manageNestedFieldPaths.js";
+import { setFieldPath } from "../../../helpers/manageNestedFieldPaths.js";
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
     input: z
@@ -134,8 +134,6 @@ export class InsertManyTool extends MongoDBToolBase {
             if (!processedDocuments[documentIndex]) {
                 throw new MongoDBError(ErrorCodes.Unexpected, `Document at index ${documentIndex} does not exist.`);
             }
-            // Ensure no nested fields are present in the field path.
-            deleteFieldPath(processedDocuments[documentIndex], fieldPath);
             setFieldPath(processedDocuments[documentIndex], fieldPath, generatedEmbeddings[index]);
         }
 
