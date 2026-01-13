@@ -88,7 +88,16 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     case "not-vector-search-query":
                         await checkIndexUsage(provider, database, collection, "aggregate", async () => {
                             return provider
-                                .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
+                                .aggregate(
+                                    database,
+                                    collection,
+                                    pipeline,
+                                    {
+                                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                                        signal,
+                                    },
+                                    { writeConcern: undefined }
+                                )
                                 .explain("queryPlanner");
                         });
                         break;
@@ -112,7 +121,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             let documents: unknown[];
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
-                aggregationCursor = provider.aggregate(database, collection, pipeline);
+                aggregationCursor = provider.aggregate(database, collection, pipeline, {
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    signal,
+                });
 
                 documents = await aggregationCursor.toArray();
                 successMessage = "The aggregation pipeline executed successfully.";
@@ -121,10 +133,19 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 if (this.config.maxDocumentsPerQuery > 0) {
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
-                aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
+                aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    signal,
+                });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
-                    this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
+                    this.countAggregationResultDocuments({
+                        provider,
+                        database,
+                        collection,
+                        pipeline,
+                        abortSignal: signal,
+                    }),
                     collectCursorUntilMaxBytesLimit({
                         cursor: aggregationCursor,
                         configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
@@ -215,16 +236,21 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         database,
         collection,
         pipeline,
+        abortSignal,
     }: {
         provider: NodeDriverServiceProvider;
         database: string;
         collection: string;
         pipeline: Document[];
+        abortSignal?: AbortSignal;
     }): Promise<number | undefined> {
         const resultsCountAggregation = [...pipeline, { $count: "totalDocuments" }];
         return await operationWithFallback(async (): Promise<number | undefined> => {
             const aggregationResults = await provider
-                .aggregate(database, collection, resultsCountAggregation)
+                .aggregate(database, collection, resultsCountAggregation, {
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    signal: abortSignal,
+                })
                 .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)
                 .toArray();
 
@@ -393,66 +419,5 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
     private isWriteStage(stage: Record<string, unknown>): boolean {
         return "$out" in stage || "$merge" in stage;
-    }
-
-    private async runWriteAggregation(
-        provider: NodeDriverServiceProvider,
-        database: string,
-        collection: string,
-        pipeline: Document[]
-    ): Promise<{ message: string; documents: unknown[] }> {
-        // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
-        const aggregationCursor = provider.aggregate(database, collection, pipeline);
-
-        return {
-            message: "The aggregation pipeline executed successfully.",
-            documents: await aggregationCursor.toArray(),
-        };
-    }
-
-    private async runReadAggregation(
-        provider: NodeDriverServiceProvider,
-        database: string,
-        collection: string,
-        pipeline: Document[],
-        responseBytesLimit: number,
-        signal: AbortSignal
-    ): Promise<{ message: string; documents: unknown[] }> {
-        const cappedResultsPipeline = [...pipeline];
-        if (this.config.maxDocumentsPerQuery > 0) {
-            cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
-        }
-        const aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
-
-        const [totalDocuments, cursorResults] = await Promise.all([
-            this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
-            collectCursorUntilMaxBytesLimit({
-                cursor: aggregationCursor,
-                configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
-                toolResponseBytesLimit: responseBytesLimit,
-                abortSignal: signal,
-            }),
-        ]);
-
-        // If the total number of documents that the aggregation would've
-        // resulted in would be greater than the configured
-        // maxDocumentsPerQuery then we know for sure that the results were
-        // capped.
-        const aggregationResultsCappedByMaxDocumentsLimit =
-            this.config.maxDocumentsPerQuery > 0 &&
-            !!totalDocuments &&
-            totalDocuments > this.config.maxDocumentsPerQuery;
-
-        return {
-            message: this.generateMessage({
-                aggResultsCount: totalDocuments,
-                documents: cursorResults.documents,
-                appliedLimits: [
-                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                    cursorResults.cappedBy,
-                ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
-            }),
-            documents: cursorResults.documents,
-        };
     }
 }
