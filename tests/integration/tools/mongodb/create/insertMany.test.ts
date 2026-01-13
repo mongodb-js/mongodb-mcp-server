@@ -454,7 +454,7 @@ describeWithMongoDB(
                 expect((doc?.titleEmbeddings as number[]).length).toBe(1024);
             });
 
-            it("removes redundant nested field from document when embeddings are generated", async () => {
+            it("updates the nested field with embeddings when embeddings are generated", async () => {
                 await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                     {
                         type: "vector",
@@ -484,8 +484,7 @@ describeWithMongoDB(
 
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect((doc?.title as Record<string, unknown>)?.text).toBe("The Matrix");
-                expect((doc?.title as Record<string, unknown>)?.embeddings).not.toBeDefined();
-                expect((doc?.["title.embeddings"] as unknown as number[]).length).toBe(1024);
+                expect(((doc?.title as Record<string, unknown>)?.embeddings as number[])?.length).toBe(1024);
             });
 
             it("returns an error when input field does not have a vector search index", async () => {
