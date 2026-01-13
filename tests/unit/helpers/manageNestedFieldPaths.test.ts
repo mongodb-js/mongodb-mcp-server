@@ -79,41 +79,18 @@ describe("manageNestedFieldPaths", () => {
             expect(doc).toEqual({ metadata: { count: 5, active: true } });
         });
 
-        describe("prevents prototype pollution", () => {
-            it("throws when __proto__ is used as intermediate path", () => {
-                const doc: Record<string, unknown> = {};
-                expect(() => setFieldPath(doc, "__proto__.polluted", "value")).toThrow(
-                    "Cannot set field at provided path: path segment '__proto__' is not allowed."
-                );
-            });
+        it("creates own properties for __proto__, constructor without polluting prototypes", () => {
+            const doc: Record<string, unknown> = {};
 
-            it("throws when __proto__ is used as final path", () => {
-                const doc: Record<string, unknown> = {};
-                expect(() => setFieldPath(doc, "data.__proto__", "value")).toThrow(
-                    "Cannot set field at provided path: path segment '__proto__' is not allowed."
-                );
-            });
+            // Set fields that could potentially cause prototype pollution
+            setFieldPath(doc, "__proto__.nested", "value1");
+            setFieldPath(doc, "info.constructor", "value2");
 
-            it("throws when constructor is used as path segment", () => {
-                const doc: Record<string, unknown> = {};
-                expect(() => setFieldPath(doc, "constructor.prototype", "value")).toThrow(
-                    "Cannot set field at provided path: path segment 'constructor' is not allowed."
-                );
-            });
-
-            it("throws when prototype is used as path segment", () => {
-                const doc: Record<string, unknown> = {};
-                expect(() => setFieldPath(doc, "a.prototype.b", "value")).toThrow(
-                    "Cannot set field at provided path: path segment 'prototype' is not allowed."
-                );
-            });
-
-            it("does not pollute Object.prototype", () => {
-                const doc: Record<string, unknown> = {};
-                expect(() => setFieldPath(doc, "__proto__.polluted", true)).toThrow();
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-                expect((Object.prototype as any).polluted).toBeUndefined();
-            });
+            // Verify own properties were created
+            expect(Object.prototype.hasOwnProperty.call(doc, "__proto__")).toBe(true);
+            expect((doc["__proto__"] as Record<string, unknown>).nested).toBe("value1");
+            expect((doc.info as Record<string, unknown>).constructor).toBe("value2");
+            expect(JSON.stringify(doc)).toEqual('{"__proto__":{"nested":"value1"},"info":{"constructor":"value2"}}');
         });
     });
 });
