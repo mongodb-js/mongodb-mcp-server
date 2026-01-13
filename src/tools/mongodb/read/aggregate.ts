@@ -428,16 +428,21 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         { result }: { result: CallToolResult }
     ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
         const [maybeVectorStage] = args.pipeline;
+        const usesVectorSearch =
+            maybeVectorStage !== null && maybeVectorStage instanceof Object && "$vectorSearch" in maybeVectorStage;
         if (
-            maybeVectorStage !== null &&
-            maybeVectorStage instanceof Object &&
-            "$vectorSearch" in maybeVectorStage &&
+            usesVectorSearch &&
             "embeddingParameters" in maybeVectorStage["$vectorSearch"] &&
             this.config.voyageApiKey
         ) {
             return {
                 ...super.resolveTelemetryMetadata(args, { result }),
                 embeddingsGeneratedBy: "mcp",
+            };
+        } else if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
+            return {
+                ...super.resolveTelemetryMetadata(args, { result }),
+                embeddingsGeneratedBy: "mongot",
             };
         } else {
             return super.resolveTelemetryMetadata(args, { result });

@@ -1226,6 +1226,35 @@ describeWithMongoDB(
             const content = getResponseContent(response);
             expect(content).toContain("Story of a pizza and how they got famous in Naples.");
         });
+
+        it("should emit tool event with auto-embedding usage metadata pointing to `mongot`", async () => {
+            const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+            vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+            await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "movies",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "auto-embed-index",
+                                path: "plot",
+                                query: { text: "movies about food" },
+                                limit: 5,
+                                numCandidates: 5,
+                            },
+                        },
+                    ],
+                },
+            });
+
+            expect(mockEmitEvents).toHaveBeenCalled();
+            const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+            expectDefined(emittedEvent);
+            expect(emittedEvent.properties.embeddingsGeneratedBy).toBe("mongot");
+        });
     },
     {
         getUserConfig: () => ({
