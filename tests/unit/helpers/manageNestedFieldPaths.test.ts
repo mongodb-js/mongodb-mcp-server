@@ -122,7 +122,7 @@ describe("manageNestedFieldPaths", () => {
             const doc: Record<string, unknown> = {};
             const deepPath = Array.from({ length: 101 }, (_, i) => `level${i}`).join(".");
             expect(() => setFieldPath(doc, deepPath, "value")).toThrow(
-                "Field path has too many nested levels (maximum 100 allowed)."
+                `Field path "${deepPath}" has too many nested levels (maximum 100 allowed).`
             );
         });
     });
