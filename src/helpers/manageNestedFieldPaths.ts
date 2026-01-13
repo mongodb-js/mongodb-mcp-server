@@ -9,7 +9,7 @@ export function setFieldPath(document: Record<string, unknown>, fieldPath: strin
     }
 
     if (parts.length > MAX_DEPTH) {
-        throw new Error(`Field path has too many nested levels (maximum ${MAX_DEPTH} allowed).`);
+        throw new Error(`Field path "${fieldPath}" has too many nested levels (maximum ${MAX_DEPTH} allowed).`);
     }
     _setFieldPath(document, parts, value, "");
 }
