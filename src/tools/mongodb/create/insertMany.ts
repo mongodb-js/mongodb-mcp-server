@@ -7,6 +7,7 @@ import { type Document } from "bson";
 import { zSupportedEmbeddingParameters } from "../mongodbSchemas.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../telemetry/types.js";
+import { setFieldPath } from "../../../helpers/manageNestedFieldPaths.js";
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
     input: z
@@ -133,29 +134,10 @@ export class InsertManyTool extends MongoDBToolBase {
             if (!processedDocuments[documentIndex]) {
                 throw new MongoDBError(ErrorCodes.Unexpected, `Document at index ${documentIndex} does not exist.`);
             }
-            // Ensure no nested fields are present in the field path.
-            this.deleteFieldPath(processedDocuments[documentIndex], fieldPath);
-            processedDocuments[documentIndex][fieldPath] = generatedEmbeddings[index];
+            setFieldPath(processedDocuments[documentIndex], fieldPath, generatedEmbeddings[index]);
         }
 
         return processedDocuments;
-    }
-
-    // Delete a specified field path from a document using dot notation.
-    private deleteFieldPath(document: Record<string, unknown>, fieldPath: string): void {
-        const parts = fieldPath.split(".");
-        let current: Record<string, unknown> = document;
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-            const key = part as keyof typeof current;
-            if (!current[key]) {
-                return;
-            } else if (i === parts.length - 1) {
-                delete current[key];
-            } else {
-                current = current[key] as Record<string, unknown>;
-            }
-        }
     }
 
     protected resolveTelemetryMetadata(
