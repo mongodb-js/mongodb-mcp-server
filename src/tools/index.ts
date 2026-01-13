@@ -24,4 +24,5 @@ export {
     type OperationType,
     type ToolArgs,
     type ToolExecutionContext,
+    type ToolResult,
 } from "./tool.js";

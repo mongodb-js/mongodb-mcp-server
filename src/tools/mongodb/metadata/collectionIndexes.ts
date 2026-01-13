@@ -1,61 +1,80 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
+import { z } from "zod";
 
-type SearchIndexStatus = {
-    name: string;
-    type: string;
-    status: string;
-    queryable: boolean;
-    latestDefinition: Document;
+const CollectionIndexesOutputSchema = {
+    classicIndexes: z.array(
+        z.object({
+            name: z.string(),
+            key: z.record(z.unknown()),
+        })
+    ),
+    searchIndexes: z.array(
+        z.object({
+            name: z.string(),
+            type: z.string(),
+            status: z.string(),
+            queryable: z.boolean(),
+            latestDefinition: z.record(z.unknown()),
+        })
+    ),
+    classicIndexesCount: z.number(),
+    searchIndexesCount: z.number(),
 };
 
-type IndexStatus = {
-    name: string;
-    key: Document;
-};
+export type CollectionIndexesOutput = z.infer<z.ZodObject<typeof CollectionIndexesOutputSchema>>;
+
+type SearchIndexStatus = CollectionIndexesOutput["searchIndexes"][number];
+type IndexStatus = CollectionIndexesOutput["classicIndexes"][number];
 
 export class CollectionIndexesTool extends MongoDBToolBase {
     public name = "collection-indexes";
     public description = "Describe the indexes for a collection";
     public argsShape = DbOperationArgs;
+    public override outputSchema = CollectionIndexesOutputSchema;
     static operationType: OperationType = "metadata";
 
-    protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
+    protected async execute({
+        database,
+        collection,
+    }: ToolArgs<typeof DbOperationArgs>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const indexes = await provider.getIndexes(database, collection);
-        const indexDefinitions: IndexStatus[] = indexes.map((index) => ({
+        const classicIndexes: IndexStatus[] = indexes.map((index) => ({
             name: index.name as string,
-            key: index.key as Document,
+            key: index.key as Record<string, unknown>,
         }));
 
-        const searchIndexDefinitions: SearchIndexStatus[] = [];
+        const searchIndexes: SearchIndexStatus[] = [];
         if (this.isFeatureEnabled("search") && (await this.session.isSearchSupported())) {
             const searchIndexes = await provider.getSearchIndexes(database, collection);
-            searchIndexDefinitions.push(...this.extractSearchIndexDetails(searchIndexes));
+            searchIndexes.push(...this.extractSearchIndexDetails(searchIndexes));
         }
 
         return {
             content: [
                 ...formatUntrustedData(
-                    `Found ${indexDefinitions.length} classic indexes in the collection "${collection}":`,
-                    ...indexDefinitions.map((i) => JSON.stringify(i))
+                    `Found ${classicIndexes.length} classic indexes in the collection "${collection}":`,
+                    JSON.stringify(classicIndexes)
                 ),
-                ...(searchIndexDefinitions.length > 0
+                ...(searchIndexes.length > 0
                     ? formatUntrustedData(
-                          `Found ${searchIndexDefinitions.length} search and vector search indexes in the collection "${collection}":`,
-                          ...searchIndexDefinitions.map((i) => JSON.stringify(i))
+                          `Found ${searchIndexes.length} search and vector search indexes in the collection "${collection}":`,
+                          JSON.stringify(searchIndexes)
                       )
                     : []),
             ],
+            structuredContent: {
+                classicIndexes,
+                searchIndexes,
+                classicIndexesCount: classicIndexes.length,
+                searchIndexesCount: searchIndexes.length,
+            },
         };
     }
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): ToolResult | Promise<ToolResult> {
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [
@@ -68,7 +87,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args);
+        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
     }
 
     /**
@@ -83,7 +102,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             type: (index["type"] ?? "UNKNOWN") as string,
             status: (index["status"] ?? "UNKNOWN") as string,
             queryable: (index["queryable"] ?? false) as boolean,
-            latestDefinition: index["latestDefinition"] as Document,
+            latestDefinition: index["latestDefinition"] as Record<string, unknown>,
         }));
     }
 }

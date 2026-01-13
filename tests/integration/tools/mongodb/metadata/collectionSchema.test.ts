@@ -12,6 +12,7 @@ import {
 import type { Document } from "bson";
 import type { OptionalId } from "mongodb";
 import type { SimplifiedSchema } from "mongodb-schema";
+import type { CollectionSchemaOutput } from "../../../../../src/tools/mongodb/metadata/collectionSchema.js";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("collectionSchema tool", (integration) => {
@@ -44,6 +45,11 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
             expect(content).toEqual(
                 `Could not deduce the schema for "non-existent.foo". This may be because it doesn't exist or is empty.`
             );
+
+            // Structured content should have empty schema for empty collection
+            const structuredContent = response.structuredContent as CollectionSchemaOutput;
+            expect(structuredContent.schema).toEqual({});
+            expect(structuredContent.fieldsCount).toBe(0);
         });
     });
 
@@ -144,11 +150,16 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
 
                 // Expect to find _id, name, age
                 expect(items[0]?.text).toEqual(
-                    `Found ${Object.entries(testCase.expectedSchema).length} fields in the schema for "${integration.randomDbName()}.foo"`
+                    `Found ${Object.entries(testCase.expectedSchema).length} fields in the schema for "${integration.randomDbName()}.foo". Note that this schema is inferred from a sample and may not represent the full schema of the collection.`
                 );
 
                 const schema = JSON.parse(getDataFromUntrustedContent(items[1]?.text ?? "{}")) as SimplifiedSchema;
                 expect(schema).toEqual(testCase.expectedSchema);
+
+                // Validate structured content matches
+                const structuredContent = response.structuredContent as CollectionSchemaOutput;
+                expect(structuredContent.schema).toEqual(testCase.expectedSchema);
+                expect(structuredContent.fieldsCount).toBe(Object.entries(testCase.expectedSchema).length);
             });
         }
     });

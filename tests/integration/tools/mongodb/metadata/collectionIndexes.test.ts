@@ -1,4 +1,5 @@
 import type { Collection, IndexDirection } from "mongodb";
+import type { CollectionIndexesOutput } from "../../../../../src/tools/mongodb/metadata/collectionIndexes.js";
 import {
     databaseCollectionParameters,
     validateToolMetadata,
@@ -21,7 +22,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 const getIndexesFromContent = (content?: string): Array<unknown> => {
     const data = getDataFromUntrustedContent(content || "");
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return data.split("\n").map((line) => JSON.parse(line));
+    return JSON.parse(data);
 };
 
 describeWithMongoDB("collectionIndexes tool", (integration) => {
@@ -66,6 +67,12 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
         expect(elements[0]?.text).toEqual('Found 1 classic indexes in the collection "people":');
         const indexDefinitions = getIndexesFromContent(elements[1]?.text);
         expect(indexDefinitions).toEqual([{ name: "_id_", key: { _id: 1 } }]);
+        // Validate structured content matches
+        const structuredContent = response.structuredContent as CollectionIndexesOutput;
+        expect(structuredContent.classicIndexes).toEqual([{ name: "_id_", key: { _id: 1 } }]);
+        expect(structuredContent.searchIndexes).toEqual([]);
+        expect(structuredContent.classicIndexesCount).toBe(1);
+        expect(structuredContent.searchIndexesCount).toBe(0);
     });
 
     it("returns all indexes for a collection", async () => {
@@ -110,6 +117,26 @@ describeWithMongoDB("collectionIndexes tool", (integration) => {
                 key: expectedDefinition,
             });
         }
+
+        // Validate structured content matches
+        const structuredContent = response.structuredContent as CollectionIndexesOutput;
+        expect(structuredContent.classicIndexes).toHaveLength(indexTypes.length + 1);
+        expect(structuredContent.searchIndexes).toEqual([]);
+        expect(structuredContent.classicIndexesCount).toBe(indexTypes.length + 1);
+        expect(structuredContent.searchIndexesCount).toBe(0);
+
+        // Verify structured content contains the same indexes as content
+        expect(structuredContent.classicIndexes).toContainEqual({ name: "_id_", key: { _id: 1 } });
+        for (const indexType of indexTypes) {
+            let expectedDefinition = { [`prop_${indexType}`]: indexType };
+            if (indexType === "text") {
+                expectedDefinition = { _fts: "text", _ftsx: 1 };
+            }
+            expect(structuredContent.classicIndexes).toContainEqual({
+                name: indexNames.get(indexType),
+                key: expectedDefinition,
+            });
+        }
     });
 
     validateAutoConnectBehavior(integration, "collection-indexes", () => {
@@ -142,6 +169,8 @@ describeWithMongoDB(
                 expect(responseContent).toContain(
                     'The indexes for "any.foo" cannot be determined because the collection does not exist.'
                 );
+
+                expect(response.structuredContent).toBeUndefined();
             });
         });
 
@@ -163,6 +192,13 @@ describeWithMongoDB(
 
                 const responseContent = getResponseContent(response.content);
                 expect(responseContent).not.toContain("search and vector search indexes");
+
+                // Validate structured content
+                const structuredContent = response.structuredContent as CollectionIndexesOutput;
+                expect(structuredContent.classicIndexes).toHaveLength(2); // _id_ and foo_1
+                expect(structuredContent.searchIndexes).toEqual([]);
+                expect(structuredContent.classicIndexesCount).toBe(2);
+                expect(structuredContent.searchIndexesCount).toBe(0);
             });
         });
 
@@ -245,6 +281,22 @@ describeWithMongoDB(
                 expect(fields1[0]).toHaveProperty("path", "field1_embeddings");
                 expect(fields1[1]).toHaveProperty("type", "filter");
                 expect(fields1[1]).toHaveProperty("path", "age");
+
+                // Validate structured content
+                const structuredContent = response.structuredContent as CollectionIndexesOutput;
+                expect(structuredContent.classicIndexes).toHaveLength(1); // _id_
+                expect(structuredContent.searchIndexes).toHaveLength(2);
+                expect(structuredContent.classicIndexesCount).toBe(1);
+                expect(structuredContent.searchIndexesCount).toBe(2);
+
+                // Verify structured content matches what we parsed from content
+                const vectorIndex = structuredContent.searchIndexes.find((idx) => idx.name === "my-vector-index");
+                expectDefined(vectorIndex);
+                expect(vectorIndex.type).toBe("vectorSearch");
+
+                const mixedIndex = structuredContent.searchIndexes.find((idx) => idx.name === "my-mixed-index");
+                expectDefined(mixedIndex);
+                expect(mixedIndex.type).toBe("vectorSearch");
             });
 
             it(
