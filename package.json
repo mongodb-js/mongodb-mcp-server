@@ -149,7 +149,7 @@
     "@mongodb-js/devtools-proxy-support": "^0.5.3",
     "@mongosh/arg-parser": "3.23.0",
     "@mongosh/service-provider-node-driver": "^3.17.5",
-    "ai": "^5.0.72",
+    "ai": "^6.0.12",
     "bson": "^6.10.4",
     "express": "^5.1.0",
     "lru-cache": "^11.1.0",
