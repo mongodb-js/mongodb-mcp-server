@@ -107,7 +107,10 @@ export class Telemetry {
                     });
                     resolve();
                 }, flushMaxWaitTime);
-                flushTimeout.unref();
+                // This is Node-specific and can cause issues when running in electron otherwise. See https://github.com/electron/electron/issues/21162
+                if (typeof flushTimeout.unref === "function") {
+                    flushTimeout.unref();
+                }
             }),
             this.emit([]),
         ]);
