@@ -2,14 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-
-type SearchIndexStatus = {
-    name: string;
-    type: string;
-    status: string;
-    queryable: boolean;
-    latestDefinition: Document;
-};
+import type { Document } from "bson";
 
 type IndexStatus = {
     name: string;
@@ -30,7 +23,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             key: index.key as Document,
         }));
 
-        const searchIndexDefinitions: SearchIndexStatus[] = [];
+        const searchIndexDefinitions: Document[] = [];
         if (this.isFeatureEnabled("search") && (await this.session.isSearchSupported())) {
             const searchIndexes = await provider.getSearchIndexes(database, collection);
             searchIndexDefinitions.push(...this.extractSearchIndexDetails(searchIndexes));
@@ -77,13 +70,27 @@ export class CollectionIndexesTool extends MongoDBToolBase {
      * queryable and the index name. We are also picking the index definition as it can be used by the agent to
      * understand which fields are available for searching.
      **/
-    protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[] {
-        return indexes.map((index) => ({
-            name: (index["name"] ?? "default") as string,
-            type: (index["type"] ?? "UNKNOWN") as string,
-            status: (index["status"] ?? "UNKNOWN") as string,
-            queryable: (index["queryable"] ?? false) as boolean,
-            latestDefinition: index["latestDefinition"] as Document,
-        }));
+    protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): Document[] {
+        return indexes.map((index) => {
+            const result: Document = {};
+
+            if (index["name"] !== undefined) {
+                result.name = index["name"];
+            }
+            if (index["type"] !== undefined) {
+                result.type = index["type"];
+            }
+            if (index["status"] !== undefined) {
+                result.status = index["status"];
+            }
+            if (index["queryable"] !== undefined) {
+                result.queryable = index["queryable"];
+            }
+            if (index["latestDefinition"] !== undefined) {
+                result.latestDefinition = index["latestDefinition"];
+            }
+
+            return result;
+        });
     }
 }

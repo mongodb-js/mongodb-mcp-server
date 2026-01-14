@@ -58,7 +58,7 @@ export class DropIndexTool extends MongoDBToolBase {
         provider: NodeDriverServiceProvider,
         { database, collection, indexName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {
-        await this.ensureSearchIsSupported();
+        await this.session.assertSearchSupported();
         const indexes = await provider.getSearchIndexes(database, collection, indexName);
         if (indexes.length === 0) {
             return {

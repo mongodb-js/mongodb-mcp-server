@@ -10,11 +10,11 @@ import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../t
 import { setFieldPath } from "../../../helpers/manageNestedFieldPaths.js";
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
-    input: z
-        .array(z.object({}).passthrough())
-        .describe(
-            "Array of objects with vector search index fields as keys (in dot notation) and the raw text values to generate embeddings for as values. The index of each object corresponds to the index of the document in the documents array."
-        ),
+    input: z.array(z.object({}).passthrough()).describe(`\
+Array of objects with field paths covered by vector search index field definitions as keys (in dot notation) and the raw text values as values for generating embeddings. \
+The index of each object corresponds to the index of the document in the documents array. \
+Note to LLM: Ensure that the keys in the the input object are the field paths where vector embeddings are supposed to be stored and are covered by vector search index field definitions (type: 'vector').\
+`),
 });
 
 const commonArgs = {
@@ -33,11 +33,14 @@ export class InsertManyTool extends MongoDBToolBase {
     public argsShape = this.isFeatureEnabled("search")
         ? {
               ...commonArgs,
-              embeddingParameters: zSupportedEmbeddingParametersWithInput
-                  .optional()
-                  .describe(
-                      "The embedding model and its parameters to use to generate embeddings for fields with vector search indexes. Note to LLM: If unsure which embedding model to use, ask the user before providing one."
-                  ),
+              embeddingParameters: zSupportedEmbeddingParametersWithInput.optional().describe(
+                  `\
+The embedding model and its parameters to use for generating embeddings for fields indexed with a vector search index and field definition of type 'vector'. \
+Note to LLM: Use the collection-indexes tool to verify which fields have which type of vector search index field definition before deciding whether to provide this parameter. \
+DO NOT provide this parameter if the field is covered by a vector index field definition of type 'autoEmbed' or not covered at all. \
+If unsure which embedding model to use, ask the user before providing one.\
+`
+              ),
           }
         : commonArgs;
     static operationType: OperationType = "create";
@@ -95,7 +98,9 @@ export class InsertManyTool extends MongoDBToolBase {
             return documents;
         }
 
-        // Get vector search indexes for the collection
+        // Get vector search indexes for the collection.
+        // Note: embeddingsForNamespace() only returns fields that require manual embedding generation,
+        // excluding fields with auto-embedding indexes where MongoDB generates embeddings automatically.
         const vectorIndexes = await this.session.vectorSearchEmbeddingsManager.embeddingsForNamespace({
             database,
             collection,
@@ -107,7 +112,7 @@ export class InsertManyTool extends MongoDBToolBase {
                 if (!vectorIndexes.some((index) => index.path === fieldPath)) {
                     throw new MongoDBError(
                         ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        `Field '${fieldPath}' does not have a vector search index in collection ${database}.${collection}. Only fields with vector search indexes can have embeddings generated.`
+                        `Field '${fieldPath}' cannot be used with embeddingParameters because it does not have a classic vector search index (type: 'vector') configured for manual embedding generation in collection ${database}.${collection}. This field either has no vector search index, or it has an auto-embed index (type: 'autoEmbed') where MongoDB automatically generates embeddings at indexing time. Use the collection-indexes tool to verify the index configuration for this field. If it has an auto-embed index, remove it from embeddingParameters and provide the raw text directly in the document instead.`
                     );
                 }
             }

@@ -164,7 +164,7 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
 
         const { result, error, executionTime } = await countPromise;
 
-        expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
+        expect(executionTime).toBeLessThan(15); // Ensure it aborted quickly
         expect(result).toBeUndefined();
         expectDefined(error);
         expect(error.message).toContain("This operation was aborted");
@@ -195,7 +195,6 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
 
         const { result, error, executionTime } = await runSlowCount();
 
-        // 10 docs, each doc processing sleeps 100ms, so total should be around 1s
         expect(executionTime).toBeGreaterThan(50);
         expectDefined(result);
         expect(error).toBeUndefined();

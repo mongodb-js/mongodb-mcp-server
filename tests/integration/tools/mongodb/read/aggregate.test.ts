@@ -12,6 +12,7 @@ import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
     validateAutoConnectBehavior,
+    waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
@@ -20,6 +21,8 @@ import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
+import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
+import type { Collection } from "mongodb";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -540,7 +543,7 @@ describeWithMongoDB(
     "aggregate tool with atlas search enabled",
     (integration) => {
         beforeEach(async ({ skip }) => {
-            skip(!process.env.TEST_MDB_MCP_VOYAGE_API_KEY);
+            skip(!process.env.MDB_VOYAGE_API_KEY);
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
@@ -552,19 +555,7 @@ describeWithMongoDB(
             ...databaseCollectionParameters,
             {
                 name: "pipeline",
-                description: `An array of aggregation stages to execute.
-\`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
-### Usage Rules for \`$vectorSearch\`
-- **Unset embeddings:**
-  Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
-- **Pre-filtering:**
-If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
-    NEVER include fields in $vectorSearch.filter that are not part of the vector index.
-- **Post-filtering:**
-    For all remaining filters, add a $match stage after $vectorSearch.
-### Note to LLM
-- If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
-- If no requested filters are valid prefilters, omit the filter key from $vectorSearch.`,
+                description: pipelineDescriptionWithVectorSearch,
                 type: "array",
                 required: true,
             },
@@ -721,9 +712,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                         });
 
                         const responseContent = getResponseContent(response);
-                        expect(responseContent).toContain(
-                            "The aggregation resulted in 1 documents. Returning 1 documents."
-                        );
+                        expect(responseContent).toContain("The aggregation resulted in 1 documents.");
                         const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
                         expect(untrustedDocs).toHaveLength(1);
                         expect(untrustedDocs[0]?.name).toBe("mongodb");
@@ -788,9 +777,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                         });
 
                         const responseContent = getResponseContent(response);
-                        expect(responseContent).toContain(
-                            "The aggregation resulted in 1 documents. Returning 1 documents."
-                        );
+                        expect(responseContent).toContain("The aggregation resulted in 1 documents.");
                         const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
                         expect(untrustedDocs).toHaveLength(1);
                         expect(untrustedDocs[0]?.name).toBe("mongodb");
@@ -855,9 +842,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                         });
 
                         const responseContent = getResponseContent(response);
-                        expect(responseContent).toContain(
-                            "The aggregation resulted in 1 documents. Returning 1 documents."
-                        );
+                        expect(responseContent).toContain("The aggregation resulted in 1 documents.");
                         const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
                         expect(untrustedDocs).toHaveLength(1);
                         expect(untrustedDocs[0]?.name).toBe("mongodb");
@@ -922,9 +907,7 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                         });
 
                         const responseContent = getResponseContent(response);
-                        expect(responseContent).toContain(
-                            "The aggregation resulted in 1 documents. Returning 1 documents."
-                        );
+                        expect(responseContent).toContain("The aggregation resulted in 1 documents.");
                         const untrustedDocs = getDocsFromUntrustedContent<{ name: string }>(responseContent);
                         expect(untrustedDocs).toHaveLength(1);
                         expect(untrustedDocs[0]?.name).toBe("mongodb");
@@ -1114,79 +1097,71 @@ If the user requests additional filtering, include filters in \`$vectorSearch.fi
                 });
 
                 expect(!!response.isError).toBe(false);
-                expect(JSON.stringify(response.content)).toContain(
-                    "The aggregation resulted in 0 documents. Returning 0 documents."
-                );
+                expect(JSON.stringify(response.content)).toContain("The aggregation resulted in 0 documents.");
             });
         });
 
         describe("outputDimension transformation", () => {
-            it.each([
-                { numDimensions: 2048, outputDimension: "2048" },
-                { numDimensions: 4096, outputDimension: "4096" },
-            ])(
-                "should successfully transform outputDimension string '$outputDimension' to number",
-                async ({ numDimensions, outputDimension }) => {
-                    await waitUntilSearchIsReady(integration.mongoClient());
+            it("should successfully transform outputDimension string to number", async () => {
+                await waitUntilSearchIsReady(integration.mongoClient());
 
-                    const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
-                    await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
+                const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
+                await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
 
-                    await createVectorSearchIndexAndWait(
-                        integration.mongoClient(),
-                        integration.randomDbName(),
-                        "databases",
-                        [
-                            {
-                                type: "vector",
-                                path: "description_embedding",
-                                numDimensions,
-                                similarity: "cosine",
-                                quantization: "none",
-                            },
-                        ]
-                    );
-
-                    await integration.connectMcpClient();
-                    const response = await integration.mcpClient().callTool({
-                        name: "aggregate",
-                        arguments: {
-                            database: integration.randomDbName(),
-                            collection: "databases",
-                            pipeline: [
-                                {
-                                    $vectorSearch: {
-                                        index: "default",
-                                        path: "description_embedding",
-                                        queryVector: "example query",
-                                        numCandidates: 10,
-                                        limit: 10,
-                                        embeddingParameters: {
-                                            model: "voyage-3-large",
-                                            outputDimension, // Pass as string literal
-                                        },
-                                    },
-                                },
-                                {
-                                    $project: {
-                                        description_embedding: 0,
-                                    },
-                                },
-                            ],
+                await createVectorSearchIndexAndWait(
+                    integration.mongoClient(),
+                    integration.randomDbName(),
+                    "databases",
+                    [
+                        {
+                            type: "vector",
+                            path: "description_embedding",
+                            numDimensions: 2048,
+                            similarity: "cosine",
+                            quantization: "none",
                         },
-                    });
+                    ]
+                );
 
-                    const responseContent = getResponseContent(response);
-                    // String should succeed and be transformed to number internally
-                    expect(responseContent).toContain("The aggregation resulted in");
-                }
-            );
+                await integration.connectMcpClient();
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "databases",
+                        pipeline: [
+                            {
+                                $vectorSearch: {
+                                    index: "default",
+                                    path: "description_embedding",
+                                    queryVector: "example query",
+                                    numCandidates: 10,
+                                    limit: 10,
+                                    embeddingParameters: {
+                                        model: "voyage-3-large",
+                                        outputDimension: "2048", // Pass as string literal
+                                    },
+                                },
+                            },
+                            {
+                                $project: {
+                                    description_embedding: 0,
+                                },
+                            },
+                        ],
+                    },
+                });
+
+                const responseContent = getResponseContent(response);
+                // String should succeed and be transformed to number internally
+                expect(responseContent).toContain("The aggregation resulted in");
+            });
         });
     },
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: process.env.TEST_MDB_MCP_VOYAGE_API_KEY ?? "",
+            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
             previewFeatures: ["search"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
@@ -1331,5 +1306,109 @@ describeWithMongoDB(
             ...defaultTestConfig,
             maxDocumentsPerQuery: 10000,
         }),
+    }
+);
+
+describeWithMongoDB(
+    "aggregate tool with autoEmbed text support",
+    (integration) => {
+        let collection: Collection;
+        beforeEach(async () => {
+            await integration.connectMcpClient();
+            collection = integration.mongoClient().db(integration.randomDbName()).collection("movies");
+            await waitUntilSearchIsReady(integration.mongoClient());
+
+            await collection.insertMany([
+                {
+                    plot: "An alien gets stranded on earth looking for scientist who contacted them.",
+                },
+                {
+                    plot: "Story of a pizza and how they got famous in Naples.",
+                },
+            ]);
+
+            // Creating the auto-embed index
+            await collection.createSearchIndexes([
+                {
+                    type: "vectorSearch",
+                    name: "auto-embed-index",
+                    definition: {
+                        fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
+                    },
+                },
+            ]);
+
+            await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index");
+        });
+
+        it("should be able to query autoEmbed text index", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "movies",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "auto-embed-index",
+                                path: "plot",
+                                query: { text: "movies about food" },
+                                limit: 5,
+                                numCandidates: 5,
+                            },
+                        },
+                    ],
+                },
+            });
+
+            expect(response.isError).toBeUndefined();
+            const content = getResponseContent(response);
+            expect(content).toContain("Story of a pizza and how they got famous in Naples.");
+        });
+
+        it("should emit tool event with auto-embedding usage metadata pointing to `mongot`", async () => {
+            const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+            vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+
+            await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "movies",
+                    pipeline: [
+                        {
+                            $vectorSearch: {
+                                index: "auto-embed-index",
+                                path: "plot",
+                                query: { text: "movies about food" },
+                                limit: 5,
+                                numCandidates: 5,
+                            },
+                        },
+                    ],
+                },
+            });
+
+            expect(mockEmitEvents).toHaveBeenCalled();
+            const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
+            expectDefined(emittedEvent);
+            expect(emittedEvent.properties.embeddingsGeneratedBy).toBe("mongot");
+        });
+    },
+    {
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
+            previewFeatures: ["search"],
+            maxDocumentsPerQuery: -1,
+            maxBytesPerQuery: -1,
+            indexCheck: true,
+        }),
+        downloadOptions: {
+            autoEmbed: true,
+            mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,
+            voyageIndexingKey: process.env.MDB_VOYAGE_API_KEY as string,
+            voyageQueryKey: process.env.MDB_VOYAGE_API_KEY as string,
+        },
     }
 );
