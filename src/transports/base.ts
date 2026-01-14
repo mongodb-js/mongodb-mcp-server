@@ -21,7 +21,7 @@ import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import type { ApiClient, ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { createAtlasApiClient } from "../common/atlas/apiClient.js";
 
 export type RequestContext = {
@@ -282,17 +282,20 @@ export abstract class TransportRunnerBase {
             deviceId: this.deviceId,
         });
 
-        const apiClient = this.createApiClient(
-            {
-                baseUrl: userConfig.apiBaseUrl,
-                credentials: {
-                    clientId: userConfig.apiClientId,
-                    clientSecret: userConfig.apiClientSecret,
+        let apiClient: ApiClient | undefined;
+        if (userConfig.apiClientId && userConfig.apiClientSecret) {
+            apiClient = this.createApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                    requestContext: request,
                 },
-                requestContext: request,
-            },
-            logger
-        );
+                logger
+            );
+        }
 
         const session = new Session({
             userConfig,
