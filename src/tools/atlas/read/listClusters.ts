@@ -17,19 +17,19 @@ export const ListClustersArgs = {
 
 export class ListClustersTool extends AtlasToolBase {
     public name = "atlas-list-clusters";
-    protected description = "List MongoDB Atlas clusters";
-    public operationType: OperationType = "read";
-    protected argsShape = {
+    public description = "List MongoDB Atlas clusters";
+    static operationType: OperationType = "read";
+    public argsShape = {
         ...ListClustersArgs,
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (!projectId) {
-            const data = await this.session.apiClient.listClustersForAllProjects();
+            const data = await this.apiClient.listClusterDetails();
 
             return this.formatAllClustersTable(data);
         } else {
-            const project = await this.session.apiClient.getProject({
+            const project = await this.apiClient.getGroup({
                 params: {
                     path: {
                         groupId: projectId,
@@ -41,7 +41,7 @@ export class ListClustersTool extends AtlasToolBase {
                 throw new Error(`Project with ID "${projectId}" not found.`);
             }
 
-            const data = await this.session.apiClient.listClusters({
+            const data = await this.apiClient.listClusters({
                 params: {
                     path: {
                         groupId: project.id || "",
@@ -59,28 +59,22 @@ export class ListClustersTool extends AtlasToolBase {
         }
         const formattedClusters = clusters.results
             .map((result) => {
-                return (result.clusters || []).map((cluster) => {
-                    return { ...result, ...cluster, clusters: undefined };
-                });
+                return (result.clusters || []).map((cluster) => ({
+                    projectName: result.groupName,
+                    projectId: result.groupId,
+                    clusterName: cluster.name,
+                }));
             })
             .flat();
         if (!formattedClusters.length) {
             throw new Error("No clusters found.");
         }
-        const rows = formattedClusters
-            .map((cluster) => {
-                return `${cluster.groupName} (${cluster.groupId}) | ${cluster.name}`;
-            })
-            .join("\n");
+
         return {
-            content: [
-                {
-                    type: "text",
-                    text: `Project | Cluster Name
-----------------|----------------
-${rows}`,
-                },
-            ],
+            content: formatUntrustedData(
+                `Found ${formattedClusters.length} clusters across all projects`,
+                JSON.stringify(formattedClusters)
+            ),
         };
     }
 
@@ -98,16 +92,11 @@ ${rows}`,
         const formattedClusters = clusters?.results?.map((cluster) => formatCluster(cluster)) || [];
         const formattedFlexClusters = flexClusters?.results?.map((cluster) => formatFlexCluster(cluster)) || [];
         const allClusters = [...formattedClusters, ...formattedFlexClusters];
+
         return {
             content: formatUntrustedData(
                 `Found ${allClusters.length} clusters in project "${project.name}" (${project.id}):`,
-                `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Connection String
-----------------|----------------|----------------|----------------|----------------|----------------
-${allClusters
-    .map((formattedCluster) => {
-        return `${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionStrings?.standardSrv || formattedCluster.connectionStrings?.standard || "N/A"}`;
-    })
-    .join("\n")}`
+                JSON.stringify(allClusters)
             ),
         };
     }

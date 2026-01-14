@@ -3,18 +3,19 @@ import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
+import type { ConnectionMetadata } from "../../../telemetry/types.js";
 
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-connect-deployment";
-    protected description = "Connect to a MongoDB Atlas Local deployment";
-    public operationType: OperationType = "connect";
-    protected argsShape = {
+    public description = "Connect to a MongoDB Atlas Local deployment";
+    static operationType: OperationType = "connect";
+    public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to connect to"),
     };
 
     protected async executeWithAtlasLocalClient(
-        client: Client,
-        { deploymentName }: ToolArgs<typeof this.argsShape>
+        { deploymentName }: ToolArgs<typeof this.argsShape>,
+        { client }: { client: Client }
     ): Promise<CallToolResult> {
         // Get the connection string for the deployment
         const connectionString = await client.getConnectionString(deploymentName);
@@ -33,5 +34,12 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
                 ...(await this.lookupTelemetryMetadata(client, deploymentName)),
             },
         };
+    }
+
+    protected override resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata {
+        return { ...super.resolveTelemetryMetadata(args, { result }), ...this.getConnectionInfoMetadata() };
     }
 }

@@ -40,11 +40,13 @@ export const LogId = {
     toolExecute: mongoLogId(1_003_001),
     toolExecuteFailure: mongoLogId(1_003_002),
     toolDisabled: mongoLogId(1_003_003),
+    toolMetadataChange: mongoLogId(1_003_004),
 
     mongodbConnectFailure: mongoLogId(1_004_001),
     mongodbDisconnectFailure: mongoLogId(1_004_002),
     mongodbConnectTry: mongoLogId(1_004_003),
     mongodbCursorCloseError: mongoLogId(1_004_004),
+    mongodbIndexCheckFailure: mongoLogId(1_004_005),
 
     toolUpdateFailure: mongoLogId(1_005_001),
     resourceUpdateFailure: mongoLogId(1_005_002),
@@ -76,6 +78,9 @@ export const LogId = {
     atlasPaDropIndexSuggestionsFailure: mongoLogId(1_009_002),
     atlasPaSchemaAdviceFailure: mongoLogId(1_009_003),
     atlasPaSlowQueryLogsFailure: mongoLogId(1_009_004),
+
+    atlasLocalDockerNotRunning: mongoLogId(1_010_001),
+    atlasLocalUnsupportedPlatform: mongoLogId(1_010_002),
 } as const;
 
 export interface LogPayload {
@@ -201,6 +206,7 @@ export class ConsoleLogger extends LoggerBase {
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
+        // eslint-disable-next-line no-console
         console.error(
             `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid}${this.serializeAttributes(payload.attributes)})`
         );
@@ -233,7 +239,9 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
             const manager = new MongoLogManager({
                 directory: logPath,
                 retentionDays: 30,
+                // eslint-disable-next-line no-console
                 onwarn: console.warn,
+                // eslint-disable-next-line no-console
                 onerror: console.error,
                 gzip: false,
                 retentionGB: 1,

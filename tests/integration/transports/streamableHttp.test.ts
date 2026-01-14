@@ -2,23 +2,22 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
-import { config } from "../../../src/common/config.js";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
 import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
+import { defaultTestConfig } from "../helpers.js";
+import { type UserConfig } from "../../../src/common/config/userConfig.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
-    let oldTelemetry: "enabled" | "disabled";
-    let oldLoggers: ("stderr" | "disk" | "mcp")[];
+    let config: UserConfig;
 
     beforeAll(() => {
-        oldTelemetry = config.telemetry;
-        oldLoggers = config.loggers;
-        config.telemetry = "disabled";
-        config.loggers = ["stderr"];
-        config.httpPort = 0; // Use a random port for testing
+        config = {
+            ...defaultTestConfig,
+            httpPort: 0, // Use a random port for testing
+        };
     });
 
     const headerTestCases: { headers: Record<string, string>; description: string }[] = [
@@ -36,9 +35,6 @@ describe("StreamableHttpRunner", () => {
 
             afterAll(async () => {
                 await runner.close();
-                config.telemetry = oldTelemetry;
-                config.loggers = oldLoggers;
-                config.httpHeaders = {};
             });
 
             const clientHeaderTestCases = [
@@ -97,7 +93,7 @@ describe("StreamableHttpRunner", () => {
                                 throw err;
                             } else {
                                 expect(err).toBeDefined();
-                                expect(err?.toString()).toContain("HTTP 403");
+                                expect(err?.toString()).toContain("Error POSTing to endpoint");
                             }
                         }
                     });
@@ -114,11 +110,82 @@ describe("StreamableHttpRunner", () => {
         });
     }
 
+    describe("with httpBodyLimit configuration", () => {
+        it("should accept requests within the body limit", async () => {
+            const testConfig = {
+                ...defaultTestConfig,
+                httpPort: 0,
+                httpBodyLimit: 1024 * 1024,
+            };
+            const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
+            await testRunner.start();
+
+            try {
+                const client = new Client({
+                    name: "test",
+                    version: "0.0.0",
+                });
+                const transport = new StreamableHTTPClientTransport(new URL(`${testRunner.serverAddress}/mcp`));
+
+                await client.connect(transport);
+                const response = await client.listTools();
+                expect(response).toBeDefined();
+                expect(response.tools).toBeDefined();
+
+                await client.close();
+                await transport.close();
+            } finally {
+                await testRunner.close();
+            }
+        });
+
+        it("should reject requests exceeding the body limit", async () => {
+            const testConfig = {
+                ...defaultTestConfig,
+                httpPort: 0,
+                httpBodyLimit: 1024, // Very small limit (1kb)
+            };
+            const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
+            await testRunner.start();
+
+            try {
+                // Create a payload larger than 1kb
+                const largePayload = JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2024-11-05",
+                        capabilities: {},
+                        clientInfo: {
+                            name: "test",
+                            version: "0.0.0",
+                        },
+                        // Add extra data to exceed 1kb
+                        extraData: "x".repeat(2000),
+                    },
+                });
+
+                const response = await fetch(`${testRunner.serverAddress}/mcp`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: largePayload,
+                });
+
+                // Should return 413 Payload Too Large
+                expect(response.status).toBe(413);
+            } finally {
+                await testRunner.close();
+            }
+        });
+    });
+
     it("can create multiple runners", async () => {
         const runners: StreamableHttpRunner[] = [];
         try {
             for (let i = 0; i < 3; i++) {
-                config.httpPort = 0; // Use a random port for each runner
                 const runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
                 runners.push(runner);
@@ -171,9 +238,6 @@ describe("StreamableHttpRunner", () => {
     describe("with telemetry properties", () => {
         afterEach(async () => {
             await runner.close();
-            config.telemetry = oldTelemetry;
-            config.loggers = oldLoggers;
-            config.httpHeaders = {};
         });
 
         it("merges them with the base properties", async () => {

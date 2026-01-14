@@ -1,20 +1,24 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { TelemetryToolMetadata, ToolArgs, ToolCategory } from "../tool.js";
+import type { ToolArgs, ToolCategory, ToolExecutionContext } from "../tool.js";
 import { ToolBase } from "../tool.js";
-import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import { LogId } from "../../common/logger.js";
+import type { ConnectionMetadata } from "../../telemetry/types.js";
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
 export abstract class AtlasLocalToolBase extends ToolBase {
-    public category: ToolCategory = "atlas-local";
+    static category: ToolCategory = "atlas-local";
 
     protected verifyAllowed(): boolean {
         return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
     }
 
-    protected async execute(...args: Parameters<ToolCallback<typeof this.argsShape>>): Promise<CallToolResult> {
+    protected async execute(
+        args: ToolArgs<typeof this.argsShape>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const client = this.session.atlasLocalClient;
 
         // If the client is not found, throw an error
@@ -37,7 +41,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
             };
         }
 
-        return this.executeWithAtlasLocalClient(client, ...args);
+        return this.executeWithAtlasLocalClient(args, { client });
     }
 
     private async lookupDeploymentId(client: Client, containerId: string): Promise<string | undefined> {
@@ -71,8 +75,8 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     }
 
     protected abstract executeWithAtlasLocalClient(
-        client: Client,
-        ...args: Parameters<ToolCallback<typeof this.argsShape>>
+        args: ToolArgs<typeof this.argsShape>,
+        context: { client: Client }
     ): Promise<CallToolResult>;
 
     protected handleError(
@@ -118,14 +122,17 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         return super.handleError(error, args);
     }
 
-    protected resolveTelemetryMetadata(result: CallToolResult): TelemetryToolMetadata {
-        const toolMetadata: TelemetryToolMetadata = {};
+    protected resolveTelemetryMetadata(
+        _args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata {
+        const toolMetadata: ConnectionMetadata = {};
 
         // Atlas Local tools set the deployment ID in the result metadata for telemetry
         // If the deployment ID is set, we use it for telemetry
         const resultDeploymentId = result._meta?.[AtlasLocalToolMetadataDeploymentIdKey];
         if (resultDeploymentId !== undefined && typeof resultDeploymentId === "string") {
-            toolMetadata.atlasLocaldeploymentId = resultDeploymentId;
+            toolMetadata.atlas_local_deployment_id = resultDeploymentId;
         }
 
         return toolMetadata;

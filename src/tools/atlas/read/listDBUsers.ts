@@ -2,7 +2,6 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import type { DatabaseUserRole, UserScope } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
 
 export const ListDBUsersArgs = {
@@ -11,14 +10,14 @@ export const ListDBUsersArgs = {
 
 export class ListDBUsersTool extends AtlasToolBase {
     public name = "atlas-list-db-users";
-    protected description = "List MongoDB Atlas database users";
-    public operationType: OperationType = "read";
-    protected argsShape = {
+    public description = "List MongoDB Atlas database users";
+    public static operationType: OperationType = "read";
+    public argsShape = {
         ...ListDBUsersArgs,
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const data = await this.session.apiClient.listDatabaseUsers({
+        const data = await this.apiClient.listDatabaseUsers({
             params: {
                 path: {
                     groupId: projectId,
@@ -32,36 +31,26 @@ export class ListDBUsersTool extends AtlasToolBase {
             };
         }
 
-        const output =
-            `Username | Roles | Scopes
-----------------|----------------|----------------
-` +
-            data.results
-                .map((user) => {
-                    return `${user.username} | ${formatRoles(user.roles)} | ${formatScopes(user.scopes)}`;
-                })
-                .join("\n");
+        const users = data.results.map((user) => ({
+            username: user.username,
+            roles:
+                user.roles?.map((role) => ({
+                    roleName: role.roleName,
+                    databaseName: role.databaseName,
+                    collectionName: role.collectionName,
+                })) ?? [],
+            scopes:
+                user.scopes?.map((scope) => ({
+                    type: scope.type,
+                    name: scope.name,
+                })) ?? [],
+        }));
+
         return {
-            content: formatUntrustedData(`Found ${data.results.length} database users in project ${projectId}`, output),
+            content: formatUntrustedData(
+                `Found ${data.results.length} database users in project ${projectId}`,
+                JSON.stringify(users)
+            ),
         };
     }
-}
-
-function formatRoles(roles?: DatabaseUserRole[]): string {
-    if (!roles?.length) {
-        return "N/A";
-    }
-    return roles
-        .map(
-            (role) =>
-                `${role.roleName}${role.databaseName ? `@${role.databaseName}${role.collectionName ? `:${role.collectionName}` : ""}` : ""}`
-        )
-        .join(", ");
-}
-
-function formatScopes(scopes?: UserScope[]): string {
-    if (!scopes?.length) {
-        return "All";
-    }
-    return scopes.map((scope) => `${scope.type}:${scope.name}`).join(", ");
 }

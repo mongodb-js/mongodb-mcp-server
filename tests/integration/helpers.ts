@@ -1,18 +1,13 @@
 import { CompositeLogger } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
-import { Server } from "../../src/server.js";
+import { Server, type ServerOptions } from "../../src/server.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "./inMemoryTransport.js";
-import type { UserConfig, DriverOptions } from "../../src/common/config.js";
-import { McpError, ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import {
-    config,
-    setupDriverConfig,
-    defaultDriverOptions as defaultDriverOptionsFromConfig,
-} from "../../src/common/config.js";
+import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
+import { type UserConfig } from "../../src/common/config/userConfig.js";
+import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "../../src/common/connectionManager.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
@@ -23,13 +18,9 @@ import { Elicitation } from "../../src/elicitation.js";
 import type { MockClientCapabilities, createMockElicitInput } from "../utils/elicitationMocks.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
-
-export const driverOptions = setupDriverConfig({
-    config,
-    defaults: defaultDriverOptionsFromConfig,
-});
-
-export const defaultDriverOptions: DriverOptions = { ...driverOptions };
+import { UserConfigSchema } from "../../src/common/config/userConfig.js";
+import type { OperationType } from "../../src/tools/tool.js";
+import { type ApiClient } from "../../src/common/atlas/apiClient.js";
 
 interface Parameter {
     name: string;
@@ -51,10 +42,12 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 
 export interface IntegrationTest {
     mcpClient: () => Client;
-    mcpServer: () => Server;
+    mcpServer: () => Server & {
+        getApiClient: () => ApiClient;
+    };
 }
 export const defaultTestConfig: UserConfig = {
-    ...config,
+    ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
 };
@@ -63,13 +56,14 @@ export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
-    getDriverOptions: () => DriverOptions,
     {
         elicitInput,
         getClientCapabilities,
+        serverOptions,
     }: {
         elicitInput?: ReturnType<typeof createMockElicitInput>;
         getClientCapabilities?: () => MockClientCapabilities;
+        serverOptions?: Partial<ServerOptions>;
     } = {}
 ): IntegrationTest {
     let mcpClient: Client | undefined;
@@ -78,7 +72,6 @@ export function setupIntegrationTest(
 
     beforeAll(async () => {
         const userConfig = getUserConfig();
-        const driverOptions = getDriverOptions();
         const clientCapabilities = getClientCapabilities?.() ?? (elicitInput ? { elicitation: {} } : {});
 
         const clientTransport = new InMemoryTransport();
@@ -104,24 +97,28 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init(userConfig, logger);
 
         deviceId = DeviceId.create(logger);
-        const connectionManager = new MCPConnectionManager(userConfig, driverOptions, logger, deviceId);
+        const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
 
         const session = new Session({
-            apiBaseUrl: userConfig.apiBaseUrl,
-            apiClientId: userConfig.apiClientId,
-            apiClientSecret: userConfig.apiClientSecret,
+            userConfig,
             logger,
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            atlasLocalClient: await defaultCreateAtlasLocalClient(),
+            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });
 
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
-            const mockFn = vi.fn().mockResolvedValue(true);
-            session.apiClient.validateAccessToken = mockFn;
+            const mockFn = vi.fn().mockResolvedValue(undefined);
+            const mockCloseFn = vi.fn().mockResolvedValue(undefined);
+            Object.defineProperty(session, "apiClient", {
+                value: {
+                    validateAuthConfig: mockFn,
+                    close: mockCloseFn,
+                } as unknown as ApiClient,
+            });
         }
 
         userConfig.telemetry = "disabled";
@@ -147,6 +144,7 @@ export function setupIntegrationTest(
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
+            ...serverOptions,
         });
 
         await mcpServer.connect(serverTransport);
@@ -180,12 +178,20 @@ export function setupIntegrationTest(
         return mcpClient;
     };
 
-    const getMcpServer = (): Server => {
+    const getMcpServer = (): Server & { getApiClient: () => ApiClient } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return mcpServer;
+        return {
+            ...mcpServer,
+            getApiClient: (): ApiClient => {
+                if (!mcpServer || !mcpServer.session.apiClient) {
+                    throw new Error("apiClient not available");
+                }
+                return mcpServer.session.apiClient;
+            },
+        } as Server & { getApiClient: () => ApiClient };
     };
 
     return {
@@ -293,6 +299,7 @@ export function validateToolMetadata(
     integration: IntegrationTest,
     name: string,
     description: string,
+    operationType: OperationType,
     parameters: ParameterInfo[]
 ): void {
     it("should have correct metadata", async () => {
@@ -301,7 +308,7 @@ export function validateToolMetadata(
         expectDefined(tool);
         expect(tool.description).toBe(description);
 
-        validateToolAnnotations(tool, name, description);
+        validateToolAnnotations(tool, name, operationType);
         const toolParameters = getParameters(tool);
         expect(toolParameters).toHaveLength(parameters.length);
         expect(toolParameters).toIncludeSameMembers(parameters);
@@ -316,16 +323,11 @@ export function validateThrowsForInvalidArguments(
     describe("with invalid arguments", () => {
         for (const arg of args) {
             it(`throws a schema error for: ${JSON.stringify(arg)}`, async () => {
-                try {
-                    await integration.mcpClient().callTool({ name, arguments: arg });
-                    throw new Error("Expected an error to be thrown");
-                } catch (error) {
-                    expect((error as Error).message).not.toEqual("Expected an error to be thrown");
-                    expect(error).toBeInstanceOf(McpError);
-                    const mcpError = error as McpError;
-                    expect(mcpError.code).toEqual(-32602);
-                    expect(mcpError.message).toContain(`Invalid arguments for tool ${name}`);
-                }
+                const result = await integration.mcpClient().callTool({ name, arguments: arg });
+                expect(result.isError).toBe(true);
+                const message = getResponseContent(result.content);
+                expect(message).toContain("-32602");
+                expect(message).toContain(`Invalid arguments for tool ${name}`);
             });
         }
     });
@@ -337,12 +339,11 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
     expect(arg).not.toBeNull();
 }
 
-function validateToolAnnotations(tool: ToolInfo, name: string, description: string): void {
+function validateToolAnnotations(tool: ToolInfo, name: string, operationType: OperationType): void {
     expectDefined(tool.annotations);
     expect(tool.annotations.title).toBe(name);
-    expect(tool.annotations.description).toBe(description);
 
-    switch (tool.operationType) {
+    switch (operationType) {
         case "read":
         case "metadata":
             expect(tool.annotations.readOnlyHint).toBe(true);
@@ -356,6 +357,9 @@ function validateToolAnnotations(tool: ToolInfo, name: string, description: stri
         case "update":
             expect(tool.annotations.readOnlyHint).toBe(false);
             expect(tool.annotations.destructiveHint).toBe(false);
+            break;
+        case "connect":
+            break;
     }
 }
 

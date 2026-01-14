@@ -1,4 +1,4 @@
-import type { ElicitRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export class Elicitation {
@@ -27,6 +27,7 @@ export class Elicitation {
         }
 
         const result = await this.server.elicitInput({
+            mode: "form",
             message,
             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
         });
@@ -37,11 +38,11 @@ export class Elicitation {
      * The schema for the confirmation question.
      * TODO: In the future would be good to use Zod 4's toJSONSchema() to generate the schema.
      */
-    public static CONFIRMATION_SCHEMA: ElicitRequest["params"]["requestedSchema"] = {
-        type: "object",
+    public static CONFIRMATION_SCHEMA = {
+        type: "object" as const,
         properties: {
             confirmation: {
-                type: "string",
+                type: "string" as const,
                 title: "Would you like to confirm?",
                 description: "Would you like to confirm?",
                 enum: ["Yes", "No"],
@@ -49,5 +50,5 @@ export class Elicitation {
             },
         },
         required: ["confirmation"],
-    };
+    } satisfies ElicitRequestFormParams["requestedSchema"];
 }

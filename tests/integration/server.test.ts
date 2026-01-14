@@ -1,6 +1,65 @@
+import { MCPConnectionManager } from "../../src/common/connectionManager.js";
+import { ExportsManager } from "../../src/common/exportsManager.js";
+import { CompositeLogger } from "../../src/common/logger.js";
+import { DeviceId } from "../../src/helpers/deviceId.js";
+import { Session } from "../../src/common/session.js";
 import { defaultTestConfig, expectDefined } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { Elicitation, Keychain, Telemetry } from "../../src/lib.js";
+import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Server } from "../../src/server.js";
+import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
+import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "../../src/tools/tool.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
+import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+
+class TestToolOne extends ToolBase {
+    public name = "test-tool-one";
+    public description = "A test tool one for verification tests";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "delete";
+    public argsShape = {};
+    protected async execute(): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [
+                {
+                    type: "text",
+                    text: "Test tool one executed successfully",
+                },
+            ],
+        });
+    }
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+class TestToolTwo extends ToolBase {
+    public name = "test-tool-two";
+    public description = "A test tool two for verification tests";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "delete";
+    public argsShape = {};
+    protected async execute(): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [
+                {
+                    type: "text",
+                    text: "Test tool two executed successfully",
+                },
+            ],
+        });
+    }
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
 
 describe("Server integration test", () => {
     describeWithMongoDB(
@@ -15,6 +74,18 @@ describe("Server integration test", () => {
                     (tool) => tool.name.startsWith("atlas-") && !tool.name.startsWith("atlas-local-")
                 );
                 expect(atlasTools.length).toBeLessThanOrEqual(0);
+            });
+            it("should include _meta with transport info all tools in tool listing", async () => {
+                const tools = await integration.mcpClient().listTools();
+                expectDefined(tools);
+                expect(tools.tools.length).toBeGreaterThan(0);
+                expect(tools.tools.every((tool) => tool._meta)).toBe(true);
+                expect(tools.tools.every((tool) => tool._meta?.["com.mongodb/transport"] === "stdio")).toBe(true);
+                expect(
+                    tools.tools.every(
+                        (tool) => tool._meta?.["com.mongodb/maxRequestPayloadBytes"] === TRANSPORT_PAYLOAD_LIMITS.stdio
+                    )
+                ).toBe(true);
             });
         },
         {
@@ -82,9 +153,9 @@ describe("Server integration test", () => {
                 expect(tools.tools.some((tool) => tool.name === "atlas-list-projects")).toBe(true);
 
                 // Check that non-read tools are NOT available
-                expect(tools.tools.some((tool) => tool.name === "insert-one")).toBe(false);
+                expect(tools.tools.some((tool) => tool.name === "insert-many")).toBe(false);
                 expect(tools.tools.some((tool) => tool.name === "update-many")).toBe(false);
-                expect(tools.tools.some((tool) => tool.name === "delete-one")).toBe(false);
+                expect(tools.tools.some((tool) => tool.name === "delete-many")).toBe(false);
                 expect(tools.tools.some((tool) => tool.name === "drop-collection")).toBe(false);
             });
         },
@@ -97,4 +168,64 @@ describe("Server integration test", () => {
             }),
         }
     );
+
+    describe("with additional tools", () => {
+        const initServerWithTools = async (tools: ToolClass[]): Promise<{ server: Server; transport: Transport }> => {
+            const logger = new CompositeLogger();
+            const deviceId = DeviceId.create(logger);
+            const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, deviceId);
+            const exportsManager = ExportsManager.init(defaultTestConfig, logger);
+
+            const session = new Session({
+                userConfig: defaultTestConfig,
+                logger,
+                exportsManager,
+                connectionManager,
+                keychain: Keychain.root,
+                vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
+                atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            });
+
+            const telemetry = Telemetry.create(session, defaultTestConfig, deviceId);
+            const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
+            const elicitation = new Elicitation({ server: mcpServerInstance.server });
+
+            const server = new Server({
+                session,
+                userConfig: defaultTestConfig,
+                telemetry,
+                mcpServer: mcpServerInstance,
+                elicitation,
+                connectionErrorHandler,
+                tools: [...tools],
+            });
+
+            const transport = new InMemoryTransport();
+
+            return { transport, server };
+        };
+
+        let server: Server | undefined;
+        let transport: Transport | undefined;
+
+        afterEach(async () => {
+            await transport?.close();
+        });
+
+        it("should start server with only the tools provided", async () => {
+            ({ server, transport } = await initServerWithTools([TestToolOne]));
+            await server.connect(transport);
+            expect(server.tools).toHaveLength(1);
+        });
+
+        it("should throw error before starting when provided tools have name conflict", async () => {
+            ({ server, transport } = await initServerWithTools([
+                TestToolOne,
+                class TestToolTwoButOne extends TestToolTwo {
+                    public name = "test-tool-one";
+                },
+            ]));
+            await expect(server.connect(transport)).rejects.toThrow(/Tool test-tool-one is already registered/);
+        });
+    });
 });

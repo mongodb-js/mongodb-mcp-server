@@ -1,8 +1,8 @@
 import { ReactiveResource } from "../resource.js";
-import { defaultDriverOptions } from "../../common/config.js";
-import type { UserConfig } from "../../common/config.js";
+import type { UserConfig } from "../../common/config/userConfig.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session } from "../../lib.js";
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
 export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
     constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
@@ -32,13 +32,14 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
     }
 
     toOutput(): string {
+        const connectionInfo = generateConnectionInfoFromCliArgs(this.current);
         const result = {
             telemetry: this.current.telemetry,
             logPath: this.current.logPath,
-            connectionString: this.current.connectionString
+            connectionString: connectionInfo.connectionString
                 ? "set; access to MongoDB tools are currently available to use"
                 : "not set; before using any MongoDB tool, you need to configure a connection string, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.",
-            connectOptions: defaultDriverOptions,
+            connectOptions: connectionInfo.driverOptions,
             atlas:
                 this.current.apiClientId && this.current.apiClientSecret
                     ? "set; MongoDB Atlas tools are currently available to use"

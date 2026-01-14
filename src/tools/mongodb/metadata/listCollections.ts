@@ -1,20 +1,23 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListCollectionsTool extends MongoDBToolBase {
     public name = "list-collections";
-    protected description = "List all collections for a given database";
-    protected argsShape = {
+    public description = "List all collections for a given database";
+    public argsShape = {
         database: DbOperationArgs.database,
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
-    protected async execute({ database }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
-        const collections = await provider.listCollections(database);
+        const collections = await provider.listCollections(database, {}, { signal });
 
         if (collections.length === 0) {
             return {

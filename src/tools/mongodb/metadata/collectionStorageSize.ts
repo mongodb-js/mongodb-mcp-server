@@ -1,21 +1,32 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     public name = "collection-storage-size";
-    protected description = "Gets the size of the collection";
-    protected argsShape = DbOperationArgs;
+    public description = "Gets the size of the collection";
+    public argsShape = DbOperationArgs;
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
-    protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection }: ToolArgs<typeof DbOperationArgs>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const [{ value }] = (await provider
-            .aggregate(database, collection, [
-                { $collStats: { storageStats: {} } },
-                { $group: { _id: null, value: { $sum: "$storageStats.size" } } },
-            ])
+            .aggregate(
+                database,
+                collection,
+                [
+                    { $collStats: { storageStats: {} } },
+                    { $group: { _id: null, value: { $sum: "$storageStats.size" } } },
+                ],
+                {
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    signal,
+                }
+            )
             .toArray()) as [{ value: number }];
 
         const { units, value: scaledValue } = CollectionStorageSizeTool.getStats(value);

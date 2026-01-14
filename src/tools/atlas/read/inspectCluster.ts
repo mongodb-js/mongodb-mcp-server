@@ -12,26 +12,30 @@ export const InspectClusterArgs = {
 
 export class InspectClusterTool extends AtlasToolBase {
     public name = "atlas-inspect-cluster";
-    protected description = "Inspect MongoDB Atlas cluster";
-    public operationType: OperationType = "read";
-    protected argsShape = {
+    public description = "Inspect metadata of a MongoDB Atlas cluster";
+    static operationType: OperationType = "read";
+    public argsShape = {
         ...InspectClusterArgs,
     };
 
     protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
+        const cluster = await inspectCluster(this.apiClient, projectId, clusterName);
 
         return this.formatOutput(cluster);
     }
 
     private formatOutput(formattedCluster: Cluster): CallToolResult {
+        const clusterDetails = {
+            name: formattedCluster.name || "Unknown",
+            instanceType: formattedCluster.instanceType,
+            instanceSize: formattedCluster.instanceSize || "N/A",
+            state: formattedCluster.state || "UNKNOWN",
+            mongoDBVersion: formattedCluster.mongoDBVersion || "N/A",
+            connectionStrings: formattedCluster.connectionStrings || {},
+        };
+
         return {
-            content: formatUntrustedData(
-                "Cluster details:",
-                `Cluster Name | Cluster Type | Tier | State | MongoDB Version | Connection String
-----------------|----------------|----------------|----------------|----------------|----------------
-${formattedCluster.name || "Unknown"} | ${formattedCluster.instanceType} | ${formattedCluster.instanceSize || "N/A"} | ${formattedCluster.state || "UNKNOWN"} | ${formattedCluster.mongoDBVersion || "N/A"} | ${formattedCluster.connectionStrings?.standardSrv || formattedCluster.connectionStrings?.standard || "N/A"}`
-            ),
+            content: formatUntrustedData("Cluster details:", JSON.stringify(clusterDetails)),
         };
     }
 }

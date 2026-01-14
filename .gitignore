@@ -1,5 +1,6 @@
 dist
 node_modules
+
 .vscode/mcp.json
 .github/prompts/*
 
@@ -15,3 +16,10 @@ coverage
 .accuracy
 
 .DS_Store
+
+# Development tool files
+.yalc
+yalc.lock
+
+# Generated UI files
+src/ui/lib

@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 // Shared exclusions for all projects
 // Ref: https://vitest.dev/config/#exclude
@@ -27,7 +27,18 @@ export default defineConfig({
         hookTimeout: 3600000,
         setupFiles: ["./tests/setup.ts"],
         coverage: {
-            exclude: ["node_modules", "tests", "dist", "vitest.config.ts", "scripts"],
+            exclude: [
+                // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
+                // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101
+                ...coverageConfigDefaults.exclude,
+                "node_modules",
+                "tests",
+                "dist",
+                "vitest.config.ts",
+                "vite.ui.config.ts",
+                "scripts",
+                "src/ui/lib",
+            ],
             reporter: ["lcov"],
         },
         projects: [
@@ -67,6 +78,15 @@ export default defineConfig({
                     include: [...longRunningTests],
                     testTimeout: 7200000, // 2 hours for long-running tests
                     hookTimeout: 7200000,
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "ui-components",
+                    include: ["tests/unit/ui/**/*.test.tsx"],
+                    environment: "happy-dom",
+                    setupFiles: ["./tests/setup.ts", "./tests/setupReact.ts"],
                 },
             },
         ],

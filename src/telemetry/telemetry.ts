@@ -1,6 +1,6 @@
 import type { Session } from "../common/session.js";
 import type { BaseEvent, CommonProperties } from "./types.js";
-import type { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import { LogId } from "../common/logger.js";
 import type { ApiClient } from "../common/atlas/apiClient.js";
 import { MACHINE_METADATA } from "./constants.js";
@@ -107,7 +107,10 @@ export class Telemetry {
                     });
                     resolve();
                 }, flushMaxWaitTime);
-                flushTimeout.unref();
+                // This is Node-specific and can cause issues when running in electron otherwise. See https://github.com/electron/electron/issues/21162
+                if (typeof flushTimeout.unref === "function") {
+                    flushTimeout.unref();
+                }
             }),
             this.emit([]),
         ]);
@@ -140,7 +143,7 @@ export class Telemetry {
             mcp_client_version: this.session.mcpClient?.version,
             mcp_client_name: this.session.mcpClient?.name,
             session_id: this.session.sessionId,
-            config_atlas_auth: this.session.apiClient.hasCredentials() ? "true" : "false",
+            config_atlas_auth: this.session.apiClient?.isAuthConfigured() ? "true" : "false",
             config_connection_string: this.userConfig.connectionString ? "true" : "false",
         };
     }
@@ -168,6 +171,12 @@ export class Telemetry {
      */
     private async emit(events: BaseEvent[]): Promise<void> {
         if (this.isBufferingEvents) {
+            this.eventCache.appendEvents(events);
+            return;
+        }
+
+        // If no API client is available, cache the events
+        if (!this.session.apiClient) {
             this.eventCache.appendEvents(events);
             return;
         }

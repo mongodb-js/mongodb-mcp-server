@@ -40,7 +40,11 @@ describe("ApiClient", () => {
         );
 
         // @ts-expect-error accessing private property for testing
-        apiClient.getAccessToken = vi.fn().mockResolvedValue("mockToken");
+        apiClient.authProvider.validate = vi.fn().mockResolvedValue(true);
+        // @ts-expect-error accessing private property for testing
+        apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue({
+            Authorization: "Bearer mockToken",
+        });
     });
 
     afterEach(() => {
@@ -50,7 +54,7 @@ describe("ApiClient", () => {
     describe("constructor", () => {
         it("should create a client with the correct configuration", () => {
             expect(apiClient).toBeDefined();
-            expect(apiClient.hasCredentials()).toBeDefined();
+            expect(apiClient.isAuthConfigured()).toBeDefined();
         });
     });
 
@@ -73,7 +77,7 @@ describe("ApiClient", () => {
             // @ts-expect-error accessing private property for testing
             apiClient.client.GET = mockGet;
 
-            const result = await apiClient.listProjects();
+            const result = await apiClient.listGroups();
 
             expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", undefined);
             expect(result).toEqual(mockProjects);
@@ -94,7 +98,7 @@ describe("ApiClient", () => {
             // @ts-expect-error accessing private property for testing
             apiClient.client.GET = mockGet;
 
-            await expect(apiClient.listProjects()).rejects.toThrow();
+            await expect(apiClient.listGroups()).rejects.toThrow();
         });
     });
 
@@ -123,7 +127,7 @@ describe("ApiClient", () => {
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockRejectedValue(new Error("No access token available"));
+            apiClient.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No access token available"));
 
             await apiClient.sendEvents(mockEvents);
 
@@ -144,7 +148,7 @@ describe("ApiClient", () => {
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockReturnValueOnce(undefined);
+            apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue(undefined);
 
             await apiClient.sendEvents(mockEvents);
 
@@ -189,7 +193,9 @@ describe("ApiClient", () => {
 
             const mockToken = "test-token";
             // @ts-expect-error accessing private property for testing
-            apiClient.getAccessToken = vi.fn().mockResolvedValue(mockToken);
+            apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue({
+                Authorization: `Bearer ${mockToken}`,
+            });
 
             await expect(apiClient.sendEvents(mockEvents)).rejects.toThrow();
         });

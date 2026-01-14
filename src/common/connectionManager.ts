@@ -2,9 +2,9 @@ import { EventEmitter } from "events";
 import type { MongoClientOptions } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { type ConnectionInfo, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
+import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
-import { defaultDriverOptions, setupDriverConfig, type DriverOptions, type UserConfig } from "./config.js";
+import { type UserConfig } from "./config/userConfig.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
@@ -17,8 +17,8 @@ export interface AtlasClusterConnectionInfo {
     expiryDate: Date;
 }
 
-export interface ConnectionSettings {
-    connectionString: string;
+export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
+    driverOptions?: ConnectionInfo["driverOptions"];
     atlas?: AtlasClusterConnectionInfo;
 }
 
@@ -33,6 +33,20 @@ export interface ConnectionState {
 }
 
 const MCP_TEST_DATABASE = "#mongodb-mcp";
+
+export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
+    readConcern: {
+        level: "local",
+    },
+    readPreference: "secondaryPreferred",
+    writeConcern: {
+        w: "majority",
+    },
+    timeoutMS: 30_000,
+    proxy: { useEnvironmentVariableProxies: true },
+    applyProxyToOIDC: true,
+};
+
 export class ConnectionStateConnected implements ConnectionState {
     public tag = "connected" as const;
 
@@ -136,7 +150,6 @@ export class MCPConnectionManager extends ConnectionManager {
 
     constructor(
         private userConfig: UserConfig,
-        private driverOptions: DriverOptions,
         private logger: LoggerBase,
         deviceId: DeviceId,
         bus?: EventEmitter
@@ -157,7 +170,6 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         let serviceProvider: Promise<NodeDriverServiceProvider>;
-        let connectionInfo: ConnectionInfo;
         let connectionStringAuthType: ConnectionStringAuthType = "scram";
 
         try {
@@ -173,11 +185,15 @@ export class MCPConnectionManager extends ConnectionManager {
                 components: appNameComponents,
             });
 
-            connectionInfo = generateConnectionInfoFromCliArgs({
-                ...this.userConfig,
-                ...this.driverOptions,
-                connectionSpecifier: settings.connectionString,
-            });
+            const connectionInfo: ConnectionInfo = settings.driverOptions
+                ? {
+                      connectionString: settings.connectionString,
+                      driverOptions: settings.driverOptions,
+                  }
+                : generateConnectionInfoFromCliArgs({
+                      ...defaultDriverOptions,
+                      connectionSpecifier: settings.connectionString,
+                  });
 
             if (connectionInfo.driverOptions.oidc) {
                 connectionInfo.driverOptions.oidc.allowedFlows ??= ["auth-code"];
@@ -394,10 +410,5 @@ export type ConnectionManagerFactoryFn = (createParams: {
 }) => Promise<ConnectionManager>;
 
 export const createMCPConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
-    const driverOptions = setupDriverConfig({
-        config: userConfig,
-        defaults: defaultDriverOptions,
-    });
-
-    return Promise.resolve(new MCPConnectionManager(userConfig, driverOptions, logger, deviceId));
+    return Promise.resolve(new MCPConnectionManager(userConfig, logger, deviceId));
 };

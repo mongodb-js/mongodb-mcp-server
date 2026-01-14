@@ -1,12 +1,13 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
+import type { ToolExecutionContext, ToolArgs, OperationType } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
 export class LogsTool extends MongoDBToolBase {
     public name = "mongodb-logs";
-    protected description = "Returns the most recent logged mongod events";
-    protected argsShape = {
+    public description = "Returns the most recent logged mongod events";
+    public argsShape = {
         type: z
             .enum(["global", "startupWarnings"])
             .optional()
@@ -24,14 +25,23 @@ export class LogsTool extends MongoDBToolBase {
             .describe("The maximum number of log entries to return."),
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
-    protected async execute({ type, limit }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { type, limit }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
-        const result = await provider.runCommandWithCheck("admin", {
-            getLog: type,
-        });
+        const result = await provider.runCommandWithCheck(
+            "admin",
+            {
+                getLog: type,
+            },
+            {
+                signal,
+            }
+        );
 
         // Trim ending newlines so that when we join the logs we don't insert empty lines
         // between messages.

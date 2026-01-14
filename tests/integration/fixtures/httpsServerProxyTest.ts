@@ -43,6 +43,8 @@ export class HTTPServerProxyTestSetup {
     }
 
     requests: IncomingMessage[];
+
+    // note: these are self-signed certs for testing purposes, DO NOT use in production
     tlsOptions = Object.freeze({
         key: readFileSync(path.resolve(__dirname, "server.key")),
         cert: readFileSync(path.resolve(__dirname, "server.pem")),

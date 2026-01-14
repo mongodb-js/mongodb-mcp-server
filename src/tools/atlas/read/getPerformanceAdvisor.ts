@@ -13,6 +13,7 @@ import {
     SLOW_QUERY_LOGS_COPY,
 } from "../../../common/atlas/performanceAdvisorUtils.js";
 import { AtlasArgs } from "../../args.js";
+import type { PerfAdvisorToolMetadata } from "../../../telemetry/types.js";
 
 const PerformanceAdvisorOperationType = z.enum([
     "suggestedIndexes",
@@ -23,9 +24,9 @@ const PerformanceAdvisorOperationType = z.enum([
 
 export class GetPerformanceAdvisorTool extends AtlasToolBase {
     public name = "atlas-get-performance-advisor";
-    protected description = `Get MongoDB Atlas performance advisor recommendations, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max ${DEFAULT_SLOW_QUERY_LOGS_LIMIT}) slow query logs`;
-    public operationType: OperationType = "read";
-    protected argsShape = {
+    public description = `Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max ${DEFAULT_SLOW_QUERY_LOGS_LIMIT}) slow query logs`;
+    static operationType: OperationType = "read";
+    public argsShape = {
         projectId: AtlasArgs.projectId().describe(
             "Atlas project ID to get performance advisor recommendations. The project ID is a hexadecimal identifier of 24 characters. If the user has only specified the name, use the `atlas-list-projects` tool to retrieve the user's projects with their ids."
         ),
@@ -58,14 +59,14 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
             const [suggestedIndexesResult, dropIndexSuggestionsResult, slowQueryLogsResult, schemaSuggestionsResult] =
                 await Promise.allSettled([
                     operations.includes("suggestedIndexes")
-                        ? getSuggestedIndexes(this.session.apiClient, projectId, clusterName)
+                        ? getSuggestedIndexes(this.apiClient, projectId, clusterName)
                         : Promise.resolve(undefined),
                     operations.includes("dropIndexSuggestions")
-                        ? getDropIndexSuggestions(this.session.apiClient, projectId, clusterName)
+                        ? getDropIndexSuggestions(this.apiClient, projectId, clusterName)
                         : Promise.resolve(undefined),
                     operations.includes("slowQueryLogs")
                         ? getSlowQueries(
-                              this.session.apiClient,
+                              this.apiClient,
                               projectId,
                               clusterName,
                               since ? new Date(since) : undefined,
@@ -73,7 +74,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                           )
                         : Promise.resolve(undefined),
                     operations.includes("schemaSuggestions")
-                        ? getSchemaAdvice(this.session.apiClient, projectId, clusterName)
+                        ? getSchemaAdvice(this.apiClient, projectId, clusterName)
                         : Promise.resolve(undefined),
                 ]);
 
@@ -129,5 +130,15 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
                 ],
             };
         }
+    }
+
+    protected override resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        { result }: { result: CallToolResult }
+    ): PerfAdvisorToolMetadata {
+        return {
+            ...super.resolveTelemetryMetadata(args, { result }),
+            operations: args.operations,
+        };
     }
 }

@@ -41,7 +41,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "First create a text index on field 'title' in 'mflix.movies' namespace and then drop all the indexes from 'mflix.movies' namespace",
+            prompt: "First create a text index on field 'title' in 'mflix.movies' namespace, verify the number of indexes and then drop all the indexes from 'mflix.movies' namespace",
             expectedToolCalls: [
                 {
                     toolName: "create-index",

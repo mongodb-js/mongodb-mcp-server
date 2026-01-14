@@ -7,8 +7,8 @@ import { zEJSON } from "../../args.js";
 
 export class DeleteManyTool extends MongoDBToolBase {
     public name = "delete-many";
-    protected description = "Removes all documents that match the filter from a MongoDB collection";
-    protected argsShape = {
+    public description = "Removes all documents that match the filter from a MongoDB collection";
+    public argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()
             .optional()
@@ -16,7 +16,7 @@ export class DeleteManyTool extends MongoDBToolBase {
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
             ),
     };
-    public operationType: OperationType = "delete";
+    static operationType: OperationType = "delete";
 
     protected async execute({
         database,
@@ -27,19 +27,25 @@ export class DeleteManyTool extends MongoDBToolBase {
 
         // Check if delete operation uses an index if enabled
         if (this.config.indexCheck) {
-            await checkIndexUsage(provider, database, collection, "deleteMany", async () => {
-                return provider.runCommandWithCheck(database, {
-                    explain: {
-                        delete: collection,
-                        deletes: [
-                            {
-                                q: filter || {},
-                                limit: 0, // 0 means delete all matching documents
-                            },
-                        ],
-                    },
-                    verbosity: "queryPlanner",
-                });
+            await checkIndexUsage({
+                database,
+                collection,
+                operation: "deleteMany",
+                explainCallback: async () => {
+                    return provider.runCommandWithCheck(database, {
+                        explain: {
+                            delete: collection,
+                            deletes: [
+                                {
+                                    q: filter || {},
+                                    limit: 0, // 0 means delete all matching documents
+                                },
+                            ],
+                        },
+                        verbosity: "queryPlanner",
+                    });
+                },
+                logger: this.session.logger,
             });
         }
 

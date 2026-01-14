@@ -13,6 +13,7 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         integration,
         "delete-many",
         "Removes all documents that match the filter from a MongoDB collection",
+        "delete",
         [
             ...databaseCollectionParameters,
             {

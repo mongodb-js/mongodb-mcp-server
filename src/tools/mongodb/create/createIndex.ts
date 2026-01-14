@@ -5,86 +5,214 @@ import { type ToolArgs, type OperationType } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
 import { similarityValues } from "../../../common/schemas.js";
+import { modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 
 export class CreateIndexTool extends MongoDBToolBase {
-    private vectorSearchIndexDefinition = z.object({
-        type: z.literal("vectorSearch"),
-        fields: z
-            .array(
-                z.discriminatedUnion("type", [
-                    z
-                        .object({
-                            type: z.literal("filter"),
-                            path: z
-                                .string()
-                                .describe(
-                                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                                ),
-                        })
-                        .strict()
-                        .describe("Definition for a field that will be used for pre-filtering results."),
-                    z
-                        .object({
-                            type: z.literal("vector"),
-                            path: z
-                                .string()
-                                .describe(
-                                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
-                                ),
-                            numDimensions: z
-                                .number()
-                                .min(1)
-                                .max(8192)
-                                .default(this.config.vectorSearchDimensions)
-                                .describe(
-                                    "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
-                                ),
-                            similarity: z
-                                .enum(similarityValues)
-                                .default(this.config.vectorSearchSimilarityFunction)
-                                .describe(
-                                    "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
-                                ),
-                            quantization: quantizationEnum
-                                .default("none")
-                                .describe(
-                                    "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
-                                ),
-                        })
-                        .strict()
-                        .describe("Definition for a field that contains vector embeddings."),
-                ])
-            )
-            .nonempty()
-            .refine((fields) => fields.some((f) => f.type === "vector"), {
-                message: "At least one vector field must be defined",
-            })
-            .describe(
-                "Definitions for the vector and filter fields to index, one definition per document. You must specify `vector` for fields that contain vector embeddings and `filter` for additional fields to filter on. At least one vector-type field definition is required."
+    private filterFieldSchema = z
+        .object({
+            type: z.literal("filter"),
+            path: z
+                .string()
+                .describe(
+                    "Name of the field to index. For nested fields, use dot notation to specify path to embedded fields"
+                ),
+        })
+        .strict()
+        .describe("Definition for a field that will be used for pre-filtering results.");
+
+    private vectorFieldSchema = z
+        .object({
+            type: z.literal("vector"),
+            path: z.string().describe(
+                `\
+Name of the field containing vector embeddings as arrays of numbers. This must be a dedicated embeddings field, separate from any source text field, if any. \
+For nested fields, use dot notation to specify path to embedded fields.\
+`
             ),
-    });
+            numDimensions: z
+                .number()
+                .min(1)
+                .max(8192)
+                .default(this.config.vectorSearchDimensions)
+                .describe(
+                    "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
+                ),
+            similarity: z
+                .enum(similarityValues)
+                .default(this.config.vectorSearchSimilarityFunction)
+                .describe(
+                    "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
+                ),
+            quantization: quantizationEnum
+                .default("none")
+                .describe(
+                    "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
+                ),
+        })
+        .strict()
+        .describe(
+            `\
+Definition for a field that contains vector embeddings. \
+Use this type when the field you're indexing is supposed to store vector embeddings or when the user have specified one of the relevant parameters.\
+`
+        );
+
+    private autoEmbedFieldSchema = z
+        .object({
+            type: z.literal("autoEmbed"),
+            path: z.string().describe(
+                `\
+Name of the field containing the source text from which embeddings will be automatically generated by MongoDB. \
+This should be the text field itself, NOT a separate embeddings field containing the vector embeddings. \
+For nested fields, use dot notation to specify the path to embedded fields.\
+`
+            ),
+            model: z
+                .enum(modelsSupportingAutoEmbedIndexes)
+                .describe(
+                    "Voyage embedding model to use for automatically generating embeddings from the source text in the indexed field."
+                ),
+            modality: z
+                .enum(["text"])
+                .describe(
+                    "The data type / modality of the source content in the indexed field. Currently only 'text' is supported."
+                ),
+
+            // We don't support specifying `hnswOptions` even in the current vector
+            // search implementation. Following the same idea, we won't support
+            // `hnswOptions` for `autoEmbedText` field definition as well.
+            // hnswOptions: z.object({})
+        })
+        .strict()
+        .describe(
+            `\
+Definition for a field containing source text from which embeddings will be automatically generated and managed by MongoDB at indexing time. \
+Use this type when you want MongoDB to handle all embedding generation and storage internally. \
+If the user specifies a dedicated field name for storing embeddings, use 'vector' type instead.\
+`
+        );
+
+    private vectorSearchIndexDefinition = z
+        .object({
+            type: z.literal("vectorSearch"),
+            fields: z
+                .array(
+                    z.discriminatedUnion("type", [
+                        this.filterFieldSchema,
+                        this.vectorFieldSchema,
+                        this.autoEmbedFieldSchema,
+                    ])
+                )
+                .nonempty()
+                .refine((fields) => fields.some((f) => f.type === "vector" || f.type === "autoEmbed"), {
+                    message: "At least one field of the type 'vector' or 'autoEmbed' must be defined",
+                }).describe(`\
+Definitions for the vector, autoEmbed and filter fields to index, one definition per document. \
+Use 'vector' when user specifies a dedicated field that could contain vector embeddings. \
+Use 'autoEmbed' when user wants MongoDB to automatically generate and manage embeddings internally from a text field (no separate embeddings field). \
+Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoEmbed' type field definition is required.\
+`),
+        })
+        .describe("Definition for a Vector Search index.");
+
+    private atlasSearchIndexDefinition = z
+        .object({
+            type: z.literal("search"),
+            analyzer: z
+                .string()
+                .optional()
+                .default("lucene.standard")
+                .describe(
+                    "The analyzer to use for the index. Can be one of the built-in lucene analyzers (`lucene.standard`, `lucene.simple`, `lucene.whitespace`, `lucene.keyword`), a language-specific analyzer, such as `lucene.cjk` or `lucene.czech`, or a custom analyzer defined in the Atlas UI."
+                ),
+            mappings: z
+                .object({
+                    dynamic: z
+                        .boolean()
+                        .optional()
+                        .default(false)
+                        .describe(
+                            "Enables or disables dynamic mapping of fields for this index. If set to true, Atlas Search recursively indexes all dynamically indexable fields. If set to false, you must specify individual fields to index using mappings.fields."
+                        ),
+                    fields: z
+                        .record(
+                            z.string().describe("The field name"),
+                            z
+                                .object({
+                                    type: z
+                                        .enum([
+                                            "autocomplete",
+                                            "boolean",
+                                            "date",
+                                            "document",
+                                            "embeddedDocuments",
+                                            "geo",
+                                            "number",
+                                            "objectId",
+                                            "string",
+                                            "token",
+                                            "uuid",
+                                        ])
+                                        .describe("The field type"),
+                                })
+                                .passthrough()
+                                .describe(
+                                    "The field index definition. It must contain the field type, as well as any additional options for that field type."
+                                )
+                        )
+                        .optional()
+                        .describe("The field mapping definitions. If `dynamic` is set to `false`, this is required."),
+                })
+                .refine((data) => data.dynamic !== !!(data.fields && Object.keys(data.fields).length > 0), {
+                    message:
+                        "Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in `fields`",
+                })
+                .describe(
+                    "Document describing the index to create. Either `dynamic` must be `true` and `fields` empty or `dynamic` must be `false` and at least one field must be defined in the `fields` document."
+                ),
+            numPartitions: z
+                .union([z.literal("1"), z.literal("2"), z.literal("4")])
+                .default("1")
+                .transform((value): number => Number.parseInt(value))
+                .describe(
+                    "Specifies the number of sub-indexes to create if the document count exceeds two billion. If omitted, defaults to 1."
+                ),
+        })
+        .describe(
+            "Definition for an Atlas Search (lexical) index. Use this only if user explicitly asked for creating an Atlas search index or simply a search index."
+        );
 
     public name = "create-index";
-    protected description = "Create an index for a collection";
-    protected argsShape = {
+    public description = "Create an index for a collection";
+    public argsShape = {
         ...DbOperationArgs,
         name: z.string().optional().describe("The name of the index"),
+        // Note: Although it is not required to wrap the discriminated union in
+        // an array here because we only expect exactly one definition to be
+        // provided here, we unfortunately cannot use the discriminatedUnion as
+        // is because Cursor is unable to construct payload for tool calls where
+        // the input schema contains a discriminated union without such
+        // wrapping. This is a workaround for enabling the tool calls on Cursor.
         definition: z
             .array(
                 z.discriminatedUnion("type", [
-                    z.object({
-                        type: z.literal("classic"),
-                        keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
-                    }),
-                    ...(this.isFeatureEnabled("vectorSearch") ? [this.vectorSearchIndexDefinition] : []),
+                    z
+                        .object({
+                            type: z.literal("classic"),
+                            keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
+                        })
+                        .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial/text)."),
+                    ...(this.isFeatureEnabled("search")
+                        ? [this.vectorSearchIndexDefinition, this.atlasSearchIndexDefinition]
+                        : []),
                 ])
             )
             .describe(
-                "The index definition. Use 'classic' for standard indexes and 'vectorSearch' for vector search indexes"
+                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("search") ? ", 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes" : ""}.`
             ),
     };
 
-    public operationType: OperationType = "create";
+    static operationType: OperationType = "create";
 
     protected async execute({
         database,
@@ -112,7 +240,7 @@ export class CreateIndexTool extends MongoDBToolBase {
                 break;
             case "vectorSearch":
                 {
-                    await this.ensureSearchIsSupported();
+                    await this.session.assertSearchSupported();
                     indexes = await provider.createSearchIndexes(database, collection, [
                         {
                             name,
@@ -124,10 +252,30 @@ export class CreateIndexTool extends MongoDBToolBase {
                     ]);
 
                     responseClarification =
-                        " Since this is a vector search index, it may take a while for the index to build. Use the `list-indexes` tool to check the index status.";
+                        " Since this is a vector search index, it may take a while for the index to build. Use the `collection-indexes` tool to check the index status.";
 
                     // clean up the embeddings cache so it considers the new index
                     this.session.vectorSearchEmbeddingsManager.cleanupEmbeddingsForNamespace({ database, collection });
+                }
+
+                break;
+            case "search":
+                {
+                    await this.session.assertSearchSupported();
+                    indexes = await provider.createSearchIndexes(database, collection, [
+                        {
+                            name,
+                            definition: {
+                                mappings: definition.mappings,
+                                analyzer: definition.analyzer,
+                                numPartitions: definition.numPartitions,
+                            },
+                            type: "search",
+                        },
+                    ]);
+
+                    responseClarification =
+                        " Since this is a search index, it may take a while for the index to build. Use the `collection-indexes` tool to check the index status.";
                 }
 
                 break;

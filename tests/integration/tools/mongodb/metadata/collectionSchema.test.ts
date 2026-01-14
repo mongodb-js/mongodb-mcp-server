@@ -15,7 +15,7 @@ import type { SimplifiedSchema } from "mongodb-schema";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("collectionSchema tool", (integration) => {
-    validateToolMetadata(integration, "collection-schema", "Describe the schema for a collection", [
+    validateToolMetadata(integration, "collection-schema", "Describe the schema for a collection", "metadata", [
         ...databaseCollectionParameters,
         {
             name: "sampleSize",

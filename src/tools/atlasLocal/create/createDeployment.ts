@@ -3,18 +3,20 @@ import { AtlasLocalToolBase } from "../atlasLocalTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import type { Client, CreateDeploymentOptions } from "@mongodb-js/atlas-local";
 import { CommonArgs } from "../../args.js";
+import z from "zod";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     public name = "atlas-local-create-deployment";
-    protected description = "Create a MongoDB Atlas local deployment";
-    public operationType: OperationType = "create";
-    protected argsShape = {
+    public description = "Create a MongoDB Atlas local deployment";
+    static operationType: OperationType = "create";
+    public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
+        loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
     };
 
     protected async executeWithAtlasLocalClient(
-        client: Client,
-        { deploymentName }: ToolArgs<typeof this.argsShape>
+        { deploymentName, loadSampleData }: ToolArgs<typeof this.argsShape>,
+        { client }: { client: Client }
     ): Promise<CallToolResult> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,
@@ -22,6 +24,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
                 type: "MCPServer",
                 source: "MCPServer",
             },
+            loadSampleData,
             doNotTrack: !this.telemetry.isTelemetryEnabled(),
         };
         // Create the deployment

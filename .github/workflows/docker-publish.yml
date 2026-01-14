@@ -1,0 +1,50 @@
+---
+name: Build and Push Docker Image
+on:
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_PASSWORD:
+        required: true
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Get version and date
+        id: release-meta
+        run: |
+          VERSION=$(npm pkg get version | tr -d '"')
+          DATE=$(date +'%Y-%m-%d')
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "DATE=${DATE}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_PASSWORD }}"
+
+      - name: Build and push image to dockerhub registry
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}:latest, ${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}:${{ steps.release-meta.outputs.VERSION }}, ${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}:${{ steps.release-meta.outputs.VERSION }}-${{ steps.release-meta.outputs.DATE }}
+          file: Dockerfile
+          push: true
+          provenance: mode=max
+          sbom: true
+          build-args: |
+            VERSION=${{ steps.release-meta.outputs.VERSION }}

@@ -13,6 +13,7 @@ describeWithMongoDB("count tool", (integration) => {
         integration,
         "count",
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter",
+        "read",
         [
             {
                 name: "query",
@@ -39,7 +40,7 @@ describeWithMongoDB("count tool", (integration) => {
             arguments: { database: "non-existent", collection: "foos" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "foos"');
+        expect(content).toEqual('Found 0 documents in the collection "foos".');
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -51,7 +52,7 @@ describeWithMongoDB("count tool", (integration) => {
             arguments: { database: integration.randomDbName(), collection: "non-existent" },
         });
         const content = getResponseContent(response.content);
-        expect(content).toEqual('Found 0 documents in the collection "non-existent"');
+        expect(content).toEqual('Found 0 documents in the collection "non-existent".');
     });
 
     describe("with existing database", () => {
@@ -82,7 +83,9 @@ describeWithMongoDB("count tool", (integration) => {
                 });
 
                 const content = getResponseContent(response.content);
-                expect(content).toEqual(`Found ${testCase.expectedCount} documents in the collection "foo"`);
+                expect(content).toEqual(
+                    `Found ${testCase.expectedCount} documents in the collection "foo"${testCase.filter ? " that matched the query" : ""}.`
+                );
             });
         }
     });
@@ -90,7 +93,7 @@ describeWithMongoDB("count tool", (integration) => {
     validateAutoConnectBehavior(integration, "count", () => {
         return {
             args: { database: integration.randomDbName(), collection: "coll1" },
-            expectedResponse: 'Found 0 documents in the collection "coll1"',
+            expectedResponse: 'Found 0 documents in the collection "coll1".',
         };
     });
 });

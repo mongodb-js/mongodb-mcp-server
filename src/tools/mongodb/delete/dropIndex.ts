@@ -6,11 +6,11 @@ import { type ToolArgs, type OperationType, formatUntrustedData } from "../../to
 
 export class DropIndexTool extends MongoDBToolBase {
     public name = "drop-index";
-    protected description = "Drop an index for the provided database and collection.";
-    protected argsShape = {
+    public description = "Drop an index for the provided database and collection.";
+    public argsShape = {
         ...DbOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
-        type: this.isFeatureEnabled("vectorSearch")
+        type: this.isFeatureEnabled("search")
             ? z
                   .enum(["classic", "search"])
                   .describe(
@@ -21,7 +21,7 @@ export class DropIndexTool extends MongoDBToolBase {
                   .default("classic")
                   .describe("The type of index to be deleted. Is always set to 'classic'."),
     };
-    public operationType: OperationType = "delete";
+    static operationType: OperationType = "delete";
 
     protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
@@ -58,7 +58,7 @@ export class DropIndexTool extends MongoDBToolBase {
         provider: NodeDriverServiceProvider,
         { database, collection, indexName }: ToolArgs<typeof this.argsShape>
     ): Promise<CallToolResult> {
-        await this.ensureSearchIsSupported();
+        await this.session.assertSearchSupported();
         const indexes = await provider.getSearchIndexes(database, collection, indexName);
         if (indexes.length === 0) {
             return {

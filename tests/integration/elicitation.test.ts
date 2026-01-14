@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, afterEach } from "vitest";
-import { type UserConfig } from "../../src/common/config.js";
+import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { defaultTestConfig } from "./helpers.js";
 import { Elicitation } from "../../src/elicitation.js";
 import { createMockElicitInput } from "../utils/elicitationMocks.js";
@@ -38,6 +38,7 @@ describe("Elicitation Integration Tests", () => {
                     expect(mockElicitInput.mock).toHaveBeenCalledWith({
                         message: expect.stringContaining("You are about to drop the `test-db` database"),
                         requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                        mode: "form",
                     });
 
                     // Should attempt to execute (will fail due to no connection, but confirms flow worked)
@@ -82,6 +83,7 @@ describe("Elicitation Integration Tests", () => {
                     expect(mockElicitInput.mock).toHaveBeenCalledWith({
                         message: expect.stringContaining("You are about to drop the `test-collection` collection"),
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                        mode: "form",
                     });
                 });
 
@@ -101,6 +103,7 @@ describe("Elicitation Integration Tests", () => {
                     expect(mockElicitInput.mock).toHaveBeenCalledWith({
                         message: expect.stringContaining("You are about to delete documents"),
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                        mode: "form",
                     });
                 });
 
@@ -120,6 +123,7 @@ describe("Elicitation Integration Tests", () => {
                     expect(mockElicitInput.mock).toHaveBeenCalledWith({
                         message: expect.stringContaining("You are about to create a database user"),
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                        mode: "form",
                     });
                 });
 
@@ -140,6 +144,7 @@ describe("Elicitation Integration Tests", () => {
                             "You are about to add the following entries to the access list"
                         ),
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                        mode: "form",
                     });
                 });
             });
@@ -222,6 +227,7 @@ describe("Elicitation Integration Tests", () => {
                         /You are about to execute the `list-databases` tool which requires additional confirmation. Would you like to proceed\?/
                     ),
                     requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                    mode: "form",
                 });
             });
 
@@ -265,6 +271,7 @@ describe("Elicitation Integration Tests", () => {
                 expect(mockElicitInput.mock).toHaveBeenCalledWith({
                     message: expect.stringMatching(/project.*507f1f77bcf86cd799439011/),
                     requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                    mode: "form",
                 });
             });
 
@@ -283,6 +290,7 @@ describe("Elicitation Integration Tests", () => {
                 expect(mockElicitInput.mock).toHaveBeenCalledWith({
                     message: expect.stringMatching(/mydb.*database/),
                     requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                    mode: "form",
                 });
             });
         },

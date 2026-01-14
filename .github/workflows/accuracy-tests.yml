@@ -26,20 +26,29 @@ jobs:
       MDB_ACCURACY_MDB_DB: ${{ vars.ACCURACY_MDB_DB }}
       MDB_ACCURACY_MDB_COLLECTION: ${{ vars.ACCURACY_MDB_COLLECTION }}
       MDB_ACCURACY_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || '' }}
+
+      MDB_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+      MDB_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+      MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
+      MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
+
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
-          cache: "npm"
+          cache: "pnpm"
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Run accuracy tests
-        run: npm run test:accuracy
+        run: pnpm run test:accuracy
       - name: Upload accuracy test summary
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: accuracy-test-summary
           path: .accuracy/test-summary.html

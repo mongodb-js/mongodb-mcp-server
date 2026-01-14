@@ -3,13 +3,13 @@ import type { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
-import { config } from "../../src/common/config.js";
 import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
 import { NullLogger } from "../../tests/utils/index.js";
 import type { MockedFunction } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
-import { expectDefined } from "../integration/helpers.js";
+import { defaultTestConfig, expectDefined } from "../integration/helpers.js";
 import { Keychain } from "../../src/common/keychain.js";
+import { type UserConfig } from "../../src/common/config/userConfig.js";
 
 // Mock the ApiClient to avoid real API calls
 vi.mock("../../src/common/atlas/apiClient.js");
@@ -22,7 +22,8 @@ const MockEventCache = vi.mocked(EventCache);
 describe("Telemetry", () => {
     let mockApiClient: {
         sendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
-        hasCredentials: MockedFunction<() => boolean>;
+        validateAuthConfig: MockedFunction<() => Promise<void>>;
+        isAuthConfigured: MockedFunction<() => boolean>;
     };
     let mockEventCache: {
         getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
@@ -32,6 +33,7 @@ describe("Telemetry", () => {
     let session: Session;
     let telemetry: Telemetry;
     let mockDeviceId: DeviceId;
+    let config: UserConfig;
 
     // Helper function to create properly typed test events
     function createTestEvent(options?: {
@@ -112,6 +114,7 @@ describe("Telemetry", () => {
     }
 
     beforeEach(() => {
+        config = { ...defaultTestConfig, telemetry: "enabled" };
         // Reset mocks before each test
         vi.clearAllMocks();
 
@@ -119,7 +122,8 @@ describe("Telemetry", () => {
         mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }, new NullLogger()));
 
         mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
-        mockApiClient.hasCredentials = vi.fn().mockReturnValue(true);
+        mockApiClient.validateAuthConfig = vi.fn().mockReturnValue(Promise.resolve());
+        mockApiClient.isAuthConfigured = vi.fn().mockReturnValue(true);
 
         // Setup mocked EventCache
         mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;

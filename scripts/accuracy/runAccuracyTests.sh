@@ -1,6 +1,6 @@
 #!/bin/sh
 # Variables necessary for the accuracy test runs
-export MDB_ACCURACY_RUN_ID=$(npx uuid v4)
+export MDB_ACCURACY_RUN_ID=$(pnpm dlx uuid v4)
 
 # For providing access tokens for different LLM providers
 # export MDB_OPEN_AI_API_KEY=""
@@ -20,9 +20,9 @@ export MDB_MCP_API_CLIENT_SECRET=${MDB_MCP_API_CLIENT_SECRET:-"test-atlas-client
 
 # By default we run all the tests under tests/accuracy folder unless a path is
 # specified in the command line. Such as:
-# npm run test:accuracy -- tests/accuracy/some-test.test.ts
+# pnpm run test:accuracy -- tests/accuracy/some-test.test.ts
 echo "Running accuracy tests with MDB_ACCURACY_RUN_ID '$MDB_ACCURACY_RUN_ID'"
-vitest --config vitest.config.ts --project=accuracy --coverage=false --no-file-parallelism --run "$@"
+vitest --config vitest.config.ts --project=accuracy --coverage=false --max-workers=2 --run "$@"
 
 # Preserving the exit code from test run to correctly notify in the CI
 # environments when the tests fail.
@@ -42,9 +42,9 @@ TEST_EXIT_CODE=$?
 # This is necessary when comparing one accuracy run with another as we wouldn't
 # want to compare against an incomplete run.
 export MDB_ACCURACY_RUN_STATUS=$([ $TEST_EXIT_CODE -eq 0 ] && echo "done" || echo "failed")
-npx tsx scripts/accuracy/updateAccuracyRunStatus.ts || echo "Warning: Failed to update accuracy run status to '$MDB_ACCURACY_RUN_STATUS'"
+pnpm dlx tsx scripts/accuracy/updateAccuracyRunStatus.ts || echo "Warning: Failed to update accuracy run status to '$MDB_ACCURACY_RUN_STATUS'"
 
 # This is optional but we do it anyways to generate a readable summary of report.
-npx tsx scripts/accuracy/generateTestSummary.ts || echo "Warning: Failed to generate test summary HTML report"
+pnpm dlx tsx scripts/accuracy/generateTestSummary.ts || echo "Warning: Failed to generate test summary HTML report"
 
 exit $TEST_EXIT_CODE

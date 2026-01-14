@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { describeWithAtlas } from "./atlasHelpers.js";
+import { assertApiClientIsAvailable, describeWithAtlas } from "./atlasHelpers.js";
 import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../helpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -8,13 +8,13 @@ describeWithAtlas("projects", (integration) => {
 
     afterAll(async () => {
         const session = integration.mcpServer().session;
+        assertApiClientIsAvailable(session);
+        const apiClient = session.apiClient;
         const projects =
-            (await session.apiClient.listProjects()).results?.filter((project) =>
-                projectsToCleanup.includes(project.name)
-            ) || [];
+            (await apiClient.listGroups()).results?.filter((project) => projectsToCleanup.includes(project.name)) || [];
 
         for (const project of projects) {
-            await session.apiClient.deleteProject({
+            await session.apiClient.deleteGroup({
                 params: {
                     path: {
                         groupId: project.id || "",
@@ -57,7 +57,10 @@ describeWithAtlas("projects", (integration) => {
             projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
-            const orgs = await integration.mcpServer().session.apiClient.listOrganizations();
+            const session = integration.mcpServer().session;
+            assertApiClientIsAvailable(session);
+            const apiClient = session.apiClient;
+            const orgs = await apiClient.listOrgs();
             orgId = (orgs.results && orgs.results[0]?.id) ?? "";
 
             await integration.mcpClient().callTool({

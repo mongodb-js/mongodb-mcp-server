@@ -9,14 +9,14 @@ export const InspectAccessListArgs = {
 
 export class InspectAccessListTool extends AtlasToolBase {
     public name = "atlas-inspect-access-list";
-    protected description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
-    public operationType: OperationType = "read";
-    protected argsShape = {
+    public description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
+    static operationType: OperationType = "read";
+    public argsShape = {
         ...InspectAccessListArgs,
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const accessList = await this.session.apiClient.listProjectIpAccessLists({
+        const accessList = await this.apiClient.listAccessListEntries({
             params: {
                 path: {
                     groupId: projectId,
@@ -32,17 +32,14 @@ export class InspectAccessListTool extends AtlasToolBase {
             };
         }
 
+        const entries = results.map((entry) => ({
+            ipAddress: entry.ipAddress,
+            cidrBlock: entry.cidrBlock,
+            comment: entry.comment,
+        }));
+
         return {
-            content: formatUntrustedData(
-                `Found ${results.length} access list entries`,
-                `IP ADDRESS | CIDR | COMMENT
-------|------|------
-${results
-    .map((entry) => {
-        return `${entry.ipAddress} | ${entry.cidrBlock} | ${entry.comment}`;
-    })
-    .join("\n")}`
-            ),
+            content: formatUntrustedData(`Found ${results.length} access list entries`, JSON.stringify(entries)),
         };
     }
 }

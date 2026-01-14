@@ -27,7 +27,7 @@ export async function makeCurrentIpAccessListEntry(
 export async function ensureCurrentIpInAccessList(apiClient: ApiClient, projectId: string): Promise<boolean> {
     const entry = await makeCurrentIpAccessListEntry(apiClient, projectId, DEFAULT_ACCESS_LIST_COMMENT);
     try {
-        await apiClient.createProjectIpAccessList({
+        await apiClient.createAccessListEntry({
             params: { path: { groupId: projectId } },
             body: [entry],
         });

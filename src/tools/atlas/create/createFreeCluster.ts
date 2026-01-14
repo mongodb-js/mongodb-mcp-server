@@ -7,9 +7,9 @@ import { AtlasArgs } from "../../args.js";
 
 export class CreateFreeClusterTool extends AtlasToolBase {
     public name = "atlas-create-free-cluster";
-    protected description = "Create a free MongoDB Atlas cluster";
-    public operationType: OperationType = "create";
-    protected argsShape = {
+    public description = "Create a free MongoDB Atlas cluster";
+    static operationType: OperationType = "create";
+    public argsShape = {
         projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),
         name: AtlasArgs.clusterName().describe("Name of the cluster"),
         region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
@@ -38,8 +38,8 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             terminationProtectionEnabled: false,
         } as unknown as ClusterDescription20240805;
 
-        await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
-        await this.session.apiClient.createCluster({
+        await ensureCurrentIpInAccessList(this.apiClient, projectId);
+        await this.apiClient.createCluster({
             params: {
                 path: {
                     groupId: projectId,

@@ -4,5 +4,6 @@
     "rootDir": ".",
     "skipLibCheck": true
   },
-  "include": ["**/*"]
+  "include": ["**/*"],
+  "exclude": ["dist", "node_modules"]
 }
