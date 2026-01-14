@@ -2,7 +2,7 @@ import { defineConfig, Plugin, PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, rmSync } from "fs";
 import { join, resolve } from "path";
 
 const componentsDir = resolve(__dirname, "src/ui/components");
@@ -119,6 +119,12 @@ export const ${componentName}Html = ${JSON.stringify(html)};
             console.log(
                 `[generate-ui-module] Generated ${generatedTools.length} lazy UI module(s): ${generatedTools.join(", ")}`
             );
+
+            // Clean up intermediate dist/ui directory - the HTML is now embedded in the .ts modules
+            if (existsSync(uiDistPath)) {
+                rmSync(uiDistPath, { recursive: true });
+                console.log("[generate-ui-module] Cleaned up intermediate dist/ui directory");
+            }
         },
     };
 }
