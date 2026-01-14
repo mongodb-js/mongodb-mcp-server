@@ -10,6 +10,7 @@ import {
 } from "../../../helpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import type { Client } from "@modelcontextprotocol/sdk/client";
 
 export async function freshInsertDocuments({
     collection,
@@ -448,3 +449,81 @@ describeWithMongoDB(
         getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
     }
 );
+
+describeWithMongoDB("find tool with abort signal", (integration) => {
+    beforeEach(async () => {
+        // Insert many documents with complex data to simulate a slow query
+        await freshInsertDocuments({
+            collection: integration.mongoClient().db(integration.randomDbName()).collection("abort_collection"),
+            count: 50000,
+            documentMapper: (index) => ({
+                _id: index,
+                description: "x".repeat(10000) + index,
+            }),
+        });
+    });
+
+    const runSlowFind = (signal?: AbortSignal): ReturnType<Client["callTool"]> => {
+        return integration.mcpClient().callTool(
+            {
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "abort_collection",
+                    filter: {
+                        $or: [
+                            { description: "x".repeat(10000) + "1" },
+                            { description: "x".repeat(10000) + "2" },
+                            { description: "x".repeat(10000) + "3" },
+                            { description: { $regex: "xxxxxxxxxxxxxxxxxxxx1" } },
+                        ],
+                    },
+                    limit: 1000,
+                    responseBytesLimit: 50 * 1024 * 1024,
+                },
+            },
+            undefined,
+            { signal }
+        );
+    };
+
+    it("should abort find operation when signal is triggered immediately", async () => {
+        await integration.connectMcpClient();
+        const abortController = new AbortController();
+
+        const findPromise = runSlowFind(abortController.signal);
+
+        // Abort immediately
+        abortController.abort();
+
+        await expect(findPromise).rejects.toThrow();
+    });
+
+    it("should abort find operation during cursor iteration", async () => {
+        await integration.connectMcpClient();
+        const abortController = new AbortController();
+
+        // Start a query with regex and complex filter that requires scanning many documents
+        const findPromise = runSlowFind(abortController.signal);
+
+        // Give the cursor a bit of time to start processing, then abort
+        setTimeout(() => abortController.abort(), 50);
+
+        await expect(findPromise).rejects.toThrow();
+    });
+
+    it("should complete successfully when not aborted", async () => {
+        await integration.connectMcpClient();
+
+        const startTime = performance.now();
+        const response = await runSlowFind();
+        const endTime = performance.now();
+        const executionTime = endTime - startTime;
+
+        expect(executionTime).toBeGreaterThan(50); // Ensure it took a substantial time to execute
+        const content = getResponseContent(response);
+        expect(content).toContain('Query on collection "abort_collection"');
+        expect(response.isError).toBeFalsy();
+        expect(executionTime).toBeGreaterThan(0);
+    });
+});

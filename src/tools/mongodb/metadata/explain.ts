@@ -71,7 +71,7 @@ export class ExplainTool extends MongoDBToolBase {
                         collection,
                         pipeline,
                         {
-                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                             signal,
                         },
                         {
@@ -86,7 +86,7 @@ export class ExplainTool extends MongoDBToolBase {
                 result = await provider
                     .find(database, collection, filter as Document, {
                         ...rest,
-                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                         signal,
                     })
                     .explain(verbosity);

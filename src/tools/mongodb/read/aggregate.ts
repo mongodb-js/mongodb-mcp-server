@@ -93,7 +93,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                                     collection,
                                     pipeline,
                                     {
-                                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                                         signal,
                                     },
                                     { writeConcern: undefined }
@@ -122,7 +122,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
-                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                     signal,
                 });
 
@@ -134,7 +134,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
-                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                     signal,
                 });
 
@@ -248,7 +248,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         return await operationWithFallback(async (): Promise<number | undefined> => {
             const aggregationResults = await provider
                 .aggregate(database, collection, resultsCountAggregation, {
-                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                     signal: abortSignal,
                 })
                 .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)
