@@ -439,14 +439,16 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 ...super.resolveTelemetryMetadata(args, { result }),
                 embeddingsGeneratedBy: "mcp",
             };
-        } else if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
+        }
+
+        if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
             return {
                 ...super.resolveTelemetryMetadata(args, { result }),
                 embeddingsGeneratedBy: "mongot",
             };
-        } else {
-            return super.resolveTelemetryMetadata(args, { result });
         }
+
+        return super.resolveTelemetryMetadata(args, { result });
     }
 
     private isSearchStage(stage: Record<string, unknown>): boolean {
