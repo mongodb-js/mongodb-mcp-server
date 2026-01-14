@@ -160,6 +160,8 @@ export class MongoDBClusterProcess {
 
             const missingConfig = requiredKeys.filter((key) => !config[key]);
 
+            // If the required config is missing there is nothing to do. So we
+            // warn and exit early.
             if (missingConfig.length > 0) {
                 console.warn(
                     `Auto-embeddings configuration not correctly configured, missing - ${missingConfig.join(", ")}. Will skip the test.`
@@ -167,6 +169,14 @@ export class MongoDBClusterProcess {
                 return false;
             }
 
+            // In GHA, only linux containers has docker runtime so we only run
+            // on linux.
+            if (process.env.GITHUB_ACTIONS === "true") {
+                return process.platform === "linux";
+            }
+
+            // Very likely running locally so we assume there is a docker
+            // runtime.
             return true;
         }
 
