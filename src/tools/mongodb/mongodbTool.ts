@@ -47,10 +47,6 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
-    protected ensureSearchIsSupported(): Promise<void> {
-        return this.session.assertSearchSupported();
-    }
-
     public register(server: Server): boolean {
         this.server = server;
         return super.register(server);

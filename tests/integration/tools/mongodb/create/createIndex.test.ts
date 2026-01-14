@@ -12,7 +12,7 @@ import {
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-describeWithMongoDB("createIndex tool when search is not enabled", (integration) => {
+describeWithMongoDB("(searchFeatureEnabled=false, mongodbSupportsSearch=false) createIndex tool", (integration) => {
     validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
         ...databaseCollectionParameters,
         {
@@ -29,7 +29,7 @@ describeWithMongoDB("createIndex tool when search is not enabled", (integration)
         },
     ]);
 
-    it("doesn't allow creating vector search indexes", async () => {
+    it("tool schema doesn't allow creating vector search indexes", async () => {
         expect(integration.mcpServer().userConfig.previewFeatures).to.not.include("search");
 
         const { tools } = await integration.mcpClient().listTools();
@@ -51,84 +51,7 @@ describeWithMongoDB("createIndex tool when search is not enabled", (integration)
 });
 
 describeWithMongoDB(
-    "createIndex tool when search is enabled",
-    (integration) => {
-        it("allows creating vector search indexes", async () => {
-            expect(integration.mcpServer().userConfig.previewFeatures).includes("search");
-
-            const { tools } = await integration.mcpClient().listTools();
-            const createIndexTool = tools.find((tool) => tool.name === "create-index");
-            const definitionProperty = createIndexTool?.inputSchema.properties?.definition as {
-                type: string;
-                items: { anyOf: Array<{ properties: Record<string, Record<string, unknown>> }> };
-            };
-            expectDefined(definitionProperty);
-
-            expect(definitionProperty.type).toEqual("array");
-
-            // Because search is now enabled, we should see both "classic", "search", and "vectorSearch" options in
-            // the anyOf array.
-            expect(definitionProperty.items.anyOf).toHaveLength(3);
-
-            // Classic index definition
-            expect(definitionProperty.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "classic" });
-            expect(definitionProperty.items.anyOf?.[0]?.properties?.keys).toBeDefined();
-
-            // Vector search index definition
-            expect(definitionProperty.items.anyOf?.[1]?.properties?.type).toEqual({
-                type: "string",
-                const: "vectorSearch",
-            });
-            expect(definitionProperty.items.anyOf?.[1]?.properties?.fields).toBeDefined();
-
-            const fields = definitionProperty.items.anyOf?.[1]?.properties?.fields as {
-                type: string;
-                items: { anyOf: Array<{ type: string; properties: Record<string, Record<string, unknown>> }> };
-            };
-
-            expect(fields.type).toEqual("array");
-            expect(fields.items.anyOf).toHaveLength(2);
-            expect(fields.items.anyOf?.[0]?.type).toEqual("object");
-            expect(fields.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
-            expectDefined(fields.items.anyOf?.[0]?.properties?.path);
-
-            expect(fields.items.anyOf?.[1]?.type).toEqual("object");
-            expect(fields.items.anyOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
-            expectDefined(fields.items.anyOf?.[1]?.properties?.path);
-            expectDefined(fields.items.anyOf?.[1]?.properties?.quantization);
-            expectDefined(fields.items.anyOf?.[1]?.properties?.numDimensions);
-            expectDefined(fields.items.anyOf?.[1]?.properties?.similarity);
-
-            // Atlas search index definition
-            expect(definitionProperty.items.anyOf?.[2]?.properties?.type).toEqual({
-                type: "string",
-                const: "search",
-            });
-            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.analyzer);
-            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.mappings);
-
-            const mappings = definitionProperty.items.anyOf?.[2]?.properties?.mappings as {
-                type: string;
-                properties: Record<string, Record<string, unknown>>;
-            };
-
-            expect(mappings.type).toEqual("object");
-            expectDefined(mappings.properties?.dynamic);
-            expectDefined(mappings.properties?.fields);
-        });
-    },
-    {
-        getUserConfig: () => {
-            return {
-                ...defaultTestConfig,
-                previewFeatures: ["search"],
-            };
-        },
-    }
-);
-
-describeWithMongoDB(
-    "createIndex tool with classic indexes",
+    "(searchFeatureEnabled=true, mongodbSupportsSearch=false) createIndex tool",
     (integration) => {
         validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
             ...databaseCollectionParameters,
@@ -213,6 +136,89 @@ describeWithMongoDB(
             },
         ]);
 
+        it("tool schema allows creating vector search indexes with vector, autoEmbed and filter fields", async () => {
+            expect(integration.mcpServer().userConfig.previewFeatures).includes("search");
+
+            const { tools } = await integration.mcpClient().listTools();
+            const createIndexTool = tools.find((tool) => tool.name === "create-index");
+            const definitionProperty = createIndexTool?.inputSchema.properties?.definition as {
+                type: string;
+                items: { anyOf: Array<{ properties: Record<string, Record<string, unknown>> }> };
+            };
+            expectDefined(definitionProperty);
+
+            expect(definitionProperty.type).toEqual("array");
+
+            // Because search is now enabled, we should see both "classic", "search", and "vectorSearch" options in
+            // the anyOf array.
+            expect(definitionProperty.items.anyOf).toHaveLength(3);
+
+            // Classic index definition
+            expect(definitionProperty.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "classic" });
+            expect(definitionProperty.items.anyOf?.[0]?.properties?.keys).toBeDefined();
+
+            // Vector search index definition
+            expect(definitionProperty.items.anyOf?.[1]?.properties?.type).toEqual({
+                type: "string",
+                const: "vectorSearch",
+            });
+            expect(definitionProperty.items.anyOf?.[1]?.properties?.fields).toBeDefined();
+
+            const fields = definitionProperty.items.anyOf?.[1]?.properties?.fields as {
+                type: string;
+                items: { anyOf: Array<{ type: string; properties: Record<string, Record<string, unknown>> }> };
+            };
+
+            expect(fields.type).toEqual("array");
+            expect(fields.items.anyOf).toHaveLength(3);
+            expect(fields.items.anyOf?.[0]?.type).toEqual("object");
+            expect(fields.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
+            expectDefined(fields.items.anyOf?.[0]?.properties?.path);
+
+            expect(fields.items.anyOf?.[1]?.type).toEqual("object");
+            expect(fields.items.anyOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
+            expectDefined(fields.items.anyOf?.[1]?.properties?.path);
+            expectDefined(fields.items.anyOf?.[1]?.properties?.quantization);
+            expectDefined(fields.items.anyOf?.[1]?.properties?.numDimensions);
+            expectDefined(fields.items.anyOf?.[1]?.properties?.similarity);
+
+            expect(fields.items.anyOf?.[2]?.type).toEqual("object");
+            expect(fields.items.anyOf?.[2]?.properties?.type).toEqual({ type: "string", const: "autoEmbed" });
+            expectDefined(fields.items.anyOf?.[2]?.properties?.path);
+            expectDefined(fields.items.anyOf?.[2]?.properties?.model);
+            expectDefined(fields.items.anyOf?.[2]?.properties?.modality);
+
+            // Atlas search index definition
+            expect(definitionProperty.items.anyOf?.[2]?.properties?.type).toEqual({
+                type: "string",
+                const: "search",
+            });
+            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.analyzer);
+            expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.mappings);
+
+            const mappings = definitionProperty.items.anyOf?.[2]?.properties?.mappings as {
+                type: string;
+                properties: Record<string, Record<string, unknown>>;
+            };
+
+            expect(mappings.type).toEqual("object");
+            expectDefined(mappings.properties?.dynamic);
+            expectDefined(mappings.properties?.fields);
+        });
+    },
+    {
+        getUserConfig: () => {
+            return {
+                ...defaultTestConfig,
+                previewFeatures: ["search"],
+            };
+        },
+    }
+);
+
+describeWithMongoDB(
+    "(searchFeatureEnabled=true, mongodbSupportsSearch=false) createIndex tool with classic indexes",
+    (integration) => {
         const validateIndex = async (collection: string, expected: { name: string; key: object }[]): Promise<void> => {
             const mongoClient = integration.mongoClient();
             const collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
@@ -456,7 +462,7 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "createIndex tool with vector search indexes",
+    "(searchFeatureEnabled=true, mongodbSupportsSearch=true) createIndex tool with vector search indexes",
     (integration) => {
         beforeEach(async () => {
             await integration.connectMcpClient();
@@ -544,7 +550,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
@@ -582,7 +588,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 // Try to create another vector search index with the same name
@@ -629,7 +635,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const classicResponse = await integration.mcpClient().callTool({
@@ -665,6 +671,26 @@ describeWithMongoDB(
                 // Expect to find my-super-index in the vector search definitions
                 expect(listIndexesElements[3]?.text).toContain('"name":"my-super-index"');
             });
+
+            it("should fail to create auto-embed vector search index", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: collectionName,
+                        name: "vector_1_vector_auto_embed",
+                        definition: [
+                            {
+                                type: "vectorSearch",
+                                fields: [
+                                    { type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" },
+                                ],
+                            },
+                        ],
+                    },
+                });
+                expect(response.isError).toBe(true);
+            });
         });
     },
     {
@@ -679,7 +705,77 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "createIndex tool with Atlas search indexes",
+    "(searchFeatureEnabled=true, mongodbSupportsSearch=true, mongodbSupportsAutoEmbed=true) createIndex tool with vector search indexes",
+    (integration) => {
+        let collectionName: string;
+        let collection: Collection;
+        beforeEach(async () => {
+            await integration.connectMcpClient();
+            await waitUntilSearchIsReady(integration.mongoClient());
+            collectionName = new ObjectId().toString();
+            collection = await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .createCollection(collectionName);
+        });
+
+        afterEach(async () => {
+            await collection.drop();
+        });
+
+        it("should successfully create auto-embed vector search index", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: collectionName,
+                    name: "vector_1_vector_auto_embed",
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
+                        },
+                    ],
+                },
+            });
+
+            const content = getResponseContent(response.content);
+            expect(content).toEqual(
+                `Created the index "vector_1_vector_auto_embed" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
+            );
+
+            const indexes: Document[] = await collection.listSearchIndexes().toArray();
+            expect(indexes).toHaveLength(1);
+            expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
+            expect(indexes[0]?.type).toEqual("vectorSearch");
+            // Note: The status reporting here is because of an internal feature
+            // flag. For auto-embed indexes we still don't have status
+            // reporting.
+            expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
+            expect(indexes[0]?.latestDefinition).toEqual(
+                expect.objectContaining({
+                    type: "vectorSearch",
+                    fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
+                })
+            );
+        });
+    },
+    {
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            previewFeatures: ["search"],
+        }),
+        downloadOptions: {
+            autoEmbed: true,
+            mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,
+            voyageIndexingKey: process.env.MDB_VOYAGE_API_KEY as string,
+            voyageQueryKey: process.env.MDB_VOYAGE_API_KEY as string,
+        },
+    }
+);
+
+describeWithMongoDB(
+    "(searchFeatureEnabled=true, mongodbSupportsSearch=true) createIndex tool with Atlas search indexes",
     (integration) => {
         beforeEach(async () => {
             await integration.connectMcpClient();
@@ -776,7 +872,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
@@ -818,7 +914,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "dynamic_search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "dynamic_search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
@@ -859,7 +955,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 // Try to create another search index with the same name
@@ -907,7 +1003,7 @@ describeWithMongoDB(
 
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
-                    `Created the index "my-search-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`list-indexes\` tool to check the index status.`
+                    `Created the index "my-search-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
 
                 const classicResponse = await integration.mcpClient().callTool({

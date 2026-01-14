@@ -19,18 +19,24 @@ import {
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import type { AutoEmbeddingsUsageMetadata, ConnectionMetadata } from "../../../telemetry/types.js";
 
-const pipelineDescriptionWithVectorSearch = `\
+export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
 If the user has asked for a vector search, \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
 If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$text\`.
 ### Usage Rules for \`$vectorSearch\`
+- **Index Type Detection:**
+  Use the collection-indexes tool to determine if the target field has a classic vector index (type: 'vector') or an auto-embed index (type: 'autoEmbed').
+- **Classic Vector Search (type: 'vector'):**
+  Use 'queryVector' with embeddings as an array of numbers, or as a string with 'embeddingParameters' to generate embeddings.
+- **Auto-Embed Vector Search (type: 'autoEmbed'):**
+  Use 'query' - MongoDB automatically generates embeddings at query time. Do NOT use 'queryVector' or 'embeddingParameters' for auto-embed indexes.
 - **Unset embeddings:**
   Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
 - **Pre-filtering:**
-If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
-    NEVER include fields in $vectorSearch.filter that are not part of the vector index.
+  If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
+  NEVER include fields in $vectorSearch.filter that are not part of the vector index.
 - **Post-filtering:**
-    For all remaining filters, add a $match stage after $vectorSearch.
+  For all remaining filters, add a $match stage after $vectorSearch.
 - If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
 - If no requested filters are valid prefilters, omit the filter key from $vectorSearch.
 
@@ -286,14 +292,33 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             if ("$vectorSearch" in stage) {
                 const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;
 
+                // If the stage is using 'query' field (auto-embed indexes) then
+                // it is targeting an `autoEmbed` index. In this case, we don't
+                // need to generate embeddings for the query because MongoDB is
+                // configured to handle the embeddings generation automatically.
+                if ("query" in vectorSearchStage) {
+                    continue;
+                }
+
+                // If queryVector is already an array, no embedding generation
+                // needed.
                 if (Array.isArray(vectorSearchStage.queryVector)) {
                     continue;
+                }
+
+                // At this point, queryVector must be a string for which we need
+                // to generate embeddings.
+                if (!vectorSearchStage.queryVector) {
+                    throw new MongoDBError(
+                        ErrorCodes.AtlasVectorSearchInvalidQuery,
+                        "Either 'queryVector' (for classic vector indexes) or 'query' (for auto-embed indexes) must be provided in $vectorSearch. Use the collection-indexes tool to verify which type of index the target field has."
+                    );
                 }
 
                 if (!vectorSearchStage.embeddingParameters) {
                     throw new MongoDBError(
                         ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        "embeddingModel is mandatory if queryVector is a raw string."
+                        "embeddingParameters is mandatory when providing queryVector as a string for classic vector search indexes (type: 'vector'). If the target field has an auto-embed index (type: 'autoEmbed'), use 'query' instead of 'queryVector'. Use the collection-indexes tool to verify the index type."
                     );
                 }
 
@@ -403,10 +428,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         { result }: { result: CallToolResult }
     ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
         const [maybeVectorStage] = args.pipeline;
+        const usesVectorSearch =
+            maybeVectorStage !== null && maybeVectorStage instanceof Object && "$vectorSearch" in maybeVectorStage;
         if (
-            maybeVectorStage !== null &&
-            maybeVectorStage instanceof Object &&
-            "$vectorSearch" in maybeVectorStage &&
+            usesVectorSearch &&
             "embeddingParameters" in maybeVectorStage["$vectorSearch"] &&
             this.config.voyageApiKey
         ) {
@@ -414,9 +439,16 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 ...super.resolveTelemetryMetadata(args, { result }),
                 embeddingsGeneratedBy: "mcp",
             };
-        } else {
-            return super.resolveTelemetryMetadata(args, { result });
         }
+
+        if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
+            return {
+                ...super.resolveTelemetryMetadata(args, { result }),
+                embeddingsGeneratedBy: "mongot",
+            };
+        }
+
+        return super.resolveTelemetryMetadata(args, { result });
     }
 
     private isSearchStage(stage: Record<string, unknown>): boolean {
