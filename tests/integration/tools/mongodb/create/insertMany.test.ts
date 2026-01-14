@@ -361,9 +361,7 @@ describeWithMongoDB(
                 expect(doc1?.titleEmbeddings).not.toEqual(doc2?.titleEmbeddings);
             });
 
-            // TODO(MCP-357): This test fails currently on main. The code does
-            // not handle embedding generation for nested fields.
-            it.skip("generates embeddings for nested fields", async () => {
+            it("generates embeddings for nested fields", async () => {
                 await createVectorSearchIndexAndWait(integration.mongoClient(), database, "test", [
                     {
                         type: "vector",
