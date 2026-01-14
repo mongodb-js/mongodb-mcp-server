@@ -86,19 +86,25 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 });
                 switch (usesVectorSearchIndex) {
                     case "not-vector-search-query":
-                        await checkIndexUsage(provider, database, collection, "aggregate", async () => {
-                            return provider
-                                .aggregate(
-                                    database,
-                                    collection,
-                                    pipeline,
-                                    {
-                                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
-                                        signal,
-                                    },
-                                    { writeConcern: undefined }
-                                )
-                                .explain("queryPlanner");
+                        await checkIndexUsage({
+                            database,
+                            collection,
+                            operation: "aggregate",
+                            explainCallback: async () => {
+                                return provider
+                                    .aggregate(
+                                        database,
+                                        collection,
+                                        pipeline,
+                                        {
+                                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                                            signal,
+                                        },
+                                        { writeConcern: undefined }
+                                    )
+                                    .explain("queryPlanner");
+                            },
+                            logger: this.session.logger,
                         });
                         break;
                     case "non-existent-index":

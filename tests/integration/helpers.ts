@@ -106,7 +106,7 @@ export function setupIntegrationTest(
             connectionManager,
             keychain: new Keychain(),
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            atlasLocalClient: await defaultCreateAtlasLocalClient(),
+            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });
 
         // Mock hasValidAccessToken for tests

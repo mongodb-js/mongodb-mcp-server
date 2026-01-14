@@ -31,20 +31,26 @@ export class CountTool extends MongoDBToolBase {
 
         // Check if count operation uses an index if enabled
         if (this.config.indexCheck) {
-            await checkIndexUsage(provider, database, collection, "count", async () => {
-                return provider.runCommandWithCheck(
-                    database,
-                    {
-                        explain: {
-                            count: collection,
-                            query,
+            await checkIndexUsage({
+                database,
+                collection,
+                operation: "count",
+                explainCallback: async () => {
+                    return provider.runCommandWithCheck(
+                        database,
+                        {
+                            explain: {
+                                count: collection,
+                                query,
+                            },
+                            verbosity: "queryPlanner",
                         },
-                        verbosity: "queryPlanner",
-                    },
-                    {
-                        signal,
-                    }
-                );
+                        {
+                            signal,
+                        }
+                    );
+                },
+                logger: this.session.logger,
             });
         }
 
