@@ -25,16 +25,7 @@ services:
   mongot:
     depends_on:
       - mongod
-    # The public facing docs have the publicly available mongot image but here
-    # we use the image published to the internal registry.
-
-    # Note: To run the tests that depend on this compose file you first need to
-    # login to the internal ECR by following the docs here:
-    # https://github.com/10gen/mongot/blob/master/docs/development/docker.md#authenticate-with-ecr
-    image: 901841024863.dkr.ecr.us-east-1.amazonaws.com/mongot-community/rapid-releases:latest
-    # TODO: Switch to publicly available mongot image once the auto-embed is
-    # also available.
-    # image: mongodb/mongodb-community-search:latest
+    image: mongodb/mongodb-community-search:latest
     secrets:
       - mongot_password
       - voyage_query_key
