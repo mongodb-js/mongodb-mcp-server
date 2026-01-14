@@ -181,7 +181,7 @@ describe("mcpUI feature with custom UIs", () => {
             connectionManager,
             keychain: Keychain.root,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            atlasLocalClient: await defaultCreateAtlasLocalClient(),
+            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });
 
         const telemetry = Telemetry.create(session, userConfig, deviceId);

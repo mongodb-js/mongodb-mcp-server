@@ -37,21 +37,27 @@ export class UpdateManyTool extends MongoDBToolBase {
 
         // Check if update operation uses an index if enabled
         if (this.config.indexCheck) {
-            await checkIndexUsage(provider, database, collection, "updateMany", async () => {
-                return provider.runCommandWithCheck(database, {
-                    explain: {
-                        update: collection,
-                        updates: [
-                            {
-                                q: filter || {},
-                                u: update,
-                                upsert: upsert || false,
-                                multi: true,
-                            },
-                        ],
-                    },
-                    verbosity: "queryPlanner",
-                });
+            await checkIndexUsage({
+                database,
+                collection,
+                operation: "updateMany",
+                explainCallback: async () => {
+                    return provider.runCommandWithCheck(database, {
+                        explain: {
+                            update: collection,
+                            updates: [
+                                {
+                                    q: filter || {},
+                                    u: update,
+                                    upsert: upsert || false,
+                                    multi: true,
+                                },
+                            ],
+                        },
+                        verbosity: "queryPlanner",
+                    });
+                },
+                logger: this.session.logger,
             });
         }
 

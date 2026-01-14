@@ -183,7 +183,7 @@ describe("Server integration test", () => {
                 connectionManager,
                 keychain: Keychain.root,
                 vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
-                atlasLocalClient: await defaultCreateAtlasLocalClient(),
+                atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
             });
 
             const telemetry = Telemetry.create(session, defaultTestConfig, deviceId);
