@@ -149,21 +149,25 @@ export class MongoDBClusterProcess {
     static isConfigurationSupportedInCurrentEnv(config: MongoClusterConfiguration): boolean {
         if (MongoDBClusterProcess.isSearchOption(config) && process.env.GITHUB_ACTIONS === "true") {
             return process.platform === "linux";
-        } else if (MongoDBClusterProcess.isAutoEmbedSearchOption(config)) {
-            return (
-                // TODO: Until auto-embed enabled mongot is exclusively
-                // available on internal ECR, we won't run the relevant tests on
-                // Github because doing that require exhaustive setup with
-                // involving AWS IAM which is of little value because we will
-                // eventually have the auto-embed enabled mongot on publicly
-                // available image as well.
-                // Until then, the tests are to be expected to run locally and
-                // verified by the reviewers.
-                process.env.GITHUB_ACTIONS !== "true" &&
-                !!config.mongotPassword &&
-                !!config.voyageIndexingKey &&
-                !!config.voyageQueryKey
-            );
+        }
+
+        if (MongoDBClusterProcess.isAutoEmbedSearchOption(config)) {
+            const requiredKeys: (keyof MongoAutoEmbedSearchConfiguration)[] = [
+                "mongotPassword",
+                "voyageIndexingKey",
+                "voyageQueryKey",
+            ];
+
+            const missingConfig = requiredKeys.filter((key) => !config[key]);
+
+            if (missingConfig.length > 0) {
+                console.warn(
+                    `Auto-embeddings configuration not correctly configured, missing - ${missingConfig.join(", ")}. Will skip the test.`
+                );
+                return false;
+            }
+
+            return true;
         }
 
         return true;
