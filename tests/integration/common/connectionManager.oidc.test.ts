@@ -109,10 +109,12 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                 function oidcIt(name: string, cb: Parameters<OidcIt>[1]): void {
                     /* eslint-disable vitest/expect-expect */
                     it(name, { timeout: DEFAULT_TIMEOUT, retry: DEFAULT_RETRIES }, async (context) => {
+                        // eslint-disable-next-line vitest/no-disabled-tests
                         context.skip(
                             await isCommunityServer(integration),
                             "OIDC is not supported in MongoDB Community"
                         );
+                        // eslint-disable-next-line vitest/no-disabled-tests
                         context.skip(
                             semver.satisfies(await getServerVersion(integration), "< 7", {
                                 includePrerelease: true,
