@@ -2,7 +2,7 @@ import z from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs } from "../../tool.js";
+import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
@@ -57,13 +57,10 @@ export class ExportTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "read";
 
-    protected async execute({
-        database,
-        collection,
-        jsonExportFormat,
-        exportTitle,
-        exportTarget: target,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection, jsonExportFormat, exportTitle, exportTarget: target }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const exportTarget = target[0];
         if (!exportTarget) {
@@ -79,6 +76,8 @@ export class ExportTool extends MongoDBToolBase {
                 limit,
                 promoteValues: false,
                 bsonRegExp: true,
+                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                signal,
             });
         } else {
             const { pipeline } = exportTarget.arguments;
@@ -86,6 +85,8 @@ export class ExportTool extends MongoDBToolBase {
                 promoteValues: false,
                 bsonRegExp: true,
                 allowDiskUse: true,
+                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                signal,
             });
         }
 

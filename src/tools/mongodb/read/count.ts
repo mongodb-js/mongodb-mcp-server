@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 
@@ -23,28 +23,46 @@ export class CountTool extends MongoDBToolBase {
 
     static operationType: OperationType = "read";
 
-    protected async execute({ database, collection, query }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection, query }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
 
         // Check if count operation uses an index if enabled
         if (this.config.indexCheck) {
-            await checkIndexUsage(provider, database, collection, "count", async () => {
-                return provider.runCommandWithCheck(database, {
-                    explain: {
-                        count: collection,
-                        query,
-                    },
-                    verbosity: "queryPlanner",
-                });
+            await checkIndexUsage({
+                database,
+                collection,
+                operation: "count",
+                explainCallback: async () => {
+                    return provider.runCommandWithCheck(
+                        database,
+                        {
+                            explain: {
+                                count: collection,
+                                query,
+                            },
+                            verbosity: "queryPlanner",
+                        },
+                        {
+                            signal,
+                        }
+                    );
+                },
+                logger: this.session.logger,
             });
         }
 
-        const count = await provider.count(database, collection, query);
+        const count = await provider.countDocuments(database, collection, query, {
+            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+            signal,
+        });
 
         return {
             content: [
                 {
-                    text: `Found ${count} documents in the collection "${collection}"`,
+                    text: `Found ${count} documents in the collection "${collection}"${query ? " that matched the query" : ""}.`,
                     type: "text",
                 },
             ],

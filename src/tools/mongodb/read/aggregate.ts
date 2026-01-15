@@ -19,18 +19,24 @@ import {
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import type { AutoEmbeddingsUsageMetadata, ConnectionMetadata } from "../../../telemetry/types.js";
 
-const pipelineDescriptionWithVectorSearch = `\
+export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
 If the user has asked for a vector search, \`$vectorSearch\` **MUST** be the first stage of the pipeline, or the first stage of a \`$unionWith\` subpipeline.
 If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$text\`.
 ### Usage Rules for \`$vectorSearch\`
+- **Index Type Detection:**
+  Use the collection-indexes tool to determine if the target field has a classic vector index (type: 'vector') or an auto-embed index (type: 'autoEmbed').
+- **Classic Vector Search (type: 'vector'):**
+  Use 'queryVector' with embeddings as an array of numbers, or as a string with 'embeddingParameters' to generate embeddings.
+- **Auto-Embed Vector Search (type: 'autoEmbed'):**
+  Use 'query' - MongoDB automatically generates embeddings at query time. Do NOT use 'queryVector' or 'embeddingParameters' for auto-embed indexes.
 - **Unset embeddings:**
   Unless the user explicitly requests the embeddings, add an \`$unset\` stage **at the end of the pipeline** to remove the embedding field and avoid context limits. **The $unset stage in this situation is mandatory**.
 - **Pre-filtering:**
-If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
-    NEVER include fields in $vectorSearch.filter that are not part of the vector index.
+  If the user requests additional filtering, include filters in \`$vectorSearch.filter\` only for pre-filter fields in the vector index.
+  NEVER include fields in $vectorSearch.filter that are not part of the vector index.
 - **Post-filtering:**
-    For all remaining filters, add a $match stage after $vectorSearch.
+  For all remaining filters, add a $match stage after $vectorSearch.
 - If unsure which fields are filterable, use the collection-indexes tool to determine valid prefilter fields.
 - If no requested filters are valid prefilters, omit the filter key from $vectorSearch.
 
@@ -86,10 +92,25 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 });
                 switch (usesVectorSearchIndex) {
                     case "not-vector-search-query":
-                        await checkIndexUsage(provider, database, collection, "aggregate", async () => {
-                            return provider
-                                .aggregate(database, collection, pipeline, {}, { writeConcern: undefined })
-                                .explain("queryPlanner");
+                        await checkIndexUsage({
+                            database,
+                            collection,
+                            operation: "aggregate",
+                            explainCallback: async () => {
+                                return provider
+                                    .aggregate(
+                                        database,
+                                        collection,
+                                        pipeline,
+                                        {
+                                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                                            signal,
+                                        },
+                                        { writeConcern: undefined }
+                                    )
+                                    .explain("queryPlanner");
+                            },
+                            logger: this.session.logger,
                         });
                         break;
                     case "non-existent-index":
@@ -112,7 +133,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             let documents: unknown[];
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
-                aggregationCursor = provider.aggregate(database, collection, pipeline);
+                aggregationCursor = provider.aggregate(database, collection, pipeline, {
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    signal,
+                });
 
                 documents = await aggregationCursor.toArray();
                 successMessage = "The aggregation pipeline executed successfully.";
@@ -121,10 +145,19 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 if (this.config.maxDocumentsPerQuery > 0) {
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
-                aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
+                aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    signal,
+                });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
-                    this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
+                    this.countAggregationResultDocuments({
+                        provider,
+                        database,
+                        collection,
+                        pipeline,
+                        abortSignal: signal,
+                    }),
                     collectCursorUntilMaxBytesLimit({
                         cursor: aggregationCursor,
                         configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
@@ -215,16 +248,21 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         database,
         collection,
         pipeline,
+        abortSignal,
     }: {
         provider: NodeDriverServiceProvider;
         database: string;
         collection: string;
         pipeline: Document[];
+        abortSignal?: AbortSignal;
     }): Promise<number | undefined> {
         const resultsCountAggregation = [...pipeline, { $count: "totalDocuments" }];
         return await operationWithFallback(async (): Promise<number | undefined> => {
             const aggregationResults = await provider
-                .aggregate(database, collection, resultsCountAggregation)
+                .aggregate(database, collection, resultsCountAggregation, {
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    signal: abortSignal,
+                })
                 .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)
                 .toArray();
 
@@ -254,14 +292,33 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             if ("$vectorSearch" in stage) {
                 const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;
 
+                // If the stage is using 'query' field (auto-embed indexes) then
+                // it is targeting an `autoEmbed` index. In this case, we don't
+                // need to generate embeddings for the query because MongoDB is
+                // configured to handle the embeddings generation automatically.
+                if ("query" in vectorSearchStage) {
+                    continue;
+                }
+
+                // If queryVector is already an array, no embedding generation
+                // needed.
                 if (Array.isArray(vectorSearchStage.queryVector)) {
                     continue;
+                }
+
+                // At this point, queryVector must be a string for which we need
+                // to generate embeddings.
+                if (!vectorSearchStage.queryVector) {
+                    throw new MongoDBError(
+                        ErrorCodes.AtlasVectorSearchInvalidQuery,
+                        "Either 'queryVector' (for classic vector indexes) or 'query' (for auto-embed indexes) must be provided in $vectorSearch. Use the collection-indexes tool to verify which type of index the target field has."
+                    );
                 }
 
                 if (!vectorSearchStage.embeddingParameters) {
                     throw new MongoDBError(
                         ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        "embeddingModel is mandatory if queryVector is a raw string."
+                        "embeddingParameters is mandatory when providing queryVector as a string for classic vector search indexes (type: 'vector'). If the target field has an auto-embed index (type: 'autoEmbed'), use 'query' instead of 'queryVector'. Use the collection-indexes tool to verify the index type."
                     );
                 }
 
@@ -371,10 +428,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         { result }: { result: CallToolResult }
     ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
         const [maybeVectorStage] = args.pipeline;
+        const usesVectorSearch =
+            maybeVectorStage !== null && maybeVectorStage instanceof Object && "$vectorSearch" in maybeVectorStage;
         if (
-            maybeVectorStage !== null &&
-            maybeVectorStage instanceof Object &&
-            "$vectorSearch" in maybeVectorStage &&
+            usesVectorSearch &&
             "embeddingParameters" in maybeVectorStage["$vectorSearch"] &&
             this.config.voyageApiKey
         ) {
@@ -382,9 +439,16 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 ...super.resolveTelemetryMetadata(args, { result }),
                 embeddingsGeneratedBy: "mcp",
             };
-        } else {
-            return super.resolveTelemetryMetadata(args, { result });
         }
+
+        if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
+            return {
+                ...super.resolveTelemetryMetadata(args, { result }),
+                embeddingsGeneratedBy: "mongot",
+            };
+        }
+
+        return super.resolveTelemetryMetadata(args, { result });
     }
 
     private isSearchStage(stage: Record<string, unknown>): boolean {
@@ -393,66 +457,5 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
     private isWriteStage(stage: Record<string, unknown>): boolean {
         return "$out" in stage || "$merge" in stage;
-    }
-
-    private async runWriteAggregation(
-        provider: NodeDriverServiceProvider,
-        database: string,
-        collection: string,
-        pipeline: Document[]
-    ): Promise<{ message: string; documents: unknown[] }> {
-        // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
-        const aggregationCursor = provider.aggregate(database, collection, pipeline);
-
-        return {
-            message: "The aggregation pipeline executed successfully.",
-            documents: await aggregationCursor.toArray(),
-        };
-    }
-
-    private async runReadAggregation(
-        provider: NodeDriverServiceProvider,
-        database: string,
-        collection: string,
-        pipeline: Document[],
-        responseBytesLimit: number,
-        signal: AbortSignal
-    ): Promise<{ message: string; documents: unknown[] }> {
-        const cappedResultsPipeline = [...pipeline];
-        if (this.config.maxDocumentsPerQuery > 0) {
-            cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
-        }
-        const aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline);
-
-        const [totalDocuments, cursorResults] = await Promise.all([
-            this.countAggregationResultDocuments({ provider, database, collection, pipeline }),
-            collectCursorUntilMaxBytesLimit({
-                cursor: aggregationCursor,
-                configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
-                toolResponseBytesLimit: responseBytesLimit,
-                abortSignal: signal,
-            }),
-        ]);
-
-        // If the total number of documents that the aggregation would've
-        // resulted in would be greater than the configured
-        // maxDocumentsPerQuery then we know for sure that the results were
-        // capped.
-        const aggregationResultsCappedByMaxDocumentsLimit =
-            this.config.maxDocumentsPerQuery > 0 &&
-            !!totalDocuments &&
-            totalDocuments > this.config.maxDocumentsPerQuery;
-
-        return {
-            message: this.generateMessage({
-                aggResultsCount: totalDocuments,
-                documents: cursorResults.documents,
-                appliedLimits: [
-                    aggregationResultsCappedByMaxDocumentsLimit ? "config.maxDocumentsPerQuery" : undefined,
-                    cursorResults.cappedBy,
-                ].filter((limit): limit is keyof typeof CURSOR_LIMITS_TO_LLM_TEXT => !!limit),
-            }),
-            documents: cursorResults.documents,
-        };
     }
 }

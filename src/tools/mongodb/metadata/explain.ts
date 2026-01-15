@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 import type { Document } from "mongodb";
@@ -50,12 +50,10 @@ export class ExplainTool extends MongoDBToolBase {
 
     static operationType: OperationType = "metadata";
 
-    protected async execute({
-        database,
-        collection,
-        method: methods,
-        verbosity,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const method = methods[0];
 
@@ -72,7 +70,10 @@ export class ExplainTool extends MongoDBToolBase {
                         database,
                         collection,
                         pipeline,
-                        {},
+                        {
+                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                            signal,
+                        },
                         {
                             writeConcern: undefined,
                         }
@@ -82,18 +83,30 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
-                result = await provider.find(database, collection, filter as Document, { ...rest }).explain(verbosity);
+                result = await provider
+                    .find(database, collection, filter as Document, {
+                        ...rest,
+                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                        signal,
+                    })
+                    .explain(verbosity);
                 break;
             }
             case "count": {
                 const { query } = method.arguments;
-                result = await provider.runCommandWithCheck(database, {
-                    explain: {
-                        count: collection,
-                        query,
+                result = await provider.runCommandWithCheck(
+                    database,
+                    {
+                        explain: {
+                            count: collection,
+                            query,
+                        },
+                        verbosity,
                     },
-                    verbosity,
-                });
+                    {
+                        signal,
+                    }
+                );
                 break;
             }
         }

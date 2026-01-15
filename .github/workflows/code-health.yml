@@ -41,6 +41,8 @@ jobs:
         env:
           SKIP_ATLAS_TESTS: "true"
           SKIP_ATLAS_LOCAL_TESTS: "true"
+          MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
+          MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
       - name: Upload test results
         if: always() && matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v6

@@ -94,6 +94,7 @@ export default defineConfig([
                     ],
                 },
             ],
+            "no-console": ["error"],
         },
     },
     {

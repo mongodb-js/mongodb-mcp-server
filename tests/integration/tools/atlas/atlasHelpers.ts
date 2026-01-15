@@ -61,12 +61,12 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             const apiClient = session.apiClient;
 
             // check that it has credentials
-            if (!apiClient.hasCredentials()) {
+            if (!apiClient.isAuthConfigured()) {
                 throw new Error("No credentials available");
             }
 
             // validate access token
-            await apiClient.validateAccessToken();
+            await apiClient.validateAuthConfig();
             try {
                 const group = await createGroup(apiClient);
                 const ipInfo = await apiClient.getIpInfo();

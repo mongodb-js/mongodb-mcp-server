@@ -106,16 +106,16 @@ export function setupIntegrationTest(
             connectionManager,
             keychain: new Keychain(),
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            atlasLocalClient: await defaultCreateAtlasLocalClient(),
+            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });
 
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
-            const mockFn = vi.fn().mockResolvedValue(true);
+            const mockFn = vi.fn().mockResolvedValue(undefined);
             const mockCloseFn = vi.fn().mockResolvedValue(undefined);
             Object.defineProperty(session, "apiClient", {
                 value: {
-                    validateAccessToken: mockFn,
+                    validateAuthConfig: mockFn,
                     close: mockCloseFn,
                 } as unknown as ApiClient,
             });

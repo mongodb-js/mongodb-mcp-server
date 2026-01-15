@@ -45,3 +45,5 @@ export type { Secret } from "./common/keychain.js";
 export { Elicitation } from "./elicitation.js";
 export { applyConfigOverrides } from "./common/config/configOverrides.js";
 export { SessionStore, type CloseableTransport } from "./common/sessionStore.js";
+export { ApiClient, type ApiClientOptions } from "./common/atlas/apiClient.js";
+export type { AuthProvider } from "./common/atlas/auth/authProvider.js";

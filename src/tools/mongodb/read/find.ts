@@ -54,10 +54,22 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
 
             // Check if find operation uses an index if enabled
             if (this.config.indexCheck) {
-                await checkIndexUsage(provider, database, collection, "find", async () => {
-                    return provider
-                        .find(database, collection, filter, { projection, limit, sort })
-                        .explain("queryPlanner");
+                await checkIndexUsage({
+                    database,
+                    collection,
+                    operation: "find",
+                    explainCallback: async () => {
+                        return provider
+                            .find(database, collection, filter, {
+                                projection,
+                                limit,
+                                sort,
+                                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                                signal,
+                            })
+                            .explain("queryPlanner");
+                    },
+                    logger: this.session.logger,
                 });
             }
 
@@ -67,6 +79,8 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 projection,
                 limit: limitOnFindCursor.limit,
                 sort,
+                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                signal,
             });
 
             const [queryResultsCount, cursorResults] = await Promise.all([
@@ -79,6 +93,8 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             // the limit provided to the tool.
                             limit,
                             maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
+                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                            signal,
                         }),
                     undefined
                 ),

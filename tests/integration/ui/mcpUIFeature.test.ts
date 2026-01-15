@@ -174,7 +174,6 @@
 //         const deviceId = DeviceId.create(logger);
 //         const connectionManager = new MCPConnectionManager(userConfig, logger, deviceId);
 //         const exportsManager = ExportsManager.init(userConfig, logger);
-
 //         const session = new Session({
 //             userConfig,
 //             logger,
@@ -184,11 +183,9 @@
 //             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
 //             atlasLocalClient: await defaultCreateAtlasLocalClient(),
 //         });
-
 //         const telemetry = Telemetry.create(session, userConfig, deviceId);
 //         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
 //         const elicitation = new Elicitation({ server: mcpServerInstance.server });
-
 //         const server = new Server({
 //             session,
 //             userConfig,
