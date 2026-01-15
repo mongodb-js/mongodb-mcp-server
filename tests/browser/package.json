@@ -1,0 +1,28 @@
+{
+  "name": "browser",
+  "version": "0.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --coverage",
+    "test:watch": "vitest watch",
+    "install:browser": "pnpm exec playwright install chromium"
+  },
+  "devDependencies": {
+    "mongodb-mcp-server": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.24.2",
+    "@types/node": "^24.10.1",
+    "@vitest/browser": "^3.2.4",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
+    "evp_bytestokey": "^1.0.3",
+    "path-browserify": "^1.0.1",
+    "os-browserify": "^0.3.0",
+    "playwright": "^1.49.1",
+    "readable-stream": "^4.7.0",
+    "typescript": "^5.9.2",
+    "util": "^0.12.5",
+    "vite": "^7.2.4",
+    "vitest": "^3.2.4"
+  }
+}

@@ -103,6 +103,15 @@ export default defineConfig([
             "@typescript-eslint/no-non-null-assertion": "off",
         },
     },
+    {
+        files: ["tests/browser/**/*.ts"],
+        languageOptions: {
+            parserOptions: {
+                project: "./tests/browser/tsconfig.json",
+                tsconfigRootDir: import.meta.dirname,
+            },
+        },
+    },
     globalIgnores([
         "node_modules",
         "dist",
