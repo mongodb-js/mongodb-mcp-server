@@ -1,14 +1,5 @@
-// Converts kebab-case to PascalCase: "list-databases" -> "ListDatabases"
-function toPascalCase(kebabCase: string): string {
-    return kebabCase
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join("");
-}
-
-// Lazy-loaded UI modules discovered at build time via import.meta.glob
-// This works in both Vitest (resolves .ts) and production builds (resolves compiled .js)
-const uiModules = import.meta.glob<Record<string, string>>("../lib/tools/*.ts");
+// Import the auto-generated UI loaders (created by vite build --config vite.ui.config.ts)
+import { uiLoaders } from "../lib/loaders.js";
 
 /**
  * UI Registry that manages bundled UI HTML strings for tools.
@@ -37,16 +28,13 @@ export class UIRegistry {
             return cached;
         }
 
-        const modulePath = `../lib/tools/${toolName}.ts`;
-        const loader = uiModules[modulePath];
+        const loader = uiLoaders[toolName];
         if (!loader) {
             return null;
         }
 
         try {
-            const module = await loader();
-            const exportName = `${toPascalCase(toolName)}Html`;
-            const html = module[exportName]; // HTML generated at build time
+            const html = await loader();
             if (html === undefined) {
                 return null;
             }
