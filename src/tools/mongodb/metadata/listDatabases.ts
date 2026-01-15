@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import type * as bson from "bson";
-import type { OperationType } from "../../tool.js";
+import type { OperationType, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
@@ -42,6 +42,17 @@ export class ListDatabasesTool extends MongoDBToolBase {
             structuredContent: {
                 databases,
                 totalCount: databases.length,
+            },
+        };
+    }
+
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        const handledErrorContent = await super.handleError(error, args);
+        return {
+            ...handledErrorContent,
+            structuredContent: {
+                databases: [],
+                totalCount: 0,
             },
         };
     }
