@@ -1,10 +1,10 @@
-// Converts kebab-case to PascalCase: "list-databases" -> "ListDatabases"
-function toPascalCase(kebabCase: string): string {
-    return kebabCase
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join("");
-}
+// // Converts kebab-case to PascalCase: "list-databases" -> "ListDatabases"
+// function toPascalCase(kebabCase: string): string {
+//     return kebabCase
+//         .split("-")
+//         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+//         .join("");
+// }
 
 /**
  * UI Registry that manages bundled UI HTML strings for tools.

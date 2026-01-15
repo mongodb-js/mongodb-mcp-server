@@ -124,6 +124,7 @@ export default defineConfig([
         "vite.ui.config.ts",
         "src/types/*.d.ts",
         "tests/integration/fixtures/",
+        "tests/browser/polyfills/**",
         "eslint-rules",
         ".yalc",
     ]),
