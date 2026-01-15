@@ -34,22 +34,6 @@ export class UIRegistry {
         }
 
         // TODO: Remove this once we have a proper build step for UI tools.
-        // Currently this is causing issues because of its usage of dynamic imports.
-        if (toolName !== "list-databases") {
-            return null;
-        }
-
-        try {
-            const module = (await import(`../lib/tools/list-databases.js`)) as Record<string, string>;
-            const exportName = `${toPascalCase(toolName)}Html`;
-            const html = module[exportName]; // HTML generated at build time
-            if (html === undefined) {
-                return null;
-            }
-            this.cache.set(toolName, html);
-            return html;
-        } catch {
-            return null;
-        }
+        return null;
     }
 }
