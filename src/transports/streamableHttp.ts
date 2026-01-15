@@ -49,7 +49,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
                 if (!header || header !== value) {
-                    res.status(403).send({ error: `Invalid value for header "${key}"` });
+                    res.status(403).json({ error: `Invalid value for header "${key}"` });
                     return;
                 }
             }
@@ -57,39 +57,52 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             next();
         });
 
+        const reportSessionError = (res: express.Response, errorCode: number): void => {
+            let message: string;
+            let statusCode = 400;
+
+            switch (errorCode) {
+                case JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED:
+                    message = "session id is required";
+                    break;
+                case JSON_RPC_ERROR_CODE_SESSION_ID_INVALID:
+                    message = "session id is invalid";
+                    break;
+                case JSON_RPC_ERROR_CODE_INVALID_REQUEST:
+                    message = "invalid request";
+                    break;
+                case JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND:
+                    message = "session not found";
+                    statusCode = 404;
+                    break;
+                default:
+                    message = "unknown error";
+                    statusCode = 500;
+            }
+            res.status(statusCode).json({
+                jsonrpc: "2.0",
+                error: {
+                    code: errorCode,
+                    message,
+                },
+            });
+        };
+
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
             if (!sessionId) {
-                res.status(400).json({
-                    jsonrpc: "2.0",
-                    error: {
-                        code: JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
-                        message: `session id is required`,
-                    },
-                });
-                return;
+                return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
             }
+
             if (typeof sessionId !== "string") {
-                res.status(400).json({
-                    jsonrpc: "2.0",
-                    error: {
-                        code: JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
-                        message: "session id is invalid",
-                    },
-                });
-                return;
+                return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
+
             const transport = this.sessionStore.getSession(sessionId);
             if (!transport) {
-                res.status(404).json({
-                    jsonrpc: "2.0",
-                    error: {
-                        code: JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
-                        message: "session not found",
-                    },
-                });
-                return;
+                return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
             }
+
             await transport.handleRequest(req, res, req.body);
         };
 
@@ -97,99 +110,97 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             "/mcp",
             this.withErrorHandling(async (req: express.Request, res: express.Response) => {
                 const sessionId = req.headers["mcp-session-id"];
+                if (sessionId && typeof sessionId !== "string") {
+                    return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
+                }
+
+                if (isInitializeRequest(req.body)) {
+                    const request: RequestContext = {
+                        headers: req.headers as Record<string, string | string[] | undefined>,
+                        query: req.query as Record<string, string | string[] | undefined>,
+                    };
+                    const server = await this.setupServer(request);
+                    let keepAliveLoop: NodeJS.Timeout;
+
+                    const transport = new StreamableHTTPServerTransport({
+                        sessionIdGenerator: (): string => sessionId ?? getRandomUUID(),
+                        onsessioninitialized: (sessionId): void => {
+                            server.session.logger.setAttribute("sessionId", sessionId);
+
+                            this.sessionStore.setSession(sessionId, transport, server.session.logger);
+
+                            let failedPings = 0;
+                            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                            keepAliveLoop = setInterval(async () => {
+                                try {
+                                    server.session.logger.debug({
+                                        id: LogId.streamableHttpTransportKeepAlive,
+                                        context: "streamableHttpTransport",
+                                        message: "Sending ping",
+                                    });
+
+                                    await transport.send({
+                                        jsonrpc: "2.0",
+                                        method: "ping",
+                                    });
+                                    failedPings = 0;
+                                } catch (err) {
+                                    try {
+                                        failedPings++;
+                                        server.session.logger.warning({
+                                            id: LogId.streamableHttpTransportKeepAliveFailure,
+                                            context: "streamableHttpTransport",
+                                            message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                                        });
+
+                                        if (failedPings > 3) {
+                                            clearInterval(keepAliveLoop);
+                                            await transport.close();
+                                        }
+                                    } catch {
+                                        // Ignore the error of the transport close as there's nothing else
+                                        // we can do at this point.
+                                    }
+                                }
+                            }, 30_000);
+                        },
+                        onsessionclosed: async (sessionId): Promise<void> => {
+                            try {
+                                await this.sessionStore.closeSession(sessionId, false);
+                            } catch (error) {
+                                this.logger.error({
+                                    id: LogId.streamableHttpTransportSessionCloseFailure,
+                                    context: "streamableHttpTransport",
+                                    message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                                });
+                            }
+                        },
+                    });
+
+                    transport.onclose = (): void => {
+                        clearInterval(keepAliveLoop);
+
+                        server.close().catch((error) => {
+                            this.logger.error({
+                                id: LogId.streamableHttpTransportCloseFailure,
+                                context: "streamableHttpTransport",
+                                message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
+                            });
+                        });
+                    };
+
+                    await server.connect(transport);
+
+                    await transport.handleRequest(req, res, req.body);
+                    return;
+                }
+
                 if (sessionId) {
                     await handleSessionRequest(req, res);
                     return;
                 }
 
-                if (!isInitializeRequest(req.body)) {
-                    res.status(400).json({
-                        jsonrpc: "2.0",
-                        error: {
-                            code: JSON_RPC_ERROR_CODE_INVALID_REQUEST,
-                            message: `invalid request`,
-                        },
-                    });
-                    return;
-                }
-
-                const request: RequestContext = {
-                    headers: req.headers as Record<string, string | string[] | undefined>,
-                    query: req.query as Record<string, string | string[] | undefined>,
-                };
-                const server = await this.setupServer(request);
-                let keepAliveLoop: NodeJS.Timeout;
-
-                const transport = new StreamableHTTPServerTransport({
-                    sessionIdGenerator: (): string => getRandomUUID(),
-                    onsessioninitialized: (sessionId): void => {
-                        server.session.logger.setAttribute("sessionId", sessionId);
-
-                        this.sessionStore.setSession(sessionId, transport, server.session.logger);
-
-                        let failedPings = 0;
-                        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                        keepAliveLoop = setInterval(async () => {
-                            try {
-                                server.session.logger.debug({
-                                    id: LogId.streamableHttpTransportKeepAlive,
-                                    context: "streamableHttpTransport",
-                                    message: "Sending ping",
-                                });
-
-                                await transport.send({
-                                    jsonrpc: "2.0",
-                                    method: "ping",
-                                });
-                                failedPings = 0;
-                            } catch (err) {
-                                try {
-                                    failedPings++;
-                                    server.session.logger.warning({
-                                        id: LogId.streamableHttpTransportKeepAliveFailure,
-                                        context: "streamableHttpTransport",
-                                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
-                                    });
-
-                                    if (failedPings > 3) {
-                                        clearInterval(keepAliveLoop);
-                                        await transport.close();
-                                    }
-                                } catch {
-                                    // Ignore the error of the transport close as there's nothing else
-                                    // we can do at this point.
-                                }
-                            }
-                        }, 30_000);
-                    },
-                    onsessionclosed: async (sessionId): Promise<void> => {
-                        try {
-                            await this.sessionStore.closeSession(sessionId, false);
-                        } catch (error) {
-                            this.logger.error({
-                                id: LogId.streamableHttpTransportSessionCloseFailure,
-                                context: "streamableHttpTransport",
-                                message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-                            });
-                        }
-                    },
-                });
-
-                transport.onclose = (): void => {
-                    clearInterval(keepAliveLoop);
-
-                    server.close().catch((error) => {
-                        this.logger.error({
-                            id: LogId.streamableHttpTransportCloseFailure,
-                            context: "streamableHttpTransport",
-                            message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
-                        });
-                    });
-                };
-
-                await server.connect(transport);
-
-                await transport.handleRequest(req, res, req.body);
+                return reportSessionError(res, JSON_RPC_ERROR_CODE_INVALID_REQUEST);
             })
         );
 
