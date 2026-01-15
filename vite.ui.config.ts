@@ -42,22 +42,6 @@ function discoverComponents(): { components: string[]; toolToComponentMap: Recor
 const { components, toolToComponentMap } = discoverComponents();
 
 /**
- * Vite plugin that cleans the generated UI lib directory before building.
- * This prevents stale files from previous builds causing issues.
- */
-function cleanGeneratedDir(): Plugin {
-    return {
-        name: "clean-generated-dir",
-        buildStart() {
-            if (existsSync(generatedDir)) {
-                rmSync(generatedDir, { recursive: true });
-                console.log(`[clean-generated-dir] Cleaned ${generatedDir}`);
-            }
-        },
-    };
-}
-
-/**
  * Vite plugin that generates HTML entry files for each discovered component
  * based on the template.html file.
  */
@@ -99,6 +83,7 @@ function generateUIModule(): Plugin {
 
             const toolsDir = join(generatedDir, "tools");
             mkdirSync(toolsDir, { recursive: true });
+            const existingToolFiles = readdirSync(toolsDir).filter((file) => file.endsWith(".ts"));
 
             const generatedTools: string[] = [];
 
@@ -153,6 +138,16 @@ ${loaderEntries}
             );
             console.log(`[generate-ui-module] Generated loaders.ts with ${generatedTools.length} loader(s)`);
 
+            // Remove stale tool modules from previous builds (e.g., when a UI component was deleted)
+            const staleTools = existingToolFiles.filter((file) => {
+                const toolName = file.replace(/\.ts$/, "");
+                return !generatedTools.includes(toolName);
+            });
+            for (const staleTool of staleTools) {
+                rmSync(join(toolsDir, staleTool));
+                console.log(`[generate-ui-module] Removed stale tool module: ${staleTool}`);
+            }
+
             // Clean up intermediate dist/ui directory - the HTML is now embedded in the .ts modules
             if (existsSync(uiDistPath)) {
                 rmSync(uiDistPath, { recursive: true });
@@ -165,7 +160,6 @@ ${loaderEntries}
 export default defineConfig({
     root: entriesDir,
     plugins: [
-        cleanGeneratedDir(),
         generateHtmlEntries(),
         nodePolyfills({
             include: ["buffer", "stream"],
