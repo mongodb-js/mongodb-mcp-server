@@ -1,8 +1,6 @@
-// Type for the auto-generated UI loaders
+// The type assertion is needed because the file is auto-generated and may not exist during type checking
 type UILoaders = Record<string, (() => Promise<string>) | undefined>;
 
-// Import the auto-generated UI loaders (created by vite build --config vite.ui.config.ts)
-// The type assertion is needed because the file is auto-generated and may not exist during type checking
 import { uiLoaders as _uiLoaders } from "../lib/loaders.js";
 const uiLoaders = _uiLoaders as UILoaders;
 
