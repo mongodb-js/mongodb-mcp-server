@@ -250,10 +250,6 @@ importers:
         version: 2.2.2
 
   tests/browser:
-    dependencies:
-      mongodb-mcp-server:
-        specifier: workspace:*
-        version: link:../..
     devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.24.2
@@ -273,6 +269,9 @@ importers:
       evp_bytestokey:
         specifier: ^1.0.3
         version: 1.0.3
+      mongodb-mcp-server:
+        specifier: workspace:*
+        version: link:../..
       os-browserify:
         specifier: ^0.3.0
         version: 0.3.0
