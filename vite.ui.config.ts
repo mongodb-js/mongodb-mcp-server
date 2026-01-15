@@ -42,6 +42,22 @@ function discoverComponents(): { components: string[]; toolToComponentMap: Recor
 const { components, toolToComponentMap } = discoverComponents();
 
 /**
+ * Vite plugin that cleans the generated UI lib directory before building.
+ * This prevents stale files from previous builds causing issues.
+ */
+function cleanGeneratedDir(): Plugin {
+    return {
+        name: "clean-generated-dir",
+        buildStart() {
+            if (existsSync(generatedDir)) {
+                rmSync(generatedDir, { recursive: true });
+                console.log(`[clean-generated-dir] Cleaned ${generatedDir}`);
+            }
+        },
+    };
+}
+
+/**
  * Vite plugin that generates HTML entry files for each discovered component
  * based on the template.html file.
  */
@@ -82,12 +98,7 @@ function generateUIModule(): Plugin {
             }
 
             const toolsDir = join(generatedDir, "tools");
-            if (!existsSync(generatedDir)) {
-                mkdirSync(generatedDir, { recursive: true });
-            }
-            if (!existsSync(toolsDir)) {
-                mkdirSync(toolsDir, { recursive: true });
-            }
+            mkdirSync(toolsDir, { recursive: true });
 
             const generatedTools: string[] = [];
 
@@ -154,6 +165,7 @@ ${loaderEntries}
 export default defineConfig({
     root: entriesDir,
     plugins: [
+        cleanGeneratedDir(),
         generateHtmlEntries(),
         nodePolyfills({
             include: ["buffer", "stream"],
