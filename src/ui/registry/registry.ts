@@ -6,6 +6,10 @@ function toPascalCase(kebabCase: string): string {
         .join("");
 }
 
+// Lazy-loaded UI modules discovered at build time via import.meta.glob
+// This works in both Vitest (resolves .ts) and production builds (resolves compiled .js)
+const uiModules = import.meta.glob<Record<string, string>>("../lib/tools/*.ts");
+
 /**
  * UI Registry that manages bundled UI HTML strings for tools.
  */
@@ -33,8 +37,14 @@ export class UIRegistry {
             return cached;
         }
 
+        const modulePath = `../lib/tools/${toolName}.ts`;
+        const loader = uiModules[modulePath];
+        if (!loader) {
+            return null;
+        }
+
         try {
-            const module = (await import(`../lib/tools/${toolName}.js`)) as Record<string, string>;
+            const module = await loader();
             const exportName = `${toPascalCase(toolName)}Html`;
             const html = module[exportName]; // HTML generated at build time
             if (html === undefined) {
