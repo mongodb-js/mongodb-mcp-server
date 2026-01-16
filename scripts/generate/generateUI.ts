@@ -21,3 +21,8 @@ export function generateUI(): void {
     });
     console.log("✓ UI modules generated");
 }
+
+// Run directly when executed as a script
+if (import.meta.url === `file://${process.argv[1]}`) {
+    generateUI();
+}
