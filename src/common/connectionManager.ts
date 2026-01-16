@@ -350,7 +350,10 @@ export class MCPConnectionManager extends ConnectionManager {
             this.changeState("connection-request", {
                 ...this.currentConnectionState,
                 tag: "connecting",
-                connectionStringAuthType: "oidc-device-flow",
+                connectionStringInfo: {
+                    ...this.currentConnectionState.connectionStringInfo,
+                    authType: "oidc-device-flow",
+                },
                 oidcLoginUrl: flowInfo.verificationUrl,
                 oidcUserCode: flowInfo.userCode,
             });

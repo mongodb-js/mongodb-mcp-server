@@ -342,7 +342,7 @@ describe("MongoDBTool implementations", () => {
             expect(metadata).not.toHaveProperty("connection_auth_type");
         });
 
-        it("should return metadata with connection_auth_type when connected via connection string", async () => {
+        it("should return metadata with connection_auth_type and host_type when connected via connection string", async () => {
             await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
             // Connect to MongoDB to set the connection state
             await mcpClient?.callTool({
@@ -357,11 +357,13 @@ describe("MongoDBTool implementations", () => {
             const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
             const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
 
-            // When connected via connection string, connection_auth_type should be set
-            // The actual value depends on the connection string, but it should be present
+            // When connected via connection string, connection_auth_type and host_type should be set
+            // The actual value depends on the connection string, but they should be present
             expect(metadata).toHaveProperty("connection_auth_type");
             expect(typeof metadata.connection_auth_type).toBe("string");
             expect(metadata.connection_auth_type).toBe("scram");
+            expect(metadata).toHaveProperty("host_type");
+            expect(typeof metadata.host_type).toBe("string");
         });
     });
 });
