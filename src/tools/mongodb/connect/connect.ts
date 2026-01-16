@@ -53,6 +53,9 @@ export class ConnectTool extends MongoDBToolBase {
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
     ): ConnectionMetadata {
-        return { ...super.resolveTelemetryMetadata(args, { result }), connection_host_type: getHostType(args.connectionString) };
+        return {
+            ...super.resolveTelemetryMetadata(args, { result }),
+            connection_host_type: getHostType(args.connectionString),
+        };
     }
 }
