@@ -11,7 +11,6 @@ import type {
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-    ConnectionStringAuthType,
     ConnectionStringInfo,
 } from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";

@@ -363,7 +363,7 @@ describe("MongoDBTool implementations", () => {
             expect(typeof metadata.connection_auth_type).toBe("string");
             expect(metadata.connection_auth_type).toBe("scram");
             expect(metadata).toHaveProperty("host_type");
-            expect(typeof metadata.host_type).toBe("string");
+            expect(typeof metadata.connection_host_type).toBe("string");
         });
     });
 });

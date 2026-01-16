@@ -179,7 +179,7 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         let serviceProvider: Promise<NodeDriverServiceProvider>;
-        let connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
+        const connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
 
         try {
             settings = { ...settings };

@@ -770,16 +770,12 @@ export abstract class ToolBase {
 
         if (this.session.connectionStringInfo !== undefined) {
             metadata.connection_auth_type = this.session.connectionStringInfo.authType;
-            metadata.host_type = this.session.connectionStringInfo.hostType;
+            metadata.connection_host_type = this.session.connectionStringInfo.hostType;
         }
 
         if (this.session.connectedAtlasCluster !== undefined) {
             if (this.session.connectedAtlasCluster.projectId !== undefined) {
                 metadata.project_id = this.session.connectedAtlasCluster.projectId;
-            }
-
-            if (this.session.connectedAtlasCluster.clusterName !== undefined) {
-                metadata.cluster_name = this.session.connectedAtlasCluster.clusterName;
             }
         }
 

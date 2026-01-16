@@ -4,7 +4,7 @@ import { MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.js";
 import type { Server } from "../../../server.js";
 import { getHostType } from "../../../common/connectionInfo.js";
-import { ConnectionMetadata } from "../../../telemetry/types.js";
+import type { ConnectionMetadata } from "../../../telemetry/types.js";
 export class ConnectTool extends MongoDBToolBase {
     public override name = "connect";
     public override description =
@@ -53,6 +53,6 @@ export class ConnectTool extends MongoDBToolBase {
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
     ): ConnectionMetadata {
-        return { ...super.resolveTelemetryMetadata(args, { result }), host_type: getHostType(args.connectionString) };
+        return { ...super.resolveTelemetryMetadata(args, { result }), connection_host_type: getHostType(args.connectionString) };
     }
 }

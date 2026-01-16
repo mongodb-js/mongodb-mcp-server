@@ -40,6 +40,6 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         args: ToolArgs<typeof this.argsShape>,
         { result }: { result: CallToolResult }
     ): ConnectionMetadata {
-        return { ...super.resolveTelemetryMetadata(args, { result }), ...this.getConnectionInfoMetadata(), host_type: "atlas_local" };
+        return { ...super.resolveTelemetryMetadata(args, { result }), ...this.getConnectionInfoMetadata() };
     }
 }

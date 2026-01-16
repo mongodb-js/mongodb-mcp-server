@@ -45,8 +45,7 @@ describe("connectionInfo", () => {
         });
 
         it("should handle connection strings with special characters in password", () => {
-            const connectionStringWithSpecialChars =
-                "mongodb+srv://user:p%40ssw%3Drd@cluster.mongodb.net/database";
+            const connectionStringWithSpecialChars = "mongodb+srv://user:p%40ssw%3Drd@cluster.mongodb.net/database";
 
             const result = getHostType(connectionStringWithSpecialChars);
 
@@ -70,8 +69,7 @@ describe("connectionInfo", () => {
         });
 
         it("should handle private endpoint Atlas connection strings", () => {
-            const privateEndpointConnectionString =
-                "mongodb+srv://user:password@cluster.abc123.mongodb.net/database";
+            const privateEndpointConnectionString = "mongodb+srv://user:password@cluster.abc123.mongodb.net/database";
 
             const result = getHostType(privateEndpointConnectionString);
 

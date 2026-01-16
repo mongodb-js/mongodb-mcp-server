@@ -161,13 +161,14 @@ type AtlasLocalToolMetadata = {
 export type ConnectionMetadata = AtlasMetadata &
     AtlasLocalToolMetadata & {
         connection_auth_type?: string;
-        host_type?: "atlas" | "local" | "cloud" | "atlas_local" | "unknown";
+        connection_host_type?: "atlas" | "local" | "cloud" | "atlas_local" | "unknown";
         cluster_name?: string;
     };
 
-export type PerfAdvisorToolMetadata = AtlasMetadata & ConnectionMetadata & {
-    operations: string[];
-};
+export type PerfAdvisorToolMetadata = AtlasMetadata &
+    ConnectionMetadata & {
+        operations: string[];
+    };
 
 export type AutoEmbeddingsUsageMetadata = ConnectionMetadata & {
     /**
