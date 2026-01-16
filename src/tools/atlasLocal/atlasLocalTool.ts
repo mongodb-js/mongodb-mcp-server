@@ -133,6 +133,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
         const resultDeploymentId = result._meta?.[AtlasLocalToolMetadataDeploymentIdKey];
         if (resultDeploymentId !== undefined && typeof resultDeploymentId === "string") {
             toolMetadata.atlas_local_deployment_id = resultDeploymentId;
+            toolMetadata.connection_host_type = "atlas_local";
         }
 
         return toolMetadata;

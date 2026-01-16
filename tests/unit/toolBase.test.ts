@@ -259,7 +259,7 @@ describe("ToolBase", () => {
             for (const authType of authTypes) {
                 (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = authType;
                 const metadata = testTool["getConnectionInfoMetadata"]();
-                expect(metadata.connection_auth_type).toBe(authType);
+                expect(metadata.connection_host_type).toBe(authType);
             }
         });
     });

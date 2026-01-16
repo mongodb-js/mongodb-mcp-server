@@ -42,6 +42,9 @@ importers:
       lru-cache:
         specifier: ^11.1.0
         version: 11.2.4
+      mongodb-build-info:
+        specifier: ^1.9.0
+        version: 1.9.0
       mongodb-connection-string-url:
         specifier: ^3.0.1 || ^7.0.0
         version: 7.0.0

@@ -72,7 +72,10 @@ describe("debug resource", () => {
     it("should show the inferred authentication type", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
-            connectionStringAuthType: "scram",
+            connectionStringInfo: {
+                authType: "scram",
+                hostType: "local",
+            },
             errorReason: "Error message from the server",
         });
 
@@ -86,7 +89,10 @@ describe("debug resource", () => {
     it("should show the atlas cluster information when provided", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
-            connectionStringAuthType: "scram",
+            connectionStringInfo: {
+                authType: "scram",
+                hostType: "atlas",
+            },
             errorReason: "Error message from the server",
             connectedAtlasCluster: {
                 clusterName: "My Test Cluster",
