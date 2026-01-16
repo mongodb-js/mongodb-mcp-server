@@ -1,4 +1,5 @@
 import { coverageConfigDefaults, defineConfig } from "vitest/config";
+import { resolve } from "path";
 
 // Shared exclusions for all projects
 // Ref: https://vitest.dev/config/#exclude
@@ -21,6 +22,13 @@ if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
 }
 
 export default defineConfig({
+    resolve: {
+        alias: {
+            // Map .js imports to .ts files in src/ui/lib for testing
+            // This allows dynamic imports with .js extension to work in tests where only .ts files exist
+            "./tools/list-databases.js": resolve(__dirname, "src/ui/lib/tools/list-databases.ts"),
+        },
+    },
     test: {
         environment: "node",
         testTimeout: 3600000,
@@ -28,8 +36,6 @@ export default defineConfig({
         setupFiles: ["./tests/setup.ts"],
         coverage: {
             exclude: [
-                // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
-                // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101
                 ...coverageConfigDefaults.exclude,
                 "node_modules",
                 "tests",
