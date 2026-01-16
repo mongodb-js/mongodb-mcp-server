@@ -9,6 +9,7 @@ import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
+import { getHostType } from "./connectionInfo.js";
 
 export interface AtlasClusterConnectionInfo {
     username: string;
@@ -25,11 +26,19 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
 type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
+export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
 
 export interface ConnectionState {
     tag: ConnectionTag;
-    connectionStringAuthType?: ConnectionStringAuthType;
+    connectionStringInfo?: ConnectionStringInfo;
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
+}
+
+// ConnectionStringInfo is a simple object that contains metadata about the connection string
+// without keeping the full connection string.
+export interface ConnectionStringInfo {
+    authType: ConnectionStringAuthType;
+    hostType: ConnectionStringHostType;
 }
 
 const MCP_TEST_DATABASE = "#mongodb-mcp";
@@ -52,7 +61,7 @@ export class ConnectionStateConnected implements ConnectionState {
 
     constructor(
         public serviceProvider: NodeDriverServiceProvider,
-        public connectionStringAuthType?: ConnectionStringAuthType,
+        public connectionStringInfo?: ConnectionStringInfo,
         public connectedAtlasCluster?: AtlasClusterConnectionInfo
     ) {}
 
@@ -170,7 +179,7 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         let serviceProvider: Promise<NodeDriverServiceProvider>;
-        let connectionStringAuthType: ConnectionStringAuthType = "scram";
+        let connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
 
         try {
             settings = { ...settings };
@@ -203,7 +212,14 @@ export class MCPConnectionManager extends ConnectionManager {
             connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             connectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
-            connectionStringAuthType = MCPConnectionManager.inferConnectionTypeFromSettings(
+            if (settings.atlas !== undefined) {
+                connectionStringInfo.hostType = "atlas";
+            } else {
+                const hostType = getHostType(connectionInfo.connectionString);
+                connectionStringInfo.hostType = hostType;
+            }
+
+            connectionStringInfo.authType = MCPConnectionManager.inferConnectionTypeFromSettings(
                 this.userConfig,
                 connectionInfo
             );
@@ -223,33 +239,33 @@ export class MCPConnectionManager extends ConnectionManager {
             this.changeState("connection-error", {
                 tag: "errored",
                 errorReason,
-                connectionStringAuthType,
+                connectionStringInfo,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
 
         try {
-            if (connectionStringAuthType.startsWith("oidc")) {
+            if (connectionStringInfo.authType.startsWith("oidc")) {
                 return this.changeState("connection-request", {
                     tag: "connecting",
                     serviceProvider,
                     connectedAtlasCluster: settings.atlas,
-                    connectionStringAuthType,
-                    oidcConnectionType: connectionStringAuthType as OIDCConnectionAuthType,
+                    connectionStringInfo,
+                    oidcConnectionType: connectionStringInfo.authType as OIDCConnectionAuthType,
                 });
             }
 
             return this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(await serviceProvider, connectionStringAuthType, settings.atlas)
+                new ConnectionStateConnected(await serviceProvider, connectionStringInfo, settings.atlas)
             );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-error", {
                 tag: "errored",
                 errorReason,
-                connectionStringAuthType,
+                connectionStringInfo,
                 connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
@@ -298,7 +314,7 @@ export class MCPConnectionManager extends ConnectionManager {
     private onOidcAuthFailed(error: unknown): void {
         if (
             this.currentConnectionState.tag === "connecting" &&
-            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+            this.currentConnectionState.connectionStringInfo?.authType?.startsWith("oidc")
         ) {
             void this.disconnectOnOidcError(error);
         }
@@ -307,13 +323,13 @@ export class MCPConnectionManager extends ConnectionManager {
     private async onOidcAuthSucceeded(): Promise<void> {
         if (
             this.currentConnectionState.tag === "connecting" &&
-            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+            this.currentConnectionState.connectionStringInfo?.authType?.startsWith("oidc")
         ) {
             this.changeState(
                 "connection-success",
                 new ConnectionStateConnected(
                     await this.currentConnectionState.serviceProvider,
-                    this.currentConnectionState.connectionStringAuthType,
+                    this.currentConnectionState.connectionStringInfo,
                     this.currentConnectionState.connectedAtlasCluster
                 )
             );
@@ -329,7 +345,7 @@ export class MCPConnectionManager extends ConnectionManager {
     private onOidcNotifyDeviceFlow(flowInfo: { verificationUrl: string; userCode: string }): void {
         if (
             this.currentConnectionState.tag === "connecting" &&
-            this.currentConnectionState.connectionStringAuthType?.startsWith("oidc")
+            this.currentConnectionState.connectionStringInfo?.authType?.startsWith("oidc")
         ) {
             this.changeState("connection-request", {
                 ...this.currentConnectionState,
