@@ -161,6 +161,7 @@ type AtlasLocalToolMetadata = {
 export type ConnectionMetadata = AtlasMetadata &
     AtlasLocalToolMetadata & {
         connection_auth_type?: string;
+        host_type?: "atlas" | "local" | "cloud" | "atlas_local" | "unknown";
     };
 
 export type PerfAdvisorToolMetadata = AtlasMetadata & {
