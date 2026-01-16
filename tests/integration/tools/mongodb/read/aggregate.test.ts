@@ -20,6 +20,7 @@ import { freshInsertDocuments } from "./find.test.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { ToolEvent } from "../../../../../src/telemetry/types.js";
+import type { Client } from "@modelcontextprotocol/sdk/client";
 import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
 import type { Collection } from "mongodb";
 
@@ -1167,6 +1168,144 @@ describeWithMongoDB(
             indexCheck: true,
         }),
         downloadOptions: { search: true },
+    }
+);
+
+describeWithMongoDB(
+    "aggregate tool with abort signal",
+    (integration) => {
+        beforeEach(async () => {
+            // Insert many documents with complex data to simulate a slow query
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("abort_collection"),
+                count: 10000,
+                documentMapper: (index) => ({
+                    _id: index,
+                    description: `Document ${index}`,
+                    longText: `This is a very long text field for document ${index} `.repeat(100),
+                }),
+            });
+        });
+
+        const runSlowAggregate = async (
+            signal?: AbortSignal
+        ): Promise<{ executionTime: number; result?: Awaited<ReturnType<Client["callTool"]>>; error?: Error }> => {
+            const startTime = performance.now();
+
+            let result: Awaited<ReturnType<Client["callTool"]>> | undefined;
+            let error: Error | undefined;
+            try {
+                result = await integration.mcpClient().callTool(
+                    {
+                        name: "aggregate",
+                        arguments: {
+                            database: integration.randomDbName(),
+                            collection: "abort_collection",
+                            pipeline: [
+                                // Complex regex matching to slow down the query
+                                {
+                                    $match: {
+                                        longText: { $regex: ".*Document.*very.*long.*text.*", $options: "i" },
+                                    },
+                                },
+                                // Add complex calculations to slow it down further
+                                {
+                                    $addFields: {
+                                        complexCalculation: {
+                                            $sum: {
+                                                $map: {
+                                                    input: { $range: [0, 1000] },
+                                                    as: "num",
+                                                    in: { $multiply: ["$$num", "$_id"] },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                                // Group and unwind to add more processing
+                                {
+                                    $group: {
+                                        _id: "$_id",
+                                        description: { $first: "$description" },
+                                        longText: { $first: "$longText" },
+                                        complexCalculation: { $first: "$complexCalculation" },
+                                    },
+                                },
+                                { $sort: { complexCalculation: -1 } },
+                            ],
+                        },
+                    },
+                    undefined,
+                    { signal }
+                );
+            } catch (err: unknown) {
+                error = err as Error;
+            }
+
+            const executionTime = performance.now() - startTime;
+
+            return {
+                result,
+                error,
+                executionTime,
+            };
+        };
+
+        it("should abort aggregate operation when signal is triggered immediately", async () => {
+            await integration.connectMcpClient();
+            const abortController = new AbortController();
+
+            const aggregatePromise = runSlowAggregate(abortController.signal);
+
+            // Abort immediately
+            abortController.abort();
+
+            const { result, error, executionTime } = await aggregatePromise;
+
+            expect(executionTime).toBeLessThan(25); // Ensure it aborted quickly
+            expect(result).toBeUndefined();
+            expectDefined(error);
+            expect(error.message).toContain("This operation was aborted");
+        });
+
+        it("should abort aggregate operation during cursor iteration", async () => {
+            await integration.connectMcpClient();
+            const abortController = new AbortController();
+
+            // Start an aggregation with regex and complex filter that requires scanning many documents
+            const aggregatePromise = runSlowAggregate(abortController.signal);
+
+            // Give the cursor a bit of time to start processing, then abort
+            setTimeout(() => abortController.abort(), 25);
+
+            const { result, error, executionTime } = await aggregatePromise;
+
+            // Ensure it aborted quickly, but possibly after some processing
+            expect(executionTime).toBeGreaterThanOrEqual(25);
+            expect(executionTime).toBeLessThan(50);
+            expect(result).toBeUndefined();
+            expectDefined(error);
+            expect(error.message).toContain("This operation was aborted");
+        });
+
+        it("should complete successfully when not aborted", async () => {
+            await integration.connectMcpClient();
+
+            const { result, error, executionTime } = await runSlowAggregate();
+
+            // Complex regex matching and calculations on 10000 docs should take some time
+            expect(executionTime).toBeGreaterThan(100);
+            expectDefined(result);
+            expect(error).toBeUndefined();
+            const content = getResponseContent(result);
+            expect(content).toContain("The aggregation resulted in");
+        });
+    },
+    {
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            maxDocumentsPerQuery: 10000,
+        }),
     }
 );
 
