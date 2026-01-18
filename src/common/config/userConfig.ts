@@ -229,6 +229,13 @@ const ServerConfigSchema = z4.object({
             "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    externallyManagedSessions: z4
+        .boolean()
+        .default(false)
+        .describe(
+            "When true, the HTTP transport will allow json responses without SSE. Use this in cases where sessions are managed externally, such as by Amazon Bedrock AgentCore."
+        )
+        .register(configRegistry, { overrideBehavior: "override" }),
 });
 
 export const UserConfigSchema = z4.object({
