@@ -101,8 +101,11 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             const transport = this.sessionStore.getSession(sessionId);
             if (!transport) {
                 if (this.userConfig.externallyManagedSessions) {
+                    console.log(`Session with ID ${sessionId} not found, initializing new session`);
                     return await initializeServer(req, res, sessionId);
                 }
+
+                console.log(`Session with ID ${sessionId} not found, returning error`);
 
                 return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
             }
@@ -166,6 +169,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
                 }
 
+                console.log(`Initializing transport for externally managed session ID ${sessionId}`);
+
                 transport = new StreamableHTTPServerTransport({
                     enableJsonResponse: true,
                 });
@@ -216,14 +221,17 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             this.withErrorHandling(async (req: express.Request, res: express.Response) => {
                 const sessionId = req.headers["mcp-session-id"];
                 if (sessionId && typeof sessionId !== "string") {
+                    console.log(`Invalid session ID type: ${typeof sessionId}`);
                     return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
                 }
 
                 if (isInitializeRequest(req.body)) {
+                    console.log(`Handling initialize request with session ID ${sessionId}`);
                     return await initializeServer(req, res, sessionId);
                 }
 
                 if (sessionId) {
+                    console.log(`Handling session request with session ID ${sessionId}`);
                     return await handleSessionRequest(req, res);
                 }
 
