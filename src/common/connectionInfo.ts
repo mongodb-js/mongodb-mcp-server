@@ -1,7 +1,7 @@
 import { isAtlas } from "mongodb-build-info";
 
 /**
- * The host type of the connection string. Some values (e.g. local) are not yet supported, tools mostly 
+ * The host type of the connection string. Some values (e.g. local) are not yet supported, tools mostly
  * will return "unknown" for these values.
  */
 export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
