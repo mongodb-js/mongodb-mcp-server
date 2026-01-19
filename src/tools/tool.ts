@@ -774,7 +774,7 @@ export abstract class ToolBase {
         }
 
         if (this.session.connectedAtlasCluster !== undefined) {
-            if (this.session.connectedAtlasCluster.projectId !== undefined) {
+            if (this.session.connectedAtlasCluster.projectId) {
                 metadata.project_id = this.session.connectedAtlasCluster.projectId;
             }
         }
