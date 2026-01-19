@@ -64,7 +64,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                                 projection,
                                 limit,
                                 sort,
-                                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                                 signal,
                             })
                             .explain("queryPlanner");
@@ -79,7 +79,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 projection,
                 limit: limitOnFindCursor.limit,
                 sort,
-                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                 signal,
             });
 
@@ -93,7 +93,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             // the limit provided to the tool.
                             limit,
                             maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
-                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                             signal,
                         }),
                     undefined
