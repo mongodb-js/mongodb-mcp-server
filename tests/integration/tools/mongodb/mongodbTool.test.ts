@@ -340,6 +340,7 @@ describe("MongoDBTool implementations", () => {
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
             expect(metadata).not.toHaveProperty("connection_auth_type");
+            expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
         it("should return metadata with connection_auth_type and host_type when connected via connection string", async () => {
