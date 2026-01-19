@@ -124,7 +124,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
                     tag: "errored",
                     connectedAtlasCluster: undefined,
-                    connectionStringAuthType: "scram",
+                    connectionStringInfo: {
+                        authType: "scram",
+                        hostType: "unknown",
+                    },
                     errorReason: "Unable to parse localhost:xxxxx with URL",
                 });
             });
@@ -161,7 +164,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
                     tag: "errored",
                     connectedAtlasCluster: atlas,
-                    connectionStringAuthType: "scram",
+                    connectionStringInfo: {
+                        authType: "scram",
+                        hostType: "atlas",
+                    },
                     errorReason: "Unable to parse localhost:xxxxx with URL",
                 });
             });

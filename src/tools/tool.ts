@@ -763,13 +763,20 @@ export abstract class ToolBase {
 
     protected getConnectionInfoMetadata(): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
-        if (this.session.connectedAtlasCluster?.projectId) {
-            metadata.project_id = this.session.connectedAtlasCluster.projectId;
+
+        if (this.session === undefined) {
+            return metadata;
         }
 
-        const connectionStringAuthType = this.session.connectionStringAuthType;
-        if (connectionStringAuthType !== undefined) {
-            metadata.connection_auth_type = connectionStringAuthType;
+        if (this.session.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = this.session.connectionStringInfo.authType;
+            metadata.connection_host_type = this.session.connectionStringInfo.hostType;
+        }
+
+        if (this.session.connectedAtlasCluster !== undefined) {
+            if (this.session.connectedAtlasCluster.projectId) {
+                metadata.project_id = this.session.connectedAtlasCluster.projectId;
+            }
         }
 
         return metadata;
