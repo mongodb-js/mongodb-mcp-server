@@ -137,6 +137,12 @@ export function setupIntegrationTest(
 
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
+        let uiRegistry = serverOptions?.uiRegistry;
+        if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
+            const { UIRegistry } = await import("../../src/ui/registry/registry.js");
+            uiRegistry = new UIRegistry();
+        }
+
         mcpServer = new Server({
             session,
             userConfig,
@@ -144,6 +150,7 @@ export function setupIntegrationTest(
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
+            uiRegistry,
             ...serverOptions,
         });
 
