@@ -1,6 +1,4 @@
 import { EventEmitter } from "events";
-import type { MongoClientOptions } from "mongodb";
-import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
@@ -9,7 +7,14 @@ import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
-import { getHostType, type ConnectionStringHostType } from "./connectionInfo.js";
+import {
+    getHostType,
+    getAuthType,
+    type ConnectionStringInfo,
+    type ConnectionStringAuthType,
+} from "./connectionInfo.js";
+
+export type { ConnectionStringInfo, ConnectionStringAuthType } from "./connectionInfo.js";
 
 export interface AtlasClusterConnectionInfo {
     username: string;
@@ -25,19 +30,11 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
 
 type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
-export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
 
 export interface ConnectionState {
     tag: ConnectionTag;
     connectionStringInfo?: ConnectionStringInfo;
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
-}
-
-// ConnectionStringInfo is a simple object that contains metadata about the connection string
-// without keeping the full connection string.
-export interface ConnectionStringInfo {
-    authType: ConnectionStringAuthType;
-    hostType: ConnectionStringHostType;
 }
 
 const MCP_TEST_DATABASE = "#mongodb-mcp";
@@ -218,10 +215,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 connectionStringInfo.hostType = hostType;
             }
 
-            connectionStringInfo.authType = MCPConnectionManager.inferConnectionTypeFromSettings(
-                this.userConfig,
-                connectionInfo
-            );
+            connectionStringInfo.authType = getAuthType(this.userConfig, connectionInfo.connectionString);
 
             serviceProvider = NodeDriverServiceProvider.connect(
                 connectionInfo.connectionString,
@@ -363,42 +357,6 @@ export class MCPConnectionManager extends ConnectionManager {
             context: "mongodb-oidc-plugin:notify-device-flow",
             message: "OIDC Flow changed automatically to device flow.",
         });
-    }
-
-    static inferConnectionTypeFromSettings(
-        config: UserConfig,
-        settings: { connectionString: string }
-    ): ConnectionStringAuthType {
-        const connString = new ConnectionString(settings.connectionString);
-        const searchParams = connString.typedSearchParams<MongoClientOptions>();
-
-        switch (searchParams.get("authMechanism")) {
-            case "MONGODB-OIDC": {
-                if (config.transport === "stdio" && config.browser) {
-                    return "oidc-auth-flow";
-                }
-
-                if (config.transport === "http" && config.httpHost === "127.0.0.1" && config.browser) {
-                    return "oidc-auth-flow";
-                }
-
-                return "oidc-device-flow";
-            }
-            case "MONGODB-X509":
-                return "x.509";
-            case "GSSAPI":
-                return "kerberos";
-            case "PLAIN":
-                if (searchParams.get("authSource") === "$external") {
-                    return "ldap";
-                }
-                return "scram";
-            // default should catch also null, but eslint complains
-            // about it.
-            case null:
-            default:
-                return "scram";
-        }
     }
 
     private async disconnectOnOidcError(error: unknown): Promise<void> {
