@@ -5,6 +5,7 @@ This directory contains end-to-end tests that run in **actual browsers** using P
 ## Purpose
 
 These tests verify that:
+
 - The MCP server library can be embedded and run in a real browser environment
 - No Node.js-specific code is executed (fs, path, process, etc.)
 - Only browser-compatible APIs are used (Web Crypto, Web Streams, fetch, etc.) and we are not introducing new APIs we need to polyfill.
@@ -32,7 +33,6 @@ When adding or fixing tests, ensure they:
 
 ## Running Tests Locally
 
-
 Browser tests require Playwright to be installed:
 
 ```bash
@@ -42,8 +42,8 @@ playwright install chromium --with-deps
 ```
 
 You might find it useful to run tests with headed mode (browser visible) to debug tests:
+
 ```bash
 # Run with headed mode (browser visible)
 HEADED=1 pnpm test:browser
 ```
-

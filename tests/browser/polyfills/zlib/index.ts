@@ -1,7 +1,7 @@
 export function inflate() {
-  // noop
+    // noop
 }
 export function deflate() {
-  // noop
+    // noop
 }
 export default { inflate, deflate };
