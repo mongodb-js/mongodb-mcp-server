@@ -22,8 +22,8 @@ importers:
         specifier: ^0.3.1
         version: 0.3.3
       '@mongodb-js/devtools-proxy-support':
-        specifier: ^0.5.3
-        version: 0.5.5
+        specifier: ^0.7.2
+        version: 0.7.2
       '@mongosh/arg-parser':
         specifier: 3.23.0
         version: 3.23.0(zod@3.25.76)
@@ -1229,11 +1229,11 @@ packages:
       mongodb: ^6.21.0
       mongodb-log-writer: ^2.5.0
 
-  '@mongodb-js/devtools-proxy-support@0.5.5':
-    resolution: {integrity: sha512-yrz6rCMgq+52SL34O16mvZsGeQs+Gq1rRmJiHxj/Ca6LNvJo+MhDHvISSwoiObl1hWdcnDz1qz5HyaxMzpkETg==}
-
   '@mongodb-js/devtools-proxy-support@0.6.0':
     resolution: {integrity: sha512-ZSv5qgK4QCBicz/BtPuYJg5pl9em6jPp6yFkcw5KT2druLVxVakwdDTkTuTWVkdhN7QO7kMcVwQtpsGM/WkNDA==}
+
+  '@mongodb-js/devtools-proxy-support@0.7.2':
+    resolution: {integrity: sha512-WW1tCIoWe5VtKgK4/fKwz6FTrTpqOJOeRJuEqqXDt9Gk0tCuDQ013r2ozU5KRUsP1xVVCVNf9SovQZcEhTVgOw==}
 
   '@mongodb-js/mongodb-downloader@1.0.0':
     resolution: {integrity: sha512-xz4zr/5RWfAaHp9Kf7XPaLNxKaisl2NJGFEDQRNjB/ru79LdpLQbbSjQazTOl6JLcBvAjNNvauTeTwmgEvSUlA==}
@@ -2758,8 +2758,8 @@ packages:
     resolution: {integrity: sha512-a28v2eWrrRWPpJSzxc+mKwm0ZtVx/G8SepdQZDArnXYU/XS+IF6mp8aB/4E+hH1tyGCoDo3KlUCdlSxGDsRkAw==}
     hasBin: true
 
-  basic-ftp@5.0.5:
-    resolution: {integrity: sha512-4Bcg1P8xhUuqcii/S0Z9wiHIrQVPMermM1any+MX5GeGD7faD3/msQUDGLol9wOcz4/jbg/WJnGqoJF6LiBdtg==}
+  basic-ftp@5.1.0:
+    resolution: {integrity: sha512-RkaJzeJKDbaDWTIPiJwubyljaEPwpVWkm9Rt5h9Nd6h7tEXTJ3VB4qxdZBioV7JO5yLUaOKwz7vDOzlncUsegw==}
     engines: {node: '>=10.0.0'}
 
   bcrypt-pbkdf@1.0.2:
@@ -2870,8 +2870,8 @@ packages:
   buffer@6.0.3:
     resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
 
-  buildcheck@0.0.6:
-    resolution: {integrity: sha512-8f9ZJCUXyT1M35Jx7MkBgmBMo3oHTTBIPLiY9xyL0pl3T5RwcPEY8cUHr5LBNfu/fk6c2T4DJZuVM/8ZZT2D2A==}
+  buildcheck@0.0.7:
+    resolution: {integrity: sha512-lHblz4ahamxpTmnsk+MNTRWsjYKv965MwOrSJyeD588rR3Jcu7swE+0wN5F+PbL5cjgu/9ObkhfzEPuofEMwLA==}
     engines: {node: '>=10.0.0'}
 
   builtin-status-codes@3.0.0:
@@ -4481,8 +4481,8 @@ packages:
   multipipe@1.0.2:
     resolution: {integrity: sha512-6uiC9OvY71vzSGX8lZvSqscE7ft9nPupJ8fMjrCNRAUy2LREUW42UL+V/NTrogr6rFgRydUrCX4ZitfpSNkSCQ==}
 
-  nan@2.23.1:
-    resolution: {integrity: sha512-r7bBUGKzlqk8oPBDYxt6Z0aEdF1G1rwlMcLk8LCOMbOzf0mG+JUfUzG4fIMWwHWP0iyaLWEQZJmtB7nOHEm/qw==}
+  nan@2.24.0:
+    resolution: {integrity: sha512-Vpf9qnVW1RaDkoNKFUvfxqAbtI8ncb8OJlqZ9wwpXzWPEsvsB1nvdUi6oYrHIkQ1Y/tMDnr1h4nczS0VB9Xykg==}
 
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
@@ -7074,7 +7074,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mongodb-js/devtools-proxy-support@0.5.5':
+  '@mongodb-js/devtools-proxy-support@0.6.0':
     dependencies:
       '@mongodb-js/socksv5': 0.0.10
       agent-base: 7.1.4
@@ -7090,7 +7090,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mongodb-js/devtools-proxy-support@0.6.0':
+  '@mongodb-js/devtools-proxy-support@0.7.2':
     dependencies:
       '@mongodb-js/socksv5': 0.0.10
       agent-base: 7.1.4
@@ -8751,7 +8751,7 @@ snapshots:
 
   baseline-browser-mapping@2.8.31: {}
 
-  basic-ftp@5.0.5: {}
+  basic-ftp@5.1.0: {}
 
   bcrypt-pbkdf@1.0.2:
     dependencies:
@@ -8906,7 +8906,7 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
-  buildcheck@0.0.6:
+  buildcheck@0.0.7:
     optional: true
 
   builtin-status-codes@3.0.0: {}
@@ -9101,8 +9101,8 @@ snapshots:
 
   cpu-features@0.0.10:
     dependencies:
-      buildcheck: 0.0.6
-      nan: 2.23.1
+      buildcheck: 0.0.7
+      nan: 2.24.0
     optional: true
 
   crc-32@1.2.2: {}
@@ -9962,7 +9962,7 @@ snapshots:
 
   get-uri@6.0.5:
     dependencies:
-      basic-ftp: 5.0.5
+      basic-ftp: 5.1.0
       data-uri-to-buffer: 6.0.2
       debug: 4.4.3(supports-color@10.2.2)
     transitivePeerDependencies:
@@ -10752,7 +10752,7 @@ snapshots:
       duplexer2: 0.1.4
       object-assign: 4.1.1
 
-  nan@2.23.1:
+  nan@2.24.0:
     optional: true
 
   nanoid@3.3.11: {}
@@ -11787,7 +11787,7 @@ snapshots:
       bcrypt-pbkdf: 1.0.2
     optionalDependencies:
       cpu-features: 0.0.10
-      nan: 2.23.1
+      nan: 2.24.0
 
   stackback@0.0.2: {}
 
