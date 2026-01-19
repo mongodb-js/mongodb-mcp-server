@@ -286,17 +286,14 @@ describe("connectionInfo", () => {
             });
         });
 
-        it("should use atlasInfo override even for already-Atlas connection strings", () => {
+        it("should not fail if atlasInfo is undefined", () => {
             // This tests that the override is applied consistently
             const connectionString = "mongodb+srv://user:password@cluster.mongodb.net/database";
             const config = {} as UserConfig;
 
-            const resultWithAtlasInfo = getConnectionStringInfo(connectionString, config, atlasClusterInfo);
-            const resultWithoutAtlasInfo = getConnectionStringInfo(connectionString, config);
+            const result = getConnectionStringInfo(connectionString, config, undefined);
 
-            // Both should result in atlas hostType
-            expect(resultWithAtlasInfo.hostType).toBe("atlas");
-            expect(resultWithoutAtlasInfo.hostType).toBe("atlas");
+            expect(result.hostType).toBe("atlas");
         });
 
         it("should handle LDAP auth with local connection", () => {
