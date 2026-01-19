@@ -8,20 +8,12 @@ import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
 import {
-    getHostType,
-    getAuthType,
+    getConnectionStringInfo,
     type ConnectionStringInfo,
-    type ConnectionStringAuthType,
+    type AtlasClusterConnectionInfo,
 } from "./connectionInfo.js";
 
-export type { ConnectionStringInfo, ConnectionStringAuthType } from "./connectionInfo.js";
-
-export interface AtlasClusterConnectionInfo {
-    username: string;
-    projectId: string;
-    clusterName: string;
-    expiryDate: Date;
-}
+export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
@@ -175,7 +167,7 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         let serviceProvider: Promise<NodeDriverServiceProvider>;
-        const connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
+        let connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
 
         try {
             settings = { ...settings };
@@ -208,14 +200,11 @@ export class MCPConnectionManager extends ConnectionManager {
             connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             connectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
-            if (settings.atlas !== undefined) {
-                connectionStringInfo.hostType = "atlas";
-            } else {
-                const hostType = getHostType(connectionInfo.connectionString);
-                connectionStringInfo.hostType = hostType;
-            }
-
-            connectionStringInfo.authType = getAuthType(this.userConfig, connectionInfo.connectionString);
+            connectionStringInfo = getConnectionStringInfo(
+                connectionInfo.connectionString,
+                this.userConfig,
+                settings.atlas
+            );
 
             serviceProvider = NodeDriverServiceProvider.connect(
                 connectionInfo.connectionString,

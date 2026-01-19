@@ -12,11 +12,42 @@ export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unkn
 type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
 
-// ConnectionStringInfo is a simple object that contains metadata about the connection string
-// without keeping the full connection string.
+/**
+ * ConnectionStringInfo is a simple object that contains metadata about the connection string
+ * without keeping the full connection string.
+ */
 export interface ConnectionStringInfo {
     authType: ConnectionStringAuthType;
     hostType: ConnectionStringHostType;
+}
+
+/**
+ * Atlas cluster connection info containing details about the connected Atlas cluster.
+ * When provided, indicates the connection is to an Atlas cluster.
+ */
+export interface AtlasClusterConnectionInfo {
+    username: string;
+    projectId: string;
+    clusterName: string;
+    expiryDate: Date;
+}
+
+/**
+ * Get metadata about the connection string including authentication type and host type.
+ * @param connectionString - The connection string to analyze.
+ * @param config - The user configuration used to determine auth type.
+ * @param atlasInfo - Optional Atlas cluster connection info. If provided, host type is set to "atlas".
+ * @returns The connection string metadata.
+ */
+export function getConnectionStringInfo(
+    connectionString: string,
+    config: UserConfig,
+    atlasInfo?: AtlasClusterConnectionInfo
+): ConnectionStringInfo {
+    return {
+        authType: getAuthType(config, connectionString),
+        hostType: atlasInfo !== undefined ? "atlas" : getHostType(connectionString),
+    };
 }
 
 /**
