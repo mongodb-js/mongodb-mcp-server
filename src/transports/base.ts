@@ -211,6 +211,7 @@ export abstract class TransportRunnerBase {
     private readonly tools?: ToolClass[];
     private readonly createSessionConfig?: CreateSessionConfigFn;
     private readonly createApiClient: ApiClientFactoryFn;
+    protected server?: Server;
 
     protected constructor({
         userConfig,
@@ -331,6 +332,15 @@ export abstract class TransportRunnerBase {
         }
 
         return result;
+    }
+
+    /**
+     * Get the Server instance if it has been created.
+     * This is useful for accessing telemetry and other server properties.
+     * @returns The Server instance or undefined if not yet created
+     */
+    public getServer(): Server | undefined {
+        return this.server;
     }
 
     abstract start(): Promise<void>;

@@ -6,9 +6,10 @@ import type { LogLevel } from "./common/logger.js";
 import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
 import type { UserConfig } from "./common/config/userConfig.js";
-import { type ServerEvent } from "./telemetry/types.js";
+import { type ServerEvent, type ConnectionEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ConnectionStateConnected, ConnectionStateErrored } from "./common/connectionManager.js";
 import {
     CallToolRequestSchema,
     SetLevelRequestSchema,
@@ -86,7 +87,7 @@ export interface ServerOptions {
 export class Server {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
-    private readonly telemetry: Telemetry;
+    public readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: ToolClass[];
@@ -122,6 +123,9 @@ export class Server {
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = new UIRegistry({ customUIs });
+
+        // Track connection timing for telemetry
+        this.setupConnectionTelemetry();
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -271,6 +275,73 @@ export class Server {
                 event.properties.reason = error.message;
             }
         }
+
+        this.telemetry.emitEvents([event]);
+    }
+
+    private connectionStartTime: number | undefined;
+
+    private setupConnectionTelemetry(): void {
+        // Track connection request (start timing)
+        this.session.connectionManager.events.on("connection-request", () => {
+            this.connectionStartTime = Date.now();
+        });
+
+        // Track successful connections
+        this.session.connectionManager.events.on("connection-success", (state: ConnectionStateConnected) => {
+            if (this.connectionStartTime !== undefined) {
+                const duration = Date.now() - this.connectionStartTime;
+                this.emitConnectionTelemetryEvent("connect", duration, "success", state);
+                this.connectionStartTime = undefined;
+            }
+        });
+
+        // Track connection errors
+        this.session.connectionManager.events.on("connection-error", (state: ConnectionStateErrored) => {
+            if (this.connectionStartTime !== undefined) {
+                const duration = Date.now() - this.connectionStartTime;
+                this.emitConnectionTelemetryEvent("connect", duration, "failure", state);
+                this.connectionStartTime = undefined;
+            }
+        });
+
+        // Track disconnections
+        this.session.connectionManager.events.on("connection-close", () => {
+            const startTime = Date.now();
+            this.emitConnectionTelemetryEvent("disconnect", Date.now() - startTime, "success");
+        });
+    }
+
+    private emitConnectionTelemetryEvent(
+        command: "connect" | "disconnect",
+        duration: number,
+        result: "success" | "failure",
+        state?: ConnectionStateConnected | ConnectionStateErrored
+    ): void {
+        const properties: ConnectionEvent["properties"] = {
+            command,
+            component: "connection",
+            category: state?.connectedAtlasCluster ? "atlas" : "mongodb",
+            duration_ms: duration,
+            result,
+        };
+
+        // Add optional properties only if they exist
+        if (state?.connectionStringAuthType) {
+            properties.connection_type = state.connectionStringAuthType;
+        }
+        if (state?.connectedAtlasCluster?.clusterName) {
+            properties.cluster_name = state.connectedAtlasCluster.clusterName;
+        }
+        if (state?.connectedAtlasCluster) {
+            properties.is_atlas = true;
+        }
+
+        const event: ConnectionEvent = {
+            timestamp: new Date().toISOString(),
+            source: "mdbmcp",
+            properties,
+        };
 
         this.telemetry.emitEvents([event]);
     }

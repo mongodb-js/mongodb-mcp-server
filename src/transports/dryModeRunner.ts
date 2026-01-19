@@ -12,7 +12,6 @@ export type DryRunModeTestHelpers = {
 type DryRunModeRunnerConfig = TransportRunnerConfig & DryRunModeTestHelpers;
 
 export class DryRunModeRunner extends TransportRunnerBase {
-    private server: Server | undefined;
     private consoleLogger: DryRunModeTestHelpers["logger"];
 
     constructor({ logger, ...transportRunnerConfig }: DryRunModeRunnerConfig) {

@@ -16,9 +16,9 @@ type EventResult = {
 };
 
 export interface TelemetryEvents {
-    "events-emitted": [];
-    "events-send-failed": [];
-    "events-skipped": [];
+    "events-emitted": [events: BaseEvent[]];
+    "events-send-failed": [events: BaseEvent[], error: Error];
+    "events-skipped": [events: BaseEvent[], reason: string];
 }
 
 export class Telemetry {
@@ -124,7 +124,7 @@ export class Telemetry {
      */
     public emitEvents(events: BaseEvent[]): void {
         if (!this.isTelemetryEnabled()) {
-            this.events.emit("events-skipped");
+            this.events.emit("events-skipped", events, "telemetry disabled");
             return;
         }
         // Don't wait for events to be sent - we should not block regular server
@@ -199,7 +199,7 @@ export class Telemetry {
                     context: "telemetry",
                     message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
                 });
-                this.events.emit("events-emitted");
+                this.events.emit("events-emitted", allEvents);
                 return;
             }
 
@@ -209,7 +209,7 @@ export class Telemetry {
                 message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
             });
             this.eventCache.appendEvents(events);
-            this.events.emit("events-send-failed");
+            this.events.emit("events-send-failed", events, result.error || new Error("Unknown error"));
         } catch (error) {
             this.session.logger.debug({
                 id: LogId.telemetryEmitFailure,
@@ -217,7 +217,7 @@ export class Telemetry {
                 message: `Error emitting telemetry events: ${error instanceof Error ? error.message : String(error)}`,
                 noRedaction: true,
             });
-            this.events.emit("events-send-failed");
+            this.events.emit("events-send-failed", events, error instanceof Error ? error : new Error(String(error)));
         }
     }
 

@@ -4,8 +4,6 @@ import type { Server } from "../server.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 
 export class StdioRunner extends TransportRunnerBase {
-    private server: Server | undefined;
-
     constructor(config: TransportRunnerConfig) {
         super(config);
     }
