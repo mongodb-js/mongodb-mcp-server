@@ -1,10 +1,10 @@
-// // Converts kebab-case to PascalCase: "list-databases" -> "ListDatabases"
-// function toPascalCase(kebabCase: string): string {
-//     return kebabCase
-//         .split("-")
-//         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-//         .join("");
-// }
+// Converts kebab-case to PascalCase: "list-databases" -> "ListDatabases"
+function toPascalCase(kebabCase: string): string {
+    return kebabCase
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join("");
+}
 
 export type UIRegistryOptions = {
     /**
@@ -56,7 +56,17 @@ export class UIRegistry {
             return cached;
         }
 
-        // TODO: Remove this once we have a proper build step for UI tools.
-        return null;
+        try {
+            const module = (await import(`../lib/tools/${toolName}.js`)) as Record<string, string>;
+            const exportName = `${toPascalCase(toolName)}Html`;
+            const html = module[exportName]; // HTML generated at build time
+            if (html === undefined) {
+                return null;
+            }
+            this.cache.set(toolName, html);
+            return html;
+        } catch {
+            return null;
+        }
     }
 }
