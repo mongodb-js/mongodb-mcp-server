@@ -48,14 +48,4 @@ export class ConnectTool extends MongoDBToolBase {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
         };
     }
-
-    protected override resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: CallToolResult }
-    ): ConnectionMetadata {
-        return {
-            ...super.resolveTelemetryMetadata(args, { result }),
-            connection_host_type: getHostType(args.connectionString),
-        };
-    }
 }
