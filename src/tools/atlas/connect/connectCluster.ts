@@ -327,6 +327,6 @@ export class ConnectClusterTool extends AtlasToolBase {
             // delete the project_id from the parent metadata to avoid duplication
             delete parentMetadata.project_id;
         }
-        return { ...parentMetadata, ...connectionMetadata, connection_host_type: "atlas" };
+        return { ...parentMetadata, ...connectionMetadata };
     }
 }
