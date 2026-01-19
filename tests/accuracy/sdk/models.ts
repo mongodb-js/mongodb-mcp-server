@@ -26,7 +26,7 @@ export class OpenAIModel implements Model {
     getModel(): LanguageModel {
         return createOpenAI({
             apiKey: process.env.MDB_OPEN_AI_API_KEY,
-        })(this.modelName);
+        }).chat(this.modelName);
     }
 }
 
@@ -48,7 +48,7 @@ export class AzureOpenAIModel implements Model {
             apiKey: process.env.MDB_AZURE_OPEN_AI_API_KEY,
             useDeploymentBasedUrls: true,
             apiVersion: "2024-12-01-preview",
-        })(this.modelName);
+        }).chat(this.modelName);
     }
 }
 
@@ -67,7 +67,7 @@ export class GeminiModel implements Model {
     getModel(): LanguageModel {
         return createGoogleGenerativeAI({
             apiKey: process.env.MDB_GEMINI_API_KEY,
-        })(this.modelName);
+        }).chat(this.modelName);
     }
 }
 
