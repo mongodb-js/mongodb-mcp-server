@@ -14,6 +14,7 @@ import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
+import { MonitoringEventNames } from "../monitoring/types.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -542,6 +543,12 @@ export abstract class ToolBase {
      */
     protected readonly elicitation: Elicitation;
     private readonly uiRegistry: UIRegistry;
+    /**
+     * Reference to the server instance. Set during tool registration.
+     * Used for accessing monitoring events and other server-level functionality.
+     */
+    protected server!: Server;
+
     constructor({
         category,
         operationType,
@@ -561,6 +568,7 @@ export abstract class ToolBase {
     }
 
     public register(server: Server): boolean {
+        this.server = server;
         if (!this.verifyAllowed()) {
             return false;
         }
@@ -736,25 +744,37 @@ export abstract class ToolBase {
         args: ToolArgs<typeof this.argsShape>,
         { startTime, result }: { startTime: number; result: CallToolResult }
     ): void {
-        if (!this.telemetry.isTelemetryEnabled()) {
-            return;
-        }
         const duration = Date.now() - startTime;
         const metadata = this.resolveTelemetryMetadata(args, { result });
-        const event: ToolEvent = {
-            timestamp: new Date().toISOString(),
-            source: "mdbmcp",
-            properties: {
-                command: this.name,
-                category: this.category,
-                component: "tool",
-                duration_ms: duration,
-                result: result.isError ? "failure" : "success",
-                ...metadata,
-            },
-        };
 
-        this.telemetry.emitEvents([event]);
+        // Emit to telemetry if enabled (for analytics)
+        if (this.telemetry.isTelemetryEnabled()) {
+            const telemetryEvent: ToolEvent = {
+                timestamp: new Date().toISOString(),
+                source: "mdbmcp",
+                properties: {
+                    command: this.name,
+                    category: this.category,
+                    component: "tool",
+                    duration_ms: duration,
+                    result: result.isError ? "failure" : "success",
+                    ...metadata,
+                },
+            };
+            this.telemetry.emitEvents([telemetryEvent]);
+        }
+
+        // Always emit to monitoring (for metrics) - separate event type
+        const monitoringEvent: import("../monitoring/types.js").MonitoringToolEvent = {
+            type: "tool",
+            timestamp: new Date().toISOString(),
+            duration_ms: duration,
+            result: result.isError ? "failure" : "success",
+            tool_name: this.name,
+            category: this.category,
+            metadata,
+        };
+        this.server.monitoring.emit(MonitoringEventNames.TOOL_EXECUTED, monitoringEvent);
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {

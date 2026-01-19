@@ -14,7 +14,6 @@ export const DbOperationArgs = {
 };
 
 export abstract class MongoDBToolBase extends ToolBase {
-    protected server?: Server;
     static category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
@@ -48,7 +47,6 @@ export abstract class MongoDBToolBase extends ToolBase {
     }
 
     public register(server: Server): boolean {
-        this.server = server;
         return super.register(server);
     }
 

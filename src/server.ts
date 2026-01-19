@@ -6,10 +6,13 @@ import type { LogLevel } from "./common/logger.js";
 import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
 import type { UserConfig } from "./common/config/userConfig.js";
-import { type ServerEvent, type ConnectionEvent } from "./telemetry/types.js";
+import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ConnectionStateConnected, ConnectionStateErrored } from "./common/connectionManager.js";
+import { EventEmitter } from "events";
+import type { MonitoringEvents } from "./monitoring/types.js";
+import { MonitoringEventNames } from "./monitoring/types.js";
 import {
     CallToolRequestSchema,
     SetLevelRequestSchema,
@@ -94,6 +97,12 @@ export class Server {
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry: UIRegistry;
+    /**
+     * Monitoring event emitter for internal observability and metrics collection.
+     * Always active regardless of telemetry settings.
+     * Use this for Prometheus metrics, logging, and other internal monitoring.
+     */
+    public readonly monitoring: EventEmitter<MonitoringEvents> = new EventEmitter();
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -248,7 +257,7 @@ export class Server {
     }
 
     private emitServerTelemetryEvent(command: ServerCommand, commandDuration: number, error?: Error): void {
-        const event: ServerEvent = {
+        const telemetryEvent: ServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
             properties: {
@@ -261,22 +270,37 @@ export class Server {
         };
 
         if (command === "start") {
-            event.properties.startup_time_ms = commandDuration;
-            event.properties.read_only_mode = this.userConfig.readOnly ? "true" : "false";
-            event.properties.disabled_tools = this.userConfig.disabledTools || [];
-            event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
-            event.properties.previewFeatures = this.userConfig.previewFeatures;
-            event.properties.embeddingProviderConfigured = !!this.userConfig.voyageApiKey;
+            telemetryEvent.properties.startup_time_ms = commandDuration;
+            telemetryEvent.properties.read_only_mode = this.userConfig.readOnly ? "true" : "false";
+            telemetryEvent.properties.disabled_tools = this.userConfig.disabledTools || [];
+            telemetryEvent.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
+            telemetryEvent.properties.previewFeatures = this.userConfig.previewFeatures;
+            telemetryEvent.properties.embeddingProviderConfigured = !!this.userConfig.voyageApiKey;
         }
         if (command === "stop") {
-            event.properties.runtime_duration_ms = Date.now() - this.startTime;
+            telemetryEvent.properties.runtime_duration_ms = Date.now() - this.startTime;
             if (error) {
-                event.properties.result = "failure";
-                event.properties.reason = error.message;
+                telemetryEvent.properties.result = "failure";
+                telemetryEvent.properties.reason = error.message;
             }
         }
 
-        this.telemetry.emitEvents([event]);
+        // Emit to telemetry (for analytics)
+        this.telemetry.emitEvents([telemetryEvent]);
+
+        // Emit to monitoring (for metrics) - separate event type
+        const monitoringEvent: import("./monitoring/types.js").MonitoringServerEvent = {
+            type: "server",
+            timestamp: new Date().toISOString(),
+            duration_ms: commandDuration,
+            result: error ? "failure" : "success",
+            command: command,
+            metadata: {
+                startup_time_ms: command === "start" ? commandDuration : undefined,
+                runtime_duration_ms: command === "stop" ? Date.now() - this.startTime : undefined,
+            },
+        };
+        this.monitoring.emit(MonitoringEventNames.SERVER_LIFECYCLE, monitoringEvent);
     }
 
     private connectionStartTime: number | undefined;
@@ -318,32 +342,27 @@ export class Server {
         result: "success" | "failure",
         state?: ConnectionStateConnected | ConnectionStateErrored
     ): void {
-        const properties: ConnectionEvent["properties"] = {
-            command,
-            component: "connection",
-            category: state?.connectedAtlasCluster ? "atlas" : "mongodb",
+        // Emit to monitoring only - connection events are NOT sent to telemetry backend
+        const monitoringEvent: import("./monitoring/types.js").MonitoringConnectionEvent = {
+            type: "connection",
+            timestamp: new Date().toISOString(),
             duration_ms: duration,
             result,
+            command,
         };
 
         // Add optional properties only if they exist
         if (state?.connectionStringAuthType) {
-            properties.connection_type = state.connectionStringAuthType;
+            monitoringEvent.connection_type = state.connectionStringAuthType;
         }
         if (state?.connectedAtlasCluster?.clusterName) {
-            properties.cluster_name = state.connectedAtlasCluster.clusterName;
+            monitoringEvent.cluster_name = state.connectedAtlasCluster.clusterName;
         }
         if (state?.connectedAtlasCluster) {
-            properties.is_atlas = true;
+            monitoringEvent.is_atlas = true;
         }
 
-        const event: ConnectionEvent = {
-            timestamp: new Date().toISOString(),
-            source: "mdbmcp",
-            properties,
-        };
-
-        this.telemetry.emitEvents([event]);
+        this.monitoring.emit(MonitoringEventNames.CONNECTION_LIFECYCLE, monitoringEvent);
     }
 
     public registerTools(): void {
