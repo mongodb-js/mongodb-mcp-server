@@ -9,7 +9,7 @@ import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
-import { getHostType } from "./connectionInfo.js";
+import { getHostType, type ConnectionStringHostType } from "./connectionInfo.js";
 
 export interface AtlasClusterConnectionInfo {
     username: string;
@@ -26,7 +26,6 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
 type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
-export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
 
 export interface ConnectionState {
     tag: ConnectionTag;

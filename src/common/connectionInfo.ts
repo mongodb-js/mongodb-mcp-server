@@ -1,5 +1,6 @@
 import { isAtlas } from "mongodb-build-info";
-import { ConnectionStringHostType } from "./connectionManager.js";
+
+export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
 
 /**
  * Get the host type from the connection string.

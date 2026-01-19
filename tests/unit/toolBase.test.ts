@@ -181,15 +181,16 @@ describe("ToolBase", () => {
     });
 
     describe("getConnectionInfoMetadata", () => {
-        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringAuthType are set", () => {
+        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringInfo are set", () => {
             (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
             expect(metadata).not.toHaveProperty("connection_auth_type");
+            expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
         it("should return metadata with project_id when connectedAtlasCluster.projectId is set", () => {
@@ -199,7 +200,7 @@ describe("ToolBase", () => {
                 clusterName: "test-cluster",
                 expiryDate: new Date(),
             };
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
@@ -207,6 +208,7 @@ describe("ToolBase", () => {
                 project_id: "test-project-id",
             });
             expect(metadata).not.toHaveProperty("connection_auth_type");
+            expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
         it("should return empty metadata when connectedAtlasCluster exists but projectId is falsy", () => {
@@ -216,7 +218,7 @@ describe("ToolBase", () => {
                 clusterName: "test-cluster",
                 expiryDate: new Date(),
             };
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
@@ -224,14 +226,18 @@ describe("ToolBase", () => {
             expect(metadata).not.toHaveProperty("project_id");
         });
 
-        it("should return metadata with connection_auth_type when connectionStringAuthType is set", () => {
+        it("should return metadata with connection_auth_type and connection_host_type when connectionStringInfo is set", () => {
             (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "scram";
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
+                authType: "scram",
+                hostType: "unknown",
+            };
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({
                 connection_auth_type: "scram",
+                connection_host_type: "unknown",
             });
             expect(metadata).not.toHaveProperty("project_id");
         });
@@ -243,23 +249,34 @@ describe("ToolBase", () => {
                 clusterName: "test-cluster",
                 expiryDate: new Date(),
             };
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "oidc-auth-flow";
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
+                authType: "oidc-auth-flow",
+                hostType: "atlas",
+            };
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
                 connection_auth_type: "oidc-auth-flow",
+                connection_host_type: "atlas",
             });
         });
 
-        it("should handle different connectionStringAuthType values", () => {
+        it("should handle different connectionStringInfo authType and hostType values", () => {
             const authTypes = ["scram", "ldap", "kerberos", "oidc-auth-flow", "oidc-device-flow", "x.509"] as const;
+            const hostTypes = ["unknown", "atlas", "local", "atlas_local"] as const;
 
             for (const authType of authTypes) {
-                (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = authType;
-                const metadata = testTool["getConnectionInfoMetadata"]();
-                expect(metadata.connection_host_type).toBe(authType);
+                for (const hostType of hostTypes) {
+                    (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
+                        authType,
+                        hostType,
+                    };
+                    const metadata = testTool["getConnectionInfoMetadata"]();
+                    expect(metadata.connection_auth_type).toBe(authType);
+                    expect(metadata.connection_host_type).toBe(hostType);
+                }
             }
         });
     });
