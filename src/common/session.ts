@@ -11,8 +11,8 @@ import type {
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-    ConnectionStringInfo,
 } from "./connectionManager.js";
+import type { ConnectionStringInfo } from "./connectionInfo.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";

@@ -1,10 +1,5 @@
-import type {
-    ConnectionManagerEvents,
-    ConnectionStateConnected,
-    ConnectionStringAuthType,
-} from "../../../src/common/connectionManager.js";
-
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
+import type { ConnectionManagerEvents, ConnectionStateConnected } from "../../../src/common/connectionManager.js";
+import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
@@ -232,12 +227,7 @@ describe("Connection Manager connection type inference", () => {
 
     for (const { userConfig, connectionString, connectionType } of testCases) {
         it(`infers ${connectionType} from ${connectionString}`, () => {
-            const actualConnectionType = MCPConnectionManager.inferConnectionTypeFromSettings(
-                userConfig as UserConfig,
-                {
-                    connectionString,
-                }
-            );
+            const actualConnectionType = getAuthType(userConfig as UserConfig, connectionString);
 
             expect(actualConnectionType).toBe(connectionType);
         });

@@ -1,6 +1,4 @@
 import { EventEmitter } from "events";
-import type { MongoClientOptions } from "mongodb";
-import { ConnectionString } from "mongodb-connection-string-url";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { generateConnectionInfoFromCliArgs, type ConnectionInfo } from "@mongosh/arg-parser";
 import type { DeviceId } from "../helpers/deviceId.js";
@@ -9,14 +7,13 @@ import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "./logger.js";
 import { packageInfo } from "./packageInfo.js";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
-import { getHostType, type ConnectionStringHostType } from "./connectionInfo.js";
+import {
+    getConnectionStringInfo,
+    type ConnectionStringInfo,
+    type AtlasClusterConnectionInfo,
+} from "./connectionInfo.js";
 
-export interface AtlasClusterConnectionInfo {
-    username: string;
-    projectId: string;
-    clusterName: string;
-    expiryDate: Date;
-}
+export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
@@ -25,19 +22,11 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
 
 type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
-export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
 
 export interface ConnectionState {
     tag: ConnectionTag;
     connectionStringInfo?: ConnectionStringInfo;
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
-}
-
-// ConnectionStringInfo is a simple object that contains metadata about the connection string
-// without keeping the full connection string.
-export interface ConnectionStringInfo {
-    authType: ConnectionStringAuthType;
-    hostType: ConnectionStringHostType;
 }
 
 const MCP_TEST_DATABASE = "#mongodb-mcp";
@@ -178,7 +167,7 @@ export class MCPConnectionManager extends ConnectionManager {
         }
 
         let serviceProvider: Promise<NodeDriverServiceProvider>;
-        const connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
+        let connectionStringInfo: ConnectionStringInfo = { authType: "scram", hostType: "unknown" };
 
         try {
             settings = { ...settings };
@@ -211,16 +200,10 @@ export class MCPConnectionManager extends ConnectionManager {
             connectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             connectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
-            if (settings.atlas !== undefined) {
-                connectionStringInfo.hostType = "atlas";
-            } else {
-                const hostType = getHostType(connectionInfo.connectionString);
-                connectionStringInfo.hostType = hostType;
-            }
-
-            connectionStringInfo.authType = MCPConnectionManager.inferConnectionTypeFromSettings(
+            connectionStringInfo = getConnectionStringInfo(
+                connectionInfo.connectionString,
                 this.userConfig,
-                connectionInfo
+                settings.atlas
             );
 
             serviceProvider = NodeDriverServiceProvider.connect(
@@ -363,42 +346,6 @@ export class MCPConnectionManager extends ConnectionManager {
             context: "mongodb-oidc-plugin:notify-device-flow",
             message: "OIDC Flow changed automatically to device flow.",
         });
-    }
-
-    static inferConnectionTypeFromSettings(
-        config: UserConfig,
-        settings: { connectionString: string }
-    ): ConnectionStringAuthType {
-        const connString = new ConnectionString(settings.connectionString);
-        const searchParams = connString.typedSearchParams<MongoClientOptions>();
-
-        switch (searchParams.get("authMechanism")) {
-            case "MONGODB-OIDC": {
-                if (config.transport === "stdio" && config.browser) {
-                    return "oidc-auth-flow";
-                }
-
-                if (config.transport === "http" && config.httpHost === "127.0.0.1" && config.browser) {
-                    return "oidc-auth-flow";
-                }
-
-                return "oidc-device-flow";
-            }
-            case "MONGODB-X509":
-                return "x.509";
-            case "GSSAPI":
-                return "kerberos";
-            case "PLAIN":
-                if (searchParams.get("authSource") === "$external") {
-                    return "ldap";
-                }
-                return "scram";
-            // default should catch also null, but eslint complains
-            // about it.
-            case null:
-            default:
-                return "scram";
-        }
     }
 
     private async disconnectOnOidcError(error: unknown): Promise<void> {
