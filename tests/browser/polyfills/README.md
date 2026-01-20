@@ -4,22 +4,24 @@ This directory contains polyfills for the browser environment. Most of the polyf
 
 We may also want to consider distributing a version of the library with those polyfills applied.
 
-
 #### Adding polyfills
 
 Ideally we want to avoid additional polyfills. There's a few approaches we can take:
 
 In `vite.config.ts`, if we want to simply error if one attempts to import the polyfilled package we can use the `throwErrorPolyfill` function.
+
 ```
     kerberos: throwErrorPolyfill(),
 ```
- 
+
 If we want the polyfill to be a no-op, we can use the `emptyPolyfill` function.
+
 ```
     express: emptyPolyfill(),
 ```
 
 For anything more custom, one should create a new file in this directory which matches the package name (for example `@mongodb-js/atlas-local` would be in `polyfills/@mongodb-js/atlas-local/index.ts`) and then use the `localPolyfill` function.
+
 ```
     "@mongodb-js/atlas-local": localPolyfill("@mongodb-js/atlas-local"),
 ```
