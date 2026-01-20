@@ -78,7 +78,7 @@ export function getAuthType(config: UserConfig, connectionString: string): Conne
                 return "oidc-auth-flow";
             }
 
-            if (config.transport === "http" && config.httpHost === "127.0.0.1" && config.browser) {
+            if (config.transport === "http" && (config.httpHost === "127.0.0.1" || config.httpHost === "localhost") && config.browser) {
                 return "oidc-auth-flow";
             }
 
