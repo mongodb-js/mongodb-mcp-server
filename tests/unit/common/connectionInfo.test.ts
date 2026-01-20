@@ -197,7 +197,8 @@ describe("connectionInfo", () => {
                 expectedAuthType: "oidc-device-flow",
             },
             {
-                description: "should return 'oidc-device-flow' for OIDC with http transport on localhost and browser configured",
+                description:
+                    "should return 'oidc-device-flow' for OIDC with http transport on localhost and browser configured",
                 userConfig: { transport: "http", httpHost: "localhost", browser: "chrome" },
                 connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-OIDC",
                 expectedAuthType: "oidc-auth-flow",
