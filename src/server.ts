@@ -312,33 +312,34 @@ export class Server {
         this.monitoring.emit(MonitoringEventNames.SERVER_LIFECYCLE, monitoringEvent);
     }
 
-    private connectionStartTime: number | undefined;
-
     private setupConnectionMonitoring(): void {
+        // Track connection start time in closure scope for better encapsulation
+        let connectionStartTime: number | undefined;
+
         // Track connection request (start timing)
         // Note: Multiple connection-request events can be emitted during a single connection attempt
         // (e.g., for OIDC flows), so we only set the start time if it's not already set
         this.session.connectionManager.events.on("connection-request", () => {
-            if (this.connectionStartTime === undefined) {
-                this.connectionStartTime = Date.now();
+            if (connectionStartTime === undefined) {
+                connectionStartTime = Date.now();
             }
         });
 
         // Track successful connections
         this.session.connectionManager.events.on("connection-success", (state: ConnectionStateConnected) => {
-            if (this.connectionStartTime !== undefined) {
-                const duration = Date.now() - this.connectionStartTime;
+            if (connectionStartTime !== undefined) {
+                const duration = Date.now() - connectionStartTime;
                 this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.CONNECT, duration, "success", state);
-                this.connectionStartTime = undefined;
+                connectionStartTime = undefined;
             }
         });
 
         // Track connection errors
         this.session.connectionManager.events.on("connection-error", (state: ConnectionStateErrored) => {
-            if (this.connectionStartTime !== undefined) {
-                const duration = Date.now() - this.connectionStartTime;
+            if (connectionStartTime !== undefined) {
+                const duration = Date.now() - connectionStartTime;
                 this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.CONNECT, duration, "failure", state);
-                this.connectionStartTime = undefined;
+                connectionStartTime = undefined;
             }
         });
 

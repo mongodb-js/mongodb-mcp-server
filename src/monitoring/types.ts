@@ -89,7 +89,10 @@ export type MonitoringConnectionEvent = MonitoringBaseEvent & {
     type: "connection";
     /** Connection command (connect, disconnect) */
     command: MonitoringConnectionCommandType;
-    /** Connection type (e.g., "scram", "oidc-auth-flow", "x.509") */
+    /**
+     * Connection authentication type.
+     * Accepts any authentication type string (examples: "scram", "oidc-auth-flow", "x.509").
+     */
     connection_type?: string;
     /** Atlas cluster name if applicable */
     cluster_name?: string;
