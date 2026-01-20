@@ -14,36 +14,17 @@ These tests verify that:
 ## Running Browser Tests
 
 ```bash
-# From workspace root - install browser-tests and root
-pnpm install --workspace browser-tests
-
-# From this directory - run browser tests
-cd tests/browser-tests
-pnpm test --workspace browser-tests
-```
-
-## Adding New Browser Tests
-
-When adding or fixing tests, ensure they:
-
-1. **Don't rely on Node.js APIs**: No `require()`, `process`, `fs`, etc. In rare cases, we can add additional polyfills. Generally, we should instead focus on using browser-compatible APIs.
-2. **Use Web APIs**: `fetch`, `crypto`, Web Streams, etc.
-3. **Test real browser behavior**: Timers, events, storage APIs
-4. **Verify no Node.js pollution**: Check that Node.js globals are undefined
-
-## Running Tests Locally
-
-Browser tests require Playwright to be installed:
-
-```bash
-# In CI environment
-npm install -g playwright
-playwright install chromium --with-deps
+# Install workspace dependencies
+pnpm install
+# Install the Playwright Chromium browser
+pnpm --filter browser run install:browser
+# Run the browser tests
+pnpm --filter browser run test
 ```
 
 You might find it useful to run tests with headed mode (browser visible) to debug tests:
 
 ```bash
 # Run with headed mode (browser visible)
-HEADED=1 pnpm test:browser
+HEADED=1 pnpm --filter browser run test
 ```
