@@ -21,7 +21,7 @@ import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
-import { UIRegistry } from "./ui/registry/index.js";
+import type { UIRegistry } from "./ui/registry/index.js";
 
 export interface ServerOptions {
     session: Session;
@@ -30,6 +30,7 @@ export interface ServerOptions {
     telemetry: Telemetry;
     elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
+    uiRegistry?: UIRegistry;
     /**
      * Custom tool constructors to register with the server.
      * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
@@ -61,26 +62,6 @@ export interface ServerOptions {
      * ```
      */
     tools?: ToolClass[];
-    /**
-     * Custom UIs for tools. Function that returns HTML strings for tool names.
-     * Use this to add UIs to tools or replace the default bundled UIs.
-     * The function is called lazily when a UI is requested, allowing you to
-     * defer loading large HTML files until needed.
-     *
-     * ```ts
-     * import { readFileSync } from 'fs';
-     * const server = new Server({
-     *     // ... other options
-     *     customUIs: (toolName) => {
-     *         if (toolName === 'list-databases') {
-     *             return readFileSync('./my-custom-ui.html', 'utf-8');
-     *         }
-     *         return null;
-     *     }
-     * });
-     * ```
-     */
-    customUIs?: (toolName: string) => string | null | Promise<string | null>;
 }
 
 export class Server {
@@ -92,7 +73,7 @@ export class Server {
     private readonly toolConstructors: ToolClass[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
-    public readonly uiRegistry: UIRegistry;
+    public readonly uiRegistry?: UIRegistry;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -111,7 +92,7 @@ export class Server {
         connectionErrorHandler,
         elicitation,
         tools,
-        customUIs,
+        uiRegistry,
     }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
@@ -121,7 +102,7 @@ export class Server {
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
-        this.uiRegistry = new UIRegistry({ customUIs });
+        this.uiRegistry = uiRegistry;
     }
 
     async connect(transport: Transport): Promise<void> {
