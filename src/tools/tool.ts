@@ -14,7 +14,7 @@ import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
-import { MonitoringEventNames } from "../monitoring/types.js";
+import { MonitoringEventNames, type MonitoringToolEvent } from "../monitoring/types.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -764,8 +764,9 @@ export abstract class ToolBase {
             this.telemetry.emitEvents([telemetryEvent]);
         }
 
-        // Always emit to monitoring (for metrics) - separate event type
-        const monitoringEvent: import("../monitoring/types.js").MonitoringToolEvent = {
+        // Always emit to monitoring (for metrics) - separate event type.
+        // At this point, the tool is registered and the server is expected to be set.
+        const monitoringEvent: MonitoringToolEvent = {
             type: "tool",
             timestamp: new Date().toISOString(),
             duration_ms: duration,

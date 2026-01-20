@@ -21,6 +21,8 @@ import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { EventEmitter } from "events";
+import type { MonitoringEvents } from "../../../../src/monitoring/types.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -132,6 +134,7 @@ describe("MongoDBTool implementations", () => {
             version: "5.2.3",
         });
         const elicitation = new Elicitation({ server: internalMcpServer.server });
+        const monitoring = new EventEmitter<MonitoringEvents>();
 
         mcpServer = new Server({
             session,
@@ -140,6 +143,7 @@ describe("MongoDBTool implementations", () => {
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
             elicitation,
+            monitoring,
             tools: toolConstructors,
         });
 

@@ -16,6 +16,8 @@ import { VectorSearchEmbeddingsManager } from "../../../src/common/search/vector
 import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { EventEmitter } from "events";
+import type { MonitoringEvents } from "../../../src/monitoring/types.js";
 
 describeWithMongoDB(
     "mcpUI feature with feature disabled (default)",
@@ -187,6 +189,7 @@ describe("mcpUI feature with custom UIs", () => {
         const telemetry = Telemetry.create(session, userConfig, deviceId);
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const monitoring = new EventEmitter<MonitoringEvents>();
 
         const server = new Server({
             session,
@@ -195,6 +198,7 @@ describe("mcpUI feature with custom UIs", () => {
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
+            monitoring,
             customUIs: customUIsFunction,
         });
 

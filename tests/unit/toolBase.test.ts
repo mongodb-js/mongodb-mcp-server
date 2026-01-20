@@ -17,6 +17,8 @@ import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
+import { EventEmitter } from "events";
+import type { MonitoringEvents } from "../../src/monitoring/types.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -149,6 +151,7 @@ describe("ToolBase", () => {
                         mockCallback = cb;
                     },
                 },
+                monitoring: new EventEmitter<MonitoringEvents>(),
             };
             testTool.register(mockServer as unknown as Server);
         });
@@ -338,6 +341,7 @@ describe("ToolBase", () => {
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };
                     },
                 },
+                monitoring: new EventEmitter<MonitoringEvents>(),
             };
             tool.register(mockServer as unknown as Server);
         }
@@ -388,6 +392,7 @@ describe("ToolBase", () => {
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };
                     },
                 },
+                monitoring: new EventEmitter<MonitoringEvents>(),
             };
             toolWithoutStructured.register(mockServer as unknown as Server);
 

@@ -11,8 +11,8 @@ import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ConnectionStateConnected, ConnectionStateErrored } from "./common/connectionManager.js";
 import { EventEmitter } from "events";
-import type { MonitoringEvents } from "./monitoring/types.js";
-import { MonitoringEventNames, MonitoringConnectionCommand, MonitoringServerCommand } from "./monitoring/types.js";
+import type { MonitoringEvents, MonitoringServerEvent, MonitoringServerCommandType, MonitoringConnectionCommandType, MonitoringConnectionEvent } from "./monitoring/types.js";
+import { MonitoringEventNames, MonitoringConnectionCommand } from "./monitoring/types.js";
 import {
     CallToolRequestSchema,
     SetLevelRequestSchema,
@@ -34,6 +34,11 @@ export interface ServerOptions {
     telemetry: Telemetry;
     elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
+    /**
+     * Monitoring event emitter for internal observability and metrics collection.
+     * This is injected from the transport runner to allow external monitoring.
+     */
+    monitoring: EventEmitter<MonitoringEvents>;
     /**
      * Custom tool constructors to register with the server.
      * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
@@ -60,6 +65,7 @@ export interface ServerOptions {
      *     telemetry: myTelemetry,
      *     elicitation: myElicitation,
      *     connectionErrorHandler: myConnectionErrorHandler,
+     *     monitoring: myMonitoring,
      *     tools: [...AllTools, CustomTool],
      * });
      * ```
@@ -90,7 +96,7 @@ export interface ServerOptions {
 export class Server {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
-    public readonly telemetry: Telemetry;
+    private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: ToolClass[];
@@ -101,8 +107,9 @@ export class Server {
      * Monitoring event emitter for internal observability and metrics collection.
      * Always active regardless of telemetry settings.
      * Use this for Prometheus metrics, logging, and other internal monitoring.
+     * Injected from the transport runner.
      */
-    public readonly monitoring: EventEmitter<MonitoringEvents> = new EventEmitter();
+    public readonly monitoring: EventEmitter<MonitoringEvents>;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -120,6 +127,7 @@ export class Server {
         telemetry,
         connectionErrorHandler,
         elicitation,
+        monitoring,
         tools,
         customUIs,
     }: ServerOptions) {
@@ -130,6 +138,7 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
+        this.monitoring = monitoring;
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = new UIRegistry({ customUIs });
 
@@ -289,12 +298,12 @@ export class Server {
         this.telemetry.emitEvents([telemetryEvent]);
 
         // Emit to monitoring (for metrics) - separate event type
-        const monitoringEvent: import("./monitoring/types.js").MonitoringServerEvent = {
+        const monitoringEvent: MonitoringServerEvent = {
             type: "server",
             timestamp: new Date().toISOString(),
             duration_ms: commandDuration,
             result: error ? "failure" : "success",
-            command: command as import("./monitoring/types.js").MonitoringServerCommandType,
+            command: command as MonitoringServerCommandType,
             metadata: {
                 startup_time_ms: command === "start" ? commandDuration : undefined,
                 runtime_duration_ms: command === "stop" ? Date.now() - this.startTime : undefined,
@@ -307,8 +316,12 @@ export class Server {
 
     private setupConnectionMonitoring(): void {
         // Track connection request (start timing)
+        // Note: Multiple connection-request events can be emitted during a single connection attempt
+        // (e.g., for OIDC flows), so we only set the start time if it's not already set
         this.session.connectionManager.events.on("connection-request", () => {
-            this.connectionStartTime = Date.now();
+            if (this.connectionStartTime === undefined) {
+                this.connectionStartTime = Date.now();
+            }
         });
 
         // Track successful connections
@@ -337,13 +350,13 @@ export class Server {
     }
 
     private emitConnectionMonitoringEvent(
-        command: import("./monitoring/types.js").MonitoringConnectionCommandType,
+        command: MonitoringConnectionCommandType,
         duration: number,
         result: "success" | "failure",
         state?: ConnectionStateConnected | ConnectionStateErrored
     ): void {
         // Emit to monitoring only - connection events are NOT sent to telemetry backend
-        const monitoringEvent: import("./monitoring/types.js").MonitoringConnectionEvent = {
+        const monitoringEvent: MonitoringConnectionEvent = {
             type: "connection",
             timestamp: new Date().toISOString(),
             duration_ms: duration,
@@ -355,11 +368,11 @@ export class Server {
         if (state?.connectionStringAuthType) {
             monitoringEvent.connection_type = state.connectionStringAuthType;
         }
-        if (state?.connectedAtlasCluster?.clusterName) {
-            monitoringEvent.cluster_name = state.connectedAtlasCluster.clusterName;
-        }
         if (state?.connectedAtlasCluster) {
             monitoringEvent.is_atlas = true;
+            if (state.connectedAtlasCluster.clusterName) {
+                monitoringEvent.cluster_name = state.connectedAtlasCluster.clusterName;
+            }
         }
 
         this.monitoring.emit(MonitoringEventNames.CONNECTION_LIFECYCLE, monitoringEvent);

@@ -21,6 +21,8 @@ import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { type ApiClient } from "../../src/common/atlas/apiClient.js";
+import { EventEmitter } from "events";
+import type { MonitoringEvents } from "../../src/monitoring/types.js";
 
 interface Parameter {
     name: string;
@@ -136,6 +138,7 @@ export function setupIntegrationTest(
         }
 
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
+        const monitoring = new EventEmitter<MonitoringEvents>();
 
         mcpServer = new Server({
             session,
@@ -144,6 +147,7 @@ export function setupIntegrationTest(
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
+            monitoring,
             ...serverOptions,
         });
 

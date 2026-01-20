@@ -18,6 +18,8 @@ import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+import { EventEmitter } from "events";
+import type { MonitoringEvents } from "../../src/monitoring/types.js";
 
 class TestToolOne extends ToolBase {
     public name = "test-tool-one";
@@ -189,6 +191,7 @@ describe("Server integration test", () => {
             const telemetry = Telemetry.create(session, defaultTestConfig, deviceId);
             const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
             const elicitation = new Elicitation({ server: mcpServerInstance.server });
+            const monitoring = new EventEmitter<MonitoringEvents>();
 
             const server = new Server({
                 session,
@@ -197,6 +200,7 @@ describe("Server integration test", () => {
                 mcpServer: mcpServerInstance,
                 elicitation,
                 connectionErrorHandler,
+                monitoring,
                 tools: [...tools],
             });
 
