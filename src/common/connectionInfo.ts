@@ -13,7 +13,7 @@ type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
 
 /**
- * ConnectionStringInfo is a simple object that contains metadata about the connection string
+ * ConnectionStringInfo contains connection string metadata
  * without keeping the full connection string.
  */
 export interface ConnectionStringInfo {
