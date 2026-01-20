@@ -23,6 +23,9 @@ import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { ApiClient, ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { createAtlasApiClient } from "../common/atlas/apiClient.js";
+import { EventEmitter } from "events";
+import type { MonitoringEvents } from "../monitoring/types.js";
+import { MonitoringEventNames } from "../monitoring/types.js";
 
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
@@ -203,6 +206,7 @@ export type TransportRunnerConfig = {
 export abstract class TransportRunnerBase {
     public logger: LoggerBase;
     public deviceId: DeviceId;
+    public readonly monitoring: EventEmitter<MonitoringEvents> = new EventEmitter();
     protected readonly userConfig: UserConfig;
     private readonly createConnectionManager: ConnectionManagerFactoryFn;
     private readonly connectionErrorHandler: ConnectionErrorHandler;
@@ -325,6 +329,18 @@ export abstract class TransportRunnerBase {
             tools: this.tools,
         });
 
+        // Forward monitoring events from server to runner
+        // This allows downstream packages to access monitoring via runner.monitoring
+        result.monitoring.on(MonitoringEventNames.TOOL_EXECUTED, (event) =>
+            this.monitoring.emit(MonitoringEventNames.TOOL_EXECUTED, event)
+        );
+        result.monitoring.on(MonitoringEventNames.SERVER_LIFECYCLE, (event) =>
+            this.monitoring.emit(MonitoringEventNames.SERVER_LIFECYCLE, event)
+        );
+        result.monitoring.on(MonitoringEventNames.CONNECTION_LIFECYCLE, (event) =>
+            this.monitoring.emit(MonitoringEventNames.CONNECTION_LIFECYCLE, event)
+        );
+
         // We need to create the MCP logger after the server is constructed
         // because it needs the server instance
         if (userConfig.loggers.includes("mcp")) {
@@ -332,15 +348,6 @@ export abstract class TransportRunnerBase {
         }
 
         return result;
-    }
-
-    /**
-     * Get the Server instance if it has been created.
-     * This is useful for accessing telemetry and other server properties.
-     * @returns The Server instance or undefined if not yet created
-     */
-    public getServer(): Server | undefined {
-        return this.server;
     }
 
     abstract start(): Promise<void>;

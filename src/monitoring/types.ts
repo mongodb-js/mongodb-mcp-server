@@ -19,6 +19,30 @@ export const MonitoringEventNames = {
 export type MonitoringEventName = (typeof MonitoringEventNames)[keyof typeof MonitoringEventNames];
 
 /**
+ * Constants for connection lifecycle commands.
+ * Use these to filter connection lifecycle events.
+ */
+export const MonitoringConnectionCommand = {
+    CONNECT: "connect",
+    DISCONNECT: "disconnect",
+} as const;
+
+export type MonitoringConnectionCommandType =
+    (typeof MonitoringConnectionCommand)[keyof typeof MonitoringConnectionCommand];
+
+/**
+ * Constants for server lifecycle commands.
+ * Use these to filter server lifecycle events.
+ */
+export const MonitoringServerCommand = {
+    START: "start",
+    STOP: "stop",
+} as const;
+
+export type MonitoringServerCommandType =
+    (typeof MonitoringServerCommand)[keyof typeof MonitoringServerCommand];
+
+/**
  * Base monitoring event structure
  */
 export type MonitoringBaseEvent = {
@@ -51,7 +75,7 @@ export type MonitoringServerEvent = MonitoringBaseEvent & {
     /** Event type identifier */
     type: "server";
     /** Server command (start, stop) */
-    command: "start" | "stop";
+    command: MonitoringServerCommandType;
     /** Additional metadata (optional) */
     metadata?: Record<string, unknown>;
 };
@@ -64,7 +88,7 @@ export type MonitoringConnectionEvent = MonitoringBaseEvent & {
     /** Event type identifier */
     type: "connection";
     /** Connection command (connect, disconnect) */
-    command: "connect" | "disconnect";
+    command: MonitoringConnectionCommandType;
     /** Connection type (e.g., "scram", "oidc-auth-flow", "x.509") */
     connection_type?: string;
     /** Atlas cluster name if applicable */

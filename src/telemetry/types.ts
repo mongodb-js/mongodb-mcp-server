@@ -52,18 +52,6 @@ export type ServerEventProperties = {
 export type ServerEvent = TelemetryEvent<ServerEventProperties>;
 
 /**
- * Interface for connection events
- */
-export type ConnectionEventProperties = {
-    command: "connect" | "disconnect";
-    connection_type?: string;
-    cluster_name?: string;
-    is_atlas?: boolean;
-};
-
-export type ConnectionEvent = TelemetryEvent<ConnectionEventProperties>;
-
-/**
  * Interface for static properties, they can be fetched once and reused.
  */
 export type CommonStaticProperties = {

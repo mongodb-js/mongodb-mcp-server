@@ -40,7 +40,7 @@ export {
 } from "./common/connectionErrorHandler.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export { Telemetry, type TelemetryEvents } from "./telemetry/telemetry.js";
-export type { BaseEvent, ToolEvent, ServerEvent, ConnectionEvent } from "./telemetry/types.js";
+export type { BaseEvent, ToolEvent, ServerEvent } from "./telemetry/types.js";
 export type {
     MonitoringEvents,
     MonitoringEvent,
@@ -49,7 +49,7 @@ export type {
     MonitoringConnectionEvent,
     MonitoringEventName,
 } from "./monitoring/types.js";
-export { MonitoringEventNames } from "./monitoring/types.js";
+export { MonitoringEventNames, MonitoringConnectionCommand, MonitoringServerCommand } from "./monitoring/types.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
 export { Elicitation } from "./elicitation.js";

@@ -12,7 +12,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ConnectionStateConnected, ConnectionStateErrored } from "./common/connectionManager.js";
 import { EventEmitter } from "events";
 import type { MonitoringEvents } from "./monitoring/types.js";
-import { MonitoringEventNames } from "./monitoring/types.js";
+import { MonitoringEventNames, MonitoringConnectionCommand, MonitoringServerCommand } from "./monitoring/types.js";
 import {
     CallToolRequestSchema,
     SetLevelRequestSchema,
@@ -133,8 +133,8 @@ export class Server {
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = new UIRegistry({ customUIs });
 
-        // Track connection timing for telemetry
-        this.setupConnectionTelemetry();
+        // Track connection timing for monitoring
+        this.setupConnectionMonitoring();
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -294,7 +294,7 @@ export class Server {
             timestamp: new Date().toISOString(),
             duration_ms: commandDuration,
             result: error ? "failure" : "success",
-            command: command,
+            command: command as import("./monitoring/types.js").MonitoringServerCommandType,
             metadata: {
                 startup_time_ms: command === "start" ? commandDuration : undefined,
                 runtime_duration_ms: command === "stop" ? Date.now() - this.startTime : undefined,
@@ -305,7 +305,7 @@ export class Server {
 
     private connectionStartTime: number | undefined;
 
-    private setupConnectionTelemetry(): void {
+    private setupConnectionMonitoring(): void {
         // Track connection request (start timing)
         this.session.connectionManager.events.on("connection-request", () => {
             this.connectionStartTime = Date.now();
@@ -315,7 +315,7 @@ export class Server {
         this.session.connectionManager.events.on("connection-success", (state: ConnectionStateConnected) => {
             if (this.connectionStartTime !== undefined) {
                 const duration = Date.now() - this.connectionStartTime;
-                this.emitConnectionTelemetryEvent("connect", duration, "success", state);
+                this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.CONNECT, duration, "success", state);
                 this.connectionStartTime = undefined;
             }
         });
@@ -324,20 +324,20 @@ export class Server {
         this.session.connectionManager.events.on("connection-error", (state: ConnectionStateErrored) => {
             if (this.connectionStartTime !== undefined) {
                 const duration = Date.now() - this.connectionStartTime;
-                this.emitConnectionTelemetryEvent("connect", duration, "failure", state);
+                this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.CONNECT, duration, "failure", state);
                 this.connectionStartTime = undefined;
             }
         });
 
         // Track disconnections
         this.session.connectionManager.events.on("connection-close", () => {
-            const startTime = Date.now();
-            this.emitConnectionTelemetryEvent("disconnect", Date.now() - startTime, "success");
+            // Duration is 0 for disconnect events as it's not meaningful
+            this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.DISCONNECT, 0, "success");
         });
     }
 
-    private emitConnectionTelemetryEvent(
-        command: "connect" | "disconnect",
+    private emitConnectionMonitoringEvent(
+        command: import("./monitoring/types.js").MonitoringConnectionCommandType,
         duration: number,
         result: "success" | "failure",
         state?: ConnectionStateConnected | ConnectionStateErrored
