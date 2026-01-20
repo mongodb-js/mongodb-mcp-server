@@ -104,11 +104,39 @@ jobs:
           name: atlas-local-test-results
           path: coverage/lcov.info
 
+  run-browser-tests:
+    name: Run Browser tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm --filter browser run install:browser
+      - name: Run browser tests
+        run: pnpm run test:browser
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: browser-test-results
+          path: coverage/tests/browser/lcov.info
+
   coverage:
     name: Report Coverage
     if: always() && (github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
-    needs: [run-tests, run-atlas-tests, run-atlas-local-tests]
+    needs:
+      [run-tests, run-atlas-tests, run-atlas-local-tests, run-browser-tests]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -135,6 +163,11 @@ jobs:
         with:
           name: atlas-local-test-results
           path: coverage/atlas-local
+      - name: Download browser test results
+        uses: actions/download-artifact@v7
+        with:
+          name: browser-test-results
+          path: coverage/browser
       - name: Merge coverage reports
         run: |
           pnpm dlx lcov-result-merger@5.0.1 "coverage/*/lcov.info" "coverage/lcov.info"

@@ -16,6 +16,16 @@
         "default": "./dist/cjs/lib.js"
       }
     },
+    "./web": {
+      "import": {
+        "types": "./dist/esm/web.d.ts",
+        "default": "./dist/esm/web.js"
+      },
+      "require": {
+        "types": "./dist/cjs/web.d.ts",
+        "default": "./dist/cjs/web.js"
+      }
+    },
     "./tools": {
       "import": {
         "types": "./dist/esm/tools/index.d.ts",
@@ -79,6 +89,7 @@
     "pretest": "pnpm run build",
     "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
+    "test:browser": "pnpm --filter browser test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "test:local": "SKIP_ATLAS_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
     "atlas:cleanup": "vitest --project atlas-cleanup"
