@@ -164,11 +164,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             }, 30_000);
 
             let transport: StreamableHTTPServerTransport;
-            if (this.userConfig.externallyManagedSessions) {
-                if (!sessionId) {
-                    return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
-                }
-
+            if (this.userConfig.externallyManagedSessions && sessionId) {
                 console.log(`Initializing transport for externally managed session ID ${sessionId}`);
 
                 transport = new StreamableHTTPServerTransport({
