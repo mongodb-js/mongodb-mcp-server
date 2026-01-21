@@ -2,6 +2,15 @@
 name: Build and Push Docker Image
 on:
   workflow_call:
+    inputs:
+      npm_version:
+        description: "The npm package version to publish, without the prefix `v` (e.g., 1.2.3)"
+        required: true
+        type: string
+      release_channel:
+        description: "The release channel. Normally we only use latest and prerelease"
+        required: true
+        type: string
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -19,13 +28,45 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Get version and date
-        id: release-meta
+      - name: Generate Docker tags
+        id: docker-tags
         run: |
-          VERSION=$(npm pkg get version | tr -d '"')
+          set -e
+
+          NPM_VERSION="${{ inputs.npm_version }}"
+          # Strip 'v' prefix if present
+          NPM_VERSION="${NPM_VERSION#v}"
+          RELEASE_CHANNEL="${{ inputs.release_channel }}"
+          REPO="${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}"
           DATE=$(date +'%Y-%m-%d')
-          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "DATE=${DATE}" >> "$GITHUB_OUTPUT"
+
+          # Determine channel tag (latest for stable, channel name for prereleases)
+          if [[ "$RELEASE_CHANNEL" == "latest" ]]; then
+            CHANNEL_TAG="latest"
+          else
+            CHANNEL_TAG="$RELEASE_CHANNEL"
+          fi
+
+          VERSION_TAG="$NPM_VERSION"
+          VERSION_DATE_TAG="${NPM_VERSION}-${DATE}"
+
+          # We always include the floating tags
+          DOCKER_TAGS="${REPO}:${CHANNEL_TAG},${REPO}:${VERSION_TAG}"
+
+          # VERSION_DATE_TAG is included only if it does not exist already
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://hub.docker.com/v2/repositories/${REPO}/tags/${VERSION_DATE_TAG}")
+
+          if [[ "$HTTP_STATUS" == "200" ]]; then
+            echo "::notice::Tag ${VERSION_DATE_TAG} already exists, skipping immutable tag"
+          else
+            echo "::notice::Tag ${VERSION_DATE_TAG} does not exist, will be created"
+            DOCKER_TAGS="${DOCKER_TAGS},${REPO}:${VERSION_DATE_TAG}"
+          fi
+
+          echo "DOCKER_TAGS=${DOCKER_TAGS}" >> "$GITHUB_OUTPUT"
+          echo "VERSION=${NPM_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Docker tags to publish: ${DOCKER_TAGS}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
@@ -41,10 +82,10 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          tags: ${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}:latest, ${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}:${{ steps.release-meta.outputs.VERSION }}, ${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}:${{ steps.release-meta.outputs.VERSION }}-${{ steps.release-meta.outputs.DATE }}
+          tags: ${{ steps.docker-tags.outputs.DOCKER_TAGS }}
           file: Dockerfile
           push: true
           provenance: mode=max
           sbom: true
           build-args: |
-            VERSION=${{ steps.release-meta.outputs.VERSION }}
+            VERSION=${{ steps.docker-tags.outputs.VERSION }}
