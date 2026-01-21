@@ -503,7 +503,11 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 30_000 }),
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            queryMaxTimeMs: 30_000,
+            exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-${Date.now()}`),
+        }),
     }
 );
 
@@ -535,6 +539,10 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 0 }),
+        getUserConfig: () => ({
+            ...defaultTestConfig,
+            queryMaxTimeMs: 0,
+            exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-${Date.now()}`),
+        }),
     }
 );
