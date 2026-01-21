@@ -458,3 +458,77 @@ describeWithMongoDB(
         getUserConfig: () => userConfig,
     }
 );
+
+describeWithMongoDB(
+    "export tool with configured queryMaxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            const collection = integration.mongoClient().db(integration.randomDbName()).collection("test_export");
+            await collection.insertMany([{ name: "doc1" }, { name: "doc2" }, { name: "doc3" }]);
+        });
+
+        it("should apply maxTimeMS to export find operations", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "export",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "test_export",
+                    target: [{ name: "find", arguments: { filter: {} } }],
+                },
+            });
+
+            expect(response.isError).toBeUndefined();
+            const resourceLink = contentWithResourceURILink(response.content as CallToolResult["content"]);
+            expect(resourceLink).toBeDefined();
+        });
+
+        it("should apply maxTimeMS to export aggregate operations", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "export",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "test_export",
+                    target: [{ name: "aggregate", arguments: { pipeline: [{ $match: {} }] } }],
+                },
+            });
+
+            expect(response.isError).toBeUndefined();
+            const resourceLink = contentWithResourceURILink(response.content as CallToolResult["content"]);
+            expect(resourceLink).toBeDefined();
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 30_000 }),
+    }
+);
+
+describeWithMongoDB(
+    "export tool with disabled queryMaxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            const collection = integration.mongoClient().db(integration.randomDbName()).collection("test_export");
+            await collection.insertMany([{ name: "doc1" }, { name: "doc2" }, { name: "doc3" }]);
+        });
+
+        it("should not apply maxTimeMS when set to 0", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "export",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "test_export",
+                    target: [{ name: "find", arguments: { filter: {} } }],
+                },
+            });
+
+            expect(response.isError).toBeUndefined();
+            const resourceLink = contentWithResourceURILink(response.content as CallToolResult["content"]);
+            expect(resourceLink).toBeDefined();
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 0 }),
+    }
+);
