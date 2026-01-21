@@ -78,6 +78,7 @@ export class ExportTool extends MongoDBToolBase {
                 bsonRegExp: true,
                 // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                 signal,
+                maxTimeMS: this.config.queryMaxTimeMs || undefined,
             });
         } else {
             const { pipeline } = exportTarget.arguments;
@@ -87,6 +88,7 @@ export class ExportTool extends MongoDBToolBase {
                 allowDiskUse: true,
                 // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                 signal,
+                maxTimeMS: this.config.queryMaxTimeMs || undefined,
             });
         }
 
