@@ -462,22 +462,20 @@ describeWithMongoDB(
 describeWithMongoDB(
     "export tool with configured queryMaxTimeMs",
     (integration) => {
-        let dbName: string;
-
         beforeEach(async () => {
-            dbName = integration.randomDbName();
-            const collection = integration.mongoClient().db(dbName).collection("test_export");
+            await integration.connectMcpClient();
+            const collection = integration.mongoClient().db(integration.randomDbName()).collection("test_export");
             await collection.insertMany([{ name: "doc1" }, { name: "doc2" }, { name: "doc3" }]);
         });
 
         it("should apply maxTimeMS to export find operations", async () => {
-            await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "export",
                 arguments: {
-                    database: dbName,
+                    database: integration.randomDbName(),
                     collection: "test_export",
-                    target: [{ name: "find", arguments: { filter: {} } }],
+                    exportTitle: "Test export with queryMaxTimeMs",
+                    exportTarget: [{ name: "find", arguments: { filter: {} } }],
                 },
             });
 
@@ -487,13 +485,13 @@ describeWithMongoDB(
         });
 
         it("should apply maxTimeMS to export aggregate operations", async () => {
-            await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "export",
                 arguments: {
-                    database: dbName,
+                    database: integration.randomDbName(),
                     collection: "test_export",
-                    target: [{ name: "aggregate", arguments: { pipeline: [{ $match: {} }] } }],
+                    exportTitle: "Test aggregate export with queryMaxTimeMs",
+                    exportTarget: [{ name: "aggregate", arguments: { pipeline: [{ $match: {} }] } }],
                 },
             });
 
@@ -506,7 +504,7 @@ describeWithMongoDB(
         getUserConfig: () => ({
             ...defaultTestConfig,
             queryMaxTimeMs: 30_000,
-            exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-${Date.now()}`),
+            exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-queryMaxTimeMs-${Date.now()}`),
         }),
     }
 );
@@ -514,22 +512,20 @@ describeWithMongoDB(
 describeWithMongoDB(
     "export tool with disabled queryMaxTimeMs",
     (integration) => {
-        let dbName: string;
-
         beforeEach(async () => {
-            dbName = integration.randomDbName();
-            const collection = integration.mongoClient().db(dbName).collection("test_export");
+            await integration.connectMcpClient();
+            const collection = integration.mongoClient().db(integration.randomDbName()).collection("test_export");
             await collection.insertMany([{ name: "doc1" }, { name: "doc2" }, { name: "doc3" }]);
         });
 
         it("should not apply maxTimeMS when set to 0", async () => {
-            await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "export",
                 arguments: {
-                    database: dbName,
+                    database: integration.randomDbName(),
                     collection: "test_export",
-                    target: [{ name: "find", arguments: { filter: {} } }],
+                    exportTitle: "Test export with disabled queryMaxTimeMs",
+                    exportTarget: [{ name: "find", arguments: { filter: {} } }],
                 },
             });
 
@@ -542,7 +538,7 @@ describeWithMongoDB(
         getUserConfig: () => ({
             ...defaultTestConfig,
             queryMaxTimeMs: 0,
-            exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-${Date.now()}`),
+            exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-queryMaxTimeMs-disabled-${Date.now()}`),
         }),
     }
 );
