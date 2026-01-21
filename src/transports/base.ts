@@ -200,6 +200,17 @@ export type TransportRunnerConfig = {
      * differently and outside of MongoDB MCP server.
      */
     createApiClient?: ApiClientFactoryFn;
+
+    /**
+     * An optional monitoring event emitter for internal observability and metrics collection.
+     * When not provided, a new EventEmitter will be created automatically.
+     *
+     * Customize this if you want to:
+     * - Share a monitoring emitter across multiple server instances
+     * - Use a custom EventEmitter implementation
+     * - Set up listeners before the server starts
+     */
+    monitoring?: EventEmitter<MonitoringEvents>;
 };
 
 export abstract class TransportRunnerBase {
@@ -218,9 +229,9 @@ export abstract class TransportRunnerBase {
     /**
      * Monitoring event emitter for internal observability and metrics collection.
      * Always active regardless of telemetry settings.
-     * Use this for Prometheus metrics, logging, and other internal monitoring.
+     * Use this for metrics, logging, and other internal monitoring.
      */
-    public readonly monitoring: EventEmitter<MonitoringEvents> = new EventEmitter();
+    public readonly monitoring: EventEmitter<MonitoringEvents>;
 
     protected constructor({
         userConfig,
@@ -232,6 +243,7 @@ export abstract class TransportRunnerBase {
         tools,
         createSessionConfig,
         createApiClient = createAtlasApiClient,
+        monitoring,
     }: TransportRunnerConfig) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
@@ -241,6 +253,7 @@ export abstract class TransportRunnerBase {
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
+        this.monitoring = monitoring ?? new EventEmitter();
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));

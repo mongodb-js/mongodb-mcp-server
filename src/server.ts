@@ -106,7 +106,7 @@ export class Server {
     /**
      * Monitoring event emitter for internal observability and metrics collection.
      * Always active regardless of telemetry settings.
-     * Use this for Prometheus metrics, logging, and other internal monitoring.
+     * Use this for metrics, logging, and other internal monitoring.
      * Injected from the transport runner.
      */
     public readonly monitoring: EventEmitter<MonitoringEvents>;
@@ -119,6 +119,14 @@ export class Server {
 
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
+
+    // Store event listener references for cleanup
+    private connectionMonitoringListeners?: {
+        onRequest: () => void;
+        onSuccess: (state: ConnectionStateConnected) => void;
+        onError: (state: ConnectionStateErrored) => void;
+        onClose: () => void;
+    };
 
     constructor({
         session,
@@ -240,6 +248,9 @@ export class Server {
     }
 
     async close(): Promise<void> {
+        // Clean up connection monitoring event listeners
+        this.cleanupConnectionMonitoring();
+
         await this.telemetry.close();
         await this.session.close();
         await this.mcpServer.close();
@@ -316,38 +327,64 @@ export class Server {
         // Track connection start time in closure scope for better encapsulation
         let connectionStartTime: number | undefined;
 
-        // Track connection request (start timing)
-        // Note: Multiple connection-request events can be emitted during a single connection attempt
-        // (e.g., for OIDC flows), so we only set the start time if it's not already set
-        this.session.connectionManager.events.on("connection-request", () => {
+        // Define event listeners and store references for cleanup
+        const onRequest = (): void => {
             if (connectionStartTime === undefined) {
                 connectionStartTime = Date.now();
             }
-        });
+        };
 
-        // Track successful connections
-        this.session.connectionManager.events.on("connection-success", (state: ConnectionStateConnected) => {
+        const onSuccess = (state: ConnectionStateConnected): void => {
             if (connectionStartTime !== undefined) {
                 const duration = Date.now() - connectionStartTime;
                 this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.CONNECT, duration, "success", state);
                 connectionStartTime = undefined;
             }
-        });
+        };
 
-        // Track connection errors
-        this.session.connectionManager.events.on("connection-error", (state: ConnectionStateErrored) => {
+        const onError = (state: ConnectionStateErrored): void => {
             if (connectionStartTime !== undefined) {
                 const duration = Date.now() - connectionStartTime;
                 this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.CONNECT, duration, "failure", state);
                 connectionStartTime = undefined;
             }
-        });
+        };
 
-        // Track disconnections
-        this.session.connectionManager.events.on("connection-close", () => {
+        const onClose = (): void => {
             // Duration is 0 for disconnect events as it's not meaningful
             this.emitConnectionMonitoringEvent(MonitoringConnectionCommand.DISCONNECT, 0, "success");
-        });
+        };
+
+        // Store listener references for cleanup
+        (this.connectionMonitoringListeners as typeof this.connectionMonitoringListeners) = {
+            onRequest,
+            onSuccess,
+            onError,
+            onClose,
+        };
+
+        // Register event listeners
+        // Note: Multiple connection-request events can be emitted during a single connection attempt
+        // (e.g., for OIDC flows), so we only set the start time if it's not already set
+        this.session.connectionManager.events.on("connection-request", onRequest);
+        this.session.connectionManager.events.on("connection-success", onSuccess);
+        this.session.connectionManager.events.on("connection-error", onError);
+        this.session.connectionManager.events.on("connection-close", onClose);
+    }
+
+    /**
+     * Clean up connection monitoring event listeners.
+     * Should be called when the server is being closed.
+     */
+    private cleanupConnectionMonitoring(): void {
+        if (!this.connectionMonitoringListeners) {
+            return;
+        }
+
+        this.session.connectionManager.events.off("connection-request", this.connectionMonitoringListeners.onRequest);
+        this.session.connectionManager.events.off("connection-success", this.connectionMonitoringListeners.onSuccess);
+        this.session.connectionManager.events.off("connection-error", this.connectionMonitoringListeners.onError);
+        this.session.connectionManager.events.off("connection-close", this.connectionMonitoringListeners.onClose);
     }
 
     private emitConnectionMonitoringEvent(

@@ -547,7 +547,7 @@ export abstract class ToolBase {
      * Reference to the server instance. Set during tool registration.
      * Used for accessing monitoring events and other server-level functionality.
      */
-    protected server!: Server;
+    protected server?: Server;
 
     constructor({
         category,
@@ -568,10 +568,12 @@ export abstract class ToolBase {
     }
 
     public register(server: Server): boolean {
-        this.server = server;
         if (!this.verifyAllowed()) {
             return false;
         }
+
+        // Set server reference after verification passes
+        this.server = server;
 
         this.registeredTool =
             // Note: We use explicit type casting here to avoid  "excessively deep and possibly infinite" errors
@@ -765,17 +767,19 @@ export abstract class ToolBase {
         }
 
         // Always emit to monitoring (for metrics) - separate event type.
-        // At this point, the tool is registered and the server is expected to be set.
-        const monitoringEvent: MonitoringToolEvent = {
-            type: "tool",
-            timestamp: new Date().toISOString(),
-            duration_ms: duration,
-            result: result.isError ? "failure" : "success",
-            tool_name: this.name,
-            category: this.category,
-            metadata,
-        };
-        this.server.monitoring.emit(MonitoringEventNames.TOOL_EXECUTED, monitoringEvent);
+        // Only emit if the server has been set (i.e., tool has been registered)
+        if (this.server) {
+            const monitoringEvent: MonitoringToolEvent = {
+                type: "tool",
+                timestamp: new Date().toISOString(),
+                duration_ms: duration,
+                result: result.isError ? "failure" : "success",
+                tool_name: this.name,
+                category: this.category,
+                metadata,
+            };
+            this.server.monitoring.emit(MonitoringEventNames.TOOL_EXECUTED, monitoringEvent);
+        }
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
