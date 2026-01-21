@@ -462,8 +462,11 @@ describeWithMongoDB(
 describeWithMongoDB(
     "export tool with configured queryMaxTimeMs",
     (integration) => {
+        let dbName: string;
+
         beforeEach(async () => {
-            const collection = integration.mongoClient().db(integration.randomDbName()).collection("test_export");
+            dbName = integration.randomDbName();
+            const collection = integration.mongoClient().db(dbName).collection("test_export");
             await collection.insertMany([{ name: "doc1" }, { name: "doc2" }, { name: "doc3" }]);
         });
 
@@ -472,7 +475,7 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({
                 name: "export",
                 arguments: {
-                    database: integration.randomDbName(),
+                    database: dbName,
                     collection: "test_export",
                     target: [{ name: "find", arguments: { filter: {} } }],
                 },
@@ -488,7 +491,7 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({
                 name: "export",
                 arguments: {
-                    database: integration.randomDbName(),
+                    database: dbName,
                     collection: "test_export",
                     target: [{ name: "aggregate", arguments: { pipeline: [{ $match: {} }] } }],
                 },
@@ -507,8 +510,11 @@ describeWithMongoDB(
 describeWithMongoDB(
     "export tool with disabled queryMaxTimeMs",
     (integration) => {
+        let dbName: string;
+
         beforeEach(async () => {
-            const collection = integration.mongoClient().db(integration.randomDbName()).collection("test_export");
+            dbName = integration.randomDbName();
+            const collection = integration.mongoClient().db(dbName).collection("test_export");
             await collection.insertMany([{ name: "doc1" }, { name: "doc2" }, { name: "doc3" }]);
         });
 
@@ -517,7 +523,7 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({
                 name: "export",
                 arguments: {
-                    database: integration.randomDbName(),
+                    database: dbName,
                     collection: "test_export",
                     target: [{ name: "find", arguments: { filter: {} } }],
                 },
