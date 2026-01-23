@@ -102,16 +102,16 @@ importers:
         version: 15.7.0(react@18.3.1)
       '@leafygreen-ui/table':
         specifier: ^15.2.2
-        version: 15.2.2(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 15.2.2(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@leafygreen-ui/tokens':
         specifier: ^4.2.0
         version: 4.2.0(react@18.3.1)
       '@leafygreen-ui/typography':
         specifier: ^22.2.3
-        version: 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+        version: 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@modelcontextprotocol/inspector':
         specifier: ^0.17.1
-        version: 0.17.2(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@18.3.27))(@types/react@18.3.27)(hono@4.11.3)(typescript@5.9.3)
+        version: 0.17.2(@types/node@25.0.9)(@types/react-dom@19.2.3(@types/react@18.3.27))(@types/react@18.3.27)(hono@4.11.3)(typescript@5.9.3)
       '@mongodb-js/oidc-mock-provider':
         specifier: ^0.12.0
         version: 0.12.0
@@ -128,8 +128,8 @@ importers:
         specifier: ^5.0.3
         version: 5.0.6
       '@types/node':
-        specifier: ^24.5.2
-        version: 24.10.1
+        specifier: ^25.0.9
+        version: 25.0.9
       '@types/proper-lockfile':
         specifier: ^4.1.4
         version: 4.1.4
@@ -150,7 +150,7 @@ importers:
         version: 8.48.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       '@vitejs/plugin-react':
         specifier: ^5.1.1
-        version: 5.1.1(vite@5.4.21(@types/node@24.10.1))
+        version: 5.1.1(vite@5.4.21(@types/node@25.0.9))
       '@vitest/coverage-v8':
         specifier: ^3.2.4
         version: 3.2.4(@vitest/browser@3.2.4)(vitest@3.2.4)
@@ -186,7 +186,7 @@ importers:
         version: 27.3.0
       knip:
         specifier: ^5.63.1
-        version: 5.80.0(@types/node@24.10.1)(typescript@5.9.3)
+        version: 5.80.0(@types/node@25.0.9)(typescript@5.9.3)
       mongodb:
         specifier: ^6.21.0
         version: 6.21.0(kerberos@2.2.2)(mongodb-client-encryption@6.5.0)(socks@2.8.7)
@@ -234,16 +234,16 @@ importers:
         version: 13.0.0
       vite:
         specifier: ^5.4.21
-        version: 5.4.21(@types/node@24.10.1)
+        version: 5.4.21(@types/node@25.0.9)
       vite-plugin-node-polyfills:
         specifier: ^0.24.0
-        version: 0.24.0(rollup@4.53.3)(vite@5.4.21(@types/node@24.10.1))
+        version: 0.24.0(rollup@4.53.3)(vite@5.4.21(@types/node@25.0.9))
       vite-plugin-singlefile:
         specifier: ^2.3.0
-        version: 2.3.0(rollup@4.53.3)(vite@5.4.21(@types/node@24.10.1))
+        version: 2.3.0(rollup@4.53.3)(vite@5.4.21(@types/node@25.0.9))
       vitest:
         specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
+        version: 3.2.4(@types/node@25.0.9)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
     optionalDependencies:
       '@mongodb-js/atlas-local':
         specifier: ^1.1.0
@@ -256,13 +256,13 @@ importers:
     devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.24.2
-        version: 1.25.2(hono@4.11.3)(zod@4.3.5)
+        version: 1.25.2(hono@4.11.3)(zod@3.25.76)
       '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.1
+        specifier: ^25.0.9
+        version: 25.0.9
       '@vitest/browser':
         specifier: ^3.2.4
-        version: 3.2.4(playwright@1.57.0)(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4)
+        version: 3.2.4(playwright@1.57.0)(vite@7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4)
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
@@ -295,10 +295,10 @@ importers:
         version: 0.12.5
       vite:
         specifier: ^7.2.4
-        version: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+        version: 7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
+        version: 3.2.4(@types/node@25.0.9)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
 
 packages:
 
@@ -436,6 +436,10 @@ packages:
     resolution: {integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/runtime@7.28.6':
+    resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/template@7.27.2':
     resolution: {integrity: sha512-LPDZ85aEJyYSd18/DkjNh4/y1ntkE5KwUHWTiqgRxruuZL2F1yuHligVHLvcHY2vMHXttKFpJn6LwfI7cw7ODw==}
     engines: {node: '>=6.9.0'}
@@ -521,6 +525,15 @@ packages:
   '@emotion/memoize@0.9.0':
     resolution: {integrity: sha512-30FAj7/EoJ5mwVPOWhAyCX+FPfMDrVecJAM+Iw9NRoSl4BBAQeqj4cApHHUXOVvIPgLVDsCFoz/hGD+5QQD1GQ==}
 
+  '@emotion/react@11.14.0':
+    resolution: {integrity: sha512-O000MLDBDdk/EohJPFUqvnp4qnHeYkVP5B0xEG0D/L7cOKP9kefu2DXn8dj74cQfsEzUqh+sr1RzFqiL1o+PpA==}
+    peerDependencies:
+      '@types/react': '*'
+      react: '>=16.8.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
   '@emotion/serialize@1.3.3':
     resolution: {integrity: sha512-EISGqt7sSNWHGI76hC7x1CksiXPahbxEOrC5RjmFRJTqLyEK9/9hZvBbiYn70dw4wuwMKiEMCUlR6ZXTSWQqxA==}
 
@@ -540,6 +553,11 @@ packages:
 
   '@emotion/unitless@0.8.1':
     resolution: {integrity: sha512-KOEGMu6dmJZtpadb476IsZBclKvILjopjUii3V+7MnXIQCYh8W3NgNcgwo21n9LXZX6EDIKvqfjYxXebDwxKmQ==}
+
+  '@emotion/use-insertion-effect-with-fallbacks@1.2.0':
+    resolution: {integrity: sha512-yJMtVdH59sxi/aVJBpk9FQq+OR8ll5GT8oWd57UpeaKEVGab41JWaCFA7FRLoMLloOZF/c/wsPoe+bfGmRKgDg==}
+    peerDependencies:
+      react: '>=16.8.0'
 
   '@emotion/utils@1.4.2':
     resolution: {integrity: sha512-3vLclRofFziIa3J2wDh9jjbkUz9qk5Vi3IZ/FSTKViB0k+ef0fPV7dYrUIugbgupYDx7v9ud/SjrtEP8Y4xLoA==}
@@ -1152,8 +1170,14 @@ packages:
   '@leafygreen-ui/emotion@5.1.0':
     resolution: {integrity: sha512-PYTlsJ1gZWmuF549C+/57J3RT31s6KtsoWWe6bng1XAoTE06cvHOVmVC5yOeW2WHhpA3ulLckqX4Qj0kiofdww==}
 
+  '@leafygreen-ui/emotion@5.2.0':
+    resolution: {integrity: sha512-Sov+2tDy4ahGsRR8/KOV8Zzx+5fvVAj7Smyc1brgzE8ocXnOiwahQQ1wVvthAXS91iXPpnuNA5KL6Qzh3jNfQw==}
+
   '@leafygreen-ui/hooks@9.3.0':
     resolution: {integrity: sha512-KYLJuCctqIfY/ycIhKTS1PTJTADwBdrEgW31q/FqHKNc0y9C/KcQXjzx4xsYFSLZFoeiPvS+GGQ2rD/LTcCFMw==}
+
+  '@leafygreen-ui/hooks@9.3.1':
+    resolution: {integrity: sha512-KGJa5GoZ/crA1e0MRnJaadqXP5Gyn5VlLBkPyizFTe1dnlrp2OUnNEeb/TWKytT67sewNjOKqjBr0TG5YJQeJQ==}
 
   '@leafygreen-ui/icon-button@17.1.4':
     resolution: {integrity: sha512-n7EQ72FXs5fR4aN1y88NG4JIXTSOiWqGnfV4qB0FxNzkB4bpIhZoDPA+InokVV/xYDGuDmV2ngTRExoeJSMTuw==}
@@ -1184,6 +1208,9 @@ packages:
 
   '@leafygreen-ui/tokens@4.2.0':
     resolution: {integrity: sha512-5Bp1mhh8PKi7ZKr17/VNiSz0LL7ipFgR/Ayj7tIW79sbuGmBFt2rlu2lMnH6hQAvYrHWbW/FDqyeq85jOxIdTQ==}
+
+  '@leafygreen-ui/tokens@4.2.2':
+    resolution: {integrity: sha512-7E31JJ3ASrS5hJ7RxUA/ax+/nBLmNGwJb0AR8tlQsTHeipVeFwQEyWrxHxFTBv3Qyu3qk4L1n52LDuKFkbuENA==}
 
   '@leafygreen-ui/typography@22.2.3':
     resolution: {integrity: sha512-zOfPAFyUrUU0G9wPv7lFSMr4FvKi2NiulDMHhy5zea+J4gDn1yuiU0mItG6cwbWxpWSiBeF0gfsZoDuHgKppUg==}
@@ -2354,11 +2381,11 @@ packages:
   '@types/node@18.19.130':
     resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
 
-  '@types/node@20.19.27':
-    resolution: {integrity: sha512-N2clP5pJhB2YnZJ3PIHFk5RkygRX5WO/5f0WC08tp0wd+sv0rsJk3MqWn3CbNmT2J505a5336jaQj4ph1AdMug==}
+  '@types/node@20.19.30':
+    resolution: {integrity: sha512-WJtwWJu7UdlvzEAUm484QNg5eAoq5QR08KDNx7g45Usrs2NtOPiX8ugDqmKdXkyL03rBqU5dYNYVQetEpBHq2g==}
 
-  '@types/node@24.10.1':
-    resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
+  '@types/node@25.0.9':
+    resolution: {integrity: sha512-/rpCXHlCWeqClNBwUhDcusJxXYDjZTyE8v5oTO7WbL8eij2nKhUeU89/6xgjU7N4/Vh3He0BtyhJdQbDyhiXAw==}
 
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
@@ -3883,6 +3910,9 @@ packages:
   hmac-drbg@1.0.1:
     resolution: {integrity: sha512-Tti3gMqLdZfhOQY1Mzf/AanLiqh1WTiJgEj26ZuYQ9fbkLomzGchCws4FyrSd4VkpBfiNhaE1On+lOz894jvXg==}
 
+  hoist-non-react-statics@3.3.2:
+    resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
+
   hono@4.11.3:
     resolution: {integrity: sha512-PmQi306+M/ct/m5s66Hrg+adPnkD5jiO6IjA7WhWw0gSBSo1EcRegwuI1deZ+wd5pzCGynCcn2DprnE4/yEV4w==}
     engines: {node: '>=16.9.0'}
@@ -4298,6 +4328,9 @@ packages:
 
   lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+
+  lodash@4.17.23:
+    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
 
   long@5.3.2:
     resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
@@ -5564,6 +5597,7 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   test-exclude@7.0.1:
     resolution: {integrity: sha512-pFYqmTw68LXVjeWJMST4+borgQP2AyMNbg1BpZh9LbyhUeNkeaPF9gzfPGUAnSMV3qPYdWUwDIjjCLiSDOl7vg==}
@@ -6337,6 +6371,8 @@ snapshots:
 
   '@babel/runtime@7.28.4': {}
 
+  '@babel/runtime@7.28.6': {}
+
   '@babel/template@7.27.2':
     dependencies:
       '@babel/code-frame': 7.27.1
@@ -6450,6 +6486,22 @@ snapshots:
 
   '@emotion/memoize@0.9.0': {}
 
+  '@emotion/react@11.14.0(@types/react@18.3.27)(react@18.3.1)':
+    dependencies:
+      '@babel/runtime': 7.28.6
+      '@emotion/babel-plugin': 11.13.5
+      '@emotion/cache': 11.14.0
+      '@emotion/serialize': 1.3.3
+      '@emotion/use-insertion-effect-with-fallbacks': 1.2.0(react@18.3.1)
+      '@emotion/utils': 1.4.2
+      '@emotion/weak-memoize': 0.4.0
+      hoist-non-react-statics: 3.3.2
+      react: 18.3.1
+    optionalDependencies:
+      '@types/react': 18.3.27
+    transitivePeerDependencies:
+      - supports-color
+
   '@emotion/serialize@1.3.3':
     dependencies:
       '@emotion/hash': 0.9.2
@@ -6472,6 +6524,10 @@ snapshots:
   '@emotion/unitless@0.10.0': {}
 
   '@emotion/unitless@0.8.1': {}
+
+  '@emotion/use-insertion-effect-with-fallbacks@1.2.0(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
 
   '@emotion/utils@1.4.2': {}
 
@@ -6865,16 +6921,16 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/checkbox@18.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@leafygreen-ui/checkbox@18.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@leafygreen-ui/a11y': 3.0.5(react@18.3.1)
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/hooks': 9.3.0(react@18.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
       '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
-      '@leafygreen-ui/typography': 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/typography': 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@lg-tools/test-harnesses': 0.3.4
       react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
@@ -6889,6 +6945,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@leafygreen-ui/emotion@5.2.0(@types/react@18.3.27)(react@18.3.1)':
+    dependencies:
+      '@emotion/css': 11.13.5
+      '@emotion/react': 11.14.0(@types/react@18.3.27)(react@18.3.1)
+      '@emotion/server': 11.11.0(@emotion/css@11.13.5)
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
+      - supports-color
+
   '@leafygreen-ui/hooks@9.3.0(react@18.3.1)':
     dependencies:
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
@@ -6898,12 +6964,22 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/icon-button@17.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
+  '@leafygreen-ui/hooks@9.3.1(@types/react@18.3.27)(react@18.3.1)':
+    dependencies:
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
+      '@leafygreen-ui/tokens': 4.2.2(@types/react@18.3.27)(react@18.3.1)
+      lodash: 4.17.23
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
+      - supports-color
+
+  '@leafygreen-ui/icon-button@17.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@leafygreen-ui/a11y': 3.0.5(react@18.3.1)
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/icon': 14.7.1(react@18.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
       '@leafygreen-ui/polymorphic': 3.1.0(react@18.3.1)
@@ -6922,12 +6998,13 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@leafygreen-ui/hooks': 9.3.0(react@18.3.1)
+      '@leafygreen-ui/hooks': 9.3.1(@types/react@18.3.27)(react@18.3.1)
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
+      - '@types/react'
       - react
       - react-dom
       - supports-color
@@ -6946,19 +7023,19 @@ snapshots:
     transitivePeerDependencies:
       - react
 
-  '@leafygreen-ui/table@15.2.2(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@leafygreen-ui/table@15.2.2(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@leafygreen-ui/checkbox': 18.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/checkbox': 18.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/hooks': 9.3.0(react@18.3.1)
       '@leafygreen-ui/icon': 14.7.1(react@18.3.1)
-      '@leafygreen-ui/icon-button': 17.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/icon-button': 17.1.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
       '@leafygreen-ui/polymorphic': 3.1.0(react@18.3.1)
       '@leafygreen-ui/tokens': 4.2.0(react@18.3.1)
-      '@leafygreen-ui/typography': 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/typography': 22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@lg-tools/test-harnesses': 0.3.4
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-virtual': 3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -6980,11 +7057,21 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/typography@22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
+  '@leafygreen-ui/tokens@4.2.2(@types/react@18.3.27)(react@18.3.1)':
+    dependencies:
+      '@leafygreen-ui/emotion': 5.2.0(@types/react@18.3.27)(react@18.3.1)
+      '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
+      '@leafygreen-ui/palette': 5.0.2
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
+      - supports-color
+
+  '@leafygreen-ui/typography@22.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@leafygreen-ui/emotion': 5.1.0
       '@leafygreen-ui/icon': 14.7.1(react@18.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@leafygreen-ui/lib': 15.7.0(react@18.3.1)
       '@leafygreen-ui/palette': 5.0.2
       '@leafygreen-ui/polymorphic': 3.1.0(react@18.3.1)
@@ -7095,7 +7182,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@modelcontextprotocol/inspector@0.17.2(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@18.3.27))(@types/react@18.3.27)(hono@4.11.3)(typescript@5.9.3)':
+  '@modelcontextprotocol/inspector@0.17.2(@types/node@25.0.9)(@types/react-dom@19.2.3(@types/react@18.3.27))(@types/react@18.3.27)(hono@4.11.3)(typescript@5.9.3)':
     dependencies:
       '@modelcontextprotocol/inspector-cli': 0.17.2(hono@4.11.3)(zod@3.25.76)
       '@modelcontextprotocol/inspector-client': 0.17.2(@types/react-dom@19.2.3(@types/react@18.3.27))(@types/react@18.3.27)(hono@4.11.3)
@@ -7106,7 +7193,7 @@ snapshots:
       open: 10.2.0
       shell-quote: 1.8.3
       spawn-rx: 5.1.2
-      ts-node: 10.9.2(@types/node@24.10.1)(typescript@5.9.3)
+      ts-node: 10.9.2(@types/node@25.0.9)(typescript@5.9.3)
       zod: 3.25.76
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -7139,28 +7226,6 @@ snapshots:
       raw-body: 3.0.2
       zod: 3.25.76
       zod-to-json-schema: 3.25.1(zod@3.25.76)
-    transitivePeerDependencies:
-      - hono
-      - supports-color
-
-  '@modelcontextprotocol/sdk@1.25.2(hono@4.11.3)(zod@4.3.5)':
-    dependencies:
-      '@hono/node-server': 1.19.7(hono@4.11.3)
-      ajv: 8.17.1
-      ajv-formats: 3.0.1(ajv@8.17.1)
-      content-type: 1.0.5
-      cors: 2.8.5
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.0.6
-      express: 5.2.1
-      express-rate-limit: 7.5.1(express@5.2.1)
-      jose: 6.1.3
-      json-schema-typed: 8.0.2
-      pkce-challenge: 5.0.1
-      raw-body: 3.0.2
-      zod: 4.3.5
-      zod-to-json-schema: 3.25.1(zod@4.3.5)
     transitivePeerDependencies:
       - hono
       - supports-color
@@ -8289,7 +8354,7 @@ snapshots:
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
 
   '@types/chai@5.2.3':
     dependencies:
@@ -8298,26 +8363,26 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
 
   '@types/deep-eql@4.0.2': {}
 
   '@types/docker-modem@3.0.6':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       '@types/ssh2': 1.15.5
 
   '@types/dockerode@3.3.47':
     dependencies:
       '@types/docker-modem': 3.0.6
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       '@types/ssh2': 1.15.5
 
   '@types/estree@1.0.8': {}
 
   '@types/express-serve-static-core@5.1.0':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       '@types/qs': 6.14.0
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
@@ -8336,11 +8401,11 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@20.19.27':
+  '@types/node@20.19.30':
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@24.10.1':
+  '@types/node@25.0.9':
     dependencies:
       undici-types: 7.16.0
 
@@ -8371,20 +8436,20 @@ snapshots:
 
   '@types/send@1.2.1':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
 
   '@types/serve-static@2.2.0':
     dependencies:
       '@types/http-errors': 2.0.5
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
 
   '@types/ssh2-streams@0.1.13':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
 
   '@types/ssh2@0.5.52':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       '@types/ssh2-streams': 0.1.13
 
   '@types/ssh2@1.15.5':
@@ -8608,7 +8673,7 @@ snapshots:
 
   '@vercel/oidc@3.1.0': {}
 
-  '@vitejs/plugin-react@5.1.1(vite@5.4.21(@types/node@24.10.1))':
+  '@vitejs/plugin-react@5.1.1(vite@5.4.21(@types/node@25.0.9))':
     dependencies:
       '@babel/core': 7.28.5
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.5)
@@ -8616,20 +8681,20 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.47
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: 5.4.21(@types/node@24.10.1)
+      vite: 5.4.21(@types/node@25.0.9)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/browser@3.2.4(playwright@1.57.0)(vite@5.4.21(@types/node@24.10.1))(vitest@3.2.4)':
+  '@vitest/browser@3.2.4(playwright@1.57.0)(vite@5.4.21(@types/node@25.0.9))(vitest@3.2.4)':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/mocker': 3.2.4(vite@5.4.21(@types/node@24.10.1))
+      '@vitest/mocker': 3.2.4(vite@5.4.21(@types/node@25.0.9))
       '@vitest/utils': 3.2.4
       magic-string: 0.30.21
       sirv: 3.0.2
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 3.2.4(@types/node@25.0.9)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
       ws: 8.18.3
     optionalDependencies:
       playwright: 1.57.0
@@ -8640,16 +8705,16 @@ snapshots:
       - vite
     optional: true
 
-  '@vitest/browser@3.2.4(playwright@1.57.0)(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4)':
+  '@vitest/browser@3.2.4(playwright@1.57.0)(vite@7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4)':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/mocker': 3.2.4(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitest/mocker': 3.2.4(vite@7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       '@vitest/utils': 3.2.4
       magic-string: 0.30.21
       sirv: 3.0.2
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 3.2.4(@types/node@25.0.9)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
       ws: 8.18.3
     optionalDependencies:
       playwright: 1.57.0
@@ -8674,9 +8739,9 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 3.2.4(@types/node@25.0.9)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
     optionalDependencies:
-      '@vitest/browser': 3.2.4(playwright@1.57.0)(vite@5.4.21(@types/node@24.10.1))(vitest@3.2.4)
+      '@vitest/browser': 3.2.4(playwright@1.57.0)(vite@5.4.21(@types/node@25.0.9))(vitest@3.2.4)
     transitivePeerDependencies:
       - supports-color
 
@@ -8687,7 +8752,7 @@ snapshots:
       eslint: 9.39.2(jiti@2.6.1)
     optionalDependencies:
       typescript: 5.9.3
-      vitest: 3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 3.2.4(@types/node@25.0.9)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -8699,22 +8764,22 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.2.4(vite@5.4.21(@types/node@24.10.1))':
+  '@vitest/mocker@3.2.4(vite@5.4.21(@types/node@25.0.9))':
     dependencies:
       '@vitest/spy': 3.2.4
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 5.4.21(@types/node@24.10.1)
+      vite: 5.4.21(@types/node@25.0.9)
     optional: true
 
-  '@vitest/mocker@3.2.4(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@vitest/mocker@3.2.4(vite@7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@vitest/spy': 3.2.4
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/pretty-format@3.2.4':
     dependencies:
@@ -10234,7 +10299,7 @@ snapshots:
 
   happy-dom@20.0.11:
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 20.19.30
       '@types/whatwg-mimetype': 3.0.2
       whatwg-mimetype: 3.0.0
 
@@ -10284,6 +10349,10 @@ snapshots:
       hash.js: 1.1.7
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
+
+  hoist-non-react-statics@3.3.2:
+    dependencies:
+      react-is: 16.13.1
 
   hono@4.11.3: {}
 
@@ -10656,10 +10725,10 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  knip@5.80.0(@types/node@24.10.1)(typescript@5.9.3):
+  knip@5.80.0(@types/node@25.0.9)(typescript@5.9.3):
     dependencies:
       '@nodelib/fs.walk': 1.2.8
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       fast-glob: 3.3.3
       formatly: 0.3.0
       jiti: 2.6.1
@@ -10695,6 +10764,8 @@ snapshots:
   lodash.merge@4.6.2: {}
 
   lodash@4.17.21: {}
+
+  lodash@4.17.23: {}
 
   long@5.3.2: {}
 
@@ -11430,7 +11501,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       long: 5.3.2
 
   proxy-addr@2.0.7:
@@ -12354,14 +12425,14 @@ snapshots:
 
   ts-levenshtein@1.0.7: {}
 
-  ts-node@10.9.2(@types/node@24.10.1)(typescript@5.9.3):
+  ts-node@10.9.2(@types/node@25.0.9)(typescript@5.9.3):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.12
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       acorn: 8.15.0
       acorn-walk: 8.3.4
       arg: 4.1.3
@@ -12533,13 +12604,13 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite-node@3.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2):
+  vite-node@3.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3(supports-color@10.2.2)
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -12554,30 +12625,30 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-node-polyfills@0.24.0(rollup@4.53.3)(vite@5.4.21(@types/node@24.10.1)):
+  vite-plugin-node-polyfills@0.24.0(rollup@4.53.3)(vite@5.4.21(@types/node@25.0.9)):
     dependencies:
       '@rollup/plugin-inject': 5.0.5(rollup@4.53.3)
       node-stdlib-browser: 1.3.1
-      vite: 5.4.21(@types/node@24.10.1)
+      vite: 5.4.21(@types/node@25.0.9)
     transitivePeerDependencies:
       - rollup
 
-  vite-plugin-singlefile@2.3.0(rollup@4.53.3)(vite@5.4.21(@types/node@24.10.1)):
+  vite-plugin-singlefile@2.3.0(rollup@4.53.3)(vite@5.4.21(@types/node@25.0.9)):
     dependencies:
       micromatch: 4.0.8
       rollup: 4.53.3
-      vite: 5.4.21(@types/node@24.10.1)
+      vite: 5.4.21(@types/node@25.0.9)
 
-  vite@5.4.21(@types/node@24.10.1):
+  vite@5.4.21(@types/node@25.0.9):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.6
       rollup: 4.53.3
     optionalDependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       fsevents: 2.3.3
 
-  vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2):
+  vite@7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.3)
@@ -12586,17 +12657,17 @@ snapshots:
       rollup: 4.53.3
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 24.10.1
+      '@types/node': 25.0.9
       fsevents: 2.3.3
       jiti: 2.6.1
       tsx: 4.21.0
       yaml: 2.8.2
 
-  vitest@3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2):
+  vitest@3.2.4(@types/node@25.0.9)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitest/mocker': 3.2.4(vite@7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
@@ -12614,12 +12685,12 @@ snapshots:
       tinyglobby: 0.2.15
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
-      vite: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
-      vite-node: 3.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite-node: 3.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 24.10.1
-      '@vitest/browser': 3.2.4(playwright@1.57.0)(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4)
+      '@types/node': 25.0.9
+      '@vitest/browser': 3.2.4(playwright@1.57.0)(vite@7.2.4(@types/node@25.0.9)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4)
       happy-dom: 20.0.11
       jsdom: 27.3.0
     transitivePeerDependencies:
@@ -12828,10 +12899,6 @@ snapshots:
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
       zod: 3.25.76
-
-  zod-to-json-schema@3.25.1(zod@4.3.5):
-    dependencies:
-      zod: 4.3.5
 
   zod@3.25.76: {}
 
