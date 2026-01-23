@@ -40,13 +40,7 @@ jobs:
           REPO="${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}"
           DATE=$(date +'%Y-%m-%d')
 
-          # Determine channel tag (latest for stable, channel name for prereleases)
-          if [[ "$RELEASE_CHANNEL" == "latest" ]]; then
-            CHANNEL_TAG="latest"
-          else
-            CHANNEL_TAG="$RELEASE_CHANNEL"
-          fi
-
+          CHANNEL_TAG="$RELEASE_CHANNEL"
           VERSION_TAG="$NPM_VERSION"
           VERSION_DATE_TAG="${NPM_VERSION}-${DATE}"
 
