@@ -30,14 +30,18 @@ jobs:
 
       - name: Generate Docker tags
         id: docker-tags
+        env:
+          NPM_VERSION_INPUT: "${{ inputs.npm_version }}"
+          RELEASE_CHANNEL_INPUT: "${{ inputs.release_channel }}"
+          DOCKERHUB_REPOSITORY: "${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}"
         run: |
           set -e
 
-          NPM_VERSION="${{ inputs.npm_version }}"
+          NPM_VERSION="$NPM_VERSION_INPUT"
           # Strip 'v' prefix if present
           NPM_VERSION="${NPM_VERSION#v}"
-          RELEASE_CHANNEL="${{ inputs.release_channel }}"
-          REPO="${{ vars.DOCKERHUB_IMAGE_REPOSITORY }}"
+          RELEASE_CHANNEL="$RELEASE_CHANNEL_INPUT"
+          REPO="$DOCKERHUB_REPOSITORY"
           DATE=$(date +'%Y-%m-%d')
 
           CHANNEL_TAG="$RELEASE_CHANNEL"
