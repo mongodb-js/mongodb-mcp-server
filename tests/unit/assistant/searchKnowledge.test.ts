@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     expectDefined,
     validateToolMetadata,
@@ -26,7 +26,7 @@ describeWithAssistant("search-knowledge", (integration) => {
             {
                 name: "dataSources",
                 description:
-                    "A list of one or more data sources to search in. You can specify a specific version of a data source by providing the version label. If not provided, the latest version of all data sources will be searched.",
+                    "A list of one or more data sources to limit the search to. You can specify a specific version of a data source by providing the version label. If not provided, the latest version of all data sources will be searched. Available data sources and their versions can be listed by calling the list-knowledge-sources tool.",
                 type: "array",
                 required: false,
             },
@@ -38,7 +38,8 @@ describeWithAssistant("search-knowledge", (integration) => {
             },
             {
                 name: "query",
-                description: "A natural language query to search for in the knowledge base",
+                description:
+                    "A natural language query to search for in the MongoDB Assistant knowledge base. This should be a single question or a topic that is relevant to the user's MongoDB use case.",
                 type: "string",
                 required: true,
             },
