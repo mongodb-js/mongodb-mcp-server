@@ -11,8 +11,8 @@ import type {
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-    ConnectionStringAuthType,
 } from "./connectionManager.js";
+import type { ConnectionStringInfo } from "./connectionInfo.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
@@ -201,7 +201,7 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.connectedAtlasCluster;
     }
 
-    get connectionStringAuthType(): ConnectionStringAuthType | undefined {
-        return this.connectionManager.currentConnectionState.connectionStringAuthType;
+    get connectionStringInfo(): ConnectionStringInfo | undefined {
+        return this.connectionManager.currentConnectionState.connectionStringInfo;
     }
 }

@@ -11,7 +11,7 @@ import type { Server } from "../server.js";
 import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
 import type { UIRegistry } from "../ui/registry/index.js";
-import { createUIResource } from "@mcp-ui/server";
+import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 
@@ -96,7 +96,7 @@ export type ToolConstructorParams = {
      * See `src/elicitation.ts` for further reference.
      */
     elicitation: Elicitation;
-    uiRegistry: UIRegistry;
+    uiRegistry?: UIRegistry;
 };
 
 /**
@@ -541,7 +541,7 @@ export abstract class ToolBase {
      * or inputs during tool execution.
      */
     protected readonly elicitation: Elicitation;
-    private readonly uiRegistry: UIRegistry;
+    private readonly uiRegistry?: UIRegistry;
     constructor({
         category,
         operationType,
@@ -763,13 +763,20 @@ export abstract class ToolBase {
 
     protected getConnectionInfoMetadata(): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
-        if (this.session.connectedAtlasCluster?.projectId) {
-            metadata.project_id = this.session.connectedAtlasCluster.projectId;
+
+        if (this.session === undefined) {
+            return metadata;
         }
 
-        const connectionStringAuthType = this.session.connectionStringAuthType;
-        if (connectionStringAuthType !== undefined) {
-            metadata.connection_auth_type = connectionStringAuthType;
+        if (this.session.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = this.session.connectionStringInfo.authType;
+            metadata.connection_host_type = this.session.connectionStringInfo.hostType;
+        }
+
+        if (this.session.connectedAtlasCluster !== undefined) {
+            if (this.session.connectedAtlasCluster.projectId) {
+                metadata.project_id = this.session.connectedAtlasCluster.projectId;
+            }
         }
 
         return metadata;
@@ -786,26 +793,31 @@ export abstract class ToolBase {
             return result;
         }
 
-        const uiHtml = await this.uiRegistry.get(this.name);
-        if (!uiHtml || !result.structuredContent) {
-            return result;
+        let uiResource: UIResource | undefined;
+        if (this.uiRegistry) {
+            const uiHtml = await this.uiRegistry.get(this.name);
+            if (!uiHtml || !result.structuredContent) {
+                return result;
+            }
+            uiResource = createUIResource({
+                uri: `ui://${this.name}`,
+                content: {
+                    type: "rawHtml",
+                    htmlString: uiHtml,
+                },
+                encoding: "text",
+                uiMetadata: {
+                    "initial-render-data": result.structuredContent,
+                },
+            });
         }
 
-        const uiResource = createUIResource({
-            uri: `ui://${this.name}`,
-            content: {
-                type: "rawHtml",
-                htmlString: uiHtml,
-            },
-            encoding: "text",
-            uiMetadata: {
-                "initial-render-data": result.structuredContent,
-            },
-        });
+        const resultContent = result.content || [];
+        const content = uiResource ? [...resultContent, uiResource] : resultContent;
 
         return {
             ...result,
-            content: [...(result.content || []), uiResource],
+            content,
         };
     }
 }

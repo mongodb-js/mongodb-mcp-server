@@ -16,6 +16,7 @@ import { VectorSearchEmbeddingsManager } from "../../../src/common/search/vector
 import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { UIRegistry } from "../../../src/ui/index.js";
 
 describeWithMongoDB(
     "mcpUI feature with feature disabled (default)",
@@ -195,7 +196,7 @@ describe("mcpUI feature with custom UIs", () => {
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
-            customUIs: customUIsFunction,
+            uiRegistry: new UIRegistry({ customUIs: customUIsFunction }),
         });
 
         const transport = new InMemoryTransport();
