@@ -51,6 +51,7 @@ const expectedDefaults = {
     previewFeatures: [],
     dryRun: false,
     allowRequestOverrides: false,
+    externallyManagedSessions: false,
 };
 
 const CONFIG_FIXTURES = {
