@@ -10,6 +10,7 @@ jobs:
           echo "this is a test"
           exit 1
   test2:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - run: |
