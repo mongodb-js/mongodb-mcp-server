@@ -64,7 +64,7 @@ jobs:
       contents: read
       issues: write
     needs: [get-version, docker-push]
-    if: ${{ always() && (needs.get-version.result == 'failure' || needs.docker-push.result == 'failure') }}
+    if: ${{ failure() }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         with:
