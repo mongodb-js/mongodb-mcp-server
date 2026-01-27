@@ -133,6 +133,44 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             };
             const server = await this.setupServer(request);
 
+            let transport: StreamableHTTPServerTransport;
+            if (this.userConfig.externallyManagedSessions && sessionId) {
+                transport = new StreamableHTTPServerTransport({
+                    enableJsonResponse: true,
+                });
+                server.session.logger.setAttribute("sessionId", sessionId);
+
+                this.sessionStore.setSession(sessionId, transport, server.session.logger);
+            } else {
+                if (sessionId) {
+                    this.logger.warning({
+                        id: LogId.streamableHttpTransportIgnoredSessionIdWarning,
+                        context: "streamableHttpTransport",
+                        message: `Ignoring provided session ID ${sessionId} as externallyManagedSessions is disabled`,
+                    });
+                }
+
+                transport = new StreamableHTTPServerTransport({
+                    sessionIdGenerator: (): string => getRandomUUID(),
+                    onsessioninitialized: (sessionId): void => {
+                        server.session.logger.setAttribute("sessionId", sessionId);
+
+                        this.sessionStore.setSession(sessionId, transport, server.session.logger);
+                    },
+                    onsessionclosed: async (sessionId): Promise<void> => {
+                        try {
+                            await this.sessionStore.closeSession(sessionId, false);
+                        } catch (error) {
+                            this.logger.error({
+                                id: LogId.streamableHttpTransportSessionCloseFailure,
+                                context: "streamableHttpTransport",
+                                message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                            });
+                        }
+                    },
+                });
+            }
+
             let failedPings = 0;
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             const keepAliveLoop: NodeJS.Timeout = setInterval(async () => {
@@ -171,36 +209,6 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     }
                 }
             }, 30_000);
-
-            let transport: StreamableHTTPServerTransport;
-            if (this.userConfig.externallyManagedSessions && sessionId) {
-                transport = new StreamableHTTPServerTransport({
-                    enableJsonResponse: true,
-                });
-                server.session.logger.setAttribute("sessionId", sessionId);
-
-                this.sessionStore.setSession(sessionId, transport, server.session.logger);
-            } else {
-                transport = new StreamableHTTPServerTransport({
-                    sessionIdGenerator: (): string => sessionId ?? getRandomUUID(),
-                    onsessioninitialized: (sessionId): void => {
-                        server.session.logger.setAttribute("sessionId", sessionId);
-
-                        this.sessionStore.setSession(sessionId, transport, server.session.logger);
-                    },
-                    onsessionclosed: async (sessionId): Promise<void> => {
-                        try {
-                            await this.sessionStore.closeSession(sessionId, false);
-                        } catch (error) {
-                            this.logger.error({
-                                id: LogId.streamableHttpTransportSessionCloseFailure,
-                                context: "streamableHttpTransport",
-                                message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-                            });
-                        }
-                    },
-                });
-            }
 
             transport.onclose = (): void => {
                 clearInterval(keepAliveLoop);

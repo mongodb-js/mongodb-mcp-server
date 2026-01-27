@@ -1,7 +1,7 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
 import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
@@ -14,11 +14,58 @@ describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
     let config: UserConfig;
 
+    let clients: Client[] = [];
+
+    const connectClient = async ({
+        sessionId = undefined,
+        shouldInitialize = true,
+        additionalHeaders = {},
+    }: {
+        sessionId?: string;
+        shouldInitialize?: boolean;
+        additionalHeaders?: Record<string, string>;
+    }): Promise<Client> => {
+        const client = new Client({
+            name: "test",
+            version: "0.0.0",
+        });
+
+        const requestHeaders: Record<string, string> = {
+            ...additionalHeaders,
+        };
+        if (shouldInitialize && sessionId) {
+            requestHeaders["mcp-session-id"] = sessionId;
+        }
+
+        const transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
+            requestInit: {
+                headers: requestHeaders,
+            },
+            sessionId: shouldInitialize ? undefined : sessionId,
+        });
+
+        await client.connect(transport);
+
+        clients.push(client);
+        return client;
+    };
+
     beforeEach(() => {
         config = {
             ...defaultTestConfig,
             httpPort: 0, // Use a random port for testing
         };
+    });
+
+    afterEach(async () => {
+        for (const client of clients) {
+            await client.close();
+        }
+        clients = [];
+
+        await runner?.close();
+        // Make sure runner is reset
+        runner = undefined as unknown as StreamableHttpRunner;
     });
 
     const headerTestCases: { headers: Record<string, string>; description: string }[] = [
@@ -28,14 +75,10 @@ describe("StreamableHttpRunner", () => {
 
     for (const { headers, description } of headerTestCases) {
         describe(description, () => {
-            beforeAll(async () => {
+            beforeEach(async () => {
                 config.httpHeaders = headers;
                 runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
-            });
-
-            afterAll(async () => {
-                await runner.close();
             });
 
             const clientHeaderTestCases = [
@@ -59,28 +102,9 @@ describe("StreamableHttpRunner", () => {
                 expectSuccess,
             } of clientHeaderTestCases) {
                 describe(clientDescription, () => {
-                    let client: Client;
-                    let transport: StreamableHTTPClientTransport;
-                    beforeAll(() => {
-                        client = new Client({
-                            name: "test",
-                            version: "0.0.0",
-                        });
-                        transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
-                            requestInit: {
-                                headers: clientHeaders,
-                            },
-                        });
-                    });
-
-                    afterAll(async () => {
-                        await client.close();
-                        await transport.close();
-                    });
-
                     it(`should ${expectSuccess ? "succeed" : "fail"}`, async () => {
                         try {
-                            await client.connect(transport);
+                            const client = await connectClient({ additionalHeaders: clientHeaders });
                             const response = await client.listTools();
                             expect(response).toBeDefined();
                             expect(response.tools).toBeDefined();
@@ -104,74 +128,49 @@ describe("StreamableHttpRunner", () => {
     }
 
     describe("with httpBodyLimit configuration", () => {
+        beforeEach(async () => {
+            config.httpBodyLimit = 1024;
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+        });
+
         it("should accept requests within the body limit", async () => {
-            const testConfig = {
-                ...defaultTestConfig,
-                httpPort: 0,
-                httpBodyLimit: 1024 * 1024,
-            };
-            const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
-            await testRunner.start();
+            const client = await connectClient({});
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+            expect(response.tools).toBeDefined();
 
-            try {
-                const client = new Client({
-                    name: "test",
-                    version: "0.0.0",
-                });
-                const transport = new StreamableHTTPClientTransport(new URL(`${testRunner.serverAddress}/mcp`));
-
-                await client.connect(transport);
-                const response = await client.listTools();
-                expect(response).toBeDefined();
-                expect(response.tools).toBeDefined();
-
-                await client.close();
-                await transport.close();
-            } finally {
-                await testRunner.close();
-            }
+            await client.close();
         });
 
         it("should reject requests exceeding the body limit", async () => {
-            const testConfig = {
-                ...defaultTestConfig,
-                httpPort: 0,
-                httpBodyLimit: 1024, // Very small limit (1kb)
-            };
-            const testRunner = new StreamableHttpRunner({ userConfig: testConfig });
-            await testRunner.start();
-
-            try {
-                // Create a payload larger than 1kb
-                const largePayload = JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "initialize",
-                    id: 1,
-                    params: {
-                        protocolVersion: "2024-11-05",
-                        capabilities: {},
-                        clientInfo: {
-                            name: "test",
-                            version: "0.0.0",
-                        },
-                        // Add extra data to exceed 1kb
-                        extraData: "x".repeat(2000),
+            // Create a payload larger than 1kb
+            const largePayload = JSON.stringify({
+                jsonrpc: "2.0",
+                method: "initialize",
+                id: 1,
+                params: {
+                    protocolVersion: "2024-11-05",
+                    capabilities: {},
+                    clientInfo: {
+                        name: "test",
+                        version: "0.0.0",
                     },
-                });
+                    // Add extra data to exceed 1kb
+                    extraData: "x".repeat(2000),
+                },
+            });
 
-                const response = await fetch(`${testRunner.serverAddress}/mcp`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: largePayload,
-                });
+            const response = await fetch(`${runner.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: largePayload,
+            });
 
-                // Should return 413 Payload Too Large
-                expect(response.status).toBe(413);
-            } finally {
-                await testRunner.close();
-            }
+            // Should return 413 Payload Too Large
+            expect(response.status).toBe(413);
         });
     });
 
@@ -208,7 +207,7 @@ describe("StreamableHttpRunner", () => {
 
         it("can provide custom logger", async () => {
             const logger = new CustomLogger(new Keychain());
-            const runner = new StreamableHttpRunner({
+            runner = new StreamableHttpRunner({
                 userConfig: config,
                 createConnectionManager: createMCPConnectionManager,
                 additionalLoggers: [logger],
@@ -229,10 +228,6 @@ describe("StreamableHttpRunner", () => {
     });
 
     describe("with telemetry properties", () => {
-        afterEach(async () => {
-            await runner.close();
-        });
-
         it("merges them with the base properties", async () => {
             config.telemetry = "enabled";
             runner = new StreamableHttpRunner({
@@ -280,57 +275,17 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
+    const getSessionFromStore = (sessionId: string): StreamableHTTPServerTransport | undefined => {
+        const sessionStore = runner["sessionStore"];
+        return sessionStore.getSession(sessionId);
+    };
+
     describe("with externallyManagedSessions enabled", () => {
-        let clients: Client[] = [];
-
-        const connectClient = async ({
-            sessionId,
-            shouldInitialize = true,
-        }: {
-            sessionId: string;
-            shouldInitialize?: boolean;
-        }): Promise<Client> => {
-            const client = new Client({
-                name: "test",
-                version: "0.0.0",
-            });
-            const transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
-                requestInit: shouldInitialize
-                    ? {
-                          headers: {
-                              "mcp-session-id": sessionId,
-                          },
-                      }
-                    : undefined,
-                sessionId: shouldInitialize ? undefined : sessionId,
-            });
-
-            await client.connect(transport);
-            clients.push(client);
-            return client;
-        };
-
-        const getSessionFromStore = (sessionId: string): StreamableHTTPServerTransport | undefined => {
-            const sessionStore = runner["sessionStore"];
-            return sessionStore.getSession(sessionId);
-        };
-
         beforeEach(async () => {
             config.externallyManagedSessions = true;
 
             runner = new StreamableHttpRunner({ userConfig: config });
             await runner.start();
-        });
-
-        afterEach(async () => {
-            for (const client of clients) {
-                await client.close();
-            }
-            clients = [];
-
-            if (runner) {
-                await runner.close();
-            }
         });
 
         it("should create a new session with external session ID on initialize", async () => {
@@ -501,12 +456,6 @@ describe("StreamableHttpRunner", () => {
             await runner.start();
         });
 
-        afterEach(async () => {
-            if (runner) {
-                await runner.close();
-            }
-        });
-
         it("should return SSE responses instead of JSON", async () => {
             const response = await sendHttpRequest("initialize");
 
@@ -530,6 +479,20 @@ describe("StreamableHttpRunner", () => {
 
             const sessionStore = runner["sessionStore"];
             const session = sessionStore.getSession(unknownSessionId);
+            expect(session).toBeUndefined();
+        });
+
+        it("should ignore provided session ID", async () => {
+            const providedSessionId = "some-session-id";
+
+            const response = await sendHttpRequest("initialize", providedSessionId);
+            expect(response.ok).toBe(true);
+
+            const data = await response.text();
+            expect(data).toContain("event: message");
+            expect(data).toContain("data: ");
+
+            const session = getSessionFromStore(providedSessionId);
             expect(session).toBeUndefined();
         });
     });
