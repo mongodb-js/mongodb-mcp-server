@@ -11,8 +11,16 @@ jobs:
           exit 1
   test2:
     runs-on: ubuntu-latest
-    needs: test
-    if: ${{ failure() }}
     steps:
       - run: |
           echo "this is test 2"
+          exit 1
+  postError:
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - test2
+    if: ${{ failure() }}
+    steps:
+      - run: |
+          echo "ran after failure"
