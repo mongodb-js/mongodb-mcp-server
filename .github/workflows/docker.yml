@@ -2,67 +2,58 @@ name: Daily Release Docker Image
 on:
   schedule:
     - cron: "0 1 * * *" # Every day at 1:00 AM
-  workflow_dispatch: # Run the action manually
+  workflow_dispatch:
+    inputs:
+      release_channel:
+        description: "Release channel to publish (latest or prerelease)"
+        required: false
+        default: "latest"
+        type: choice
+        options:
+          - latest
+          - prerelease
 permissions:
   contents: read
   issues: write
 
 jobs:
-  get-versions:
+  get-version:
     runs-on: ubuntu-latest
     permissions: {}
     outputs:
-      STABLE_VERSION: ${{ steps.versions.outputs.STABLE_VERSION }}
-      PRERELEASE_VERSION: ${{ steps.versions.outputs.PRERELEASE_VERSION }}
-      HAS_PRERELEASE: ${{ steps.versions.outputs.HAS_PRERELEASE }}
+      VERSION: ${{ steps.versions.outputs.VERSION }}
+      RELEASE_CHANNEL: ${{ steps.versions.outputs.RELEASE_CHANNEL }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - name: Get versions from npm
+      - name: Get version from npm
         id: versions
+        env:
+          RELEASE_CHANNEL_INPUT: "${{ inputs.release_channel }}"
         run: |
           set -e
 
-          # Get latest stable version
-          STABLE_VERSION=$(npm view "mongodb-mcp-server@latest" version 2>/dev/null || echo "")
-          if [[ -z "$STABLE_VERSION" ]]; then
-            echo "::error::Could not find stable version"
+          # Use input channel or default to 'latest' (for cron jobs, input will be empty)
+          RELEASE_CHANNEL="${RELEASE_CHANNEL_INPUT:-latest}"
+
+          # Get latest version for the selected channel
+          VERSION=$(npm view "mongodb-mcp-server@${RELEASE_CHANNEL}" version 2>/dev/null || echo "")
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::Could not find version for channel: ${RELEASE_CHANNEL}"
             exit 1
           fi
-          echo "STABLE_VERSION=${STABLE_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "::notice::Stable version: ${STABLE_VERSION}"
 
-          # Get latest prerelease version (may not exist)
-          PRERELEASE_VERSION=$(npm view "mongodb-mcp-server@prerelease" version 2>/dev/null || echo "")
-          if [[ -n "$PRERELEASE_VERSION" ]]; then
-            echo "PRERELEASE_VERSION=${PRERELEASE_VERSION}" >> "$GITHUB_OUTPUT"
-            echo "HAS_PRERELEASE=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Prerelease version: ${PRERELEASE_VERSION}"
-          else
-            echo "HAS_PRERELEASE=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No prerelease version found"
-          fi
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_CHANNEL=${RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Channel: ${RELEASE_CHANNEL}, Version: ${VERSION}"
 
-  docker-push-stable:
-    needs: get-versions
+  docker-push:
+    needs: get-version
     uses: ./.github/workflows/docker-publish.yml
     permissions:
       contents: read
     with:
-      npm_version: ${{ needs.get-versions.outputs.STABLE_VERSION }}
-      release_channel: latest
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-  docker-push-prerelease:
-    needs: get-versions
-    if: needs.get-versions.outputs.HAS_PRERELEASE == 'true'
-    uses: ./.github/workflows/docker-publish.yml
-    permissions:
-      contents: read
-    with:
-      npm_version: ${{ needs.get-versions.outputs.PRERELEASE_VERSION }}
-      release_channel: prerelease
+      npm_version: ${{ needs.get-version.outputs.VERSION }}
+      release_channel: ${{ needs.get-version.outputs.RELEASE_CHANNEL }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -72,8 +63,8 @@ jobs:
     permissions:
       contents: read
       issues: write
-    needs: [get-versions, docker-push-stable, docker-push-prerelease]
-    if: ${{ always() && (needs.docker-push-stable.result == 'failure' || needs.docker-push-prerelease.result == 'failure') }}
+    needs: [get-version, docker-push]
+    if: ${{ always() && (needs.get-version.result == 'failure' || needs.docker-push.result == 'failure') }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         with:
@@ -100,8 +91,10 @@ jobs:
           body: |
             Docker image release failed on ${{ steps.release-meta.outputs.DATE }}.
 
-            - Stable version: ${{ needs.get-versions.outputs.STABLE_VERSION }} - ${{ needs.docker-push-stable.result }}
-            - Prerelease version: ${{ needs.get-versions.outputs.PRERELEASE_VERSION || 'N/A' }} - ${{ needs.docker-push-prerelease.result }}
+            - Channel: ${{ needs.get-version.outputs.RELEASE_CHANNEL || 'N/A' }}
+            - Version: ${{ needs.get-version.outputs.VERSION || 'N/A' }}
+            - get-version result: ${{ needs.get-version.result }}
+            - docker-push result: ${{ needs.docker-push.result }}
 
             See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           labels: "docker, release_failure"
