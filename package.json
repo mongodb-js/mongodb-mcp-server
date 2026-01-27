@@ -71,7 +71,7 @@
     "build:esm": "tsc --project tsconfig.esm.json && chmod +x dist/esm/index.js",
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
-    "build": "pnpm run build:clean && concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
+    "build": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\"",
