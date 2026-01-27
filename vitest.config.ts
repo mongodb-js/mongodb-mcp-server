@@ -36,6 +36,8 @@ export default defineConfig({
         setupFiles: ["./tests/setup.ts"],
         coverage: {
             exclude: [
+                // Required: import.meta.glob() in src/ui creates Vite virtual modules (\0 prefixed paths)
+                // that crash Istanbul reporters. See: https://github.com/vitest-dev/vitest/issues/5101
                 ...coverageConfigDefaults.exclude,
                 "node_modules",
                 "tests",
