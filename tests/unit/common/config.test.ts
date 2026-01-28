@@ -43,6 +43,7 @@ const expectedDefaults = {
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
+    queryMaxTimeMs: 30_000, // 30 seconds
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
     voyageApiKey: "",
     vectorSearchDimensions: 1024,

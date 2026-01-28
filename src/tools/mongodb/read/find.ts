@@ -81,6 +81,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 sort,
                 // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                 signal,
+                maxTimeMS: this.config.queryMaxTimeMs || undefined,
             });
 
             const [queryResultsCount, cursorResults] = await Promise.all([
