@@ -23,7 +23,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
                     { $group: { _id: null, value: { $sum: "$storageStats.size" } } },
                 ],
                 {
-                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider
+                    // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                     signal,
                 }
             )

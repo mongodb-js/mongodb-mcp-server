@@ -1,6 +1,6 @@
 import type { UserConfig } from "../common/config/userConfig.js";
 import { packageInfo } from "../common/packageInfo.js";
-import { Server } from "../server.js";
+import { Server, type ServerOptions } from "../server.js";
 import { Session } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -23,6 +23,7 @@ import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { ApiClient, ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { createAtlasApiClient } from "../common/atlas/apiClient.js";
+import type { UIRegistry } from "../ui/registry/index.js";
 
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
@@ -255,7 +256,14 @@ export abstract class TransportRunnerBase {
         this.deviceId = DeviceId.create(this.logger);
     }
 
-    protected async setupServer(request?: RequestContext): Promise<Server> {
+    protected async setupServer(
+        request?: RequestContext,
+        {
+            serverOptions,
+        }: {
+            serverOptions?: Pick<ServerOptions, "uiRegistry">;
+        } = {}
+    ): Promise<Server> {
         let userConfig: UserConfig = this.userConfig;
 
         if (this.createSessionConfig) {
@@ -314,6 +322,12 @@ export abstract class TransportRunnerBase {
 
         const elicitation = new Elicitation({ server: mcpServer.server });
 
+        let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;
+        if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
+            const uiRegistryModule = await import("../ui/registry/registry.js");
+            uiRegistry = new uiRegistryModule.UIRegistry();
+        }
+
         const result = new Server({
             mcpServer,
             session,
@@ -322,6 +336,7 @@ export abstract class TransportRunnerBase {
             connectionErrorHandler: this.connectionErrorHandler,
             elicitation,
             tools: this.tools,
+            uiRegistry,
         });
 
         // We need to create the MCP logger after the server is constructed
