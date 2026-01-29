@@ -15,7 +15,7 @@ import type { SimplifiedSchema } from "mongodb-schema";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("collectionSchema tool", (integration) => {
-    validateToolMetadata(integration, "collection-schema", "Describe the schema for a collection", [
+    validateToolMetadata(integration, "collection-schema", "Describe the schema for a collection", "metadata", [
         ...databaseCollectionParameters,
         {
             name: "sampleSize",
@@ -26,7 +26,7 @@ describeWithMongoDB("collectionSchema tool", (integration) => {
         {
             name: "responseBytesLimit",
             type: "number",
-            description: `The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded.`,
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded.`,
             required: false,
         },
     ]);

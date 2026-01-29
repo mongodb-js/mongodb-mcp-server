@@ -29,6 +29,11 @@ describeAccuracyTests([
         prompt: "If and only if, the namespace 'mflix.documentaries' does not exist, then create it",
         expectedToolCalls: [
             {
+                toolName: "list-databases",
+                parameters: {},
+                optional: true,
+            },
+            {
                 toolName: "list-collections",
                 parameters: {
                     database: "mflix",

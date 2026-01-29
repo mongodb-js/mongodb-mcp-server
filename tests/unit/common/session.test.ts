@@ -1,14 +1,15 @@
-import type { Mocked } from "vitest";
+import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
-import { config } from "../../../src/common/config.js";
-import { driverOptions } from "../../integration/helpers.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../src/common/keychain.js";
+import { VectorSearchEmbeddingsManager } from "../../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
+import { defaultTestConfig } from "../../integration/helpers.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -23,14 +24,19 @@ describe("Session", () => {
         const logger = new CompositeLogger();
 
         mockDeviceId = MockDeviceId;
+        const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, mockDeviceId);
 
         session = new Session({
-            apiClientId: "test-client-id",
-            apiBaseUrl: "https://api.test.com",
+            userConfig: {
+                ...defaultTestConfig,
+                apiClientId: "test-client-id",
+                apiBaseUrl: "https://api.test.com",
+            },
             logger,
-            exportsManager: ExportsManager.init(config, logger),
-            connectionManager: new MCPConnectionManager(config, driverOptions, logger, mockDeviceId),
+            exportsManager: ExportsManager.init(defaultTestConfig, logger),
+            connectionManager: connectionManager,
             keychain: new Keychain(),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         });
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({} as unknown as NodeDriverServiceProvider);
@@ -117,6 +123,83 @@ describe("Session", () => {
 
             // Should use 'unknown' for client name when agent runner is not set
             expect(connectionString).toContain("--test-device-id--unknown");
+        });
+    });
+
+    describe("getSearchIndexAvailability", () => {
+        let getSearchIndexesMock: MockedFunction<() => unknown>;
+        let createSearchIndexesMock: MockedFunction<() => unknown>;
+        let insertOneMock: MockedFunction<() => unknown>;
+
+        beforeEach(() => {
+            getSearchIndexesMock = vi.fn();
+            createSearchIndexesMock = vi.fn();
+            insertOneMock = vi.fn();
+
+            MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                getSearchIndexes: getSearchIndexesMock,
+                createSearchIndexes: createSearchIndexesMock,
+                insertOne: insertOneMock,
+                dropDatabase: vi.fn().mockResolvedValue({}),
+            } as unknown as NodeDriverServiceProvider);
+        });
+
+        it("should return 'available' if listing search indexes succeed and create search indexes succeed", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+            insertOneMock.mockResolvedValue([]);
+            createSearchIndexesMock.mockResolvedValue([]);
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            expect(await session.isSearchSupported()).toBeTruthy();
+        });
+
+        it("should return false if listing search indexes fail with search error", async () => {
+            getSearchIndexesMock.mockRejectedValue(new Error("SearchNotEnabled"));
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+            expect(await session.isSearchSupported()).toEqual(false);
+        });
+    });
+
+    describe("assertSearchSupported", () => {
+        let getSearchIndexesMock: MockedFunction<() => unknown>;
+
+        beforeEach(() => {
+            getSearchIndexesMock = vi.fn();
+
+            MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({
+                getSearchIndexes: getSearchIndexesMock,
+            } as unknown as NodeDriverServiceProvider);
+        });
+
+        it("should not throw if it is available", async () => {
+            getSearchIndexesMock.mockResolvedValue([]);
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            await expect(session.assertSearchSupported()).resolves.not.toThrowError();
+        });
+
+        it("should throw if it is not supported", async () => {
+            getSearchIndexesMock.mockRejectedValue(new Error("Not supported"));
+
+            await session.connectToMongoDB({
+                connectionString: "mongodb://localhost:27017",
+            });
+
+            await expect(session.assertSearchSupported()).rejects.toThrowError(
+                new MongoDBError(
+                    ErrorCodes.AtlasSearchNotSupported,
+                    "Atlas Search is not supported in the current cluster."
+                )
+            );
         });
     });
 });

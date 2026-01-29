@@ -7,8 +7,9 @@ import { zEJSON } from "../../args.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
     public name = "update-many";
-    protected description = "Updates all documents that match the specified filter for a collection";
-    protected argsShape = {
+    public description =
+        "Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.";
+    public argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()
             .optional()
@@ -23,7 +24,7 @@ export class UpdateManyTool extends MongoDBToolBase {
             .optional()
             .describe("Controls whether to insert a new document if no documents match the filter"),
     };
-    public operationType: OperationType = "update";
+    static operationType: OperationType = "update";
 
     protected async execute({
         database,
@@ -36,21 +37,27 @@ export class UpdateManyTool extends MongoDBToolBase {
 
         // Check if update operation uses an index if enabled
         if (this.config.indexCheck) {
-            await checkIndexUsage(provider, database, collection, "updateMany", async () => {
-                return provider.runCommandWithCheck(database, {
-                    explain: {
-                        update: collection,
-                        updates: [
-                            {
-                                q: filter || {},
-                                u: update,
-                                upsert: upsert || false,
-                                multi: true,
-                            },
-                        ],
-                    },
-                    verbosity: "queryPlanner",
-                });
+            await checkIndexUsage({
+                database,
+                collection,
+                operation: "updateMany",
+                explainCallback: async () => {
+                    return provider.runCommandWithCheck(database, {
+                        explain: {
+                            update: collection,
+                            updates: [
+                                {
+                                    q: filter || {},
+                                    u: update,
+                                    upsert: upsert || false,
+                                    multi: true,
+                                },
+                            ],
+                        },
+                        verbosity: "queryPlanner",
+                    });
+                },
+                logger: this.session.logger,
             });
         }
 

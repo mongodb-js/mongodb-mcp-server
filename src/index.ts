@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 
 function enableFipsIfRequested(): void {
     let fipsError: Error | undefined;
@@ -35,20 +36,50 @@ function enableFipsIfRequested(): void {
 
 enableFipsIfRequested();
 
-import { ConsoleLogger, LogId } from "./common/logger.js";
-import { config } from "./common/config.js";
 import crypto from "crypto";
+import { ConsoleLogger, LogId } from "./common/logger.js";
+import { parseUserConfig } from "./common/config/parseUserConfig.js";
+import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
 import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
+import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
 
-    assertHelpMode();
-    assertVersionMode();
+    const {
+        error,
+        warnings,
+        parsed: config,
+    } = parseUserConfig({
+        args: process.argv.slice(2),
+    });
+
+    if (!config || (error && error.length)) {
+        console.error(`${error}
+- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
+        process.exit(1);
+    }
+
+    if (warnings && warnings.length) {
+        console.warn(`${warnings.join("\n")}
+- Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
+    }
+
+    if (config.help) {
+        handleHelpRequest();
+    }
+
+    if (config.version) {
+        handleVersionRequest();
+    }
+
+    if (config.dryRun) {
+        await handleDryRunRequest(config);
+    }
 
     const transportRunner =
         config.transport === "stdio"
@@ -131,17 +162,35 @@ main().catch((error: unknown) => {
     process.exit(1);
 });
 
-function assertHelpMode(): void | never {
-    if (config.help) {
-        console.log("For usage information refer to the README.md:");
-        console.log("https://github.com/mongodb-js/mongodb-mcp-server?tab=readme-ov-file#quick-start");
-        process.exit(0);
-    }
+function handleHelpRequest(): never {
+    console.log("For usage information refer to the README.md:");
+    console.log("https://github.com/mongodb-js/mongodb-mcp-server?tab=readme-ov-file#quick-start");
+    process.exit(0);
 }
 
-function assertVersionMode(): void | never {
-    if (config.version) {
-        console.log(packageInfo.version);
+function handleVersionRequest(): never {
+    console.log(packageInfo.version);
+    process.exit(0);
+}
+
+export async function handleDryRunRequest(config: UserConfig): Promise<never> {
+    try {
+        const runner = new DryRunModeRunner({
+            userConfig: config,
+            logger: {
+                log(message): void {
+                    console.log(message);
+                },
+                error(message): void {
+                    console.error(message);
+                },
+            },
+        });
+        await runner.start();
+        await runner.close();
         process.exit(0);
+    } catch (error) {
+        console.error(`Fatal error running server in dry run mode: ${error as string}`);
+        process.exit(1);
     }
 }

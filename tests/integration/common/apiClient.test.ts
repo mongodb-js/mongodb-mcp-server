@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AccessToken } from "../../../src/common/atlas/apiClient.js";
+import type { AccessToken } from "../../../src/common/atlas/auth/authProvider.js";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import { HTTPServerProxyTestSetup } from "../fixtures/httpsServerProxyTest.js";
 import { NullLogger } from "../../../tests/utils/index.js";
@@ -29,11 +29,11 @@ describe("ApiClient integration test", () => {
         });
 
         function withToken(accessToken: string, expired: boolean): void {
-            const apiClientMut = apiClient as unknown as { accessToken: AccessToken };
+            const authProviderMut = apiClient.authProvider as unknown as { accessToken: AccessToken };
             const diff = 10_000;
             const now = Date.now();
 
-            apiClientMut.accessToken = {
+            authProviderMut.accessToken = {
                 access_token: accessToken,
                 expires_at: expired ? now - diff : now + diff,
             };
@@ -60,7 +60,7 @@ describe("ApiClient integration test", () => {
         });
 
         it("should send the oauth request through a proxy if configured", async () => {
-            await ignoringResult(() => apiClient.validateAccessToken());
+            await ignoringResult(() => apiClient.validateAuthConfig());
             expect(proxyTestSetup.getRequestedUrls()).toEqual([
                 `http://localhost:${proxyTestSetup.httpsServerPort}/api/oauth/token`,
             ]);
@@ -76,7 +76,7 @@ describe("ApiClient integration test", () => {
 
         it("should make an atlas call when the token is not expired", async () => {
             withToken("my non expired token", false);
-            await ignoringResult(() => apiClient.listOrganizations());
+            await ignoringResult(() => apiClient.listOrgs());
             expect(proxyTestSetup.getRequestedUrls()).toEqual([
                 `http://localhost:${proxyTestSetup.httpsServerPort}/api/atlas/v2/orgs`,
             ]);
@@ -84,9 +84,9 @@ describe("ApiClient integration test", () => {
 
         it("should request a new token and make an atlas call when the token is expired", async () => {
             withToken("my expired token", true);
-            await ignoringResult(() => apiClient.validateAccessToken());
+            await ignoringResult(() => apiClient.validateAuthConfig());
             withToken("my non expired token", false);
-            await ignoringResult(() => apiClient.listOrganizations());
+            await ignoringResult(() => apiClient.listOrgs());
 
             expect(proxyTestSetup.getRequestedUrls()).toEqual([
                 `http://localhost:${proxyTestSetup.httpsServerPort}/api/oauth/token`,

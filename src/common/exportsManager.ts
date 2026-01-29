@@ -10,7 +10,7 @@ import { Transform } from "stream";
 import { pipeline } from "stream/promises";
 import type { MongoLogId } from "mongodb-log-writer";
 
-import type { UserConfig } from "./config.js";
+import type { UserConfig } from "./config/userConfig.js";
 import type { LoggerBase } from "./logger.js";
 import { LogId } from "./logger.js";
 

@@ -1,0 +1,192 @@
+---
+name: Code Health
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  run-tests:
+    name: Run MongoDB tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        if: matrix.os == 'ubuntu-latest'
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: docker/setup-docker-action@v4
+        if: matrix.os == 'ubuntu-latest'
+        name: Setup Docker Environment
+        with:
+          set-host: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run tests
+        run: pnpm test
+        env:
+          SKIP_ATLAS_TESTS: "true"
+          SKIP_ATLAS_LOCAL_TESTS: "true"
+          MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
+          MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
+      - name: Upload test results
+        if: always() && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results
+          path: coverage/lcov.info
+
+  run-atlas-tests:
+    name: Run Atlas tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run tests
+        env:
+          MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+          MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+        run: pnpm test tests/integration/tools/atlas/
+      - name: Upload test results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: atlas-test-results
+          path: coverage/lcov.info
+
+  run-atlas-local-tests:
+    name: Run Atlas Local tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run tests
+        run: pnpm test tests/integration/tools/atlas-local/
+      - name: Upload test results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: atlas-local-test-results
+          path: coverage/lcov.info
+
+  run-browser-tests:
+    name: Run Browser tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm --filter browser run install:browser
+      - name: Run browser tests
+        run: pnpm run test:browser
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: browser-test-results
+          path: coverage/tests/browser/lcov.info
+
+  coverage:
+    name: Report Coverage
+    if: always() && (github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: ubuntu-latest
+    needs:
+      [run-tests, run-atlas-tests, run-atlas-local-tests, run-browser-tests]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Download test results
+        uses: actions/download-artifact@v7
+        with:
+          name: test-results
+          path: coverage/mongodb
+      - name: Download atlas test results
+        uses: actions/download-artifact@v7
+        with:
+          name: atlas-test-results
+          path: coverage/atlas
+      - name: Download atlas local test results
+        uses: actions/download-artifact@v7
+        with:
+          name: atlas-local-test-results
+          path: coverage/atlas-local
+      - name: Download browser test results
+        uses: actions/download-artifact@v7
+        with:
+          name: browser-test-results
+          path: coverage/browser
+      - name: Merge coverage reports
+        run: |
+          pnpm dlx lcov-result-merger@5.0.1 "coverage/*/lcov.info" "coverage/lcov.info"
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v2.3.7
+        with:
+          file: coverage/lcov.info
+
+  run-git-secrets:
+    name: Run git secrets
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y git-secrets
+      - name: Run git-secrets
+        run: git-secrets --register-aws && git-secrets --scan

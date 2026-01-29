@@ -29,20 +29,20 @@ export const FindArgs = {
         .describe(
             "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort(). The keys of the object are the fields to sort on, while the values are the sort directions (1 for ascending, -1 for descending)."
         ),
-    responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
-The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded. \
-Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
-`),
 };
 
 export class FindTool extends MongoDBToolBase {
     public name = "find";
-    protected description = "Run a find query against a MongoDB collection";
-    protected argsShape = {
+    public description = "Run a find query against a MongoDB collection";
+    public argsShape = {
         ...DbOperationArgs,
         ...FindArgs,
+        responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
+The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
+Note to LLM: If the entire query result is required, use the "export" tool instead of increasing this limit.\
+`),
     };
-    public operationType: OperationType = "read";
+    static operationType: OperationType = "read";
 
     protected async execute(
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
@@ -54,10 +54,22 @@ export class FindTool extends MongoDBToolBase {
 
             // Check if find operation uses an index if enabled
             if (this.config.indexCheck) {
-                await checkIndexUsage(provider, database, collection, "find", async () => {
-                    return provider
-                        .find(database, collection, filter, { projection, limit, sort })
-                        .explain("queryPlanner");
+                await checkIndexUsage({
+                    database,
+                    collection,
+                    operation: "find",
+                    explainCallback: async () => {
+                        return provider
+                            .find(database, collection, filter, {
+                                projection,
+                                limit,
+                                sort,
+                                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
+                                signal,
+                            })
+                            .explain("queryPlanner");
+                    },
+                    logger: this.session.logger,
                 });
             }
 
@@ -67,6 +79,8 @@ export class FindTool extends MongoDBToolBase {
                 projection,
                 limit: limitOnFindCursor.limit,
                 sort,
+                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
+                signal,
             });
 
             const [queryResultsCount, cursorResults] = await Promise.all([
@@ -79,6 +93,8 @@ export class FindTool extends MongoDBToolBase {
                             // the limit provided to the tool.
                             limit,
                             maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
+                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
+                            signal,
                         }),
                     undefined
                 ),
@@ -98,7 +114,7 @@ export class FindTool extends MongoDBToolBase {
                         documents: cursorResults.documents,
                         appliedLimits: [limitOnFindCursor.cappedBy, cursorResults.cappedBy].filter((limit) => !!limit),
                     }),
-                    cursorResults.documents.length > 0 ? EJSON.stringify(cursorResults.documents) : undefined
+                    ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
                 ),
             };
         } finally {

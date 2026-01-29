@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { type ToolArgs, type OperationType, formatUntrustedData } from "../tool.js";
+import { type ToolArgs, type OperationType, type ToolCategory, formatUntrustedData } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
 import { stringify as yamlStringify } from "yaml";
@@ -46,12 +46,14 @@ export type SearchKnowledgeResponse = {
 };
 
 export class SearchKnowledgeTool extends AssistantToolBase {
-    public name = "search-knowledge";
-    protected description = "Search for information in the MongoDB Assistant knowledge base";
-    protected argsShape = {
+    static category: ToolCategory = "assistant";
+    static operationType: OperationType = "read";
+
+    public override name = "search-knowledge";
+    public description = "Search for information in the MongoDB Assistant knowledge base";
+    public argsShape = {
         ...SearchKnowledgeToolArgs,
     };
-    public operationType: OperationType = "read";
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const response = await this.callAssistantApi({

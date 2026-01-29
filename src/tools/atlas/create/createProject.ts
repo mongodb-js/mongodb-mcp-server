@@ -4,17 +4,13 @@ import { AtlasToolBase } from "../atlasTool.js";
 import type { Group } from "../../../common/atlas/openapi.js";
 import { AtlasArgs } from "../../args.js";
 
-export const CreateProjectArgs = {
-    projectName: AtlasArgs.projectName().optional().describe("Name for the new project"),
-    organizationId: AtlasArgs.organizationId().optional().describe("Organization ID for the new project"),
-};
-
 export class CreateProjectTool extends AtlasToolBase {
     public name = "atlas-create-project";
-    protected description = "Create a MongoDB Atlas project";
-    public operationType: OperationType = "create";
-    protected argsShape = {
-        ...CreateProjectArgs,
+    public description = "Create a MongoDB Atlas project";
+    static operationType: OperationType = "create";
+    public argsShape = {
+        projectName: AtlasArgs.projectName().optional().describe("Name for the new project"),
+        organizationId: AtlasArgs.organizationId().optional().describe("Organization ID for the new project"),
     };
 
     protected async execute({ projectName, organizationId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
@@ -26,7 +22,7 @@ export class CreateProjectTool extends AtlasToolBase {
 
         if (!organizationId) {
             try {
-                const organizations = await this.session.apiClient.listOrganizations();
+                const organizations = await this.apiClient.listOrgs();
                 if (!organizations?.results?.length) {
                     throw new Error(
                         "No organizations were found in your MongoDB Atlas account. Please create an organization first."
@@ -52,7 +48,7 @@ export class CreateProjectTool extends AtlasToolBase {
             orgId: organizationId,
         } as Group;
 
-        const group = await this.session.apiClient.createProject({
+        const group = await this.apiClient.createGroup({
             body: input,
         });
 

@@ -1,0 +1,51 @@
+name: Daily Release Docker Image
+on:
+  schedule:
+    - cron: "0 1 * * *" # Every day at 1:00 AM
+  workflow_dispatch: # Run the action manually
+permissions:
+  contents: read
+  issues: write
+jobs:
+  docker-push:
+    uses: ./.github/workflows/docker-publish.yml
+    permissions:
+      contents: read
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  handle-failure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    needs: docker-push
+    if: ${{ always() && needs.docker-push.result == 'failure' }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Get version and date
+        id: release-meta
+        run: |
+          VERSION=$(npm pkg get version | tr -d '"')
+          DATE=$(date +'%Y-%m-%d')
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "DATE=${DATE}" >> "$GITHUB_OUTPUT"
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+      - name: Create Issue
+        uses: imjohnbo/issue-bot@572eed14422c4d6ca37e870f97e7da209422f5bd
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          title: Release Failure for Docker Image ${{ steps.release-meta.outputs.VERSION }}-${{ steps.release-meta.outputs.DATE }}
+          body: See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: "docker, release_failure"

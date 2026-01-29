@@ -1,24 +1,17 @@
-import {
-    ToolBase,
-    type TelemetryToolMetadata,
-    type ToolArgs,
-    type ToolCategory,
-    type ToolConstructorParams,
-} from "../tool.js";
+import { ToolBase, type ToolArgs, type ToolConstructorParams } from "../tool.js";
+import type { TelemetryToolMetadata } from "../../telemetry/types.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Server } from "../../server.js";
 import { packageInfo } from "../../common/packageInfo.js";
-import { formatUntrustedData } from "../tool.js";
 
 export abstract class AssistantToolBase extends ToolBase {
     protected server?: Server;
-    public category: ToolCategory = "assistant";
     protected baseUrl: URL;
     protected requiredHeaders: Headers;
 
-    constructor({ session, config, telemetry, elicitation }: ToolConstructorParams) {
-        super({ session, config, telemetry, elicitation });
-        this.baseUrl = new URL(config.assistantBaseUrl);
+    constructor(params: ToolConstructorParams) {
+        super(params);
+        this.baseUrl = new URL(params.config.assistantBaseUrl);
         this.requiredHeaders = new Headers({
             "x-request-origin": "mongodb-mcp-server",
             "user-agent": packageInfo.version ? `mongodb-mcp-server/v${packageInfo.version}` : "mongodb-mcp-server",

@@ -1,26 +1,32 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 import type { Document } from "mongodb";
-import { AggregateArgs } from "../read/aggregate.js";
+import { getAggregateArgs } from "../read/aggregate.js";
 import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
 export class ExplainTool extends MongoDBToolBase {
     public name = "explain";
-    protected description =
+    public description =
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
-    protected argsShape = {
+    public argsShape = {
         ...DbOperationArgs,
+        // Note: Although it is not required to wrap the discriminated union in
+        // an array here because we only expect exactly one method to be
+        // provided here, we unfortunately cannot use the discriminatedUnion as
+        // is because Cursor is unable to construct payload for tool calls where
+        // the input schema contains a discriminated union without such
+        // wrapping. This is a workaround for enabling the tool calls on Cursor.
         method: z
             .array(
                 z.discriminatedUnion("name", [
                     z.object({
                         name: z.literal("aggregate"),
-                        arguments: z.object(AggregateArgs),
+                        arguments: z.object(getAggregateArgs(this.isFeatureEnabled("search"))),
                     }),
                     z.object({
                         name: z.literal("find"),
@@ -42,14 +48,12 @@ export class ExplainTool extends MongoDBToolBase {
             ),
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
-    protected async execute({
-        database,
-        collection,
-        method: methods,
-        verbosity,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
         const method = methods[0];
 
@@ -66,7 +70,10 @@ export class ExplainTool extends MongoDBToolBase {
                         database,
                         collection,
                         pipeline,
-                        {},
+                        {
+                            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
+                            signal,
+                        },
                         {
                             writeConcern: undefined,
                         }
@@ -76,18 +83,30 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
-                result = await provider.find(database, collection, filter as Document, { ...rest }).explain(verbosity);
+                result = await provider
+                    .find(database, collection, filter as Document, {
+                        ...rest,
+                        // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
+                        signal,
+                    })
+                    .explain(verbosity);
                 break;
             }
             case "count": {
                 const { query } = method.arguments;
-                result = await provider.runCommandWithCheck(database, {
-                    explain: {
-                        count: collection,
-                        query,
+                result = await provider.runCommandWithCheck(
+                    database,
+                    {
+                        explain: {
+                            count: collection,
+                            query,
+                        },
+                        verbosity,
                     },
-                    verbosity,
-                });
+                    {
+                        signal,
+                    }
+                );
                 break;
             }
         }

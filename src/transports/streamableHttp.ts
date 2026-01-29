@@ -1,11 +1,11 @@
 import express from "express";
 import type http from "http";
-import { randomUUID } from "crypto";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import { TransportRunnerBase, type TransportRunnerConfig, type RequestContext } from "./base.js";
+import { getRandomUUID } from "../helpers/getRandomUUID.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -15,7 +15,7 @@ const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
 export class StreamableHttpRunner extends TransportRunnerBase {
     private httpServer: http.Server | undefined;
-    private sessionStore!: SessionStore;
+    private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
 
     constructor(config: TransportRunnerConfig) {
         super(config);
@@ -34,6 +34,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     }
 
     async start(): Promise<void> {
+        const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+
         const app = express();
         this.sessionStore = new SessionStore(
             this.userConfig.idleTimeoutMs,
@@ -42,7 +44,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         );
 
         app.enable("trust proxy"); // needed for reverse proxy support
-        app.use(express.json());
+        app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
         app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
@@ -111,10 +113,15 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     return;
                 }
 
-                const server = await this.setupServer();
+                const request: RequestContext = {
+                    headers: req.headers as Record<string, string | string[] | undefined>,
+                    query: req.query as Record<string, string | string[] | undefined>,
+                };
+                const server = await this.setupServer(request);
                 let keepAliveLoop: NodeJS.Timeout;
+
                 const transport = new StreamableHTTPServerTransport({
-                    sessionIdGenerator: (): string => randomUUID().toString(),
+                    sessionIdGenerator: (): string => getRandomUUID(),
                     onsessioninitialized: (sessionId): void => {
                         server.session.logger.setAttribute("sessionId", sessionId);
 

@@ -1,5 +1,5 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { formatUntrustedData, type OperationType } from "../tool.js";
+import { formatUntrustedData, type OperationType, type ToolCategory } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
 import { stringify as yamlStringify } from "yaml";
@@ -25,10 +25,12 @@ export type ListKnowledgeSourcesResponse = {
 export const ListKnowledgeSourcesToolName = "list-knowledge-sources";
 
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
-    public name = ListKnowledgeSourcesToolName;
-    protected description = "List available data sources in the MongoDB Assistant knowledge base";
-    protected argsShape = {};
-    public operationType: OperationType = "read";
+    static category: ToolCategory = "assistant";
+    static operationType: OperationType = "read";
+
+    public override name = ListKnowledgeSourcesToolName;
+    public description = "List available data sources in the MongoDB Assistant knowledge base";
+    public argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {
         const response = await this.callAssistantApi({

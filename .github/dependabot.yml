@@ -4,7 +4,37 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
+      include:
+        - "*"
+    ignore:
+      # We are ignoring major updates on yargs-parser because yargs-parser@22
+      # does not play nicely when bundled using webpack. Our VSCode extension
+      # bundles MCP server with the extension code and yargs-parser from MCP
+      # server ends up on the final bundle which leads to issues such as -
+      # https://github.com/mongodb-js/vscode/issues/1149.
+      #
+      # This was reported to yargs-parser as well -
+      # https://github.com/yargs/yargs-parser/issues/517 and we already tried
+      # their suggestion about disabling the meta resolution in webpack,
+      # alongside others (dependency overrides, disabling the bundling of
+      # yargs-parser), and none of the solutions yield a working extension. So
+      # until we figure out a fix for this we need to keep mongodb-mcp-server
+      # working with v21 of yargs-parser.
+      - dependency-name: "yargs-parser"
+        update-types: ["version-update:semver-major"]
+    groups:
+      ai-sdk:
+        patterns:
+          - ai
+          - "@ai-sdk/*"
+          - voyage-ai-provider
   - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"

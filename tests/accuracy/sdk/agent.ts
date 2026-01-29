@@ -1,5 +1,6 @@
-import type { LanguageModelV1, experimental_createMCPClient } from "ai";
-import { generateText } from "ai";
+import type { LanguageModel } from "ai";
+import type { experimental_createMCPClient } from "@ai-sdk/mcp";
+import { stepCountIs, generateText } from "ai";
 import type { Model } from "./models.js";
 
 const systemPrompt = [
@@ -39,11 +40,11 @@ export interface Agent<Model = unknown, Tools = unknown, Result = unknown> {
 
 export function getVercelToolCallingAgent(
     requestedSystemPrompt?: string
-): Agent<Model<LanguageModelV1>, VercelMCPClientTools, VercelAgentPromptResult> {
+): Agent<Model<LanguageModel>, VercelMCPClientTools, VercelAgentPromptResult> {
     return {
         async prompt(
             prompt: PromptDefinition,
-            model: Model<LanguageModelV1>,
+            model: Model<LanguageModel>,
             tools: VercelMCPClientTools
         ): Promise<VercelAgentPromptResult> {
             let prompts: string[];
@@ -70,15 +71,15 @@ export function getVercelToolCallingAgent(
                     system: [...systemPrompt, requestedSystemPrompt].filter(Boolean).join("\n"),
                     prompt: p,
                     tools,
-                    maxSteps: 100,
+                    stopWhen: stepCountIs(100),
                 });
 
                 result.text += intermediateResult.text;
                 result.messages.push(...intermediateResult.response.messages);
                 result.respondingModel = intermediateResult.response.modelId;
-                result.tokensUsage.completionTokens += intermediateResult.usage.completionTokens;
-                result.tokensUsage.promptTokens += intermediateResult.usage.promptTokens;
-                result.tokensUsage.totalTokens += intermediateResult.usage.totalTokens;
+                result.tokensUsage.completionTokens += intermediateResult.usage.outputTokens ?? 0;
+                result.tokensUsage.promptTokens += intermediateResult.usage.inputTokens ?? 0;
+                result.tokensUsage.totalTokens += intermediateResult.usage.totalTokens ?? 0;
             }
 
             return result;

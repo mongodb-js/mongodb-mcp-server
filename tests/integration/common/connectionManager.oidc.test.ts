@@ -1,3 +1,4 @@
+import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import type { TestContext } from "vitest";
 import { describe, beforeEach, afterAll, it, expect, vi } from "vitest";
 import semver from "semver";
@@ -6,14 +7,14 @@ import type { MongoDBIntegrationTestCase } from "../tools/mongodb/mongodbHelpers
 import { describeWithMongoDB, isCommunityServer, getServerVersion } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, responseAsText, timeout, waitUntil } from "../helpers.js";
 import type { ConnectionStateConnected, ConnectionStateConnecting } from "../../../src/common/connectionManager.js";
-import type { UserConfig } from "../../../src/common/config.js";
-import { setupDriverConfig } from "../../../src/common/config.js";
+import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
 import { type TestConnectionManager } from "../../utils/index.js";
 
-const DEFAULT_TIMEOUT = 30_000;
+const DEFAULT_TIMEOUT = 60_000;
+const DEFAULT_RETRIES = 5;
 
 // OIDC is only supported on Linux servers
 describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", async () => {
@@ -107,13 +108,17 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             (integration) => {
                 function oidcIt(name: string, cb: Parameters<OidcIt>[1]): void {
                     /* eslint-disable vitest/expect-expect */
-                    it(name, { timeout: DEFAULT_TIMEOUT }, async (context) => {
+                    it(name, { timeout: DEFAULT_TIMEOUT, retry: DEFAULT_RETRIES }, async (context) => {
+                        // eslint-disable-next-line vitest/no-disabled-tests
                         context.skip(
                             await isCommunityServer(integration),
                             "OIDC is not supported in MongoDB Community"
                         );
+                        // eslint-disable-next-line vitest/no-disabled-tests
                         context.skip(
-                            semver.satisfies(await getServerVersion(integration), "< 7", { includePrerelease: true }),
+                            semver.satisfies(await getServerVersion(integration), "< 7", {
+                                includePrerelease: true,
+                            }),
                             "OIDC is only supported on MongoDB newer than 7.0"
                         );
 
@@ -132,20 +137,31 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     // state of the connection manager
                     connectionManager.changeState("connection-close", { tag: "disconnected" });
 
-                    await integration.connectMcpClient();
+                    // Note: Instead of using `integration.connectMcpClient`,
+                    // we're connecting straight using Session because
+                    // `integration.connectMcpClient` uses `connect` tool which
+                    // does not work the same way as connect on server start up.
+                    // So to mimic the same functionality as that of server
+                    // startup we call the connectToMongoDB the same way as the
+                    // `Server.connectToConfigConnectionString` does.
+                    await integration.mcpServer().session.connectToMongoDB(
+                        generateConnectionInfoFromCliArgs({
+                            ...oidcConfig,
+                            connectionSpecifier: integration.connectionString(),
+                        })
+                    );
                 }, DEFAULT_TIMEOUT);
 
                 addCb?.(oidcIt);
             },
-            () => oidcConfig,
-            () => ({
-                ...setupDriverConfig({
-                    config: oidcConfig,
-                    defaults: {},
-                }),
-            }),
-            { enterprise: true, version: mongodbVersion },
-            serverArgs
+            {
+                getUserConfig: () => oidcConfig,
+                downloadOptions: {
+                    runner: true,
+                    downloadOptions: { enterprise: true, version: mongodbVersion },
+                    serverArgs,
+                },
+            }
         );
     }
 

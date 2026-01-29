@@ -313,10 +313,12 @@ describe("IndexCheck integration tests", () => {
                     });
                 });
             },
-            () => ({
-                ...defaultTestConfig,
-                indexCheck: true, // Enable indexCheck
-            })
+            {
+                getUserConfig: () => ({
+                    ...defaultTestConfig,
+                    indexCheck: true, // Enable indexCheck
+                }),
+            }
         );
     });
 
@@ -424,10 +426,12 @@ describe("IndexCheck integration tests", () => {
                     expect(content).not.toContain("Index check failed");
                 });
             },
-            () => ({
-                ...defaultTestConfig,
-                indexCheck: false, // Disable indexCheck
-            })
+            {
+                getUserConfig: () => ({
+                    ...defaultTestConfig,
+                    indexCheck: false, // Disable indexCheck
+                }),
+            }
         );
     });
 
@@ -456,10 +460,12 @@ describe("IndexCheck integration tests", () => {
                     expect(response.isError).toBeFalsy();
                 });
             },
-            () => ({
-                ...defaultTestConfig,
-                // indexCheck not specified, should default to false
-            })
+            {
+                getUserConfig: () => ({
+                    ...defaultTestConfig,
+                    // indexCheck not specified, should default to false
+                }),
+            }
         );
     });
 });

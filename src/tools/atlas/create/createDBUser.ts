@@ -35,9 +35,9 @@ export const CreateDBUserArgs = {
 
 export class CreateDBUserTool extends AtlasToolBase {
     public name = "atlas-create-db-user";
-    protected description = "Create an MongoDB Atlas database user";
-    public operationType: OperationType = "create";
-    protected argsShape = {
+    public description = "Create an MongoDB Atlas database user";
+    static operationType: OperationType = "create";
+    public argsShape = {
         ...CreateDBUserArgs,
     };
 
@@ -48,7 +48,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         roles,
         clusters,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
+        await ensureCurrentIpInAccessList(this.apiClient, projectId);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();
@@ -72,7 +72,7 @@ export class CreateDBUserTool extends AtlasToolBase {
                 : undefined,
         } as CloudDatabaseUser;
 
-        await this.session.apiClient.createDatabaseUser({
+        await this.apiClient.createDatabaseUser({
             params: {
                 path: {
                     groupId: projectId,

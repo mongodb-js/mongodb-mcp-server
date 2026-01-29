@@ -14,15 +14,32 @@ export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResul
 
 export const connectionErrorHandler: ConnectionErrorHandler = (error, { availableTools, connectionState }) => {
     const connectTools = availableTools
-        .filter((t) => t.operationType === "connect")
+        .filter((t) => t.operationType === "connect" && t.isEnabled())
         .sort((a, b) => a.category.localeCompare(b.category)); // Sort Atlas tools before MongoDB tools
 
-    // Find the first Atlas connect tool if available and suggest to the LLM to use it.
-    // Note: if we ever have multiple Atlas connect tools, we may want to refine this logic to select the most appropriate one.
+    // Find what Atlas connect tools are available and suggest when the LLM should to use each. If no Atlas tools are found, return a suggestion for the MongoDB connect tool.
     const atlasConnectTool = connectTools?.find((t) => t.category === "atlas");
-    const llmConnectHint = atlasConnectTool
-        ? `Note to LLM: prefer using the "${atlasConnectTool.name}" tool to connect to an Atlas cluster over using a connection string. Make sure to ask the user to specify a cluster name they want to connect to or ask them if they want to use the "list-clusters" tool to list all their clusters. Do not invent cluster names or connection strings unless the user has explicitly specified them. If they've previously connected to MongoDB using MCP, you can ask them if they want to reconnect using the same cluster/connection.`
-        : "Note to LLM: do not invent connection strings and explicitly ask the user to provide one. If they have previously connected to MongoDB using MCP, you can ask them if they want to reconnect using the same connection string.";
+    const atlasLocalConnectTool = connectTools?.find((t) => t.category === "atlas-local");
+
+    const llmConnectHint = ((): string => {
+        const hints: string[] = [];
+
+        if (atlasConnectTool) {
+            hints.push(
+                `Note to LLM: prefer using the "${atlasConnectTool.name}" tool to connect to an Atlas cluster over using a connection string. Make sure to ask the user to specify a cluster name they want to connect to or ask them if they want to use the "list-clusters" tool to list all their clusters. Do not invent cluster names or connection strings unless the user has explicitly specified them. If they've previously connected to MongoDB using MCP, you can ask them if they want to reconnect using the same cluster/connection.`
+            );
+        }
+
+        if (atlasLocalConnectTool) {
+            hints.push(
+                `Note to LLM: For MongoDB Atlas Local deployments, ask the user to either provide a connection string, specify a deployment name, or use "atlas-local-list-deployments" to show available local deployments. If a deployment name is provided, prefer using the "${atlasLocalConnectTool.name}" tool. If a connection string is provided, prefer using the "connect" tool. Do not invent deployment names or connection strings unless the user has explicitly specified them. If they've previously connected to a MongoDB Atlas Local deployment using MCP, you can ask them if they want to reconnect using the same deployment.`
+            );
+        }
+
+        return hints.length > 0
+            ? hints.join("\n")
+            : "Note to LLM: do not invent connection strings and explicitly ask the user to provide one. If they have previously connected to MongoDB using MCP, you can ask them if they want to reconnect using the same connection string.";
+    })();
 
     const connectToolsNames = connectTools?.map((t) => `"${t.name}"`).join(", ");
     const additionalPromptForConnectivity: { type: "text"; text: string }[] = [];

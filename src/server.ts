@@ -1,13 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { AtlasTools } from "./tools/atlas/tools.js";
-import { MongoDbTools } from "./tools/mongodb/tools.js";
 import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logger.js";
 import { LogId, McpLogger } from "./common/logger.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
-import type { UserConfig } from "./common/config.js";
+import type { UserConfig } from "./common/config/userConfig.js";
 import { type ServerEvent } from "./telemetry/types.js";
 import { type ServerCommand } from "./telemetry/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -17,13 +15,13 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import assert from "assert";
-import type { ToolBase } from "./tools/tool.js";
-import { AssistantTools } from "./tools/assistant/tools.js";
+import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";
+import { AllTools } from "./tools/index.js";
+import type { UIRegistry } from "./ui/registry/index.js";
 
 export interface ServerOptions {
     session: Session;
@@ -32,6 +30,38 @@ export interface ServerOptions {
     telemetry: Telemetry;
     elicitation: Elicitation;
     connectionErrorHandler: ConnectionErrorHandler;
+    uiRegistry?: UIRegistry;
+    /**
+     * Custom tool constructors to register with the server.
+     * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
+     *
+     * ```ts
+     * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
+     * class CustomTool extends ToolBase {
+     *     override name = "custom_tool";
+     *     static category: ToolCategory = "mongodb";
+     *     static operationType: OperationType = "read";
+     *     public description = "Custom tool description";
+     *     public argsShape = {};
+     *     protected async execute() {
+     *         return { content: [{ type: "text", text: "Result" }] };
+     *     }
+     *     protected resolveTelemetryMetadata() {
+     *         return {};
+     *     }
+     * }
+     * const server = new Server({
+     *     session: mySession,
+     *     userConfig: myUserConfig,
+     *     mcpServer: myMcpServer,
+     *     telemetry: myTelemetry,
+     *     elicitation: myElicitation,
+     *     connectionErrorHandler: myConnectionErrorHandler,
+     *     tools: [...AllTools, CustomTool],
+     * });
+     * ```
+     */
+    tools?: ToolClass[];
 }
 
 export class Server {
@@ -40,8 +70,10 @@ export class Server {
     private readonly telemetry: Telemetry;
     public readonly userConfig: UserConfig;
     public readonly elicitation: Elicitation;
+    private readonly toolConstructors: ToolClass[];
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
+    public readonly uiRegistry?: UIRegistry;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -52,7 +84,16 @@ export class Server {
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    constructor({ session, mcpServer, userConfig, telemetry, connectionErrorHandler, elicitation }: ServerOptions) {
+    constructor({
+        session,
+        mcpServer,
+        userConfig,
+        telemetry,
+        connectionErrorHandler,
+        elicitation,
+        tools,
+        uiRegistry,
+    }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
@@ -60,6 +101,8 @@ export class Server {
         this.userConfig = userConfig;
         this.elicitation = elicitation;
         this.connectionErrorHandler = connectionErrorHandler;
+        this.toolConstructors = tools ?? AllTools;
+        this.uiRegistry = uiRegistry;
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -70,7 +113,6 @@ export class Server {
         this.mcpServer.server.registerCapabilities({
             logging: {},
             resources: { listChanged: true, subscribe: true },
-            instructions: this.getInstructions(),
         });
 
         // TODO: Eventually we might want to make tools reactive too instead of relying on custom logic.
@@ -89,7 +131,9 @@ export class Server {
             >
         ).get(CallToolRequestSchema.shape.method.value);
 
-        assert(existingHandler, "No existing handler found for CallToolRequestSchema");
+        if (!existingHandler) {
+            throw new Error("No existing handler found for CallToolRequestSchema");
+        }
 
         this.mcpServer.server.setRequestHandler(CallToolRequestSchema, (request, extra): Promise<CallToolResult> => {
             if (!request.params.arguments) {
@@ -164,6 +208,10 @@ export class Server {
         this.mcpServer.sendResourceListChanged();
     }
 
+    public isToolCategoryAvailable(name: ToolCategory): boolean {
+        return !!this.tools.filter((t) => t.category === name).length;
+    }
+
     public sendResourceUpdated(uri: string): void {
         this.session.logger.info({
             id: LogId.resourceUpdateFailure,
@@ -191,9 +239,11 @@ export class Server {
 
         if (command === "start") {
             event.properties.startup_time_ms = commandDuration;
-            event.properties.read_only_mode = this.userConfig.readOnly || false;
+            event.properties.read_only_mode = this.userConfig.readOnly ? "true" : "false";
             event.properties.disabled_tools = this.userConfig.disabledTools || [];
             event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
+            event.properties.previewFeatures = this.userConfig.previewFeatures;
+            event.properties.embeddingProviderConfigured = !!this.userConfig.voyageApiKey;
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
@@ -206,13 +256,16 @@ export class Server {
         this.telemetry.emitEvents([event]);
     }
 
-    private registerTools(): void {
-        for (const toolConstructor of [...AtlasTools, ...MongoDbTools, ...AssistantTools]) {
+    public registerTools(): void {
+        for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
+                category: toolConstructor.category,
+                operationType: toolConstructor.operationType,
                 session: this.session,
                 config: this.userConfig,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
+                uiRegistry: this.uiRegistry,
             });
             if (tool.register(this)) {
                 this.tools.push(tool);
@@ -220,7 +273,7 @@ export class Server {
         }
     }
 
-    private registerResources(): void {
+    public registerResources(): void {
         for (const resourceConstructor of Resources) {
             const resource = new resourceConstructor(this.session, this.userConfig, this.telemetry);
             resource.register(this);
@@ -233,6 +286,7 @@ export class Server {
             try {
                 validateConnectionString(this.userConfig.connectionString, false);
             } catch (error) {
+                // eslint-disable-next-line no-console
                 console.error("Connection string validation failed with error: ", error);
                 throw new Error(
                     "Connection string validation failed with error: " +
@@ -244,45 +298,33 @@ export class Server {
         // Validate API client credentials
         if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
             try {
+                if (!this.session.apiClient) {
+                    throw new Error("API client is not available.");
+                }
                 if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
                     const message =
                         "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";
+                    // eslint-disable-next-line no-console
                     console.error(message);
                     throw new Error(message);
                 }
 
-                await this.session.apiClient.validateAccessToken();
+                await this.session.apiClient.validateAuthConfig();
             } catch (error) {
                 if (this.userConfig.connectionString === undefined) {
+                    // eslint-disable-next-line no-console
                     console.error("Failed to validate MongoDB Atlas the credentials from the config: ", error);
 
                     throw new Error(
                         "Failed to connect to MongoDB Atlas instance using the credentials from the config"
                     );
                 }
+                // eslint-disable-next-line no-console
                 console.error(
-                    "Failed to validate MongoDB Atlas the credentials from the config, but validated the connection string."
+                    "Failed to validate MongoDB Atlas credentials from the config, but validated the connection string."
                 );
             }
         }
-    }
-
-    private getInstructions(): string {
-        let instructions = `
-            This is the MongoDB MCP server.
-        `;
-        if (this.userConfig.connectionString) {
-            instructions += `
-            This MCP server was configured with a MongoDB connection string, and you can assume that you are connected to a MongoDB cluster.
-            `;
-        }
-
-        if (this.userConfig.apiClientId && this.userConfig.apiClientSecret) {
-            instructions += `
-            This MCP server was configured with MongoDB Atlas API credentials.`;
-        }
-
-        return instructions;
     }
 
     private async connectToConfigConnectionString(): Promise<void> {
@@ -293,9 +335,7 @@ export class Server {
                     context: "server",
                     message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
                 });
-                await this.session.connectToMongoDB({
-                    connectionString: this.userConfig.connectionString,
-                });
+                await this.session.connectToConfiguredConnection();
             } catch (error) {
                 // We don't throw an error here because we want to allow the server to start even if the connection string is invalid.
                 this.session.logger.error({
@@ -303,7 +343,6 @@ export class Server {
                     context: "server",
                     message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
                 });
-                j;
             }
         }
     }

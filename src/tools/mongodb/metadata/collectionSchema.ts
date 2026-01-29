@@ -12,8 +12,8 @@ const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
 export class CollectionSchemaTool extends MongoDBToolBase {
     public name = "collection-schema";
-    protected description = "Describe the schema for a collection";
-    protected argsShape = {
+    public description = "Describe the schema for a collection";
+    public argsShape = {
         ...DbOperationArgs,
         sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),
         responseBytesLimit: z
@@ -21,20 +21,26 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             .optional()
             .default(ONE_MB)
             .describe(
-                `The maximum number of bytes to return in the response. This value is capped by the server’s configured maxBytesPerQuery and cannot be exceeded.`
+                `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded.`
             ),
     };
 
-    public operationType: OperationType = "metadata";
+    static operationType: OperationType = "metadata";
 
     protected async execute(
         { database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
     ): Promise<CallToolResult> {
         const provider = await this.ensureConnected();
-        const cursor = provider.aggregate(database, collection, [
-            { $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } },
-        ]);
+        const cursor = provider.aggregate(
+            database,
+            collection,
+            [{ $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } }],
+            {
+                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
+                signal,
+            }
+        );
         const { cappedBy, documents } = await collectCursorUntilMaxBytesLimit({
             cursor,
             configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,

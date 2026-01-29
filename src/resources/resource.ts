@@ -1,6 +1,6 @@
 import type { Server } from "../server.js";
 import type { Session } from "../common/session.js";
-import type { UserConfig } from "../common/config.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -73,10 +73,10 @@ export abstract class ReactiveResource<Value, RelevantEvents extends readonly (k
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }
 
-    private resourceCallback: ReadResourceCallback = (uri) => ({
+    private resourceCallback: ReadResourceCallback = async (uri) => ({
         contents: [
             {
-                text: this.toOutput(),
+                text: await this.toOutput(),
                 mimeType: "application/json",
                 uri: uri.href,
             },
@@ -101,5 +101,5 @@ export abstract class ReactiveResource<Value, RelevantEvents extends readonly (k
     }
 
     protected abstract reduce(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): Value;
-    public abstract toOutput(): string;
+    public abstract toOutput(): string | Promise<string>;
 }

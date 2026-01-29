@@ -1,21 +1,24 @@
-import type { MongoClusterOptions } from "mongodb-runner";
-import { MongoCluster } from "mongodb-runner";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import type { Document } from "mongodb";
+import type { Collection, Document } from "mongodb";
 import { MongoClient, ObjectId } from "mongodb";
 import type { IntegrationTest } from "../../helpers.js";
 import {
     getResponseContent,
     setupIntegrationTest,
     defaultTestConfig,
-    defaultDriverOptions,
     getDataFromUntrustedContent,
 } from "../../helpers.js";
-import type { UserConfig, DriverOptions } from "../../../../src/common/config.js";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type { UserConfig } from "../../../../src/common/config/userConfig.js";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJSON } from "bson";
+import { MongoDBClusterProcess } from "./mongodbClusterProcess.js";
+import type { MongoClusterConfiguration } from "./mongodbClusterProcess.js";
+import type { createMockElicitInput, MockClientCapabilities } from "../../../utils/elicitationMocks.js";
+
+export const DEFAULT_WAIT_TIMEOUT = 1000;
+export const DEFAULT_RETRY_INTERVAL = 100;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,6 +52,12 @@ const testDataPaths = [
     },
 ];
 
+const DEFAULT_MONGODB_PROCESS_OPTIONS: MongoClusterConfiguration = {
+    runner: true,
+    downloadOptions: { enterprise: false },
+    serverArgs: [],
+};
+
 interface MongoDBIntegrationTest {
     mongoClient: () => MongoClient;
     connectionString: () => string;
@@ -58,23 +67,37 @@ interface MongoDBIntegrationTest {
 export type MongoDBIntegrationTestCase = IntegrationTest &
     MongoDBIntegrationTest & { connectMcpClient: () => Promise<void> };
 
+export type MongoSearchConfiguration = { search: true; image?: string };
+
+export type TestSuiteConfig = {
+    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig;
+    downloadOptions: MongoClusterConfiguration;
+    getMockElicitationInput?: () => ReturnType<typeof createMockElicitInput>;
+    getClientCapabilities?: () => MockClientCapabilities;
+};
+
+export const defaultTestSuiteConfig: TestSuiteConfig = {
+    getUserConfig: () => defaultTestConfig,
+    downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
+};
+
 export function describeWithMongoDB(
     name: string,
     fn: (integration: MongoDBIntegrationTestCase) => void,
-    getUserConfig: (mdbIntegration: MongoDBIntegrationTest) => UserConfig = () => defaultTestConfig,
-    getDriverOptions: (mdbIntegration: MongoDBIntegrationTest) => DriverOptions = () => defaultDriverOptions,
-    downloadOptions: MongoClusterOptions["downloadOptions"] = { enterprise: false },
-    serverArgs: string[] = []
+    partialTestSuiteConfig?: Partial<TestSuiteConfig>
 ): void {
-    describe(name, () => {
-        const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions, serverArgs);
+    const { getUserConfig, downloadOptions, getMockElicitationInput, getClientCapabilities } = {
+        ...defaultTestSuiteConfig,
+        ...partialTestSuiteConfig,
+    };
+    describe.skipIf(!MongoDBClusterProcess.isConfigurationSupportedInCurrentEnv(downloadOptions))(name, () => {
+        const mdbIntegration = setupMongoDBIntegrationTest(downloadOptions);
+        const mockElicitInput = getMockElicitationInput?.();
         const integration = setupIntegrationTest(
             () => ({
                 ...getUserConfig(mdbIntegration),
             }),
-            () => ({
-                ...getDriverOptions(mdbIntegration),
-            })
+            { elicitInput: mockElicitInput, getClientCapabilities }
         );
 
         fn({
@@ -94,10 +117,9 @@ export function describeWithMongoDB(
 }
 
 export function setupMongoDBIntegrationTest(
-    downloadOptions: MongoClusterOptions["downloadOptions"],
-    serverArgs: string[]
+    configuration: MongoClusterConfiguration = DEFAULT_MONGODB_PROCESS_OPTIONS
 ): MongoDBIntegrationTest {
-    let mongoCluster: MongoCluster | undefined;
+    let mongoCluster: MongoDBClusterProcess | undefined;
     let mongoClient: MongoClient | undefined;
     let randomDbName: string;
 
@@ -111,44 +133,7 @@ export function setupMongoDBIntegrationTest(
     });
 
     beforeAll(async function () {
-        // Downloading Windows executables in CI takes a long time because
-        // they include debug symbols...
-        const tmpDir = path.join(__dirname, "..", "..", "..", "tmp");
-        await fs.mkdir(tmpDir, { recursive: true });
-
-        // On Windows, we may have a situation where mongod.exe is not fully released by the OS
-        // before we attempt to run it again, so we add a retry.
-        let dbsDir = path.join(tmpDir, "mongodb-runner", "dbs");
-        for (let i = 0; i < 10; i++) {
-            try {
-                mongoCluster = await MongoCluster.start({
-                    tmpDir: dbsDir,
-                    logDir: path.join(tmpDir, "mongodb-runner", "logs"),
-                    topology: "standalone",
-                    version: downloadOptions?.version ?? "8.0.12",
-                    downloadOptions,
-                    args: serverArgs,
-                });
-
-                return;
-            } catch (err) {
-                if (i < 5) {
-                    // Just wait a little bit and retry
-                    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-                    console.error(`Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}`);
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                } else {
-                    // If we still fail after 5 seconds, try another db dir
-                    console.error(
-                        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-                        `Failed to start cluster in ${dbsDir}, attempt ${i}: ${err}. Retrying with a new db dir.`
-                    );
-                    dbsDir = path.join(tmpDir, "mongodb-runner", `dbs${i - 5}`);
-                }
-            }
-        }
-
-        throw new Error("Failed to start cluster after 10 attempts");
+        mongoCluster = await MongoDBClusterProcess.spinUp(configuration);
     }, 120_000);
 
     afterAll(async function () {
@@ -161,7 +146,7 @@ export function setupMongoDBIntegrationTest(
             throw new Error("beforeAll() hook not ran yet");
         }
 
-        return mongoCluster.connectionString;
+        return mongoCluster.connectionString();
     };
 
     return {
@@ -172,7 +157,6 @@ export function setupMongoDBIntegrationTest(
             return mongoClient;
         },
         connectionString: getConnectionString,
-
         randomDbName: () => randomDbName,
     };
 }
@@ -268,6 +252,11 @@ export function prepareTestData(integration: MongoDBIntegrationTest): {
     };
 }
 
+export function getSingleDocFromUntrustedContent<T = unknown>(content: string): T {
+    const data = getDataFromUntrustedContent(content);
+    return EJSON.parse(data, { relaxed: true }) as T;
+}
+
 export function getDocsFromUntrustedContent<T = unknown>(content: string): T[] {
     const data = getDataFromUntrustedContent(content);
     return EJSON.parse(data, { relaxed: true }) as T[];
@@ -285,4 +274,102 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
     const client = integration.mongoClient();
     const serverStatus = await client.db("admin").admin().serverStatus();
     return serverStatus.version as string;
+}
+export const SEARCH_WAIT_TIMEOUT = 20_000;
+
+export async function waitUntilSearchIsReady(
+    mongoClient: MongoClient,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const testCollection = mongoClient.db("tempDB").collection("tempCollection");
+            await testCollection.insertOne({ field1: "yay" });
+            await testCollection.createSearchIndexes([{ definition: { mappings: { dynamic: true } } }]);
+            await testCollection.drop();
+        },
+        { timeout, interval }
+    );
+}
+
+async function waitUntilSearchIndexIs(
+    collection: Collection,
+    searchIndex: string,
+    indexValidator: (index: { name: string; status: string; queryable: boolean }) => boolean,
+    timeout: number,
+    interval: number,
+    getValidationFailedMessage: (searchIndexes: Document[]) => string = () => "Search index did not pass validation"
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
+                name: string;
+                status: string;
+                queryable: boolean;
+            }[];
+
+            if (!searchIndexes.some((index) => indexValidator(index))) {
+                throw new Error(getValidationFailedMessage(searchIndexes));
+            }
+        },
+        {
+            timeout,
+            interval,
+        }
+    );
+}
+
+export async function waitUntilSearchIndexIsListed(
+    collection: Collection,
+    searchIndex: string,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    return waitUntilSearchIndexIs(
+        collection,
+        searchIndex,
+        (index) => index.name === searchIndex,
+        timeout,
+        interval,
+        (searchIndexes) =>
+            `Index ${searchIndex} is not yet in the index list (${searchIndexes.map(({ name }) => String(name)).join(", ")})`
+    );
+}
+
+export async function waitUntilSearchIndexIsQueryable(
+    collection: Collection,
+    searchIndex: string,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    return waitUntilSearchIndexIs(
+        collection,
+        searchIndex,
+        (index) => index.name === searchIndex && index.status === "READY",
+        timeout,
+        interval,
+        (searchIndexes) => {
+            const index = searchIndexes.find((index) => index.name === searchIndex);
+            return `Index ${searchIndex} in ${collection.dbName}.${collection.collectionName} is not ready. Last known status - ${JSON.stringify(index)}`;
+        }
+    );
+}
+
+export async function createVectorSearchIndexAndWait(
+    mongoClient: MongoClient,
+    database: string,
+    collection: string,
+    fields: Document[]
+): Promise<void> {
+    const coll = await mongoClient.db(database).createCollection(collection);
+    await coll.createSearchIndex({
+        name: "default",
+        type: "vectorSearch",
+        definition: {
+            fields,
+        },
+    });
+
+    await waitUntilSearchIndexIsQueryable(coll, "default");
 }

@@ -1,6 +1,7 @@
+import { parseArgs } from "@mongosh/arg-parser/arg-parser";
 import fs from "fs/promises";
 import type { OpenAPIV3_1 } from "openapi-types";
-import argv from "yargs-parser";
+import z4 from "zod/v4";
 
 function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: OpenAPIV3_1.Document): T {
     const ref = (obj as OpenAPIV3_1.ReferenceObject).$ref;
@@ -23,19 +24,22 @@ function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: Ope
 }
 
 async function main(): Promise<void> {
-    const { spec, file } = argv(process.argv.slice(2));
+    const {
+        parsed: { spec, file },
+    } = parseArgs({ args: process.argv.slice(2), schema: z4.object({ spec: z4.string(), file: z4.string() }) });
 
     if (!spec || !file) {
         console.error("Please provide both --spec and --file arguments.");
         process.exit(1);
     }
 
-    const specFile = await fs.readFile(spec as string, "utf8");
+    const specFile = await fs.readFile(spec, "utf8");
 
     const operations: {
         path: string;
         method: string;
         operationId: string;
+        methodName: string;
         requiredParams: boolean;
         tag: string;
         hasResponseBody: boolean;
@@ -45,7 +49,9 @@ async function main(): Promise<void> {
     for (const path in openapi.paths) {
         for (const method in openapi.paths[path]) {
             // @ts-expect-error This is a workaround for the OpenAPI types
-            const operation = openapi.paths[path][method] as OpenAPIV3_1.OperationObject;
+            const operation = openapi.paths[path][method] as OpenAPIV3_1.OperationObject & {
+                "x-xgen-operation-id-override": string;
+            };
 
             if (!operation.operationId || !operation.tags?.length) {
                 continue;
@@ -81,6 +87,7 @@ async function main(): Promise<void> {
             operations.push({
                 path,
                 method: method.toUpperCase(),
+                methodName: operation["x-xgen-operation-id-override"] || operation.operationId || "",
                 operationId: operation.operationId || "",
                 requiredParams,
                 hasResponseBody,
@@ -91,9 +98,9 @@ async function main(): Promise<void> {
 
     const operationOutput = operations
         .map((operation) => {
-            const { operationId, method, path, requiredParams, hasResponseBody } = operation;
+            const { methodName, operationId, method, path, requiredParams, hasResponseBody } = operation;
             return `// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-async ${operationId}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>) {
+async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>) {
     const { ${hasResponseBody ? `data, ` : ``}error, response } = await this.client.${method}("${path}", options);
     if (error) {
         throw ApiClientError.fromError(response, error);
@@ -108,7 +115,7 @@ async ${operationId}(options${requiredParams ? "" : "?"}: FetchOptions<operation
         })
         .join("\n");
 
-    const templateFile = await fs.readFile(file as string, "utf8");
+    const templateFile = await fs.readFile(file, "utf8");
     const templateLines = templateFile.split("\n");
     const outputLines: string[] = [];
     let addLines = true;
@@ -127,7 +134,7 @@ async ${operationId}(options${requiredParams ? "" : "?"}: FetchOptions<operation
     }
     const output = outputLines.join("\n");
 
-    await fs.writeFile(file as string, output, "utf8");
+    await fs.writeFile(file, output, "utf8");
 }
 
 main().catch((error) => {

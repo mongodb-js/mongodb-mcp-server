@@ -1,11 +1,6 @@
-import type {
-    ConnectionManagerEvents,
-    ConnectionStateConnected,
-    ConnectionStringAuthType,
-} from "../../../src/common/connectionManager.js";
-
-import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
-import type { UserConfig } from "../../../src/common/config.js";
+import type { ConnectionManagerEvents, ConnectionStateConnected } from "../../../src/common/connectionManager.js";
+import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
+import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import { type TestConnectionManager } from "../../utils/index.js";
@@ -124,7 +119,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
                     tag: "errored",
                     connectedAtlasCluster: undefined,
-                    connectionStringAuthType: "scram",
+                    connectionStringInfo: {
+                        authType: "scram",
+                        hostType: "unknown",
+                    },
                     errorReason: "Unable to parse localhost:xxxxx with URL",
                 });
             });
@@ -161,7 +159,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
                     tag: "errored",
                     connectedAtlasCluster: atlas,
-                    connectionStringAuthType: "scram",
+                    connectionStringInfo: {
+                        authType: "scram",
+                        hostType: "atlas",
+                    },
                     errorReason: "Unable to parse localhost:xxxxx with URL",
                 });
             });
@@ -226,12 +227,7 @@ describe("Connection Manager connection type inference", () => {
 
     for (const { userConfig, connectionString, connectionType } of testCases) {
         it(`infers ${connectionType} from ${connectionString}`, () => {
-            const actualConnectionType = MCPConnectionManager.inferConnectionTypeFromSettings(
-                userConfig as UserConfig,
-                {
-                    connectionString,
-                }
-            );
+            const actualConnectionType = getAuthType(userConfig as UserConfig, connectionString);
 
             expect(actualConnectionType).toBe(connectionType);
         });

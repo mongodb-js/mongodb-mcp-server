@@ -1,0 +1,38 @@
+---
+name: Code Health Long Running Tests
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual triggering of the workflow in feature branches
+
+permissions: {}
+
+jobs:
+  run-long-running-tests:
+    name: Run long running tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run tests
+        env:
+          MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+          MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+        run: pnpm test tests/integration/tools/atlas --project=long-running-tests
+      - name: Upload test results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: atlas-test-results
+          path: coverage/lcov.info

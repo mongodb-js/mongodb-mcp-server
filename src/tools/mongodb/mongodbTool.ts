@@ -1,11 +1,12 @@
 import { z } from "zod";
-import type { ToolArgs, ToolCategory, TelemetryToolMetadata } from "../tool.js";
+import type { ToolArgs, ToolCategory } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 import { LogId } from "../../common/logger.js";
 import type { Server } from "../../server.js";
+import type { ConnectionMetadata } from "../../telemetry/types.js";
 
 export const DbOperationArgs = {
     database: z.string().describe("Database name"),
@@ -13,8 +14,8 @@ export const DbOperationArgs = {
 };
 
 export abstract class MongoDBToolBase extends ToolBase {
-    private server?: Server;
-    public category: ToolCategory = "mongodb";
+    protected server?: Server;
+    static category: ToolCategory = "mongodb";
 
     protected async ensureConnected(): Promise<NodeDriverServiceProvider> {
         if (!this.session.isConnectedToMongoDB) {
@@ -27,7 +28,7 @@ export abstract class MongoDBToolBase extends ToolBase {
 
             if (this.config.connectionString) {
                 try {
-                    await this.connectToMongoDB(this.config.connectionString);
+                    await this.session.connectToConfiguredConnection();
                 } catch (error) {
                     this.session.logger.error({
                         id: LogId.mongodbConnectFailure,
@@ -82,27 +83,41 @@ export abstract class MongoDBToolBase extends ToolBase {
                         ],
                         isError: true,
                     };
+                case ErrorCodes.AtlasSearchNotSupported: {
+                    const CTA = this.server?.isToolCategoryAvailable("atlas-local" as unknown as ToolCategory)
+                        ? "`atlas-local` tools"
+                        : "Atlas CLI";
+                    return {
+                        content: [
+                            {
+                                text: `The connected MongoDB deployment does not support vector search indexes. Either connect to a MongoDB Atlas cluster or use the ${CTA} to create and manage a local Atlas deployment.`,
+                                type: "text",
+                            },
+                        ],
+                        isError: true,
+                    };
+                }
             }
         }
 
         return super.handleError(error, args);
     }
 
-    protected connectToMongoDB(connectionString: string): Promise<void> {
-        return this.session.connectToMongoDB({ connectionString });
-    }
-
+    /**
+     * Resolves the tool metadata from the arguments passed to the mongoDB tools.
+     *
+     * Since MongoDB tools are executed against a MongoDB instance, the tool calls will always have the connection information.
+     *
+     * @param result - The result of the tool call.
+     * @param args - The arguments passed to the tool
+     * @returns The tool metadata
+     */
     protected resolveTelemetryMetadata(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        args: ToolArgs<typeof this.argsShape>
-    ): TelemetryToolMetadata {
-        const metadata: TelemetryToolMetadata = {};
-
-        // Add projectId to the metadata if running a MongoDB operation to an Atlas cluster
-        if (this.session.connectedAtlasCluster?.projectId) {
-            metadata.projectId = this.session.connectedAtlasCluster.projectId;
-        }
-
-        return metadata;
+        _args: ToolArgs<typeof this.argsShape>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        { result }: { result: CallToolResult }
+    ): ConnectionMetadata {
+        return this.getConnectionInfoMetadata();
     }
 }

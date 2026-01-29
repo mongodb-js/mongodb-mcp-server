@@ -2,10 +2,11 @@ import { ReactiveResource } from "../resource.js";
 import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session, UserConfig } from "../../lib.js";
 import type { AtlasClusterConnectionInfo, ConnectionStateErrored } from "../../common/connectionManager.js";
+import type { ConnectionStringInfo } from "../../common/connectionInfo.js";
 
 type ConnectionStateDebuggingInformation = {
     readonly tag: "connected" | "connecting" | "disconnected" | "errored";
-    readonly connectionStringAuthType?: "scram" | "ldap" | "kerberos" | "oidc-auth-flow" | "oidc-device-flow" | "x.509";
+    readonly connectionStringInfo?: ConnectionStringInfo;
     readonly errorReason?: string;
     readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };
@@ -43,7 +44,7 @@ export class DebugResource extends ReactiveResource<
             case "connection-error": {
                 return {
                     tag: "errored",
-                    connectionStringAuthType: event?.connectionStringAuthType,
+                    connectionStringInfo: event?.connectionStringInfo,
                     connectedAtlasCluster: event?.connectedAtlasCluster,
                     errorReason:
                         event?.errorReason ??
@@ -56,21 +57,23 @@ export class DebugResource extends ReactiveResource<
         }
     }
 
-    toOutput(): string {
+    async toOutput(): Promise<string> {
         let result = "";
 
         switch (this.current.tag) {
-            case "connected":
-                result += "The user is connected to the MongoDB cluster.";
+            case "connected": {
+                const searchIndexesSupported = await this.session.isSearchSupported();
+                result += `The user is connected to the MongoDB cluster${searchIndexesSupported ? " with support for search indexes" : " without any support for search indexes"}.`;
                 break;
+            }
             case "errored":
                 result += `The user is not connected to a MongoDB cluster because of an error.\n`;
                 if (this.current.connectedAtlasCluster) {
                     result += `Attempted connecting to Atlas Cluster "${this.current.connectedAtlasCluster.clusterName}" in project with id "${this.current.connectedAtlasCluster.projectId}".\n`;
                 }
 
-                if (this.current.connectionStringAuthType !== undefined) {
-                    result += `The inferred authentication mechanism is "${this.current.connectionStringAuthType}".\n`;
+                if (this.current.connectionStringInfo?.authType !== undefined) {
+                    result += `The inferred authentication mechanism is "${this.current.connectionStringInfo.authType}".\n`;
                 }
                 result += `<error>${this.current.errorReason}</error>`;
                 break;
