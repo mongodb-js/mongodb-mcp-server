@@ -139,7 +139,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 sessionId,
                 isImplicitInitialization,
             }:
-                | { sessionId?: string; isImplicitInitialization?: never }
+                | { sessionId?: string; isImplicitInitialization?: false }
                 | { sessionId: string; isImplicitInitialization: true }
         ): Promise<void> => {
             const request: RequestContext = {
@@ -186,10 +186,6 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             let failedPings = 0;
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             const keepAliveLoop: NodeJS.Timeout = setInterval(async () => {
-                if (!transport) {
-                    return;
-                }
-
                 try {
                     server.session.logger.debug({
                         id: LogId.streamableHttpTransportKeepAlive,
