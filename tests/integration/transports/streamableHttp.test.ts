@@ -288,164 +288,197 @@ describe("StreamableHttpRunner", () => {
             await runner.start();
         });
 
-        it("should create a new session with external session ID on initialize", async () => {
-            const sessionId = "test-external-session-123";
-            const client = await connectClient({ sessionId });
-            const response = await client.listTools();
+        for (const responseType of ["json", "sse"] as const) {
+            describe(`and httpResponseType set to ${responseType}`, () => {
+                beforeEach(() => {
+                    config.httpResponseType = responseType;
+                });
 
-            expect(response).toBeDefined();
-            expect(response.tools).toBeDefined();
-            expect(response.tools.length).toBeGreaterThan(0);
+                it("should create a new session with external session ID on initialize", async () => {
+                    const sessionId = "test-external-session-123";
+                    const client = await connectClient({ sessionId });
+                    const response = await client.listTools();
 
-            // Verify the session is stored with the external ID
-            const storedSession = getSessionFromStore(sessionId);
-            expect(storedSession).toBeDefined();
-        });
+                    expect(response).toBeDefined();
+                    expect(response.tools).toBeDefined();
+                    expect(response.tools.length).toBeGreaterThan(0);
 
-        it("should reuse existing session with the same external session ID", async () => {
-            const sessionId = "test-external-session-456";
+                    // Verify the session is stored with the external ID
+                    const storedSession = getSessionFromStore(sessionId);
+                    expect(storedSession).toBeDefined();
+                });
 
-            // First client creates the session
-            const client1 = await connectClient({ sessionId, shouldInitialize: false });
-            const response1 = await client1.listTools();
-            expect(response1.tools).toBeDefined();
+                it("should reuse existing session with the same external session ID", async () => {
+                    const sessionId = "test-external-session-456";
 
-            const session1 = getSessionFromStore(sessionId);
-            expect(session1).toBeDefined();
+                    // First client creates the session
+                    const client1 = await connectClient({ sessionId, shouldInitialize: false });
+                    const response1 = await client1.listTools();
+                    expect(response1.tools).toBeDefined();
 
-            // Second client reuses the session
-            const client2 = await connectClient({ sessionId, shouldInitialize: false });
-            const response2 = await client2.listTools();
-            expect(response2.tools).toBeDefined();
+                    const session1 = getSessionFromStore(sessionId);
+                    expect(session1).toBeDefined();
 
-            const session2 = getSessionFromStore(sessionId);
-            expect(session2).toBe(session1);
-        });
+                    // Second client reuses the session
+                    const client2 = await connectClient({ sessionId, shouldInitialize: false });
+                    const response2 = await client2.listTools();
+                    expect(response2.tools).toBeDefined();
 
-        it("should reuse existing session with the same external session ID, even after closing", async () => {
-            const sessionId = "test-external-session-456";
+                    const session2 = getSessionFromStore(sessionId);
+                    expect(session2).toBe(session1);
+                });
 
-            // First client creates the session
-            const client1 = await connectClient({ sessionId, shouldInitialize: false });
-            const response1 = await client1.listTools();
-            expect(response1.tools).toBeDefined();
+                it("should reuse existing session with the same external session ID, even after closing", async () => {
+                    const sessionId = "test-external-session-456";
 
-            const session1 = getSessionFromStore(sessionId);
-            expect(session1).toBeDefined();
+                    // First client creates the session
+                    const client1 = await connectClient({ sessionId, shouldInitialize: false });
+                    const response1 = await client1.listTools();
+                    expect(response1.tools).toBeDefined();
 
-            await client1.close();
+                    const session1 = getSessionFromStore(sessionId);
+                    expect(session1).toBeDefined();
 
-            // Second client reuses the session
-            const client2 = await connectClient({ sessionId, shouldInitialize: false });
-            const response2 = await client2.listTools();
-            expect(response2.tools).toBeDefined();
+                    await client1.close();
 
-            // Verify it's the same session - the session should persist even after the first client closes
-            const session2 = getSessionFromStore(sessionId);
-            expect(session2).toBe(session1);
-        });
+                    // Second client reuses the session
+                    const client2 = await connectClient({ sessionId, shouldInitialize: false });
+                    const response2 = await client2.listTools();
+                    expect(response2.tools).toBeDefined();
 
-        it("should allow multiple external sessions to coexist", async () => {
-            const sessionId1 = "session-1";
-            const sessionId2 = "session-2";
-            const sessionId3 = "session-3";
+                    // Verify it's the same session - the session should persist even after the first client closes
+                    const session2 = getSessionFromStore(sessionId);
+                    expect(session2).toBe(session1);
+                });
 
-            // Connect multiple clients with different session IDs and confirm
-            // they each have their own session
-            const client1 = await connectClient({ sessionId: sessionId1 });
-            const client2 = await connectClient({ sessionId: sessionId2 });
-            const client3 = await connectClient({ sessionId: sessionId3 });
+                it("should allow multiple external sessions to coexist", async () => {
+                    const sessionId1 = "session-1";
+                    const sessionId2 = "session-2";
+                    const sessionId3 = "session-3";
 
-            const response1 = await client1.listTools();
-            const response2 = await client2.listTools();
-            const response3 = await client3.listTools();
+                    // Connect multiple clients with different session IDs and confirm
+                    // they each have their own session
+                    const client1 = await connectClient({ sessionId: sessionId1 });
+                    const client2 = await connectClient({ sessionId: sessionId2 });
+                    const client3 = await connectClient({ sessionId: sessionId3 });
 
-            expect(response1.tools).toBeDefined();
-            expect(response2.tools).toBeDefined();
-            expect(response3.tools).toBeDefined();
+                    const response1 = await client1.listTools();
+                    const response2 = await client2.listTools();
+                    const response3 = await client3.listTools();
 
-            const session1 = getSessionFromStore(sessionId1);
-            const session2 = getSessionFromStore(sessionId2);
-            const session3 = getSessionFromStore(sessionId3);
+                    expect(response1.tools).toBeDefined();
+                    expect(response2.tools).toBeDefined();
+                    expect(response3.tools).toBeDefined();
 
-            expect(session1).toBeDefined();
-            expect(session2).toBeDefined();
-            expect(session3).toBeDefined();
+                    const session1 = getSessionFromStore(sessionId1);
+                    const session2 = getSessionFromStore(sessionId2);
+                    const session3 = getSessionFromStore(sessionId3);
 
-            expect(session1).not.toBe(session2);
-            expect(session1).not.toBe(session3);
-            expect(session2).not.toBe(session3);
-        });
+                    expect(session1).toBeDefined();
+                    expect(session2).toBeDefined();
+                    expect(session3).toBeDefined();
 
-        it("should create session for non-initialize request with unknown session ID", async () => {
-            const sessionId = "new-session-on-non-init";
+                    expect(session1).not.toBe(session2);
+                    expect(session1).not.toBe(session3);
+                    expect(session2).not.toBe(session3);
+                });
 
-            const client = await connectClient({ sessionId: sessionId, shouldInitialize: false });
+                it("should create session for non-initialize request with unknown session ID", async () => {
+                    const sessionId = "new-session-on-non-init";
 
-            await client.listTools();
+                    const client = await connectClient({ sessionId: sessionId, shouldInitialize: false });
 
-            const session = getSessionFromStore(sessionId);
-            expect(session).toBeDefined();
-        });
+                    await client.listTools();
 
-        it("should create session for non-initialize request with unknown session ID through fetch", async () => {
-            // This is the same as the previous test but using fetch directly instead of the Client/Transport
-            const externalSessionId = "new-session-using-fetch";
+                    const session = getSessionFromStore(sessionId);
+                    expect(session).toBeDefined();
+                });
 
-            const response = await sendHttpRequest("tools/list", externalSessionId);
-            expect(response.ok).toBe(true);
-            const data = (await response.json()) as { result: { tools: unknown[] } | undefined };
-            expect(data.result?.tools).toBeDefined();
+                it("should create session for non-initialize request with unknown session ID through fetch", async () => {
+                    // This is the same as the previous test but using fetch directly instead of the Client/Transport
+                    const externalSessionId = "new-session-using-fetch";
 
-            const session = getSessionFromStore(externalSessionId);
-            expect(session).toBeDefined();
-        });
+                    const response = await sendHttpRequest("tools/list", externalSessionId);
+                    expect(response.ok).toBe(true);
 
-        it("should reject requests without session ID", async () => {
-            const response = await sendHttpRequest("tools/list");
+                    if (responseType === "json") {
+                        const data = (await response.json()) as { result: { tools: unknown[] } | undefined };
+                        expect(data.result?.tools).toBeDefined();
+                    } else {
+                        const data = await response.text();
+                        expect(data).toContain("event: message");
+                        expect(data).toContain('data: {"result":{"tools":');
+                    }
 
-            expect(response.status).toBe(400);
-            const data = (await response.json()) as { error?: { code: number; message: string } };
-            expect(data.error?.code).toBe(-32004);
-            expect(data.error?.message).toBe("invalid request");
-        });
+                    const session = getSessionFromStore(externalSessionId);
+                    expect(session).toBeDefined();
+                });
 
-        describe("session idle timeout", () => {
-            beforeEach(async () => {
-                config.idleTimeoutMs = 1000;
-                config.notificationTimeoutMs = 500;
+                it("should reject requests without session ID", async () => {
+                    const response = await sendHttpRequest("tools/list");
 
-                await runner?.close();
-                runner = new StreamableHttpRunner({ userConfig: config });
-                await runner.start();
+                    expect(response.status).toBe(400);
+                    const data = (await response.json()) as { error?: { code: number; message: string } };
+                    expect(data.error?.code).toBe(-32004);
+                    expect(data.error?.message).toBe("invalid request");
+                });
+
+                describe("session idle timeout", () => {
+                    beforeEach(async () => {
+                        config.idleTimeoutMs = 1000;
+                        config.notificationTimeoutMs = 500;
+
+                        await runner?.close();
+                        runner = new StreamableHttpRunner({ userConfig: config });
+                        await runner.start();
+                    });
+
+                    it("should timeout idle sessions after inactivity period", async () => {
+                        const sessionId = "session-to-timeout";
+                        const client = await connectClient({ sessionId });
+                        await client.listTools();
+
+                        const sessionBefore = getSessionFromStore(sessionId);
+                        expect(sessionBefore).toBeDefined();
+                        await timeout(1100);
+
+                        const sessionAfter = getSessionFromStore(sessionId);
+                        expect(sessionAfter).toBeUndefined();
+                    });
+                });
+
+                it(`should return ${responseType} responses`, async () => {
+                    const externalSessionId = "json-response-session";
+
+                    const response = await sendHttpRequest("initialize", externalSessionId);
+
+                    expect(response.ok).toBe(true);
+
+                    const expectedContentType = responseType === "json" ? "application/json" : "text/event-stream";
+                    expect(response.headers.get("content-type")).toContain(expectedContentType);
+
+                    const body = await response.text();
+                    switch (responseType) {
+                        case "json":
+                            {
+                                expect(response.headers.get("content-type")).toContain("application/json");
+                                const data = JSON.parse(body) as { result?: unknown };
+                                expect(data.result).toBeDefined();
+                            }
+                            break;
+                        case "sse":
+                            {
+                                expect(response.headers.get("content-type")).toContain("text/event-stream");
+                                expect(body).toContain("event: message");
+                                expect(body).toContain("data: ");
+                            }
+                            break;
+                        default:
+                            throw new Error(`Unhandled response type: ${responseType as unknown as string}`);
+                    }
+                });
             });
-
-            it("should timeout idle sessions after inactivity period", async () => {
-                const sessionId = "session-to-timeout";
-                const client = await connectClient({ sessionId });
-                await client.listTools();
-
-                const sessionBefore = getSessionFromStore(sessionId);
-                expect(sessionBefore).toBeDefined();
-                await timeout(1100);
-
-                const sessionAfter = getSessionFromStore(sessionId);
-                expect(sessionAfter).toBeUndefined();
-            });
-        });
-
-        it("should return JSON responses instead of SSE", async () => {
-            const externalSessionId = "json-response-session";
-
-            const response = await sendHttpRequest("initialize", externalSessionId);
-
-            expect(response.ok).toBe(true);
-            expect(response.headers.get("content-type")).toContain("application/json");
-            expect(response.headers.get("content-type")).not.toContain("text/event-stream");
-
-            const data = (await response.json()) as { result?: unknown };
-            expect(data.result).toBeDefined();
-        });
+        }
     });
 
     describe("with externallyManagedSessions disabled", () => {
@@ -468,32 +501,64 @@ describe("StreamableHttpRunner", () => {
             expect(data).toContain("data: ");
         });
 
-        it("should return error when session not found", async () => {
-            const unknownSessionId = "unknown-session-id";
+        for (const responseType of ["json", "sse"] as const) {
+            describe(`and httpResponseType set to ${responseType}`, () => {
+                beforeEach(() => {
+                    config.httpResponseType = responseType;
+                });
 
-            const response = await sendHttpRequest("tools/list", unknownSessionId);
-            expect(response.status).toBe(404);
-            const data = (await response.json()) as { error?: { code: number; message: string } };
-            expect(data.error?.code).toBe(-32003);
-            expect(data.error?.message).toBe("session not found");
+                it(`should return ${responseType} responses`, async () => {
+                    const response = await sendHttpRequest("initialize");
 
-            const sessionStore = runner["sessionStore"];
-            const session = sessionStore.getSession(unknownSessionId);
-            expect(session).toBeUndefined();
-        });
+                    expect(response.ok).toBe(true);
+                    switch (responseType) {
+                        case "json":
+                            {
+                                expect(response.headers.get("content-type")).toContain("application/json");
+                                const data = (await response.json()) as { result?: unknown };
+                                expect(data.result).toBeDefined();
+                            }
+                            break;
+                        case "sse":
+                            {
+                                expect(response.headers.get("content-type")).toContain("text/event-stream");
+                                const data = await response.text();
+                                expect(data).toContain("event: message");
+                                expect(data).toContain("data: ");
+                            }
+                            break;
+                        default:
+                            throw new Error(`Unhandled response type: ${responseType as unknown as string}`);
+                    }
+                });
 
-        it("should ignore provided session ID", async () => {
-            const providedSessionId = "some-session-id";
+                it("should return error when session not found", async () => {
+                    const unknownSessionId = "unknown-session-id";
 
-            const response = await sendHttpRequest("initialize", providedSessionId);
-            expect(response.ok).toBe(true);
+                    const response = await sendHttpRequest("tools/list", unknownSessionId);
+                    expect(response.status).toBe(404);
+                    const data = (await response.json()) as { error?: { code: number; message: string } };
+                    expect(data.error?.code).toBe(-32003);
+                    expect(data.error?.message).toBe("session not found");
 
-            const data = await response.text();
-            expect(data).toContain("event: message");
-            expect(data).toContain("data: ");
+                    const sessionStore = runner["sessionStore"];
+                    const session = sessionStore.getSession(unknownSessionId);
+                    expect(session).toBeUndefined();
+                });
 
-            const session = getSessionFromStore(providedSessionId);
-            expect(session).toBeUndefined();
-        });
+                it("should error when client provides session ID at initialization", async () => {
+                    const providedSessionId = "some-session-id";
+
+                    const response = await sendHttpRequest("initialize", providedSessionId);
+                    expect(response.ok).toBe(false);
+                    expect(response.status).toBe(400);
+                    const data = (await response.json()) as { error?: { code: number; message: string } };
+                    expect(data.error?.code).toBe(-32005);
+                    expect(data.error?.message).toBe(
+                        "cannot provide sessionId when externally managed sessions are disabled"
+                    );
+                });
+            });
+        }
     });
 });

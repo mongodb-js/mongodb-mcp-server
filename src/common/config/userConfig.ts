@@ -233,9 +233,16 @@ const ServerConfigSchema = z4.object({
         .boolean()
         .default(false)
         .describe(
-            "When true, the HTTP transport will allow json responses without SSE. Use this in cases where sessions are managed externally, such as by Amazon Bedrock AgentCore."
+            "When true, the HTTP transport handling requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional."
         )
-        .register(configRegistry, { overrideBehavior: "override" }),
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    httpResponseType: z4
+        .enum(["sse", "json"])
+        .default("sse")
+        .describe(
+            "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
 
 export const UserConfigSchema = z4.object({
