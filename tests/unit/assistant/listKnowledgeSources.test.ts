@@ -21,6 +21,7 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
         integration,
         "list-knowledge-sources",
         "List available data sources in the MongoDB Assistant knowledge base",
+        "read",
         []
     );
 
@@ -115,7 +116,9 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
             expect(response.isError).toBe(true);
             expectDefined(response.content);
             expect(response.content[0]).toHaveProperty("text");
-            expect(response.content[0]?.text).toContain("Failed to list knowledge sources: Internal Server Error");
+            expect((response.content[0] as { text: string }).text).toContain(
+                "Failed to list knowledge sources: Internal Server Error"
+            );
         });
 
         it("handles network errors", async () => {
@@ -128,7 +131,7 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
             expect(response.isError).toBe(true);
             expectDefined(response.content);
             expect(response.content[0]).toHaveProperty("text");
-            expect(response.content[0]?.text).toContain("Network connection failed");
+            expect((response.content[0] as { text: string }).text).toContain("Network connection failed");
         });
     });
 });

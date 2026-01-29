@@ -22,6 +22,7 @@ describeWithAssistant("search-knowledge", (integration) => {
         integration,
         "search-knowledge",
         "Search for information in the MongoDB Assistant knowledge base",
+        "read",
         [
             {
                 name: "dataSources",
@@ -222,7 +223,9 @@ describeWithAssistant("search-knowledge", (integration) => {
             expect(response.isError).toBe(true);
             expectDefined(response.content);
             expect(response.content[0]).toHaveProperty("text");
-            expect(response.content[0]?.text).toContain("Failed to search knowledge base: Not Found");
+            expect((response.content[0] as { text: string }).text).toContain(
+                "Failed to search knowledge base: Not Found"
+            );
         });
 
         it("handles network errors", async () => {
@@ -235,7 +238,7 @@ describeWithAssistant("search-knowledge", (integration) => {
             expect(response.isError).toBe(true);
             expectDefined(response.content);
             expect(response.content[0]).toHaveProperty("text");
-            expect(response.content[0]?.text).toContain("Connection timeout");
+            expect((response.content[0] as { text: string }).text).toContain("Connection timeout");
         });
     });
 });

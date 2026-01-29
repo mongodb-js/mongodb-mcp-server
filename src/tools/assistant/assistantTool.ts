@@ -1,7 +1,7 @@
-import { ToolBase, type ToolArgs, type ToolConstructorParams } from "../tool.js";
+import { ToolBase, type ToolConstructorParams } from "../tool.js";
 import type { TelemetryToolMetadata } from "../../telemetry/types.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
-import { Server } from "../../server.js";
+import type { Server } from "../../server.js";
 import { packageInfo } from "../../common/packageInfo.js";
 
 export abstract class AssistantToolBase extends ToolBase {
@@ -23,14 +23,18 @@ export abstract class AssistantToolBase extends ToolBase {
         return super.register(server);
     }
 
-    protected resolveTelemetryMetadata(_args: ToolArgs<typeof this.argsShape>): TelemetryToolMetadata {
-        // Assistant tool calls are not associated with a specific project or organization
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        // Assistant tool calls are not associated with a specific Atlas project or organization
         // Therefore, we don't have any values to add to the telemetry metadata
         return {};
     }
 
-    protected async callAssistantApi(args: { method: "GET" | "POST"; endpoint: string; body?: unknown }) {
-        const endpoint = new URL(args.endpoint, this.baseUrl);
+    protected async callAssistantApi(args: {
+        method: "GET" | "POST";
+        endpoint: string;
+        body?: unknown;
+    }): Promise<Response> {
+        const endpointUrl = new URL(args.endpoint, this.baseUrl);
         const headers = new Headers(this.requiredHeaders);
         if (args.method === "POST") {
             headers.set("Content-Type", "application/json");
@@ -42,7 +46,7 @@ export abstract class AssistantToolBase extends ToolBase {
             useEnvironmentVariableProxies: true,
         }) as unknown as typeof fetch;
 
-        return await customFetch(endpoint, {
+        return await customFetch(endpointUrl, {
             method: args.method,
             headers,
             body: JSON.stringify(args.body),

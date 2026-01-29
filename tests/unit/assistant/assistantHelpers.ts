@@ -1,9 +1,4 @@
-import {
-    setupIntegrationTest,
-    IntegrationTest,
-    defaultTestConfig,
-    defaultDriverOptions,
-} from "../../integration/helpers.js";
+import { setupIntegrationTest, IntegrationTest, defaultTestConfig } from "../../integration/helpers.js";
 import { describe, SuiteCollector } from "vitest";
 import { vi, beforeAll, afterAll, beforeEach } from "vitest";
 
@@ -11,15 +6,10 @@ export type MockIntegrationTestFunction = (integration: IntegrationTest) => void
 
 export function describeWithAssistant(name: string, fn: MockIntegrationTestFunction): SuiteCollector<object> {
     const testDefinition = (): void => {
-        const integration = setupIntegrationTest(
-            () => ({
-                ...defaultTestConfig,
-                assistantBaseUrl: "https://knowledge-mock.mongodb.com/api/v1", // Not a real URL
-            }),
-            () => ({
-                ...defaultDriverOptions,
-            })
-        );
+        const integration = setupIntegrationTest(() => ({
+            ...defaultTestConfig,
+            assistantBaseUrl: "https://knowledge-mock.mongodb.com/api/v1", // Not a real URL
+        }));
 
         describe(name, () => {
             fn(integration);
