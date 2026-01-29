@@ -51,6 +51,8 @@ const expectedDefaults = {
     previewFeatures: [],
     dryRun: false,
     allowRequestOverrides: false,
+    externallyManagedSessions: false,
+    httpResponseType: "sse",
 };
 
 const CONFIG_FIXTURES = {
