@@ -33,7 +33,7 @@ describe("StreamableHttpRunner", () => {
         const requestHeaders: Record<string, string> = {
             ...additionalHeaders,
         };
-        if (shouldInitialize && sessionId) {
+        if (sessionId) {
             requestHeaders["mcp-session-id"] = sessionId;
         }
 
@@ -41,6 +41,9 @@ describe("StreamableHttpRunner", () => {
             requestInit: {
                 headers: requestHeaders,
             },
+            // If `sessionId` is set, the client will skip the initialize request.
+            // If we want to ensure the initialization request is sent, we set `sessionId` to undefined,
+            // even if we have an external session ID to use.
             sessionId: shouldInitialize ? undefined : sessionId,
         });
 

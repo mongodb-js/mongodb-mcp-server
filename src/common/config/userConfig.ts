@@ -233,7 +233,7 @@ const ServerConfigSchema = z4.object({
         .boolean()
         .default(false)
         .describe(
-            "When true, the HTTP transport handling requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional."
+            "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpResponseType: z4

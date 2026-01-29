@@ -142,6 +142,10 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 | { sessionId?: string; isImplicitInitialization?: false }
                 | { sessionId: string; isImplicitInitialization: true }
         ): Promise<void> => {
+            if (isImplicitInitialization && !sessionId) {
+                throw new Error("Implicit initialization requires externally-passed sessionId");
+            }
+
             const request: RequestContext = {
                 headers: req.headers as Record<string, string | string[] | undefined>,
                 query: req.query as Record<string, string | string[] | undefined>,
