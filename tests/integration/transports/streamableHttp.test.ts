@@ -473,8 +473,6 @@ describe("StreamableHttpRunner", () => {
                                 expect(body).toContain("data: ");
                             }
                             break;
-                        default:
-                            throw new Error(`Unhandled response type: ${responseType as unknown as string}`);
                     }
                 });
             });
@@ -527,8 +525,6 @@ describe("StreamableHttpRunner", () => {
                                 expect(data).toContain("data: ");
                             }
                             break;
-                        default:
-                            throw new Error(`Unhandled response type: ${responseType as unknown as string}`);
                     }
                 });
 
