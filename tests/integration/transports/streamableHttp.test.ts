@@ -1,7 +1,7 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { describe, expect, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
 import { LoggerBase, LogId } from "../../../src/common/logger.js";
 import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
@@ -27,13 +27,13 @@ describe("StreamableHttpRunner", () => {
 
     for (const { headers, description } of headerTestCases) {
         describe(description, () => {
-            beforeAll(async () => {
+            beforeEach(async () => {
                 config.httpHeaders = headers;
                 runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start();
             });
 
-            afterAll(async () => {
+            afterEach(async () => {
                 await runner.close();
             });
 
@@ -60,7 +60,7 @@ describe("StreamableHttpRunner", () => {
                 describe(clientDescription, () => {
                     let client: Client;
                     let transport: StreamableHTTPClientTransport;
-                    beforeAll(() => {
+                    beforeEach(() => {
                         client = new Client({
                             name: "test",
                             version: "0.0.0",
@@ -75,7 +75,7 @@ describe("StreamableHttpRunner", () => {
                         );
                     });
 
-                    afterAll(async () => {
+                    afterEach(async () => {
                         await client.close();
                         await transport.close();
                     });
@@ -265,7 +265,7 @@ describe("StreamableHttpRunner", () => {
             await runner?.close();
         });
 
-        it("starts the healtcheck server when configured", async () => {
+        it("starts the healthCheck server when configured", async () => {
             runner = new StreamableHttpRunner({ userConfig: config });
             await runner.start();
 
@@ -277,7 +277,7 @@ describe("StreamableHttpRunner", () => {
             expect(healthData).toEqual({ status: "ok" });
         });
 
-        it("does not start the healthcheck server when not configured", async () => {
+        it("does not start the healthCheck server when not configured", async () => {
             config.healthCheckHost = undefined;
             config.healthCheckPort = undefined;
             runner = new StreamableHttpRunner({ userConfig: config });
@@ -286,14 +286,14 @@ describe("StreamableHttpRunner", () => {
             expect(runner["healthCheckServer"]).toBeUndefined();
         });
 
-        it("errors out when healtcheck port is missing but host is provided", async () => {
+        it("errors out when healthCheck port is missing but host is provided", async () => {
             config.healthCheckPort = undefined;
             runner = new StreamableHttpRunner({ userConfig: config });
 
             await expect(runner.start()).rejects.toThrowError();
         });
 
-        it("errors out when healtcheck host is missing but port is provided", async () => {
+        it("errors out when healthCheck host is missing but port is provided", async () => {
             config.healthCheckHost = undefined;
             runner = new StreamableHttpRunner({ userConfig: config });
 

@@ -232,18 +232,18 @@ const ServerConfigSchema = z4.object({
     healthCheckPort: z4
         .number()
         .int()
-        .min(0, "Invalid httpPort: must be at least 0")
-        .max(65535, "Invalid httpPort: must be at most 65535")
+        .min(0, "Invalid healthCheckPort: must be at least 0")
+        .max(65535, "Invalid healthCheckPort: must be at most 65535")
         .optional()
         .describe(
-            "Port number for the healthcheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
+            "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     healthCheckHost: z4
         .string()
         .optional()
         .describe(
-            "Host address to bind the healthcheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
+            "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
