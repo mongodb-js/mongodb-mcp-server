@@ -286,8 +286,6 @@ export class Server {
             try {
                 validateConnectionString(this.userConfig.connectionString, false);
             } catch (error) {
-                // eslint-disable-next-line no-console
-                console.error("Connection string validation failed with error: ", error);
                 throw new Error(
                     "Connection string validation failed with error: " +
                         (error instanceof Error ? error.message : String(error))
@@ -304,25 +302,16 @@ export class Server {
                 if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
                     const message =
                         "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";
-                    // eslint-disable-next-line no-console
-                    console.error(message);
                     throw new Error(message);
                 }
 
                 await this.session.apiClient.validateAuthConfig();
             } catch (error) {
                 if (this.userConfig.connectionString === undefined) {
-                    // eslint-disable-next-line no-console
-                    console.error("Failed to validate MongoDB Atlas the credentials from the config: ", error);
-
                     throw new Error(
-                        "Failed to connect to MongoDB Atlas instance using the credentials from the config"
+                        `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`
                     );
                 }
-                // eslint-disable-next-line no-console
-                console.error(
-                    "Failed to validate MongoDB Atlas credentials from the config, but validated the connection string."
-                );
             }
         }
     }
