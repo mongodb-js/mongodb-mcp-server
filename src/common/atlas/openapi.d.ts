@@ -551,53 +551,6 @@ export interface components {
          * AWS Cluster Hardware Settings
          * @description Hardware specifications for nodes deployed in the region.
          */
-        AWSHardwareSpec: {
-            /**
-             * Format: int32
-             * @description Target IOPS (Input/Output Operations Per Second) desired for storage attached to this hardware.
-             *
-             *      Change this parameter if you:
-             *
-             *     - set `"replicationSpecs[n].regionConfigs[m].providerName" to "AWS"`.
-             *     - set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize" to "M30"` or greater (not including `Mxx_NVME` tiers).
-             *
-             *     - set `"replicationSpecs[n].regionConfigs[m].electableSpecs.ebsVolumeType" to "PROVISIONED"`.
-             *
-             *     The maximum input/output operations per second (IOPS) depend on the selected **.instanceSize** and **.diskSizeGB**.
-             *     This parameter defaults to the cluster tier's standard IOPS value.
-             *     Changing this value impacts cluster cost.
-             *     MongoDB Cloud enforces minimum ratios of storage capacity to system memory for given cluster tiers. This keeps cluster performance consistent with large datasets.
-             *
-             *     - Instance sizes `M10` to `M40` have a ratio of disk capacity to system memory of 60:1.
-             *     - Instance sizes greater than `M40` have a ratio of 120:1.
-             */
-            diskIOPS?: number;
-            /**
-             * @description Type of storage you want to attach to your AWS-provisioned cluster.
-             *
-             *     - `STANDARD` volume types can't exceed the default input/output operations per second (IOPS) rate for the selected volume size.
-             *
-             *     - `PROVISIONED` volume types must fall within the allowable IOPS range for the selected volume size. You must set this value to (`PROVISIONED`) for NVMe clusters.
-             * @default STANDARD
-             * @enum {string}
-             */
-            ebsVolumeType: "STANDARD" | "PROVISIONED";
-            /**
-             * AWS Instance Sizes
-             * @description Hardware specification for the instance sizes in this region. Each instance size has a default storage and memory capacity. The instance size you select applies to all the data-bearing hosts of the node type.
-             * @enum {string}
-             */
-            instanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M100" | "M140" | "M200" | "M300" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R700" | "M40_NVME" | "M50_NVME" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M400_NVME";
-            /**
-             * Format: int32
-             * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
-             */
-            nodeCount?: number;
-        };
-        /**
-         * AWS Cluster Hardware Settings
-         * @description Hardware specifications for nodes deployed in the region.
-         */
         AWSHardwareSpec20240805: {
             /**
              * Format: int32
@@ -659,28 +612,6 @@ export interface components {
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
              */
             nodeCount?: number;
-        };
-        /**
-         * AWS Regional Replication Specifications
-         * @description Details that explain how MongoDB Cloud replicates data in one region on the specified MongoDB database.
-         */
-        AWSRegionConfig: Omit<components["schemas"]["CloudRegionConfig"], "providerName"> & {
-            analyticsAutoScaling?: components["schemas"]["AdvancedAutoScalingSettings"];
-            analyticsSpecs?: components["schemas"]["DedicatedHardwareSpec"];
-            autoScaling?: components["schemas"]["AdvancedAutoScalingSettings"];
-            readOnlySpecs?: components["schemas"]["DedicatedHardwareSpec"];
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "AWS";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "AWS";
         };
         /**
          * AWS Regional Replication Specifications
@@ -1053,31 +984,6 @@ export interface components {
              */
             cloudProvider: "AZURE";
         };
-        AzureHardwareSpec: {
-            /**
-             * Format: int32
-             * @description Target throughput desired for storage attached to your Azure-provisioned cluster. Change this parameter if you:
-             *
-             *     - set `"replicationSpecs[n].regionConfigs[m].providerName" : "Azure"`.
-             *     - set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize" : "M40"` or greater not including `Mxx_NVME` tiers.
-             *
-             *     The maximum input/output operations per second (IOPS) depend on the selected **.instanceSize** and **.diskSizeGB**.
-             *     This parameter defaults to the cluster tier's standard IOPS value.
-             *     Changing this value impacts cluster cost.
-             */
-            diskIOPS?: number;
-            /**
-             * Azure Instance Sizes
-             * @description Hardware specification for the instance sizes in this region. Each instance size has a default storage and memory capacity. The instance size you select applies to all the data-bearing hosts of the node type.
-             * @enum {string}
-             */
-            instanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M90" | "M200" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M300_NVME" | "M400_NVME" | "M600_NVME";
-            /**
-             * Format: int32
-             * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
-             */
-            nodeCount?: number;
-        };
         AzureHardwareSpec20240805: {
             /**
              * Format: int32
@@ -1119,28 +1025,6 @@ export interface components {
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
              */
             nodeCount?: number;
-        };
-        /**
-         * Azure Regional Replication Specifications
-         * @description Details that explain how MongoDB Cloud replicates data in one region on the specified MongoDB database.
-         */
-        AzureRegionConfig: Omit<components["schemas"]["CloudRegionConfig"], "providerName"> & {
-            analyticsAutoScaling?: components["schemas"]["AdvancedAutoScalingSettings"];
-            analyticsSpecs?: components["schemas"]["DedicatedHardwareSpec"];
-            autoScaling?: components["schemas"]["AdvancedAutoScalingSettings"];
-            readOnlySpecs?: components["schemas"]["DedicatedHardwareSpec"];
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "AZURE";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "AZURE";
         };
         /**
          * Azure Regional Replication Specifications
@@ -1679,7 +1563,7 @@ export interface components {
             readonly _id?: string;
             /**
              * Format: uuid
-             * @description Azure Active Directory Application ID of Atlas.
+             * @description Azure Active Directory Application ID of Atlas. This field is optional and will be derived from the Azure subscription if not provided.
              */
             atlasAzureAppId?: string;
             /**
@@ -1726,7 +1610,7 @@ export interface components {
             readonly _id?: string;
             /**
              * Format: uuid
-             * @description Azure Active Directory Application ID of Atlas.
+             * @description Azure Active Directory Application ID of Atlas. This field is optional and will be derived from the Azure subscription if not provided.
              */
             atlasAzureAppId?: string;
             /**
@@ -1920,27 +1804,6 @@ export interface components {
         CloudProviderGCPAutoScaling: {
             compute?: components["schemas"]["GCPComputeAutoScaling"];
         };
-        /**
-         * Cloud Service Provider Settings for Multi-Cloud Clusters
-         * @description Cloud service provider on which MongoDB Cloud provisions the hosts.
-         */
-        CloudRegionConfig: {
-            electableSpecs?: components["schemas"]["HardwareSpec"];
-            /**
-             * Format: int32
-             * @description Precedence is given to this region when a primary election occurs. If your **regionConfigs** has only **readOnlySpecs**, **analyticsSpecs**, or both, set this value to `0`. If you have multiple **regionConfigs** objects (your cluster is multi-region or multi-cloud), they must have priorities in descending order. The highest priority is `7`.
-             *
-             *     **Example:** If you have three regions, their priorities would be `7`, `6`, and `5` respectively. If you added two more regions for supporting electable nodes, the priorities of those regions would be `4` and `3` respectively.
-             */
-            priority?: number;
-            /**
-             * @description Cloud service provider on which MongoDB Cloud provisions the hosts. Set dedicated clusters to `AWS`, `GCP`, `AZURE` or `TENANT`.
-             * @enum {string}
-             */
-            providerName?: "AWS" | "AZURE" | "GCP" | "TENANT";
-            /** @description Physical location of your MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. The region name is only returned in the response for single-region clusters. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. It assigns the VPC a Classless Inter-Domain Routing (CIDR) block. To limit a new VPC peering connection to one Classless Inter-Domain Routing (CIDR) block and region, create the connection first. Deploy the cluster after the connection starts. GCP Clusters and Multi-region clusters require one VPC peering connection for each region. MongoDB nodes can use only the peering connection that resides in the same region as the nodes to communicate with the peered VPC. */
-            regionName?: ("US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_EAST_2" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL") | ("US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH") | ("EASTERN_US" | "EASTERN_US_AW" | "US_EAST_4" | "US_EAST_4_AW" | "US_EAST_5" | "US_EAST_5_AW" | "US_WEST_2" | "US_WEST_2_AW" | "US_WEST_3" | "US_WEST_3_AW" | "US_WEST_4" | "US_WEST_4_AW" | "US_SOUTH_1" | "US_SOUTH_1_AW" | "CENTRAL_US" | "CENTRAL_US_AW" | "WESTERN_US" | "WESTERN_US_AW" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "WESTERN_EUROPE" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_8" | "EUROPE_WEST_9" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "EUROPE_SOUTHWEST_1" | "EUROPE_CENTRAL_2" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "AFRICA_SOUTH_1" | "EASTERN_ASIA_PACIFIC" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTHEASTERN_ASIA_PACIFIC" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2");
-        } & (components["schemas"]["AWSRegionConfig"] | components["schemas"]["AzureRegionConfig"] | components["schemas"]["GCPRegionConfig"] | components["schemas"]["TenantRegionConfig"]);
         /**
          * Cloud Service Provider Settings
          * @description Cloud service provider on which MongoDB Cloud provisions the hosts.
@@ -2198,6 +2061,11 @@ export interface components {
             /** @description List of settings that configure your cluster regions. This array has one object per shard representing node configurations in each shard. For replica sets there is only one object representing node configurations. */
             replicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
+             * @description Flag that indicates whether the cluster retains backups.
+             * @default false
+             */
+            retainBackups: boolean;
+            /**
              * @description Root Certificate Authority that MongoDB Atlas cluster uses. MongoDB Cloud supports Internet Security Research Group.
              * @default ISRGROOTX1
              * @enum {string}
@@ -2377,6 +2245,16 @@ export interface components {
              */
             readonly status?: "IN_PROGRESS" | "STEADY" | "FAILED" | "MIGRATING" | "STALE" | "PAUSED";
             /**
+             * @description Flag that indicates whether to store all fields (true) on Atlas Search. By default, Atlas doesn't store (false) the fields on Atlas Search.  Alternatively, you can specify an object that only contains the list of fields to store (include) or not store (exclude) on Atlas Search. Note that storing all fields (true) is not allowed for vector search indexes. To learn more, see documentation.
+             * @example {
+             *       "include | exclude": [
+             *         "field1",
+             *         "field2"
+             *       ]
+             *     }
+             */
+            storedSource?: Record<string, never>;
+            /**
              * @description Type of the index. Default type is search.
              * @enum {string}
              */
@@ -2392,8 +2270,8 @@ export interface components {
             /** @description Value set to the Key applied to tag and categorize this component. */
             value?: string;
         };
-        /** @description SASL_INHERIT authentication configuration from Kafka for Confluent Schema Registry. Username and password are inherited from the Kafka connection. */
-        ConfluentSaslInheritAuthentication: Omit<WithRequired<components["schemas"]["ConfluentSchemaRegistryAuthentication"], "type">, "type"> & {
+        /** @description Inherits the authentication configuration from Kafka for the Confluent Schema Registry. */
+        ConfluentSaslInheritAuthentication: Omit<WithRequired<components["schemas"]["SchemaRegistryAuthentication"], "type">, "type"> & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2406,42 +2284,11 @@ export interface components {
              */
             type: "SASL_INHERIT";
         };
-        /** @description Authentication configuration for Confluent Schema Registry. */
-        ConfluentSchemaRegistryAuthentication: {
-            /**
-             * @description Authentication type discriminator. Specifies the authentication mechanism for Confluent Schema Registry.
-             * @enum {string}
-             */
-            type: "USER_INFO" | "SASL_INHERIT";
-        } & (components["schemas"]["ConfluentUserInfoAuthentication"] | components["schemas"]["ConfluentSaslInheritAuthentication"]);
-        /** @description The configuration for Confluent Schema Registry connections. */
-        ConfluentSchemaRegistryConnectionPrivatePreview: Omit<components["schemas"]["StreamsConnectionPrivatePreview"], "type"> & {
-            authentication?: components["schemas"]["ConfluentSchemaRegistryAuthentication"];
-            /**
-             * @description The Schema Registry provider.
-             * @enum {string}
-             */
-            provider: "CONFLUENT";
-            /** @description List of Schema Registry URLs. */
-            schemaRegistryUrls?: string[];
-        } & Omit<components["schemas"]["StreamsSchemaRegistryConnectionPrivatePreview"], "provider"> & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            provider: "CONFLUENT";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            provider: "CONFLUENT";
-        };
-        /** @description Direct authentication with username and password for Confluent Schema Registry. */
-        ConfluentUserInfoAuthentication: Omit<WithRequired<components["schemas"]["ConfluentSchemaRegistryAuthentication"], "type">, "type"> & {
-            /** @description Password for USER_INFO authentication. Required. */
+        /** @description USER_INFO authentication with username and password for Confluent Schema Registry. */
+        ConfluentUserInfoAuthentication: Omit<WithRequired<components["schemas"]["SchemaRegistryAuthentication"], "type">, "type"> & {
+            /** @description Password or Private Key for authentication. */
             password: string;
-            /** @description Username for USER_INFO authentication. Required. */
+            /** @description Username or Public Key for authentication. */
             username: string;
         } & {
             /**
@@ -3030,14 +2877,6 @@ export interface components {
              */
             type: "DATE";
         };
-        /** @description Hardware specifications for read-only nodes in the region. Read-only nodes can never become the primary member, but can enable local reads.If you don't specify this parameter, no read-only nodes are deployed to the region. */
-        DedicatedHardwareSpec: {
-            /**
-             * Format: int32
-             * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
-             */
-            nodeCount?: number;
-        } & (components["schemas"]["AWSHardwareSpec"] | components["schemas"]["AzureHardwareSpec"] | components["schemas"]["GCPHardwareSpec"]);
         /** @description The current hardware specifications for read only nodes in the region. */
         DedicatedHardwareSpec20240805: {
             /**
@@ -3098,7 +2937,7 @@ export interface components {
              */
             readonly created: string;
             /** @description Incident that triggered this alert. */
-            readonly eventTypeName: ("CREDIT_CARD_ABOUT_TO_EXPIRE" | "PENDING_INVOICE_OVER_THRESHOLD" | "DAILY_BILL_OVER_THRESHOLD") | ("CPS_SNAPSHOT_STARTED" | "CPS_SNAPSHOT_SUCCESSFUL" | "CPS_SNAPSHOT_FAILED" | "CPS_CONCURRENT_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_SNAPSHOT_BEHIND" | "CPS_COPY_SNAPSHOT_STARTED" | "CPS_COPY_SNAPSHOT_FAILED" | "CPS_COPY_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_COPY_SNAPSHOT_SUCCESSFUL" | "CPS_PREV_SNAPSHOT_OLD" | "CPS_SNAPSHOT_FALLBACK_SUCCESSFUL" | "CPS_SNAPSHOT_FALLBACK_FAILED" | "CPS_RESTORE_SUCCESSFUL" | "CPS_EXPORT_SUCCESSFUL" | "CPS_RESTORE_FAILED" | "CPS_EXPORT_FAILED" | "CPS_COLLECTION_RESTORE_SUCCESSFUL" | "CPS_COLLECTION_RESTORE_FAILED" | "CPS_COLLECTION_RESTORE_PARTIAL_SUCCESS" | "CPS_COLLECTION_RESTORE_CANCELED" | "CPS_AUTO_EXPORT_FAILED" | "CPS_SNAPSHOT_DOWNLOAD_REQUEST_FAILED" | "CPS_OPLOG_BEHIND" | "CPS_OPLOG_CAUGHT_UP") | ("AWS_ENCRYPTION_KEY_NEEDS_ROTATION" | "AZURE_ENCRYPTION_KEY_NEEDS_ROTATION" | "GCP_ENCRYPTION_KEY_NEEDS_ROTATION" | "AWS_ENCRYPTION_KEY_INVALID" | "AZURE_ENCRYPTION_KEY_INVALID" | "GCP_ENCRYPTION_KEY_INVALID") | ("FTS_INDEX_DELETION_FAILED" | "FTS_INDEX_BUILD_COMPLETE" | "FTS_INDEX_BUILD_FAILED" | "FTS_INDEX_STALE" | "FTS_INDEXES_RESTORE_FAILED" | "FTS_INDEXES_SYNONYM_MAPPING_INVALID") | ("USERS_WITHOUT_MULTI_FACTOR_AUTH" | "ENCRYPTION_AT_REST_KMS_NETWORK_ACCESS_DENIED" | "ENCRYPTION_AT_REST_CONFIG_NO_LONGER_VALID" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRING" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED") | ("CLUSTER_INSTANCE_STOP_START" | "CLUSTER_INSTANCE_RESYNC_REQUESTED" | "CLUSTER_INSTANCE_UPDATE_REQUESTED" | "SAMPLE_DATASET_LOAD_REQUESTED" | "TENANT_UPGRADE_TO_SERVERLESS_SUCCESSFUL" | "TENANT_UPGRADE_TO_SERVERLESS_FAILED" | "NETWORK_PERMISSION_ENTRY_ADDED" | "NETWORK_PERMISSION_ENTRY_REMOVED" | "NETWORK_PERMISSION_ENTRY_UPDATED" | "CLUSTER_BLOCK_WRITE" | "CLUSTER_UNBLOCK_WRITE") | ("MAINTENANCE_IN_ADVANCED" | "MAINTENANCE_AUTO_DEFERRED" | "MAINTENANCE_STARTED" | "MAINTENANCE_COMPLETED" | "MAINTENANCE_NO_LONGER_NEEDED") | ("NDS_X509_USER_AUTHENTICATION_CUSTOMER_CA_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_CUSTOMER_CRL_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_MANAGED_USER_CERTS_EXPIRATION_CHECK") | ("ONLINE_ARCHIVE_INSUFFICIENT_INDEXES_CHECK" | "ONLINE_ARCHIVE_MAX_CONSECUTIVE_OFFLOAD_WINDOWS_CHECK") | "OUTSIDE_SERVERLESS_METRIC_THRESHOLD" | "OUTSIDE_FLEX_METRIC_THRESHOLD" | ("JOINED_GROUP" | "REMOVED_FROM_GROUP" | "USER_ROLES_CHANGED_AUDIT") | ("TAGS_MODIFIED" | "CLUSTER_TAGS_MODIFIED" | "GROUP_TAGS_MODIFIED") | ("STREAM_PROCESSOR_STATE_IS_FAILED" | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD") | ("COMPUTE_AUTO_SCALE_INITIATED_BASE" | "COMPUTE_AUTO_SCALE_INITIATED_ANALYTICS" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_BASE" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_ANALYTICS" | "DISK_AUTO_SCALE_INITIATED" | "DISK_AUTO_SCALE_MAX_DISK_SIZE_FAIL" | "DISK_AUTO_SCALE_OPLOG_FAIL" | "PREDICTIVE_COMPUTE_AUTO_SCALE_INITIATED_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "CLUSTER_AUTO_SHARDING_INITIATED") | ("CPS_DATA_PROTECTION_ENABLE_REQUESTED" | "CPS_DATA_PROTECTION_ENABLED" | "CPS_DATA_PROTECTION_UPDATE_REQUESTED" | "CPS_DATA_PROTECTION_UPDATED" | "CPS_DATA_PROTECTION_DISABLE_REQUESTED" | "CPS_DATA_PROTECTION_DISABLED" | "CPS_DATA_PROTECTION_APPROVED_FOR_DISABLEMENT") | "RESOURCE_POLICY_VIOLATED";
+            readonly eventTypeName: ("CREDIT_CARD_ABOUT_TO_EXPIRE" | "PENDING_INVOICE_OVER_THRESHOLD" | "DAILY_BILL_OVER_THRESHOLD") | ("CPS_SNAPSHOT_STARTED" | "CPS_SNAPSHOT_SUCCESSFUL" | "CPS_SNAPSHOT_FAILED" | "CPS_CONCURRENT_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_SNAPSHOT_BEHIND" | "CPS_COPY_SNAPSHOT_STARTED" | "CPS_COPY_SNAPSHOT_FAILED" | "CPS_COPY_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_COPY_SNAPSHOT_SUCCESSFUL" | "CPS_PREV_SNAPSHOT_OLD" | "CPS_SNAPSHOT_FALLBACK_SUCCESSFUL" | "CPS_SNAPSHOT_FALLBACK_FAILED" | "CPS_RESTORE_SUCCESSFUL" | "CPS_EXPORT_SUCCESSFUL" | "CPS_RESTORE_FAILED" | "CPS_EXPORT_FAILED" | "CPS_COLLECTION_RESTORE_SUCCESSFUL" | "CPS_COLLECTION_RESTORE_FAILED" | "CPS_COLLECTION_RESTORE_PARTIAL_SUCCESS" | "CPS_COLLECTION_RESTORE_CANCELED" | "CPS_AUTO_EXPORT_FAILED" | "CPS_SNAPSHOT_DOWNLOAD_REQUEST_FAILED" | "CPS_OPLOG_BEHIND" | "CPS_OPLOG_CAUGHT_UP") | ("AWS_ENCRYPTION_KEY_NEEDS_ROTATION" | "AZURE_ENCRYPTION_KEY_NEEDS_ROTATION" | "GCP_ENCRYPTION_KEY_NEEDS_ROTATION" | "AWS_ENCRYPTION_KEY_INVALID" | "AZURE_ENCRYPTION_KEY_INVALID" | "GCP_ENCRYPTION_KEY_INVALID") | ("FTS_INDEX_DELETION_FAILED" | "FTS_INDEX_BUILD_COMPLETE" | "FTS_INDEX_BUILD_FAILED" | "FTS_INDEX_STALE" | "FTS_INDEXES_RESTORE_FAILED" | "FTS_INDEXES_SYNONYM_MAPPING_INVALID") | ("USERS_WITHOUT_MULTI_FACTOR_AUTH" | "ENCRYPTION_AT_REST_KMS_NETWORK_ACCESS_DENIED" | "ENCRYPTION_AT_REST_CONFIG_NO_LONGER_VALID" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRING" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED" | "ACTIVE_LEGACY_TLS_CONNECTIONS") | "MONGOTUNE_ALERT" | ("CLUSTER_INSTANCE_STOP_START" | "CLUSTER_INSTANCE_RESYNC_REQUESTED" | "CLUSTER_INSTANCE_UPDATE_REQUESTED" | "SAMPLE_DATASET_LOAD_REQUESTED" | "TENANT_UPGRADE_TO_SERVERLESS_SUCCESSFUL" | "TENANT_UPGRADE_TO_SERVERLESS_FAILED" | "NETWORK_PERMISSION_ENTRY_ADDED" | "NETWORK_PERMISSION_ENTRY_REMOVED" | "NETWORK_PERMISSION_ENTRY_UPDATED" | "CLUSTER_BLOCK_WRITE" | "CLUSTER_UNBLOCK_WRITE") | ("MAINTENANCE_IN_ADVANCED" | "MAINTENANCE_AUTO_DEFERRED" | "MAINTENANCE_STARTED" | "MAINTENANCE_COMPLETED" | "MAINTENANCE_NO_LONGER_NEEDED") | ("NDS_X509_USER_AUTHENTICATION_CUSTOMER_CA_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_CUSTOMER_CRL_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_MANAGED_USER_CERTS_EXPIRATION_CHECK") | ("ONLINE_ARCHIVE_INSUFFICIENT_INDEXES_CHECK" | "ONLINE_ARCHIVE_MAX_CONSECUTIVE_OFFLOAD_WINDOWS_CHECK") | "OUTSIDE_SERVERLESS_METRIC_THRESHOLD" | "OUTSIDE_FLEX_METRIC_THRESHOLD" | ("JOINED_GROUP" | "REMOVED_FROM_GROUP" | "USER_ROLES_CHANGED_AUDIT") | ("TAGS_MODIFIED" | "CLUSTER_TAGS_MODIFIED" | "GROUP_TAGS_MODIFIED") | ("STREAM_PROCESSOR_STATE_IS_FAILED" | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD") | ("COMPUTE_AUTO_SCALE_INITIATED_BASE" | "COMPUTE_AUTO_SCALE_INITIATED_ANALYTICS" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_BASE" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_ANALYTICS" | "DISK_AUTO_SCALE_INITIATED" | "DISK_AUTO_SCALE_MAX_DISK_SIZE_FAIL" | "DISK_AUTO_SCALE_OPLOG_FAIL" | "PREDICTIVE_COMPUTE_AUTO_SCALE_INITIATED_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "CLUSTER_AUTO_SHARDING_INITIATED") | ("CPS_DATA_PROTECTION_ENABLE_REQUESTED" | "CPS_DATA_PROTECTION_ENABLED" | "CPS_DATA_PROTECTION_UPDATE_REQUESTED" | "CPS_DATA_PROTECTION_UPDATED" | "CPS_DATA_PROTECTION_DISABLE_REQUESTED" | "CPS_DATA_PROTECTION_DISABLED" | "CPS_DATA_PROTECTION_APPROVED_FOR_DISABLEMENT") | "RESOURCE_POLICY_VIOLATED" | ("HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED");
             /**
              * @description Unique 24-hexadecimal digit string that identifies the project that owns this alert.
              * @example 32b6e34b3d91647abb20e7b8
@@ -3183,7 +3022,7 @@ export interface components {
              */
             bucketName: string;
             /**
-             * @description Human-readable label that identifies the cloud provider that Snapshots will be exported to.
+             * @description Human-readable label that identifies the cloud provider.
              * @enum {string}
              */
             cloudProvider: "AWS" | "AZURE" | "GCP";
@@ -3257,7 +3096,7 @@ export interface components {
         /** @description Disk backup snapshot Export Bucket Request. */
         DiskBackupSnapshotExportBucketRequest: {
             /**
-             * @description Human-readable label that identifies the cloud provider that Snapshots are exported to.
+             * @description Human-readable label that identifies the cloud provider.
              * @enum {string}
              */
             cloudProvider: "AWS" | "AZURE" | "GCP";
@@ -3277,7 +3116,7 @@ export interface components {
              */
             bucketName: string;
             /**
-             * @description Human-readable label that identifies the cloud provider that Snapshots will be exported to.
+             * @description Human-readable label that identifies the cloud provider.
              * @enum {string}
              */
             cloudProvider: "AWS" | "AZURE" | "GCP";
@@ -3623,19 +3462,6 @@ export interface components {
              */
             cloudProvider: "GCP";
         };
-        GCPHardwareSpec: {
-            /**
-             * GCP Instance Sizes
-             * @description Hardware specification for the instance sizes in this region. Each instance size has a default storage and memory capacity. The instance size you select applies to all the data-bearing hosts of the node type.
-             * @enum {string}
-             */
-            instanceSize?: "M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M140" | "M200" | "M250" | "M300" | "M400" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R600";
-            /**
-             * Format: int32
-             * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
-             */
-            nodeCount?: number;
-        };
         GCPHardwareSpec20240805: {
             /**
              * Format: double
@@ -3665,28 +3491,6 @@ export interface components {
              * @description Number of nodes of the given type for MongoDB Cloud to deploy to the region.
              */
             nodeCount?: number;
-        };
-        /**
-         * GCP Regional Replication Specifications
-         * @description Details that explain how MongoDB Cloud replicates data in one region on the specified MongoDB database.
-         */
-        GCPRegionConfig: Omit<components["schemas"]["CloudRegionConfig"], "providerName"> & {
-            analyticsAutoScaling?: components["schemas"]["AdvancedAutoScalingSettings"];
-            analyticsSpecs?: components["schemas"]["DedicatedHardwareSpec"];
-            autoScaling?: components["schemas"]["AdvancedAutoScalingSettings"];
-            readOnlySpecs?: components["schemas"]["DedicatedHardwareSpec"];
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "GCP";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "GCP";
         };
         /**
          * GCP Regional Replication Specifications
@@ -3837,7 +3641,7 @@ export interface components {
              */
             groupId?: string;
             /** @description One or more project-level roles assigned to the MongoDB Cloud user. */
-            groupRoles?: ("GROUP_OWNER" | "GROUP_CLUSTER_MANAGER" | "GROUP_STREAM_PROCESSING_OWNER" | "GROUP_DATA_ACCESS_ADMIN" | "GROUP_DATA_ACCESS_READ_WRITE" | "GROUP_DATA_ACCESS_READ_ONLY" | "GROUP_READ_ONLY" | "GROUP_SEARCH_INDEX_EDITOR" | "GROUP_BACKUP_MANAGER" | "GROUP_OBSERVABILITY_VIEWER" | "GROUP_DATABASE_ACCESS_ADMIN")[];
+            groupRoles?: string[];
         };
         GroupUserResponse: {
             /**
@@ -3851,15 +3655,13 @@ export interface components {
              */
             readonly orgMembershipStatus: "PENDING" | "ACTIVE";
             /** @description One or more project-level roles assigned to the MongoDB Cloud user. */
-            readonly roles: ("GROUP_OWNER" | "GROUP_CLUSTER_MANAGER" | "GROUP_STREAM_PROCESSING_OWNER" | "GROUP_DATA_ACCESS_ADMIN" | "GROUP_DATA_ACCESS_READ_WRITE" | "GROUP_DATA_ACCESS_READ_ONLY" | "GROUP_READ_ONLY" | "GROUP_SEARCH_INDEX_EDITOR" | "GROUP_BACKUP_MANAGER" | "GROUP_OBSERVABILITY_VIEWER" | "GROUP_DATABASE_ACCESS_ADMIN")[];
+            readonly roles: string[];
             /**
              * Format: email
              * @description Email address that represents the username of the MongoDB Cloud user.
              */
             readonly username: string;
         } & (components["schemas"]["GroupPendingUserResponse"] | components["schemas"]["GroupActiveUserResponse"]);
-        /** @description Hardware specifications for all electable nodes deployed in the region. Electable nodes can become the primary and can enable local reads. If you don't specify this option, MongoDB Cloud deploys no electable nodes to the region. */
-        HardwareSpec: components["schemas"]["AWSHardwareSpec"] | components["schemas"]["AzureHardwareSpec"] | components["schemas"]["GCPHardwareSpec"] | components["schemas"]["TenantHardwareSpec"];
         /** @description Hardware specifications for all electable nodes deployed in the region. Electable nodes can become the primary and can enable local reads. If you don't specify this option, MongoDB Cloud deploys no electable nodes to the region. */
         HardwareSpec20240805: {
             /**
@@ -3975,7 +3777,7 @@ export interface components {
          * @example HOST_DOWN
          * @enum {string}
          */
-        HostEventTypeViewForNdsGroupAlertable: "HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET";
+        HostEventTypeViewForNdsGroupAlertable: "HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED";
         /**
          * Host Metric Alerts
          * @description Host Metric Alert notifies about changes of measurements or metrics for mongod host.
@@ -4158,11 +3960,8 @@ export interface components {
              * @description Number of units included for the line item. These can be expressions of storage (GB), time (hours), or other units.
              */
             readonly quantity?: number;
-            /**
-             * @description Human-readable description of the service that this line item provided. This Stock Keeping Unit (SKU) could be the instance type, a support charge, advanced security, or another service.
-             * @enum {string}
-             */
-            readonly sku?: "CLASSIC_BACKUP_OPLOG" | "CLASSIC_BACKUP_STORAGE" | "CLASSIC_BACKUP_SNAPSHOT_CREATE" | "CLASSIC_BACKUP_DAILY_MINIMUM" | "CLASSIC_BACKUP_FREE_TIER" | "CLASSIC_COUPON" | "BACKUP_STORAGE_FREE_TIER" | "BACKUP_STORAGE" | "FLEX_CONSULTING" | "CLOUD_MANAGER_CLASSIC" | "CLOUD_MANAGER_BASIC_FREE_TIER" | "CLOUD_MANAGER_BASIC" | "CLOUD_MANAGER_PREMIUM" | "CLOUD_MANAGER_FREE_TIER" | "CLOUD_MANAGER_STANDARD_FREE_TIER" | "CLOUD_MANAGER_STANDARD_ANNUAL" | "CLOUD_MANAGER_STANDARD" | "CLOUD_MANAGER_FREE_TRIAL" | "ATLAS_INSTANCE_M0" | "ATLAS_INSTANCE_M2" | "ATLAS_INSTANCE_M5" | "ATLAS_AWS_INSTANCE_M10" | "ATLAS_AWS_INSTANCE_M20" | "ATLAS_AWS_INSTANCE_M30" | "ATLAS_AWS_INSTANCE_M40" | "ATLAS_AWS_INSTANCE_M50" | "ATLAS_AWS_INSTANCE_M60" | "ATLAS_AWS_INSTANCE_M80" | "ATLAS_AWS_INSTANCE_M100" | "ATLAS_AWS_INSTANCE_M140" | "ATLAS_AWS_INSTANCE_M200" | "ATLAS_AWS_INSTANCE_M300" | "ATLAS_AWS_INSTANCE_M40_LOW_CPU" | "ATLAS_AWS_INSTANCE_M50_LOW_CPU" | "ATLAS_AWS_INSTANCE_M60_LOW_CPU" | "ATLAS_AWS_INSTANCE_M80_LOW_CPU" | "ATLAS_AWS_INSTANCE_M200_LOW_CPU" | "ATLAS_AWS_INSTANCE_M300_LOW_CPU" | "ATLAS_AWS_INSTANCE_M400_LOW_CPU" | "ATLAS_AWS_INSTANCE_M700_LOW_CPU" | "ATLAS_AWS_INSTANCE_M40_NVME" | "ATLAS_AWS_INSTANCE_M50_NVME" | "ATLAS_AWS_INSTANCE_M60_NVME" | "ATLAS_AWS_INSTANCE_M80_NVME" | "ATLAS_AWS_INSTANCE_M200_NVME" | "ATLAS_AWS_INSTANCE_M400_NVME" | "ATLAS_AWS_INSTANCE_M10_PAUSED" | "ATLAS_AWS_INSTANCE_M20_PAUSED" | "ATLAS_AWS_INSTANCE_M30_PAUSED" | "ATLAS_AWS_INSTANCE_M40_PAUSED" | "ATLAS_AWS_INSTANCE_M50_PAUSED" | "ATLAS_AWS_INSTANCE_M60_PAUSED" | "ATLAS_AWS_INSTANCE_M80_PAUSED" | "ATLAS_AWS_INSTANCE_M100_PAUSED" | "ATLAS_AWS_INSTANCE_M140_PAUSED" | "ATLAS_AWS_INSTANCE_M200_PAUSED" | "ATLAS_AWS_INSTANCE_M300_PAUSED" | "ATLAS_AWS_INSTANCE_M40_LOW_CPU_PAUSED" | "ATLAS_AWS_INSTANCE_M50_LOW_CPU_PAUSED" | "ATLAS_AWS_INSTANCE_M60_LOW_CPU_PAUSED" | "ATLAS_AWS_INSTANCE_M80_LOW_CPU_PAUSED" | "ATLAS_AWS_INSTANCE_M200_LOW_CPU_PAUSED" | "ATLAS_AWS_INSTANCE_M300_LOW_CPU_PAUSED" | "ATLAS_AWS_INSTANCE_M400_LOW_CPU_PAUSED" | "ATLAS_AWS_INSTANCE_M700_LOW_CPU_PAUSED" | "ATLAS_AWS_SEARCH_INSTANCE_S20_COMPUTE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S30_COMPUTE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S40_COMPUTE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S50_COMPUTE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S60_COMPUTE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S70_COMPUTE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S80_COMPUTE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S30_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S40_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S50_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S60_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S80_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S90_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S100_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S110_MEMORY_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S40_STORAGE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S50_STORAGE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S60_STORAGE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S80_STORAGE_NVME" | "ATLAS_AWS_SEARCH_INSTANCE_S90_STORAGE_NVME" | "ATLAS_AWS_STORAGE_PROVISIONED" | "ATLAS_AWS_STORAGE_STANDARD" | "ATLAS_AWS_STORAGE_STANDARD_GP3" | "ATLAS_AWS_STORAGE_IOPS" | "ATLAS_AWS_DATA_TRANSFER_SAME_REGION" | "ATLAS_AWS_DATA_TRANSFER_DIFFERENT_REGION" | "ATLAS_AWS_DATA_TRANSFER_INTERNET" | "ATLAS_AWS_TIME_BASED_SNAPSHOT_COPY_LEVEL_1" | "ATLAS_AWS_TIME_BASED_SNAPSHOT_COPY_LEVEL_2" | "ATLAS_AWS_TIME_BASED_SNAPSHOT_COPY_LEVEL_3" | "ATLAS_AWS_TIME_BASED_SNAPSHOT_COPY_LEVEL_4" | "ATLAS_AWS_TIME_BASED_SNAPSHOT_COPY_LEVEL_5" | "ATLAS_AWS_TIME_BASED_SNAPSHOT_COPY_LEVEL_6" | "ATLAS_AWS_TIME_BASED_SNAPSHOT_COPY_LEVEL_7" | "ATLAS_AWS_BACKUP_SNAPSHOT_STORAGE" | "ATLAS_AWS_BACKUP_DOWNLOAD_VM" | "ATLAS_AWS_BACKUP_DOWNLOAD_VM_STORAGE" | "ATLAS_AWS_BACKUP_DOWNLOAD_VM_STORAGE_IOPS" | "ATLAS_AWS_PRIVATE_ENDPOINT" | "ATLAS_AWS_PRIVATE_ENDPOINT_CAPACITY_UNITS" | "ATLAS_GCP_SEARCH_INSTANCE_S20_COMPUTE_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S30_COMPUTE_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S40_COMPUTE_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S50_COMPUTE_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S60_COMPUTE_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S70_COMPUTE_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S80_COMPUTE_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S30_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S40_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S50_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S60_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S70_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S80_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S90_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S100_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S110_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S120_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S130_MEMORY_LOCALSSD" | "ATLAS_GCP_SEARCH_INSTANCE_S140_MEMORY_LOCALSSD" | "ATLAS_GCP_INSTANCE_M10" | "ATLAS_GCP_INSTANCE_M20" | "ATLAS_GCP_INSTANCE_M30" | "ATLAS_GCP_INSTANCE_M40" | "ATLAS_GCP_INSTANCE_M50" | "ATLAS_GCP_INSTANCE_M60" | "ATLAS_GCP_INSTANCE_M80" | "ATLAS_GCP_INSTANCE_M140" | "ATLAS_GCP_INSTANCE_M200" | "ATLAS_GCP_INSTANCE_M250" | "ATLAS_GCP_INSTANCE_M300" | "ATLAS_GCP_INSTANCE_M400" | "ATLAS_GCP_INSTANCE_M40_LOW_CPU" | "ATLAS_GCP_INSTANCE_M50_LOW_CPU" | "ATLAS_GCP_INSTANCE_M60_LOW_CPU" | "ATLAS_GCP_INSTANCE_M80_LOW_CPU" | "ATLAS_GCP_INSTANCE_M200_LOW_CPU" | "ATLAS_GCP_INSTANCE_M300_LOW_CPU" | "ATLAS_GCP_INSTANCE_M400_LOW_CPU" | "ATLAS_GCP_INSTANCE_M600_LOW_CPU" | "ATLAS_GCP_INSTANCE_M10_PAUSED" | "ATLAS_GCP_INSTANCE_M20_PAUSED" | "ATLAS_GCP_INSTANCE_M30_PAUSED" | "ATLAS_GCP_INSTANCE_M40_PAUSED" | "ATLAS_GCP_INSTANCE_M50_PAUSED" | "ATLAS_GCP_INSTANCE_M60_PAUSED" | "ATLAS_GCP_INSTANCE_M80_PAUSED" | "ATLAS_GCP_INSTANCE_M140_PAUSED" | "ATLAS_GCP_INSTANCE_M200_PAUSED" | "ATLAS_GCP_INSTANCE_M250_PAUSED" | "ATLAS_GCP_INSTANCE_M300_PAUSED" | "ATLAS_GCP_INSTANCE_M400_PAUSED" | "ATLAS_GCP_INSTANCE_M40_LOW_CPU_PAUSED" | "ATLAS_GCP_INSTANCE_M50_LOW_CPU_PAUSED" | "ATLAS_GCP_INSTANCE_M60_LOW_CPU_PAUSED" | "ATLAS_GCP_INSTANCE_M80_LOW_CPU_PAUSED" | "ATLAS_GCP_INSTANCE_M200_LOW_CPU_PAUSED" | "ATLAS_GCP_INSTANCE_M300_LOW_CPU_PAUSED" | "ATLAS_GCP_INSTANCE_M400_LOW_CPU_PAUSED" | "ATLAS_GCP_INSTANCE_M600_LOW_CPU_PAUSED" | "ATLAS_GCP_DATA_TRANSFER_INTERNET" | "ATLAS_GCP_STORAGE_SSD" | "ATLAS_GCP_DATA_TRANSFER_INTER_CONNECT" | "ATLAS_GCP_DATA_TRANSFER_INTER_ZONE" | "ATLAS_GCP_DATA_TRANSFER_INTER_REGION" | "ATLAS_GCP_DATA_TRANSFER_GOOGLE" | "ATLAS_GCP_BACKUP_SNAPSHOT_STORAGE" | "ATLAS_GCP_BACKUP_DOWNLOAD_VM" | "ATLAS_GCP_BACKUP_DOWNLOAD_VM_STORAGE" | "ATLAS_GCP_PRIVATE_ENDPOINT" | "ATLAS_GCP_PRIVATE_ENDPOINT_CAPACITY_UNITS" | "ATLAS_GCP_SNAPSHOT_COPY_DATA_TRANSFER" | "ATLAS_AZURE_INSTANCE_M10" | "ATLAS_AZURE_INSTANCE_M20" | "ATLAS_AZURE_INSTANCE_M30" | "ATLAS_AZURE_INSTANCE_M40" | "ATLAS_AZURE_INSTANCE_M50" | "ATLAS_AZURE_INSTANCE_M60" | "ATLAS_AZURE_INSTANCE_M80" | "ATLAS_AZURE_INSTANCE_M90" | "ATLAS_AZURE_INSTANCE_M200" | "ATLAS_AZURE_INSTANCE_R40" | "ATLAS_AZURE_INSTANCE_R50" | "ATLAS_AZURE_INSTANCE_R60" | "ATLAS_AZURE_INSTANCE_R80" | "ATLAS_AZURE_INSTANCE_R200" | "ATLAS_AZURE_INSTANCE_R300" | "ATLAS_AZURE_INSTANCE_R400" | "ATLAS_AZURE_INSTANCE_M60_NVME" | "ATLAS_AZURE_INSTANCE_M80_NVME" | "ATLAS_AZURE_INSTANCE_M200_NVME" | "ATLAS_AZURE_INSTANCE_M300_NVME" | "ATLAS_AZURE_INSTANCE_M400_NVME" | "ATLAS_AZURE_INSTANCE_M600_NVME" | "ATLAS_AZURE_INSTANCE_M10_PAUSED" | "ATLAS_AZURE_INSTANCE_M20_PAUSED" | "ATLAS_AZURE_INSTANCE_M30_PAUSED" | "ATLAS_AZURE_INSTANCE_M40_PAUSED" | "ATLAS_AZURE_INSTANCE_M50_PAUSED" | "ATLAS_AZURE_INSTANCE_M60_PAUSED" | "ATLAS_AZURE_INSTANCE_M80_PAUSED" | "ATLAS_AZURE_INSTANCE_M90_PAUSED" | "ATLAS_AZURE_INSTANCE_M200_PAUSED" | "ATLAS_AZURE_INSTANCE_R40_PAUSED" | "ATLAS_AZURE_INSTANCE_R50_PAUSED" | "ATLAS_AZURE_INSTANCE_R60_PAUSED" | "ATLAS_AZURE_INSTANCE_R80_PAUSED" | "ATLAS_AZURE_INSTANCE_R200_PAUSED" | "ATLAS_AZURE_INSTANCE_R300_PAUSED" | "ATLAS_AZURE_INSTANCE_R400_PAUSED" | "ATLAS_AZURE_SEARCH_INSTANCE_S20_COMPUTE_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S30_COMPUTE_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S40_COMPUTE_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S50_COMPUTE_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S60_COMPUTE_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S70_COMPUTE_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S80_COMPUTE_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S40_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S50_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S60_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S80_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S90_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S100_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S110_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S130_MEMORY_LOCALSSD" | "ATLAS_AZURE_SEARCH_INSTANCE_S135_MEMORY_LOCALSSD" | "ATLAS_AZURE_STORAGE_P2" | "ATLAS_AZURE_STORAGE_P3" | "ATLAS_AZURE_STORAGE_P4" | "ATLAS_AZURE_STORAGE_P6" | "ATLAS_AZURE_STORAGE_P10" | "ATLAS_AZURE_STORAGE_P15" | "ATLAS_AZURE_STORAGE_P20" | "ATLAS_AZURE_STORAGE_P30" | "ATLAS_AZURE_STORAGE_P40" | "ATLAS_AZURE_STORAGE_P50" | "ATLAS_AZURE_DATA_TRANSFER" | "ATLAS_AZURE_DATA_TRANSFER_REGIONAL_VNET_IN" | "ATLAS_AZURE_DATA_TRANSFER_REGIONAL_VNET_OUT" | "ATLAS_AZURE_DATA_TRANSFER_GLOBAL_VNET_IN" | "ATLAS_AZURE_DATA_TRANSFER_GLOBAL_VNET_OUT" | "ATLAS_AZURE_DATA_TRANSFER_AVAILABILITY_ZONE_IN" | "ATLAS_AZURE_DATA_TRANSFER_AVAILABILITY_ZONE_OUT" | "ATLAS_AZURE_DATA_TRANSFER_INTER_REGION_INTRA_CONTINENT" | "ATLAS_AZURE_DATA_TRANSFER_INTER_REGION_INTER_CONTINENT" | "ATLAS_AZURE_BACKUP_SNAPSHOT_STORAGE" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P2" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P3" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P4" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P6" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P10" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P15" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P20" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P30" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P40" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_P50" | "ATLAS_AZURE_STANDARD_STORAGE" | "ATLAS_AZURE_EXTENDED_STANDARD_IOPS" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE" | "ATLAS_AZURE_BACKUP_DOWNLOAD_VM_STORAGE_EXTENDED_IOPS" | "ATLAS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE" | "ATLAS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_EXTENDED_IOPS" | "ATLAS_BI_CONNECTOR" | "ATLAS_ADVANCED_SECURITY" | "ATLAS_ENTERPRISE_AUDITING" | "ATLAS_FREE_SUPPORT" | "ATLAS_SUPPORT" | "ATLAS_NDS_BACKFILL_SUPPORT" | "STITCH_DATA_DOWNLOADED_FREE_TIER" | "STITCH_DATA_DOWNLOADED" | "STITCH_COMPUTE_FREE_TIER" | "STITCH_COMPUTE" | "CREDIT" | "MINIMUM_CHARGE" | "CHARTS_DATA_DOWNLOADED_FREE_TIER" | "CHARTS_DATA_DOWNLOADED" | "ATLAS_DATA_LAKE_AWS_DATA_RETURNED_SAME_REGION" | "ATLAS_DATA_LAKE_AWS_DATA_RETURNED_DIFFERENT_REGION" | "ATLAS_DATA_LAKE_AWS_DATA_RETURNED_INTERNET" | "ATLAS_DATA_LAKE_AWS_DATA_SCANNED" | "ATLAS_DATA_LAKE_AWS_DATA_TRANSFERRED_FROM_DIFFERENT_REGION" | "ATLAS_NDS_AWS_DATA_LAKE_STORAGE_ACCESS" | "ATLAS_NDS_AWS_DATA_LAKE_STORAGE" | "ATLAS_DATA_FEDERATION_AZURE_DATA_RETURNED_SAME_REGION" | "ATLAS_DATA_FEDERATION_AZURE_DATA_RETURNED_SAME_CONTINENT" | "ATLAS_DATA_FEDERATION_AZURE_DATA_RETURNED_DIFFERENT_CONTINENT" | "ATLAS_DATA_FEDERATION_AZURE_DATA_RETURNED_INTERNET" | "ATLAS_DATA_FEDERATION_GCP_DATA_RETURNED_SAME_REGION" | "ATLAS_DATA_FEDERATION_GCP_DATA_RETURNED_DIFFERENT_REGION" | "ATLAS_DATA_FEDERATION_GCP_DATA_RETURNED_INTERNET" | "ATLAS_DATA_FEDERATION_AZURE_DATA_SCANNED" | "ATLAS_NDS_AZURE_DATA_LAKE_STORAGE_ACCESS" | "ATLAS_NDS_AZURE_DATA_LAKE_STORAGE" | "ATLAS_DATA_FEDERATION_GCP_DATA_SCANNED" | "ATLAS_NDS_GCP_DATA_LAKE_STORAGE_ACCESS" | "ATLAS_NDS_GCP_DATA_LAKE_STORAGE" | "ATLAS_NDS_AWS_OBJECT_STORAGE_ACCESS" | "ATLAS_NDS_AWS_COMPRESSED_OBJECT_STORAGE" | "ATLAS_NDS_AZURE_OBJECT_STORAGE_ACCESS" | "ATLAS_NDS_AZURE_OBJECT_STORAGE" | "ATLAS_NDS_AZURE_COMPRESSED_OBJECT_STORAGE" | "ATLAS_NDS_GCP_OBJECT_STORAGE_ACCESS" | "ATLAS_NDS_GCP_OBJECT_STORAGE" | "ATLAS_NDS_GCP_COMPRESSED_OBJECT_STORAGE" | "ATLAS_ARCHIVE_ACCESS_PARTITION_LOCATE" | "ATLAS_NDS_AWS_PIT_RESTORE_STORAGE_FREE_TIER" | "ATLAS_NDS_AWS_PIT_RESTORE_STORAGE" | "ATLAS_NDS_GCP_PIT_RESTORE_STORAGE_FREE_TIER" | "ATLAS_NDS_GCP_PIT_RESTORE_STORAGE" | "ATLAS_NDS_AZURE_PIT_RESTORE_STORAGE_FREE_TIER" | "ATLAS_NDS_AZURE_PIT_RESTORE_STORAGE" | "ATLAS_NDS_AZURE_PRIVATE_ENDPOINT_CAPACITY_UNITS" | "ATLAS_NDS_AZURE_CMK_PRIVATE_NETWORKING" | "ATLAS_NDS_AWS_CMK_PRIVATE_NETWORKING" | "ATLAS_NDS_AWS_OBJECT_STORAGE" | "ATLAS_NDS_AWS_SNAPSHOT_EXPORT_UPLOAD" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_UPLOAD" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_M40" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_M50" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_M60" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P2" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P3" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P4" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P6" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P10" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P15" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P20" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P30" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P40" | "ATLAS_NDS_AZURE_SNAPSHOT_EXPORT_VM_STORAGE_P50" | "ATLAS_NDS_AWS_SNAPSHOT_EXPORT_VM" | "ATLAS_NDS_AWS_SNAPSHOT_EXPORT_VM_M40" | "ATLAS_NDS_AWS_SNAPSHOT_EXPORT_VM_M50" | "ATLAS_NDS_AWS_SNAPSHOT_EXPORT_VM_M60" | "ATLAS_NDS_AWS_SNAPSHOT_EXPORT_VM_STORAGE" | "ATLAS_NDS_AWS_SNAPSHOT_EXPORT_VM_STORAGE_IOPS" | "ATLAS_NDS_GCP_SNAPSHOT_EXPORT_UPLOAD" | "ATLAS_NDS_GCP_SNAPSHOT_EXPORT_VM" | "ATLAS_NDS_GCP_SNAPSHOT_EXPORT_VM_M40" | "ATLAS_NDS_GCP_SNAPSHOT_EXPORT_VM_M50" | "ATLAS_NDS_GCP_SNAPSHOT_EXPORT_VM_M60" | "ATLAS_NDS_GCP_SNAPSHOT_EXPORT_VM_STORAGE" | "ATLAS_NDS_AWS_SERVERLESS_RPU" | "ATLAS_NDS_AWS_SERVERLESS_WPU" | "ATLAS_NDS_AWS_SERVERLESS_STORAGE" | "ATLAS_NDS_AWS_SERVERLESS_CONTINUOUS_BACKUP" | "ATLAS_NDS_AWS_SERVERLESS_BACKUP_RESTORE_VM" | "ATLAS_NDS_AWS_SERVERLESS_DATA_TRANSFER_PREVIEW" | "ATLAS_NDS_AWS_SERVERLESS_DATA_TRANSFER" | "ATLAS_NDS_AWS_SERVERLESS_DATA_TRANSFER_REGIONAL" | "ATLAS_NDS_AWS_SERVERLESS_DATA_TRANSFER_CROSS_REGION" | "ATLAS_NDS_AWS_SERVERLESS_DATA_TRANSFER_INTERNET" | "ATLAS_NDS_GCP_SERVERLESS_RPU" | "ATLAS_NDS_GCP_SERVERLESS_WPU" | "ATLAS_NDS_GCP_SERVERLESS_STORAGE" | "ATLAS_NDS_GCP_SERVERLESS_CONTINUOUS_BACKUP" | "ATLAS_NDS_GCP_SERVERLESS_BACKUP_RESTORE_VM" | "ATLAS_NDS_GCP_SERVERLESS_DATA_TRANSFER_PREVIEW" | "ATLAS_NDS_GCP_SERVERLESS_DATA_TRANSFER" | "ATLAS_NDS_GCP_SERVERLESS_DATA_TRANSFER_REGIONAL" | "ATLAS_NDS_GCP_SERVERLESS_DATA_TRANSFER_CROSS_REGION" | "ATLAS_NDS_GCP_SERVERLESS_DATA_TRANSFER_INTERNET" | "ATLAS_NDS_AZURE_SERVERLESS_RPU" | "ATLAS_NDS_AZURE_SERVERLESS_WPU" | "ATLAS_NDS_AZURE_SERVERLESS_STORAGE" | "ATLAS_NDS_AZURE_SERVERLESS_CONTINUOUS_BACKUP" | "ATLAS_NDS_AZURE_SERVERLESS_BACKUP_RESTORE_VM" | "ATLAS_NDS_AZURE_SERVERLESS_DATA_TRANSFER_PREVIEW" | "ATLAS_NDS_AZURE_SERVERLESS_DATA_TRANSFER" | "ATLAS_NDS_AZURE_SERVERLESS_DATA_TRANSFER_REGIONAL" | "ATLAS_NDS_AZURE_SERVERLESS_DATA_TRANSFER_CROSS_REGION" | "ATLAS_NDS_AZURE_SERVERLESS_DATA_TRANSFER_INTERNET" | "REALM_APP_REQUESTS_FREE_TIER" | "REALM_APP_REQUESTS" | "REALM_APP_COMPUTE_FREE_TIER" | "REALM_APP_COMPUTE" | "REALM_APP_SYNC_FREE_TIER" | "REALM_APP_SYNC" | "REALM_APP_DATA_TRANSFER_FREE_TIER" | "REALM_APP_DATA_TRANSFER" | "GCP_SNAPSHOT_COPY_DISK" | "ATLAS_AWS_STREAM_PROCESSING_INSTANCE_SP2" | "ATLAS_AWS_STREAM_PROCESSING_INSTANCE_SP5" | "ATLAS_AWS_STREAM_PROCESSING_INSTANCE_SP10" | "ATLAS_AWS_STREAM_PROCESSING_INSTANCE_SP30" | "ATLAS_AWS_STREAM_PROCESSING_INSTANCE_SP50" | "ATLAS_AZURE_STREAM_PROCESSING_INSTANCE_SP2" | "ATLAS_AZURE_STREAM_PROCESSING_INSTANCE_SP5" | "ATLAS_AZURE_STREAM_PROCESSING_INSTANCE_SP10" | "ATLAS_AZURE_STREAM_PROCESSING_INSTANCE_SP30" | "ATLAS_AZURE_STREAM_PROCESSING_INSTANCE_SP50" | "ATLAS_AWS_STREAM_PROCESSING_DATA_TRANSFER" | "ATLAS_AWS_STREAM_PROCESSING_DATA_TRANSFER_SAME_REGION" | "ATLAS_AWS_STREAM_PROCESSING_DATA_TRANSFER_DIFFERENT_REGION" | "ATLAS_AWS_STREAM_PROCESSING_DATA_TRANSFER_INTERNET" | "ATLAS_AZURE_STREAM_PROCESSING_DATA_TRANSFER" | "ATLAS_AZURE_STREAM_PROCESSING_DATA_TRANSFER_INTERNET" | "ATLAS_AZURE_STREAM_PROCESSING_DATA_TRANSFER_SAME_CONTINENT" | "ATLAS_AZURE_STREAM_PROCESSING_DATA_TRANSFER_DIFFERENT_CONTINENT" | "ATLAS_AWS_STREAM_PROCESSING_VPC_PEERING" | "ATLAS_AZURE_STREAM_PROCESSING_PRIVATELINK" | "ATLAS_AWS_STREAM_PROCESSING_PRIVATELINK" | "ATLAS_FLEX_AWS_100_USAGE_HOURS" | "ATLAS_FLEX_AWS_200_USAGE_HOURS" | "ATLAS_FLEX_AWS_300_USAGE_HOURS" | "ATLAS_FLEX_AWS_400_USAGE_HOURS" | "ATLAS_FLEX_AWS_500_USAGE_HOURS" | "ATLAS_FLEX_AZURE_100_USAGE_HOURS" | "ATLAS_FLEX_AZURE_200_USAGE_HOURS" | "ATLAS_FLEX_AZURE_300_USAGE_HOURS" | "ATLAS_FLEX_AZURE_400_USAGE_HOURS" | "ATLAS_FLEX_AZURE_500_USAGE_HOURS" | "ATLAS_FLEX_GCP_100_USAGE_HOURS" | "ATLAS_FLEX_GCP_200_USAGE_HOURS" | "ATLAS_FLEX_GCP_300_USAGE_HOURS" | "ATLAS_FLEX_GCP_400_USAGE_HOURS" | "ATLAS_FLEX_GCP_500_USAGE_HOURS" | "ATLAS_FLEX_AWS_LEGACY_100_USAGE_HOURS" | "ATLAS_FLEX_AWS_LEGACY_200_USAGE_HOURS" | "ATLAS_FLEX_AWS_LEGACY_300_USAGE_HOURS" | "ATLAS_FLEX_AWS_LEGACY_400_USAGE_HOURS" | "ATLAS_FLEX_AWS_LEGACY_500_USAGE_HOURS" | "ATLAS_FLEX_AZURE_LEGACY_100_USAGE_HOURS" | "ATLAS_FLEX_AZURE_LEGACY_200_USAGE_HOURS" | "ATLAS_FLEX_AZURE_LEGACY_300_USAGE_HOURS" | "ATLAS_FLEX_AZURE_LEGACY_400_USAGE_HOURS" | "ATLAS_FLEX_AZURE_LEGACY_500_USAGE_HOURS" | "ATLAS_FLEX_GCP_LEGACY_100_USAGE_HOURS" | "ATLAS_FLEX_GCP_LEGACY_200_USAGE_HOURS" | "ATLAS_FLEX_GCP_LEGACY_300_USAGE_HOURS" | "ATLAS_FLEX_GCP_LEGACY_400_USAGE_HOURS" | "ATLAS_FLEX_GCP_LEGACY_500_USAGE_HOURS" | "ATLAS_GCP_STREAM_PROCESSING_INSTANCE_SP2" | "ATLAS_GCP_STREAM_PROCESSING_INSTANCE_SP5" | "ATLAS_GCP_STREAM_PROCESSING_INSTANCE_SP10" | "ATLAS_GCP_STREAM_PROCESSING_INSTANCE_SP30" | "ATLAS_GCP_STREAM_PROCESSING_INSTANCE_SP50" | "ATLAS_GCP_STREAM_PROCESSING_DATA_TRANSFER" | "ATLAS_GCP_STREAM_PROCESSING_DATA_TRANSFER_SAME_REGION" | "ATLAS_GCP_STREAM_PROCESSING_DATA_TRANSFER_DIFFERENT_REGION" | "ATLAS_GCP_STREAM_PROCESSING_DATA_TRANSFER_INTERNET" | "ATLAS_GCP_STREAM_PROCESSING_PRIVATELINK" | "VOYAGE_EMBEDDING_3_TEXT_LARGE_API" | "VOYAGE_EMBEDDING_3_TEXT_API" | "VOYAGE_EMBEDDING_3_TEXT_LITE_API" | "VOYAGE_EMBEDDING_3_5_TEXT_API" | "VOYAGE_EMBEDDING_3_5_TEXT_LITE_API" | "VOYAGE_EMBEDDING_3_TEXT_CONTEXT_API" | "VOYAGE_EMBEDDING_3_CODE_API" | "VOYAGE_EMBEDDING_2_FINANCE_API" | "VOYAGE_EMBEDDING_2_LAW_API" | "VOYAGE_EMBEDDING_2_CODE_API" | "VOYAGE_EMBEDDING_3_5_MULTIMODAL_TOKENS_API" | "VOYAGE_EMBEDDING_3_5_MULTIMODAL_PIXELS_API" | "VOYAGE_EMBEDDING_3_MULTIMODAL_TOKENS_API" | "VOYAGE_EMBEDDING_3_MULTIMODAL_PIXELS_API" | "VOYAGE_RERANK_2_5_LITE_API" | "VOYAGE_RERANK_2_5_API" | "VOYAGE_RERANK_2_LITE_API" | "VOYAGE_RERANK_2_API" | "VOYAGE_EMBEDDING_3_TEXT_LARGE_AUTOEMBED" | "VOYAGE_EMBEDDING_3_TEXT_AUTOEMBED" | "VOYAGE_EMBEDDING_3_TEXT_LITE_AUTOEMBED" | "VOYAGE_EMBEDDING_3_5_TEXT_AUTOEMBED" | "VOYAGE_EMBEDDING_3_5_TEXT_LITE_AUTOEMBED" | "VOYAGE_EMBEDDING_3_TEXT_CONTEXT_AUTOEMBED" | "VOYAGE_EMBEDDING_3_CODE_AUTOEMBED" | "VOYAGE_EMBEDDING_2_FINANCE_AUTOEMBED" | "VOYAGE_EMBEDDING_2_LAW_AUTOEMBED" | "VOYAGE_EMBEDDING_2_CODE_AUTOEMBED" | "VOYAGE_EMBEDDING_3_5_MULTIMODAL_TOKENS_AUTOEMBED" | "VOYAGE_EMBEDDING_3_5_MULTIMODAL_PIXELS_AUTOEMBED" | "VOYAGE_EMBEDDING_3_MULTIMODAL_TOKENS_AUTOEMBED" | "VOYAGE_EMBEDDING_3_MULTIMODAL_PIXELS_AUTOEMBED";
+            /** @description Human-readable description of the service that this line item provided. This Stock Keeping Unit (SKU) could be the instance type, a support charge, advanced security, or another service. */
+            readonly sku?: string;
             /**
              * Format: date-time
              * @description Date and time when MongoDB Cloud began charging for this line item. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
@@ -4213,6 +4012,33 @@ export interface components {
              */
             rel?: string;
         };
+        /**
+         * Log Export Integration Request
+         * @description Request schema for creating or updating a log integration.
+         */
+        LogIntegrationRequest: {
+            /**
+             * @description Type of log integration. Identifies which service will receive the exported logs.
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        } & components["schemas"]["S3LogIntegrationRequest"];
+        /**
+         * Log Integration Response
+         * @description Response schema for log integration operations.
+         */
+        LogIntegrationResponse: {
+            /**
+             * @description Unique 24-character hexadecimal digit string that identifies the log integration configuration.
+             * @example 507f1f77bcf86cd799439011
+             */
+            id: string;
+            /**
+             * @description Type of log integration. Identifies which service will receive the exported logs.
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        } & components["schemas"]["S3LogIntegrationResponse"];
         MonthlyScheduleView: Omit<WithRequired<components["schemas"]["OnlineArchiveSchedule"], "type">, "type"> & {
             /**
              * Format: int32
@@ -5055,6 +4881,112 @@ export interface components {
             /** @description Variable that belongs to the set of the tag. For example, `production` in the `environment : production` tag. */
             value: string;
         };
+        /**
+         * S3 Log Export Integration Request
+         * @description Request schema for creating or updating an S3 log export integration.
+         */
+        S3LogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "type">, "type"> & {
+            /**
+             * @description Human-readable label that identifies the S3 bucket name for storing log files.
+             * @example my-log-bucket
+             */
+            bucketName: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the AWS IAM role that MongoDB Cloud uses to access your S3 bucket.
+             * @example 507f1f77bcf86cd799439011
+             */
+            iamRoleId: string;
+            /**
+             * @description AWS KMS key ID or ARN for server-side encryption (optional). If not provided, uses bucket default encryption settings.
+             * @example arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+             */
+            kmsKey?: string | null;
+            /**
+             * @description Array of log types to export to S3. Valid values: MONGOD, MONGOS, MONGOD_AUDIT, MONGOS_AUDIT.
+             * @example [
+             *       "MONGOD",
+             *       "MONGOS",
+             *       "MONGOD_AUDIT",
+             *       "MONGOS_AUDIT"
+             *     ]
+             */
+            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
+            /**
+             * @description S3 directory path prefix where the log files will be stored. MongoDB Cloud will add further sub-directories based on the log type.
+             * @example mongo-logs/
+             */
+            prefixPath: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with MongoDB Cloud. The value must match the log integration type.
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        };
+        /**
+         * S3 Log Export Integration Response
+         * @description Details to integrate S3 log export with one MongoDB Cloud project.
+         */
+        S3LogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "type">, "type"> & {
+            /**
+             * @description Human-readable label that identifies the S3 bucket name for storing log files.
+             * @example my-log-bucket
+             */
+            bucketName: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the AWS IAM role that MongoDB Cloud uses to access your S3 bucket.
+             * @example 507f1f77bcf86cd799439011
+             */
+            iamRoleId: string;
+            /**
+             * @description AWS KMS key ID or ARN for server-side encryption (optional). If not provided, uses bucket default encryption settings.
+             * @example arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+             */
+            kmsKey?: string | null;
+            /**
+             * @description Array of log types to export to S3. Valid values: MONGOD, MONGOS, MONGOD_AUDIT, MONGOS_AUDIT.
+             * @example [
+             *       "MONGOD",
+             *       "MONGOS",
+             *       "MONGOD_AUDIT",
+             *       "MONGOS_AUDIT"
+             *     ]
+             */
+            logTypes?: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
+            /**
+             * @description S3 directory path prefix where the log files will be stored. MongoDB Cloud will add further sub-directories based on the log type.
+             * @example mongo-logs/
+             */
+            prefixPath: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with MongoDB Cloud. The value must match the log integration type.
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "S3_LOG_EXPORT";
+        };
         SchemaAdvisorItemRecommendation: {
             /** @description List that contains the namespaces and information on why those namespaces triggered the recommendation. */
             readonly affectedNamespaces?: components["schemas"]["SchemaAdvisorNamespaceTriggers"][];
@@ -5085,6 +5017,14 @@ export interface components {
              */
             readonly triggerType?: "PERCENT_QUERIES_USE_LOOKUP" | "NUMBER_OF_QUERIES_USE_LOOKUP" | "DOCS_CONTAIN_UNBOUNDED_ARRAY" | "NUMBER_OF_NAMESPACES" | "DOC_SIZE_TOO_LARGE" | "NUM_INDEXES" | "QUERIES_CONTAIN_CASE_INSENSITIVE_REGEX";
         };
+        /** @description Authentication configuration for Schema Registry. */
+        SchemaRegistryAuthentication: {
+            /**
+             * @description Authentication type discriminator. Specifies the authentication mechanism for Confluent Schema Registry.
+             * @enum {string}
+             */
+            type: "USER_INFO" | "SASL_INHERIT";
+        } & (components["schemas"]["ConfluentUserInfoAuthentication"] | components["schemas"]["ConfluentSaslInheritAuthentication"]);
         /** Search Host Status Detail */
         SearchHostStatusDetail: {
             /** @description Hostname that corresponds to the status detail. */
@@ -5131,16 +5071,6 @@ export interface components {
              * @enum {string}
              */
             searchAnalyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
-            /**
-             * @description Flag that indicates whether to store all fields (true) on Atlas Search. By default, Atlas doesn't store (false) the fields on Atlas Search.  Alternatively, you can specify an object that only contains the list of fields to store (include) or not store (exclude) on Atlas Search. To learn more, see documentation.
-             * @example {
-             *       "include | exclude": [
-             *         "field1",
-             *         "field2"
-             *       ]
-             *     }
-             */
-            storedSource?: Record<string, never>;
             /** @description Rule sets that map words to their synonyms in this index. */
             synonyms?: components["schemas"]["SearchSynonymMappingDefinition"][];
         } & {
@@ -5174,6 +5104,16 @@ export interface components {
              * @default 1
              */
             numPartitions: number;
+            /**
+             * @description Flag that indicates whether to store all fields (true) on Atlas Search. By default, Atlas doesn't store (false) the fields on Atlas Search.  Alternatively, you can specify an object that only contains the list of fields to store (include) or not store (exclude) on Atlas Search. Note that storing all fields (true) is not allowed for vector search indexes. To learn more, see Stored Source Fields.
+             * @example {
+             *       "include | exclude": [
+             *         "field1",
+             *         "field2"
+             *       ]
+             *     }
+             */
+            storedSource?: Record<string, never>;
         };
         /**
          * Search Index Definition Version
@@ -5494,7 +5434,7 @@ export interface components {
             type: "AWSLambda";
         };
         StreamsClusterConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
-            /** @description The id of the group that the cluster belongs to. */
+            /** @description Unique 24-hexadecimal digit string that identifies the project that contains the configured cluster. Required if the ID does not match the project containing the streams workspace. You must first enable the organization setting. */
             clusterGroupId?: string;
             /** @description Name of the cluster configured for this connection. */
             clusterName?: string;
@@ -5519,15 +5459,16 @@ export interface components {
             /** @description Human-readable label that identifies the stream connection. In the case of the Sample type, this is the name of the sample source. */
             name?: string;
             /**
+             * @description The state of the connection.
+             * @enum {string}
+             */
+            readonly state?: "PENDING" | "READY" | "DELETING" | "FAILED";
+            /**
              * @description Type of the connection.
              * @enum {string}
              */
-            type?: "Kafka" | "Cluster" | "Sample" | "Https" | "AWSLambda" | "AWSKinesisDataStreams";
-        } & (components["schemas"]["StreamsSampleConnection"] | components["schemas"]["StreamsClusterConnection"] | components["schemas"]["StreamsKafkaConnection"] | components["schemas"]["StreamsHttpsConnection"] | components["schemas"]["StreamsAWSLambdaConnection"] | components["schemas"]["StreamsS3Connection"] | components["schemas"]["StreamsAWSKinesisDataStreamsConnection"]);
-        /** @description Settings that define a connection to an external data store. */
-        StreamsConnectionPrivatePreview: {
-            type: string;
-        } & components["schemas"]["StreamsSchemaRegistryConnectionPrivatePreview"];
+            type?: "Kafka" | "Cluster" | "Sample" | "Https" | "AWSLambda" | "AWSKinesisDataStreams" | "SchemaRegistry";
+        } & (components["schemas"]["StreamsSampleConnection"] | components["schemas"]["StreamsClusterConnection"] | components["schemas"]["StreamsKafkaConnection"] | components["schemas"]["StreamsHttpsConnection"] | components["schemas"]["StreamsAWSLambdaConnection"] | components["schemas"]["StreamsS3Connection"] | components["schemas"]["StreamsAWSKinesisDataStreamsConnection"] | components["schemas"]["StreamsSchemaRegistryConnection"]);
         StreamsHttpsConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             /** @description A map of key-value pairs that will be passed as headers for the request. */
             headers?: {
@@ -5681,22 +5622,28 @@ export interface components {
             type: "Sample";
         };
         /** @description The configuration for Schema Registry connections. */
-        StreamsSchemaRegistryConnectionPrivatePreview: {
-            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
-            readonly links?: components["schemas"]["Link"][];
-            /** @description Human-readable label that identifies the stream connection. In the case of the Sample type, this is the name of the sample source. */
-            name?: string;
+        StreamsSchemaRegistryConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             /**
              * @description The Schema Registry provider.
              * @enum {string}
              */
             provider: "CONFLUENT";
+            schemaRegistryAuthentication: components["schemas"]["SchemaRegistryAuthentication"];
+            /** @description List of Schema Registry endpoint URLs used by this connection. Each URL must use the http or https scheme and specify a valid host and optional port. */
+            schemaRegistryUrls: string[];
+        } & {
             /**
-             * @description Type of the connection. (enum property replaced by openapi-typescript)
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             type: "SchemaRegistry";
-        } & components["schemas"]["ConfluentSchemaRegistryConnectionPrivatePreview"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SchemaRegistry";
+        };
         /**
          * Synonym Mapping Status Detail
          * @description Contains the status of the index's synonym mappings on each search host. This field (and its subfields) only appear if the index has synonyms defined.
@@ -5719,19 +5666,6 @@ export interface components {
         SynonymSource: {
             /** @description Label that identifies the MongoDB collection that stores words and their applicable synonyms. */
             collection: string;
-        };
-        TenantHardwareSpec: {
-            /**
-             * @description The true tenant instance size. This is present to support backwards compatibility for deprecated provider types and/or instance sizes.
-             * @enum {string}
-             */
-            readonly effectiveInstanceSize?: "FLEX" | "M2" | "M5" | "M0";
-            /**
-             * Tenant Instance Sizes
-             * @description Hardware specification for the instances in this M0/M2/M5 tier cluster.
-             * @enum {string}
-             */
-            instanceSize?: "M0" | "M2" | "M5";
         };
         TenantHardwareSpec20240805: {
             /**
@@ -5762,31 +5696,6 @@ export interface components {
              * @enum {string}
              */
             instanceSize?: "M0" | "M2" | "M5";
-        };
-        /**
-         * Tenant Regional Replication Specifications
-         * @description Details that explain how MongoDB Cloud replicates data in one region on the specified MongoDB database.
-         */
-        TenantRegionConfig: Omit<components["schemas"]["CloudRegionConfig"], "providerName"> & {
-            /**
-             * @description Cloud service provider on which MongoDB Cloud provisioned the multi-tenant cluster. The resource returns this parameter when **providerName** is `TENANT` and **electableSpecs.instanceSize** is `M0`, `M2` or `M5`.
-             *
-             *     Please note that using an instanceSize of M2 or M5 will create a Flex cluster instead. Support for the instanceSize of M2 or M5 will be discontinued in January 2026. We recommend using the createFlexCluster API for such configurations moving forward.
-             * @enum {string}
-             */
-            backingProviderName?: "AWS" | "GCP" | "AZURE";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "TENANT";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            providerName: "TENANT";
         };
         /**
          * Tenant Regional Replication Specifications
@@ -5880,7 +5789,18 @@ export interface components {
              */
             searchAnalyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
             /**
-             * @description Flag that indicates whether to store all fields (true) on Atlas Search. By default, Atlas doesn't store (false) the fields on Atlas Search.  Alternatively, you can specify an object that only contains the list of fields to store (include) or not store (exclude) on Atlas Search. To learn more, see Stored Source Fields.
+             * @description Sort definition for the index. When defined, the index will be pre-sorted on thespecified fields, which improves query sort performance for those fields. Supports two formats: simple format with field name and direction, or complex format with additional options.The 'order' field is required (1=ascending, -1=descending).The 'noData' field is optional and controls how missing values are sorted(default: "lowest").
+             * @example {
+             *       "anotherField": {
+             *         "noData": "highest",
+             *         "order": -1
+             *       },
+             *       "fieldName": 1
+             *     }
+             */
+            sort?: Record<string, never>;
+            /**
+             * @description Flag that indicates whether to store all fields (true) on Atlas Search. By default, Atlas doesn't store (false) the fields on Atlas Search.  Alternatively, you can specify an object that only contains the list of fields to store (include) or not store (exclude) on Atlas Search. Note that storing all fields (true) is not allowed for vector search indexes. To learn more, see Stored Source Fields.
              * @example {
              *       "include | exclude": [
              *         "field1",
@@ -6267,6 +6187,16 @@ export interface components {
              * @default 1
              */
             numPartitions: number;
+            /**
+             * @description Flag that indicates whether to store all fields (true) on Atlas Search. By default, Atlas doesn't store (false) the fields on Atlas Search.  Alternatively, you can specify an object that only contains the list of fields to store (include) or not store (exclude) on Atlas Search. Note that storing all fields (true) is not allowed for vector search indexes. To learn more, see Stored Source Fields.
+             * @example {
+             *       "include | exclude": [
+             *         "field1",
+             *         "field2"
+             *       ]
+             *     }
+             */
+            storedSource?: Record<string, never>;
         };
         /** Vector Search Index Response */
         VectorSearchIndexResponse: Omit<components["schemas"]["SearchIndexResponse"], "type"> & {
@@ -6922,9 +6852,7 @@ export type AwsCloudProviderSettings = components['schemas']['AWSCloudProviderSe
 export type AwsComputeAutoScaling = components['schemas']['AWSComputeAutoScaling'];
 export type AwsCreateDataProcessRegionView = components['schemas']['AWSCreateDataProcessRegionView'];
 export type AwsDataProcessRegionView = components['schemas']['AWSDataProcessRegionView'];
-export type AwsHardwareSpec = components['schemas']['AWSHardwareSpec'];
 export type AwsHardwareSpec20240805 = components['schemas']['AWSHardwareSpec20240805'];
-export type AwsRegionConfig = components['schemas']['AWSRegionConfig'];
 export type AwsRegionConfig20240805 = components['schemas']['AWSRegionConfig20240805'];
 export type AdvancedAutoScalingSettings = components['schemas']['AdvancedAutoScalingSettings'];
 export type AdvancedComputeAutoScaling = components['schemas']['AdvancedComputeAutoScaling'];
@@ -6943,9 +6871,7 @@ export type AzureCloudProviderSettings = components['schemas']['AzureCloudProvid
 export type AzureComputeAutoScalingRules = components['schemas']['AzureComputeAutoScalingRules'];
 export type AzureCreateDataProcessRegionView = components['schemas']['AzureCreateDataProcessRegionView'];
 export type AzureDataProcessRegionView = components['schemas']['AzureDataProcessRegionView'];
-export type AzureHardwareSpec = components['schemas']['AzureHardwareSpec'];
 export type AzureHardwareSpec20240805 = components['schemas']['AzureHardwareSpec20240805'];
-export type AzureRegionConfig = components['schemas']['AzureRegionConfig'];
 export type AzureRegionConfig20240805 = components['schemas']['AzureRegionConfig20240805'];
 export type BadRequestDetail = components['schemas']['BadRequestDetail'];
 export type BaseCloudProviderInstanceSize = components['schemas']['BaseCloudProviderInstanceSize'];
@@ -6978,7 +6904,6 @@ export type CloudProviderAccessRoleRequestUpdate = components['schemas']['CloudP
 export type CloudProviderAzureAutoScaling = components['schemas']['CloudProviderAzureAutoScaling'];
 export type CloudProviderContainer = components['schemas']['CloudProviderContainer'];
 export type CloudProviderGcpAutoScaling = components['schemas']['CloudProviderGCPAutoScaling'];
-export type CloudRegionConfig = components['schemas']['CloudRegionConfig'];
 export type CloudRegionConfig20240805 = components['schemas']['CloudRegionConfig20240805'];
 export type ClusterAlertViewForNdsGroup = components['schemas']['ClusterAlertViewForNdsGroup'];
 export type ClusterConnectionStrings = components['schemas']['ClusterConnectionStrings'];
@@ -6993,8 +6918,6 @@ export type ClusterProviderSettings = components['schemas']['ClusterProviderSett
 export type ClusterSearchIndex = components['schemas']['ClusterSearchIndex'];
 export type ComponentLabel = components['schemas']['ComponentLabel'];
 export type ConfluentSaslInheritAuthentication = components['schemas']['ConfluentSaslInheritAuthentication'];
-export type ConfluentSchemaRegistryAuthentication = components['schemas']['ConfluentSchemaRegistryAuthentication'];
-export type ConfluentSchemaRegistryConnectionPrivatePreview = components['schemas']['ConfluentSchemaRegistryConnectionPrivatePreview'];
 export type ConfluentUserInfoAuthentication = components['schemas']['ConfluentUserInfoAuthentication'];
 export type CreateAwsEndpointRequest = components['schemas']['CreateAWSEndpointRequest'];
 export type CreateAzureEndpointRequest = components['schemas']['CreateAzureEndpointRequest'];
@@ -7026,7 +6949,6 @@ export type DataMetricValueView = components['schemas']['DataMetricValueView'];
 export type DataProcessRegionView = components['schemas']['DataProcessRegionView'];
 export type DatabaseUserRole = components['schemas']['DatabaseUserRole'];
 export type DateCriteriaView = components['schemas']['DateCriteriaView'];
-export type DedicatedHardwareSpec = components['schemas']['DedicatedHardwareSpec'];
 export type DedicatedHardwareSpec20240805 = components['schemas']['DedicatedHardwareSpec20240805'];
 export type DefaultAlertViewForNdsGroup = components['schemas']['DefaultAlertViewForNdsGroup'];
 export type DefaultScheduleView = components['schemas']['DefaultScheduleView'];
@@ -7055,16 +6977,13 @@ export type GcpCloudProviderContainer = components['schemas']['GCPCloudProviderC
 export type GcpComputeAutoScaling = components['schemas']['GCPComputeAutoScaling'];
 export type GcpCreateDataProcessRegionView = components['schemas']['GCPCreateDataProcessRegionView'];
 export type GcpDataProcessRegionView = components['schemas']['GCPDataProcessRegionView'];
-export type GcpHardwareSpec = components['schemas']['GCPHardwareSpec'];
 export type GcpHardwareSpec20240805 = components['schemas']['GCPHardwareSpec20240805'];
-export type GcpRegionConfig = components['schemas']['GCPRegionConfig'];
 export type GcpRegionConfig20240805 = components['schemas']['GCPRegionConfig20240805'];
 export type Group = components['schemas']['Group'];
 export type GroupActiveUserResponse = components['schemas']['GroupActiveUserResponse'];
 export type GroupPendingUserResponse = components['schemas']['GroupPendingUserResponse'];
 export type GroupRoleAssignment = components['schemas']['GroupRoleAssignment'];
 export type GroupUserResponse = components['schemas']['GroupUserResponse'];
-export type HardwareSpec = components['schemas']['HardwareSpec'];
 export type HardwareSpec20240805 = components['schemas']['HardwareSpec20240805'];
 export type HostAlertViewForNdsGroup = components['schemas']['HostAlertViewForNdsGroup'];
 export type HostEventTypeViewForNdsGroupAlertable = components['schemas']['HostEventTypeViewForNdsGroupAlertable'];
@@ -7075,6 +6994,8 @@ export type IngestionSink = components['schemas']['IngestionSink'];
 export type IngestionSource = components['schemas']['IngestionSource'];
 export type InvoiceLineItem = components['schemas']['InvoiceLineItem'];
 export type Link = components['schemas']['Link'];
+export type LogIntegrationRequest = components['schemas']['LogIntegrationRequest'];
+export type LogIntegrationResponse = components['schemas']['LogIntegrationResponse'];
 export type MonthlyScheduleView = components['schemas']['MonthlyScheduleView'];
 export type NetworkPermissionEntry = components['schemas']['NetworkPermissionEntry'];
 export type NumberMetricAlertView = components['schemas']['NumberMetricAlertView'];
@@ -7111,10 +7032,13 @@ export type ReplicaSetAlertViewForNdsGroup = components['schemas']['ReplicaSetAl
 export type ReplicaSetEventTypeViewForNdsGroupAlertable = components['schemas']['ReplicaSetEventTypeViewForNdsGroupAlertable'];
 export type ReplicationSpec20240805 = components['schemas']['ReplicationSpec20240805'];
 export type ResourceTag = components['schemas']['ResourceTag'];
+export type S3LogIntegrationRequest = components['schemas']['S3LogIntegrationRequest'];
+export type S3LogIntegrationResponse = components['schemas']['S3LogIntegrationResponse'];
 export type SchemaAdvisorItemRecommendation = components['schemas']['SchemaAdvisorItemRecommendation'];
 export type SchemaAdvisorNamespaceTriggers = components['schemas']['SchemaAdvisorNamespaceTriggers'];
 export type SchemaAdvisorResponse = components['schemas']['SchemaAdvisorResponse'];
 export type SchemaAdvisorTriggerDetails = components['schemas']['SchemaAdvisorTriggerDetails'];
+export type SchemaRegistryAuthentication = components['schemas']['SchemaRegistryAuthentication'];
 export type SearchHostStatusDetail = components['schemas']['SearchHostStatusDetail'];
 export type SearchIndex = components['schemas']['SearchIndex'];
 export type SearchIndexCreateRequest = components['schemas']['SearchIndexCreateRequest'];
@@ -7135,7 +7059,6 @@ export type StreamsAwsKinesisDataStreamsConnection = components['schemas']['Stre
 export type StreamsAwsLambdaConnection = components['schemas']['StreamsAWSLambdaConnection'];
 export type StreamsClusterConnection = components['schemas']['StreamsClusterConnection'];
 export type StreamsConnection = components['schemas']['StreamsConnection'];
-export type StreamsConnectionPrivatePreview = components['schemas']['StreamsConnectionPrivatePreview'];
 export type StreamsHttpsConnection = components['schemas']['StreamsHttpsConnection'];
 export type StreamsKafkaAuthentication = components['schemas']['StreamsKafkaAuthentication'];
 export type StreamsKafkaConnection = components['schemas']['StreamsKafkaConnection'];
@@ -7144,13 +7067,11 @@ export type StreamsKafkaNetworkingAccess = components['schemas']['StreamsKafkaNe
 export type StreamsKafkaSecurity = components['schemas']['StreamsKafkaSecurity'];
 export type StreamsS3Connection = components['schemas']['StreamsS3Connection'];
 export type StreamsSampleConnection = components['schemas']['StreamsSampleConnection'];
-export type StreamsSchemaRegistryConnectionPrivatePreview = components['schemas']['StreamsSchemaRegistryConnectionPrivatePreview'];
+export type StreamsSchemaRegistryConnection = components['schemas']['StreamsSchemaRegistryConnection'];
 export type SynonymMappingStatusDetail = components['schemas']['SynonymMappingStatusDetail'];
 export type SynonymMappingStatusDetailMap = components['schemas']['SynonymMappingStatusDetailMap'];
 export type SynonymSource = components['schemas']['SynonymSource'];
-export type TenantHardwareSpec = components['schemas']['TenantHardwareSpec'];
 export type TenantHardwareSpec20240805 = components['schemas']['TenantHardwareSpec20240805'];
-export type TenantRegionConfig = components['schemas']['TenantRegionConfig'];
 export type TenantRegionConfig20240805 = components['schemas']['TenantRegionConfig20240805'];
 export type TextSearchHostStatusDetail = components['schemas']['TextSearchHostStatusDetail'];
 export type TextSearchIndexCreateRequest = components['schemas']['TextSearchIndexCreateRequest'];

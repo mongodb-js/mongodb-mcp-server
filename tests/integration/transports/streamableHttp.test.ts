@@ -2,11 +2,10 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import type { LoggerType, LogLevel, LogPayload } from "../../../src/common/logger.js";
-import { LoggerBase, LogId } from "../../../src/common/logger.js";
+import { LogId } from "../../../src/common/logger.js";
 import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
-import { defaultTestConfig, timeout } from "../helpers.js";
+import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
@@ -200,17 +199,9 @@ describe("StreamableHttpRunner", () => {
             config.loggers = [];
         });
 
-        class CustomLogger extends LoggerBase {
-            protected type?: LoggerType = "console";
-            public messages: { level: LogLevel; payload: LogPayload }[] = [];
-            protected logCore(level: LogLevel, payload: LogPayload): void {
-                this.messages.push({ level, payload });
-            }
-        }
-
         it("can provide custom logger", async () => {
-            const logger = new CustomLogger(new Keychain());
-            runner = new StreamableHttpRunner({
+            const logger = new InMemoryLogger(new Keychain());
+            const runner = new StreamableHttpRunner({
                 userConfig: config,
                 createConnectionManager: createMCPConnectionManager,
                 additionalLoggers: [logger],
