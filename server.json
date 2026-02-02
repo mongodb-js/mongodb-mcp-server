@@ -102,14 +102,14 @@
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
-          "description": "Host address to bind the healthcheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_PORT",
-          "description": "Port number for the healthcheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -323,13 +323,13 @@
         {
           "type": "named",
           "name": "--healthCheckHost",
-          "description": "Host address to bind the healthcheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--healthCheckPort",
-          "description": "Port number for the healthcheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
@@ -545,14 +545,14 @@
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
-          "description": "Host address to bind the healthcheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_PORT",
-          "description": "Port number for the healthcheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -766,13 +766,13 @@
         {
           "type": "named",
           "name": "--healthCheckHost",
-          "description": "Host address to bind the healthcheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--healthCheckPort",
-          "description": "Port number for the healthcheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
