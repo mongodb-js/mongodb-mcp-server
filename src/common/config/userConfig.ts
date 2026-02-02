@@ -229,6 +229,23 @@ const ServerConfigSchema = z4.object({
             "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    healthCheckPort: z4
+        .number()
+        .int()
+        .min(0, "Invalid httpPort: must be at least 0")
+        .max(65535, "Invalid httpPort: must be at most 65535")
+        .optional()
+        .describe(
+            "Port number for the healthcheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    healthCheckHost: z4
+        .string()
+        .optional()
+        .describe(
+            "Host address to bind the healthcheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
 
 export const UserConfigSchema = z4.object({
