@@ -12,6 +12,7 @@ import type { Secret } from "../../../src/common/keychain.js";
 import { createEnvironment } from "../../utils/index.js";
 import path from "path";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../../src/transports/constants.js";
+import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
 
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {
@@ -896,6 +897,20 @@ describe("keychain management", () => {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
             parseUserConfig({ args: [`--${cliArg}`, cliArg] });
             expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
+        });
+    }
+
+    const secretsFromSchema = Object.keys(UserConfigSchema.shape).filter((key) => {
+        const meta = getConfigMeta(key as keyof UserConfig);
+        return meta?.isSecret === true;
+    });
+
+    for (const secretKey of secretsFromSchema) {
+        it(`should register ${secretKey} as a secret in the root keychain`, () => {
+            parseUserConfig({ args: [`--${secretKey}`, secretKey] });
+
+            const registeredSecret = keychain.allSecrets.find((s) => s.value === secretKey);
+            expect(registeredSecret).toBeDefined();
         });
     }
 });

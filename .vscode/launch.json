@@ -15,7 +15,7 @@
       "type": "node",
       "request": "launch",
       "name": "Launch Tests",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["test"],
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env"
@@ -25,7 +25,7 @@
       "request": "launch",
       "name": "Launch Program",
       "skipFiles": ["<node_internals>/**"],
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["start"],
       "preLaunchTask": "tsc: build - tsconfig.build.json",
       "outFiles": ["${workspaceFolder}/dist/**/*.js"]
