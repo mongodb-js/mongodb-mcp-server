@@ -25,7 +25,7 @@
       "request": "launch",
       "name": "Debug Server",
       "skipFiles": ["<node_internals>/**"],
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["start"],
       "preLaunchTask": "tsc: build - tsconfig.build.json",
       "outFiles": ["${workspaceFolder}/dist/**/*.js"]
