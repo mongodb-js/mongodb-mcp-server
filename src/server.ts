@@ -299,10 +299,20 @@ export class Server {
                 if (!this.session.apiClient) {
                     throw new Error("API client is not available.");
                 }
-                if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
-                    const message =
-                        "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";
-                    throw new Error(message);
+
+                try {
+                    const apiBaseUrl = new URL(this.userConfig.apiBaseUrl);
+                    if (apiBaseUrl.protocol !== "https:") {
+                        // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
+                        const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
+                        this.session.logger.warning({
+                            id: LogId.atlasApiBaseUrlInsecure,
+                            context: "server",
+                            message,
+                        });
+                    }
+                } catch (error) {
+                    throw new Error(`Invalid apiBaseUrl: ${error instanceof Error ? error.message : String(error)}`);
                 }
 
                 await this.session.apiClient.validateAuthConfig();
@@ -312,6 +322,12 @@ export class Server {
                         `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`
                     );
                 }
+
+                this.session.logger.warning({
+                    id: LogId.atlasCheckCredentials,
+                    context: "server",
+                    message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,
+                });
             }
         }
     }

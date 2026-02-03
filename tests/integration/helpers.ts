@@ -1,4 +1,5 @@
-import { CompositeLogger } from "../../src/common/logger.js";
+import type { LoggerType, LogLevel, LogPayload } from "../../src/common/logger.js";
+import { CompositeLogger, LoggerBase } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
@@ -431,4 +432,12 @@ export function getDataFromUntrustedContent(content: string): string {
 
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export class InMemoryLogger extends LoggerBase {
+    protected type?: LoggerType = "console";
+    public messages: { level: LogLevel; payload: LogPayload }[] = [];
+    protected logCore(level: LogLevel, payload: LogPayload): void {
+        this.messages.push({ level, payload });
+    }
 }
