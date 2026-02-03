@@ -234,6 +234,8 @@ describe("configOverrides", () => {
                     "voyageApiKey",
                     "allowRequestOverrides",
                     "dryRun",
+                    "externallyManagedSessions",
+                    "httpResponseType",
                 ]);
             });
 
