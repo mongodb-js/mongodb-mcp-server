@@ -244,7 +244,7 @@ describe("Server integration test", () => {
         });
 
         for (const insecureUrl of ["http://localhost:8080", "http://127.0.0.1", "http://[::1]"]) {
-            it(`should warn when not using insecure ${insecureUrl} for apiBaseUrl"`, async () => {
+            it(`should warn when not using insecure ${insecureUrl} for apiBaseUrl`, async () => {
                 const logger = new InMemoryLogger(Keychain.root);
                 const config: UserConfig = {
                     ...defaultTestConfig,
