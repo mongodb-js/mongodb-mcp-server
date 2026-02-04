@@ -243,26 +243,40 @@ describe("Server integration test", () => {
             await server?.close();
         });
 
-        it("should warn when not using https for apiBaseUrl", async () => {
-            const logger = new InMemoryLogger(Keychain.root);
+        for (const insecureUrl of ["http://localhost:8080", "http://127.0.0.1", "http://[::1]"]) {
+            it(`should warn when not using insecure ${insecureUrl} for apiBaseUrl"`, async () => {
+                const logger = new InMemoryLogger(Keychain.root);
+                const config: UserConfig = {
+                    ...defaultTestConfig,
+                    apiBaseUrl: insecureUrl,
+                    apiClientId: "test",
+                    apiClientSecret: "test",
+                };
+
+                ({ server, transport } = await initServerWithTools([TestToolOne], config, [logger]));
+                await server.connect(transport);
+
+                const warningMessages = logger.messages.filter(
+                    (msg) =>
+                        msg.level === "warning" &&
+                        msg.payload.message.includes(
+                            "apiBaseUrl is configured to use http:, which is not secure. It is strongly recommended to use HTTPS for secure communication."
+                        )
+                );
+                expect(warningMessages.length).toBeGreaterThan(0);
+            });
+        }
+
+        it("should error when not using https for apiBaseUrl that is not localhost", async () => {
             const config: UserConfig = {
                 ...defaultTestConfig,
-                apiBaseUrl: "http://localhost:8080",
+                apiBaseUrl: "http://example.com",
                 apiClientId: "test",
                 apiClientSecret: "test",
             };
 
-            ({ server, transport } = await initServerWithTools([TestToolOne], config, [logger]));
-            await server.connect(transport);
-
-            const warningMessages = logger.messages.filter(
-                (msg) =>
-                    msg.level === "warning" &&
-                    msg.payload.message.includes(
-                        "apiBaseUrl is configured to use http:, which is not secure. It is strongly recommended to use HTTPS for secure communication."
-                    )
-            );
-            expect(warningMessages.length).toBeGreaterThan(0);
+            ({ server, transport } = await initServerWithTools([TestToolOne], config));
+            await expect(server.connect(transport)).rejects.toThrow(/apiBaseUrl must start with https:/);
         });
     });
 });

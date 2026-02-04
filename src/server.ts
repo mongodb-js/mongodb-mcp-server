@@ -303,6 +303,12 @@ export class Server {
                 try {
                     const apiBaseUrl = new URL(this.userConfig.apiBaseUrl);
                     if (apiBaseUrl.protocol !== "https:") {
+                        // For localhost urls, we log a warning, otherwise we throw an error.
+                        const localhostAddresses = ["localhost", "127.0.0.1", "[::1]"];
+                        if (!localhostAddresses.includes(apiBaseUrl.hostname)) {
+                            throw new Error("apiBaseUrl must start with https://");
+                        }
+
                         // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
                         const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
                         this.session.logger.warning({
