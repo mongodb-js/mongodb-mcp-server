@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { applyConfigOverrides, getConfigMeta, nameToConfigKey } from "../../../../src/common/config/configOverrides.js";
 import { UserConfigSchema, type UserConfig } from "../../../../src/common/config/userConfig.js";
-import type { RequestContext } from "../../../../src/transports/base.js";
+import type { RequestContext } from "../../../../src/transports/runnerConfigs/index.js";
 
 describe("configOverrides", () => {
     const baseConfig: Partial<UserConfig> = {

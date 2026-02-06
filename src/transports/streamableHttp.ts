@@ -4,7 +4,8 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
-import { TransportRunnerBase, type TransportRunnerConfig, type RequestContext } from "./base.js";
+import { type TransportRunnerConfig, type RequestContext } from "./runnerConfigs/index.js";
+import { TransportRunnerBase } from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 

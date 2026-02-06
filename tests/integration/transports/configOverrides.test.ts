@@ -3,8 +3,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
-import type { RequestContext } from "../../../src/transports/base.js";
+import type { UserConfig } from "../../../src/common/config/userConfig.js";
+import type { LegacyTransportRunnerConfig, RequestContext } from "../../../src/transports/runnerConfigs/index.js";
 
 describe("Config Overrides via HTTP", () => {
     let runner: StreamableHttpRunner;
@@ -14,7 +14,7 @@ describe("Config Overrides via HTTP", () => {
     // Helper function to setup and start runner with config
     async function startRunner(
         config: UserConfig,
-        createSessionConfig?: TransportRunnerConfig["createSessionConfig"]
+        createSessionConfig?: LegacyTransportRunnerConfig["createSessionConfig"]
     ): Promise<void> {
         runner = new StreamableHttpRunner({ userConfig: config, createSessionConfig });
         await runner.start();
@@ -267,7 +267,7 @@ describe("Config Overrides via HTTP", () => {
 
             // createSessionConfig receives the config after header overrides are applied
             // It can further modify it, but headers have already been applied
-            const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = ({
+            const createSessionConfig: LegacyTransportRunnerConfig["createSessionConfig"] = ({
                 userConfig: config,
                 request,
             }: {
@@ -311,7 +311,7 @@ describe("Config Overrides via HTTP", () => {
             };
 
             let capturedRequest: RequestContext | undefined;
-            const createSessionConfig: TransportRunnerConfig["createSessionConfig"] = ({
+            const createSessionConfig: LegacyTransportRunnerConfig["createSessionConfig"] = ({
                 request,
             }: {
                 userConfig: typeof userConfig;

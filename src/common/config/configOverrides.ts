@@ -1,6 +1,6 @@
 import type { UserConfig } from "./userConfig.js";
 import { UserConfigSchema, configRegistry } from "./userConfig.js";
-import type { RequestContext } from "../../transports/base.js";
+import type { RequestContext } from "../../transports/runnerConfigs/index.js";
 import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
 
 export const CONFIG_HEADER_PREFIX = "x-mongodb-mcp-";
