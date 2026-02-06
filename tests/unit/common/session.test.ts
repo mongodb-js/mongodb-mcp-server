@@ -10,6 +10,7 @@ import { Keychain } from "../../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
+import { connectionErrorHandler as defaultConnectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -36,6 +37,7 @@ describe("Session", () => {
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager: connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler: defaultConnectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         });
 

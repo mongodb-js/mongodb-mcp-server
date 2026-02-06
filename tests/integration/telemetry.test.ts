@@ -4,6 +4,7 @@ import { DeviceId } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
+import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Keychain } from "../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
@@ -26,6 +27,7 @@ describe("Telemetry", () => {
                 exportsManager: ExportsManager.init(config, logger),
                 connectionManager: connectionManager,
                 keychain: new Keychain(),
+                connectionErrorHandler,
                 vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             }),
             config,

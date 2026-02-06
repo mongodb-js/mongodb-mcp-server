@@ -185,6 +185,7 @@ describe("Server integration test", () => {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });

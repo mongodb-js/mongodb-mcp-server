@@ -106,6 +106,7 @@ export function setupIntegrationTest(
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });

@@ -12,7 +12,8 @@ import {
     type CustomizableSessionOptions,
 } from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
-import type { CustomizableServerOptions, Server, ServerOptions, SessionOptions, UserConfig } from "../lib.js";
+import { type Server } from "../server.js";
+import type { CustomizableServerOptions, ServerOptions, SessionOptions, UserConfig } from "../lib.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 
@@ -91,12 +92,12 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
             userConfig,
             logger,
             serverOptions: {
-                connectionErrorHandler: this.connectionErrorHandler,
                 tools: this.tools,
                 ...serverOptions,
             },
             sessionOptions: {
                 ...sessionOptions,
+                connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
                 connectionManager:
                     sessionOptions?.connectionManager ??
                     (await this.createConnectionManager({

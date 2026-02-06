@@ -29,6 +29,7 @@ export interface ServerOptions<TContext = unknown> {
     mcpServer: McpServer;
     telemetry: Telemetry;
     elicitation: Elicitation;
+    /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
     /**

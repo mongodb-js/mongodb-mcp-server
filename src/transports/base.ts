@@ -35,11 +35,14 @@ export type RequestContext = {
 };
 
 export type CustomizableSessionOptions = Partial<
-    Pick<SessionOptions, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager">
+    Pick<
+        SessionOptions,
+        "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler"
+    >
 >;
 
 export type CustomizableServerOptions<TContext = unknown> = Partial<
-    Pick<ServerOptions<TContext>, "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation">
+    Pick<ServerOptions<TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">
 > & {
     /**
      * An optional key value pair of telemetry properties that are reported to
@@ -283,6 +286,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
@@ -302,7 +306,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
             session,
             telemetry,
             userConfig,
-            connectionErrorHandler: serverOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
+            connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             elicitation: serverOptions?.elicitation ?? new Elicitation({ server: mcpServer.server }),
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
