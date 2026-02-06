@@ -89,9 +89,8 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                         provider.countDocuments(database, collection, filter, {
                             // We should be counting documents that the original
                             // query would have yielded which is why we don't
-                            // use `limitOnFindCursor` calculated above, only
-                            // the limit provided to the tool.
-                            limit,
+                            // use `limitOnFindCursor` calculated above, and
+                            // we don't use the limit provided to the tool either.
                             maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
                             // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                             signal,
