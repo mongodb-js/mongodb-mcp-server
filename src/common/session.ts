@@ -21,6 +21,7 @@ import type { Keychain } from "./keychain.js";
 import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { type UserConfig } from "../common/config/userConfig.js";
+import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
 
 export interface SessionOptions {
     userConfig: UserConfig;
@@ -29,6 +30,7 @@ export interface SessionOptions {
     connectionManager: ConnectionManager;
     keychain: Keychain;
     atlasLocalClient?: Client;
+    connectionErrorHandler: ConnectionErrorHandler;
     vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
     apiClient?: ApiClient;
 }
@@ -48,6 +50,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly apiClient?: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
+    readonly connectionErrorHandler: ConnectionErrorHandler;
     readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 
     mcpClient?: {
@@ -65,6 +68,7 @@ export class Session extends EventEmitter<SessionEvents> {
         exportsManager,
         keychain,
         atlasLocalClient,
+        connectionErrorHandler,
         vectorSearchEmbeddingsManager,
         apiClient,
     }: SessionOptions) {
@@ -92,6 +96,7 @@ export class Session extends EventEmitter<SessionEvents> {
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
+        this.connectionErrorHandler = connectionErrorHandler;
         this.vectorSearchEmbeddingsManager = vectorSearchEmbeddingsManager;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));

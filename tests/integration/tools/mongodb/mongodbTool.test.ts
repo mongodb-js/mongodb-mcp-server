@@ -104,6 +104,7 @@ describe("MongoDBTool implementations", () => {
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler: errorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
@@ -138,7 +139,6 @@ describe("MongoDBTool implementations", () => {
             userConfig,
             telemetry,
             mcpServer: internalMcpServer,
-            connectionErrorHandler: errorHandler,
             elicitation,
             tools: toolConstructors,
         });

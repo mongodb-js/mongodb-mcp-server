@@ -181,6 +181,7 @@ describe("mcpUI feature with custom UIs", () => {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });
@@ -195,7 +196,6 @@ describe("mcpUI feature with custom UIs", () => {
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
-            connectionErrorHandler,
             uiRegistry: new UIRegistry({ customUIs: customUIsFunction }),
         });
 

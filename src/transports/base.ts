@@ -312,6 +312,7 @@ export abstract class TransportRunnerBase {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            connectionErrorHandler: this.connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             apiClient,
         });
@@ -333,7 +334,6 @@ export abstract class TransportRunnerBase {
             session,
             telemetry,
             userConfig,
-            connectionErrorHandler: this.connectionErrorHandler,
             elicitation,
             tools: this.tools,
             uiRegistry,

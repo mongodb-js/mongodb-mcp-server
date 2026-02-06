@@ -185,6 +185,7 @@ describe("Server integration test", () => {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
         });
@@ -199,7 +200,6 @@ describe("Server integration test", () => {
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
-            connectionErrorHandler,
             tools: [...tools],
         });
 
