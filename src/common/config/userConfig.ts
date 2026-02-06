@@ -243,6 +243,23 @@ const ServerConfigSchema = z4.object({
             "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    healthCheckPort: z4
+        .number()
+        .int()
+        .min(0, "Invalid healthCheckPort: must be at least 0")
+        .max(65535, "Invalid healthCheckPort: must be at most 65535")
+        .optional()
+        .describe(
+            "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    healthCheckHost: z4
+        .string()
+        .optional()
+        .describe(
+            "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
 
 export const UserConfigSchema = z4.object({

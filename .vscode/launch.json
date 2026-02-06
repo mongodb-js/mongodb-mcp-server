@@ -14,7 +14,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Tests",
+      "name": "Debug Tests",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["test"],
       "cwd": "${workspaceFolder}",
@@ -23,12 +23,27 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Debug Server",
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["start"],
       "preLaunchTask": "tsc: build - tsconfig.build.json",
       "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug generate-arguments",
+      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "tsx",
+        "--tsconfig",
+        "scripts/generate/tsconfig.json",
+        "scripts/generate/index.ts"
+      ],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

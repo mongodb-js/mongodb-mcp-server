@@ -66,6 +66,10 @@ export const LogId = {
     streamableHttpTransportSessionNotFound: mongoLogId(1_006_010),
     streamableHttpTransportDisallowedExternalSessionError: mongoLogId(1_006_011),
 
+    httpServerStarted: mongoLogId(1_006_100),
+    httpServerStopping: mongoLogId(1_006_101),
+    httpServerStopped: mongoLogId(1_006_102),
+
     exportCleanupError: mongoLogId(1_007_001),
     exportCreationError: mongoLogId(1_007_002),
     exportCreationCleanupError: mongoLogId(1_007_003),

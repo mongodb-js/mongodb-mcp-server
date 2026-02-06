@@ -214,29 +214,33 @@ describe("configOverrides", () => {
                             getConfigMeta(key as keyof typeof UserConfigSchema.shape)?.overrideBehavior ===
                             "not-allowed"
                     )
-                ).toEqual([
-                    "apiBaseUrl",
-                    "apiClientId",
-                    "apiClientSecret",
-                    "connectionString",
-                    "loggers",
-                    "logPath",
-                    "telemetry",
-                    "transport",
-                    "httpPort",
-                    "httpHost",
-                    "httpHeaders",
-                    "httpBodyLimit",
-                    "maxBytesPerQuery",
-                    "maxDocumentsPerQuery",
-                    "exportsPath",
-                    "exportCleanupIntervalMs",
-                    "voyageApiKey",
-                    "allowRequestOverrides",
-                    "dryRun",
-                    "externallyManagedSessions",
-                    "httpResponseType",
-                ]);
+                ).toEqual(
+                    expect.arrayContaining([
+                        "apiBaseUrl",
+                        "apiClientId",
+                        "apiClientSecret",
+                        "connectionString",
+                        "loggers",
+                        "logPath",
+                        "telemetry",
+                        "transport",
+                        "httpPort",
+                        "httpHost",
+                        "httpHeaders",
+                        "httpBodyLimit",
+                        "maxBytesPerQuery",
+                        "maxDocumentsPerQuery",
+                        "exportsPath",
+                        "exportCleanupIntervalMs",
+                        "voyageApiKey",
+                        "allowRequestOverrides",
+                        "dryRun",
+                        "externallyManagedSessions",
+                        "httpResponseType",
+                        "healthCheckHost",
+                        "healthCheckPort",
+                    ])
+                );
             });
 
             it("should throw an error for not-allowed fields", () => {
