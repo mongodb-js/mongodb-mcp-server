@@ -6,6 +6,7 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
+    defaultTestConfig,
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
@@ -202,3 +203,61 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
         expect(content).toContain('Found 0 documents in the collection "abort_collection" that matched the query.');
     });
 });
+
+describeWithMongoDB(
+    "count tool with configured queryMaxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 100,
+            });
+        });
+
+        it("should apply maxTimeMS to count operations", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "count",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain('Found 100 documents in the collection "foo"');
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 30_000 }),
+    }
+);
+
+describeWithMongoDB(
+    "count tool with disabled queryMaxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 100,
+            });
+        });
+
+        it("should not apply maxTimeMS when set to 0", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "count",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain('Found 100 documents in the collection "foo"');
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 0 }),
+    }
+);

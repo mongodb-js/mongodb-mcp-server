@@ -148,6 +148,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
                     // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                     signal,
+                    maxTimeMS: this.config.queryMaxTimeMs || undefined,
                 });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
