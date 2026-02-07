@@ -21,7 +21,7 @@ import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSea
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
-import { type ApiClient } from "../../src/common/atlas/apiClient.js";
+import { createAtlasApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
 
 interface Parameter {
     name: string;
@@ -109,6 +109,7 @@ export function setupIntegrationTest(
             connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            apiClient: createTestAtlasApiClient(userConfig, logger),
         });
 
         // Mock hasValidAccessToken for tests
@@ -440,4 +441,17 @@ export class InMemoryLogger extends LoggerBase {
     protected logCore(level: LogLevel, payload: LogPayload): void {
         this.messages.push({ level, payload });
     }
+}
+
+export function createTestAtlasApiClient(testConfig: UserConfig, logger: LoggerBase): ApiClient {
+    return createAtlasApiClient(
+        {
+            baseUrl: testConfig.apiBaseUrl,
+            credentials: {
+                clientId: testConfig.apiClientId,
+                clientSecret: testConfig.apiClientSecret,
+            },
+        },
+        logger
+    );
 }

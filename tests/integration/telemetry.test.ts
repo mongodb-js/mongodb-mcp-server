@@ -8,7 +8,7 @@ import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Keychain } from "../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
-import { defaultTestConfig } from "./helpers.js";
+import { createTestAtlasApiClient, defaultTestConfig } from "./helpers.js";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
 
 describe("Telemetry", () => {
@@ -29,6 +29,7 @@ describe("Telemetry", () => {
                 keychain: new Keychain(),
                 connectionErrorHandler,
                 vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
+                apiClient: createTestAtlasApiClient(config, logger),
             }),
             config,
             deviceId

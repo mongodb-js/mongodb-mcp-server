@@ -14,7 +14,7 @@ import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.
 import { Telemetry } from "../../../../src/telemetry/telemetry.js";
 import { Server } from "../../../../src/server.js";
 import { type ConnectionErrorHandler, connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultTestConfig, expectDefined } from "../../helpers.js";
+import { createTestAtlasApiClient, defaultTestConfig, expectDefined } from "../../helpers.js";
 import { setupMongoDBIntegrationTest } from "./mongodbHelpers.js";
 import { ErrorCodes } from "../../../../src/common/errors.js";
 import { Keychain } from "../../../../src/common/keychain.js";
@@ -106,6 +106,7 @@ describe("MongoDBTool implementations", () => {
             keychain: new Keychain(),
             connectionErrorHandler: errorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            apiClient: createTestAtlasApiClient(userConfig, logger),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 

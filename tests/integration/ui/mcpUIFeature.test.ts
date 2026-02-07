@@ -1,6 +1,6 @@
 import { describe, expect, it, afterAll } from "vitest";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
-import { defaultTestConfig, expectDefined, getResponseElements } from "../helpers.js";
+import { createTestAtlasApiClient, defaultTestConfig, expectDefined, getResponseElements } from "../helpers.js";
 import { CompositeLogger } from "../../../src/common/logger.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { Session } from "../../../src/common/session.js";
@@ -184,6 +184,7 @@ describe("mcpUI feature with custom UIs", () => {
             connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            apiClient: createTestAtlasApiClient(userConfig, logger),
         });
 
         const telemetry = Telemetry.create(session, userConfig, deviceId);

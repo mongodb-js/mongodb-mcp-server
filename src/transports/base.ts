@@ -17,7 +17,6 @@ import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { ApiClient } from "../common/atlas/apiClient.js";
 import { createAtlasApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import type { RequestContext, TransportRunnerConfig, LegacyTransportRunnerConfig } from "./runnerConfigs/index.js";
@@ -131,20 +130,17 @@ export abstract class TransportRunnerBase {
             deviceId: this.deviceId,
         });
 
-        let apiClient: ApiClient | undefined;
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
-            apiClient = createApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
-                    requestContext,
+        const apiClient = createApiClient(
+            {
+                baseUrl: userConfig.apiBaseUrl,
+                credentials: {
+                    clientId: userConfig.apiClientId,
+                    clientSecret: userConfig.apiClientSecret,
                 },
-                logger
-            );
-        }
+                requestContext,
+            },
+            logger
+        );
 
         const atlasLocalClient = await createAtlasLocalClient({ logger });
 
