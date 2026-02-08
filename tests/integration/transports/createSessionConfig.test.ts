@@ -1,9 +1,10 @@
+import { afterEach, describe, expect, it } from "vitest";
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { afterEach, describe, expect, it } from "vitest";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
+import type { LegacyTransportRunnerConfig } from "../../../src/transports/runnerConfigs/index.js";
 
 describe("createSessionConfig", () => {
     const userConfig = defaultTestConfig;
@@ -15,7 +16,7 @@ describe("createSessionConfig", () => {
     const startRunner = async (
         config: {
             userConfig?: typeof userConfig;
-            createSessionConfig?: TransportRunnerConfig["createSessionConfig"];
+            createSessionConfig?: LegacyTransportRunnerConfig["createSessionConfig"];
         } = {}
     ): Promise<StreamableHttpRunner> => {
         runner = new StreamableHttpRunner({

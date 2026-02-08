@@ -1,7 +1,8 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import { TransportRunnerBase } from "./base.js";
+import { type TransportRunnerConfig } from "./runnerConfigs/index.js";
 
 export class StdioRunner extends TransportRunnerBase {
     private server: Server | undefined;
@@ -17,7 +18,7 @@ export class StdioRunner extends TransportRunnerBase {
 
             await this.server.connect(transport);
         } catch (error: unknown) {
-            this.logger.emergency({
+            this.baseLogger.emergency({
                 id: LogId.serverStartFailure,
                 context: "server",
                 message: `Fatal error running server: ${error as string}`,

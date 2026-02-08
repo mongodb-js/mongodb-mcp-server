@@ -1,5 +1,6 @@
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import { TransportRunnerBase } from "./base.js";
+import { type TransportRunnerConfig } from "./runnerConfigs/index.js";
 import { type Server } from "../server.js";
 
 export type DryRunModeTestHelpers = {
@@ -35,7 +36,7 @@ export class DryRunModeRunner extends TransportRunnerBase {
 
     private dumpConfig(): void {
         this.consoleLogger.log("Configuration:");
-        this.consoleLogger.log(JSON.stringify(this.userConfig, null, 2));
+        this.consoleLogger.log(JSON.stringify(this.runnerConfig.userConfig, null, 2));
     }
 
     private dumpTools(): void {

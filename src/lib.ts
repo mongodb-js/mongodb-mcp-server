@@ -20,7 +20,12 @@ export function parseArgsWithCliOptions(cliArguments: string[]): {
 export { LoggerBase, type LogPayload, type LoggerType, type LogLevel } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
-export { TransportRunnerBase, type TransportRunnerConfig } from "./transports/base.js";
+export { TransportRunnerBase } from "./transports/base.js";
+export {
+    type TransportRunnerConfig,
+    type LegacyTransportRunnerConfig,
+    type V1TransportRunnerConfig,
+} from "./transports/runnerConfigs/index.js";
 export {
     ConnectionManager,
     ConnectionStateConnected,

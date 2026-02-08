@@ -8,7 +8,8 @@ import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
-import { defaultTestConfig } from "../../../integration/helpers.js";
+import { createTestAtlasApiClient, defaultTestConfig } from "../../../integration/helpers.js";
+import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -22,7 +23,9 @@ describe("debug resource", () => {
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
+            apiClient: createTestAtlasApiClient(defaultTestConfig, logger),
         })
     );
 
