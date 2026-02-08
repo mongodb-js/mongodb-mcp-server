@@ -41,15 +41,15 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         const app = express();
         this.sessionStore = new SessionStore(
-            this.baseUserConfig.idleTimeoutMs,
-            this.baseUserConfig.notificationTimeoutMs,
+            this.runnerConfig.userConfig.idleTimeoutMs,
+            this.runnerConfig.userConfig.notificationTimeoutMs,
             this.baseLogger
         );
 
         app.enable("trust proxy"); // needed for reverse proxy support
-        app.use(express.json({ limit: this.baseUserConfig.httpBodyLimit }));
+        app.use(express.json({ limit: this.runnerConfig.userConfig.httpBodyLimit }));
         app.use((req, res, next) => {
-            for (const [key, value] of Object.entries(this.baseUserConfig.httpHeaders)) {
+            for (const [key, value] of Object.entries(this.runnerConfig.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
                 if (!header || header !== value) {
                     res.status(403).json({ error: `Invalid value for header "${key}"` });
@@ -106,7 +106,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
             const transport = this.sessionStore.getSession(sessionId);
             if (!transport) {
-                if (this.baseUserConfig.externallyManagedSessions) {
+                if (this.runnerConfig.userConfig.externallyManagedSessions) {
                     this.baseLogger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
                         context: "streamableHttpTransport",
@@ -154,7 +154,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             const server = await this.setupServer(request);
 
             const options: WebStandardStreamableHTTPServerTransportOptions = {
-                enableJsonResponse: this.baseUserConfig.httpResponseType === "json",
+                enableJsonResponse: this.runnerConfig.userConfig.httpResponseType === "json",
             };
 
             const sessionInitialized = (sessionId: string): void => {
@@ -249,7 +249,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 }
 
                 if (isInitializeRequest(req.body)) {
-                    if (sessionId && !this.baseUserConfig.externallyManagedSessions) {
+                    if (sessionId && !this.runnerConfig.userConfig.externallyManagedSessions) {
                         this.baseLogger.debug({
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
@@ -274,13 +274,17 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.delete("/mcp", this.withErrorHandling(handleSessionRequest));
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
-            const result = app.listen(this.baseUserConfig.httpPort, this.baseUserConfig.httpHost, (err?: Error) => {
-                if (err) {
-                    reject(err);
-                    return;
+            const result = app.listen(
+                this.runnerConfig.userConfig.httpPort,
+                this.runnerConfig.userConfig.httpHost,
+                (err?: Error) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(result);
                 }
-                resolve(result);
-            });
+            );
         });
 
         this.baseLogger.info({
@@ -290,11 +294,11 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             noRedaction: true,
         });
 
-        if (this.shouldWarnAboutHttpHost(this.baseUserConfig.httpHost)) {
+        if (this.shouldWarnAboutHttpHost(this.runnerConfig.userConfig.httpHost)) {
             this.baseLogger.warning({
                 id: LogId.streamableHttpTransportHttpHostWarning,
                 context: "streamableHttpTransport",
-                message: `Binding to ${this.baseUserConfig.httpHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
+                message: `Binding to ${this.runnerConfig.userConfig.httpHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
                 noRedaction: true,
             });
         }

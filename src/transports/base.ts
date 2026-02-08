@@ -15,7 +15,6 @@ import type { CommonProperties } from "../telemetry/types.js";
 import { Elicitation } from "../elicitation.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
-import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { createAtlasApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
@@ -34,34 +33,28 @@ export abstract class TransportRunnerBase {
     public baseLogger: CompositeLogger;
     protected deviceId: DeviceId;
 
-    /**
-     * The base `UserConfig` used to define non-session specific components.
-     * This `UserConfig` object is used further to derive session specific
-     * `UserConfig`.
-     */
-    protected readonly baseUserConfig: UserConfig;
+    private keychain = Keychain.root;
     private readonly telemetryProperties: Partial<CommonProperties>;
-    private readonly tools?: ToolClass[];
 
-    protected constructor(private readonly runnerConfig: TransportRunnerConfig) {
-        this.baseUserConfig = runnerConfig.userConfig;
-        this.tools = runnerConfig.tools;
-        this.telemetryProperties = runnerConfig.telemetryProperties ?? {};
-        const loggers: LoggerBase[] = [...(runnerConfig.additionalLoggers ?? [])];
-        if (this.baseUserConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger(Keychain.root));
+    protected constructor(protected readonly runnerConfig: TransportRunnerConfig) {
+        const { userConfig, additionalLoggers = [], telemetryProperties = {} } = runnerConfig;
+        this.telemetryProperties = telemetryProperties;
+
+        const loggers: LoggerBase[] = [...additionalLoggers];
+        if (runnerConfig.userConfig.loggers.includes("stderr")) {
+            loggers.push(new ConsoleLogger(this.keychain));
         }
-        if (this.baseUserConfig.loggers.includes("disk")) {
+        if (runnerConfig.userConfig.loggers.includes("disk")) {
             loggers.push(
                 new DiskLogger(
-                    this.baseUserConfig.logPath,
+                    userConfig.logPath,
                     (err) => {
                         // If the disk logger fails to initialize, we log the error to stderr and exit
                         // eslint-disable-next-line no-console
                         console.error("Error initializing disk logger:", err);
                         process.exit(1);
                     },
-                    Keychain.root
+                    this.keychain
                 )
             );
         }
@@ -107,14 +100,16 @@ export abstract class TransportRunnerBase {
             telemetry,
             userConfig: sessionConfig,
             elicitation,
-            tools: this.tools,
+            tools: this.runnerConfig.tools,
             uiRegistry,
         });
 
         // We need to create the MCP logger after the server is constructed
-        // because it needs the server instance
+        // because it needs the server instance.
+        //
+        // Note: The logger should be applied per session.
         if (sessionConfig.loggers.includes("mcp")) {
-            session.logger.addLogger(new McpLogger(server, Keychain.root));
+            session.logger.addLogger(new McpLogger(server, this.keychain));
         }
 
         return server;
@@ -122,6 +117,7 @@ export abstract class TransportRunnerBase {
 
     private async createSessionFromLegacyConfig(
         {
+            userConfig,
             createConnectionManager = createMCPConnectionManager,
             connectionErrorHandler = defaultConnectionErrorHandler,
             createAtlasLocalClient = defaultCreateAtlasLocalClient,
@@ -130,19 +126,12 @@ export abstract class TransportRunnerBase {
         }: LegacyTransportRunnerConfig,
         requestContext?: RequestContext
     ): Promise<{ session: Session; sessionConfig: UserConfig }> {
+        const sessionLogger = new CompositeLogger(this.baseLogger);
         const sessionConfig: UserConfig =
             (await createSessionConfig?.({
-                userConfig: this.baseUserConfig,
+                userConfig,
                 request: requestContext,
-            })) ?? applyConfigOverrides({ baseConfig: this.baseUserConfig, request: requestContext });
-
-        const sessionLogger = new CompositeLogger(this.baseLogger);
-        const exportsManager = ExportsManager.init(sessionConfig, sessionLogger);
-        const connectionManager = await createConnectionManager({
-            logger: sessionLogger,
-            userConfig: sessionConfig,
-            deviceId: this.deviceId,
-        });
+            })) ?? applyConfigOverrides({ baseConfig: userConfig, request: requestContext });
 
         const apiClient = createApiClient(
             {
@@ -157,17 +146,24 @@ export abstract class TransportRunnerBase {
         );
 
         const atlasLocalClient = await createAtlasLocalClient({ logger: sessionLogger });
+        const exportsManager = ExportsManager.init(sessionConfig, sessionLogger);
+        const connectionManager = await createConnectionManager({
+            logger: sessionLogger,
+            userConfig: sessionConfig,
+            deviceId: this.deviceId,
+        });
+        const vectorSearchEmbeddingsManager = new VectorSearchEmbeddingsManager(sessionConfig, connectionManager);
 
         const session = new Session({
             userConfig: sessionConfig,
-            atlasLocalClient,
             logger: sessionLogger,
+            keychain: this.keychain,
+            connectionErrorHandler,
+            apiClient,
+            atlasLocalClient,
             exportsManager,
             connectionManager,
-            keychain: Keychain.root,
-            connectionErrorHandler,
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(sessionConfig, connectionManager),
-            apiClient,
+            vectorSearchEmbeddingsManager,
         });
 
         return {
