@@ -18,7 +18,7 @@ export class StdioRunner extends TransportRunnerBase {
 
             await this.server.connect(transport);
         } catch (error: unknown) {
-            this.logger.emergency({
+            this.baseLogger.emergency({
                 id: LogId.serverStartFailure,
                 context: "server",
                 message: `Fatal error running server: ${error as string}`,

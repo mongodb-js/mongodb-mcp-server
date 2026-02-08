@@ -22,24 +22,39 @@ import type { UIRegistry } from "../ui/registry/index.js";
 import type { RequestContext, TransportRunnerConfig, LegacyTransportRunnerConfig } from "./runnerConfigs/index.js";
 
 export abstract class TransportRunnerBase {
-    public logger: LoggerBase;
-    public deviceId: DeviceId;
-    protected readonly userConfig: UserConfig;
+    /**
+     * A CompositeLogger instance built using the sub-logger configuration
+     * defined in `TransportRunnerConfig.userConfig` and
+     * `TransportRunnerConfig.additionalLoggers`.
+     *
+     * Note: This does not include the MCP logger because an MCP logger is
+     * initialized only for an MCP session. Additionally, session specific
+     * logger might include more sub-loggers.
+     */
+    public baseLogger: CompositeLogger;
+    protected deviceId: DeviceId;
+
+    /**
+     * The base `UserConfig` used to define non-session specific components.
+     * This `UserConfig` object is used further to derive session specific
+     * `UserConfig`.
+     */
+    protected readonly baseUserConfig: UserConfig;
     private readonly telemetryProperties: Partial<CommonProperties>;
     private readonly tools?: ToolClass[];
 
     protected constructor(private readonly runnerConfig: TransportRunnerConfig) {
-        this.userConfig = runnerConfig.userConfig;
+        this.baseUserConfig = runnerConfig.userConfig;
         this.tools = runnerConfig.tools;
         this.telemetryProperties = runnerConfig.telemetryProperties ?? {};
         const loggers: LoggerBase[] = [...(runnerConfig.additionalLoggers ?? [])];
-        if (this.userConfig.loggers.includes("stderr")) {
+        if (this.baseUserConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
         }
-        if (this.userConfig.loggers.includes("disk")) {
+        if (this.baseUserConfig.loggers.includes("disk")) {
             loggers.push(
                 new DiskLogger(
-                    this.userConfig.logPath,
+                    this.baseUserConfig.logPath,
                     (err) => {
                         // If the disk logger fails to initialize, we log the error to stderr and exit
                         // eslint-disable-next-line no-console
@@ -50,8 +65,8 @@ export abstract class TransportRunnerBase {
                 )
             );
         }
-        this.logger = new CompositeLogger(...loggers);
-        this.deviceId = DeviceId.create(this.logger);
+        this.baseLogger = new CompositeLogger(...loggers);
+        this.deviceId = DeviceId.create(this.baseLogger);
     }
 
     protected async setupServer(
@@ -115,50 +130,49 @@ export abstract class TransportRunnerBase {
         }: LegacyTransportRunnerConfig,
         requestContext?: RequestContext
     ): Promise<{ session: Session; sessionConfig: UserConfig }> {
-        let userConfig: UserConfig = this.userConfig;
-        if (createSessionConfig) {
-            userConfig = await createSessionConfig({ userConfig: this.userConfig, request: requestContext });
-        } else {
-            userConfig = applyConfigOverrides({ baseConfig: this.userConfig, request: requestContext });
-        }
+        const sessionConfig: UserConfig =
+            (await createSessionConfig?.({
+                userConfig: this.baseUserConfig,
+                request: requestContext,
+            })) ?? applyConfigOverrides({ baseConfig: this.baseUserConfig, request: requestContext });
 
-        const logger = new CompositeLogger(this.logger);
-        const exportsManager = ExportsManager.init(userConfig, logger);
+        const sessionLogger = new CompositeLogger(this.baseLogger);
+        const exportsManager = ExportsManager.init(sessionConfig, sessionLogger);
         const connectionManager = await createConnectionManager({
-            logger,
-            userConfig,
+            logger: sessionLogger,
+            userConfig: sessionConfig,
             deviceId: this.deviceId,
         });
 
         const apiClient = createApiClient(
             {
-                baseUrl: userConfig.apiBaseUrl,
+                baseUrl: sessionConfig.apiBaseUrl,
                 credentials: {
-                    clientId: userConfig.apiClientId,
-                    clientSecret: userConfig.apiClientSecret,
+                    clientId: sessionConfig.apiClientId,
+                    clientSecret: sessionConfig.apiClientSecret,
                 },
                 requestContext,
             },
-            logger
+            sessionLogger
         );
 
-        const atlasLocalClient = await createAtlasLocalClient({ logger });
+        const atlasLocalClient = await createAtlasLocalClient({ logger: sessionLogger });
 
         const session = new Session({
-            userConfig,
+            userConfig: sessionConfig,
             atlasLocalClient,
-            logger,
+            logger: sessionLogger,
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
             connectionErrorHandler,
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(sessionConfig, connectionManager),
             apiClient,
         });
 
         return {
             session,
-            sessionConfig: userConfig,
+            sessionConfig,
         };
     }
 

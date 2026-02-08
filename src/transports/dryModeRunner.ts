@@ -36,7 +36,7 @@ export class DryRunModeRunner extends TransportRunnerBase {
 
     private dumpConfig(): void {
         this.consoleLogger.log("Configuration:");
-        this.consoleLogger.log(JSON.stringify(this.userConfig, null, 2));
+        this.consoleLogger.log(JSON.stringify(this.baseUserConfig, null, 2));
     }
 
     private dumpTools(): void {
