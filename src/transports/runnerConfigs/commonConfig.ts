@@ -6,10 +6,10 @@ import type { ToolClass } from "../../tools/tool.js";
 export type CommonTransportRunnerConfig = {
     /**
      * The schema version of the runner config being provided. When
-     * schemaVersion is not provided or is `undefined`, the configuration is
+     * configVersion is not provided or is `undefined`, the configuration is
      * treated as legacy configuration.
      */
-    schemaVersion?: undefined | number;
+    configVersion?: undefined | number;
     /**
      * Base user configuration for the server.
      *
