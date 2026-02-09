@@ -1,3 +1,4 @@
+export type * from "@modelcontextprotocol/sdk/types.js";
 export { Server, type ServerOptions } from "./server.js";
 export { Session, type SessionOptions } from "./common/session.js";
 export { type UserConfig, UserConfigSchema } from "./common/config/userConfig.js";

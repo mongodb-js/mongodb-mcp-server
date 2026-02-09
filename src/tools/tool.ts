@@ -21,6 +21,13 @@ export type ToolArgs<T extends ZodRawShape> = {
 
 export type ToolExecutionContext = {
     signal: AbortSignal;
+    /**
+     * Request context object available only when running atop
+     * StreamableHttpTransport.
+     */
+    requestInfo?: {
+        headers?: Record<string, string>;
+    };
 };
 
 /**
@@ -406,13 +413,13 @@ export abstract class ToolBase {
      */
     protected abstract execute(
         args: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { signal, requestInfo }: ToolExecutionContext
     ): Promise<CallToolResult>;
 
     /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
     public async invoke(
         args: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { signal, requestInfo }: ToolExecutionContext
     ): Promise<CallToolResult> {
         let startTime: number = Date.now();
 
@@ -446,7 +453,7 @@ export abstract class ToolBase {
                 noRedaction: true,
             });
 
-            const toolCallResult = await this.execute(args, { signal });
+            const toolCallResult = await this.execute(args, { signal, requestInfo });
             const result = await this.appendUIResource(toolCallResult);
 
             this.emitToolEvent(args, { startTime, result });
