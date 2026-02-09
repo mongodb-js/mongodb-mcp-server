@@ -8,6 +8,10 @@ import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
+import { ToolBase } from "../../../src/tools/tool.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 
 describe("StreamableHttpRunner", () => {
     let runner: StreamableHttpRunner;
@@ -550,5 +554,56 @@ describe("StreamableHttpRunner", () => {
                 });
             });
         }
+    });
+
+    it("should pass the request headers as part of tool execution context", async () => {
+        let confirmRequestInfoReceived: ((requestInfo: ToolExecutionContext["requestInfo"]) => void) | undefined;
+        const requestInfoReceived = new Promise<ToolExecutionContext["requestInfo"]>((resolve) => {
+            confirmRequestInfoReceived = resolve;
+        });
+        runner = new StreamableHttpRunner({
+            userConfig: config,
+            tools: [
+                class RandomTool extends ToolBase {
+                    public name = "random-tool";
+                    public description = "Random tool";
+                    public argsShape = {};
+                    static category: ToolCategory = "mongodb";
+                    static operationType: OperationType = "metadata";
+                    protected execute(
+                        _: ToolArgs<typeof this.argsShape>,
+                        { requestInfo }: ToolExecutionContext
+                    ): Promise<CallToolResult> {
+                        confirmRequestInfoReceived?.(requestInfo);
+                        return Promise.resolve({
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "Tool executed",
+                                },
+                            ],
+                        });
+                    }
+                    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                        return {};
+                    }
+                },
+            ],
+        });
+        await runner.start();
+        const client = await connectClient({ additionalHeaders: { Authorization: "Bearer 1234" } });
+        const response = await client.listTools();
+        expect(response).toBeDefined();
+        expect(response.tools).toBeDefined();
+        expect(response.tools.length).toBe(1);
+
+        await client.callTool({
+            name: "random-tool",
+            arguments: {},
+        });
+        const requestInfo = await requestInfoReceived;
+        expect(requestInfo).toBeDefined();
+        const authorizationToken = requestInfo?.headers?.["authorization"] ?? requestInfo?.headers?.["Authorization"];
+        expect(authorizationToken).toBe("Bearer 1234");
     });
 });
