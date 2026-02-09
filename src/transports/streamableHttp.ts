@@ -54,8 +54,9 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     }
 
     private async startHealthCheckServer(): Promise<void> {
-        if (this.userConfig.healthCheckHost && this.userConfig.healthCheckPort) {
-            this.healthCheckServer = new HealthCheckServer(this.userConfig, this.logger);
+        const { healthCheckHost, healthCheckPort } = this.userConfig;
+        if (healthCheckHost && healthCheckPort !== undefined) {
+            this.healthCheckServer = new HealthCheckServer(healthCheckHost, healthCheckPort, this.logger);
 
             await this.healthCheckServer.start();
         }
@@ -457,17 +458,10 @@ class MCPHttpServer extends ExpressBasedHttpServer {
 }
 
 class HealthCheckServer extends ExpressBasedHttpServer {
-    constructor(
-        private readonly userConfig: UserConfig,
-        logger: LoggerBase
-    ) {
-        if (!userConfig.healthCheckHost || !userConfig.healthCheckPort) {
-            throw new Error("HealthCheckServer requires healthCheckHost and healthCheckPort to be defined.");
-        }
-
+    constructor(healthCheckHost: string, healthCheckPort: number, logger: LoggerBase) {
         super({
-            port: userConfig.healthCheckPort,
-            hostname: userConfig.healthCheckHost,
+            port: healthCheckPort,
+            hostname: healthCheckHost,
             logger,
             logContext: "healthCheckServer",
         });

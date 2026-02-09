@@ -627,6 +627,19 @@ describe("StreamableHttpRunner", () => {
             runner = new StreamableHttpRunner({ userConfig: config });
             await expect(runner.start()).rejects.toThrowError();
         });
+
+        it("handles correctly when healthCheckPort is set to 0", async () => {
+            config.httpPort = 3000;
+            config.healthCheckPort = 0;
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+
+            expect(runner["healthCheckServer"]).toBeDefined();
+            const healthResponse = await fetch(`${runner["healthCheckServer"]!.serverAddress}/health`);
+            expect(healthResponse.status).toBe(200);
+            const healthData = (await healthResponse.json()) as unknown;
+            expect(healthData).toEqual({ status: "ok" });
+        });
     });
 
     it("should pass the request headers as part of tool execution context", async () => {
