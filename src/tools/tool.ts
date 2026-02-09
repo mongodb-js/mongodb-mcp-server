@@ -26,7 +26,7 @@ export type ToolExecutionContext = {
      * StreamableHttpTransport.
      */
     requestInfo?: {
-        headers?: Record<string, string>;
+        headers?: Record<string, unknown>;
     };
 };
 
