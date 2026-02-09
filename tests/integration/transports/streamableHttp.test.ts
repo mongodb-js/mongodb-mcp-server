@@ -557,8 +557,8 @@ describe("StreamableHttpRunner", () => {
     });
 
     it("should pass the request headers as part of tool execution context", async () => {
-        let confirmRequestInfoReceived: ((requestInfo: Record<string, unknown> | undefined) => void) | undefined;
-        const requestInfoReceived = new Promise<Record<string, unknown> | undefined>((resolve) => {
+        let confirmRequestInfoReceived: ((requestInfo: ToolExecutionContext["requestInfo"]) => void) | undefined;
+        const requestInfoReceived = new Promise<ToolExecutionContext["requestInfo"]>((resolve) => {
             confirmRequestInfoReceived = resolve;
         });
         runner = new StreamableHttpRunner({
