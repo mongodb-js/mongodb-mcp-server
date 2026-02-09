@@ -6,7 +6,7 @@ import { CommonArgs } from "../../args.js";
 import z from "zod";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
-    public name = "atlas-local-create-deployment";
+    static toolName = "atlas-local-create-deployment";
     public description = "Create a MongoDB Atlas local deployment";
     static operationType: OperationType = "create";
     public argsShape = {

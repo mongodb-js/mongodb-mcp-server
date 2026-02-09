@@ -33,6 +33,7 @@ function extractToolInformation(): ToolInfo[] {
         // Create a minimal instance to access instance properties
         // We need to provide dummy params since we only need name and description
         const dummyParams = {
+            name: ToolClass.toolName,
             category: ToolClass.category,
             operationType: ToolClass.operationType,
             session: {

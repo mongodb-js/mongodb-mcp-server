@@ -58,6 +58,7 @@ describe("ToolBase", () => {
         } as unknown as Elicitation;
 
         const constructorParams: ToolConstructorParams = {
+            name: TestTool.toolName,
             category: TestTool.category,
             operationType: TestTool.operationType,
             session: mockSession,
@@ -327,6 +328,7 @@ describe("ToolBase", () => {
         function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
             mockConfig.previewFeatures = previewFeatures;
             const constructorParams: ToolConstructorParams = {
+                name: TestToolWithOutputSchema.toolName,
                 category: TestToolWithOutputSchema.category,
                 operationType: TestToolWithOutputSchema.operationType,
                 session: mockSession,
@@ -475,6 +477,7 @@ function createToolWithoutStructuredContent(
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
     const constructorParams: ToolConstructorParams = {
+        name: TestToolWithoutStructuredContent.toolName,
         category: TestToolWithoutStructuredContent.category,
         operationType: TestToolWithoutStructuredContent.operationType,
         session: mockSession,
@@ -487,7 +490,7 @@ function createToolWithoutStructuredContent(
 }
 
 class TestTool extends ToolBase {
-    public name = "test-tool";
+    static toolName = "test-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
     public description = "A test tool for verification tests";
@@ -523,7 +526,7 @@ class TestTool extends ToolBase {
 }
 
 class TestToolWithOutputSchema extends ToolBase {
-    public name = "test-tool-with-output-schema";
+    static toolName = "test-tool-with-output-schema";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
     public description = "A test tool with output schema";
@@ -556,7 +559,7 @@ class TestToolWithOutputSchema extends ToolBase {
 }
 
 class TestToolWithoutStructuredContent extends ToolBase {
-    public name = "test-tool-without-structured";
+    static toolName = "test-tool-without-structured";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
     public description = "A test tool without structured content";

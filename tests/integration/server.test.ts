@@ -21,7 +21,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 
 class TestToolOne extends ToolBase {
-    public name = "test-tool-one";
+    static toolName = "test-tool-one";
     public description = "A test tool one for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
@@ -42,7 +42,7 @@ class TestToolOne extends ToolBase {
 }
 
 class TestToolTwo extends ToolBase {
-    public name = "test-tool-two";
+    static toolName = "test-tool-two";
     public description = "A test tool two for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
