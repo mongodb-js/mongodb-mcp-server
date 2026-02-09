@@ -603,10 +603,7 @@ describe("StreamableHttpRunner", () => {
         });
         const requestInfo = await requestInfoReceived;
         expect(requestInfo).toBeDefined();
-        expect(requestInfo!.headers).toMatchObject(
-            expect.objectContaining({
-                authorization: "Bearer 1234",
-            })
-        );
+        const authorizationToken = requestInfo?.headers?.["authorization"] ?? requestInfo?.headers?.["Authorization"];
+        expect(authorizationToken).toBe("Bearer 1234");
     });
 });
