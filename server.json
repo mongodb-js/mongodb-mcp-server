@@ -108,6 +108,20 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_HEALTH_CHECK_HOST",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_PORT",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_BODY_LIMIT",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -326,6 +340,19 @@
           "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
           "isRequired": false,
           "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckHost",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckPort",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -551,6 +578,20 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_HEALTH_CHECK_HOST",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_PORT",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_BODY_LIMIT",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -769,6 +810,19 @@
           "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
           "isRequired": false,
           "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckHost",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckPort",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",

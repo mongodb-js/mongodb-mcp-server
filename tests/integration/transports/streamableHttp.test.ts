@@ -40,7 +40,7 @@ describe("StreamableHttpRunner", () => {
             requestHeaders["mcp-session-id"] = sessionId;
         }
 
-        const transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
+        const transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`), {
             requestInit: {
                 headers: requestHeaders,
             },
@@ -108,6 +108,28 @@ describe("StreamableHttpRunner", () => {
                 expectSuccess,
             } of clientHeaderTestCases) {
                 describe(clientDescription, () => {
+                    let client: Client;
+                    let transport: StreamableHTTPClientTransport;
+                    beforeEach(() => {
+                        client = new Client({
+                            name: "test",
+                            version: "0.0.0",
+                        });
+                        transport = new StreamableHTTPClientTransport(
+                            new URL(`${runner["mcpServer"]!.serverAddress}/mcp`),
+                            {
+                                requestInit: {
+                                    headers: clientHeaders,
+                                },
+                            }
+                        );
+                    });
+
+                    afterEach(async () => {
+                        await client.close();
+                        await transport.close();
+                    });
+
                     it(`should ${expectSuccess ? "succeed" : "fail"}`, async () => {
                         try {
                             const client = await connectClient({ additionalHeaders: clientHeaders });
@@ -145,8 +167,6 @@ describe("StreamableHttpRunner", () => {
             const response = await client.listTools();
             expect(response).toBeDefined();
             expect(response.tools).toBeDefined();
-
-            await client.close();
         });
 
         it("should reject requests exceeding the body limit", async () => {
@@ -167,7 +187,7 @@ describe("StreamableHttpRunner", () => {
                 },
             });
 
-            const response = await fetch(`${runner.serverAddress}/mcp`, {
+            const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -189,7 +209,7 @@ describe("StreamableHttpRunner", () => {
                 runners.push(runner);
             }
 
-            const addresses = new Set<string>(runners.map((r) => r.serverAddress));
+            const addresses = new Set<string>(runners.map((r) => r["mcpServer"]!.serverAddress));
             expect(addresses.size).toBe(runners.length);
         } finally {
             for (const runner of runners) {
@@ -219,7 +239,7 @@ describe("StreamableHttpRunner", () => {
                 (m) => m.payload.id === LogId.streamableHttpTransportStarted
             )[0];
             expect(serverStartedMessage).toBeDefined();
-            expect(serverStartedMessage?.payload.message).toContain("Server started on");
+            expect(serverStartedMessage?.payload.message).toContain("Streamable HTTP Transport started");
             expect(serverStartedMessage?.payload.context).toBe("streamableHttpTransport");
             expect(serverStartedMessage?.level).toBe("info");
         });
@@ -249,7 +269,7 @@ describe("StreamableHttpRunner", () => {
             headers["mcp-session-id"] = sessionId;
         }
 
-        const response = await fetch(`${runner.serverAddress}/mcp`, {
+        const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -274,7 +294,7 @@ describe("StreamableHttpRunner", () => {
     };
 
     const getSessionFromStore = (sessionId: string): StreamableHTTPServerTransport | undefined => {
-        const sessionStore = runner["sessionStore"];
+        const sessionStore = runner["mcpServer"]!["sessionStore"];
         return sessionStore.getSession(sessionId);
     };
 
@@ -535,7 +555,7 @@ describe("StreamableHttpRunner", () => {
                     expect(data.error?.code).toBe(-32003);
                     expect(data.error?.message).toBe("session not found");
 
-                    const sessionStore = runner["sessionStore"];
+                    const sessionStore = runner["mcpServer"]!["sessionStore"];
                     const session = sessionStore.getSession(unknownSessionId);
                     expect(session).toBeUndefined();
                 });
@@ -554,6 +574,72 @@ describe("StreamableHttpRunner", () => {
                 });
             });
         }
+    });
+
+    describe("healthcheck", () => {
+        beforeEach(() => {
+            config = {
+                ...config,
+                transport: "http",
+                healthCheckPort: 3001,
+                healthCheckHost: "127.0.0.1",
+            };
+        });
+
+        it("starts the healthCheck server when configured", async () => {
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+
+            expect(runner["healthCheckServer"]).toBeDefined();
+            expect(runner["healthCheckServer"]!.serverAddress).toEqual("http://127.0.0.1:3001");
+            const healthResponse = await fetch("http://localhost:3001/health");
+            expect(healthResponse.status).toBe(200);
+            const healthData = (await healthResponse.json()) as unknown;
+            expect(healthData).toEqual({ status: "ok" });
+        });
+
+        it("does not start the healthCheck server when not configured", async () => {
+            config.healthCheckHost = undefined;
+            config.healthCheckPort = undefined;
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+
+            expect(runner["healthCheckServer"]).toBeUndefined();
+        });
+
+        it("errors out when healthCheck port is missing but host is provided", async () => {
+            config.healthCheckPort = undefined;
+            runner = new StreamableHttpRunner({ userConfig: config });
+
+            await expect(runner.start()).rejects.toThrowError();
+        });
+
+        it("errors out when healthCheck host is missing but port is provided", async () => {
+            config.healthCheckHost = undefined;
+            runner = new StreamableHttpRunner({ userConfig: config });
+
+            await expect(runner.start()).rejects.toThrowError();
+        });
+
+        it("errors out when healthcheck port is equal to MCP server port", async () => {
+            config.healthCheckPort = 3000;
+            config.httpPort = 3000;
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await expect(runner.start()).rejects.toThrowError();
+        });
+
+        it("handles correctly when healthCheckPort is set to 0", async () => {
+            config.httpPort = 3000;
+            config.healthCheckPort = 0;
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+
+            expect(runner["healthCheckServer"]).toBeDefined();
+            const healthResponse = await fetch(`${runner["healthCheckServer"]!.serverAddress}/health`);
+            expect(healthResponse.status).toBe(200);
+            const healthData = (await healthResponse.json()) as unknown;
+            expect(healthData).toEqual({ status: "ok" });
+        });
     });
 
     it("should pass the request headers as part of tool execution context", async () => {

@@ -22,7 +22,7 @@ describe("Config Overrides via HTTP", () => {
 
     // Helper function to connect client with headers
     async function connectClient(headers: Record<string, string> = {}): Promise<void> {
-        transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`), {
+        transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`), {
             requestInit: { headers },
         });
         await client.connect(transport);
