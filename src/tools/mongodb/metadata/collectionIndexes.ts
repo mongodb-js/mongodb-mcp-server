@@ -10,7 +10,7 @@ type IndexStatus = {
 };
 
 export class CollectionIndexesTool extends MongoDBToolBase {
-    public name = "collection-indexes";
+    static toolName = "collection-indexes";
     public description = "Describe the indexes for a collection";
     public argsShape = DbOperationArgs;
     static operationType: OperationType = "metadata";

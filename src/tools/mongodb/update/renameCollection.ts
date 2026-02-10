@@ -4,7 +4,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 
 export class RenameCollectionTool extends MongoDBToolBase {
-    public name = "rename-collection";
+    static toolName = "rename-collection";
     public description = "Renames a collection in a MongoDB database";
     public argsShape = {
         ...DbOperationArgs,

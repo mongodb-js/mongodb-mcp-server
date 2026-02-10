@@ -17,7 +17,7 @@ export const CreateAccessListArgs = {
 };
 
 export class CreateAccessListTool extends AtlasToolBase {
-    public name = "atlas-create-access-list";
+    static toolName = "atlas-create-access-list";
     public description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
     static operationType: OperationType = "create";
     public argsShape = {

@@ -3,7 +3,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType } from "../../tool.js";
 
 export class DropDatabaseTool extends MongoDBToolBase {
-    public name = "drop-database";
+    static toolName = "drop-database";
     public description = "Removes the specified database, deleting the associated data files";
     public argsShape = {
         database: DbOperationArgs.database,

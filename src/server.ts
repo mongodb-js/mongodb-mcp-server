@@ -38,7 +38,7 @@ export interface ServerOptions {
      * ```ts
      * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
      * class CustomTool extends ToolBase {
-     *     override name = "custom_tool";
+     *     static toolName = "custom_tool";
      *     static category: ToolCategory = "mongodb";
      *     static operationType: OperationType = "read";
      *     public description = "Custom tool description";
@@ -259,6 +259,7 @@ export class Server {
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
+                name: toolConstructor.toolName,
                 category: toolConstructor.category,
                 operationType: toolConstructor.operationType,
                 session: this.session,

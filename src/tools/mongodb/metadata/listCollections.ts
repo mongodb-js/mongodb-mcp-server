@@ -4,7 +4,7 @@ import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.j
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListCollectionsTool extends MongoDBToolBase {
-    public name = "list-collections";
+    static toolName = "list-collections";
     public description = "List all collections for a given database";
     public argsShape = {
         database: DbOperationArgs.database,

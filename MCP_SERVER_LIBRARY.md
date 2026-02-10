@@ -458,7 +458,7 @@ const AVAILABLE_CONNECTIONS = {
 // tool to make user aware of possible connections the MCP server could be
 // connected to.
 class ListConnectionsTool extends ToolBase {
-  override name = "list-connections";
+  static toolName = "list-connections";
   static category: ToolCategory = "mongodb";
   static operationType: OperationType = "metadata";
   public override description =
@@ -500,7 +500,7 @@ class ListConnectionsTool extends ToolBase {
 // never leak any connection details in the LLM context and maintain the
 // effective communication using opaque connection identifiers.
 class SelectConnectionTool extends ToolBase {
-  override name = "select-connection";
+  static toolName = "select-connection";
   static category: ToolCategory = "mongodb";
   static operationType: OperationType = "metadata";
   public override description =
@@ -616,7 +616,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // Custom tool to fetch ticket details from your application
 class GetTicketDetailsTool extends ToolBase {
-  override name = "get-ticket-details";
+  static toolName = "get-ticket-details";
   static category: ToolCategory = "mongodb";
   static operationType: OperationType = "read";
 
@@ -735,11 +735,11 @@ See the TypeScript documentation in [`src/tools/tool.ts`](./src/tools/tool.ts) f
 
 - Detailed explanation of `ToolBase` abstract class
 - Documentation of all available protected members
-- Information about required abstract properties (`name`, `category`) and required static property (`operationType`)
+- Information about required static properties (`toolName`, `category`, `operationType`)
 
 **Important:** All custom tools must conform to the `ToolClass` type, which requires:
 
-- **Static** `category` and `operationType` properties (not instance properties)
+- **Static** `toolName`, `category`, and `operationType` properties (not instance properties)
 - Implementation of all abstract members from `ToolBase`
 
 ### ToolClass
@@ -749,7 +749,7 @@ The type that all tool classes must conform to when implementing custom tools.
 This type enforces that tool classes have:
 
 - A constructor that accepts `ToolConstructorParams`
-- **Static** `category` and `operationType` properties
+- **Static** `toolName`, `category`, and `operationType` properties
 
 The static properties are automatically injected as instance properties during tool construction by the server.
 

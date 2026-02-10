@@ -6,7 +6,7 @@ import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 
 export class UpdateManyTool extends MongoDBToolBase {
-    public name = "update-many";
+    static toolName = "update-many";
     public description =
         "Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.";
     public argsShape = {

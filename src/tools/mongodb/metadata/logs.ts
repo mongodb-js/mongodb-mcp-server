@@ -5,7 +5,7 @@ import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
 export class LogsTool extends MongoDBToolBase {
-    public name = "mongodb-logs";
+    static toolName = "mongodb-logs";
     public description = "Returns the most recent logged mongod events";
     public argsShape = {
         type: z
