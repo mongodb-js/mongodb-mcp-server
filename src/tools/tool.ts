@@ -65,7 +65,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
 export type ToolConstructorParams = {
     /**
      * The unique name of this tool (injected from the static
-     * `name` property on the Tool class).
+     * `toolName` property on the Tool class).
      */
     name: string;
 
