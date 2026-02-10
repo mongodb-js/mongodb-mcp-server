@@ -11,6 +11,7 @@ describe("all exported tools", () => {
 
     it("each tool in 'AllTools' list should have required static properties for ToolClass conformance", () => {
         AllTools.forEach((toolCtor) => {
+            expect(toolCtor).toHaveProperty("toolName");
             expect(toolCtor).toHaveProperty("category");
             expect(toolCtor).toHaveProperty("operationType");
         });

@@ -182,7 +182,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
             "Definition for an Atlas Search (lexical) index. Use this only if user explicitly asked for creating an Atlas search index or simply a search index."
         );
 
-    public name = "create-index";
+    static toolName = "create-index";
     public description = "Create an index for a collection";
     public argsShape = {
         ...DbOperationArgs,

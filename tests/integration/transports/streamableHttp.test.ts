@@ -565,7 +565,7 @@ describe("StreamableHttpRunner", () => {
             userConfig: config,
             tools: [
                 class RandomTool extends ToolBase {
-                    public name = "random-tool";
+                    static toolName = "random-tool";
                     public description = "Random tool";
                     public argsShape = {};
                     static category: ToolCategory = "mongodb";

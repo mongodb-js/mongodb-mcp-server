@@ -32,7 +32,7 @@ export const FindArgs = {
 };
 
 export class FindTool extends MongoDBToolBase {
-    public name = "find";
+    static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
     public argsShape = {
         ...DbOperationArgs,

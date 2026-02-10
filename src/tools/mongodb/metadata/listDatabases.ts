@@ -20,7 +20,7 @@ export const ListDatabasesOutputSchema = {
 export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutputSchema>>;
 
 export class ListDatabasesTool extends MongoDBToolBase {
-    public name = "list-databases";
+    static toolName = "list-databases";
     public description = "List all databases for a MongoDB connection";
     public argsShape = {};
     public override outputSchema = ListDatabasesOutputSchema;

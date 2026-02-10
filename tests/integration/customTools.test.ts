@@ -79,7 +79,7 @@ describe("Custom Tools", () => {
  * Example custom tool that can be provided by library consumers
  */
 class CustomGreetingTool extends ToolBase {
-    name = "custom_greeting";
+    static toolName = "custom_greeting";
     static category = "mongodb" as const;
     static operationType = "read" as const;
     public description = "A custom tool that greets the user";
@@ -107,7 +107,7 @@ class CustomGreetingTool extends ToolBase {
  * Another example custom tool that performs a calculation
  */
 class CustomCalculatorTool extends ToolBase {
-    name = "custom_calculator";
+    static toolName = "custom_calculator";
     static category = "mongodb" as const;
     static operationType = "read" as const;
     public description = "A custom tool that performs calculations";

@@ -54,7 +54,7 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 };
 
 class RandomTool extends MongoDBToolBase {
-    name = "Random";
+    static toolName = "Random";
     static operationType: OperationType = "read";
     public description = "This is a tool.";
     public argsShape = {};
@@ -65,7 +65,7 @@ class RandomTool extends MongoDBToolBase {
 }
 
 class UnusableVoyageTool extends MongoDBToolBase {
-    name = "UnusableVoyageTool";
+    static toolName = "UnusableVoyageTool";
     static operationType: OperationType = "read";
     public description = "This is a Voyage tool.";
     public argsShape = {};
