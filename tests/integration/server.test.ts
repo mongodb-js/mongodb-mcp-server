@@ -3,7 +3,7 @@ import { ExportsManager } from "../../src/common/exportsManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { Session } from "../../src/common/session.js";
-import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
+import { createTestAtlasApiClient, defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
@@ -185,8 +185,10 @@ describe("Server integration test", () => {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            apiClient: createTestAtlasApiClient(config, logger),
         });
 
         const telemetry = Telemetry.create(session, config, deviceId);
@@ -199,7 +201,6 @@ describe("Server integration test", () => {
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
-            connectionErrorHandler,
             tools: [...tools],
         });
 

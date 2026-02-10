@@ -4,7 +4,8 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
-import { TransportRunnerBase, type TransportRunnerConfig, type RequestContext } from "./base.js";
+import { type TransportRunnerConfig, type RequestContext } from "./runnerConfigs/index.js";
+import { TransportRunnerBase } from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 
@@ -40,15 +41,15 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
         const app = express();
         this.sessionStore = new SessionStore(
-            this.userConfig.idleTimeoutMs,
-            this.userConfig.notificationTimeoutMs,
-            this.logger
+            this.runnerConfig.userConfig.idleTimeoutMs,
+            this.runnerConfig.userConfig.notificationTimeoutMs,
+            this.baseLogger
         );
 
         app.enable("trust proxy"); // needed for reverse proxy support
-        app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
+        app.use(express.json({ limit: this.runnerConfig.userConfig.httpBodyLimit }));
         app.use((req, res, next) => {
-            for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
+            for (const [key, value] of Object.entries(this.runnerConfig.userConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
                 if (!header || header !== value) {
                     res.status(403).json({ error: `Invalid value for header "${key}"` });
@@ -105,8 +106,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
 
             const transport = this.sessionStore.getSession(sessionId);
             if (!transport) {
-                if (this.userConfig.externallyManagedSessions) {
-                    this.logger.debug({
+                if (this.runnerConfig.userConfig.externallyManagedSessions) {
+                    this.baseLogger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
                         context: "streamableHttpTransport",
                         message: `Session with ID ${sessionId} not found, initializing new session`,
@@ -115,7 +116,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     return await initializeServer(req, res, { sessionId, isImplicitInitialization: true });
                 }
 
-                this.logger.debug({
+                this.baseLogger.debug({
                     id: LogId.streamableHttpTransportSessionNotFound,
                     context: "streamableHttpTransport",
                     message: `Session with ID ${sessionId} not found`,
@@ -153,7 +154,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
             const server = await this.setupServer(request);
 
             const options: WebStandardStreamableHTTPServerTransportOptions = {
-                enableJsonResponse: this.userConfig.httpResponseType === "json",
+                enableJsonResponse: this.runnerConfig.userConfig.httpResponseType === "json",
             };
 
             const sessionInitialized = (sessionId: string): void => {
@@ -172,7 +173,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                     try {
                         await this.sessionStore.closeSession(sessionId, false);
                     } catch (error) {
-                        this.logger.error({
+                        this.baseLogger.error({
                             id: LogId.streamableHttpTransportSessionCloseFailure,
                             context: "streamableHttpTransport",
                             message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -226,7 +227,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 clearInterval(keepAliveLoop);
 
                 server.close().catch((error) => {
-                    this.logger.error({
+                    this.baseLogger.error({
                         id: LogId.streamableHttpTransportCloseFailure,
                         context: "streamableHttpTransport",
                         message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
@@ -248,8 +249,8 @@ export class StreamableHttpRunner extends TransportRunnerBase {
                 }
 
                 if (isInitializeRequest(req.body)) {
-                    if (sessionId && !this.userConfig.externallyManagedSessions) {
-                        this.logger.debug({
+                    if (sessionId && !this.runnerConfig.userConfig.externallyManagedSessions) {
+                        this.baseLogger.debug({
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
                             message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
@@ -273,27 +274,31 @@ export class StreamableHttpRunner extends TransportRunnerBase {
         app.delete("/mcp", this.withErrorHandling(handleSessionRequest));
 
         this.httpServer = await new Promise<http.Server>((resolve, reject) => {
-            const result = app.listen(this.userConfig.httpPort, this.userConfig.httpHost, (err?: Error) => {
-                if (err) {
-                    reject(err);
-                    return;
+            const result = app.listen(
+                this.runnerConfig.userConfig.httpPort,
+                this.runnerConfig.userConfig.httpHost,
+                (err?: Error) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(result);
                 }
-                resolve(result);
-            });
+            );
         });
 
-        this.logger.info({
+        this.baseLogger.info({
             id: LogId.streamableHttpTransportStarted,
             context: "streamableHttpTransport",
             message: `Server started on ${this.serverAddress}`,
             noRedaction: true,
         });
 
-        if (this.shouldWarnAboutHttpHost(this.userConfig.httpHost)) {
-            this.logger.warning({
+        if (this.shouldWarnAboutHttpHost(this.runnerConfig.userConfig.httpHost)) {
+            this.baseLogger.warning({
                 id: LogId.streamableHttpTransportHttpHostWarning,
                 context: "streamableHttpTransport",
-                message: `Binding to ${this.userConfig.httpHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
+                message: `Binding to ${this.runnerConfig.userConfig.httpHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
                 noRedaction: true,
             });
         }
@@ -319,7 +324,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     ) {
         return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
             fn(req, res, next).catch((error) => {
-                this.logger.error({
+                this.baseLogger.error({
                     id: LogId.streamableHttpTransportRequestFailure,
                     context: "streamableHttpTransport",
                     message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,

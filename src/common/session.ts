@@ -1,6 +1,5 @@
 import { ObjectId } from "bson";
 import type { ApiClient } from "./atlas/apiClient.js";
-import { createAtlasApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger } from "./logger.js";
 import { LogId } from "./logger.js";
@@ -21,6 +20,7 @@ import type { Keychain } from "./keychain.js";
 import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { type UserConfig } from "../common/config/userConfig.js";
+import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
 
 export interface SessionOptions {
     userConfig: UserConfig;
@@ -29,8 +29,9 @@ export interface SessionOptions {
     connectionManager: ConnectionManager;
     keychain: Keychain;
     atlasLocalClient?: Client;
+    connectionErrorHandler: ConnectionErrorHandler;
     vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
-    apiClient?: ApiClient;
+    apiClient: ApiClient;
 }
 
 export type SessionEvents = {
@@ -45,9 +46,10 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
-    readonly apiClient?: ApiClient;
+    readonly apiClient: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
+    readonly connectionErrorHandler: ConnectionErrorHandler;
     readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 
     mcpClient?: {
@@ -65,6 +67,7 @@ export class Session extends EventEmitter<SessionEvents> {
         exportsManager,
         keychain,
         atlasLocalClient,
+        connectionErrorHandler,
         vectorSearchEmbeddingsManager,
         apiClient,
     }: SessionOptions) {
@@ -75,23 +78,10 @@ export class Session extends EventEmitter<SessionEvents> {
         this.logger = logger;
         this.apiClient = apiClient;
 
-        // Create default API client if not provided in the constructor and Atlas tools are enabled (credentials are provided)
-        if (!this.apiClient && userConfig.apiClientId && userConfig.apiClientSecret) {
-            this.apiClient = createAtlasApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
-                },
-                logger
-            );
-        }
-
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
+        this.connectionErrorHandler = connectionErrorHandler;
         this.vectorSearchEmbeddingsManager = vectorSearchEmbeddingsManager;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));

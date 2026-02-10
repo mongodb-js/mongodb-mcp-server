@@ -18,7 +18,6 @@ import {
 import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
-import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "./ui/registry/index.js";
@@ -29,7 +28,6 @@ export interface ServerOptions {
     mcpServer: McpServer;
     telemetry: Telemetry;
     elicitation: Elicitation;
-    connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
     /**
      * Custom tool constructors to register with the server.
@@ -56,7 +54,6 @@ export interface ServerOptions {
      *     mcpServer: myMcpServer,
      *     telemetry: myTelemetry,
      *     elicitation: myElicitation,
-     *     connectionErrorHandler: myConnectionErrorHandler,
      *     tools: [...AllTools, CustomTool],
      * });
      * ```
@@ -72,7 +69,6 @@ export class Server {
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: ToolClass[];
     public readonly tools: ToolBase[] = [];
-    public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
 
     private _mcpLogLevel: LogLevel = "debug";
@@ -84,23 +80,13 @@ export class Server {
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    constructor({
-        session,
-        mcpServer,
-        userConfig,
-        telemetry,
-        connectionErrorHandler,
-        elicitation,
-        tools,
-        uiRegistry,
-    }: ServerOptions) {
+    constructor({ session, mcpServer, userConfig, telemetry, elicitation, tools, uiRegistry }: ServerOptions) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.userConfig = userConfig;
         this.elicitation = elicitation;
-        this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = uiRegistry;
     }

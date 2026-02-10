@@ -90,7 +90,7 @@ async function main(): Promise<void> {
                   userConfig: config,
               });
     const shutdown = (): void => {
-        transportRunner.logger.info({
+        transportRunner.baseLogger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Server close requested`,
@@ -99,7 +99,7 @@ async function main(): Promise<void> {
         transportRunner
             .close()
             .then(() => {
-                transportRunner.logger.info({
+                transportRunner.baseLogger.info({
                     id: LogId.serverClosed,
                     context: "server",
                     message: `Server closed`,
@@ -107,7 +107,7 @@ async function main(): Promise<void> {
                 process.exit(0);
             })
             .catch((error: unknown) => {
-                transportRunner.logger.error({
+                transportRunner.baseLogger.error({
                     id: LogId.serverCloseFailure,
                     context: "server",
                     message: `Error closing server: ${error as string}`,
@@ -124,7 +124,7 @@ async function main(): Promise<void> {
     try {
         await transportRunner.start();
     } catch (error: unknown) {
-        transportRunner.logger.info({
+        transportRunner.baseLogger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Closing server due to error: ${error as string}`,
@@ -133,13 +133,13 @@ async function main(): Promise<void> {
 
         try {
             await transportRunner.close();
-            transportRunner.logger.info({
+            transportRunner.baseLogger.info({
                 id: LogId.serverClosed,
                 context: "server",
                 message: "Server closed",
             });
         } catch (error: unknown) {
-            transportRunner.logger.error({
+            transportRunner.baseLogger.error({
                 id: LogId.serverCloseFailure,
                 context: "server",
                 message: `Error closing server: ${error as string}`,
