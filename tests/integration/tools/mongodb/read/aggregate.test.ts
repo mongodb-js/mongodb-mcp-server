@@ -1412,3 +1412,71 @@ describeWithMongoDB(
         },
     }
 );
+
+describeWithMongoDB(
+    "aggregate tool with configured queryMaxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                count: 100,
+                documentMapper(index) {
+                    return { name: `Person ${index}`, age: index };
+                },
+            });
+        });
+
+        it("should apply maxTimeMS to aggregations", async () => {
+            await integration.connectMcpClient();
+            // With a reasonable timeout, the aggregation should succeed
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in");
+            expect(content).not.toContain("error");
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 30_000 }),
+    }
+);
+
+describeWithMongoDB(
+    "aggregate tool with disabled queryMaxTimeMs",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                count: 100,
+                documentMapper(index) {
+                    return { name: `Person ${index}`, age: index };
+                },
+            });
+        });
+
+        it("should not apply maxTimeMS when set to 0", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }],
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in");
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, queryMaxTimeMs: 0 }),
+    }
+);
