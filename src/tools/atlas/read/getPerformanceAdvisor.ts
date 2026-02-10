@@ -23,7 +23,7 @@ const PerformanceAdvisorOperationType = z.enum([
 ]);
 
 export class GetPerformanceAdvisorTool extends AtlasToolBase {
-    public name = "atlas-get-performance-advisor";
+    static toolName = "atlas-get-performance-advisor";
     public description = `Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max ${DEFAULT_SLOW_QUERY_LOGS_LIMIT}) slow query logs`;
     static operationType: OperationType = "read";
     public argsShape = {

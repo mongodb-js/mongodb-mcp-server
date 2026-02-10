@@ -5,7 +5,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
 
 export class DropIndexTool extends MongoDBToolBase {
-    public name = "drop-index";
+    static toolName = "drop-index";
     public description = "Drop an index for the provided database and collection.";
     public argsShape = {
         ...DbOperationArgs,
