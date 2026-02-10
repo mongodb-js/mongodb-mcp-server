@@ -261,14 +261,14 @@ export abstract class ToolBase {
      *
      * Must be unique across all tools in the server.
      */
-    public name: string;
+    public readonly name: string;
 
     /**
      * The category of this tool.
      *
      * @see {@link ToolCategory} for the available tool categories.
      */
-    public category: ToolCategory;
+    public readonly category: ToolCategory;
 
     /**
      * The type of operation this tool performs.
@@ -278,7 +278,7 @@ export abstract class ToolBase {
      *
      * @see {@link OperationType} for the available tool operations.
      */
-    public operationType: OperationType;
+    public readonly operationType: OperationType;
 
     /**
      * Human-readable description of what the tool does.
