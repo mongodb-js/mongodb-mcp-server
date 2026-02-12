@@ -46,10 +46,9 @@ export type SearchKnowledgeResponse = {
 };
 
 export class SearchKnowledgeTool extends AssistantToolBase {
+    static toolName = "search-knowledge";
     static category: ToolCategory = "assistant";
     static operationType: OperationType = "read";
-
-    public override name = "search-knowledge";
     public description = "Search for information in the MongoDB Assistant knowledge base";
     public argsShape = {
         ...SearchKnowledgeToolArgs,

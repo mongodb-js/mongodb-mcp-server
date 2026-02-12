@@ -1,4 +1,4 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { formatUntrustedData, type OperationType, type ToolCategory } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
@@ -25,10 +25,9 @@ export type ListKnowledgeSourcesResponse = {
 export const ListKnowledgeSourcesToolName = "list-knowledge-sources";
 
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
+    static toolName = ListKnowledgeSourcesToolName;
     static category: ToolCategory = "assistant";
     static operationType: OperationType = "read";
-
-    public override name = ListKnowledgeSourcesToolName;
     public description = "List available data sources in the MongoDB Assistant knowledge base";
     public argsShape = {};
 
@@ -59,10 +58,7 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
         const text = yamlStringify(
             dataSources.map((ds) => {
                 const currentVersion = ds.versions.find(({ isCurrent }) => isCurrent)?.label;
-                if (currentVersion) {
-                    (ds as KnowledgeSource & { currentVersion: string }).currentVersion = currentVersion;
-                }
-                return ds;
+                return currentVersion ? { ...ds, currentVersion } : ds;
             })
         );
 

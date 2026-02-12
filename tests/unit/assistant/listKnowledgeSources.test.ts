@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
     expectDefined,
     validateToolMetadata,
@@ -58,15 +58,11 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
 
             const elements = getResponseElements(response.content);
 
-            // First element is the description
             expect(elements[0]?.text).toBe("Found 2 data sources in the MongoDB Assistant knowledge base.");
-
-            // Second element contains the YAML data
             expect(elements[1]?.text).toContain("<untrusted-user-data-");
             const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
-            const dataSources = yamlParse(yamlData);
+            const dataSources = yamlParse(yamlData) as Array<Record<string, unknown>>;
 
-            // Check first data source
             expect(dataSources[0]).toMatchObject({
                 id: "mongodb-manual",
                 type: "documentation",
@@ -77,7 +73,6 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
                 ],
             });
 
-            // Check second data source
             expect(dataSources[1]).toMatchObject({
                 id: "node-driver",
                 type: "driver",

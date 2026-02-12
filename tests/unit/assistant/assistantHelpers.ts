@@ -1,5 +1,7 @@
-import { setupIntegrationTest, IntegrationTest, defaultTestConfig } from "../../integration/helpers.js";
-import { describe, SuiteCollector } from "vitest";
+import { setupIntegrationTest, defaultTestConfig } from "../../integration/helpers.js";
+import type { IntegrationTest } from "../../integration/helpers.js";
+import { describe } from "vitest";
+import type { SuiteCollector } from "vitest";
 import { vi, beforeAll, afterAll, beforeEach } from "vitest";
 
 export type MockIntegrationTestFunction = (integration: IntegrationTest) => void;
@@ -50,14 +52,14 @@ export function makeMockAssistantAPI(): MockedAssistantAPI {
     const mockListSources: MockedAssistantAPI["mockListSources"] = (sources) => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ dataSources: sources }),
+            json: () => Promise.resolve({ dataSources: sources }),
         });
     };
 
     const mockSearchResults: MockedAssistantAPI["mockSearchResults"] = (results) => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ results }),
+            json: () => Promise.resolve({ results }),
         });
     };
 

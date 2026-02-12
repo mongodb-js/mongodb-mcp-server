@@ -57,7 +57,7 @@ describeWithAssistant("search-knowledge", (integration) => {
         { query: "test", dataSources: [{}] }, // missing required name field
     ]);
 
-    describe("Success Cases", () => {
+    describe("success cases", () => {
         it("searches with query only", async () => {
             const mockResults = [
                 {
@@ -93,15 +93,11 @@ describeWithAssistant("search-knowledge", (integration) => {
 
             const elements = getResponseElements(response.content);
 
-            // First element is the description
             expect(elements[0]?.text).toBe("Found 2 results in the MongoDB Assistant knowledge base.");
-
-            // Second element contains the YAML data
             expect(elements[1]?.text).toContain("<untrusted-user-data-");
             const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
-            const results = yamlParse(yamlData);
+            const results = yamlParse(yamlData) as Array<Record<string, unknown>>;
 
-            // Check first result
             expect(results[0]).toMatchObject({
                 url: "https://docs.mongodb.com/manual/aggregation/",
                 title: "Aggregation Pipeline",
@@ -112,7 +108,6 @@ describeWithAssistant("search-knowledge", (integration) => {
                 },
             });
 
-            // Check second result
             expect(results[1]).toMatchObject({
                 url: "https://docs.mongodb.com/manual/reference/operator/aggregation/",
                 title: "Aggregation Pipeline Operators",
@@ -156,7 +151,7 @@ describeWithAssistant("search-knowledge", (integration) => {
             expect(elements[0]?.text).toBe("Found 1 results in the MongoDB Assistant knowledge base.");
 
             const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
-            const results = yamlParse(yamlData);
+            const results = yamlParse(yamlData) as Array<Record<string, unknown>>;
 
             expect(results[0]).toMatchObject({
                 url: "https://mongodb.github.io/node-mongodb-native/",
@@ -207,7 +202,7 @@ describeWithAssistant("search-knowledge", (integration) => {
             expect(elements[0]?.text).toBe("Found 5 results in the MongoDB Assistant knowledge base.");
 
             const yamlData = getDataFromUntrustedContent(elements[1]?.text ?? "");
-            const results = yamlParse(yamlData);
+            const results = yamlParse(yamlData) as unknown[];
             expect(results).toHaveLength(5);
         });
     });
