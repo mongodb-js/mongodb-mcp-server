@@ -4,7 +4,7 @@ import type { OperationType } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 
 export class ListOrganizationsTool extends AtlasToolBase {
-    public name = "atlas-list-orgs";
+    static toolName = "atlas-list-orgs";
     public description = "List MongoDB Atlas organizations";
     static operationType: OperationType = "read";
     public argsShape = {};

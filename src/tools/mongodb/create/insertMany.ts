@@ -27,7 +27,7 @@ const commonArgs = {
 } as const;
 
 export class InsertManyTool extends MongoDBToolBase {
-    public name = "insert-many";
+    static toolName = "insert-many";
     public description =
         "Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.";
     public argsShape = this.isFeatureEnabled("search")

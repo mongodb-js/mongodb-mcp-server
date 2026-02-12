@@ -69,6 +69,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                                 ],
                             },
                         ],
+                        retainBackups: false,
                     },
                 });
 

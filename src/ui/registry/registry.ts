@@ -1,10 +1,8 @@
-// Converts kebab-case to PascalCase: "list-databases" -> "ListDatabases"
-function toPascalCase(kebabCase: string): string {
-    return kebabCase
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join("");
-}
+// The type assertion is needed because the file is auto-generated and may not exist during type checking
+type UILoaders = Record<string, (() => Promise<string>) | undefined>;
+
+import { uiLoaders as _uiLoaders } from "../lib/loaders.js";
+const uiLoaders = _uiLoaders as UILoaders;
 
 export type UIRegistryOptions = {
     /**
@@ -56,10 +54,13 @@ export class UIRegistry {
             return cached;
         }
 
+        const loader = uiLoaders[toolName];
+        if (!loader) {
+            return null;
+        }
+
         try {
-            const module = (await import(`../lib/tools/${toolName}.js`)) as Record<string, string>;
-            const exportName = `${toPascalCase(toolName)}Html`;
-            const html = module[exportName]; // HTML generated at build time
+            const html = await loader();
             if (html === undefined) {
                 return null;
             }

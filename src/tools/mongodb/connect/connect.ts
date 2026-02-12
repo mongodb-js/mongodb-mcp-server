@@ -4,7 +4,7 @@ import { MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.js";
 import type { Server } from "../../../server.js";
 export class ConnectTool extends MongoDBToolBase {
-    public override name = "connect";
+    static toolName = "connect";
     public override description =
         "Connect to a MongoDB instance. The config resource captures if the server is already connected to a MongoDB cluster. If the user has configured a connection string or has previously called the connect tool, a connection is already established and there's no need to call this tool unless the user has explicitly requested to switch to a new MongoDB cluster.";
 

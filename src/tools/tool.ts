@@ -21,6 +21,13 @@ export type ToolArgs<T extends ZodRawShape> = {
 
 export type ToolExecutionContext = {
     signal: AbortSignal;
+    /**
+     * Request context object available only when running atop
+     * StreamableHttpTransport.
+     */
+    requestInfo?: {
+        headers?: Record<string, unknown>;
+    };
 };
 
 /**
@@ -57,6 +64,12 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
  * See `Server.registerTools` method in `src/server.ts` for further reference.
  */
 export type ToolConstructorParams = {
+    /**
+     * The unique name of this tool (injected from the static
+     * `toolName` property on the Tool class).
+     */
+    name: string;
+
     /**
      * The category that the tool belongs to (injected from the static
      * `category` property on the Tool class).
@@ -104,8 +117,8 @@ export type ToolConstructorParams = {
  * The type that all tool classes must conform to when implementing custom tools
  * for the MongoDB MCP Server.
  *
- * This type enforces that tool classes have static properties `category` and
- * `operationType` which are injected during instantiation of tool classes.
+ * This type enforces that tool classes have static properties `toolName`, `category`,
+ * and `operationType` which are injected during instantiation of tool classes.
  *
  * @example
  * ```typescript
@@ -115,11 +128,11 @@ export type ToolConstructorParams = {
  *
  * class MyCustomTool extends ToolBase {
  *   // Required static properties for ToolClass conformance
+ *   static toolName = "my-custom-tool";
  *   static category: ToolCategory = "mongodb";
  *   static operationType: OperationType = "read";
  *
  *   // Required abstract properties
- *   override name = "my-custom-tool";
  *   public description = "My custom tool description";
  *   public argsShape = {
  *     query: z.string().describe("The query parameter"),
@@ -150,6 +163,13 @@ export type ToolClass = {
     /** Constructor signature for the tool class */
     new (params: ToolConstructorParams): ToolBase;
 
+    /**
+     * The unique name of this tool.
+     *
+     * Must be unique across all tools in the server.
+     */
+    toolName: string;
+
     /** The category that the tool belongs to */
     category: ToolCategory;
 
@@ -167,9 +187,9 @@ export type ToolClass = {
  *
  * To create a custom tool, you must:
  * 1. Extend the `ToolBase` class
- * 2. Define static properties: `category` and `operationType`
- * 3. Implement required abstract members: `name`, `description`,
- *    `argsShape`, `execute()`, `resolveTelemetryMetadata()`
+ * 2. Define static properties: `toolName`, `category`, and `operationType`
+ * 3. Implement required abstract members: `description`, `argsShape`,
+ *    `execute()`, `resolveTelemetryMetadata()`
  *
  * @example Basic Custom Tool
  * ```typescript
@@ -178,12 +198,12 @@ export type ToolClass = {
  * import { z } from "zod";
  *
  * class MyCustomTool extends ToolBase {
- *   // Required static property for ToolClass conformance
+ *   // Required static properties for ToolClass conformance
+ *   static toolName = "my-custom-tool";
  *   static category: ToolCategory = "mongodb";
  *   static operationType: OperationType = "read";
  *
  *   // Required abstract properties
- *   override name = "my-custom-tool";
  *   public description = "My custom tool description";
  *   public argsShape = {
  *     query: z.string().describe("The query parameter"),
@@ -222,6 +242,7 @@ export type ToolClass = {
  *
  * The following properties are automatically set when the tool is instantiated
  * by the server (derived from the static properties):
+ * - `name` - The tool's unique name (from static `toolName`)
  * - `category` - The tool's category (from static `category`)
  * - `operationType` - The tool's operation type (from static `operationType`)
  *
@@ -241,14 +262,14 @@ export abstract class ToolBase {
      *
      * Must be unique across all tools in the server.
      */
-    public abstract name: string;
+    public readonly name: string;
 
     /**
      * The category of this tool.
      *
      * @see {@link ToolCategory} for the available tool categories.
      */
-    public category: ToolCategory;
+    public readonly category: ToolCategory;
 
     /**
      * The type of operation this tool performs.
@@ -258,7 +279,7 @@ export abstract class ToolBase {
      *
      * @see {@link OperationType} for the available tool operations.
      */
-    public operationType: OperationType;
+    public readonly operationType: OperationType;
 
     /**
      * Human-readable description of what the tool does.
@@ -407,13 +428,13 @@ export abstract class ToolBase {
      */
     protected abstract execute(
         args: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { signal, requestInfo }: ToolExecutionContext
     ): Promise<CallToolResult>;
 
     /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
     public async invoke(
         args: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { signal, requestInfo }: ToolExecutionContext
     ): Promise<CallToolResult> {
         let startTime: number = Date.now();
 
@@ -447,7 +468,7 @@ export abstract class ToolBase {
                 noRedaction: true,
             });
 
-            const toolCallResult = await this.execute(args, { signal });
+            const toolCallResult = await this.execute(args, { signal, requestInfo });
             const result = await this.appendUIResource(toolCallResult);
 
             this.emitToolEvent(args, { startTime, result });
@@ -544,6 +565,7 @@ export abstract class ToolBase {
     protected readonly elicitation: Elicitation;
     private readonly uiRegistry?: UIRegistry;
     constructor({
+        name,
         category,
         operationType,
         session,
@@ -552,6 +574,7 @@ export abstract class ToolBase {
         elicitation,
         uiRegistry,
     }: ToolConstructorParams) {
+        this.name = name;
         this.category = category;
         this.operationType = operationType;
         this.session = session;

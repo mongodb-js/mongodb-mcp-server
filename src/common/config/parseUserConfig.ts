@@ -173,6 +173,8 @@ function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): vo
     maybeRegister(userConfig.tlsCertificateKeyFile, "url");
     maybeRegister(userConfig.tlsCertificateKeyFilePassword, "password");
     maybeRegister(userConfig.username, "user");
+    maybeRegister(userConfig.voyageApiKey, "password");
+    maybeRegister(userConfig.connectionString, "mongodb uri");
 }
 
 function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): string[] {

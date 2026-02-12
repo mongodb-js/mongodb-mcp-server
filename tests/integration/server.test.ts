@@ -3,9 +3,10 @@ import { ExportsManager } from "../../src/common/exportsManager.js";
 import { CompositeLogger } from "../../src/common/logger.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { Session } from "../../src/common/session.js";
-import { defaultTestConfig, expectDefined } from "./helpers.js";
+import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
+import type { LoggerBase, UserConfig } from "../../src/lib.js";
 import { Elicitation, Keychain, Telemetry } from "../../src/lib.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
@@ -20,7 +21,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 
 class TestToolOne extends ToolBase {
-    public name = "test-tool-one";
+    static toolName = "test-tool-one";
     public description = "A test tool one for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
@@ -41,7 +42,7 @@ class TestToolOne extends ToolBase {
 }
 
 class TestToolTwo extends ToolBase {
-    public name = "test-tool-two";
+    static toolName = "test-tool-two";
     public description = "A test tool two for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
@@ -169,47 +170,51 @@ describe("Server integration test", () => {
         }
     );
 
+    const initServerWithTools = async (
+        tools: ToolClass[],
+        config: UserConfig = defaultTestConfig,
+        loggers: LoggerBase[] = []
+    ): Promise<{ server: Server; transport: Transport }> => {
+        const logger = new CompositeLogger(...loggers);
+        const deviceId = DeviceId.create(logger);
+        const connectionManager = new MCPConnectionManager(config, logger, deviceId);
+        const exportsManager = ExportsManager.init(config, logger);
+        const session = new Session({
+            userConfig: config,
+            logger,
+            exportsManager,
+            connectionManager,
+            keychain: Keychain.root,
+            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
+            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+        });
+
+        const telemetry = Telemetry.create(session, config, deviceId);
+        const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
+        const elicitation = new Elicitation({ server: mcpServerInstance.server });
+
+        const server = new Server({
+            session,
+            userConfig: config,
+            telemetry,
+            mcpServer: mcpServerInstance,
+            elicitation,
+            connectionErrorHandler,
+            tools: [...tools],
+        });
+
+        const transport = new InMemoryTransport();
+
+        return { transport, server };
+    };
+
     describe("with additional tools", () => {
-        const initServerWithTools = async (tools: ToolClass[]): Promise<{ server: Server; transport: Transport }> => {
-            const logger = new CompositeLogger();
-            const deviceId = DeviceId.create(logger);
-            const connectionManager = new MCPConnectionManager(defaultTestConfig, logger, deviceId);
-            const exportsManager = ExportsManager.init(defaultTestConfig, logger);
-
-            const session = new Session({
-                userConfig: defaultTestConfig,
-                logger,
-                exportsManager,
-                connectionManager,
-                keychain: Keychain.root,
-                vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
-                atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
-            });
-
-            const telemetry = Telemetry.create(session, defaultTestConfig, deviceId);
-            const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
-            const elicitation = new Elicitation({ server: mcpServerInstance.server });
-
-            const server = new Server({
-                session,
-                userConfig: defaultTestConfig,
-                telemetry,
-                mcpServer: mcpServerInstance,
-                elicitation,
-                connectionErrorHandler,
-                tools: [...tools],
-            });
-
-            const transport = new InMemoryTransport();
-
-            return { transport, server };
-        };
-
         let server: Server | undefined;
         let transport: Transport | undefined;
 
         afterEach(async () => {
             await transport?.close();
+            await server?.close();
         });
 
         it("should start server with only the tools provided", async () => {
@@ -226,6 +231,38 @@ describe("Server integration test", () => {
                 },
             ]));
             await expect(server.connect(transport)).rejects.toThrow(/Tool test-tool-one is already registered/);
+        });
+    });
+
+    describe("config validation", () => {
+        let server: Server | undefined;
+        let transport: Transport | undefined;
+
+        afterEach(async () => {
+            await transport?.close();
+            await server?.close();
+        });
+
+        it("should warn when not using https for apiBaseUrl", async () => {
+            const logger = new InMemoryLogger(Keychain.root);
+            const config: UserConfig = {
+                ...defaultTestConfig,
+                apiBaseUrl: "http://localhost:8080",
+                apiClientId: "test",
+                apiClientSecret: "test",
+            };
+
+            ({ server, transport } = await initServerWithTools([TestToolOne], config, [logger]));
+            await server.connect(transport);
+
+            const warningMessages = logger.messages.filter(
+                (msg) =>
+                    msg.level === "warning" &&
+                    msg.payload.message.includes(
+                        "apiBaseUrl is configured to use http:, which is not secure. It is strongly recommended to use HTTPS for secure communication."
+                    )
+            );
+            expect(warningMessages.length).toBeGreaterThan(0);
         });
     });
 });

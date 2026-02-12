@@ -6,7 +6,7 @@ import type { ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
 export class ListProjectsTool extends AtlasToolBase {
-    public name = "atlas-list-projects";
+    static toolName = "atlas-list-projects";
     public description = "List MongoDB Atlas projects";
     static operationType: OperationType = "read";
     public argsShape = {

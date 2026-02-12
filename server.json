@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.5.0",
+  "version": "1.6.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "transport": {
         "type": "stdio"
       },
@@ -101,6 +101,27 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_HOST",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_PORT",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_BODY_LIMIT",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -126,6 +147,13 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_RESPONSE_TYPE",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         },
         {
@@ -308,6 +336,26 @@
         },
         {
           "type": "named",
+          "name": "--externallyManagedSessions",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckHost",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckPort",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--httpBodyLimit",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -331,6 +379,12 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpResponseType",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false
         },
         {
           "type": "named",
@@ -427,7 +481,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.5.0",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.6.0",
       "transport": {
         "type": "stdio"
       },
@@ -517,6 +571,27 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_HOST",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HEALTH_CHECK_PORT",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_HTTP_BODY_LIMIT",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -542,6 +617,13 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_HTTP_RESPONSE_TYPE",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         },
         {
@@ -724,6 +806,26 @@
         },
         {
           "type": "named",
+          "name": "--externallyManagedSessions",
+          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckHost",
+          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--healthCheckPort",
+          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--httpBodyLimit",
           "description": "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware.",
           "isRequired": false,
@@ -747,6 +849,12 @@
           "description": "Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--httpResponseType",
+          "description": "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses.",
+          "isRequired": false
         },
         {
           "type": "named",

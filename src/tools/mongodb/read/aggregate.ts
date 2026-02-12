@@ -55,7 +55,7 @@ export const getAggregateArgs = (vectorSearchEnabled: boolean) =>
     }) as const;
 
 export class AggregateTool extends MongoDBToolBase {
-    public name = "aggregate";
+    static toolName = "aggregate";
     public description = "Run an aggregation against a MongoDB collection";
     public argsShape = {
         ...DbOperationArgs,

@@ -38,7 +38,7 @@ export interface ServerOptions {
      * ```ts
      * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
      * class CustomTool extends ToolBase {
-     *     override name = "custom_tool";
+     *     static toolName = "custom_tool";
      *     static category: ToolCategory = "mongodb";
      *     static operationType: OperationType = "read";
      *     public description = "Custom tool description";
@@ -259,6 +259,7 @@ export class Server {
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({
+                name: toolConstructor.toolName,
                 category: toolConstructor.category,
                 operationType: toolConstructor.operationType,
                 session: this.session,
@@ -286,8 +287,6 @@ export class Server {
             try {
                 validateConnectionString(this.userConfig.connectionString, false);
             } catch (error) {
-                // eslint-disable-next-line no-console
-                console.error("Connection string validation failed with error: ", error);
                 throw new Error(
                     "Connection string validation failed with error: " +
                         (error instanceof Error ? error.message : String(error))
@@ -301,28 +300,35 @@ export class Server {
                 if (!this.session.apiClient) {
                     throw new Error("API client is not available.");
                 }
-                if (!this.userConfig.apiBaseUrl.startsWith("https://")) {
-                    const message =
-                        "Failed to validate MongoDB Atlas the credentials from config: apiBaseUrl must start with https://";
-                    // eslint-disable-next-line no-console
-                    console.error(message);
-                    throw new Error(message);
+
+                try {
+                    const apiBaseUrl = new URL(this.userConfig.apiBaseUrl);
+                    if (apiBaseUrl.protocol !== "https:") {
+                        // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
+                        const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
+                        this.session.logger.warning({
+                            id: LogId.atlasApiBaseUrlInsecure,
+                            context: "server",
+                            message,
+                        });
+                    }
+                } catch (error) {
+                    throw new Error(`Invalid apiBaseUrl: ${error instanceof Error ? error.message : String(error)}`);
                 }
 
                 await this.session.apiClient.validateAuthConfig();
             } catch (error) {
                 if (this.userConfig.connectionString === undefined) {
-                    // eslint-disable-next-line no-console
-                    console.error("Failed to validate MongoDB Atlas the credentials from the config: ", error);
-
                     throw new Error(
-                        "Failed to connect to MongoDB Atlas instance using the credentials from the config"
+                        `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`
                     );
                 }
-                // eslint-disable-next-line no-console
-                console.error(
-                    "Failed to validate MongoDB Atlas credentials from the config, but validated the connection string."
-                );
+
+                this.session.logger.warning({
+                    id: LogId.atlasCheckCredentials,
+                    context: "server",
+                    message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,
+                });
             }
         }
     }
