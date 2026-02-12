@@ -19,9 +19,6 @@ export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
 
-/**
- * Base execution context for tool invocations.
- */
 export interface ToolExecutionContext {
     signal: AbortSignal;
     /**
