@@ -3,10 +3,10 @@ import { LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 
-export class StdioRunner extends TransportRunnerBase {
-    private server: Server | undefined;
+export class StdioRunner<TContext = unknown> extends TransportRunnerBase<TContext> {
+    private server: Server<TContext> | undefined;
 
-    constructor(config: TransportRunnerConfig) {
+    constructor(config: TransportRunnerConfig<TContext>) {
         super(config);
     }
 
