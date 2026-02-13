@@ -37,7 +37,6 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             collection,
             [{ $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } }],
             {
-                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                 signal,
             }
         );
