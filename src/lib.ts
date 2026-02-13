@@ -48,3 +48,4 @@ export { SessionStore, type CloseableTransport } from "./common/sessionStore.js"
 export { ApiClient, type ApiClientOptions } from "./common/atlas/apiClient.js";
 export type { AuthProvider } from "./common/atlas/auth/authProvider.js";
 export { type UIRegistryOptions } from "./ui/registry/registry.js";
+export { type ToolExecutionContext } from "./tools/tool.js";

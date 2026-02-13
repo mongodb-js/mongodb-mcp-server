@@ -17,11 +17,11 @@ const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 
-export class StreamableHttpRunner extends TransportRunnerBase {
-    private mcpServer: MCPHttpServer | undefined;
+export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBase<TContext> {
+    private mcpServer: MCPHttpServer<TContext> | undefined;
     private healthCheckServer: HealthCheckServer | undefined;
 
-    constructor(config: TransportRunnerConfig) {
+    constructor(config: TransportRunnerConfig<TContext>) {
         super(config);
     }
 
@@ -49,7 +49,7 @@ export class StreamableHttpRunner extends TransportRunnerBase {
     }
 
     private async startMCPServer(): Promise<void> {
-        this.mcpServer = new MCPHttpServer(this.userConfig, this.setupServer.bind(this), this.logger);
+        this.mcpServer = new MCPHttpServer<TContext>(this.userConfig, this.setupServer.bind(this), this.logger);
         await this.mcpServer.start();
     }
 
@@ -178,12 +178,12 @@ abstract class ExpressBasedHttpServer {
     }
 }
 
-class MCPHttpServer extends ExpressBasedHttpServer {
+class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
     private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
 
     constructor(
         private readonly userConfig: UserConfig,
-        private readonly setupMcpServer: (requestContext: RequestContext) => Promise<Server>,
+        private readonly setupMcpServer: (requestContext: RequestContext) => Promise<Server<TContext>>,
         logger: LoggerBase
     ) {
         super({
