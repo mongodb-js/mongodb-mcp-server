@@ -171,9 +171,8 @@
     "oauth4webapi": "^3.8.0",
     "openapi-fetch": "^0.15.0",
     "ts-levenshtein": "^1.0.7",
-    "yaml": "^2.8.1",
-    "yargs-parser": "^22.0.0",
     "voyage-ai-provider": "^3.0.0",
+    "yaml": "^2.8.1",
     "zod": "^3.25.76"
   },
   "engines": {

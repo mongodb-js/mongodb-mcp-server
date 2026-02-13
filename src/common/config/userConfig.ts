@@ -274,5 +274,4 @@ export const UserConfigSchema = z4.object({
 
 export type UserConfig = z4.infer<typeof UserConfigSchema>;
 
-/* eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion */
 export const ALL_CONFIG_KEYS = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];
