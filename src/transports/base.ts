@@ -1,7 +1,7 @@
 import type { UserConfig } from "../common/config/userConfig.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { Server, type ServerOptions } from "../server.js";
-import { Session } from "../common/session.js";
+import { Session, type SessionOptions } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "../common/logger.js";
@@ -9,7 +9,7 @@ import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Keychain } from "../common/keychain.js";
-import { createMCPConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
+import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import {
     type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
@@ -21,10 +21,14 @@ import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { ApiClient, ApiClientFactoryFn } from "../common/atlas/apiClient.js";
-import { createAtlasApiClient } from "../common/atlas/apiClient.js";
+import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 
+/**
+ * Request context containing HTTP headers and query parameters.
+ * This type is primarily used by HTTP-based transports.
+ */
 export type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
@@ -89,6 +93,7 @@ export type TransportRunnerConfig<TContext = unknown> = {
     userConfig: UserConfig;
 
     /**
+     * @deprecated Use `createServer({ sessionOptions: {connectionManager: MyCustomConnectionManager} })` instead
      * An optional factory function to generates an instance of
      * `ConnectionManager`. When not provided, MongoDB MCP Server uses an
      * internal implementation to manage connection to MongoDB deployments.
@@ -98,20 +103,11 @@ export type TransportRunnerConfig<TContext = unknown> = {
      */
     createConnectionManager?: ConnectionManagerFactoryFn;
 
-    /**
-     * An optional function to handle connection related errors. When not
-     * provided, MongoDB MCP Server uses an internal implementation to handle
-     * the errors raised by internal implementation of `ConnectionManager`
-     * class.
-     *
-     * Customize this only if you need to handle the Connection errors different
-     * from the internal implementation or if you have provided a different
-     * implementation of `ConnectionManager` that might raise errors unknown to
-     * default internal connection error handler.
-     */
+    /** @deprecated Use `createServer({ serverOptions: {connectionErrorHandler: MyCustomConnectionErrorHandler} })` instead */
     connectionErrorHandler?: ConnectionErrorHandler;
 
     /**
+     * @deprecated Use `createServer({ sessionOptions: {atlasLocalClient: MyCustomAtlasLocalClient} })` instead
      * An optional factory function to create a client for working with Atlas
      * local deployments. When not provided, MongoDB MCP Server uses an internal
      * implementation to create the local Atlas client.
@@ -135,64 +131,16 @@ export type TransportRunnerConfig<TContext = unknown> = {
      */
     telemetryProperties?: Partial<CommonProperties>;
 
-    /**
-     * An optional list of tools constructors to be registered to the MongoDB
-     * MCP Server.
-     *
-     * When not provided, MongoDB MCP Server will register all internal tools.
-     * When specified, **only** the tools in this list will be registered.
-     *
-     * This allows you to:
-     * - Register only custom tools (excluding all internal tools)
-     * - Register a subset of internal tools alongside custom tools
-     * - Register all internal tools plus custom tools
-     *
-     * To include internal tools, import them from `mongodb-mcp-server/tools`:
-     *
-     * ```typescript
-     * import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
-     *
-     * // Register all internal tools plus custom tools
-     * tools: [...AllTools, MyCustomTool]
-     *
-     * // Register only specific MongoDB tools plus custom tools
-     * tools: [AggregateTool, FindTool, MyCustomTool]
-     *
-     * // Register all internal tools of mongodb category
-     * tools: [AllTools.filter((tool) => tool.category === "mongodb")]
-     * ```
-     *
-     * Note: Ensure that each tool has unique names otherwise the server will
-     * throw an error when initializing an MCP Client session. If you're using
-     * only the internal tools, then you don't have to worry about it unless,
-     * you've overridden the tool names.
-     *
-     * To ensure that you provide compliant tool implementations extend your
-     * tool implementation using `ToolBase` class and ensure that they conform
-     * to `ToolClass` type.
-     *
-     * @see {@link ToolClass} for the type that tool classes must conform to
-     * @see {@link ToolBase} for base class for all the tools
-     */
+    /** @deprecated Use `createServer({ serverOptions: {tools: [...AllTools, MyCustomTool]} })` instead */
     tools?: ToolClass[];
 
     /**
-     * An optional function to hook into session configuration lifecycle and
-     * provide session specific configuration (`UserConfig`).
-     *
-     * The function is called before each session is created, allowing you to:
-     * - Fetch configuration from external sources (secrets managers, APIs)
-     * - Apply user-specific permissions and limits
-     * - Modify connection strings dynamically
-     * - Validate authentication credentials
-     *
-     * This function is called for each new MCP client connection. For stdio
-     * transport, this is called once at server startup. For HTTP transport,
-     * this is called for each new session.
+     * @deprecated This method will be removed in a future version. Use `createServer({ serverOptions: {userConfig: MyCustomUserConfig} })` instead.
      */
     createSessionConfig?: CreateSessionConfigFn;
 
     /**
+     * @deprecated Use `createServer({ sessionOptions: {apiClient: MyCustomApiClient} })` instead
      * An optional factory function to generates an instance of
      * `ApiClient`. When not provided, MongoDB MCP Server uses an
      * internal implementation to create the API client.
@@ -202,34 +150,7 @@ export type TransportRunnerConfig<TContext = unknown> = {
      */
     createApiClient?: ApiClientFactoryFn;
 
-    /**
-     * Optional custom context object that will be passed to all tools.
-     *
-     * This context is available to tools via `this.toolContext` and can contain
-     * any data you want to share across tool executions, such as:
-     * - User authentication/authorization data
-     * - Tenant or organization IDs
-     * - Feature flags or configuration
-     * - Session-specific metadata
-     *
-     * @example
-     * ```typescript
-     * interface MyContext {
-     *   tenantId: string;
-     *   userId: string;
-     *   features: { newUI: boolean };
-     * }
-     *
-     * const runner = new StreamableHttpRunner<MyContext>({
-     *   userConfig: { ... },
-     *   toolContext: {
-     *     tenantId: "my-tenant",
-     *     userId: "user-123",
-     *     features: { newUI: true },
-     *   },
-     * });
-     * ```
-     */
+    /** @deprecated Use `createServer({ serverOptions: {toolContext: MyCustomToolContext} })` instead */
     toolContext?: TContext;
 };
 
@@ -237,26 +158,30 @@ export abstract class TransportRunnerBase<TContext = unknown> {
     public logger: LoggerBase;
     public deviceId: DeviceId;
     protected readonly userConfig: UserConfig;
-    private readonly createConnectionManager: ConnectionManagerFactoryFn;
-    private readonly connectionErrorHandler: ConnectionErrorHandler;
-    private readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
-    private readonly telemetryProperties: Partial<CommonProperties>;
-    private readonly tools?: ToolClass[];
-    private readonly createSessionConfig?: CreateSessionConfigFn;
-    private readonly createApiClient: ApiClientFactoryFn;
-    private readonly toolContext?: TContext;
+    /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
+    protected readonly createConnectionManager: ConnectionManagerFactoryFn;
+    /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
+    protected readonly connectionErrorHandler: ConnectionErrorHandler;
+    /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
+    protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
+    protected readonly telemetryProperties: Partial<CommonProperties>;
+    /** @deprecated This field will be removed in a future version. Use `createServer` instead. */
+    protected readonly tools?: ToolClass[];
+    /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
+    protected readonly createSessionConfig?: CreateSessionConfigFn;
+    /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
+    protected readonly createApiClient: ApiClientFactoryFn;
 
     protected constructor({
         userConfig,
-        createConnectionManager = createMCPConnectionManager,
+        createConnectionManager = defaultCreateConnectionManager,
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
         telemetryProperties = {},
         tools,
         createSessionConfig,
-        createApiClient = createAtlasApiClient,
-        toolContext,
+        createApiClient = defaultCreateApiClient,
     }: TransportRunnerConfig<TContext>) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
@@ -266,7 +191,6 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
-        this.toolContext = toolContext;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -291,22 +215,29 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         this.deviceId = DeviceId.create(this.logger);
     }
 
-    protected async setupServer(
-        request?: RequestContext,
-        {
-            serverOptions,
-        }: {
-            serverOptions?: Pick<ServerOptions<TContext>, "uiRegistry">;
-        } = {}
-    ): Promise<Server<TContext>> {
-        let userConfig: UserConfig = this.userConfig;
-
-        if (this.createSessionConfig) {
-            userConfig = await this.createSessionConfig({ userConfig, request });
-        } else {
-            userConfig = applyConfigOverrides({ baseConfig: this.userConfig, request });
-        }
-
+    /**
+     * Creates a new MCP server instance with the provided configuration.
+     * This method handles server instantiation but does NOT perform session config resolution.
+     *
+     * @param config - Configuration object containing userConfig and optional serverOptions
+     * @returns A configured Server instance
+     */
+    protected async createServer({
+        userConfig = this.userConfig,
+        serverOptions,
+        sessionOptions,
+        logger = new CompositeLogger(this.logger),
+    }: {
+        userConfig?: UserConfig;
+        logger?: CompositeLogger;
+        serverOptions?: Partial<
+            Pick<
+                ServerOptions<TContext>,
+                "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation"
+            >
+        >;
+        sessionOptions?: Partial<Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionManager">>;
+    } = {}): Promise<Server<TContext>> {
         const mcpServer = new McpServer(
             {
                 name: packageInfo.mcpServerName,
@@ -317,45 +248,41 @@ export abstract class TransportRunnerBase<TContext = unknown> {
             }
         );
 
-        const logger = new CompositeLogger(this.logger);
         const exportsManager = ExportsManager.init(userConfig, logger);
-        const connectionManager = await this.createConnectionManager({
-            logger,
-            userConfig,
-            deviceId: this.deviceId,
-        });
 
-        let apiClient: ApiClient | undefined;
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
-            apiClient = this.createApiClient(
-                {
-                    baseUrl: userConfig.apiBaseUrl,
-                    credentials: {
-                        clientId: userConfig.apiClientId,
-                        clientSecret: userConfig.apiClientSecret,
-                    },
-                    requestContext: request,
-                },
-                logger
-            );
-        }
+        const connectionManager =
+            sessionOptions?.connectionManager ??
+            (await this.createConnectionManager({ logger: this.logger, deviceId: this.deviceId, userConfig }));
+
+        const apiClient =
+            userConfig.apiClientId && userConfig.apiClientSecret
+                ? new ApiClient(
+                      {
+                          baseUrl: userConfig.apiBaseUrl,
+                          credentials: {
+                              clientId: userConfig.apiClientId,
+                              clientSecret: userConfig.apiClientSecret,
+                          },
+                      },
+                      this.logger
+                  )
+                : undefined;
 
         const session = new Session({
             userConfig,
-            atlasLocalClient: await this.createAtlasLocalClient({ logger }),
+            atlasLocalClient:
+                sessionOptions?.atlasLocalClient ?? (await this.createAtlasLocalClient({ logger: this.logger })),
             logger,
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            apiClient,
+            apiClient: sessionOptions?.apiClient ?? apiClient,
         });
 
         const telemetry = Telemetry.create(session, userConfig, this.deviceId, {
             commonProperties: this.telemetryProperties,
         });
-
-        const elicitation = new Elicitation({ server: mcpServer.server });
 
         let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;
         if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
@@ -368,11 +295,11 @@ export abstract class TransportRunnerBase<TContext = unknown> {
             session,
             telemetry,
             userConfig,
-            connectionErrorHandler: this.connectionErrorHandler,
-            elicitation,
-            tools: this.tools,
+            connectionErrorHandler: serverOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
+            elicitation: serverOptions?.elicitation ?? new Elicitation({ server: mcpServer.server }),
+            tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
-            toolContext: this.toolContext,
+            toolContext: serverOptions?.toolContext,
         });
 
         // We need to create the MCP logger after the server is constructed
@@ -384,7 +311,65 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         return result;
     }
 
-    abstract start(): Promise<void>;
+    /**
+     * @deprecated Remove all session hooks and use `createServer` or `StreamableHttpRunner.handleRequest` instead. This method will be removed in a future version.
+     *
+     * Creates a new MCP server instance and handles session config resolution.
+     * For new code, prefer using `createServer` with pre-resolved configuration.
+     */
+    protected async setupServer(
+        request?: RequestContext,
+        {
+            serverOptions,
+        }: {
+            serverOptions?: Partial<
+                Pick<
+                    ServerOptions<TContext>,
+                    "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation"
+                >
+            >;
+        } = {}
+    ): Promise<Server<TContext>> {
+        let userConfig: UserConfig = this.userConfig;
+
+        if (this.createSessionConfig) {
+            userConfig = await this.createSessionConfig({ userConfig, request });
+        } else {
+            userConfig = applyConfigOverrides({ baseConfig: this.userConfig, request });
+        }
+
+        return this.createServer({
+            userConfig,
+            serverOptions,
+            sessionOptions: {
+                connectionManager: await this.createConnectionManager({
+                    logger: this.logger,
+                    deviceId: this.deviceId,
+                    userConfig,
+                }),
+                atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),
+                apiClient: this.createApiClient(
+                    {
+                        baseUrl: userConfig.apiBaseUrl,
+                        credentials: {
+                            clientId: userConfig.apiClientId,
+                            clientSecret: userConfig.apiClientSecret,
+                        },
+                        requestContext: request,
+                    },
+                    this.logger
+                ),
+            },
+        });
+    }
+
+    abstract start({
+        serverOptions,
+        sessionOptions,
+    }: {
+        serverOptions?: ServerOptions<TContext>;
+        sessionOptions?: SessionOptions;
+    }): Promise<void>;
 
     abstract closeTransport(): Promise<void>;
 
@@ -396,7 +381,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         }
     }
 
-    private static getInstructions(config: UserConfig): string {
+    protected static getInstructions(config: UserConfig): string {
         let instructions = `
             This is the MongoDB MCP server.
         `;

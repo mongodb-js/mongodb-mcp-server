@@ -1,6 +1,6 @@
 import { ObjectId } from "bson";
 import type { ApiClient } from "./atlas/apiClient.js";
-import { createAtlasApiClient } from "./atlas/apiClient.js";
+import { defaultCreateApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger } from "./logger.js";
 import { LogId } from "./logger.js";
@@ -77,7 +77,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
         // Create default API client if not provided in the constructor and Atlas tools are enabled (credentials are provided)
         if (!this.apiClient && userConfig.apiClientId && userConfig.apiClientSecret) {
-            this.apiClient = createAtlasApiClient(
+            this.apiClient = defaultCreateApiClient(
                 {
                     baseUrl: userConfig.apiBaseUrl,
                     credentials: {

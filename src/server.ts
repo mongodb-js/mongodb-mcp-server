@@ -32,38 +32,47 @@ export interface ServerOptions<TContext = unknown> {
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
     /**
-     * Custom tool constructors to register with the server.
-     * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
+     * An optional list of tools constructors to be registered to the MongoDB
+     * MCP Server.
      *
-     * ```ts
-     * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
-     * class CustomTool extends ToolBase {
-     *     static toolName = "custom_tool";
-     *     static category: ToolCategory = "mongodb";
-     *     static operationType: OperationType = "read";
-     *     public description = "Custom tool description";
-     *     public argsShape = {};
-     *     protected async execute() {
-     *         return { content: [{ type: "text", text: "Result" }] };
-     *     }
-     *     protected resolveTelemetryMetadata() {
-     *         return {};
-     *     }
-     * }
-     * const server = new Server({
-     *     session: mySession,
-     *     userConfig: myUserConfig,
-     *     mcpServer: myMcpServer,
-     *     telemetry: myTelemetry,
-     *     elicitation: myElicitation,
-     *     connectionErrorHandler: myConnectionErrorHandler,
-     *     tools: [...AllTools, CustomTool],
-     * });
+     * When not provided, MongoDB MCP Server will register all internal tools.
+     * When specified, **only** the tools in this list will be registered.
+     *
+     * This allows you to:
+     * - Register only custom tools (excluding all internal tools)
+     * - Register a subset of internal tools alongside custom tools
+     * - Register all internal tools plus custom tools
+     *
+     * To include internal tools, import them from `mongodb-mcp-server/tools`:
+     *
+     * ```typescript
+     * import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
+     *
+     * // Register all internal tools plus custom tools
+     * tools: [...AllTools, MyCustomTool]
+     *
+     * // Register only specific MongoDB tools plus custom tools
+     * tools: [AggregateTool, FindTool, MyCustomTool]
+     *
+     * // Register all internal tools of mongodb category
+     * tools: [AllTools.filter((tool) => tool.category === "mongodb")]
      * ```
+     *
+     * Note: Ensure that each tool has unique names otherwise the server will
+     * throw an error when initializing an MCP Client session. If you're using
+     * only the internal tools, then you don't have to worry about it unless,
+     * you've overridden the tool names.
+     *
+     * To ensure that you provide compliant tool implementations extend your
+     * tool implementation using `ToolBase` class and ensure that they conform
+     * to `ToolClass` type.
+     *
+     * @see {@link ToolClass} for the type that tool classes must conform to
+     * @see {@link ToolBase} for base class for all the tools
      */
     tools?: ToolClass[];
     /**
-     * This context is available to tools via `this.toolContext` and can contain
+     * This context is available to tools via `this.context` and can contain
      * any data you want to pass to tools definitions.
      *
      * @example
