@@ -22,7 +22,7 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
     private mcpServer: MCPHttpServer<TContext> | undefined;
     private healthCheckServer: HealthCheckServer | undefined;
 
-    constructor(config: TransportRunnerConfig<TContext>) {
+    constructor(config: TransportRunnerConfig) {
         super(config);
     }
 

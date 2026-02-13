@@ -7,7 +7,7 @@ import type { SessionOptions } from "../lib.js";
 export class StdioRunner<TContext = unknown> extends TransportRunnerBase<TContext> {
     private server: Server<TContext> | undefined;
 
-    constructor(config: TransportRunnerConfig<TContext>) {
+    constructor(config: TransportRunnerConfig) {
         super(config);
     }
 
