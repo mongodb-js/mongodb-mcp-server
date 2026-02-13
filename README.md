@@ -3,6 +3,8 @@
 
 # MongoDB MCP Server
 
+[![AgentAudit Security: Safe](https://img.shields.io/badge/AgentAudit-Safe-brightgreen?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZD0iTTEyIDFMMy41IDUuNzVWMTEuNUM1LjQgMTkuNDUgMTIgMjMgMTIgMjNTMTguNiAxOS40NSAyMC41IDExLjVWNS43NUwxMiAxek0xMC42IDE2LjVMNi4zNSAxMi4yNUw3Ljc2IDEwLjg0TDEwLjYgMTMuNjdMMTYuMjQgOC4wMkwxNy42NSA5LjQzTDEwLjYgMTYuNXoiLz48L3N2Zz4=)](https://www.agentaudit.dev/audit/mongodb-mcp-server)
+
 A Model Context Protocol server for interacting with MongoDB Databases and MongoDB Atlas.
 
 ## 📚 Table of Contents
