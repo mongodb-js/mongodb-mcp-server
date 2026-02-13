@@ -72,29 +72,6 @@ export interface ServerOptions<TContext = unknown> {
      */
     tools?: ToolClass[];
     /**
-     * This context is available to tools via `this.context` and can contain
-     * any data you want to pass to tools definitions.
-     *
-     * @example
-     * ```typescript
-     * interface MyContext {
-     *   tenantId: string;
-     *   userId: string;
-     *   features: { newUI: boolean };
-     * }
-     *
-     * const server = new Server<MyContext>({
-     *   // ... other options
-     *   toolContext: {
-     *     tenantId: "my-tenant",
-     *     userId: "user-123",
-     *     features: { newUI: true },
-     *   },
-     * });
-     * ```
-     */
-    tools?: ToolClass[];
-    /**
      * This context is available to tools via `this.toolContext` and can contain
      * any data you want to pass to tools definitions.
      *
