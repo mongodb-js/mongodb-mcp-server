@@ -66,8 +66,10 @@ type CreateSessionConfigFn = (context: {
  * advanced use-cases (such as embedding the MCP server in another application
  * or supporting custom authentication flows) may require customizing other
  * `TransportRunnerConfig` options as well.
+ *
+ * @template TContext - The type of the custom tool context object
  */
-export type TransportRunnerConfig = {
+export type TransportRunnerConfig<TContext = unknown> = {
     /**
      * Base user configuration for the server.
      *
@@ -199,9 +201,39 @@ export type TransportRunnerConfig = {
      * differently and outside of MongoDB MCP server.
      */
     createApiClient?: ApiClientFactoryFn;
+
+    /**
+     * Optional custom context object that will be passed to all tools.
+     *
+     * This context is available to tools via `this.toolContext` and can contain
+     * any data you want to share across tool executions, such as:
+     * - User authentication/authorization data
+     * - Tenant or organization IDs
+     * - Feature flags or configuration
+     * - Session-specific metadata
+     *
+     * @example
+     * ```typescript
+     * interface MyContext {
+     *   tenantId: string;
+     *   userId: string;
+     *   features: { newUI: boolean };
+     * }
+     *
+     * const runner = new StreamableHttpRunner<MyContext>({
+     *   userConfig: { ... },
+     *   toolContext: {
+     *     tenantId: "my-tenant",
+     *     userId: "user-123",
+     *     features: { newUI: true },
+     *   },
+     * });
+     * ```
+     */
+    toolContext?: TContext;
 };
 
-export abstract class TransportRunnerBase {
+export abstract class TransportRunnerBase<TContext = unknown> {
     public logger: LoggerBase;
     public deviceId: DeviceId;
     protected readonly userConfig: UserConfig;
@@ -212,6 +244,7 @@ export abstract class TransportRunnerBase {
     private readonly tools?: ToolClass[];
     private readonly createSessionConfig?: CreateSessionConfigFn;
     private readonly createApiClient: ApiClientFactoryFn;
+    private readonly toolContext?: TContext;
 
     protected constructor({
         userConfig,
@@ -223,7 +256,8 @@ export abstract class TransportRunnerBase {
         tools,
         createSessionConfig,
         createApiClient = createAtlasApiClient,
-    }: TransportRunnerConfig) {
+        toolContext,
+    }: TransportRunnerConfig<TContext>) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
@@ -232,6 +266,7 @@ export abstract class TransportRunnerBase {
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
+        this.toolContext = toolContext;
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -261,9 +296,9 @@ export abstract class TransportRunnerBase {
         {
             serverOptions,
         }: {
-            serverOptions?: Pick<ServerOptions, "uiRegistry">;
+            serverOptions?: Pick<ServerOptions<TContext>, "uiRegistry">;
         } = {}
-    ): Promise<Server> {
+    ): Promise<Server<TContext>> {
         let userConfig: UserConfig = this.userConfig;
 
         if (this.createSessionConfig) {
@@ -337,6 +372,7 @@ export abstract class TransportRunnerBase {
             elicitation,
             tools: this.tools,
             uiRegistry,
+            toolContext: this.toolContext,
         });
 
         // We need to create the MCP logger after the server is constructed

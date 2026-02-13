@@ -23,7 +23,7 @@ import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "./ui/registry/index.js";
 
-export interface ServerOptions {
+export interface ServerOptions<TContext = unknown> {
     session: Session;
     userConfig: UserConfig;
     mcpServer: McpServer;
@@ -62,9 +62,32 @@ export interface ServerOptions {
      * ```
      */
     tools?: ToolClass[];
+    /**
+     * This context is available to tools via `this.toolContext` and can contain
+     * any data you want to pass to tools definitions.
+     *
+     * @example
+     * ```typescript
+     * interface MyContext {
+     *   tenantId: string;
+     *   userId: string;
+     *   features: { newUI: boolean };
+     * }
+     *
+     * const server = new Server<MyContext>({
+     *   // ... other options
+     *   toolContext: {
+     *     tenantId: "my-tenant",
+     *     userId: "user-123",
+     *     features: { newUI: true },
+     *   },
+     * });
+     * ```
+     */
+    toolContext?: TContext;
 }
 
-export class Server {
+export class Server<TContext = unknown> {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
@@ -74,6 +97,7 @@ export class Server {
     public readonly tools: ToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
+    public readonly toolContext?: TContext;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -93,7 +117,8 @@ export class Server {
         elicitation,
         tools,
         uiRegistry,
-    }: ServerOptions) {
+        toolContext,
+    }: ServerOptions<TContext>) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
@@ -103,6 +128,7 @@ export class Server {
         this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = uiRegistry;
+        this.toolContext = toolContext;
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -267,6 +293,7 @@ export class Server {
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
                 uiRegistry: this.uiRegistry,
+                context: this.toolContext,
             });
             if (tool.register(this)) {
                 this.tools.push(tool);
