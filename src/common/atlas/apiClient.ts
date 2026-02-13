@@ -25,7 +25,7 @@ type RequestContext = {
 
 export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
 
-export const createAtlasApiClient: ApiClientFactoryFn = (options, logger) => {
+export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
     return new ApiClient(options, logger);
 };
 

@@ -17,14 +17,18 @@ export function parseArgsWithCliOptions(cliArguments: string[]): {
     });
 }
 
-export { LoggerBase, type LogPayload, type LoggerType, type LogLevel } from "./common/logger.js";
+import { defaultCreateConnectionManager } from "./common/connectionManager.js";
+/** @deprecated Use `defaultCreateConnectionManager` instead. */
+const createMCPConnectionManager = defaultCreateConnectionManager;
+export { createMCPConnectionManager, defaultCreateConnectionManager };
+
+export { LoggerBase, type LogPayload, type LoggerType, type LogLevel, CompositeLogger } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
 export { TransportRunnerBase, type TransportRunnerConfig } from "./transports/base.js";
 export {
     ConnectionManager,
     ConnectionStateConnected,
-    createMCPConnectionManager,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateDisconnected,
