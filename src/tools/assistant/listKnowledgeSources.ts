@@ -3,6 +3,7 @@ import { formatUntrustedData, type OperationType, type ToolCategory } from "../t
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
 import { stringify as yamlStringify } from "yaml";
+import { SearchKnowledgeTool } from "./searchKnowledge.js";
 
 export type KnowledgeSource = {
     /** The name of the data source */
@@ -28,7 +29,7 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
     static toolName = ListKnowledgeSourcesToolName;
     static category: ToolCategory = "assistant";
     static operationType: OperationType = "read";
-    public description = "List available data sources in the MongoDB Assistant knowledge base";
+    public description = `List available data sources in the MongoDB Assistant knowledge base. Use this to explore available data sources or to find search filter parameters to use in ${SearchKnowledgeTool.toolName}.`;
     public argsShape = {};
 
     protected async execute(): Promise<CallToolResult> {

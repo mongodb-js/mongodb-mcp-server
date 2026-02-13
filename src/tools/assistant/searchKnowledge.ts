@@ -45,8 +45,10 @@ export type SearchKnowledgeResponse = {
     }[];
 };
 
+export const SearchKnowledgeToolName = "search-knowledge";
+
 export class SearchKnowledgeTool extends AssistantToolBase {
-    static toolName = "search-knowledge";
+    static toolName = SearchKnowledgeToolName;
     static category: ToolCategory = "assistant";
     static operationType: OperationType = "read";
     public description = "Search for information in the MongoDB Assistant knowledge base";
