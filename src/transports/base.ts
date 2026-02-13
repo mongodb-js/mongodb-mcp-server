@@ -73,7 +73,7 @@ type CreateSessionConfigFn = (context: {
  *
  * @template TContext - The type of the custom tool context object
  */
-export type TransportRunnerConfig<TContext = unknown> = {
+export type TransportRunnerConfig = {
     /**
      * Base user configuration for the server.
      *
@@ -149,9 +149,6 @@ export type TransportRunnerConfig<TContext = unknown> = {
      * differently and outside of MongoDB MCP server.
      */
     createApiClient?: ApiClientFactoryFn;
-
-    /** @deprecated Use `createServer({ serverOptions: {toolContext: MyCustomToolContext} })` instead */
-    toolContext?: TContext;
 };
 
 export abstract class TransportRunnerBase<TContext = unknown> {
@@ -182,7 +179,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         tools,
         createSessionConfig,
         createApiClient = defaultCreateApiClient,
-    }: TransportRunnerConfig<TContext>) {
+    }: TransportRunnerConfig) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;

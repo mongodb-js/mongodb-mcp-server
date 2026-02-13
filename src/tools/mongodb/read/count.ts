@@ -55,7 +55,6 @@ export class CountTool extends MongoDBToolBase {
         }
 
         const count = await provider.countDocuments(database, collection, query, {
-            // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
             signal,
         });
 
