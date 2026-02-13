@@ -76,7 +76,6 @@ export class ExportTool extends MongoDBToolBase {
                 limit,
                 promoteValues: false,
                 bsonRegExp: true,
-                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                 signal,
             });
         } else {
@@ -85,7 +84,6 @@ export class ExportTool extends MongoDBToolBase {
                 promoteValues: false,
                 bsonRegExp: true,
                 allowDiskUse: true,
-                // @ts-expect-error signal is available in the driver but not NodeDriverServiceProvider MONGOSH-3142
                 signal,
             });
         }
