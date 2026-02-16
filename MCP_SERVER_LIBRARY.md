@@ -314,27 +314,6 @@ class CustomStreamableHttpRunner extends StreamableHttpRunner {
     // Create the server with the session-specific configuration
     return this.createServer({
       userConfig: sessionConfig,
-      sessionOptions: {
-        connectionManager: await this.createConnectionManager({
-          logger: this.logger,
-          deviceId: this.deviceId,
-          userConfig: sessionConfig,
-        }),
-        atlasLocalClient: await this.createAtlasLocalClient({
-          logger: this.logger,
-        }),
-        apiClient: this.createApiClient(
-          {
-            baseUrl: sessionConfig.apiBaseUrl,
-            credentials: {
-              clientId: sessionConfig.apiClientId,
-              clientSecret: sessionConfig.apiClientSecret,
-            },
-            requestContext: request,
-          },
-          this.logger
-        ),
-      },
     });
   }
 }
