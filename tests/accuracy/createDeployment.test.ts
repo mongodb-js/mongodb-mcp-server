@@ -27,6 +27,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
+                    mdbVersion: "preview",
                 },
             },
         ],
@@ -44,6 +45,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
+                    mdbVersion: "preview",
                 },
             },
         ],
@@ -61,6 +63,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
+                    mdbVersion: "preview",
                 },
             },
         ],
@@ -77,6 +80,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
+                    mdbVersion: "preview",
                 },
             },
         ],
@@ -98,6 +102,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "new-database",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
+                    mdbVersion: "preview",
                 },
             },
         ],
@@ -137,6 +142,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "sample-cluster",
                     loadSampleData: true,
+                    mdbVersion: "preview",
                 },
             },
         ],
@@ -154,6 +160,39 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "empty-cluster",
                     loadSampleData: false,
+                    mdbVersion: "preview",
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Create a local MongoDB cluster named 'stable-cluster'. Do not use the preview image, use latest instead",
+        mockedTools: {
+            "atlas-local-create-deployment": mockCreateDeploymentResponse("stable-cluster"),
+        },
+        expectedToolCalls: [
+            {
+                toolName: "atlas-local-create-deployment",
+                parameters: {
+                    deploymentName: "stable-cluster",
+                    loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
+                    mdbVersion: "latest",
+                },
+            },
+        ],
+    },
+    {
+        prompt: "Create a local MongoDB deployment named 'v7-cluster' with MongoDB version 7.0",
+        mockedTools: {
+            "atlas-local-create-deployment": mockCreateDeploymentResponse("v7-cluster"),
+        },
+        expectedToolCalls: [
+            {
+                toolName: "atlas-local-create-deployment",
+                parameters: {
+                    deploymentName: "v7-cluster",
+                    loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
+                    mdbVersion: Matcher.anyOf(Matcher.value("7.0"), Matcher.value("7.0.0")),
                 },
             },
         ],

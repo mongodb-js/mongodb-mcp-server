@@ -7,15 +7,23 @@ import z from "zod";
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-create-deployment";
-    public description = "Create a MongoDB Atlas local deployment";
+    public description =
+        "Create a MongoDB Atlas local deployment. When the user does not specify a version, inform them that the preview image is used by default. Image: https://hub.docker.com/r/mongodb/mongodb-atlas-local";
     static operationType: OperationType = "create";
     public argsShape = {
         deploymentName: CommonArgs.string().describe("Name of the deployment to create").optional(),
         loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
+        mdbVersion: z
+            .string()
+            .describe(
+                "MongoDB version for the Atlas Local image: 'latest', 'preview', or a semver (e.g. '8.0.0'). Default: 'preview'."
+            )
+            .optional()
+            .default("preview"),
     };
 
     protected async executeWithAtlasLocalClient(
-        { deploymentName, loadSampleData }: ToolArgs<typeof this.argsShape>,
+        { deploymentName, loadSampleData, mdbVersion }: ToolArgs<typeof this.argsShape>,
         { client }: { client: Client }
     ): Promise<CallToolResult> {
         const deploymentOptions: CreateDeploymentOptions = {
@@ -25,6 +33,8 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
                 source: "MCPServer",
             },
             loadSampleData,
+            mongodbVersion: mdbVersion,
+            ...(this.config.voyageApiKey ? { voyageApiKey: this.config.voyageApiKey } : {}),
             doNotTrack: !this.telemetry.isTelemetryEnabled(),
         };
         // Create the deployment
