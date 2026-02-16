@@ -28,7 +28,7 @@ export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
 export { LoggerBase, type LogPayload, type LoggerType, type LogLevel, CompositeLogger } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
-export { TransportRunnerBase, type TransportRunnerConfig } from "./transports/base.js";
+export { TransportRunnerBase, type TransportRunnerConfig, type CustomizableServerOptions } from "./transports/base.js";
 export {
     ConnectionManager,
     ConnectionStateConnected,

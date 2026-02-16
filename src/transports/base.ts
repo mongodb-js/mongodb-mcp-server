@@ -34,6 +34,12 @@ export type RequestContext = {
     query?: Record<string, string | string[] | undefined>;
 };
 
+export type CustomizableServerOptions<TContext = unknown> = Partial<
+    Pick<ServerOptions<TContext>, "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation">
+> & {
+    telemetryProperties?: Partial<CommonProperties>;
+};
+
 /**
  * A function to dynamically generate `UserConfig` object, potentially unique to
  * each MCP client session.
@@ -228,14 +234,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
     }: {
         userConfig?: UserConfig;
         logger?: CompositeLogger;
-        serverOptions?: Partial<
-            Pick<
-                ServerOptions<TContext>,
-                "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation"
-            >
-        > & {
-            telemetryProperties?: Partial<CommonProperties>;
-        };
+        serverOptions?: CustomizableServerOptions<TContext>;
         sessionOptions?: Partial<Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionManager">>;
     } = {}): Promise<Server<TContext>> {
         const mcpServer = new McpServer(
@@ -312,7 +311,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
     }
 
     /**
-     * @deprecated Remove all session hooks and use `createServer` or `StreamableHttpRunner.handleRequest` instead. This method will be removed in a future version.
+     * @deprecated Remove all session hooks and use `start({serverOptions, sessionOptions})` or override `StreamableHttpRunner.createServerForRequest` instead. This method will be removed in a future version.
      *
      * Creates a new MCP server instance and handles session config resolution.
      * For new code, prefer using `createServer` with pre-resolved configuration.
@@ -322,12 +321,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         {
             serverOptions,
         }: {
-            serverOptions?: Partial<
-                Pick<
-                    ServerOptions<TContext>,
-                    "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation"
-                >
-            >;
+            serverOptions?: CustomizableServerOptions<TContext>;
         } = {}
     ): Promise<Server<TContext>> {
         let userConfig: UserConfig = this.userConfig;
