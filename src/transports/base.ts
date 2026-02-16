@@ -345,17 +345,20 @@ export abstract class TransportRunnerBase<TContext = unknown> {
                     userConfig,
                 }),
                 atlasLocalClient: await this.createAtlasLocalClient({ logger: this.logger }),
-                apiClient: this.createApiClient(
-                    {
-                        baseUrl: userConfig.apiBaseUrl,
-                        credentials: {
-                            clientId: userConfig.apiClientId,
-                            clientSecret: userConfig.apiClientSecret,
-                        },
-                        requestContext: request,
-                    },
-                    this.logger
-                ),
+                apiClient:
+                    userConfig.apiClientId && userConfig.apiClientSecret
+                        ? this.createApiClient(
+                              {
+                                  baseUrl: userConfig.apiBaseUrl,
+                                  credentials: {
+                                      clientId: userConfig.apiClientId,
+                                      clientSecret: userConfig.apiClientSecret,
+                                  },
+                                  requestContext: request,
+                              },
+                              this.logger
+                          )
+                        : undefined,
             },
         });
     }
