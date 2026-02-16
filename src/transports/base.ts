@@ -161,6 +161,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
     protected readonly connectionErrorHandler: ConnectionErrorHandler;
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
+    /** @deprecated This field will be removed in a future version. Use `createServer` instead. */
     protected readonly telemetryProperties: Partial<CommonProperties>;
     /** @deprecated This field will be removed in a future version. Use `createServer` instead. */
     protected readonly tools?: ToolClass[];
@@ -232,7 +233,9 @@ export abstract class TransportRunnerBase<TContext = unknown> {
                 ServerOptions<TContext>,
                 "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation"
             >
-        >;
+        > & {
+            telemetryProperties?: Partial<CommonProperties>;
+        };
         sessionOptions?: Partial<Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionManager">>;
     } = {}): Promise<Server<TContext>> {
         const mcpServer = new McpServer(
@@ -278,7 +281,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         });
 
         const telemetry = Telemetry.create(session, userConfig, this.deviceId, {
-            commonProperties: this.telemetryProperties,
+            commonProperties: serverOptions?.telemetryProperties ?? this.telemetryProperties,
         });
 
         let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;
