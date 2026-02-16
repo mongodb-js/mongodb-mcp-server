@@ -26,11 +26,14 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
         super(config);
     }
 
+    /** Starts the transport runner. */
     async start({
         serverOptions,
         sessionOptions,
     }: {
+        /** Server options to use when creating the server. */
         serverOptions?: ServerOptions<TContext>;
+        /** Session options to use when creating the session. */
         sessionOptions?: SessionOptions;
     } = {}): Promise<void> {
         this.validateConfig();
@@ -64,22 +67,23 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
         sessionOptions,
     }: {
         request: RequestContext;
+        /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
         serverOptions?: ServerOptions<TContext>;
+        /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
         sessionOptions?: SessionOptions;
     }): Promise<Server<TContext>> {
-        let userConfig: UserConfig = this.userConfig;
+        let userConfig: UserConfig = sessionOptions?.userConfig ?? this.userConfig;
 
         if (this.createSessionConfig) {
             userConfig = await this.createSessionConfig({ userConfig, request });
         } else {
-            userConfig = applyConfigOverrides({ baseConfig: this.userConfig, request });
+            userConfig = applyConfigOverrides({ baseConfig: userConfig, request });
         }
 
         const logger = new CompositeLogger(this.logger);
 
         return this.createServer({
             logger,
-            userConfig,
             serverOptions: {
                 connectionErrorHandler: this.connectionErrorHandler,
                 tools: this.tools,
@@ -257,18 +261,32 @@ abstract class ExpressBasedHttpServer {
 
 class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
     private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
-
+    private serverOptions?: ServerOptions<TContext>;
+    private sessionOptions?: SessionOptions;
     private userConfig: UserConfig;
-    private createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TContext>>;
+
+    private createServerForRequest: ({
+        request,
+        serverOptions,
+        sessionOptions,
+    }: {
+        request: RequestContext;
+        serverOptions?: ServerOptions<TContext>;
+        sessionOptions?: SessionOptions;
+    }) => Promise<Server<TContext>>;
 
     constructor({
         userConfig,
         createServerForRequest,
+        serverOptions,
+        sessionOptions,
         logger,
     }: {
         userConfig: UserConfig;
         createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TContext>>;
         logger: LoggerBase;
+        serverOptions?: ServerOptions<TContext>;
+        sessionOptions?: SessionOptions;
     }) {
         super({
             port: userConfig.httpPort,
@@ -276,8 +294,10 @@ class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
             logger,
             logContext: "mcpHttpServer",
         });
-        this.userConfig = userConfig;
+        this.serverOptions = serverOptions;
+        this.sessionOptions = sessionOptions;
         this.createServerForRequest = createServerForRequest;
+        this.userConfig = userConfig;
     }
 
     public async stop(): Promise<void> {
@@ -397,7 +417,11 @@ class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
                 headers: req.headers as Record<string, string | string[] | undefined>,
                 query: req.query as Record<string, string | string[] | undefined>,
             };
-            const server = await this.createServerForRequest({ request });
+            const server = await this.createServerForRequest({
+                request,
+                serverOptions: this.serverOptions,
+                sessionOptions: this.sessionOptions,
+            });
 
             const options: WebStandardStreamableHTTPServerTransportOptions = {
                 enableJsonResponse: this.userConfig.httpResponseType === "json",

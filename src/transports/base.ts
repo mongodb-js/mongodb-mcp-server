@@ -37,6 +37,11 @@ export type RequestContext = {
 export type CustomizableServerOptions<TContext = unknown> = Partial<
     Pick<ServerOptions<TContext>, "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation">
 > & {
+    /**
+     * An optional key value pair of telemetry properties that are reported to
+     * the telemetry backend. Most, if not all, of the properties are captured
+     * automatically.
+     */
     telemetryProperties?: Partial<CommonProperties>;
 };
 
@@ -131,9 +136,7 @@ export type TransportRunnerConfig = {
     additionalLoggers?: LoggerBase[];
 
     /**
-     * An optional key value pair of telemetry properties that are reported to
-     * the telemetry backend. Most, if not all, of the properties are captured
-     * automatically.
+     * @deprecated This field will be removed in a future version. Use `createServer({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead.
      */
     telemetryProperties?: Partial<CommonProperties>;
 
@@ -160,6 +163,7 @@ export type TransportRunnerConfig = {
 export abstract class TransportRunnerBase<TContext = unknown> {
     public logger: LoggerBase;
     public deviceId: DeviceId;
+    /** @deprecated This field will be removed in a future version. Use `start({ userConfig: MyCustomUserConfig })` or `createServer({ userConfig: MyCustomUserConfig})` instead. */
     protected readonly userConfig: UserConfig;
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createConnectionManager: ConnectionManagerFactoryFn;
@@ -167,9 +171,9 @@ export abstract class TransportRunnerBase<TContext = unknown> {
     protected readonly connectionErrorHandler: ConnectionErrorHandler;
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
-    /** @deprecated This field will be removed in a future version. Use `createServer` instead. */
+    /** @deprecated This field will be removed in a future version. Use `start({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead. */
     protected readonly telemetryProperties: Partial<CommonProperties>;
-    /** @deprecated This field will be removed in a future version. Use `createServer` instead. */
+    /** @deprecated This field will be removed in a future version. Use `start({ serverOptions: {tools: [...AllTools, MyCustomTool]} })` instead. */
     protected readonly tools?: ToolClass[];
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createSessionConfig?: CreateSessionConfigFn;
@@ -364,7 +368,9 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         serverOptions,
         sessionOptions,
     }: {
+        /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
         serverOptions?: ServerOptions<TContext>;
+        /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
         sessionOptions?: SessionOptions;
     }): Promise<void>;
 
