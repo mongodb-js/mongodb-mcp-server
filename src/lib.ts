@@ -22,6 +22,9 @@ import { defaultCreateConnectionManager } from "./common/connectionManager.js";
 const createMCPConnectionManager = defaultCreateConnectionManager;
 export { createMCPConnectionManager, defaultCreateConnectionManager };
 
+export { defaultCreateApiClient } from "./common/atlas/apiClient.js";
+export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
+
 export { LoggerBase, type LogPayload, type LoggerType, type LogLevel, CompositeLogger } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
