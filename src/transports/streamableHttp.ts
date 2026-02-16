@@ -97,17 +97,19 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
                 atlasLocalClient: sessionOptions?.atlasLocalClient ?? (await this.createAtlasLocalClient({ logger })),
                 apiClient:
                     sessionOptions?.apiClient ??
-                    this.createApiClient(
-                        {
-                            baseUrl: userConfig.apiBaseUrl,
-                            credentials: {
-                                clientId: userConfig.apiClientId,
-                                clientSecret: userConfig.apiClientSecret,
-                            },
-                            requestContext: request,
-                        },
-                        logger
-                    ),
+                    (userConfig.apiClientId && userConfig.apiClientSecret
+                        ? this.createApiClient(
+                              {
+                                  baseUrl: userConfig.apiBaseUrl,
+                                  credentials: {
+                                      clientId: userConfig.apiClientId,
+                                      clientSecret: userConfig.apiClientSecret,
+                                  },
+                                  requestContext: request,
+                              },
+                              logger
+                          )
+                        : undefined),
             },
         });
     }
@@ -258,7 +260,6 @@ class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
 
     private userConfig: UserConfig;
     private createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TContext>>;
-    protected logger: LoggerBase;
 
     constructor({
         userConfig,
@@ -277,7 +278,6 @@ class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
         });
         this.userConfig = userConfig;
         this.createServerForRequest = createServerForRequest;
-        this.logger = logger;
     }
 
     public async stop(): Promise<void> {

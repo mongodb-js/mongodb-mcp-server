@@ -135,7 +135,7 @@ export type TransportRunnerConfig = {
     tools?: ToolClass[];
 
     /**
-     * @deprecated This method will be removed in a future version. Use `createServer({ serverOptions: {userConfig: MyCustomUserConfig} })` instead.
+     * @deprecated This method will be removed in a future version. Use `createServer({ userConfig: MyCustomUserConfig})` instead.
      */
     createSessionConfig?: CreateSessionConfigFn;
 
@@ -249,7 +249,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
 
         const connectionManager =
             sessionOptions?.connectionManager ??
-            (await this.createConnectionManager({ logger: this.logger, deviceId: this.deviceId, userConfig }));
+            (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
 
         const apiClient =
             userConfig.apiClientId && userConfig.apiClientSecret
@@ -261,7 +261,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
                               clientSecret: userConfig.apiClientSecret,
                           },
                       },
-                      this.logger
+                      logger
                   )
                 : undefined;
 
