@@ -34,6 +34,10 @@ export type RequestContext = {
     query?: Record<string, string | string[] | undefined>;
 };
 
+export type CustomizableSessionOptions = Partial<
+    Pick<SessionOptions, "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager">
+>;
+
 export type CustomizableServerOptions<TContext = unknown> = Partial<
     Pick<ServerOptions<TContext>, "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation">
 > & {
@@ -163,7 +167,7 @@ export type TransportRunnerConfig = {
 export abstract class TransportRunnerBase<TContext = unknown> {
     public logger: LoggerBase;
     public deviceId: DeviceId;
-    /** @deprecated This field will be removed in a future version. Use `start({ userConfig: MyCustomUserConfig })` or `createServer({ userConfig: MyCustomUserConfig})` instead. */
+    /** Base user configuration for the server. */
     protected readonly userConfig: UserConfig;
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createConnectionManager: ConnectionManagerFactoryFn;
@@ -239,7 +243,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
         userConfig?: UserConfig;
         logger?: CompositeLogger;
         serverOptions?: CustomizableServerOptions<TContext>;
-        sessionOptions?: Partial<Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionManager">>;
+        sessionOptions?: CustomizableSessionOptions;
     } = {}): Promise<Server<TContext>> {
         const mcpServer = new McpServer(
             {

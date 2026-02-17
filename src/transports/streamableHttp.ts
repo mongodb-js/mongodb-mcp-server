@@ -5,9 +5,14 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "../common/logger.js";
 import { CompositeLogger, LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
-import { TransportRunnerBase, type TransportRunnerConfig, type RequestContext } from "./base.js";
+import {
+    TransportRunnerBase,
+    type TransportRunnerConfig,
+    type RequestContext,
+    type CustomizableSessionOptions,
+} from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
-import type { Server, ServerOptions, SessionOptions, UserConfig } from "../lib.js";
+import type { CustomizableServerOptions, Server, ServerOptions, SessionOptions, UserConfig } from "../lib.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 
@@ -68,9 +73,9 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
     }: {
         request: RequestContext;
         /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
-        serverOptions?: ServerOptions<TContext>;
+        serverOptions?: CustomizableServerOptions<TContext>;
         /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
-        sessionOptions?: SessionOptions;
+        sessionOptions?: CustomizableSessionOptions;
     }): Promise<Server<TContext>> {
         let userConfig: UserConfig = sessionOptions?.userConfig ?? this.userConfig;
 
@@ -83,6 +88,7 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
         const logger = new CompositeLogger(this.logger);
 
         return this.createServer({
+            userConfig,
             logger,
             serverOptions: {
                 connectionErrorHandler: this.connectionErrorHandler,

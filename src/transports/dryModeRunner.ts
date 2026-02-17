@@ -1,7 +1,7 @@
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import { type CustomizableSessionOptions, TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 import { type Server } from "../server.js";
-import type { ServerOptions, SessionOptions } from "../lib.js";
+import type { CustomizableServerOptions } from "../lib.js";
 
 export type DryRunModeTestHelpers = {
     logger: {
@@ -25,10 +25,11 @@ export class DryRunModeRunner extends TransportRunnerBase {
         serverOptions,
         sessionOptions,
     }: {
-        serverOptions?: ServerOptions;
-        sessionOptions?: SessionOptions;
+        serverOptions?: CustomizableServerOptions;
+        sessionOptions?: CustomizableSessionOptions;
     } = {}): Promise<void> {
-        this.server = await this.createServer({ serverOptions, sessionOptions });
+        const userConfig = sessionOptions?.userConfig ?? this.userConfig;
+        this.server = await this.createServer({ userConfig, serverOptions, sessionOptions });
         const transport = new InMemoryTransport();
 
         await this.server.connect(transport);
