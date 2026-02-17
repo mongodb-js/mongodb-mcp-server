@@ -15,9 +15,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
         imageTag: z
             .string()
-            .describe(
-                "Atlas Local image tag: 'preview', 'latest', or a semver (e.g. '8.0.0'). Default: 'preview'."
-            )
+            .describe("Atlas Local image tag: 'preview', 'latest', or a semver (e.g. '8.0.0'). Default: 'preview'.")
             .optional()
             .default("preview"),
     };
