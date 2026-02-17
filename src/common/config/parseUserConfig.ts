@@ -5,7 +5,7 @@ import { matchingConfigKey } from "./configUtils.js";
 import { UserConfigSchema, type UserConfig } from "./userConfig.js";
 import {
     defaultParserOptions as defaultArgParserOptions,
-    parseArgsWithCliOptions,
+    createParseArgsWithCliOptions,
     CliOptionsSchema,
     UnknownArgumentError,
 } from "@mongosh/arg-parser/arg-parser";
@@ -110,10 +110,11 @@ function parseUserConfigSources<T extends typeof UserConfigSchema>({
     let parsed: Partial<CliOptions & z4.infer<T>>;
     let deprecated: Record<string, string>;
     try {
-        const { parsed: parsedResult, deprecated: deprecatedResult } = parseArgsWithCliOptions({
-            args,
+        const { parsed: parsedResult, deprecated: deprecatedResult } = createParseArgsWithCliOptions({
             schema,
             parserOptions,
+        })({
+            args,
         });
         parsed = parsedResult;
         deprecated = deprecatedResult as Record<string, string>;
