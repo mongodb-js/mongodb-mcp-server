@@ -11,6 +11,7 @@ import { VectorSearchEmbeddingsManager } from "../../../src/common/search/vector
 import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import { connectionErrorHandler as defaultConnectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
+import { defaultCreateApiClient } from "../../../src/lib.js";
 
 vi.mock("@mongosh/service-provider-node-driver");
 
@@ -37,6 +38,16 @@ describe("Session", () => {
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager: connectionManager,
             keychain: new Keychain(),
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: defaultTestConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: defaultTestConfig.apiClientId,
+                        clientSecret: defaultTestConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
             connectionErrorHandler: defaultConnectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         });

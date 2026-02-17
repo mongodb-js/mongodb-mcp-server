@@ -17,6 +17,7 @@ import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "../../../src/ui/index.js";
+import { defaultCreateApiClient } from "../../../src/lib.js";
 
 describeWithMongoDB(
     "mcpUI feature with feature disabled (default)",
@@ -184,6 +185,16 @@ describe("mcpUI feature with custom UIs", () => {
             connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         });
 
         const telemetry = Telemetry.create(session, userConfig, deviceId);

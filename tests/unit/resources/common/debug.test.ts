@@ -10,6 +10,7 @@ import { Keychain } from "../../../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultTestConfig } from "../../../integration/helpers.js";
 import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
+import { defaultCreateApiClient } from "../../../../src/lib.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -24,6 +25,16 @@ describe("debug resource", () => {
             connectionManager,
             keychain: new Keychain(),
             connectionErrorHandler,
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: defaultTestConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: defaultTestConfig.apiClientId,
+                        clientSecret: defaultTestConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         })
     );
