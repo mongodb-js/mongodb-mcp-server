@@ -21,7 +21,7 @@ import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import type { ToolClass } from "../tools/tool.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import { type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 
@@ -266,7 +266,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
 
         const apiClient =
             userConfig.apiClientId && userConfig.apiClientSecret
-                ? new ApiClient(
+                ? defaultCreateApiClient(
                       {
                           baseUrl: userConfig.apiBaseUrl,
                           credentials: {
@@ -276,7 +276,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
                       },
                       logger
                   )
-                : undefined;
+                : sessionOptions?.apiClient;
 
         const session = new Session({
             userConfig,
@@ -288,7 +288,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
             keychain: Keychain.root,
             connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            apiClient: sessionOptions?.apiClient ?? apiClient,
+            apiClient,
         });
 
         const telemetry = Telemetry.create(session, userConfig, this.deviceId, {
