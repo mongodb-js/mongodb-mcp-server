@@ -34,7 +34,7 @@ describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
         expectDefined(createDeployment.inputSchema.properties);
         expect(createDeployment.inputSchema.properties).toHaveProperty("deploymentName");
         expect(createDeployment.inputSchema.properties).toHaveProperty("loadSampleData");
-        expect(createDeployment.inputSchema.properties).toHaveProperty("mdbVersion");
+        expect(createDeployment.inputSchema.properties).toHaveProperty("imageTag");
     });
 
     it("should create a deployment when calling the tool", async () => {
@@ -156,7 +156,7 @@ describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
         // Create a deployment
         const createResponse = await integration.mcpClient().callTool({
             name: "atlas-local-create-deployment",
-            arguments: { deploymentName, mdbVersion: "preview" },
+            arguments: { deploymentName, imageTag: "preview" },
         });
 
         // Check the response contains the deployment name
@@ -170,14 +170,14 @@ describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
         expect((deployment as { voyageApiKey?: string }).voyageApiKey).toBe(voyageApiKey);
     });
 
-    it("should create a deployment with mdbVersion latest", async () => {
+    it("should create a deployment with imageTag latest", async () => {
         const deploymentName = `test-deployment-latest-${Date.now()}`;
         deploymentNamesToCleanup.push(deploymentName);
 
         // Create a deployment
         const createResponse = await integration.mcpClient().callTool({
             name: "atlas-local-create-deployment",
-            arguments: { deploymentName, mdbVersion: "latest" },
+            arguments: { deploymentName, imageTag: "latest" },
         });
 
         // Check the response contains the deployment name

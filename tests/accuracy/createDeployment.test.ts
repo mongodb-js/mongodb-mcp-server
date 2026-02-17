@@ -27,7 +27,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    mdbVersion: "preview",
+                    imageTag: "preview",
                 },
             },
         ],
@@ -45,7 +45,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    mdbVersion: "preview",
+                    imageTag: "preview",
                 },
             },
         ],
@@ -63,7 +63,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "local-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    mdbVersion: "preview",
+                    imageTag: "preview",
                 },
             },
         ],
@@ -80,7 +80,7 @@ describeAccuracyTests([
                 toolName: "atlas-local-create-deployment",
                 parameters: {
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    mdbVersion: "preview",
+                    imageTag: "preview",
                 },
             },
         ],
@@ -102,7 +102,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "new-database",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    mdbVersion: "preview",
+                    imageTag: "preview",
                 },
             },
         ],
@@ -142,7 +142,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "sample-cluster",
                     loadSampleData: true,
-                    mdbVersion: "preview",
+                    imageTag: "preview",
                 },
             },
         ],
@@ -160,7 +160,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "empty-cluster",
                     loadSampleData: false,
-                    mdbVersion: "preview",
+                    imageTag: "preview",
                 },
             },
         ],
@@ -176,7 +176,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "stable-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    mdbVersion: "latest",
+                    imageTag: "latest",
                 },
             },
         ],
@@ -192,7 +192,7 @@ describeAccuracyTests([
                 parameters: {
                     deploymentName: "v7-cluster",
                     loadSampleData: Matcher.anyOf(Matcher.undefined, Matcher.boolean()),
-                    mdbVersion: Matcher.anyOf(Matcher.value("7.0"), Matcher.value("7.0.0")),
+                    imageTag: Matcher.anyOf(Matcher.value("7"), Matcher.value("7.0"), Matcher.value("7.0.0")),
                 },
             },
         ],
