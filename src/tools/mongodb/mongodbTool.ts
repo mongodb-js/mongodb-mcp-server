@@ -63,11 +63,11 @@ export abstract class MongoDBToolBase extends ToolBase {
                     const connectionError = error as MongoDBError<
                         ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString
                     >;
-                    const outcome = this.session.connectionErrorHandler(connectionError, {
+                    const outcome = this.server?.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
                         connectionState: this.session.connectionManager.currentConnectionState,
                     });
-                    if (outcome.errorHandled) {
+                    if (outcome?.errorHandled) {
                         return outcome.result;
                     }
 

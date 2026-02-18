@@ -1,4 +1,4 @@
-export { Server, type ServerOptions } from "./server.js";
+export { Server, type ServerOptions, type AnyToolClass } from "./server.js";
 export { Session, type SessionOptions } from "./common/session.js";
 export { type UserConfig, UserConfigSchema } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
@@ -28,7 +28,12 @@ export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
 export { LoggerBase, type LogPayload, type LoggerType, type LogLevel, CompositeLogger } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
-export { TransportRunnerBase, type TransportRunnerConfig, type CustomizableServerOptions } from "./transports/base.js";
+export {
+    TransportRunnerBase,
+    type TransportRunnerConfig,
+    type CustomizableServerOptions,
+    type CustomizableSessionOptions,
+} from "./transports/base.js";
 export {
     ConnectionManager,
     ConnectionStateConnected,
@@ -55,5 +60,5 @@ export { SessionStore, type CloseableTransport } from "./common/sessionStore.js"
 export { ApiClient, type ApiClientOptions } from "./common/atlas/apiClient.js";
 export type { AuthProvider } from "./common/atlas/auth/authProvider.js";
 export { type UIRegistryOptions } from "./ui/registry/registry.js";
-export { type ToolExecutionContext } from "./tools/tool.js";
+export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
 export { type RequestContext } from "./transports/base.js";
