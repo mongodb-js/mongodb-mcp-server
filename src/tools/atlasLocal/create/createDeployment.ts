@@ -31,7 +31,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
                 source: "MCPServer",
             },
             loadSampleData,
-            mongodbVersion: imageTag,
+            imageTag,
             ...(this.config.voyageApiKey ? { voyageApiKey: this.config.voyageApiKey } : {}),
             doNotTrack: !this.telemetry.isTelemetryEnabled(),
         };
@@ -42,7 +42,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             content: [
                 {
                     type: "text",
-                    text: `Deployment with container ID "${deployment.containerId}" and name "${deployment.name}" created.`,
+                    text: `Deployment with container ID "${deployment.containerId}" and name "${deployment.name}" created (imageTag: ${imageTag}).`,
                 },
             ],
             _meta: {
