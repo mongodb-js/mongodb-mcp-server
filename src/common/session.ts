@@ -22,8 +22,8 @@ import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
 
-export interface SessionOptions {
-    userConfig: UserConfig;
+export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
+    userConfig: TUserConfig;
     logger: CompositeLogger;
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
