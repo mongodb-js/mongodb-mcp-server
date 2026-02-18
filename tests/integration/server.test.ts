@@ -188,19 +188,16 @@ describe("Server integration test", () => {
             connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
-            apiClient:
-                config.apiClientId && config.apiClientSecret
-                    ? defaultCreateApiClient(
-                          {
-                              baseUrl: config.apiBaseUrl,
-                              credentials: {
-                                  clientId: config.apiClientId,
-                                  clientSecret: config.apiClientSecret,
-                              },
-                          },
-                          logger
-                      )
-                    : undefined,
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: config.apiBaseUrl,
+                    credentials: {
+                        clientId: config.apiClientId,
+                        clientSecret: config.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         });
 
         const telemetry = Telemetry.create(session, config, deviceId);
