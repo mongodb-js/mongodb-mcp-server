@@ -8,21 +8,16 @@ import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type {
-    OperationType,
-    ToolArgs,
-    ToolCategory,
-    ToolClass,
-    ToolExecutionContext,
-} from "../../../src/tools/tool.js";
+import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
-import type { Server } from "../../../src/lib.js";
+import type { AnyToolClass, Server } from "../../../src/lib.js";
 
 describe("StreamableHttpRunner", () => {
-    let runner: StreamableHttpRunner;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let runner: StreamableHttpRunner<UserConfig, any>;
     let config: UserConfig;
 
     let clients: Client[] = [];
@@ -707,12 +702,12 @@ describe("StreamableHttpRunner", () => {
         };
         it("should customize server configuration based on request headers", async () => {
             // Create a custom runner that extends StreamableHttpRunner
-            class CustomStreamableHttpRunner extends StreamableHttpRunner {
+            class CustomStreamableHttpRunner extends StreamableHttpRunner<UserConfig, ToolContext> {
                 protected async createServerForRequest({
                     request,
                 }: {
                     request: RequestContext;
-                }): Promise<Server<unknown>> {
+                }): Promise<Server<UserConfig, ToolContext>> {
                     // Extract custom header to determine configuration
                     const userRole = request.headers?.["x-user-role"];
 
@@ -751,7 +746,7 @@ describe("StreamableHttpRunner", () => {
             }
 
             // Create a tool that verifies the configuration
-            class ConfigCheckTool extends ToolBase<ToolContext> {
+            class ConfigCheckTool extends ToolBase<UserConfig, ToolContext> {
                 static toolName = "config-check";
                 public description = "Check current configuration";
                 public argsShape = {};
@@ -841,7 +836,7 @@ describe("StreamableHttpRunner", () => {
 
         it("should allow customizing tools based on request context", async () => {
             // Create different tool sets based on request headers
-            class UserTool extends ToolBase<ToolContext> {
+            class UserTool extends ToolBase<UserConfig, ToolContext> {
                 static toolName = "user-tool";
                 public description = "Available to users";
                 public argsShape = {};
@@ -859,7 +854,7 @@ describe("StreamableHttpRunner", () => {
                 }
             }
 
-            class AdminTool extends ToolBase<ToolContext> {
+            class AdminTool extends ToolBase<UserConfig, ToolContext> {
                 static toolName = "admin-tool";
                 public description = "Available to admins only";
                 public argsShape = {};
@@ -878,16 +873,16 @@ describe("StreamableHttpRunner", () => {
             }
 
             // Custom runner that customizes available tools
-            class CustomStreamableHttpRunner extends StreamableHttpRunner {
+            class CustomStreamableHttpRunner extends StreamableHttpRunner<UserConfig, ToolContext> {
                 protected override async createServerForRequest({
                     request,
                 }: {
                     request: RequestContext;
-                }): Promise<Server<unknown>> {
+                }): Promise<Server<UserConfig, ToolContext>> {
                     const userRole = request.headers?.["x-user-role"];
 
                     // Users only get UserTool
-                    let tools: ToolClass[] = [UserTool];
+                    let tools: AnyToolClass[] = [UserTool];
 
                     // Admins get both tools
                     if (userRole === "admin") {

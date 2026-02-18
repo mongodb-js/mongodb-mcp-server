@@ -12,11 +12,9 @@ import {
     type CustomizableSessionOptions,
 } from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
-import { type Server } from "../server.js";
-import type { CustomizableServerOptions, ServerOptions, SessionOptions, UserConfig } from "../lib.js";
+import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
@@ -24,11 +22,14 @@ const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 
-export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBase<TContext> {
-    private mcpServer: MCPHttpServer<TContext> | undefined;
+export class StreamableHttpRunner<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+> extends TransportRunnerBase<TUserConfig, TContext> {
+    private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
     private healthCheckServer: HealthCheckServer | undefined;
 
-    constructor(config: TransportRunnerConfig) {
+    constructor(config: TransportRunnerConfig<TUserConfig>) {
         super(config);
     }
 
@@ -38,9 +39,9 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
         sessionOptions,
     }: {
         /** Server options to use when creating the server. */
-        serverOptions?: ServerOptions<TContext>;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         /** Session options to use when creating the session. */
-        sessionOptions?: SessionOptions;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     } = {}): Promise<void> {
         this.validateConfig();
 
@@ -74,11 +75,11 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
     }: {
         request: RequestContext;
         /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
-        serverOptions?: CustomizableServerOptions<TContext>;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
-        sessionOptions?: CustomizableSessionOptions;
-    }): Promise<Server<TContext>> {
-        let userConfig: UserConfig = sessionOptions?.userConfig ?? this.userConfig;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }): Promise<Server<TUserConfig, TContext>> {
+        let userConfig: TUserConfig = sessionOptions?.userConfig ?? this.userConfig;
 
         if (this.createSessionConfig) {
             userConfig = await this.createSessionConfig({ userConfig, request });
@@ -129,12 +130,12 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
         serverOptions,
         sessionOptions,
     }: {
-        serverOptions?: ServerOptions<TContext>;
-        sessionOptions?: SessionOptions;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }): Promise<void> {
-        this.mcpServer = new MCPHttpServer<TContext>({
+        this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
             userConfig: this.userConfig,
-            createServerForRequest: ({ request }): Promise<Server<TContext>> =>
+            createServerForRequest: ({ request }): Promise<Server<TUserConfig, TContext>> =>
                 this.createServerForRequest({ request, serverOptions, sessionOptions }),
             logger: this.logger,
         });
@@ -266,10 +267,10 @@ abstract class ExpressBasedHttpServer {
     }
 }
 
-class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
+class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
-    private serverOptions?: ServerOptions<TContext>;
-    private sessionOptions?: SessionOptions;
+    private serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+    private sessionOptions?: CustomizableSessionOptions;
     private userConfig: UserConfig;
 
     private createServerForRequest: ({
@@ -278,9 +279,9 @@ class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
         sessionOptions,
     }: {
         request: RequestContext;
-        serverOptions?: ServerOptions<TContext>;
-        sessionOptions?: SessionOptions;
-    }) => Promise<Server<TContext>>;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions;
+    }) => Promise<Server<TUserConfig, TContext>>;
 
     constructor({
         userConfig,
@@ -289,11 +290,11 @@ class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
         sessionOptions,
         logger,
     }: {
-        userConfig: UserConfig;
-        createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TContext>>;
+        userConfig: TUserConfig;
+        createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TUserConfig, TContext>>;
         logger: LoggerBase;
-        serverOptions?: ServerOptions<TContext>;
-        sessionOptions?: SessionOptions;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }) {
         super({
             port: userConfig.httpPort,

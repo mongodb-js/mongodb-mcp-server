@@ -15,7 +15,7 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
+import type { AnyToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -23,9 +23,12 @@ import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "./ui/registry/index.js";
 
-export interface ServerOptions<TContext = unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolClass = ToolClass<any, any>;
+
+export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
     session: Session;
-    userConfig: UserConfig;
+    userConfig: TUserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
     elicitation: Elicitation;
@@ -71,7 +74,7 @@ export interface ServerOptions<TContext = unknown> {
      * @see {@link ToolClass} for the type that tool classes must conform to
      * @see {@link ToolBase} for base class for all the tools
      */
-    tools?: ToolClass[];
+    tools?: AnyToolClass[];
     /**
      * This context is available to tools via `this.toolContext` and can contain
      * any data you want to pass to tools definitions.
@@ -97,14 +100,14 @@ export interface ServerOptions<TContext = unknown> {
     toolContext?: TContext;
 }
 
-export class Server<TContext = unknown> {
+export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
-    public readonly userConfig: UserConfig;
+    public readonly userConfig: TUserConfig;
     public readonly elicitation: Elicitation;
-    private readonly toolConstructors: ToolClass[];
-    public readonly tools: ToolBase[] = [];
+    private readonly toolConstructors: AnyToolClass[];
+    public readonly tools: AnyToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
     public readonly toolContext?: TContext;
@@ -128,7 +131,7 @@ export class Server<TContext = unknown> {
         tools,
         uiRegistry,
         toolContext,
-    }: ServerOptions<TContext>) {
+    }: ServerOptions<TUserConfig, TContext>) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
