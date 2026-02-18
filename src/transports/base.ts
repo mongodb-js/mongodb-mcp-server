@@ -111,7 +111,7 @@ export type TransportRunnerConfig = {
     userConfig: UserConfig;
 
     /**
-     * @deprecated Use `createServer({ sessionOptions: {connectionManager: MyCustomConnectionManager} })` instead
+     * @deprecated Use `start({ sessionOptions: {connectionManager: MyCustomConnectionManager} })` instead
      * An optional factory function to generates an instance of
      * `ConnectionManager`. When not provided, MongoDB MCP Server uses an
      * internal implementation to manage connection to MongoDB deployments.
@@ -121,11 +121,11 @@ export type TransportRunnerConfig = {
      */
     createConnectionManager?: ConnectionManagerFactoryFn;
 
-    /** @deprecated Use `createServer({ serverOptions: {connectionErrorHandler: MyCustomConnectionErrorHandler} })` instead */
+    /** @deprecated Use `start({ serverOptions: {connectionErrorHandler: MyCustomConnectionErrorHandler} })` instead */
     connectionErrorHandler?: ConnectionErrorHandler;
 
     /**
-     * @deprecated Use `createServer({ sessionOptions: {atlasLocalClient: MyCustomAtlasLocalClient} })` instead
+     * @deprecated Use `start({ sessionOptions: {atlasLocalClient: MyCustomAtlasLocalClient} })` instead
      * An optional factory function to create a client for working with Atlas
      * local deployments. When not provided, MongoDB MCP Server uses an internal
      * implementation to create the local Atlas client.
@@ -265,7 +265,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
             (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
 
         const apiClient =
-            userConfig.apiClientId && userConfig.apiClientSecret
+            (sessionOptions?.apiClient ?? (userConfig.apiClientId && userConfig.apiClientSecret))
                 ? defaultCreateApiClient(
                       {
                           baseUrl: userConfig.apiBaseUrl,
@@ -276,7 +276,7 @@ export abstract class TransportRunnerBase<TContext = unknown> {
                       },
                       logger
                   )
-                : sessionOptions?.apiClient;
+                : undefined;
 
         const session = new Session({
             userConfig,
