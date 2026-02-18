@@ -17,14 +17,21 @@ export function parseArgsWithCliOptions(cliArguments: string[]): {
     });
 }
 
-export { LoggerBase, type LogPayload, type LoggerType, type LogLevel } from "./common/logger.js";
+import { defaultCreateConnectionManager } from "./common/connectionManager.js";
+/** @deprecated Use `defaultCreateConnectionManager` instead. */
+const createMCPConnectionManager = defaultCreateConnectionManager;
+export { createMCPConnectionManager, defaultCreateConnectionManager };
+
+export { defaultCreateApiClient } from "./common/atlas/apiClient.js";
+export { defaultCreateAtlasLocalClient } from "./common/atlasLocal.js";
+
+export { LoggerBase, type LogPayload, type LoggerType, type LogLevel, CompositeLogger } from "./common/logger.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
-export { TransportRunnerBase, type TransportRunnerConfig } from "./transports/base.js";
+export { TransportRunnerBase, type TransportRunnerConfig, type CustomizableServerOptions } from "./transports/base.js";
 export {
     ConnectionManager,
     ConnectionStateConnected,
-    createMCPConnectionManager,
     type AnyConnectionState,
     type ConnectionState,
     type ConnectionStateDisconnected,
@@ -49,3 +56,4 @@ export { ApiClient, type ApiClientOptions } from "./common/atlas/apiClient.js";
 export type { AuthProvider } from "./common/atlas/auth/authProvider.js";
 export { type UIRegistryOptions } from "./ui/registry/registry.js";
 export { type ToolExecutionContext } from "./tools/tool.js";
+export { type RequestContext } from "./transports/base.js";

@@ -3,12 +3,19 @@ import type http from "http";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "../common/logger.js";
-import { LogId } from "../common/logger.js";
+import { CompositeLogger, LogId } from "../common/logger.js";
 import { SessionStore } from "../common/sessionStore.js";
-import { TransportRunnerBase, type TransportRunnerConfig, type RequestContext } from "./base.js";
+import {
+    TransportRunnerBase,
+    type TransportRunnerConfig,
+    type RequestContext,
+    type CustomizableSessionOptions,
+} from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
-import type { Server, UserConfig } from "../lib.js";
+import { type Server } from "../server.js";
+import type { CustomizableServerOptions, ServerOptions, SessionOptions, UserConfig } from "../lib.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { applyConfigOverrides } from "../common/config/configOverrides.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -21,14 +28,23 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
     private mcpServer: MCPHttpServer<TContext> | undefined;
     private healthCheckServer: HealthCheckServer | undefined;
 
-    constructor(config: TransportRunnerConfig<TContext>) {
+    constructor(config: TransportRunnerConfig) {
         super(config);
     }
 
-    async start(): Promise<void> {
+    /** Starts the transport runner. */
+    async start({
+        serverOptions,
+        sessionOptions,
+    }: {
+        /** Server options to use when creating the server. */
+        serverOptions?: ServerOptions<TContext>;
+        /** Session options to use when creating the session. */
+        sessionOptions?: SessionOptions;
+    } = {}): Promise<void> {
         this.validateConfig();
 
-        await this.startMCPServer();
+        await this.startMCPServer({ serverOptions, sessionOptions });
         await this.startHealthCheckServer();
 
         this.logger.info({
@@ -48,8 +64,80 @@ export class StreamableHttpRunner<TContext = unknown> extends TransportRunnerBas
         return host === "0.0.0.0" || host === "::" || (!safeHosts.has(host) && host !== "");
     }
 
-    private async startMCPServer(): Promise<void> {
-        this.mcpServer = new MCPHttpServer<TContext>(this.userConfig, this.setupServer.bind(this), this.logger);
+    /**
+     * Creates a new MCP server instance for a given request.
+     */
+    protected async createServerForRequest({
+        request,
+        serverOptions,
+        sessionOptions,
+    }: {
+        request: RequestContext;
+        /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
+        serverOptions?: CustomizableServerOptions<TContext>;
+        /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
+        sessionOptions?: CustomizableSessionOptions;
+    }): Promise<Server<TContext>> {
+        let userConfig: UserConfig = sessionOptions?.userConfig ?? this.userConfig;
+
+        if (this.createSessionConfig) {
+            userConfig = await this.createSessionConfig({ userConfig, request });
+        } else {
+            userConfig = applyConfigOverrides({ baseConfig: userConfig, request });
+        }
+
+        const logger = new CompositeLogger(this.logger);
+
+        return this.createServer({
+            userConfig,
+            logger,
+            serverOptions: {
+                tools: this.tools,
+                ...serverOptions,
+            },
+            sessionOptions: {
+                ...sessionOptions,
+                connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
+                connectionManager:
+                    sessionOptions?.connectionManager ??
+                    (await this.createConnectionManager({
+                        logger,
+                        deviceId: this.deviceId,
+                        userConfig,
+                    })),
+                atlasLocalClient: sessionOptions?.atlasLocalClient ?? (await this.createAtlasLocalClient({ logger })),
+                apiClient:
+                    sessionOptions?.apiClient ??
+                    (userConfig.apiClientId && userConfig.apiClientSecret
+                        ? this.createApiClient(
+                              {
+                                  baseUrl: userConfig.apiBaseUrl,
+                                  credentials: {
+                                      clientId: userConfig.apiClientId,
+                                      clientSecret: userConfig.apiClientSecret,
+                                  },
+                                  requestContext: request,
+                              },
+                              logger
+                          )
+                        : undefined),
+            },
+        });
+    }
+
+    private async startMCPServer({
+        serverOptions,
+        sessionOptions,
+    }: {
+        serverOptions?: ServerOptions<TContext>;
+        sessionOptions?: SessionOptions;
+    }): Promise<void> {
+        this.mcpServer = new MCPHttpServer<TContext>({
+            userConfig: this.userConfig,
+            createServerForRequest: ({ request }): Promise<Server<TContext>> =>
+                this.createServerForRequest({ request, serverOptions, sessionOptions }),
+            logger: this.logger,
+        });
         await this.mcpServer.start();
     }
 
@@ -180,18 +268,43 @@ abstract class ExpressBasedHttpServer {
 
 class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
     private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
+    private serverOptions?: ServerOptions<TContext>;
+    private sessionOptions?: SessionOptions;
+    private userConfig: UserConfig;
 
-    constructor(
-        private readonly userConfig: UserConfig,
-        private readonly setupMcpServer: (requestContext: RequestContext) => Promise<Server<TContext>>,
-        logger: LoggerBase
-    ) {
+    private createServerForRequest: ({
+        request,
+        serverOptions,
+        sessionOptions,
+    }: {
+        request: RequestContext;
+        serverOptions?: ServerOptions<TContext>;
+        sessionOptions?: SessionOptions;
+    }) => Promise<Server<TContext>>;
+
+    constructor({
+        userConfig,
+        createServerForRequest,
+        serverOptions,
+        sessionOptions,
+        logger,
+    }: {
+        userConfig: UserConfig;
+        createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TContext>>;
+        logger: LoggerBase;
+        serverOptions?: ServerOptions<TContext>;
+        sessionOptions?: SessionOptions;
+    }) {
         super({
             port: userConfig.httpPort,
             hostname: userConfig.httpHost,
             logger,
             logContext: "mcpHttpServer",
         });
+        this.serverOptions = serverOptions;
+        this.sessionOptions = sessionOptions;
+        this.createServerForRequest = createServerForRequest;
+        this.userConfig = userConfig;
     }
 
     public async stop(): Promise<void> {
@@ -311,7 +424,11 @@ class MCPHttpServer<TContext = unknown> extends ExpressBasedHttpServer {
                 headers: req.headers as Record<string, string | string[] | undefined>,
                 query: req.query as Record<string, string | string[] | undefined>,
             };
-            const server = await this.setupMcpServer(request);
+            const server = await this.createServerForRequest({
+                request,
+                serverOptions: this.serverOptions,
+                sessionOptions: this.sessionOptions,
+            });
 
             const options: WebStandardStreamableHTTPServerTransportOptions = {
                 enableJsonResponse: this.userConfig.httpResponseType === "json",
