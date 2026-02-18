@@ -1,8 +1,7 @@
 import { InMemoryTransport } from "./inMemoryTransport.js";
-import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import { type CustomizableSessionOptions, TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 import { type Server } from "../server.js";
 import type { CustomizableServerOptions } from "../lib.js";
-import type { CustomizableSessionOptions } from "./base.js";
 
 export type DryRunModeTestHelpers = {
     logger: {

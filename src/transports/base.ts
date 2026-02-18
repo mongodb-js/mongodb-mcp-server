@@ -33,15 +33,15 @@ export type RequestContext = {
     query?: Record<string, string | string[] | undefined>;
 };
 
-export type CustomizableSessionOptions = Partial<
-    Pick<SessionOptions, "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler">
+export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<
+    Pick<
+        SessionOptions<TUserConfig>,
+        "userConfig" | "apiClient" | "atlasLocalClient" | "connectionManager" | "connectionErrorHandler"
+    >
 >;
 
 export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = Partial<
-    Pick<
-        ServerOptions<TUserConfig, TContext>,
-        "uiRegistry" | "tools" | "connectionErrorHandler" | "toolContext" | "elicitation"
-    >
+    Pick<ServerOptions<TUserConfig, TContext>, "uiRegistry" | "tools" | "toolContext" | "elicitation">
 > & {
     /**
      * An optional key value pair of telemetry properties that are reported to
@@ -110,7 +110,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> =
     userConfig: TUserConfig;
 
     /**
-     * @deprecated Use `createServer({ sessionOptions: {connectionManager: MyCustomConnectionManager} })` instead
+     * @deprecated Use `start({ sessionOptions: {connectionManager: MyCustomConnectionManager} })` instead
      * An optional factory function to generates an instance of
      * `ConnectionManager`. When not provided, MongoDB MCP Server uses an
      * internal implementation to manage connection to MongoDB deployments.
@@ -120,11 +120,11 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> =
      */
     createConnectionManager?: ConnectionManagerFactoryFn;
 
-    /** @deprecated Use `createServer({ serverOptions: {connectionErrorHandler: MyCustomConnectionErrorHandler} })` instead */
+    /** @deprecated Use `start({ serverOptions: {connectionErrorHandler: MyCustomConnectionErrorHandler} })` instead */
     connectionErrorHandler?: ConnectionErrorHandler;
 
     /**
-     * @deprecated Use `createServer({ sessionOptions: {atlasLocalClient: MyCustomAtlasLocalClient} })` instead
+     * @deprecated Use `start({ sessionOptions: {atlasLocalClient: MyCustomAtlasLocalClient} })` instead
      * An optional factory function to create a client for working with Atlas
      * local deployments. When not provided, MongoDB MCP Server uses an internal
      * implementation to create the local Atlas client.
@@ -169,7 +169,7 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> =
 export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
     public logger: LoggerBase;
     public deviceId: DeviceId;
-    /** @deprecated This field will be removed in a future version. Use `start({ userConfig: MyCustomUserConfig })` or `createServer({ userConfig: MyCustomUserConfig})` instead. */
+    /** Base user configuration for the server. */
     protected readonly userConfig: TUserConfig;
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createConnectionManager: ConnectionManagerFactoryFn;
@@ -245,7 +245,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
         userConfig?: TUserConfig;
         logger?: CompositeLogger;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     } = {}): Promise<Server<TUserConfig, TContext>> {
         const mcpServer = new McpServer(
             {
@@ -305,7 +305,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
             session,
             telemetry,
             userConfig,
-            connectionErrorHandler: serverOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
+            connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             elicitation: serverOptions?.elicitation ?? new Elicitation({ server: mcpServer.server }),
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
@@ -375,8 +375,10 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
         serverOptions,
         sessionOptions,
     }: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions;
+        /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
+        serverOptions?: ServerOptions<TUserConfig, TContext>;
+        /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
+        sessionOptions?: SessionOptions<TUserConfig>;
     }): Promise<void>;
 
     abstract closeTransport(): Promise<void>;

@@ -8,7 +8,13 @@ import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
+import type {
+    OperationType,
+    ToolArgs,
+    ToolCategory,
+    ToolClass,
+    ToolExecutionContext,
+} from "../../../src/tools/tool.js";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";

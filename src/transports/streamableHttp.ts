@@ -41,7 +41,7 @@ export class StreamableHttpRunner<
         /** Server options to use when creating the server. */
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         /** Session options to use when creating the session. */
-        sessionOptions?: CustomizableSessionOptions;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     } = {}): Promise<void> {
         this.validateConfig();
 
@@ -74,10 +74,12 @@ export class StreamableHttpRunner<
         sessionOptions,
     }: {
         request: RequestContext;
+        /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions;
+        /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }): Promise<Server<TUserConfig, TContext>> {
-        let userConfig: TUserConfig = this.userConfig;
+        let userConfig: TUserConfig = sessionOptions?.userConfig ?? this.userConfig;
 
         if (this.createSessionConfig) {
             userConfig = await this.createSessionConfig({ userConfig, request });
@@ -91,7 +93,6 @@ export class StreamableHttpRunner<
             userConfig,
             logger,
             serverOptions: {
-                connectionErrorHandler: this.connectionErrorHandler,
                 tools: this.tools,
                 ...serverOptions,
             },
@@ -130,7 +131,7 @@ export class StreamableHttpRunner<
         sessionOptions,
     }: {
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }): Promise<void> {
         this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
             userConfig: this.userConfig,
@@ -293,7 +294,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TUserConfig, TContext>>;
         logger: LoggerBase;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }) {
         super({
             port: userConfig.httpPort,

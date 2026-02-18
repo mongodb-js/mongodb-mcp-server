@@ -21,7 +21,7 @@ export class StdioRunner<TUserConfig extends UserConfig = UserConfig, TContext =
         sessionOptions,
     }: {
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     } = {}): Promise<void> {
         try {
             this.server = await this.createServer({ serverOptions, sessionOptions });
