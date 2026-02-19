@@ -11,3 +11,4 @@ export { ListOrganizationsTool } from "./read/listOrgs.js";
 export { ConnectClusterTool } from "./connect/connectCluster.js";
 export { ListAlertsTool } from "./read/listAlerts.js";
 export { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
+export { ListBackupSnapshotsTool } from "./read/listBackupSnapshots.js";
