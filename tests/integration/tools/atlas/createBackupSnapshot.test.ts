@@ -12,5 +12,6 @@ describeWithAtlas("atlas-create-backup-snapshot", (integration) => {
         expect(createBackupSnapshot.inputSchema.properties).toHaveProperty("projectId");
         expect(createBackupSnapshot.inputSchema.properties).toHaveProperty("clusterName");
         expect(createBackupSnapshot.inputSchema.properties).toHaveProperty("description");
+        expect(createBackupSnapshot.inputSchema.properties).toHaveProperty("retentionInDays");
     });
 });

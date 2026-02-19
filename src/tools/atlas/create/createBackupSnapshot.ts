@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
@@ -8,6 +9,7 @@ export const CreateBackupSnapshotArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
     description: CommonArgs.string().optional().describe("Optional snapshot description"),
+    retentionInDays: z.number().int().min(1).optional().default(1).describe("Snapshot retention period in days"),
 };
 
 export class CreateBackupSnapshotTool extends AtlasToolBase {
@@ -22,6 +24,7 @@ export class CreateBackupSnapshotTool extends AtlasToolBase {
         projectId,
         clusterName,
         description,
+        retentionInDays,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const snapshot = await this.apiClient.takeSnapshots({
             params: {
@@ -31,6 +34,7 @@ export class CreateBackupSnapshotTool extends AtlasToolBase {
                 },
             },
             body: {
+                retentionInDays,
                 ...(description ? { description } : {}),
             },
         });
