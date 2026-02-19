@@ -7,6 +7,7 @@ export { InspectAccessListTool } from "./read/inspectAccessList.js";
 export { ListDBUsersTool } from "./read/listDBUsers.js";
 export { CreateDBUserTool } from "./create/createDBUser.js";
 export { CreateProjectTool } from "./create/createProject.js";
+export { RestoreFromSnapshotTool } from "./create/restoreFromSnapshot.js";
 export { ListOrganizationsTool } from "./read/listOrgs.js";
 export { ConnectClusterTool } from "./connect/connectCluster.js";
 export { ListAlertsTool } from "./read/listAlerts.js";
