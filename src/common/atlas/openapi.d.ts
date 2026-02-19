@@ -87,7 +87,7 @@ export interface paths {
         put?: never;
         /**
          * Add Entries to Project IP Access List
-         * @description Adds one or more access list entries to the specified project. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. Write each entry as either one IP address or one CIDR-notated block of IP addresses. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Charts Admin roles. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations. This endpoint doesn't support concurrent `POST` requests. You must submit multiple `POST` requests synchronously.
+         * @description Adds one or more access list entries to the specified project. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. Write each entry as either one IP address or one CIDR-notated block of IP addresses. To use this resource, the requesting Service Account or API Key must have the Project Owner role, Project Charts Admin role, or Project Network Access Manager role. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations. This endpoint doesn't support concurrent `POST` requests. You must submit multiple `POST` requests synchronously.
          */
         post: operations["createGroupAccessListEntry"];
         delete?: never;
@@ -108,7 +108,7 @@ export interface paths {
         post?: never;
         /**
          * Remove One Entry from One Project IP Access List
-         * @description Removes one access list entry from the specified project's IP access list. Each entry in the project's IP access list contains one IP address, one CIDR-notated block of IP addresses, or one AWS Security Group ID. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. To use this resource, the requesting Service Account or API Key must have the Project Owner role. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations.
+         * @description Removes one access list entry from the specified project's IP access list. Each entry in the project's IP access list contains one IP address, one CIDR-notated block of IP addresses, or one AWS Security Group ID. MongoDB Cloud only allows client connections to the cluster from entries in the project's IP access list. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Network Access Manager role. This resource replaces the whitelist resource. MongoDB Cloud removed whitelists in July 2021. Update your applications to use this new resource. The `/groups/{GROUP-ID}/accessList` endpoint manages the database IP access list. This endpoint is distinct from the `orgs/{ORG-ID}/apiKeys/{API-KEY-ID}/accesslist` endpoint, which manages the access list for MongoDB Cloud organizations.
          */
         delete: operations["deleteGroupAccessListEntry"];
         options?: never;
@@ -149,15 +149,15 @@ export interface paths {
          * Return All Clusters in One Project
          * @description Returns the details for all clusters in the specific project to which you have access. Clusters contain a group of hosts that maintain the same data set. The response includes clusters with asymmetrically-sized shards. To use this resource, the requesting Service Account or API Key must have the Project Read Only role. This feature is not  available for serverless clusters.
          *
-         *     This endpoint can also be used on Flex clusters that were created using the [createCluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the listFlexClusters endpoint for Flex clusters instead. Deprecated versions: v2-{2023-02-01}, v2-{2023-01-01}
+         *     This endpoint can also be used on Flex clusters that were created using the [Create Cluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the List Flex Clusters endpoint for Flex clusters instead. Deprecated versions: v2-{2023-02-01}, v2-{2023-01-01}
          */
         get: operations["listGroupClusters"];
         put?: never;
         /**
          * Create One Cluster in One Project
-         * @description Creates one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can create clusters with asymmetrically-sized shards. Each project supports up to 25 database deployments. To use this resource, the requesting Service Account or API Key must have the Project Owner role. This feature is not available for serverless clusters.
+         * @description Creates one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. This resource can create clusters with asymmetrically-sized shards. Each project supports up to 25 database deployments. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Cluster Creator role. This feature is not available for serverless clusters.
          *
-         *     Please note that using an instanceSize of M2 or M5 will create a Flex cluster instead. Support for the instanceSize of M2 or M5 will be discontinued in January 2026. We recommend using the createFlexCluster API for such configurations moving forward. Deprecated versions: v2-{2024-08-05}, v2-{2023-02-01}, v2-{2023-01-01}
+         *     Please note that using an `instanceSize` of M2 or M5 will create a Flex cluster instead. Support for the `instanceSize` of M2 or M5 will be discontinued in January 2026. We recommend using the Create Flex Cluster API for such configurations moving forward. Deprecated versions: v2-{2024-08-05}, v2-{2023-02-01}, v2-{2023-01-01}
          */
         post: operations["createGroupCluster"];
         delete?: never;
@@ -177,7 +177,7 @@ export interface paths {
          * Return One Cluster from One Project
          * @description Returns the details for one cluster in the specified project. Clusters contain a group of hosts that maintain the same data set. The response includes clusters with asymmetrically-sized shards. To use this resource, the requesting Service Account or API Key must have the Project Read Only role. This feature is not available for serverless clusters.
          *
-         *     This endpoint can also be used on Flex clusters that were created using the [createCluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the getFlexCluster endpoint for Flex clusters instead. Deprecated versions: v2-{2023-02-01}, v2-{2023-01-01}
+         *     This endpoint can also be used on Flex clusters that were created using the [Create Cluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the Get Flex Cluster endpoint for Flex clusters instead. Deprecated versions: v2-{2023-02-01}, v2-{2023-01-01}
          */
         get: operations["getGroupCluster"];
         put?: never;
@@ -186,9 +186,91 @@ export interface paths {
          * Remove One Cluster from One Project
          * @description Removes one cluster from the specified project. The cluster must have termination protection disabled in order to be deleted. To use this resource, the requesting Service Account or API Key must have the Project Owner role. This feature is not available for serverless clusters.
          *
-         *     This endpoint can also be used on Flex clusters that were created using the [createCluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the deleteFlexCluster endpoint for Flex clusters instead. Deprecated versions: v2-{2023-01-01}
+         *     This endpoint can also be used on Flex clusters that were created using the [Create Cluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster) endpoint or former M2/M5 clusters that have been migrated to Flex clusters until January 2026. Please use the Delete Flex Cluster endpoint for Flex clusters instead. Deprecated versions: v2-{2023-01-01}
          */
         delete: operations["deleteGroupCluster"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/backup/restoreJobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create One Restore Job of One Cluster
+         * @description Restores one snapshot of one cluster from the specified project. Atlas takes on-demand snapshots immediately and scheduled snapshots at regular intervals. If an on-demand snapshot with a status of `queued` or `inProgress` exists, before taking another snapshot, wait until Atlas completes processing the previously taken on-demand snapshot.
+         *
+         *      To use this resource, the requesting Service Account or API Key must have the Project Backup Manager role, Project Backup Export Operator role, or Project Backup Recovery Operator role.
+         */
+        post: operations["createGroupClusterBackupRestoreJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/backup/restoreJobs/{restoreJobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return One Restore Job for One Cluster
+         * @description Returns one cloud backup restore job for one cluster from the specified project. To use this resource, the requesting Service Account or API Key must have the Project Backup Manager role.
+         */
+        get: operations["getGroupClusterBackupRestoreJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/backup/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return All Replica Set Cloud Backups
+         * @description Returns all snapshots of one cluster from the specified project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role or Project Backup Manager role.
+         */
+        get: operations["listGroupClusterBackupSnapshots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/backup/snapshots/{snapshotId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return One Replica Set Cloud Backup
+         * @description Returns one snapshot from the specified cluster. To use this resource, the requesting Service Account or API Key must have the Project Read Only role or Project Backup Manager role.
+         */
+        get: operations["getGroupClusterBackupSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -486,7 +568,7 @@ export interface components {
              */
             regionName?: "US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_EAST_2" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL";
             /**
-             * @description Disk Input/Output Operations per Second (IOPS) setting for Amazon Web Services (AWS) storage that you configure only for abbr title="Amazon Web Services">AWS</abbr>. Specify whether Disk Input/Output Operations per Second (IOPS) must not exceed the default Input/Output Operations per Second (IOPS) rate for the selected volume size (`STANDARD`), or must fall within the allowable Input/Output Operations per Second (IOPS) range for the selected volume size (`PROVISIONED`). You must set this value to (`PROVISIONED`) for NVMe clusters.
+             * @description Disk Input/Output Operations per Second (IOPS) setting for Amazon Web Services (AWS) storage that you configure only for AWS. Specify whether Disk Input/Output Operations per Second (IOPS) must not exceed the default Input/Output Operations per Second (IOPS) rate for the selected volume size (`STANDARD`), or must fall within the allowable Input/Output Operations per Second (IOPS) range for the selected volume size (`PROVISIONED`). You must set this value to (`PROVISIONED`) for NVMe clusters.
              * @enum {string}
              */
             volumeType?: "STANDARD" | "PROVISIONED";
@@ -560,12 +642,12 @@ export interface components {
              *
              *      Change this parameter if you:
              *
-             *     - set `"replicationSpecs[n].regionConfigs[m].providerName" to "AWS"`.
-             *     - set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize" to "M30"` or greater (not including `Mxx_NVME` tiers).
+             *     - set `replicationSpecs[n].regionConfigs[m].providerName` to `AWS`.
+             *     - set `replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize` to `M30` or greater (not including `Mxx_NVME` tiers).
              *
-             *     - set `"replicationSpecs[n].regionConfigs[m].electableSpecs.ebsVolumeType" to "PROVISIONED"`.
+             *     - set `replicationSpecs[n].regionConfigs[m].electableSpecs.ebsVolumeType` to `PROVISIONED`.
              *
-             *     The maximum input/output operations per second (IOPS) depend on the selected **.instanceSize** and **.diskSizeGB**.
+             *     The maximum input/output operations per second (IOPS) depend on the selected `.instanceSize` and `.diskSizeGB`.
              *     This parameter defaults to the cluster tier's standard IOPS value.
              *     Changing this value impacts cluster cost.
              *     MongoDB Cloud enforces minimum ratios of storage capacity to system memory for given cluster tiers. This keeps cluster performance consistent with large datasets.
@@ -582,7 +664,7 @@ export interface components {
              *
              *      This value is not configurable on M0/M2/M5 clusters.
              *
-             *      MongoDB Cloud requires this parameter if you set **replicationSpecs**.
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
              *
              *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
              *
@@ -654,13 +736,13 @@ export interface components {
             /**
              * @description Flag that indicates whether instance size reactive auto-scaling is enabled.
              *
-             *     - Set to `true` to enable instance size reactive auto-scaling. If enabled, you must specify a value for **replicationSpecs[n].regionConfigs[m].autoScaling.compute.maxInstanceSize**.
+             *     - Set to `true` to enable instance size reactive auto-scaling. If enabled, you must specify a value for `replicationSpecs[n].regionConfigs[m].autoScaling.compute.maxInstanceSize`.
              *     - Set to `false` to disable instance size reactive auto-scaling.
              */
             enabled?: boolean;
             maxInstanceSize?: components["schemas"]["BaseCloudProviderInstanceSize"];
             minInstanceSize?: components["schemas"]["BaseCloudProviderInstanceSize"];
-            /** @description Flag that indicates whether the instance size may scale down via reactive auto-scaling. MongoDB Cloud requires this parameter if **replicationSpecs[n].regionConfigs[m].autoScaling.compute.enabled** is `true`. If you enable this option, specify a value for **replicationSpecs[n].regionConfigs[m].autoScaling.compute.minInstanceSize**. */
+            /** @description Flag that indicates whether the instance size may scale down via reactive auto-scaling. MongoDB Cloud requires this parameter if `replicationSpecs[n].regionConfigs[m].autoScaling.compute.enabled` is `true`. If you enable this option, specify a value for `replicationSpecs[n].regionConfigs[m].autoScaling.compute.minInstanceSize`. */
             scaleDownEnabled?: boolean;
         };
         AlertViewForNdsGroup: components["schemas"]["AppServiceAlertView"] | components["schemas"]["ClusterAlertViewForNdsGroup"] | components["schemas"]["HostAlertViewForNdsGroup"] | components["schemas"]["HostMetricAlert"] | components["schemas"]["ReplicaSetAlertViewForNdsGroup"] | components["schemas"]["StreamProcessorAlertViewForNdsGroup"] | components["schemas"]["DefaultAlertViewForNdsGroup"];
@@ -714,14 +796,31 @@ export interface components {
          */
         ApiAtlasFTSMappingsViewManual: {
             /**
-             * @description Flag that indicates whether the index uses dynamic or static mappings. Required if **mappings.fields** is omitted.
+             * @description Flag that indicates whether the index uses dynamic or static mappings. Required if `mappings.fields` is omitted.
              * @default false
              */
             dynamic: boolean;
-            /** @description One or more field specifications for the Atlas Search index. Required if **mappings.dynamic** is omitted or set to **false**. */
+            /** @description One or more field specifications for the Atlas Search index. Required if `mappings.dynamic` is omitted or set to `false`. */
             fields?: {
                 [key: string]: Record<string, never>;
             };
+        };
+        /**
+         * BSON Timestamp
+         * @description BSON timestamp that indicates when the checkpoint token entry in the oplog occurred.
+         */
+        ApiBSONTimestampView: {
+            /**
+             * Format: date-time
+             * @description Date and time when the oplog recorded this database operation. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly date?: string;
+            /**
+             * Format: int32
+             * @description Order of the database operation that the oplog recorded at specific date and time.
+             * @example 1199145600
+             */
+            readonly increment?: number;
         };
         ApiError: {
             badRequestDetail?: components["schemas"]["BadRequestDetail"];
@@ -738,6 +837,16 @@ export interface components {
             readonly parameters?: Record<string, never>[];
             /** @description Application error message returned with this error. */
             readonly reason?: string;
+        };
+        /** @description One Uniform Resource Locator (URL) that points to the compressed snapshot files for manual download and the corresponding private endpoint. */
+        ApiPrivateDownloadDeliveryUrl: {
+            /** @description One Uniform Resource Locator that points to the compressed snapshot files for manual download. */
+            deliveryUrl?: string;
+            /**
+             * @description Unique 22-character alphanumeric string that identifies the private endpoint.
+             * @example vpce-3bf78b0ddee411ba1
+             */
+            endpointId?: string;
         };
         /**
          * App Services Alerts
@@ -892,7 +1001,7 @@ export interface components {
              * @description Azure region to which MongoDB Cloud deployed this network peering container.
              * @enum {string}
              */
-            region: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_EAST_2_EUAP" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "UAE_NORTH" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "UK_SOUTH" | "UK_WEST" | "INDIA_CENTRAL" | "INDIA_WEST" | "INDIA_SOUTH" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "UAE_CENTRAL" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH" | "INDONESIA_CENTRAL" | "MALAYSIA_WEST" | "CHILE_CENTRAL";
+            region: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_EAST_2_EUAP" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "UAE_NORTH" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "UK_SOUTH" | "UK_WEST" | "INDIA_CENTRAL" | "INDIA_WEST" | "INDIA_SOUTH" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "UAE_CENTRAL" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH" | "INDONESIA_CENTRAL" | "MALAYSIA_WEST" | "CHILE_CENTRAL" | "US_GOV_VIRGINIA" | "US_GOV_ARIZONA" | "US_GOV_TEXAS";
             /** @description Unique string that identifies the Azure VNet in which MongoDB Cloud clusters in this network peering container exist. The response returns **null** if no clusters exist in this network peering container. */
             readonly vnetName?: string;
         } & {
@@ -911,7 +1020,7 @@ export interface components {
         AzureCloudProviderSettings: Omit<components["schemas"]["ClusterProviderSettings"], "providerName"> & {
             autoScaling?: components["schemas"]["CloudProviderAzureAutoScaling"];
             /**
-             * @description Disk type that corresponds to the host's root volume for Azure instances. If omitted, the default disk type for the selected **providerSettings.instanceSizeName** applies.
+             * @description Disk type that corresponds to the host's root volume for Azure instances. If omitted, the default disk type for the selected `providerSettings.instanceSizeName` applies.
              * @enum {string}
              */
             diskTypeName?: "P2" | "P3" | "P4" | "P6" | "P10" | "P15" | "P20" | "P30" | "P40" | "P50";
@@ -926,7 +1035,7 @@ export interface components {
              * @description Microsoft Azure Regions.
              * @enum {string}
              */
-            regionName?: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH";
+            regionName?: "US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH" | "US_GOV_VIRGINIA" | "US_GOV_ARIZONA" | "US_GOV_TEXAS";
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -989,10 +1098,10 @@ export interface components {
              * Format: int32
              * @description Target throughput desired for storage attached to your Azure-provisioned cluster. Change this parameter if you:
              *
-             *     - set `"replicationSpecs[n].regionConfigs[m].providerName" : "Azure"`.
-             *     - set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize" : "M40"` or greater not including `Mxx_NVME` tiers.
+             *     - set `replicationSpecs[n].regionConfigs[m].providerName` : `Azure`.
+             *     - set `replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize` : `M40` or greater not including `Mxx_NVME` tiers.
              *
-             *     The maximum input/output operations per second (IOPS) depend on the selected **.instanceSize** and **.diskSizeGB**.
+             *     The maximum input/output operations per second (IOPS) depend on the selected `.instanceSize` and `.diskSizeGB`.
              *     This parameter defaults to the cluster tier's standard IOPS value.
              *     Changing this value impacts cluster cost.
              */
@@ -1005,7 +1114,7 @@ export interface components {
              *
              *      This value is not configurable on M0/M2/M5 clusters.
              *
-             *      MongoDB Cloud requires this parameter if you set **replicationSpecs**.
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
              *
              *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
              *
@@ -1292,7 +1401,7 @@ export interface components {
              * @description Sum of all positive invoice line items contained in this invoice. This parameter expresses its value in cents (100ths of one US Dollar).
              */
             readonly subtotalCents?: number;
-            /** @description The unit price applied to amountBilledCents to compute total payment amount. This value is represented as a decimal string. */
+            /** @description The unit price applied to `amountBilledCents` to compute total payment amount. This value is represented as a decimal string. */
             readonly unitPrice?: string;
             /**
              * Format: date-time
@@ -1339,7 +1448,7 @@ export interface components {
             readonly availability?: "available" | "dead" | "unavailable" | "warning";
             /** @description Flag that indicates whether the cluster can perform backups. If set to `true`, the cluster can perform backups. You must set this value to `true` for NVMe clusters. Backup uses Cloud Backups for dedicated clusters and Shared Cluster Backups for tenant clusters. If set to `false`, the cluster doesn't use MongoDB Cloud backups. */
             readonly backupEnabled?: boolean;
-            /** @description Unique 24-hexadecimal character string that identifies the cluster. Each ``clusterId`` is used only once across all MongoDB Cloud deployments. */
+            /** @description Unique 24-hexadecimal character string that identifies the cluster. Each `clusterId` is used only once across all MongoDB Cloud deployments. */
             readonly clusterId?: string;
             /**
              * Format: int64
@@ -1396,7 +1505,7 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /**
-             * @description Human-readable label that indicates whether the new database user or group authenticates with OIDC federated authentication. To create a federated authentication user, specify the value of USER in this field. To create a federated authentication group, specify the value of IDP_GROUP in this field.
+             * @description Human-readable label that indicates whether the new database user or group authenticates with OIDC federated authentication. To create a federated authentication user, specify the value of USER in this field. To create a federated authentication group, specify the value of `IDP_GROUP` in this field.
              * @default NONE
              * @enum {string}
              */
@@ -1412,15 +1521,15 @@ export interface components {
              *
              *     | Authentication Method | Parameter Needed | Parameter Value | username Format |
              *     |---|---|---|---|
-             *     | AWS IAM | awsIAMType | ROLE | <abbr title="Amazon Resource Name">ARN</abbr> |
-             *     | AWS IAM | awsIAMType | USER | <abbr title="Amazon Resource Name">ARN</abbr> |
-             *     | x.509 | x509Type | CUSTOMER | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-             *     | x.509 | x509Type | MANAGED | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-             *     | LDAP | ldapAuthType | USER | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-             *     | LDAP | ldapAuthType | GROUP | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-             *     | OIDC Workforce | oidcAuthType | IDP_GROUP | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP group name |
-             *     | OIDC Workload | oidcAuthType | USER | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP user name |
-             *     | SCRAM-SHA | awsIAMType, x509Type, ldapAuthType, oidcAuthType | NONE | Alphanumeric string |
+             *     | AWS IAM | `awsIAMType` | `ROLE` | <abbr title="Amazon Resource Name">ARN</abbr> |
+             *     | AWS IAM | `awsIAMType` | `USER` | <abbr title="Amazon Resource Name">ARN</abbr> |
+             *     | x.509 | `x509Type` | `CUSTOMER` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+             *     | x.509 | `x509Type` | `MANAGED` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+             *     | LDAP | `ldapAuthType` | `USER` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+             *     | LDAP | `ldapAuthType` | `GROUP` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+             *     | OIDC Workforce | `oidcAuthType` | `IDP_GROUP` | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP group name |
+             *     | OIDC Workload | `oidcAuthType` | `USER` | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP user name |
+             *     | SCRAM-SHA | `awsIAMType`, `x509Type`, `ldapAuthType`, `oidcAuthType` | `NONE` | Alphanumeric string |
              */
             username: string;
             /**
@@ -1812,7 +1921,7 @@ export interface components {
             electableSpecs?: components["schemas"]["HardwareSpec20240805"];
             /**
              * Format: int32
-             * @description Precedence is given to this region when a primary election occurs. If your **regionConfigs** has only **readOnlySpecs**, **analyticsSpecs**, or both, set this value to `0`. If you have multiple **regionConfigs** objects (your cluster is multi-region or multi-cloud), they must have priorities in descending order. The highest priority is `7`.
+             * @description Precedence is given to this region when a primary election occurs. If your `regionConfigs` has only `readOnlySpecs`, `analyticsSpecs`, or both, set this value to `0`. If you have multiple `regionConfigs` objects (your cluster is multi-region or multi-cloud), they must have priorities in descending order. The highest priority is `7`.
              *
              *     **Example:** If you have three regions, their priorities would be `7`, `6`, and `5` respectively. If you added two more regions for supporting electable nodes, the priorities of those regions would be `4` and `3` respectively.
              */
@@ -1823,7 +1932,7 @@ export interface components {
              */
             providerName?: "AWS" | "AZURE" | "GCP" | "TENANT";
             /** @description Physical location of your MongoDB cluster nodes. The region you choose can affect network latency for clients accessing your databases. The region name is only returned in the response for single-region clusters. When MongoDB Cloud deploys a dedicated cluster, it checks if a VPC or VPC connection exists for that provider and region. If not, MongoDB Cloud creates them as part of the deployment. It assigns the VPC a Classless Inter-Domain Routing (CIDR) block. To limit a new VPC peering connection to one Classless Inter-Domain Routing (CIDR) block and region, create the connection first. Deploy the cluster after the connection starts. GCP Clusters and Multi-region clusters require one VPC peering connection for each region. MongoDB nodes can use only the peering connection that resides in the same region as the nodes to communicate with the peered VPC. */
-            regionName?: ("US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_EAST_2" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL") | ("US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH") | ("EASTERN_US" | "EASTERN_US_AW" | "US_EAST_4" | "US_EAST_4_AW" | "US_EAST_5" | "US_EAST_5_AW" | "US_WEST_2" | "US_WEST_2_AW" | "US_WEST_3" | "US_WEST_3_AW" | "US_WEST_4" | "US_WEST_4_AW" | "US_SOUTH_1" | "US_SOUTH_1_AW" | "CENTRAL_US" | "CENTRAL_US_AW" | "WESTERN_US" | "WESTERN_US_AW" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "WESTERN_EUROPE" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_8" | "EUROPE_WEST_9" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "EUROPE_SOUTHWEST_1" | "EUROPE_CENTRAL_2" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "AFRICA_SOUTH_1" | "EASTERN_ASIA_PACIFIC" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTHEASTERN_ASIA_PACIFIC" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2");
+            regionName?: ("US_GOV_WEST_1" | "US_GOV_EAST_1" | "US_EAST_1" | "US_EAST_2" | "US_WEST_1" | "US_WEST_2" | "CA_CENTRAL_1" | "EU_NORTH_1" | "EU_WEST_1" | "EU_WEST_2" | "EU_WEST_3" | "EU_CENTRAL_1" | "EU_CENTRAL_2" | "AP_EAST_1" | "AP_EAST_2" | "AP_NORTHEAST_1" | "AP_NORTHEAST_2" | "AP_NORTHEAST_3" | "AP_SOUTHEAST_1" | "AP_SOUTHEAST_2" | "AP_SOUTHEAST_3" | "AP_SOUTHEAST_4" | "AP_SOUTHEAST_5" | "AP_SOUTHEAST_6" | "AP_SOUTHEAST_7" | "AP_SOUTH_1" | "AP_SOUTH_2" | "SA_EAST_1" | "CN_NORTH_1" | "CN_NORTHWEST_1" | "ME_SOUTH_1" | "ME_CENTRAL_1" | "AF_SOUTH_1" | "EU_SOUTH_1" | "EU_SOUTH_2" | "IL_CENTRAL_1" | "CA_WEST_1" | "MX_CENTRAL_1" | "GLOBAL") | ("US_CENTRAL" | "US_EAST" | "US_EAST_2" | "US_NORTH_CENTRAL" | "US_WEST" | "US_SOUTH_CENTRAL" | "EUROPE_NORTH" | "EUROPE_WEST" | "US_WEST_CENTRAL" | "US_WEST_2" | "US_WEST_3" | "CANADA_EAST" | "CANADA_CENTRAL" | "BRAZIL_SOUTH" | "BRAZIL_SOUTHEAST" | "AUSTRALIA_CENTRAL" | "AUSTRALIA_CENTRAL_2" | "AUSTRALIA_EAST" | "AUSTRALIA_SOUTH_EAST" | "GERMANY_WEST_CENTRAL" | "GERMANY_NORTH" | "SWEDEN_CENTRAL" | "SWEDEN_SOUTH" | "SWITZERLAND_NORTH" | "SWITZERLAND_WEST" | "UK_SOUTH" | "UK_WEST" | "NORWAY_EAST" | "NORWAY_WEST" | "INDIA_CENTRAL" | "INDIA_SOUTH" | "INDIA_WEST" | "CHINA_EAST" | "CHINA_NORTH" | "ASIA_EAST" | "JAPAN_EAST" | "JAPAN_WEST" | "ASIA_SOUTH_EAST" | "KOREA_CENTRAL" | "KOREA_SOUTH" | "FRANCE_CENTRAL" | "FRANCE_SOUTH" | "SOUTH_AFRICA_NORTH" | "SOUTH_AFRICA_WEST" | "UAE_CENTRAL" | "UAE_NORTH" | "QATAR_CENTRAL" | "POLAND_CENTRAL" | "ISRAEL_CENTRAL" | "ITALY_NORTH" | "SPAIN_CENTRAL" | "MEXICO_CENTRAL" | "NEW_ZEALAND_NORTH" | "US_GOV_VIRGINIA" | "US_GOV_ARIZONA" | "US_GOV_TEXAS") | ("EASTERN_US" | "EASTERN_US_AW" | "US_EAST_4" | "US_EAST_4_AW" | "US_EAST_5" | "US_EAST_5_AW" | "US_WEST_2" | "US_WEST_2_AW" | "US_WEST_3" | "US_WEST_3_AW" | "US_WEST_4" | "US_WEST_4_AW" | "US_SOUTH_1" | "US_SOUTH_1_AW" | "CENTRAL_US" | "CENTRAL_US_AW" | "WESTERN_US" | "WESTERN_US_AW" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "WESTERN_EUROPE" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_8" | "EUROPE_WEST_9" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "EUROPE_SOUTHWEST_1" | "EUROPE_CENTRAL_2" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "AFRICA_SOUTH_1" | "EASTERN_ASIA_PACIFIC" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTHEASTERN_ASIA_PACIFIC" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2");
         } & (components["schemas"]["AWSRegionConfig20240805"] | components["schemas"]["AzureRegionConfig20240805"] | components["schemas"]["GCPRegionConfig20240805"] | components["schemas"]["TenantRegionConfig20240805"]);
         /**
          * Cluster Alerts
@@ -1917,7 +2026,7 @@ export interface components {
             readonly awsPrivateLinkSrv?: {
                 [key: string]: string;
             };
-            /** @description Network peering connection strings for each interface Virtual Private Cloud (VPC) endpoint that you configured to connect to this cluster. This connection string uses the `mongodb+srv://` protocol. The resource returns this parameter once someone creates a network peering connection to this cluster. This protocol tells the application to look up the host seed list in the Domain Name System (DNS). This list synchronizes with the nodes in a cluster. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to append the seed list or change the URI if the nodes change. Use this URI format if your driver supports it. If it doesn't, use connectionStrings.private. For Amazon Web Services (AWS) clusters, this resource returns this parameter only if you enable custom DNS. */
+            /** @description Network peering connection strings for each interface Virtual Private Cloud (VPC) endpoint that you configured to connect to this cluster. This connection string uses the `mongodb+srv://` protocol. The resource returns this parameter once someone creates a network peering connection to this cluster. This protocol tells the application to look up the host seed list in the Domain Name System (DNS). This list synchronizes with the nodes in a cluster. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to append the seed list or change the URI if the nodes change. Use this URI format if your driver supports it. If it doesn't, use `connectionStrings.private`. For Amazon Web Services (AWS) clusters, this resource returns this parameter only if you enable custom DNS. */
             readonly private?: string;
             /** @description List of private endpoint-aware connection strings that you can use to connect to this cluster through a private endpoint. This parameter returns only if you deployed a private endpoint to all regions to which you deployed this clusters' nodes. */
             readonly privateEndpoint?: components["schemas"]["ClusterDescriptionConnectionStringsPrivateEndpoint"][];
@@ -1931,7 +2040,7 @@ export interface components {
         ClusterDescription20240805: {
             /**
              * Format: date-time
-             * @description If reconfiguration is necessary to regain a primary due to a regional outage, submit this field alongside your topology reconfiguration to request a new regional outage resistant topology. Forced reconfigurations during an outage of the majority of electable nodes carry a risk of data loss if replicated writes (even majority committed writes) have not been replicated to the new primary node. MongoDB Atlas docs contain more information. To proceed with an operation which carries that risk, set **acceptDataRisksAndForceReplicaSetReconfig** to the current date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             * @description If reconfiguration is necessary to regain a primary due to a regional outage, submit this field alongside your topology reconfiguration to request a new regional outage resistant topology. Forced reconfigurations during an outage of the majority of electable nodes carry a risk of data loss if replicated writes (even majority committed writes) have not been replicated to the new primary node. MongoDB Atlas docs contain more information. To proceed with an operation which carries that risk, set `acceptDataRisksAndForceReplicaSetReconfig` to the current date. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
              */
             acceptDataRisksAndForceReplicaSetReconfig?: string;
             advancedConfiguration?: components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
@@ -1947,11 +2056,7 @@ export interface components {
              */
             clusterType?: "REPLICASET" | "SHARDED" | "GEOSHARDED";
             /**
-             * @description Config Server Management Mode for creating or updating a sharded cluster.
-             *
-             *     When configured as ATLAS_MANAGED, atlas may automatically switch the cluster's config server type for optimal performance and savings.
-             *
-             *     When configured as FIXED_TO_DEDICATED, the cluster will always use a dedicated config server.
+             * @description Config Server Management Mode for creating or updating a sharded cluster. When configured as `ATLAS_MANAGED`, Atlas may automatically switch the cluster's config server type for optimal performance and savings. When configured as `FIXED_TO_DEDICATED`, the cluster will always use a dedicated config server.
              * @default ATLAS_MANAGED
              * @enum {string}
              */
@@ -1973,8 +2078,10 @@ export interface components {
              * @enum {string}
              */
             diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
+            readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
-             * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster **replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize** setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
+             * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
              * @enum {string}
              */
             encryptionAtRestProvider?: "NONE" | "AWS" | "AZURE" | "GCP";
@@ -2006,7 +2113,7 @@ export interface components {
              */
             readonly id?: string;
             /**
-             * @description Internal classification of the cluster's role. Possible values: NONE (regular user cluster), SYSTEM_CLUSTER (system cluster for backup), INTERNAL_SHADOW_CLUSTER (internal use shadow cluster for testing).
+             * @description Internal classification of the cluster's role. Possible values: `NONE` (regular user cluster), `SYSTEM_CLUSTER` (system cluster for backup), `INTERNAL_SHADOW_CLUSTER` (internal use shadow cluster for testing).
              * @enum {string}
              */
             readonly internalClusterRole?: "NONE" | "SYSTEM_CLUSTER" | "INTERNAL_SHADOW_CLUSTER";
@@ -2049,11 +2156,11 @@ export interface components {
             /**
              * @description Set this field to configure the replica set scaling mode for your cluster.
              *
-             *     By default, Atlas scales under WORKLOAD_TYPE. This mode allows Atlas to scale your analytics nodes in parallel to your operational nodes.
+             *     By default, Atlas scales under `WORKLOAD_TYPE`. This mode allows Atlas to scale your analytics nodes in parallel to your operational nodes.
              *
-             *     When configured as SEQUENTIAL, Atlas scales all nodes sequentially. This mode is intended for steady-state workloads and applications performing latency-sensitive secondary reads.
+             *     When configured as `SEQUENTIAL`, Atlas scales all nodes sequentially. This mode is intended for steady-state workloads and applications performing latency-sensitive secondary reads.
              *
-             *     When configured as NODE_TYPE, Atlas scales your electable nodes in parallel with your read-only and analytics nodes. This mode is intended for large, dynamic workloads requiring frequent and timely cluster tier scaling. This is the fastest scaling strategy, but it might impact latency of workloads when performing extensive secondary reads.
+             *     When configured as `NODE_TYPE`, Atlas scales your electable nodes in parallel with your read-only and analytics nodes. This mode is intended for large, dynamic workloads requiring frequent and timely cluster tier scaling. This is the fastest scaling strategy, but it might impact latency of workloads when performing extensive secondary reads.
              * @default WORKLOAD_TYPE
              * @enum {string}
              */
@@ -2095,7 +2202,7 @@ export interface components {
              */
             useAwsTimeBasedSnapshotCopyForFastInitialSync: boolean;
             /**
-             * @description Method by which the cluster maintains the MongoDB versions. If value is `CONTINUOUS`, you must not specify **mongoDBMajorVersion**.
+             * @description Method by which the cluster maintains the MongoDB versions. If value is `CONTINUOUS`, you must not specify `mongoDBMajorVersion`.
              * @default LTS
              * @enum {string}
              */
@@ -2108,11 +2215,11 @@ export interface components {
         ClusterDescriptionConnectionStringsPrivateEndpoint: {
             /** @description Private endpoint-aware connection string that uses the `mongodb://` protocol to connect to MongoDB Cloud through a private endpoint. */
             readonly connectionString?: string;
-            /** @description List that contains the private endpoints through which you connect to MongoDB Cloud when you use **connectionStrings.privateEndpoint[n].connectionString** or **connectionStrings.privateEndpoint[n].srvConnectionString**. */
+            /** @description List that contains the private endpoints through which you connect to MongoDB Cloud when you use `connectionStrings.privateEndpoint[n].connectionString` or `connectionStrings.privateEndpoint[n].srvConnectionString`. */
             readonly endpoints?: components["schemas"]["ClusterDescriptionConnectionStringsPrivateEndpointEndpoint"][];
-            /** @description Private endpoint-aware connection string that uses the `mongodb+srv://` protocol to connect to MongoDB Cloud through a private endpoint. The `mongodb+srv` protocol tells the driver to look up the seed list of hosts in the Domain Name System (DNS). This list synchronizes with the nodes in a cluster. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to append the seed list or change the Uniform Resource Identifier (URI) if the nodes change. Use this Uniform Resource Identifier (URI) format if your application supports it. If it doesn't, use connectionStrings.privateEndpoint[n].connectionString. */
+            /** @description Private endpoint-aware connection string that uses the `mongodb+srv://` protocol to connect to MongoDB Cloud through a private endpoint. The `mongodb+srv` protocol tells the driver to look up the seed list of hosts in the Domain Name System (DNS). This list synchronizes with the nodes in a cluster. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to append the seed list or change the Uniform Resource Identifier (URI) if the nodes change. Use this Uniform Resource Identifier (URI) format if your application supports it. If it doesn't, use `connectionStrings.privateEndpoint[n].connectionString`. */
             readonly srvConnectionString?: string;
-            /** @description Private endpoint-aware connection string optimized for sharded clusters that uses the `mongodb+srv://` protocol to connect to MongoDB Cloud through a private endpoint. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to change the Uniform Resource Identifier (URI) if the nodes change. Use this Uniform Resource Identifier (URI) format if your application and Atlas cluster supports it. If it doesn't, use and consult the documentation for connectionStrings.privateEndpoint[n].srvConnectionString. */
+            /** @description Private endpoint-aware connection string optimized for sharded clusters that uses the `mongodb+srv://` protocol to connect to MongoDB Cloud through a private endpoint. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to change the Uniform Resource Identifier (URI) if the nodes change. Use this Uniform Resource Identifier (URI) format if your application and Atlas cluster supports it. If it doesn't, use and consult the documentation for `connectionStrings.privateEndpoint[n].srvConnectionString`. */
             readonly srvShardOptimizedConnectionString?: string;
             /**
              * @description MongoDB process type to which your application connects. Use `MONGOD` for replica sets and `MONGOS` for sharded clusters.
@@ -2144,13 +2251,13 @@ export interface components {
         ClusterEventTypeViewForNdsGroupAlertable: "CLUSTER_MONGOS_IS_MISSING";
         ClusterFlexProviderSettings: Omit<components["schemas"]["ClusterProviderSettings"], "providerName"> & {
             /**
-             * @description Cloud service provider on which MongoDB Cloud provisioned the multi-tenant host. The resource returns this parameter when **providerSettings.providerName** is `FLEX` and **providerSetting.instanceSizeName** is `FLEX`.
+             * @description Cloud service provider on which MongoDB Cloud provisioned the multi-tenant host. The resource returns this parameter when `providerSettings.providerName` is `FLEX` and `providerSetting.instanceSizeName` is `FLEX`.
              * @enum {string}
              */
             backingProviderName?: "AWS" | "GCP" | "AZURE";
             /**
              * Flex Instance Sizes
-             * @description Cluster tier, with a default storage and memory capacity, that applies to all the data-bearing hosts in your cluster. You must set **providerSettings.providerName** to `FLEX` and specify the cloud service provider in **providerSettings.backingProviderName**.
+             * @description Cluster tier, with a default storage and memory capacity, that applies to all the data-bearing hosts in your cluster. You must set `providerSettings.providerName` to `FLEX` and specify the cloud service provider in `providerSettings.backingProviderName`.
              * @enum {string}
              */
             instanceSizeName?: "FLEX";
@@ -2176,9 +2283,9 @@ export interface components {
         ClusterFreeProviderSettings: Omit<components["schemas"]["ClusterProviderSettings"], "providerName"> & {
             autoScaling?: components["schemas"]["ClusterFreeAutoScaling"];
             /**
-             * @description Cloud service provider on which MongoDB Cloud provisioned the multi-tenant host. The resource returns this parameter when **providerSettings.providerName** is `TENANT` and **providerSetting.instanceSizeName** is `M0`, `M2` or `M5`.
+             * @description Cloud service provider on which MongoDB Cloud provisioned the multi-tenant host. The resource returns this parameter when `providerSettings.providerName` is `TENANT` and `providerSetting.instanceSizeName` is `M0`, `M2` or `M5`.
              *
-             *     Please note that using an instanceSize of M2 or M5 will create a Flex cluster instead. Support for the instanceSize of M2 or M5 will be discontinued in January 2026. We recommend using the createFlexCluster API for such configurations moving forward.
+             *     Please note that using an `instanceSize` of M2 or M5 will create a Flex cluster instead. Support for the `instanceSize` of M2 or M5 will be discontinued in January 2026. We recommend using the Create Flex Cluster API for such configurations moving forward.
              * @enum {string}
              */
             backingProviderName?: "AWS" | "GCP" | "AZURE";
@@ -2189,11 +2296,11 @@ export interface components {
             readonly effectiveInstanceSizeName?: "FLEX" | "M2" | "M5" | "M0";
             /**
              * Tenant Instance Sizes
-             * @description Cluster tier, with a default storage and memory capacity, that applies to all the data-bearing hosts in your cluster. You must set **providerSettings.providerName** to `TENANT` and specify the cloud service provider in **providerSettings.backingProviderName**.
+             * @description Cluster tier, with a default storage and memory capacity, that applies to all the data-bearing hosts in your cluster. You must set `providerSettings.providerName` to `TENANT` and specify the cloud service provider in `providerSettings.backingProviderName`.
              * @enum {string}
              */
             instanceSizeName?: "M0" | "M2" | "M5";
-            /** @description Human-readable label that identifies the geographic location of your MongoDB cluster. The region you choose can affect network latency for clients accessing your databases. For a complete list of region names, see [AWS](https://docs.atlas.mongodb.com/reference/amazon-aws/#std-label-amazon-aws), [GCP](https://docs.atlas.mongodb.com/reference/google-gcp/), and [Azure](https://docs.atlas.mongodb.com/reference/microsoft-azure/). For multi-region clusters, see **replicationSpec.{region}**. */
+            /** @description Human-readable label that identifies the geographic location of your MongoDB cluster. The region you choose can affect network latency for clients accessing your databases. For a complete list of region names, see [AWS](https://docs.atlas.mongodb.com/reference/amazon-aws/#std-label-amazon-aws), [GCP](https://docs.atlas.mongodb.com/reference/google-gcp/), and [Azure](https://docs.atlas.mongodb.com/reference/microsoft-azure/). For multi-region clusters, see `replicationSpec.{region}`. */
             regionName?: string;
         } & {
             /**
@@ -2284,7 +2391,7 @@ export interface components {
              */
             type: "SASL_INHERIT";
         };
-        /** @description USER_INFO authentication with username and password for Confluent Schema Registry. */
+        /** @description Authentication details for type `USER_INFO` with username and password for Confluent Schema Registry. */
         ConfluentUserInfoAuthentication: Omit<WithRequired<components["schemas"]["SchemaRegistryAuthentication"], "type">, "type"> & {
             /** @description Password or Private Key for authentication. */
             password: string;
@@ -2330,7 +2437,7 @@ export interface components {
         /** @description Settings to configure the region where you wish to store your archived data. */
         CreateDataProcessRegionView: {
             /**
-             * @description Human-readable label that identifies the Cloud service provider where you wish to store your archived data. **AZURE** or **GCP** may be selected only if it is the Cloud service provider for the cluster and no archives for any other cloud provider have been created for the cluster.
+             * @description Human-readable label that identifies the Cloud service provider where you wish to store your archived data. `AZURE` or `GCP` may be selected only if it is the Cloud service provider for the cluster and no archives for any other cloud provider have been created for the cluster.
              * @enum {string}
              */
             cloudProvider?: "AWS" | "AZURE" | "GCP";
@@ -2341,9 +2448,9 @@ export interface components {
          * @description Group of Private Endpoint settings.
          */
         CreateGCPEndpointGroupRequest: components["schemas"]["CreateEndpointRequest"] & {
-            /** @description Human-readable label that identifies a set of endpoints. */
+            /** @description Human-readable label that identifies a set of endpoints. If this private endpoint belongs to a port-mapped endpoint service, this field is still required but ignored. */
             endpointGroupName: string;
-            /** @description List of individual private endpoints that comprise this endpoint group. */
+            /** @description List of individual private endpoints that comprise this endpoint group. If this endpoint belongs to a port-mapped endpoint service, this field will only take in a list of one private endpoint. */
             endpoints?: components["schemas"]["CreateGCPForwardingRuleRequest"][];
             /**
              * @description Unique string that identifies the Google Cloud project in which you created the endpoints.
@@ -2361,15 +2468,15 @@ export interface components {
         /**
          * @description Rules by which MongoDB Cloud archives data.
          *
-         *     Use the **criteria.type** field to choose how MongoDB Cloud selects data to archive. Choose data using the age of the data or a MongoDB query.
-         *     **"criteria.type": "DATE"** selects documents to archive based on a date.
-         *     **"criteria.type": "CUSTOM"** selects documents to archive based on a custom JSON query. MongoDB Cloud doesn't support **"criteria.type": "CUSTOM"** when **"collectionType": "TIMESERIES"**.
+         *     Use the `criteria.type` field to choose how MongoDB Cloud selects data to archive. Choose data using the age of the data or a MongoDB query.
+         *     `"criteria.type": "DATE"` selects documents to archive based on a date.
+         *     `"criteria.type": "CUSTOM"` selects documents to archive based on a custom JSON query. MongoDB Cloud doesn't support `"criteria.type": "CUSTOM"` when `"collectionType": "TIMESERIES"`.
          */
         CriteriaView: {
             /**
              * @description Means by which MongoDB Cloud selects data to archive. Data can be chosen using the age of the data or a MongoDB query.
-             *     **DATE** selects documents to archive based on a date.
-             *     **CUSTOM** selects documents to archive based on a custom JSON query. MongoDB Cloud doesn't support **CUSTOM** when `"collectionType": "TIMESERIES"`.
+             *     `DATE` selects documents to archive based on a date.
+             *     `CUSTOM` selects documents to archive based on a custom JSON query. MongoDB Cloud doesn't support `CUSTOM` when `"collectionType": "TIMESERIES"`.
              * @enum {string}
              */
             type?: "DATE" | "CUSTOM";
@@ -2379,7 +2486,7 @@ export interface components {
          * @description Custom archival criteria.
          */
         CustomCriteriaView: Omit<components["schemas"]["CriteriaView"], "type"> & {
-            /** @description MongoDB find query that selects documents to archive. The specified query follows the syntax of the `db.collection.find(query)` command. This query can't use the empty document (`{}`) to return all documents. Set this parameter when **"criteria.type" : "CUSTOM"**. */
+            /** @description MongoDB find query that selects documents to archive. The specified query follows the syntax of the `db.collection.find(query)` command. This query can't use the empty document (`{}`) to return all documents. Set this parameter when `"criteria.type" : "CUSTOM"`. */
             query: string;
         } & {
             /**
@@ -2396,7 +2503,7 @@ export interface components {
             role?: string;
             /**
              * DB Role Type
-             * @description Type of the DB role. Can be either BuiltIn or Custom.
+             * @description Type of the DB role. Can be either Built In or Custom.
              * @enum {string}
              */
             type?: "BUILT_IN" | "CUSTOM";
@@ -2778,7 +2885,7 @@ export interface components {
              *
              *     To learn more about the available metrics, see <a href="https://www.mongodb.com/docs/atlas/reference/alert-host-metrics/#std-label-measurement-types" target="_blank">Host Metrics</a>.
              *
-             *     **NOTE**: If you set eventTypeName to OUTSIDE_SERVERLESS_METRIC_THRESHOLD, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
+             *     **NOTE**: If you set `eventTypeName` to `OUTSIDE_SERVERLESS_METRIC_THRESHOLD`, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
              * @example ASSERT_USER
              */
             readonly metricName?: string;
@@ -2818,12 +2925,12 @@ export interface components {
         DataMetricUnits: "BITS" | "KILOBITS" | "MEGABITS" | "GIGABITS" | "BYTES" | "KILOBYTES" | "MEGABYTES" | "GIGABYTES" | "TERABYTES" | "PETABYTES";
         /**
          * Data Metric Value
-         * @description Measurement of the **metricName** recorded at the time of the event.
+         * @description Measurement of the `metricName` recorded at the time of the event.
          */
         DataMetricValueView: {
             /**
              * Format: double
-             * @description Amount of the **metricName** recorded at the time of the event. This value triggered the alert.
+             * @description Amount of the `metricName` recorded at the time of the event. This value triggered the alert.
              */
             readonly number?: number;
             units?: components["schemas"]["DataMetricUnits"];
@@ -2856,18 +2963,18 @@ export interface components {
          * @description Date-Based archival criteria.
          */
         DateCriteriaView: Omit<components["schemas"]["CriteriaView"], "type"> & {
-            /** @description Indexed database parameter that stores the date that determines when data moves to the online archive. MongoDB Cloud archives the data when the current date exceeds the date in this database parameter plus the number of days specified through the **expireAfterDays** parameter. Set this parameter when you set `"criteria.type" : "DATE"`. */
+            /** @description Indexed database parameter that stores the date that determines when data moves to the online archive. MongoDB Cloud archives the data when the current date exceeds the date in this database parameter plus the number of days specified through the `expireAfterDays` parameter. Set this parameter when you set `"criteria.type" : "DATE"`. */
             dateField?: string;
             /**
-             * @description Syntax used to write the date after which data moves to the online archive. Date can be expressed as ISO 8601, Epoch timestamps, or ObjectId. The Epoch timestamp can be expressed as nanoseconds, milliseconds, or seconds. Set this parameter when **"criteria.type" : "DATE"**.
-             *     You must set **"criteria.type" : "DATE"** if **"collectionType": "TIMESERIES"**.
+             * @description Syntax used to write the date after which data moves to the online archive. Date can be expressed as ISO 8601, Epoch timestamps, or Object ID. The Epoch timestamp can be expressed as nanoseconds, milliseconds, or seconds. Set this parameter when `criteria.type` : `DATE`.
+             *     You must set `criteria.type` : `DATE` if `collectionType`: `TIMESERIES`.
              * @default ISODATE
              * @enum {string}
              */
             dateFormat: "ISODATE" | "EPOCH_SECONDS" | "EPOCH_MILLIS" | "EPOCH_NANOSECONDS" | "OBJECT_ID";
             /**
              * Format: int32
-             * @description Number of days after the value in the **criteria.dateField** when MongoDB Cloud archives data in the specified cluster. Set this parameter when you set **"criteria.type" : "DATE"**.
+             * @description Number of days after the value in the `criteria.dateField` when MongoDB Cloud archives data in the specified cluster. Set this parameter when you set `"criteria.type" : "DATE"`.
              */
             expireAfterDays?: number;
         } & {
@@ -2887,7 +2994,7 @@ export interface components {
              *
              *      This value is not configurable on M0/M2/M5 clusters.
              *
-             *      MongoDB Cloud requires this parameter if you set **replicationSpecs**.
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
              *
              *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
              *
@@ -2990,6 +3097,109 @@ export interface components {
              */
             type: "DEFAULT";
         };
+        /** @description Specifications for one copy policy item. */
+        DiskBackupCopyPolicyItem: {
+            /**
+             * @description Human-readable label that identifies the frequency type associated with the copy policy.
+             * @enum {string}
+             */
+            frequencyType: "daily" | "hourly" | "weekly" | "monthly" | "yearly" | "ondemand";
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies this copy policy item.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+        } & (components["schemas"]["DiskBackupOnDemandCopyPolicyItem"] | components["schemas"]["DiskBackupTimeBasedCopyPolicyItem"]);
+        /** @description Specifications for one on-demand copy policy item. */
+        DiskBackupOnDemandCopyPolicyItem: Omit<WithRequired<components["schemas"]["DiskBackupCopyPolicyItem"], "frequencyType">, "frequencyType"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            frequencyType: "ondemand";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            frequencyType: "ondemand";
+        };
+        /**
+         * Replica Set Snapshot
+         * @description Details of the replica set snapshot that MongoDB Cloud created.
+         */
+        DiskBackupReplicaSet: {
+            /**
+             * @description Human-readable label that identifies the cloud provider.
+             * @enum {string}
+             */
+            readonly cloudProvider?: "AWS" | "AZURE" | "GCP";
+            /** @description List that identifies the regions to which MongoDB Cloud copies the snapshot. */
+            readonly copyRegions?: string[];
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud took the snapshot. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly createdAt?: string;
+            /** @description Human-readable phrase or sentence that explains the purpose of the snapshot. The resource returns this parameter when `"status": "onDemand"`. */
+            readonly description?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud deletes the snapshot. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly expiresAt?: string;
+            /**
+             * @description Human-readable label that identifies how often this snapshot triggers.
+             * @enum {string}
+             */
+            readonly frequencyType?: "hourly" | "daily" | "weekly" | "monthly" | "yearly";
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the snapshot.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * Format: uuid
+             * @description Unique string that identifies the Amazon Web Services (AWS) Key Management Service (KMS) Customer Master Key (CMK) used to encrypt the snapshot. The resource returns this value when `"encryptionEnabled" : true`.
+             */
+            readonly masterKeyUUID?: string;
+            /** @description Version of the MongoDB host that this snapshot backs up. */
+            readonly mongodVersion?: string;
+            /** @description List that contains unique identifiers for the policy items. */
+            readonly policyItems?: string[];
+            /** @description Human-readable label that identifies the replica set from which MongoDB Cloud took this snapshot. The resource returns this parameter when `"type": "replicaSet"`. */
+            readonly replicaSetName?: string;
+            /**
+             * @description Human-readable label that identifies when this snapshot triggers.
+             * @enum {string}
+             */
+            readonly snapshotType?: "onDemand" | "scheduled" | "fallback";
+            /**
+             * @description Human-readable label that indicates the stage of the backup process for this snapshot.
+             * @enum {string}
+             */
+            readonly status?: "queued" | "inProgress" | "completed" | "failed";
+            /**
+             * Format: int64
+             * @description Number of bytes taken to store the backup at time of snapshot.
+             */
+            readonly storageSizeBytes?: number;
+            /**
+             * @description Human-readable label that categorizes the cluster as a replica set or sharded cluster.
+             * @enum {string}
+             */
+            readonly type?: "replicaSet" | "shardedCluster";
+        };
+        DiskBackupRestoreMember: {
+            /** @description One Uniform Resource Locator that points to the compressed snapshot files for manual download. MongoDB Cloud returns this parameter when `"deliveryType" : "download"`. */
+            readonly downloadUrl?: string;
+            /** @description One or more Uniform Resource Locators (URLs) that point to the compressed snapshot files for manual download and the corresponding private endpoint(s). MongoDB Cloud returns this parameter when `"deliveryType" : "download"` and the download can be performed privately. */
+            readonly privateDownloadDeliveryUrls?: components["schemas"]["ApiPrivateDownloadDeliveryUrl"][];
+            /** @description Human-readable label that identifies the replica set on the sharded cluster. */
+            readonly replicaSetName?: string;
+        };
         DiskBackupSnapshotAWSExportBucketRequest: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">, "cloudProvider"> & {
             /**
              * @description Human-readable label that identifies the AWS S3 Bucket that the role is authorized to export to.
@@ -3038,12 +3248,12 @@ export interface components {
              * @example us-east-1
              */
             readonly region?: string;
-            /** @description Indicates whether to use privatelink. User supplied. */
+            /** @description Indicates whether to use private link. User supplied. */
             requirePrivateNetworking?: boolean;
         };
         DiskBackupSnapshotAzureExportBucketRequest: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">, "cloudProvider"> & {
             /**
-             * @description The name of the Azure Storage Container to export to. This can be omitted and computed from the serviceUrl if the serviceUrl includes a Azure Storage Container name. For example a serviceUrl of "https://examplestorageaccount.blob.core.windows.net/exportcontainer" will yield a computed bucketName of "exportcontainer". If the serviceUrl does not include a Container name, this field is required.
+             * @description The name of the Azure Storage Container to export to. This can be omitted and computed from the `serviceUrl` if the `serviceUrl` includes a Azure Storage Container name. For example a `serviceUrl` of `https://examplestorageaccount.blob.core.windows.net/exportcontainer` will yield a computed `bucketName` of `exportcontainer`. If the `serviceUrl` does not include a Container name, this field is required.
              * @example exportcontainer
              */
             bucketName?: string;
@@ -3053,14 +3263,14 @@ export interface components {
              */
             roleId: string;
             /**
-             * @description URL of the Azure Storage Account to export to. For example: "https://examplestorageaccount.blob.core.windows.net/exportcontainer". Only standard endpoints (with "blob.core.windows.net") are supported.
+             * @description URL of the Azure Storage Account to export to. For example: `https://examplestorageaccount.blob.core.windows.net/exportcontainer`. Only standard endpoints (with `blob.core.windows.net`) are supported.
              * @example https://examplestorageaccount.blob.core.windows.net/exportcontainer
              */
             serviceUrl: string;
             /**
              * Format: uuid
              * @deprecated
-             * @description UUID that identifies the Azure Active Directory Tenant ID. Deprecated: this field is ignored; the tenantId of the Cloud Provider Access role (from roleId) is used.
+             * @description UUID that identifies the Azure Active Directory Tenant ID. Deprecated: this field is ignored; the `tenantId` of the Cloud Provider Access role (from `roleId`) is used.
              */
             tenantId?: string;
         } & {
@@ -3077,7 +3287,7 @@ export interface components {
              */
             roleId: string;
             /**
-             * @description URL of the Azure Storage Account to export to. Only standard endpoints (with "blob.core.windows.net") are supported.
+             * @description URL of the Azure Storage Account to export to. Only standard endpoints (with `blob.core.windows.net`) are supported.
              * @example https://examplestorageaccount.blob.core.windows.net/exportcontainer
              */
             serviceUrl: string;
@@ -3153,6 +3363,101 @@ export interface components {
              * @enum {string}
              */
             cloudProvider: "GCP";
+        };
+        DiskBackupSnapshotRestoreJob: {
+            /** @description Flag that indicates whether someone canceled this restore job. */
+            readonly cancelled?: boolean;
+            /** @description Information on the restore job for each replica set in the sharded cluster. */
+            readonly components?: components["schemas"]["DiskBackupRestoreMember"][];
+            /**
+             * @description Human-readable label that categorizes the restore job to create.
+             * @enum {string}
+             */
+            deliveryType: "automated" | "download" | "pointInTime";
+            /** @description One or more Uniform Resource Locators (URLs) that point to the compressed snapshot files for manual download. MongoDB Cloud returns this parameter when `"deliveryType" : "download"`. */
+            readonly deliveryUrl?: string[];
+            desiredTimestamp?: components["schemas"]["ApiBSONTimestampView"];
+            /** @description Flag that indicates whether the restore job expired. */
+            readonly expired?: boolean;
+            /**
+             * Format: date-time
+             * @description Date and time when the restore job expires. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly expiresAt?: string;
+            /** @description Flag that indicates whether the restore job failed. */
+            readonly failed?: boolean;
+            /**
+             * Format: date-time
+             * @description Date and time when the restore job completed. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly finishedAt?: string;
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the restore job.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * Format: int32
+             * @description Oplog operation number from which you want to restore this snapshot. This number represents the second part of an Oplog timestamp. The resource returns this parameter when `"deliveryType" : "pointInTime"` and `oplogTs` exceeds `0`.
+             * @example 1
+             */
+            oplogInc?: number;
+            /**
+             * Format: int32
+             * @description Date and time from which you want to restore this snapshot. This parameter expresses this timestamp in the number of seconds that have elapsed since the UNIX epoch. This number represents the first part of an Oplog timestamp. The resource returns this parameter when `"deliveryType" : "pointInTime"` and `oplogTs` exceeds `0`.
+             */
+            oplogTs?: number;
+            /**
+             * Format: int32
+             * @description Date and time from which MongoDB Cloud restored this snapshot. This parameter expresses this timestamp in the number of seconds that have elapsed since the UNIX epoch. The resource returns this parameter when `"deliveryType" : "pointInTime"` and `pointInTimeUTCSeconds` exceeds `0`.
+             */
+            pointInTimeUTCSeconds?: number;
+            /** @description One or more Uniform Resource Locators (URLs) that point to the compressed snapshot files for manual download and the corresponding private endpoint(s). MongoDB Cloud returns this parameter when `"deliveryType" : "download"` and the download can be performed privately. */
+            readonly privateDownloadDeliveryUrls?: components["schemas"]["ApiPrivateDownloadDeliveryUrl"][];
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the snapshot.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            snapshotId?: string;
+            /** @description Human-readable label that identifies the target cluster to which the restore job restores the snapshot. The resource returns this parameter when `"deliveryType":` `"automated"`. Required for `automated` and `pointInTime` restore types. */
+            targetClusterName?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the target project for the specified `targetClusterName`. Required for `automated` and `pointInTime` restore types.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            targetGroupId?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud took the snapshot associated with `snapshotId`. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly timestamp?: string;
+        };
+        /** @description Specifications for one time-based copy policy item. */
+        DiskBackupTimeBasedCopyPolicyItem: Omit<WithRequired<components["schemas"]["DiskBackupCopyPolicyItem"], "frequencyType">, "frequencyType"> & {
+            /**
+             * @description Unit of time in which MongoDB Cloud measures snapshot copy retention.
+             * @enum {string}
+             */
+            retentionUnit: "days" | "weeks" | "months" | "years";
+            /**
+             * Format: int32
+             * @description Duration in days, weeks, months, or years that MongoDB Cloud retains the snapshot copy.
+             */
+            retentionValue: number;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            frequencyType: "daily" | "hourly" | "monthly" | "weekly" | "yearly";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            frequencyType: "daily" | "hourly" | "monthly" | "weekly" | "yearly";
         };
         /** @description Setting that enables disk auto-scaling. */
         DiskGBAutoScaling: {
@@ -3308,7 +3613,7 @@ export interface components {
          * @description Collection of Uniform Resource Locators that point to the MongoDB database.
          */
         FlexConnectionStrings20241113: {
-            /** @description Public connection string that you can use to connect to this cluster. This connection string uses the mongodb:// protocol. */
+            /** @description Public connection string that you can use to connect to this cluster. This connection string uses the `mongodb://` protocol. */
             readonly standard?: string;
             /** @description Public connection string that you can use to connect to this flex cluster. This connection string uses the `mongodb+srv://` protocol. */
             readonly standardSrv?: string;
@@ -3471,7 +3776,7 @@ export interface components {
              *
              *      This value is not configurable on M0/M2/M5 clusters.
              *
-             *      MongoDB Cloud requires this parameter if you set **replicationSpecs**.
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
              *
              *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
              *
@@ -3672,7 +3977,7 @@ export interface components {
              *
              *      This value is not configurable on M0/M2/M5 clusters.
              *
-             *      MongoDB Cloud requires this parameter if you set **replicationSpecs**.
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
              *
              *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
              *
@@ -3846,7 +4151,7 @@ export interface components {
              *
              *     To learn more about the available metrics, see <a href="https://www.mongodb.com/docs/atlas/reference/alert-host-metrics/#std-label-measurement-types" target="_blank">Host Metrics</a>.
              *
-             *     **NOTE**: If you set eventTypeName to OUTSIDE_SERVERLESS_METRIC_THRESHOLD, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
+             *     **NOTE**: If you set `eventTypeName` to `OUTSIDE_SERVERLESS_METRIC_THRESHOLD`, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
              * @example ASSERT_USER
              */
             readonly metricName?: string;
@@ -3888,11 +4193,11 @@ export interface components {
         HostMetricValue: {
             /**
              * Format: double
-             * @description Amount of the **metricName** recorded at the time of the event. This value triggered the alert.
+             * @description Amount of the `metricName` recorded at the time of the event. This value triggered the alert.
              */
             readonly number?: number;
             /**
-             * @description Element used to express the quantity in **currentValue.number**. This can be an element of time, storage capacity, and the like. This metric triggered the alert.
+             * @description Element used to express the quantity in `currentValue.number`. This can be an element of time, storage capacity, and the like. This metric triggered the alert.
              * @enum {string}
              */
             readonly units?: "bits" | "Kbits" | "Mbits" | "Gbits" | "bytes" | "KB" | "MB" | "GB" | "TB" | "PB" | "nsec" | "msec" | "sec" | "min" | "hours" | "million minutes" | "days" | "requests" | "1000 requests" | "tokens" | "million tokens" | "pixels" | "billion pixels" | "GB seconds" | "GB hours" | "GB days" | "RPU" | "thousand RPU" | "million RPU" | "WPU" | "thousand WPU" | "million WPU" | "count" | "thousand" | "million" | "billion";
@@ -3977,19 +4282,19 @@ export interface components {
              * Format: double
              * @description Lower bound for usage amount range in current SKU tier.
              *
-             *     **NOTE**: **lineItems[n].tierLowerBound** appears only if your **lineItems[n].sku** is tiered.
+             *     **NOTE**: `lineItems[n].tierLowerBound` appears only if your `lineItems[n].sku` is tiered.
              */
             readonly tierLowerBound?: number;
             /**
              * Format: double
              * @description Upper bound for usage amount range in current SKU tier.
              *
-             *     **NOTE**: **lineItems[n].tierUpperBound** appears only if your **lineItems[n].sku** is tiered.
+             *     **NOTE**: `lineItems[n].tierUpperBound` appears only if your `lineItems[n].sku` is tiered.
              */
             readonly tierUpperBound?: number;
             /**
              * Format: int64
-             * @description Sum of the cost set for this line item. MongoDB Cloud expresses this value in cents (100ths of one US Dollar) and calculates this value as **unitPriceDollars** × **quantity** × 100.
+             * @description Sum of the cost set for this line item. MongoDB Cloud expresses this value in cents (100ths of one US Dollar) and calculates this value as `unitPriceDollars` * `quantity` * 100.
              */
             readonly totalPriceCents?: number;
             /** @description Element used to express what **quantity** this line item measures. This value can be elements of time, storage capacity, and the like. */
@@ -4018,6 +4323,14 @@ export interface components {
          */
         LogIntegrationRequest: {
             /**
+             * @description Array of log types exported by this integration. The specific log types available and maximum number of items depend on the integration type. See the integration-specific schema for details.
+             * @example [
+             *       "MONGOD",
+             *       "MONGOS"
+             *     ]
+             */
+            logTypes: string[];
+            /**
              * @description Type of log integration. Identifies which service will receive the exported logs.
              * @enum {string}
              */
@@ -4033,6 +4346,14 @@ export interface components {
              * @example 507f1f77bcf86cd799439011
              */
             id: string;
+            /**
+             * @description Array of log types exported by this integration. The specific log types available and maximum number of items depend on the integration type. See the integration-specific schema for details.
+             * @example [
+             *       "MONGOD",
+             *       "MONGOS"
+             *     ]
+             */
+            logTypes?: string[];
             /**
              * @description Type of log integration. Identifies which service will receive the exported logs.
              * @enum {string}
@@ -4079,9 +4400,9 @@ export interface components {
             type: "MONTHLY";
         };
         NetworkPermissionEntry: {
-            /** @description Unique string of the Amazon Web Services (AWS) security group that you want to add to the project's IP access list. Your IP access list entry can be one **awsSecurityGroup**, one **cidrBlock**, or one **ipAddress**. You must configure Virtual Private Connection (VPC) peering for your project before you can add an AWS security group to an IP access list. You cannot set AWS security groups as temporary access list entries. Don't set this parameter if you set **cidrBlock** or **ipAddress**. */
+            /** @description Unique string of the Amazon Web Services (AWS) security group that you want to add to the project's IP access list. Your IP access list entry can be one `awsSecurityGroup`, one `cidrBlock`, or one `ipAddress`. You must configure Virtual Private Connection (VPC) peering for your project before you can add an AWS security group to an IP access list. You cannot set AWS security groups as temporary access list entries. Don't set this parameter if you set `cidrBlock` or `ipAddress`. */
             awsSecurityGroup?: string;
-            /** @description Range of IP addresses in Classless Inter-Domain Routing (CIDR) notation that you want to add to the project's IP access list. Your IP access list entry can be one **awsSecurityGroup**, one **cidrBlock**, or one **ipAddress**. Don't set this parameter if you set **awsSecurityGroup** or **ipAddress**. */
+            /** @description Range of IP addresses in Classless Inter-Domain Routing (CIDR) notation that you want to add to the project's IP access list. Your IP access list entry can be one `awsSecurityGroup`, one `cidrBlock`, or one `ipAddress`. Don't set this parameter if you set `awsSecurityGroup` or `ipAddress`. */
             cidrBlock?: string;
             /** @description Remark that explains the purpose or scope of this IP access list entry. */
             comment?: string;
@@ -4095,7 +4416,7 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly groupId?: string;
-            /** @description IP address that you want to add to the project's IP access list. Your IP access list entry can be one **awsSecurityGroup**, one **cidrBlock**, or one **ipAddress**. Don't set this parameter if you set **awsSecurityGroup** or **cidrBlock**. */
+            /** @description IP address that you want to add to the project's IP access list. Your IP access list entry can be one `awsSecurityGroup`, one `cidrBlock`, or one `ipAddress`. Don't set this parameter if you set `awsSecurityGroup` or `cidrBlock`. */
             ipAddress?: string;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
@@ -4164,7 +4485,7 @@ export interface components {
              *
              *     To learn more about the available metrics, see <a href="https://www.mongodb.com/docs/atlas/reference/alert-host-metrics/#std-label-measurement-types" target="_blank">Host Metrics</a>.
              *
-             *     **NOTE**: If you set eventTypeName to OUTSIDE_SERVERLESS_METRIC_THRESHOLD, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
+             *     **NOTE**: If you set `eventTypeName` to `OUTSIDE_SERVERLESS_METRIC_THRESHOLD`, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
              * @example ASSERT_USER
              */
             readonly metricName?: string;
@@ -4204,12 +4525,12 @@ export interface components {
         NumberMetricUnits: "COUNT" | "THOUSAND" | "MILLION" | "BILLION";
         /**
          * Number Metric Value
-         * @description Measurement of the **metricName** recorded at the time of the event.
+         * @description Measurement of the `metricName` recorded at the time of the event.
          */
         NumberMetricValueView: {
             /**
              * Format: double
-             * @description Amount of the **metricName** recorded at the time of the event. This value triggered the alert.
+             * @description Amount of the `metricName` recorded at the time of the event. This value triggered the alert.
              */
             readonly number?: number;
             units?: components["schemas"]["NumberMetricUnits"];
@@ -4395,6 +4716,17 @@ export interface components {
              */
             readonly totalCount?: number;
         };
+        PaginatedCloudBackupReplicaSetView: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
+            readonly results?: components["schemas"]["DiskBackupReplicaSet"][];
+            /**
+             * Format: int32
+             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             */
+            readonly totalCount?: number;
+        };
         PaginatedClusterDescription20240805: {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
@@ -4568,7 +4900,7 @@ export interface components {
              * @description The number of documents returned by the operation.
              */
             readonly docsReturned?: number;
-            /** @description This boolean will be true when the server can identfiy the query source as non-server. This field is only available for MDB 8.0+. */
+            /** @description This boolean will be true when the server can identify the query source as non-server. This field is only available for MDB 8.0+. */
             readonly fromUserConnection?: boolean;
             /** @description Indicates if the query has index coverage. */
             readonly hasIndexCoverage?: boolean;
@@ -4692,7 +5024,7 @@ export interface components {
              *
              *     To learn more about the available metrics, see <a href="https://www.mongodb.com/docs/atlas/reference/alert-host-metrics/#std-label-measurement-types" target="_blank">Host Metrics</a>.
              *
-             *     **NOTE**: If you set eventTypeName to OUTSIDE_SERVERLESS_METRIC_THRESHOLD, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
+             *     **NOTE**: If you set `eventTypeName` to `OUTSIDE_SERVERLESS_METRIC_THRESHOLD`, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
              * @example ASSERT_USER
              */
             readonly metricName?: string;
@@ -4732,19 +5064,19 @@ export interface components {
         RawMetricUnits: "RAW";
         /**
          * Raw Metric Value
-         * @description Measurement of the **metricName** recorded at the time of the event.
+         * @description Measurement of the `metricName` recorded at the time of the event.
          */
         RawMetricValueView: {
             /**
              * Format: double
-             * @description Amount of the **metricName** recorded at the time of the event. This value triggered the alert.
+             * @description Amount of the `metricName` recorded at the time of the event. This value triggered the alert.
              */
             readonly number?: number;
             units?: components["schemas"]["RawMetricUnits"];
         };
         /**
          * ReplicaSet Alerts
-         * @description ReplicaSet alert notifies about different activities on replica set of mongod instances.
+         * @description Replica Set alert notifies about different activities on replica set of mongod instances.
          */
         ReplicaSetAlertViewForNdsGroup: {
             /**
@@ -4856,11 +5188,11 @@ export interface components {
              */
             readonly id?: string;
             /**
-             * @description Hardware specifications for nodes set for a given region. Each **regionConfigs** object must be unique by region and cloud provider within the **replicationSpec**. Each **regionConfigs** object describes the region's priority in elections and the number and type of MongoDB nodes that MongoDB Cloud deploys to the region. Each **regionConfigs** object must have either an **analyticsSpecs** object, **electableSpecs** object, or **readOnlySpecs** object. Tenant clusters only require **electableSpecs. Dedicated** clusters can specify any of these specifications, but must have at least one **electableSpecs** object within a **replicationSpec**.
+             * @description Hardware specifications for nodes set for a given region. Each `regionConfigs` object must be unique by region and cloud provider within the `replicationSpec`. Each `regionConfigs` object describes the region's priority in elections and the number and type of MongoDB nodes that MongoDB Cloud deploys to the region. Each `regionConfigs` object must have either an `analyticsSpecs` object, `electableSpecs` object, or `readOnlySpecs` object. Tenant clusters only require `electableSpecs`. Dedicated clusters can specify any of these specifications, but must have at least one `electableSpecs` object within a `replicationSpec`.
              *
              *     **Example:**
              *
-             *     If you set `"replicationSpecs[n].regionConfigs[m].analyticsSpecs.instanceSize" : "M30"`, set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize" : `"M30"` if you have electable nodes and `"replicationSpecs[n].regionConfigs[m].readOnlySpecs.instanceSize" : `"M30"` if you have read-only nodes.
+             *     If you set `replicationSpecs[n].regionConfigs[m].analyticsSpecs.instanceSize` : `M30`, set `replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize` : `M30` if you have electable nodes and `replicationSpecs[n].regionConfigs[m].readOnlySpecs.instanceSize` : `M30` if you have read-only nodes.
              */
             regionConfigs?: components["schemas"]["CloudRegionConfig20240805"][];
             /**
@@ -4868,7 +5200,7 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly zoneId?: string;
-            /** @description Human-readable label that describes the zone this shard belongs to in a Global Cluster. Provide this value only if "clusterType" : "GEOSHARDED" but not "selfManagedSharding" : true. */
+            /** @description Human-readable label that describes the zone this shard belongs to in a Global Cluster. Provide this value only if `clusterType` : `GEOSHARDED` but not `selfManagedSharding` : `true`. */
             zoneName?: string;
         };
         /**
@@ -4885,7 +5217,7 @@ export interface components {
          * S3 Log Export Integration Request
          * @description Request schema for creating or updating an S3 log export integration.
          */
-        S3LogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "type">, "type"> & {
+        S3LogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
             /**
              * @description Human-readable label that identifies the S3 bucket name for storing log files.
              * @example my-log-bucket
@@ -4901,16 +5233,6 @@ export interface components {
              * @example arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
              */
             kmsKey?: string | null;
-            /**
-             * @description Array of log types to export to S3. Valid values: MONGOD, MONGOS, MONGOD_AUDIT, MONGOS_AUDIT.
-             * @example [
-             *       "MONGOD",
-             *       "MONGOS",
-             *       "MONGOD_AUDIT",
-             *       "MONGOS_AUDIT"
-             *     ]
-             */
-            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
             /**
              * @description S3 directory path prefix where the log files will be stored. MongoDB Cloud will add further sub-directories based on the log type.
              * @example mongo-logs/
@@ -4955,16 +5277,6 @@ export interface components {
              */
             kmsKey?: string | null;
             /**
-             * @description Array of log types to export to S3. Valid values: MONGOD, MONGOS, MONGOD_AUDIT, MONGOS_AUDIT.
-             * @example [
-             *       "MONGOD",
-             *       "MONGOS",
-             *       "MONGOD_AUDIT",
-             *       "MONGOS_AUDIT"
-             *     ]
-             */
-            logTypes?: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
-            /**
              * @description S3 directory path prefix where the log files will be stored. MongoDB Cloud will add further sub-directories based on the log type.
              * @example mongo-logs/
              */
@@ -4999,7 +5311,7 @@ export interface components {
             readonly recommendation?: "REDUCE_LOOKUP_OPS" | "AVOID_UNBOUNDED_ARRAY" | "REDUCE_DOCUMENT_SIZE" | "REMOVE_UNNECESSARY_INDEXES" | "REDUCE_NUMBER_OF_NAMESPACES" | "OPTIMIZE_CASE_INSENSITIVE_REGEX_QUERIES" | "OPTIMIZE_TEXT_QUERIES";
         };
         SchemaAdvisorNamespaceTriggers: {
-            /** @description Namespace of the affected collection. Will be null for REDUCE_NUMBER_OF_NAMESPACE recommendation. */
+            /** @description Namespace of the affected collection. Will be null for `REDUCE_NUMBER_OF_NAMESPACE` recommendation. */
             readonly namespace?: string | null;
             /** @description List of triggers that specify why the collection activated the recommendation. */
             readonly triggers?: components["schemas"]["SchemaAdvisorTriggerDetails"][];
@@ -5198,13 +5510,13 @@ export interface components {
          */
         SearchMappings: {
             /**
-             * @description Indicates whether the index uses static, default dynamic, or configurable dynamic mappings. Set to **true** to enable dynamic mapping with default type set or define object to specify the name of the configured type sets for dynamic mapping. If you specify configurable dynamic mappings, you must define the referred type sets in the **typeSets** field. Set to **false** to use only static mappings through **mappings.fields**.
+             * @description Indicates whether the index uses static, default dynamic, or configurable dynamic mappings. Set to `true` to enable dynamic mapping with default type set or define object to specify the name of the configured type sets for dynamic mapping. If you specify configurable dynamic mappings, you must define the referred type sets in the `typeSets` field. Set to `false` to use only static mappings through `mappings.fields`.
              * @example {
              *       "typeSet": "typeSet1"
              *     }
              */
             dynamic?: Record<string, never>;
-            /** @description One or more field specifications for the Atlas Search index. Required if **mappings.dynamic** is omitted or set to **false**. */
+            /** @description One or more field specifications for the Atlas Search index. Required if `mappings.dynamic` is omitted or set to `false`. */
             fields?: {
                 [key: string]: components["schemas"]["Fields"];
             };
@@ -5243,7 +5555,7 @@ export interface components {
              * @enum {string}
              */
             analyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
-            /** @description Label that identifies the synonym definition. Each **synonym.name** must be unique within the same index definition. */
+            /** @description Label that identifies the synonym definition. Each `synonym.name` must be unique within the same index definition. */
             name: string;
             source: components["schemas"]["SynonymSource"];
         };
@@ -5252,9 +5564,9 @@ export interface components {
          * @description Type sets for an Atlas Search index definition.
          */
         SearchTypeSets: {
-            /** @description Label that identifies the type set name. Each **typeSets.name** must be unique within the same index definition. */
+            /** @description Label that identifies the type set name. Each `typeSets.name` must be unique within the same index definition. */
             name: string;
-            /** @description List of types associated with the type set. Each type definition must include a "type" field specifying the search field type ("autocomplete", "boolean", "date", "geo", "number", "objectId", "string", "token", or "uuid") and may include additional configuration properties specific to that type. */
+            /** @description List of types associated with the type set. Each type definition must include a `type` field specifying the search field type (`autocomplete`, `boolean`, `date`, `geo`, `number`, `objectId`, `string`, `token`, or `uuid`) and may include additional configuration properties specific to that type. */
             types?: components["schemas"]["BasicDBObject"][];
         };
         /**
@@ -5299,7 +5611,7 @@ export interface components {
         };
         /**
          * Stream Processor Alerts
-         * @description Stream Processor alert notifies about activities on Stream Processor in AtlasStreams.
+         * @description Stream Processor alert notifies about activities on Stream Processor in Atlas Streams.
          */
         StreamProcessorAlertViewForNdsGroup: {
             /**
@@ -5458,6 +5770,8 @@ export interface components {
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable label that identifies the stream connection. In the case of the Sample type, this is the name of the sample source. */
             name?: string;
+            /** @description The connection's region. */
+            readonly region?: string;
             /**
              * @description The state of the connection.
              * @enum {string}
@@ -5474,7 +5788,7 @@ export interface components {
             headers?: {
                 [key: string]: string;
             };
-            /** @description The url to be used for the request. */
+            /** @description The URL to be used for the request. */
             url?: string;
         } & {
             /**
@@ -5562,22 +5876,22 @@ export interface components {
         /** @description Information about networking access. */
         StreamsKafkaNetworkingAccess: {
             /**
-             * @description Reserved. Will be used by PRIVATE_LINK connection type.
+             * @description Reserved. Will be used by `PRIVATE_LINK` connection type.
              * @example 32b6e34b3d91647abb20e7b8
              */
             connectionId?: string;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
-            /** @description Reserved. Will be used by PRIVATE_LINK connection type. */
+            /** @description Reserved. Will be used by `PRIVATE_LINK` connection type. */
             name?: string;
             /**
-             * @description Reserved. Will be used by TRANSIT_GATEWAY connection type.
+             * @description Reserved. Will be used by `TRANSIT_GATEWAY` connection type.
              * @example 32b6e34b3d91647abb20e7b8
              */
             tgwRouteId?: string;
             /**
              * Networking Access Type
-             * @description Selected networking type. Either PUBLIC, VPC, PRIVATE_LINK, or TRANSIT_GATEWAY. Defaults to PUBLIC. For VPC, ensure that VPC peering exists and connectivity has been established between Atlas VPC and the VPC where Kafka cluster is hosted for the connection to function properly. TRANSIT_GATEWAY support is coming soon.
+             * @description Selected networking type. Either `PUBLIC`, `VPC`, `PRIVATE_LINK`, or `TRANSIT_GATEWAY`. Defaults to `PUBLIC`. For VPC, ensure that VPC peering exists and connectivity has been established between Atlas VPC and the VPC where Kafka cluster is hosted for the connection to function properly. `TRANSIT_GATEWAY` support is coming soon.
              * @enum {string}
              */
             type?: "PUBLIC" | "VPC" | "PRIVATE_LINK" | "TRANSIT_GATEWAY";
@@ -5588,7 +5902,7 @@ export interface components {
             brokerPublicCertificate?: string;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
-            /** @description Describes the transport type. Can be either SASL_PLAINTEXT, SASL_SSL, or SSL. */
+            /** @description Describes the transport type. Can be either `SASL_PLAINTEXT`, `SASL_SSL`, or `SSL`. */
             protocol?: string;
         };
         /** @description The configuration for S3 connections. */
@@ -5676,7 +5990,7 @@ export interface components {
              *
              *      This value is not configurable on M0/M2/M5 clusters.
              *
-             *      MongoDB Cloud requires this parameter if you set **replicationSpecs**.
+             *      MongoDB Cloud requires this parameter if you set `replicationSpecs`.
              *
              *      If you specify a disk size below the minimum (10 GB), this parameter defaults to the minimum disk size value.
              *
@@ -5703,9 +6017,9 @@ export interface components {
          */
         TenantRegionConfig20240805: Omit<components["schemas"]["CloudRegionConfig20240805"], "providerName"> & {
             /**
-             * @description Cloud service provider on which MongoDB Cloud provisioned the multi-tenant cluster. The resource returns this parameter when **providerName** is `TENANT` and **electableSpecs.instanceSize** is `M0`, `M2` or `M5`.
+             * @description Cloud service provider on which MongoDB Cloud provisioned the multi-tenant cluster. The resource returns this parameter when `providerName` is `TENANT` and `electableSpecs.instanceSize` is `M0`, `M2` or `M5`.
              *
-             *     Please note that  using an instanceSize of M2 or M5 will create a Flex cluster instead. Support for the instanceSize of M2 or M5 will be discontinued in January 2026. We recommend using the createFlexCluster API for such configurations moving forward.
+             *     Please note that  using an `instanceSize` of `M2` or `M5` will create a Flex cluster instead. Support for the `instanceSize` of `M2` or `M5` will be discontinued in January 2026. We recommend using the Create Flex Cluster API for such configurations moving forward.
              * @enum {string}
              */
             backingProviderName?: "AWS" | "GCP" | "AZURE";
@@ -5789,7 +6103,7 @@ export interface components {
              */
             searchAnalyzer: "lucene.standard" | "lucene.simple" | "lucene.whitespace" | "lucene.keyword" | "lucene.arabic" | "lucene.armenian" | "lucene.basque" | "lucene.bengali" | "lucene.brazilian" | "lucene.bulgarian" | "lucene.catalan" | "lucene.chinese" | "lucene.cjk" | "lucene.czech" | "lucene.danish" | "lucene.dutch" | "lucene.english" | "lucene.finnish" | "lucene.french" | "lucene.galician" | "lucene.german" | "lucene.greek" | "lucene.hindi" | "lucene.hungarian" | "lucene.indonesian" | "lucene.irish" | "lucene.italian" | "lucene.japanese" | "lucene.korean" | "lucene.kuromoji" | "lucene.latvian" | "lucene.lithuanian" | "lucene.morfologik" | "lucene.nori" | "lucene.norwegian" | "lucene.persian" | "lucene.portuguese" | "lucene.romanian" | "lucene.russian" | "lucene.smartcn" | "lucene.sorani" | "lucene.spanish" | "lucene.swedish" | "lucene.thai" | "lucene.turkish" | "lucene.ukrainian";
             /**
-             * @description Sort definition for the index. When defined, the index will be pre-sorted on thespecified fields, which improves query sort performance for those fields. Supports two formats: simple format with field name and direction, or complex format with additional options.The 'order' field is required (1=ascending, -1=descending).The 'noData' field is optional and controls how missing values are sorted(default: "lowest").
+             * @description Sort definition for the index. When defined, the index will be pre-sorted on the specified fields, which improves query sort performance for those fields. Supports two formats: simple format with field name and direction, or complex format with additional options. The `order` field is required (1=ascending, -1=descending).The `noData` field is optional and controls how missing values are sorted(default: "lowest").
              * @example {
              *       "anotherField": {
              *         "noData": "highest",
@@ -5930,7 +6244,7 @@ export interface components {
              *
              *     To learn more about the available metrics, see <a href="https://www.mongodb.com/docs/atlas/reference/alert-host-metrics/#std-label-measurement-types" target="_blank">Host Metrics</a>.
              *
-             *     **NOTE**: If you set eventTypeName to OUTSIDE_SERVERLESS_METRIC_THRESHOLD, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
+             *     **NOTE**: If you set `eventTypeName` to `OUTSIDE_SERVERLESS_METRIC_THRESHOLD`, you can specify only metrics available for serverless. To learn more, see <a href="https://dochub.mongodb.org/core/alert-config-serverless-measurements" target="_blank">Serverless Measurements</a>.
              * @example ASSERT_USER
              */
             readonly metricName?: string;
@@ -5970,12 +6284,12 @@ export interface components {
         TimeMetricUnits: "NANOSECONDS" | "MILLISECONDS" | "MILLION_MINUTES" | "SECONDS" | "MINUTES" | "HOURS" | "DAYS";
         /**
          * Time Metric Value
-         * @description Measurement of the **metricName** recorded at the time of the event.
+         * @description Measurement of the `metricName` recorded at the time of the event.
          */
         TimeMetricValueView: {
             /**
              * Format: double
-             * @description Amount of the **metricName** recorded at the time of the event. This value triggered the alert.
+             * @description Amount of the `metricName` recorded at the time of the event. This value triggered the alert.
              */
             readonly number?: number;
             units?: components["schemas"]["TimeMetricUnits"];
@@ -5993,7 +6307,7 @@ export interface components {
         };
         /**
          * flattenGraph
-         * @description Filter that transforms a token filter graph, such as the token filter graph that the wordDelimiterGraph token filter produces, into a flat form suitable for indexing.
+         * @description Filter that transforms a token filter graph, such as the token filter graph that the `wordDelimiterGraph` token filter produces, into a flat form suitable for indexing.
          */
         TokenFilterFlattenGraph: {
             /**
@@ -6352,7 +6666,7 @@ export interface components {
          * daitchMokotoffSoundex
          * @description Filter that creates tokens for words that sound the same based on the Daitch-Mokotoff Soundex phonetic algorithm. This filter can generate multiple encodings for each input, where each encoded token is a 6 digit number.
          *
-         *     **NOTE**: Don't use the **daitchMokotoffSoundex** token filter in:
+         *     **NOTE**: Don't use the `daitchMokotoffSoundex` token filter in:
          *
          *     -Synonym or autocomplete mapping definitions
          *     - Operators where **fuzzy** is enabled. Atlas Search supports the **fuzzy** option only for the **autocomplete**, **term**, and **text** operators.
@@ -6379,12 +6693,12 @@ export interface components {
          * @description Filter that tokenizes input from the left side, or "edge", of a text input into n-grams of configured sizes. You can't use this token filter in synonym or autocomplete mapping definitions.
          */
         tokenFilteredgeGram: {
-            /** @description Value that specifies the maximum length of generated n-grams. This value must be greater than or equal to **minGram**. */
+            /** @description Value that specifies the maximum length of generated n-grams. This value must be greater than or equal to `minGram`. */
             maxGram: number;
-            /** @description Value that specifies the minimum length of generated n-grams. This value must be less than or equal to **maxGram**. */
+            /** @description Value that specifies the minimum length of generated n-grams. This value must be less than or equal to `maxGram`. */
             minGram: number;
             /**
-             * @description Value that indicates whether to index tokens shorter than **minGram** or longer than **maxGram**.
+             * @description Value that indicates whether to index tokens shorter than `minGram` or longer than `maxGram`.
              * @default omit
              * @enum {string}
              */
@@ -6460,12 +6774,12 @@ export interface components {
          * @description Filter that tokenizes input into n-grams of configured sizes. You can't use this token filter in synonym or autocomplete mapping definitions.
          */
         tokenFilternGram: {
-            /** @description Value that specifies the maximum length of generated n-grams. This value must be greater than or equal to **minGram**. */
+            /** @description Value that specifies the maximum length of generated n-grams. This value must be greater than or equal to `minGram`. */
             maxGram: number;
-            /** @description Value that specifies the minimum length of generated n-grams. This value must be less than or equal to **maxGram**. */
+            /** @description Value that specifies the minimum length of generated n-grams. This value must be less than or equal to `maxGram`. */
             minGram: number;
             /**
-             * @description Value that indicates whether to index tokens shorter than **minGram** or longer than **maxGram**.
+             * @description Value that indicates whether to index tokens shorter than `minGram` or longer than `maxGram`.
              * @default omit
              * @enum {string}
              */
@@ -6512,9 +6826,9 @@ export interface components {
          * @description Filter that constructs shingles (token n-grams) from a series of tokens. You can't use this token filter in synonym or autocomplete mapping definitions.
          */
         tokenFiltershingle: {
-            /** @description Value that specifies the maximum number of tokens per shingle. This value must be greater than or equal to **minShingleSize**. */
+            /** @description Value that specifies the maximum number of tokens per shingle. This value must be greater than or equal to `minShingleSize`. */
             maxShingleSize: number;
-            /** @description Value that specifies the minimum number of tokens per shingle. This value must be less than or equal to **maxShingleSize**. */
+            /** @description Value that specifies the minimum number of tokens per shingle. This value must be less than or equal to `maxShingleSize`. */
             minShingleSize: number;
             /**
              * @description Human-readable label that identifies this token filter type.
@@ -6832,11 +7146,11 @@ export interface components {
          *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
          */
         groupId: string;
-        /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+        /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
         includeCount: boolean;
         /** @description Number of items that the response returns per page. */
         itemsPerPage: number;
-        /** @description Unique 24-hexadecimal digit string that identifies the organization that contains your projects. Use the [/orgs](#tag/Organizations/operation/listOrganizations) endpoint to retrieve all organizations to which the authenticated user has access. */
+        /** @description Unique 24-hexadecimal digit string that identifies the organization that contains your projects. Use the [`/orgs`](#tag/Organizations/operation/listOrganizations) endpoint to retrieve all organizations to which the authenticated user has access. */
         orgId: string;
         /** @description Number of the page that displays the current set of the total objects that the response returns. */
         pageNum: number;
@@ -6861,7 +7175,9 @@ export type ApiAtlasCloudProviderAccessFeatureUsageFeatureIdView = components['s
 export type ApiAtlasClusterAdvancedConfigurationView = components['schemas']['ApiAtlasClusterAdvancedConfigurationView'];
 export type ApiAtlasFtsAnalyzersViewManual = components['schemas']['ApiAtlasFTSAnalyzersViewManual'];
 export type ApiAtlasFtsMappingsViewManual = components['schemas']['ApiAtlasFTSMappingsViewManual'];
+export type ApiBsonTimestampView = components['schemas']['ApiBSONTimestampView'];
 export type ApiError = components['schemas']['ApiError'];
+export type ApiPrivateDownloadDeliveryUrl = components['schemas']['ApiPrivateDownloadDeliveryUrl'];
 export type AppServiceAlertView = components['schemas']['AppServiceAlertView'];
 export type AppServiceEventTypeViewAlertable = components['schemas']['AppServiceEventTypeViewAlertable'];
 export type AtlasOrganization = components['schemas']['AtlasOrganization'];
@@ -6952,6 +7268,10 @@ export type DateCriteriaView = components['schemas']['DateCriteriaView'];
 export type DedicatedHardwareSpec20240805 = components['schemas']['DedicatedHardwareSpec20240805'];
 export type DefaultAlertViewForNdsGroup = components['schemas']['DefaultAlertViewForNdsGroup'];
 export type DefaultScheduleView = components['schemas']['DefaultScheduleView'];
+export type DiskBackupCopyPolicyItem = components['schemas']['DiskBackupCopyPolicyItem'];
+export type DiskBackupOnDemandCopyPolicyItem = components['schemas']['DiskBackupOnDemandCopyPolicyItem'];
+export type DiskBackupReplicaSet = components['schemas']['DiskBackupReplicaSet'];
+export type DiskBackupRestoreMember = components['schemas']['DiskBackupRestoreMember'];
 export type DiskBackupSnapshotAwsExportBucketRequest = components['schemas']['DiskBackupSnapshotAWSExportBucketRequest'];
 export type DiskBackupSnapshotAwsExportBucketResponse = components['schemas']['DiskBackupSnapshotAWSExportBucketResponse'];
 export type DiskBackupSnapshotAzureExportBucketRequest = components['schemas']['DiskBackupSnapshotAzureExportBucketRequest'];
@@ -6960,6 +7280,8 @@ export type DiskBackupSnapshotExportBucketRequest = components['schemas']['DiskB
 export type DiskBackupSnapshotExportBucketResponse = components['schemas']['DiskBackupSnapshotExportBucketResponse'];
 export type DiskBackupSnapshotGcpExportBucketRequest = components['schemas']['DiskBackupSnapshotGCPExportBucketRequest'];
 export type DiskBackupSnapshotGcpExportBucketResponse = components['schemas']['DiskBackupSnapshotGCPExportBucketResponse'];
+export type DiskBackupSnapshotRestoreJob = components['schemas']['DiskBackupSnapshotRestoreJob'];
+export type DiskBackupTimeBasedCopyPolicyItem = components['schemas']['DiskBackupTimeBasedCopyPolicyItem'];
 export type DiskGbAutoScaling = components['schemas']['DiskGBAutoScaling'];
 export type DropIndexSuggestionsIndex = components['schemas']['DropIndexSuggestionsIndex'];
 export type DropIndexSuggestionsResponse = components['schemas']['DropIndexSuggestionsResponse'];
@@ -7011,6 +7333,7 @@ export type OrgUserRolesResponse = components['schemas']['OrgUserRolesResponse']
 export type PaginatedAlertView = components['schemas']['PaginatedAlertView'];
 export type PaginatedApiAtlasDatabaseUserView = components['schemas']['PaginatedApiAtlasDatabaseUserView'];
 export type PaginatedAtlasGroupView = components['schemas']['PaginatedAtlasGroupView'];
+export type PaginatedCloudBackupReplicaSetView = components['schemas']['PaginatedCloudBackupReplicaSetView'];
 export type PaginatedClusterDescription20240805 = components['schemas']['PaginatedClusterDescription20240805'];
 export type PaginatedFlexClusters20241113 = components['schemas']['PaginatedFlexClusters20241113'];
 export type PaginatedNetworkAccessView = components['schemas']['PaginatedNetworkAccessView'];
@@ -7144,7 +7467,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -7178,7 +7501,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -7327,7 +7650,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -7369,7 +7692,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -7461,7 +7784,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -7506,7 +7829,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -7559,6 +7882,8 @@ export interface operations {
             header?: {
                 /** @description Controls how hardware specification fields are returned in the response after cluster creation. When set to true, returns the original client-specified values and provides separate effective fields showing current operational values. When false (default), hardware specification fields show current operational values directly. Primarily used for autoscaling compatibility. */
                 "Use-Effective-Instance-Fields"?: boolean;
+                /** @description Controls how `replicationSpecs` fields are returned in the response. When set to `true`, stores the client's view of `replicationSpecs` and returns it in `replicationSpecs`, while the actual cluster state (including auto-scaled hardware and auto-added shards) is returned in `effectiveReplicationSpecs`. When `false` (default), `replicationSpecs` contains the actual cluster state. */
+                "Use-Effective-Fields-Replication-Specs"?: boolean;
             };
             path: {
                 /**
@@ -7606,6 +7931,8 @@ export interface operations {
             header?: {
                 /** @description Controls how hardware specification fields are returned in the response. When set to true, returns the original client-specified values and provides separate effective fields showing current operational values. When false (default), hardware specification fields show current operational values directly. Primarily used for autoscaling compatibility. */
                 "Use-Effective-Instance-Fields"?: boolean;
+                /** @description Controls how `replicationSpecs` are returned in the response. When set to `true`, returns the client-specified view in `replicationSpecs` and the actual cluster state in `effectiveReplicationSpecs`. When `false` (default), `replicationSpecs` contains the actual cluster state. */
+                "Use-Effective-Fields-Replication-Specs"?: boolean;
             };
             path: {
                 /**
@@ -7676,6 +8003,177 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    createGroupClusterBackupRestoreJob: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Restores one snapshot of one cluster from the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-01-01+json": components["schemas"]["DiskBackupSnapshotRestoreJob"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["DiskBackupSnapshotRestoreJob"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupClusterBackupRestoreJob: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster with the restore jobs you want to return. */
+                clusterName: string;
+                /** @description Unique 24-hexadecimal digit string that identifies the restore job to return. */
+                restoreJobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["DiskBackupSnapshotRestoreJob"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    listGroupClusterBackupSnapshots: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                includeCount?: components["parameters"]["includeCount"];
+                /** @description Number of items that the response returns per page. */
+                itemsPerPage?: components["parameters"]["itemsPerPage"];
+                /** @description Number of the page that displays the current set of the total objects that the response returns. */
+                pageNum?: components["parameters"]["pageNum"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["PaginatedCloudBackupReplicaSetView"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupClusterBackupSnapshot: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+                /** @description Unique 24-hexadecimal digit string that identifies the desired snapshot. */
+                snapshotId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["DiskBackupReplicaSet"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7752,7 +8250,7 @@ export interface operations {
     listGroupClusterPerformanceAdvisorSuggestedIndexes: {
         parameters: {
             query?: {
-                /** @description ProcessIds from which to retrieve suggested indexes. A processId is a combination of host and port that serves the MongoDB process. The host must be the hostname, FQDN, IPv4 address, or IPv6 address of the host that runs the MongoDB process (`mongod` or `mongos`). The port must be the IANA port on which the MongoDB process listens for requests. To include multiple processIds, pass the parameter multiple times delimited with an ampersand (`&`) between each processId. */
+                /** @description Process IDs from which to retrieve suggested indexes. A `processId` is a combination of host and port that serves the MongoDB process. The host must be the hostname, FQDN, IPv4 address, or IPv6 address of the host that runs the MongoDB process (`mongod` or `mongos`). The port must be the IANA port on which the MongoDB process listens for requests. To include multiple `processIds`, pass the parameter multiple times delimited with an ampersand (`&`) between each `processId`. */
                 processIds?: string[];
                 /** @description Namespaces from which to retrieve suggested indexes. A namespace consists of one database and one collection resource written as `.`: `<database>.<collection>`. To include multiple namespaces, pass the parameter multiple times delimited with an ampersand (`&`) between each namespace. Omit this parameter to return results for all namespaces. */
                 namespaces?: string[];
@@ -7808,7 +8306,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -7911,15 +8409,15 @@ export interface operations {
                  *
                  *     | Authentication Method | Parameter Needed | Parameter Value | username Format |
                  *     |---|---|---|---|
-                 *     | AWS IAM | awsIAMType | ROLE | <abbr title="Amazon Resource Name">ARN</abbr> |
-                 *     | AWS IAM | awsIAMType | USER | <abbr title="Amazon Resource Name">ARN</abbr> |
-                 *     | x.509 | x509Type | CUSTOMER | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-                 *     | x.509 | x509Type | MANAGED | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-                 *     | LDAP | ldapAuthType | USER | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-                 *     | LDAP | ldapAuthType | GROUP | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
-                 *     | OIDC Workforce | oidcAuthType | IDP_GROUP | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP group name |
-                 *     | OIDC Workload | oidcAuthType | USER | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP user name |
-                 *     | SCRAM-SHA | awsIAMType, x509Type, ldapAuthType, oidcAuthType | NONE | Alphanumeric string |
+                 *     | AWS IAM | `awsIAMType` | `ROLE` | <abbr title="Amazon Resource Name">ARN</abbr> |
+                 *     | AWS IAM | `awsIAMType` | `USER` | <abbr title="Amazon Resource Name">ARN</abbr> |
+                 *     | x.509 | `x509Type` | `CUSTOMER` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+                 *     | x.509 | `x509Type` | `MANAGED` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+                 *     | LDAP | `ldapAuthType` | `USER` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+                 *     | LDAP | `ldapAuthType` | `GROUP` | [RFC 2253](https://tools.ietf.org/html/2253) Distinguished Name |
+                 *     | OIDC Workforce | `oidcAuthType` | `IDP_GROUP` | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP group name |
+                 *     | OIDC Workload | `oidcAuthType` | `USER` | Atlas OIDC IdP ID (found in federation settings), followed by a '/', followed by the IdP user name |
+                 *     | SCRAM-SHA | `awsIAMType`, `x509Type`, `ldapAuthType`, `oidcAuthType` | `NONE` | Alphanumeric string |
                  */
                 username: string;
             };
@@ -7947,7 +8445,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -8177,7 +8675,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -8216,7 +8714,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (**totalCount**) in the response. */
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -8229,7 +8727,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Unique 24-hexadecimal digit string that identifies the organization that contains your projects. Use the [/orgs](#tag/Organizations/operation/listOrganizations) endpoint to retrieve all organizations to which the authenticated user has access. */
+                /** @description Unique 24-hexadecimal digit string that identifies the organization that contains your projects. Use the [`/orgs`](#tag/Organizations/operation/listOrganizations) endpoint to retrieve all organizations to which the authenticated user has access. */
                 orgId: components["parameters"]["orgId"];
             };
             cookie?: never;
