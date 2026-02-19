@@ -285,17 +285,22 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 - `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
 - `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
+- `atlas-create-backup-snapshot` - Create an on-demand backup snapshot for an Atlas cluster
 - `atlas-create-db-user` - Create an MongoDB Atlas database user
 - `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
 - `atlas-create-project` - Create a MongoDB Atlas project
+- `atlas-get-backup-snapshot` - Get backup snapshot metadata for an Atlas cluster
 - `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
+- `atlas-get-restore-job` - Get status details for an Atlas restore job
 - `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
 - `atlas-inspect-cluster` - Inspect metadata of a MongoDB Atlas cluster
 - `atlas-list-alerts` - List MongoDB Atlas alerts
+- `atlas-list-backup-snapshots` - Get a list of backup snapshots for an Atlas cluster
 - `atlas-list-clusters` - List MongoDB Atlas clusters
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations
 - `atlas-list-projects` - List MongoDB Atlas projects
+- `atlas-restore-from-snapshot` - Create an Atlas restore job from a snapshot (automated restore only)
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
