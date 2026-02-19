@@ -4,7 +4,6 @@ import { type ToolArgs, type OperationType, type ToolCategory, formatUntrustedDa
 import { AssistantToolBase } from "./assistantTool.js";
 import { LogId } from "../../common/logger.js";
 import { stringify as yamlStringify } from "yaml";
-import { ListKnowledgeSourcesToolName } from "./listKnowledgeSources.js";
 
 export const SearchKnowledgeToolArgs = {
     query: z
@@ -22,7 +21,7 @@ export const SearchKnowledgeToolArgs = {
         )
         .optional()
         .describe(
-            `A list of one or more data sources to limit the search to. You can specify a specific version of a data source by providing the version label. If not provided, the latest version of all data sources will be searched. Available data sources and their versions can be listed by calling the ${ListKnowledgeSourcesToolName} tool.`
+            `A list of one or more data sources to limit the search to. You can specify a specific version of a data source by providing the version label. If not provided, the latest version of all data sources will be searched. Available data sources and their versions can be listed by calling the list-knowledge-sources tool.`
         ),
 };
 
@@ -51,7 +50,8 @@ export class SearchKnowledgeTool extends AssistantToolBase {
     static toolName = SearchKnowledgeToolName;
     static category: ToolCategory = "assistant";
     static operationType: OperationType = "read";
-    public description = "Search for information in the MongoDB Assistant knowledge base";
+    public description =
+        "Search for information in the MongoDB Assistant knowledge base. This includes official documentation, curated expert guidance, and other resources provided by MongoDB. Supports filtering by data source and version.";
     public argsShape = {
         ...SearchKnowledgeToolArgs,
     };

@@ -21,7 +21,7 @@ describeWithAssistant("search-knowledge", (integration) => {
     validateToolMetadata(
         integration,
         "search-knowledge",
-        "Search for information in the MongoDB Assistant knowledge base",
+        "Search for information in the MongoDB Assistant knowledge base. This includes official documentation, curated expert guidance, and other resources provided by MongoDB. Supports filtering by data source and version.",
         "read",
         [
             {
