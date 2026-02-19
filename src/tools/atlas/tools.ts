@@ -12,3 +12,4 @@ export { ConnectClusterTool } from "./connect/connectCluster.js";
 export { ListAlertsTool } from "./read/listAlerts.js";
 export { GetPerformanceAdvisorTool } from "./read/getPerformanceAdvisor.js";
 export { ListBackupSnapshotsTool } from "./read/listBackupSnapshots.js";
+export { GetBackupSnapshotTool } from "./read/getBackupSnapshot.js";
