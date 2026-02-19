@@ -374,6 +374,6 @@ export type ConnectionManagerFactoryFn = (createParams: {
     userConfig: UserConfig;
 }) => Promise<ConnectionManager>;
 
-export const createMCPConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
+export const defaultCreateConnectionManager: ConnectionManagerFactoryFn = ({ logger, deviceId, userConfig }) => {
     return Promise.resolve(new MCPConnectionManager(userConfig, logger, deviceId));
 };

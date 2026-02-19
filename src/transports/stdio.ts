@@ -1,18 +1,30 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { LogId } from "../common/logger.js";
 import type { Server } from "../server.js";
+import type { CustomizableServerOptions } from "./base.js";
+import type { CustomizableSessionOptions } from "./base.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
+import type { UserConfig } from "../lib.js";
 
-export class StdioRunner<TContext = unknown> extends TransportRunnerBase<TContext> {
-    private server: Server<TContext> | undefined;
+export class StdioRunner<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends TransportRunnerBase<
+    TUserConfig,
+    TContext
+> {
+    private server: Server<TUserConfig, TContext> | undefined;
 
-    constructor(config: TransportRunnerConfig<TContext>) {
+    constructor(config: TransportRunnerConfig<TUserConfig>) {
         super(config);
     }
 
-    async start(): Promise<void> {
+    async start({
+        serverOptions,
+        sessionOptions,
+    }: {
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    } = {}): Promise<void> {
         try {
-            this.server = await this.setupServer();
+            this.server = await this.createServer({ serverOptions, sessionOptions });
             const transport = new StdioServerTransport();
 
             await this.server.connect(transport);

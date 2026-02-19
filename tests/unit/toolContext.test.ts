@@ -10,6 +10,7 @@ import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
+import type { UserConfig } from "../../src/lib.js";
 
 // Define a custom context type
 interface CustomContext {
@@ -18,7 +19,7 @@ interface CustomContext {
 }
 
 // Tool that receives context
-class ToolWithContext extends ToolBase<CustomContext> {
+class ToolWithContext extends ToolBase<UserConfig, CustomContext> {
     static toolName = "tool-with-context";
     static category = "mongodb" as const;
     static operationType = "read" as const;
@@ -112,7 +113,7 @@ describe("Tool Context", () => {
             tenantId: "tenant-456",
         };
 
-        const server = new Server<CustomContext>({
+        const server = new Server<UserConfig, CustomContext>({
             session,
             userConfig,
             mcpServer,
@@ -183,7 +184,7 @@ describe("Tool Context", () => {
             tenantId: "tenant-456",
         };
 
-        const server = new Server<CustomContext>({
+        const server = new Server<UserConfig, CustomContext>({
             session,
             userConfig,
             mcpServer,

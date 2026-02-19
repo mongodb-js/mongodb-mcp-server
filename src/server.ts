@@ -15,7 +15,7 @@ import {
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { ToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
+import type { AnyToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -23,45 +23,58 @@ import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "./ui/registry/index.js";
 
-export interface ServerOptions<TContext = unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolClass = ToolClass<any, any>;
+
+export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
     session: Session;
-    userConfig: UserConfig;
+    userConfig: TUserConfig;
     mcpServer: McpServer;
     telemetry: Telemetry;
     elicitation: Elicitation;
+    /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
     /**
-     * Custom tool constructors to register with the server.
-     * This will override any default tools. You can use both existing and custom tools by using the `mongodb-mcp-server/tools` export.
+     * An optional list of tools constructors to be registered to the MongoDB
+     * MCP Server.
      *
-     * ```ts
-     * import { AllTools, ToolBase, type ToolCategory, type OperationType } from "mongodb-mcp-server/tools";
-     * class CustomTool extends ToolBase {
-     *     static toolName = "custom_tool";
-     *     static category: ToolCategory = "mongodb";
-     *     static operationType: OperationType = "read";
-     *     public description = "Custom tool description";
-     *     public argsShape = {};
-     *     protected async execute() {
-     *         return { content: [{ type: "text", text: "Result" }] };
-     *     }
-     *     protected resolveTelemetryMetadata() {
-     *         return {};
-     *     }
-     * }
-     * const server = new Server({
-     *     session: mySession,
-     *     userConfig: myUserConfig,
-     *     mcpServer: myMcpServer,
-     *     telemetry: myTelemetry,
-     *     elicitation: myElicitation,
-     *     connectionErrorHandler: myConnectionErrorHandler,
-     *     tools: [...AllTools, CustomTool],
-     * });
+     * When not provided, MongoDB MCP Server will register all internal tools.
+     * When specified, **only** the tools in this list will be registered.
+     *
+     * This allows you to:
+     * - Register only custom tools (excluding all internal tools)
+     * - Register a subset of internal tools alongside custom tools
+     * - Register all internal tools plus custom tools
+     *
+     * To include internal tools, import them from `mongodb-mcp-server/tools`:
+     *
+     * ```typescript
+     * import { AllTools, AggregateTool, FindTool } from "mongodb-mcp-server/tools";
+     *
+     * // Register all internal tools plus custom tools
+     * tools: [...AllTools, MyCustomTool]
+     *
+     * // Register only specific MongoDB tools plus custom tools
+     * tools: [AggregateTool, FindTool, MyCustomTool]
+     *
+     * // Register all internal tools of mongodb category
+     * tools: [AllTools.filter((tool) => tool.category === "mongodb")]
      * ```
+     *
+     * Note: Ensure that each tool has unique names otherwise the server will
+     * throw an error when initializing an MCP Client session. If you're using
+     * only the internal tools, then you don't have to worry about it unless,
+     * you've overridden the tool names.
+     *
+     * To ensure that you provide compliant tool implementations extend your
+     * tool implementation using `ToolBase` class and ensure that they conform
+     * to `ToolClass` type.
+     *
+     * @see {@link ToolClass} for the type that tool classes must conform to
+     * @see {@link ToolBase} for base class for all the tools
      */
-    tools?: ToolClass[];
+    tools?: AnyToolClass[];
     /**
      * This context is available to tools via `this.toolContext` and can contain
      * any data you want to pass to tools definitions.
@@ -87,14 +100,14 @@ export interface ServerOptions<TContext = unknown> {
     toolContext?: TContext;
 }
 
-export class Server<TContext = unknown> {
+export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
-    public readonly userConfig: UserConfig;
+    public readonly userConfig: TUserConfig;
     public readonly elicitation: Elicitation;
-    private readonly toolConstructors: ToolClass[];
-    public readonly tools: ToolBase[] = [];
+    private readonly toolConstructors: AnyToolClass[];
+    public readonly tools: AnyToolBase[] = [];
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
     public readonly toolContext?: TContext;
@@ -118,7 +131,7 @@ export class Server<TContext = unknown> {
         tools,
         uiRegistry,
         toolContext,
-    }: ServerOptions<TContext>) {
+    }: ServerOptions<TUserConfig, TContext>) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
