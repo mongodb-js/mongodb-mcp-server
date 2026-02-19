@@ -45,6 +45,10 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "listClusterSuggestedIndexes",
         "listSchemaAdvice",
         "listSlowQueryLogs",
+        "listBackupSnapshots",
+        "getClusterBackupSnapshot",
+        "createBackupRestoreJob",
+        "getBackupRestoreJob",
     ];
 
     const filteredPaths = {};
