@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
@@ -7,6 +8,15 @@ import { AtlasArgs } from "../../args.js";
 export const ListBackupSnapshotsArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
     clusterName: AtlasArgs.clusterName().describe("Atlas cluster name"),
+    limit: z
+        .number()
+        .int()
+        .positive()
+        .max(500)
+        .optional()
+        .default(10)
+        .describe("Maximum number of snapshots to return"),
+    page: z.number().int().positive().optional().default(1).describe("Page number for paginated results"),
 };
 
 export class ListBackupSnapshotsTool extends AtlasToolBase {
@@ -17,9 +27,18 @@ export class ListBackupSnapshotsTool extends AtlasToolBase {
         ...ListBackupSnapshotsArgs,
     };
 
-    protected async execute({ projectId, clusterName }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({
+        projectId,
+        clusterName,
+        limit,
+        page,
+    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const data = await this.apiClient.listBackupSnapshots({
             params: {
+                query: {
+                    itemsPerPage: limit,
+                    pageNum: page,
+                },
                 path: {
                     groupId: projectId,
                     clusterName,
@@ -52,7 +71,7 @@ export class ListBackupSnapshotsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
-                `Found ${snapshots.length} backup snapshots for cluster "${clusterName}" in project ${projectId}`,
+                `Found ${snapshots.length} backup snapshots for cluster "${clusterName}" in project ${projectId} (page=${page}, limit=${limit})`,
                 JSON.stringify(snapshots)
             ),
         };
