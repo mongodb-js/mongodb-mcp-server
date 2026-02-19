@@ -370,6 +370,18 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async takeSnapshots(options: FetchOptions<operations["takeGroupClusterBackupSnapshots"]>) {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/backup/snapshots",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async getClusterBackupSnapshot(options: FetchOptions<operations["getGroupClusterBackupSnapshot"]>) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/backup/snapshots/{snapshotId}",

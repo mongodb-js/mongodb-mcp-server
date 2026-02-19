@@ -46,6 +46,7 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "listSchemaAdvice",
         "listSlowQueryLogs",
         "listBackupSnapshots",
+        "takeSnapshots",
         "getClusterBackupSnapshot",
         "createBackupRestoreJob",
         "getBackupRestoreJob",

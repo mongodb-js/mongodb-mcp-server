@@ -249,7 +249,13 @@ export interface paths {
          */
         get: operations["listGroupClusterBackupSnapshots"];
         put?: never;
-        post?: never;
+        /**
+         * Take One On-Demand Snapshot
+         * @description Takes one on-demand snapshot for the specified cluster. Atlas takes on-demand snapshots immediately and scheduled snapshots at regular intervals. If an on-demand snapshot with a status of `queued` or `inProgress` exists, before taking another snapshot, wait until Atlas completes processing the previously taken on-demand snapshot.
+         *
+         *      To use this resource, the requesting Service Account or API Key must have the Project Backup Manager role or Project Backup Creator role.
+         */
+        post: operations["takeGroupClusterBackupSnapshots"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3124,6 +3130,17 @@ export interface components {
              */
             frequencyType: "ondemand";
         };
+        DiskBackupOnDemandSnapshotRequest: {
+            /** @description Human-readable phrase or sentence that explains the purpose of the snapshot. The resource returns this parameter when `"status" : "onDemand"`. */
+            description?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * Format: int32
+             * @description Number of days that MongoDB Cloud should retain the on-demand snapshot. Must be at least **1**.
+             */
+            retentionInDays?: number;
+        };
         /**
          * Replica Set Snapshot
          * @description Details of the replica set snapshot that MongoDB Cloud created.
@@ -3199,6 +3216,143 @@ export interface components {
             readonly privateDownloadDeliveryUrls?: components["schemas"]["ApiPrivateDownloadDeliveryUrl"][];
             /** @description Human-readable label that identifies the replica set on the sharded cluster. */
             readonly replicaSetName?: string;
+        };
+        /**
+         * Sharded Cluster Snapshot
+         * @description Details of the sharded cluster snapshot that MongoDB Cloud created.
+         */
+        DiskBackupShardedClusterSnapshot: {
+            /**
+             * @description Describes a sharded cluster's config server type.
+             * @enum {string}
+             */
+            readonly configServerType?: "EMBEDDED" | "DEDICATED";
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud took the snapshot. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly createdAt?: string;
+            /** @description Human-readable phrase or sentence that explains the purpose of the snapshot. The resource returns this parameter when `"status": "onDemand"`. */
+            readonly description?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud deletes the snapshot. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly expiresAt?: string;
+            /**
+             * @description Human-readable label that identifies how often this snapshot triggers.
+             * @enum {string}
+             */
+            readonly frequencyType?: "hourly" | "daily" | "weekly" | "monthly" | "yearly";
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the snapshot.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * Format: uuid
+             * @description Unique string that identifies the Amazon Web Services (AWS) Key Management Service (KMS) Customer Master Key (CMK) used to encrypt the snapshot. The resource returns this value when `"encryptionEnabled" : true`.
+             */
+            readonly masterKeyUUID?: string;
+            /** @description List that includes the snapshots and the cloud provider that stores the snapshots. The resource returns this parameter when `"type" : "SHARDED_CLUSTER"`. */
+            readonly members?: components["schemas"]["DiskBackupShardedClusterSnapshotMember"][];
+            /** @description Version of the MongoDB host that this snapshot backs up. */
+            readonly mongodVersion?: string;
+            /** @description List that contains unique identifiers for the policy items. */
+            readonly policyItems?: string[];
+            /** @description List that contains the unique identifiers of the snapshots created for the shards and config host for a sharded cluster. The resource returns this parameter when `"type": "SHARDED_CLUSTER"`. These identifiers should match the ones specified in the **members[n].id** parameters. This allows you to map a snapshot to its shard or config host name. */
+            readonly snapshotIds?: string[];
+            /**
+             * @description Human-readable label that identifies when this snapshot triggers.
+             * @enum {string}
+             */
+            readonly snapshotType?: "onDemand" | "scheduled" | "fallback";
+            /**
+             * @description Human-readable label that indicates the stage of the backup process for this snapshot.
+             * @enum {string}
+             */
+            readonly status?: "queued" | "inProgress" | "completed" | "failed";
+            /**
+             * Format: int64
+             * @description Number of bytes taken to store the backup at time of snapshot.
+             */
+            readonly storageSizeBytes?: number;
+            /**
+             * @description Human-readable label that categorizes the cluster as a replica set or sharded cluster.
+             * @enum {string}
+             */
+            readonly type?: "replicaSet" | "shardedCluster";
+        };
+        DiskBackupShardedClusterSnapshotMember: {
+            /**
+             * @description Human-readable label that identifies the cloud provider.
+             * @enum {string}
+             */
+            readonly cloudProvider: "AWS" | "AZURE" | "GCP";
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the snapshot.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id: string;
+            /** @description Human-readable label that identifies the shard or config host from which MongoDB Cloud took this snapshot. */
+            readonly replicaSetName: string;
+        };
+        DiskBackupSnapshot: {
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud took the snapshot. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly createdAt?: string;
+            /** @description Human-readable phrase or sentence that explains the purpose of the snapshot. The resource returns this parameter when `"status": "onDemand"`. */
+            readonly description?: string;
+            /**
+             * Format: date-time
+             * @description Date and time when MongoDB Cloud deletes the snapshot. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            readonly expiresAt?: string;
+            /**
+             * @description Human-readable label that identifies how often this snapshot triggers.
+             * @enum {string}
+             */
+            readonly frequencyType?: "hourly" | "daily" | "weekly" | "monthly" | "yearly";
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the snapshot.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * Format: uuid
+             * @description Unique string that identifies the Amazon Web Services (AWS) Key Management Service (KMS) Customer Master Key (CMK) used to encrypt the snapshot. The resource returns this value when `"encryptionEnabled" : true`.
+             */
+            readonly masterKeyUUID?: string;
+            /** @description Version of the MongoDB host that this snapshot backs up. */
+            readonly mongodVersion?: string;
+            /** @description List that contains unique identifiers for the policy items. */
+            readonly policyItems?: string[];
+            /**
+             * @description Human-readable label that identifies when this snapshot triggers.
+             * @enum {string}
+             */
+            readonly snapshotType?: "onDemand" | "scheduled" | "fallback";
+            /**
+             * @description Human-readable label that indicates the stage of the backup process for this snapshot.
+             * @enum {string}
+             */
+            readonly status?: "queued" | "inProgress" | "completed" | "failed";
+            /**
+             * Format: int64
+             * @description Number of bytes taken to store the backup at time of snapshot.
+             */
+            readonly storageSizeBytes?: number;
+            /**
+             * @description Human-readable label that categorizes the cluster as a replica set or sharded cluster.
+             * @enum {string}
+             */
+            readonly type?: "replicaSet" | "shardedCluster";
         };
         DiskBackupSnapshotAWSExportBucketRequest: Omit<WithRequired<components["schemas"]["DiskBackupSnapshotExportBucketRequest"], "cloudProvider">, "cloudProvider"> & {
             /**
@@ -7270,8 +7424,12 @@ export type DefaultAlertViewForNdsGroup = components['schemas']['DefaultAlertVie
 export type DefaultScheduleView = components['schemas']['DefaultScheduleView'];
 export type DiskBackupCopyPolicyItem = components['schemas']['DiskBackupCopyPolicyItem'];
 export type DiskBackupOnDemandCopyPolicyItem = components['schemas']['DiskBackupOnDemandCopyPolicyItem'];
+export type DiskBackupOnDemandSnapshotRequest = components['schemas']['DiskBackupOnDemandSnapshotRequest'];
 export type DiskBackupReplicaSet = components['schemas']['DiskBackupReplicaSet'];
 export type DiskBackupRestoreMember = components['schemas']['DiskBackupRestoreMember'];
+export type DiskBackupShardedClusterSnapshot = components['schemas']['DiskBackupShardedClusterSnapshot'];
+export type DiskBackupShardedClusterSnapshotMember = components['schemas']['DiskBackupShardedClusterSnapshotMember'];
+export type DiskBackupSnapshot = components['schemas']['DiskBackupSnapshot'];
 export type DiskBackupSnapshotAwsExportBucketRequest = components['schemas']['DiskBackupSnapshotAWSExportBucketRequest'];
 export type DiskBackupSnapshotAwsExportBucketResponse = components['schemas']['DiskBackupSnapshotAWSExportBucketResponse'];
 export type DiskBackupSnapshotAzureExportBucketRequest = components['schemas']['DiskBackupSnapshotAzureExportBucketRequest'];
@@ -8127,6 +8285,50 @@ export interface operations {
                 };
                 content: {
                     "application/vnd.atlas.2023-01-01+json": components["schemas"]["PaginatedCloudBackupReplicaSetView"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    takeGroupClusterBackupSnapshots: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Human-readable label that identifies the cluster. */
+                clusterName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Takes one on-demand snapshot. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-01-01+json": components["schemas"]["DiskBackupOnDemandSnapshotRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-01-01+json": components["schemas"]["DiskBackupSnapshot"];
                 };
             };
             400: components["responses"]["badRequest"];
