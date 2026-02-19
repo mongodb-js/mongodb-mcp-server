@@ -20,7 +20,7 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
     validateToolMetadata(
         integration,
         "list-knowledge-sources",
-        "List available data sources in the MongoDB Assistant knowledge base",
+        "List available data sources in the MongoDB Assistant knowledge base. Use this to explore available data sources or to find search filter parameters to use in search-knowledge.",
         "read",
         []
     );
