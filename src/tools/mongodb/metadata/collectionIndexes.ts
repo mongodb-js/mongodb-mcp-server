@@ -102,7 +102,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             type: (index["type"] ?? "UNKNOWN") as string,
             status: (index["status"] ?? "UNKNOWN") as string,
             queryable: (index["queryable"] ?? false) as boolean,
-            latestDefinition: index["latestDefinition"] as Record<string, unknown>,
+            latestDefinition: (index["latestDefinition"] ?? {}) as Record<string, unknown>,
         }));
     }
 }
