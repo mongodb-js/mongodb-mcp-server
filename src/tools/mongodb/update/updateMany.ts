@@ -1,14 +1,25 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
+
+const UpdateManyOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    matchedCount: z.number(),
+    modifiedCount: z.number(),
+    upsertedCount: z.number(),
+    upsertedId: z.string().optional(),
+};
+
+export type UpdateManyOutput = z.infer<z.ZodObject<typeof UpdateManyOutputSchema>>;
 
 export class UpdateManyTool extends MongoDBToolBase {
     static toolName = "update-many";
     public description =
         "Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.";
+    public override outputSchema = UpdateManyOutputSchema;
     public argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()
@@ -32,7 +43,7 @@ export class UpdateManyTool extends MongoDBToolBase {
         filter,
         update,
         upsert,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
         // Check if update operation uses an index if enabled
@@ -85,6 +96,14 @@ export class UpdateManyTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                database,
+                collection,
+                matchedCount: result.matchedCount,
+                modifiedCount: result.modifiedCount,
+                upsertedCount: result.upsertedCount,
+                upsertedId: result.upsertedId?.toString(),
+            },
         };
     }
 }

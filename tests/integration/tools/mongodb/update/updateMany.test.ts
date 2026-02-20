@@ -6,6 +6,7 @@ import {
 } from "../../../helpers.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import type { UpdateManyOutput } from "../../../../../src/tools/mongodb/update/updateMany.js";
 
 describeWithMongoDB("updateMany tool", (integration) => {
     validateToolMetadata(
@@ -118,6 +119,14 @@ describeWithMongoDB("updateMany tool", (integration) => {
             const content = getResponseContent(response.content);
             expect(content).toEqual("Matched 3 document(s). Modified 3 document(s).");
 
+            const structuredContent = response.structuredContent as UpdateManyOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("coll1");
+            expect(structuredContent.matchedCount).toBe(3);
+            expect(structuredContent.modifiedCount).toBe(3);
+            expect(structuredContent.upsertedCount).toBe(0);
+            expect(structuredContent.upsertedId).toBeUndefined();
+
             const docs = await integration
                 .mongoClient()
                 .db(integration.randomDbName())
@@ -179,6 +188,15 @@ describeWithMongoDB("updateMany tool", (integration) => {
 
             const content = getResponseContent(response.content);
             expect(content).toContain("Matched 0 document(s). Upserted 1 document with id:");
+
+            const structuredContent = response.structuredContent as UpdateManyOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("coll1");
+            expect(structuredContent.matchedCount).toBe(0);
+            expect(structuredContent.modifiedCount).toBe(0);
+            expect(structuredContent.upsertedCount).toBe(1);
+            expect(structuredContent.upsertedId).toBeDefined();
+            expect(typeof structuredContent.upsertedId).toBe("string");
 
             const docs = await integration
                 .mongoClient()

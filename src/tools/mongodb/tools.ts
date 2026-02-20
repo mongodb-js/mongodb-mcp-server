@@ -11,8 +11,8 @@ export { CollectionStorageSizeTool, type CollectionStorageSizeOutput } from "./m
 export { CountTool } from "./read/count.js";
 export { DbStatsTool, type DbStatsOutput } from "./metadata/dbStats.js";
 export { AggregateTool } from "./read/aggregate.js";
-export { UpdateManyTool } from "./update/updateMany.js";
-export { RenameCollectionTool } from "./update/renameCollection.js";
+export { UpdateManyTool, type UpdateManyOutput } from "./update/updateMany.js";
+export { RenameCollectionTool, type RenameCollectionOutput } from "./update/renameCollection.js";
 export { DropDatabaseTool, type DropDatabaseOutput } from "./delete/dropDatabase.js";
 export { DropCollectionTool, type DropCollectionOutput } from "./delete/dropCollection.js";
 export { ExplainTool, type ExplainOutput } from "./metadata/explain.js";
