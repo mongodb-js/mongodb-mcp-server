@@ -45,10 +45,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         };
     }
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [
