@@ -11,6 +11,7 @@ import {
 import * as constants from "../../../../../src/helpers/constants.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { FindOutput } from "../../../../../src/tools/mongodb/read/find.js";
 
 export async function freshInsertDocuments({
     collection,
@@ -193,6 +194,21 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             for (let i = 0; i < 10; i++) {
                 expect((docs[i] as { value: number }).value).toEqual(i);
             }
+
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("foo");
+            expect(structuredContent.documentCount).toBe(10);
+            expect(structuredContent.totalCount).toBe(10);
+            expect(structuredContent.hasMore).toBe(false);
+            expect(structuredContent.documents).toHaveLength(10);
+            for (let i = 0; i < 10; i++) {
+                expect(structuredContent.documents[i]).toEqual(
+                    expect.objectContaining({
+                        value: i,
+                    })
+                );
+            }
         });
 
         it("can find objects by $oid", async () => {
@@ -253,6 +269,13 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             expect(docs.length).toEqual(1);
 
             expect(docs[0]?.date.toISOString()).toContain("2025-05-11");
+
+            const structuredContent = response.structuredContent as FindOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("foo_with_dates");
+            expect(structuredContent.documentCount).toBe(1);
+            expect(structuredContent.totalCount).toBe(1);
+            expect(structuredContent.hasMore).toBe(false);
         });
     });
 

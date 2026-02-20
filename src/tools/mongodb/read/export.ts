@@ -1,16 +1,27 @@
 import z from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
+import type { OperationType, ToolArgs, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
 import { getAggregateArgs } from "./aggregate.js";
 
+export const ExportOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    exportURI: z.string(),
+    exportName: z.string(),
+    exportFormat: z.string(),
+    exportTitle: z.string(),
+};
+
+export type ExportOutput = z.infer<z.ZodObject<typeof ExportOutputSchema>>;
+
 export class ExportTool extends MongoDBToolBase {
     static toolName = "export";
     public description = "Export a query or aggregation results in the specified EJSON format.";
+    public override outputSchema = ExportOutputSchema;
     public argsShape = {
         ...DbOperationArgs,
         exportTitle: z.string().describe("A short description to uniquely identify the export."),
@@ -60,7 +71,7 @@ export class ExportTool extends MongoDBToolBase {
     protected async execute(
         { database, collection, jsonExportFormat, exportTitle, exportTarget: target }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const exportTarget = target[0];
         if (!exportTarget) {
@@ -98,16 +109,18 @@ export class ExportTool extends MongoDBToolBase {
                 `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
             jsonExportFormat,
         });
-        const toolCallContent: CallToolResult["content"] = [
+        const finalExportTitle =
+            exportTitle || `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`;
+        const toolCallContent = [
             // Not all the clients as of this commit understands how to
             // parse a resource_link so we provide a text result for them to
             // understand what to do with the result.
             {
-                type: "text",
+                type: "text" as const,
                 text: `Data for namespace ${database}.${collection} is being exported and will be made available under resource URI - "${exportURI}".`,
             },
             {
-                type: "resource_link",
+                type: "resource_link" as const,
                 name: exportName,
                 uri: exportURI,
                 description: "Resource URI for fetching exported data once it is ready.",
@@ -120,13 +133,21 @@ export class ExportTool extends MongoDBToolBase {
         // More information here: https://jira.mongodb.org/browse/MCP-104
         if (this.isServerRunningLocally()) {
             toolCallContent.push({
-                type: "text",
+                type: "text" as const,
                 text: `Optionally, when the export is finished, the exported data can also be accessed under path - "${exportPath}"`,
             });
         }
 
         return {
-            content: toolCallContent,
+            content: toolCallContent as ToolResult<typeof this.outputSchema>["content"],
+            structuredContent: {
+                database,
+                collection,
+                exportURI,
+                exportName,
+                exportFormat: jsonExportFormat,
+                exportTitle: finalExportTitle,
+            },
         };
     }
 

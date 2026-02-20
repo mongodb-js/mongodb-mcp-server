@@ -12,6 +12,7 @@ import {
 } from "../../../helpers.js";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import type { UserConfig } from "../../../../../src/lib.js";
+import type { ExportOutput } from "../../../../../src/tools/mongodb/read/export.js";
 
 const userConfig: UserConfig = {
     ...defaultTestConfig,
@@ -175,6 +176,14 @@ describeWithMongoDB(
                 expect(exportedContent).toHaveLength(2);
                 expect(exportedContent[0]?.name).toEqual("foo");
                 expect(exportedContent[1]?.name).toEqual("bar");
+
+                const structuredContent = response.structuredContent as ExportOutput;
+                expect(structuredContent.database).toBe(integration.randomDbName());
+                expect(structuredContent.collection).toBe("foo");
+                expect(structuredContent.exportURI).toBe(exportURI);
+                expect(structuredContent.exportName).toMatch(/\.json$/);
+                expect(structuredContent.exportFormat).toBe("relaxed");
+                expect(structuredContent.exportTitle).toBe(`Export for ${integration.randomDbName()}.foo`);
             });
 
             it("should export filter results namespace when there are filters", async function () {

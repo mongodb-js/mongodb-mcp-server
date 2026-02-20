@@ -1,7 +1,6 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import type { FindCursor, SortDirection } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
@@ -31,9 +30,21 @@ export const FindArgs = {
         ),
 };
 
+export const FindOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    documentCount: z.number(),
+    totalCount: z.number().optional(),
+    hasMore: z.boolean(),
+    documents: z.array(z.unknown()),
+};
+
+export type FindOutput = z.infer<z.ZodObject<typeof FindOutputSchema>>;
+
 export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
+    public override outputSchema = FindOutputSchema;
     public argsShape = {
         ...DbOperationArgs,
         ...FindArgs,
@@ -47,7 +58,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
     protected async execute(
         { database, collection, filter, projection, limit, sort, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
@@ -103,6 +114,8 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 }),
             ]);
 
+            const hasMore = queryResultsCount !== undefined && cursorResults.documents.length < queryResultsCount;
+
             return {
                 content: formatUntrustedData(
                     this.generateMessage({
@@ -113,6 +126,14 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                     }),
                     ...(cursorResults.documents.length > 0 ? [EJSON.stringify(cursorResults.documents)] : [])
                 ),
+                structuredContent: {
+                    database,
+                    collection,
+                    documentCount: cursorResults.documents.length,
+                    totalCount: queryResultsCount,
+                    hasMore,
+                    documents: cursorResults.documents,
+                },
             };
         } finally {
             if (findCursor) {

@@ -8,6 +8,8 @@ import {
 import { defaultTestConfig } from "../../../helpers.js";
 import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import type { ConnectOutput } from "../../../../../src/tools/mongodb/connect/connect.js";
+import type { SwitchConnectionOutput } from "../../../../../src/tools/mongodb/connect/switchConnection.js";
 
 describeWithMongoDB(
     "SwitchConnection tool",
@@ -54,6 +56,13 @@ describeWithMongoDB(
             const response = await integration.mcpClient().callTool({ name: "switch-connection", arguments: {} });
             const content = getResponseContent(response.content);
             expect(content).toContain("Successfully connected");
+
+            // Validate structured content
+            const structuredContent = response.structuredContent as SwitchConnectionOutput;
+            expect(structuredContent.connected).toBe(true);
+            expect(structuredContent.usedConfigConnectionString).toBe(true);
+            expect(structuredContent.hostType).toBeDefined();
+            expect(structuredContent.authType).toBeDefined();
         });
 
         it("switches to the connection string from the arguments", async () => {
@@ -66,6 +75,13 @@ describeWithMongoDB(
             });
             const content = getResponseContent(response.content);
             expect(content).toContain("Successfully connected");
+
+            // Validate structured content
+            const structuredContent = response.structuredContent as SwitchConnectionOutput;
+            expect(structuredContent.connected).toBe(true);
+            expect(structuredContent.usedConfigConnectionString).toBe(false);
+            expect(structuredContent.hostType).toBeDefined();
+            expect(structuredContent.authType).toBeDefined();
         });
 
         describe("when the argument connection string is invalid", () => {
@@ -191,6 +207,12 @@ describeWithMongoDB("Connect tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toContain("Successfully connected");
+
+            // Validate structured content
+            const structuredContent = response.structuredContent as ConnectOutput;
+            expect(structuredContent.connected).toBe(true);
+            expect(structuredContent.hostType).toBeDefined();
+            expect(structuredContent.authType).toBeDefined();
         });
     });
 

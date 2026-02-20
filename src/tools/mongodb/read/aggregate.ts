@@ -1,9 +1,8 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { type Document, EJSON } from "bson";
@@ -18,6 +17,18 @@ import {
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import type { AutoEmbeddingsUsageMetadata, ConnectionMetadata } from "../../../telemetry/types.js";
+
+export const AggregateOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    resultCount: z.number(),
+    totalCount: z.number().optional(),
+    hasMore: z.boolean(),
+    isWritePipeline: z.boolean(),
+    documents: z.array(z.unknown()),
+};
+
+export type AggregateOutput = z.infer<z.ZodObject<typeof AggregateOutputSchema>>;
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -57,6 +68,7 @@ export const getAggregateArgs = (vectorSearchEnabled: boolean) =>
 export class AggregateTool extends MongoDBToolBase {
     static toolName = "aggregate";
     public description = "Run an aggregation against a MongoDB collection";
+    public override outputSchema = AggregateOutputSchema;
     public argsShape = {
         ...DbOperationArgs,
         ...getAggregateArgs(this.isFeatureEnabled("search")),
@@ -70,7 +82,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
     protected async execute(
         { database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
@@ -130,8 +142,11 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
             let successMessage: string;
             let documents: unknown[];
+            let totalDocuments: number | undefined;
+            let isWritePipeline: boolean;
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
+                isWritePipeline = true;
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
                     signal,
                 });
@@ -139,6 +154,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 documents = await aggregationCursor.toArray();
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
+                isWritePipeline = false;
                 const cappedResultsPipeline = [...pipeline];
                 if (this.config.maxDocumentsPerQuery > 0) {
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
@@ -147,7 +163,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     signal,
                 });
 
-                const [totalDocuments, cursorResults] = await Promise.all([
+                const [totalDocsResult, cursorResults] = await Promise.all([
                     this.countAggregationResultDocuments({
                         provider,
                         database,
@@ -162,6 +178,8 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                         abortSignal: signal,
                     }),
                 ]);
+
+                totalDocuments = totalDocsResult;
 
                 // If the total number of documents that the aggregation would've
                 // resulted in would be greater than the configured
@@ -183,11 +201,22 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 });
             }
 
+            const hasMore = isWritePipeline ? false : totalDocuments !== undefined && documents.length < totalDocuments;
+
             return {
                 content: formatUntrustedData(
                     successMessage,
                     ...(documents.length > 0 ? [EJSON.stringify(documents)] : [])
                 ),
+                structuredContent: {
+                    database,
+                    collection,
+                    resultCount: documents.length,
+                    totalCount: totalDocuments,
+                    hasMore,
+                    isWritePipeline,
+                    documents,
+                },
             };
         } finally {
             if (aggregationCursor) {
@@ -421,7 +450,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
 
     protected resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: CallToolResult }
+        { result }: { result: ToolResult }
     ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
         const [maybeVectorStage] = args.pipeline;
         const usesVectorSearch =

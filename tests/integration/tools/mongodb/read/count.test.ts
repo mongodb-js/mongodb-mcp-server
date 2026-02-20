@@ -10,6 +10,7 @@ import {
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { freshInsertDocuments } from "./find.test.js";
+import type { CountOutput } from "../../../../../src/tools/mongodb/read/count.js";
 
 describeWithMongoDB("count tool", (integration) => {
     validateToolMetadata(
@@ -44,6 +45,11 @@ describeWithMongoDB("count tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toEqual('Found 0 documents in the collection "foos".');
+
+        const structuredContent = response.structuredContent as CountOutput;
+        expect(structuredContent.database).toBe("non-existent");
+        expect(structuredContent.collection).toBe("foos");
+        expect(structuredContent.count).toBe(0);
     });
 
     it("returns 0 when collection doesn't exist", async () => {
@@ -89,6 +95,11 @@ describeWithMongoDB("count tool", (integration) => {
                 expect(content).toEqual(
                     `Found ${testCase.expectedCount} documents in the collection "foo"${testCase.filter ? " that matched the query" : ""}.`
                 );
+
+                const structuredContent = response.structuredContent as CountOutput;
+                expect(structuredContent.database).toBe(integration.randomDbName());
+                expect(structuredContent.collection).toBe("foo");
+                expect(structuredContent.count).toBe(testCase.expectedCount);
             });
         }
     });

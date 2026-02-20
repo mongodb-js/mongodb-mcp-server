@@ -23,6 +23,7 @@ import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
 import type { Collection } from "mongodb";
+import type { AggregateOutput } from "../../../../../src/tools/mongodb/read/aggregate.js";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -117,6 +118,27 @@ describeWithMongoDB("aggregate tool", (integration) => {
         expect(docs[1]).toEqual(
             expect.objectContaining({
                 _id: expect.any(Object) as object,
+                name: "Laura",
+                age: 10,
+            })
+        );
+
+        const structuredContent = response.structuredContent as AggregateOutput;
+        expect(structuredContent.database).toBe(integration.randomDbName());
+        expect(structuredContent.collection).toBe("people");
+        expect(structuredContent.resultCount).toBe(2);
+        expect(structuredContent.totalCount).toBe(2);
+        expect(structuredContent.hasMore).toBe(false);
+        expect(structuredContent.isWritePipeline).toBe(false);
+        expect(structuredContent.documents).toHaveLength(2);
+        expect(structuredContent.documents[0]).toEqual(
+            expect.objectContaining({
+                name: "Søren",
+                age: 15,
+            })
+        );
+        expect(structuredContent.documents[1]).toEqual(
+            expect.objectContaining({
                 name: "Laura",
                 age: 10,
             })

@@ -1,9 +1,18 @@
 import z from "zod";
-import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ToolResult } from "../../tool.js";
 
 import { MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolConstructorParams } from "../../tool.js";
 import type { Server } from "../../../server.js";
+
+export const SwitchConnectionOutputSchema = {
+    connected: z.boolean(),
+    hostType: z.string().optional(),
+    authType: z.string().optional(),
+    usedConfigConnectionString: z.boolean(),
+};
+
+export type SwitchConnectionOutput = z.infer<z.ZodObject<typeof SwitchConnectionOutputSchema>>;
 
 export class SwitchConnectionTool extends MongoDBToolBase {
     static toolName = "switch-connection";
@@ -18,6 +27,8 @@ export class SwitchConnectionTool extends MongoDBToolBase {
                 "MongoDB connection string to switch to (in the mongodb:// or mongodb+srv:// format). If a connection string is not provided, the connection string from the config will be used."
             ),
     };
+
+    public override outputSchema = SwitchConnectionOutputSchema;
 
     static operationType: OperationType = "connect";
 
@@ -44,15 +55,27 @@ export class SwitchConnectionTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        if (typeof connectionString !== "string") {
+    protected override async execute({
+        connectionString,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        const usedConfigConnectionString = typeof connectionString !== "string";
+
+        if (usedConfigConnectionString) {
             await this.session.connectToConfiguredConnection();
         } else {
             await this.session.connectToMongoDB({ connectionString });
         }
 
+        const connectionStringInfo = this.session.connectionStringInfo;
+
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
+            structuredContent: {
+                connected: true,
+                hostType: connectionStringInfo?.hostType,
+                authType: connectionStringInfo?.authType,
+                usedConfigConnectionString,
+            },
         };
     }
 }

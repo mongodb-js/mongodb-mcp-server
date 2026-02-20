@@ -1,8 +1,16 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ToolResult } from "../../tool.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolConstructorParams } from "../../tool.js";
 import type { Server } from "../../../server.js";
+
+export const ConnectOutputSchema = {
+    connected: z.boolean(),
+    hostType: z.string().optional(),
+    authType: z.string().optional(),
+};
+
+export type ConnectOutput = z.infer<z.ZodObject<typeof ConnectOutputSchema>>;
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description =
@@ -13,6 +21,8 @@ export class ConnectTool extends MongoDBToolBase {
     public override argsShape = {
         connectionString: z.string().describe("MongoDB connection string (in the mongodb:// or mongodb+srv:// format)"),
     };
+
+    public override outputSchema = ConnectOutputSchema;
 
     static operationType: OperationType = "connect";
 
@@ -39,11 +49,20 @@ export class ConnectTool extends MongoDBToolBase {
         return registrationSuccessful;
     }
 
-    protected override async execute({ connectionString }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected override async execute({
+        connectionString,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         await this.session.connectToMongoDB({ connectionString });
+
+        const connectionStringInfo = this.session.connectionStringInfo;
 
         return {
             content: [{ type: "text", text: "Successfully connected to MongoDB." }],
+            structuredContent: {
+                connected: true,
+                hostType: connectionStringInfo?.hostType,
+                authType: connectionStringInfo?.authType,
+            },
         };
     }
 }
