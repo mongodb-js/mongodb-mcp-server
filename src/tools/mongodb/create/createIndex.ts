@@ -1,11 +1,19 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType } from "../../tool.js";
+import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
 import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
 import { similarityValues } from "../../../common/schemas.js";
 import { modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
+
+const CreateIndexOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    indexName: z.string(),
+    indexType: z.enum(["classic", "vectorSearch", "search"]),
+};
+
+export type CreateIndexOutput = z.infer<z.ZodObject<typeof CreateIndexOutputSchema>>;
 
 export class CreateIndexTool extends MongoDBToolBase {
     private filterFieldSchema = z
@@ -211,6 +219,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                 `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("search") ? ", 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes" : ""}.`
             ),
     };
+    public override outputSchema = CreateIndexOutputSchema;
 
     static operationType: OperationType = "create";
 
@@ -219,7 +228,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
         collection,
         name,
         definition: definitions,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         let indexes: string[] = [];
         const definition = definitions[0];
@@ -288,6 +297,12 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                     type: "text",
                 },
             ],
+            structuredContent: {
+                database,
+                collection,
+                indexName: indexes[0] ?? "",
+                indexType: definition.type,
+            },
         };
     }
 }

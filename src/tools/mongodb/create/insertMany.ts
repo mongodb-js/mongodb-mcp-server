@@ -1,13 +1,21 @@
 import { z } from "zod";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
+import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
 import { zEJSON } from "../../args.js";
 import { type Document } from "bson";
 import { zSupportedEmbeddingParameters } from "../mongodbSchemas.js";
 import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../telemetry/types.js";
 import { setFieldPath } from "../../../helpers/manageNestedFieldPaths.js";
+
+const InsertManyOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    insertedCount: z.number(),
+    insertedIds: z.array(z.unknown()),
+};
+
+export type InsertManyOutput = z.infer<z.ZodObject<typeof InsertManyOutputSchema>>;
 
 const zSupportedEmbeddingParametersWithInput = zSupportedEmbeddingParameters.extend({
     input: z.array(z.object({}).passthrough()).describe(`\
@@ -43,6 +51,7 @@ If unsure which embedding model to use, ask the user before providing one.\
               ),
           }
         : commonArgs;
+    public override outputSchema = InsertManyOutputSchema;
     static operationType: OperationType = "create";
 
     protected async execute({
@@ -50,7 +59,7 @@ If unsure which embedding model to use, ask the user before providing one.\
         collection,
         documents,
         ...conditionalArgs
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
         let embeddingParameters: z.infer<typeof zSupportedEmbeddingParametersWithInput> | undefined;
@@ -72,13 +81,20 @@ If unsure which embedding model to use, ask the user before providing one.\
         );
 
         const result = await provider.insertMany(database, collection, documents);
+        const insertedIds = Object.values(result.insertedIds);
         const content = formatUntrustedData(
             "Documents were inserted successfully.",
             `Inserted \`${result.insertedCount}\` document(s) into ${database}.${collection}.`,
-            `Inserted IDs: ${Object.values(result.insertedIds).join(", ")}`
+            `Inserted IDs: ${insertedIds.join(", ")}`
         );
         return {
             content,
+            structuredContent: {
+                database,
+                collection,
+                insertedCount: result.insertedCount,
+                insertedIds,
+            },
         };
     }
 
@@ -147,7 +163,7 @@ If unsure which embedding model to use, ask the user before providing one.\
 
     protected resolveTelemetryMetadata(
         args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: CallToolResult }
+        { result }: { result: ToolResult }
     ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
         if ("embeddingParameters" in args && this.config.voyageApiKey) {
             return {
