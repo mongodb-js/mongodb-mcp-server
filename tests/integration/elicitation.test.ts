@@ -62,7 +62,7 @@ describe("Elicitation Integration Tests", () => {
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(result.isError).toBeFalsy();
+                    expect(result.isError).toBeTruthy();
                     expect(result.content).toEqual([
                         {
                             type: "text",

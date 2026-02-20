@@ -9,6 +9,7 @@ import {
     databaseInvalidArgs,
     expectDefined,
 } from "../../../helpers.js";
+import type { DropDatabaseOutput } from "../../../../../src/tools/mongodb/delete/dropDatabase.js";
 
 describeWithMongoDB("dropDatabase tool", (integration) => {
     validateToolMetadata(
@@ -58,6 +59,10 @@ describeWithMongoDB("dropDatabase tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toContain(`Successfully dropped database "${integration.randomDbName()}"`);
+
+        const structuredContent = response.structuredContent as DropDatabaseOutput;
+        expect(structuredContent.database).toBe(integration.randomDbName());
+        expect(structuredContent.dropped).toBe(true);
 
         ({ databases } = await integration.mongoClient().db("").admin().listDatabases());
         expect(databases.find((db) => db.name === integration.randomDbName())).toBeUndefined();
