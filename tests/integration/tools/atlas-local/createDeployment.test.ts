@@ -34,6 +34,7 @@ describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
         expectDefined(createDeployment.inputSchema.properties);
         expect(createDeployment.inputSchema.properties).toHaveProperty("deploymentName");
         expect(createDeployment.inputSchema.properties).toHaveProperty("loadSampleData");
+        expect(createDeployment.inputSchema.properties).toHaveProperty("imageTag");
     });
 
     it("should create a deployment when calling the tool", async () => {
@@ -143,6 +144,46 @@ describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
         expect(elements.length).toBeGreaterThanOrEqual(1);
         expect(elements[1]?.text ?? "").toContain(deploymentName);
         expect(elements[1]?.text ?? "").toContain("Running");
+    });
+
+    it("should create a deployment with voyageApiKey set when preview image is used", async () => {
+        const deploymentName = `test-deployment-preview-${Date.now()}`;
+        deploymentNamesToCleanup.push(deploymentName);
+        const voyageApiKey = "test-voyage-api-key";
+
+        integration.mcpServer().userConfig.voyageApiKey = voyageApiKey;
+
+        // Create a deployment
+        const createResponse = await integration.mcpClient().callTool({
+            name: "atlas-local-create-deployment",
+            arguments: { deploymentName, imageTag: "preview" },
+        });
+
+        // Check the response contains the deployment name
+        const createElements = getResponseElements(createResponse.content);
+        expect(createElements.length).toBeGreaterThanOrEqual(1);
+        expect(createElements[0]?.text ?? "").toContain(deploymentName);
+
+        const client = integration.mcpServer().session.atlasLocalClient;
+        expectDefined(client);
+        const deployment = await client.getDeployment(deploymentName);
+        expect((deployment as { voyageApiKey?: string }).voyageApiKey).toBe(voyageApiKey);
+    });
+
+    it("should create a deployment with imageTag latest", async () => {
+        const deploymentName = `test-deployment-latest-${Date.now()}`;
+        deploymentNamesToCleanup.push(deploymentName);
+
+        // Create a deployment
+        const createResponse = await integration.mcpClient().callTool({
+            name: "atlas-local-create-deployment",
+            arguments: { deploymentName, imageTag: "latest" },
+        });
+
+        // Check the response contains the deployment name
+        const createElements = getResponseElements(createResponse.content);
+        expect(createElements.length).toBeGreaterThanOrEqual(1);
+        expect(createElements[0]?.text ?? "").toContain(deploymentName);
     });
 });
 

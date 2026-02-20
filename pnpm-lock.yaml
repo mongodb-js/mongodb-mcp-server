@@ -244,8 +244,8 @@ importers:
         version: 3.2.4(@types/node@24.10.1)(@vitest/browser@3.2.4)(happy-dom@20.0.11)(jiti@2.6.1)(jsdom@27.3.0)(tsx@4.21.0)(yaml@2.8.2)
     optionalDependencies:
       '@mongodb-js/atlas-local':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.3.0
+        version: 1.3.0
       kerberos:
         specifier: ^7.0.0
         version: 7.0.0
@@ -1400,38 +1400,38 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@mongodb-js/atlas-local-darwin-arm64@1.1.0':
-    resolution: {integrity: sha512-8uY+cE5MrU+atD+TRf3vMRRfFWyQKdxLSxtAo5d6tWj7EKaNBCBA3uVwnvs1ds73gSNjO/jfg5IkvNZ2x1Pzww==}
+  '@mongodb-js/atlas-local-darwin-arm64@1.3.0':
+    resolution: {integrity: sha512-+g4So8Fz9TNdDsWGWUUf9F4bsVvGaqwebMq/mHmHpHp+HVD71GDYlmCTsfm/YzDkmVLPKkHSC7pAqXgpO3DROw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [darwin]
 
-  '@mongodb-js/atlas-local-darwin-x64@1.1.0':
-    resolution: {integrity: sha512-mYkOxPXDMLXCwj2DeNQ4g8QoGV85+mghNZE86WVVNkPQTJZSE1D/Z3tM1sQnEDI4uvQ7fmdqiLmDh2WvXQI7cw==}
+  '@mongodb-js/atlas-local-darwin-x64@1.3.0':
+    resolution: {integrity: sha512-/ENeKGv9HXtsm4OiFS1tnIxmp6JV9/wWpOQum4MhXR9px9+rfyWhY/BFxXAVSB/i7YvntbP2Z0U91Am9Hw8n9g==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [darwin]
 
-  '@mongodb-js/atlas-local-linux-arm64-gnu@1.1.0':
-    resolution: {integrity: sha512-6eEKKD4bbvCPyxzlRvU2NWvpirrZtWqhqOb+hAmIcfmgqz2cpdK714/b4htBmQGIQzHrap0dJNqlGHIpzg5Rzg==}
+  '@mongodb-js/atlas-local-linux-arm64-gnu@1.3.0':
+    resolution: {integrity: sha512-FsNqduceCFWm6/llp7Y3GlARBGew7nPNWFbNHsWghGeP/jW1J5pc8zdj9NGN+lbX5INdSg8Rz6WVPNDiYTnJyQ==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [linux]
 
-  '@mongodb-js/atlas-local-linux-x64-gnu@1.1.0':
-    resolution: {integrity: sha512-Gz1arxbVWei7vb7q+VjMU043Wx5OI52m7DjupmFqqv93pHgERVuJ95Fpwz2IeVSFPNkQmcx/wsyBU7L4gKfcjg==}
+  '@mongodb-js/atlas-local-linux-x64-gnu@1.3.0':
+    resolution: {integrity: sha512-I+gCqMXTC5SG1GLUxhPprWb0MyiIhzsAKxi9/FsrB0XL9qrrDurY2W2PGBIFan5eloo8tti9uIMeZUQ4ov/X5w==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [linux]
 
-  '@mongodb-js/atlas-local-win32-x64-msvc@1.1.0':
-    resolution: {integrity: sha512-K+kGoGfIPqv6JstlzmnbkOOJ6/0cTH4bjRbEApmvscnTDBk1c9eO8nXORPQWFfKnMMxo+/9GQESvaxC05MhwBQ==}
+  '@mongodb-js/atlas-local-win32-x64-msvc@1.3.0':
+    resolution: {integrity: sha512-nGHHd3MlhQQixjguuMGwgG5OnMBxHOJY+wqGVDE72vGoY7YBbGwAucqhGU/UMCbppweMqZmykVnTWjmqVW9Yww==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [win32]
 
-  '@mongodb-js/atlas-local@1.1.0':
-    resolution: {integrity: sha512-ZGvBy8PdqNgcfZPaElSrmc3ItafSbodowipgQkJN65jKuAM8owETpMc8/ASxHTlI91y4sOll1V5WQR0FkqDHjA==}
+  '@mongodb-js/atlas-local@1.3.0':
+    resolution: {integrity: sha512-NYcXgw3/P+mEe9dUMEJbEpSCxEKvqTfoHu/doGKaCaSSKjxTDUnybJDPyE3NksjmSK5XU++IoYudIuAFfYdzow==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
 
   '@mongodb-js/device-id@0.4.6':
@@ -8118,28 +8118,28 @@ snapshots:
       - hono
       - supports-color
 
-  '@mongodb-js/atlas-local-darwin-arm64@1.1.0':
+  '@mongodb-js/atlas-local-darwin-arm64@1.3.0':
     optional: true
 
-  '@mongodb-js/atlas-local-darwin-x64@1.1.0':
+  '@mongodb-js/atlas-local-darwin-x64@1.3.0':
     optional: true
 
-  '@mongodb-js/atlas-local-linux-arm64-gnu@1.1.0':
+  '@mongodb-js/atlas-local-linux-arm64-gnu@1.3.0':
     optional: true
 
-  '@mongodb-js/atlas-local-linux-x64-gnu@1.1.0':
+  '@mongodb-js/atlas-local-linux-x64-gnu@1.3.0':
     optional: true
 
-  '@mongodb-js/atlas-local-win32-x64-msvc@1.1.0':
+  '@mongodb-js/atlas-local-win32-x64-msvc@1.3.0':
     optional: true
 
-  '@mongodb-js/atlas-local@1.1.0':
+  '@mongodb-js/atlas-local@1.3.0':
     optionalDependencies:
-      '@mongodb-js/atlas-local-darwin-arm64': 1.1.0
-      '@mongodb-js/atlas-local-darwin-x64': 1.1.0
-      '@mongodb-js/atlas-local-linux-arm64-gnu': 1.1.0
-      '@mongodb-js/atlas-local-linux-x64-gnu': 1.1.0
-      '@mongodb-js/atlas-local-win32-x64-msvc': 1.1.0
+      '@mongodb-js/atlas-local-darwin-arm64': 1.3.0
+      '@mongodb-js/atlas-local-darwin-x64': 1.3.0
+      '@mongodb-js/atlas-local-linux-arm64-gnu': 1.3.0
+      '@mongodb-js/atlas-local-linux-x64-gnu': 1.3.0
+      '@mongodb-js/atlas-local-win32-x64-msvc': 1.3.0
     optional: true
 
   '@mongodb-js/device-id@0.4.6': {}
