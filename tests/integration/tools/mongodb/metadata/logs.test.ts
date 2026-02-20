@@ -5,6 +5,7 @@ import {
     getResponseElements,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
+import type { LogsOutput } from "../../../../../src/tools/mongodb/metadata/logs.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 
 describeWithMongoDB("logs tool", (integration) => {
@@ -65,6 +66,12 @@ describeWithMongoDB("logs tool", (integration) => {
             expect(log).toHaveProperty("t");
             expect(log).toHaveProperty("msg");
         }
+
+        // Validate structured content
+        const structuredContent = response.structuredContent as LogsOutput;
+        expect(structuredContent.logs).toEqual(logs);
+        expect(structuredContent.shownCount).toBe(logs.length);
+        expect(structuredContent.totalLinesWritten).toBe(totalMessages);
     });
 
     it("should return startupWarnings logs", async () => {
@@ -94,6 +101,12 @@ describeWithMongoDB("logs tool", (integration) => {
             expect(log).toHaveProperty("tags");
             expect(log.tags).toContain("startupWarnings");
         }
+
+        // Validate structured content
+        const structuredContent = response.structuredContent as LogsOutput;
+        expect(structuredContent.logs).toEqual(logs);
+        expect(structuredContent.shownCount).toBe(logs.length);
+        expect(structuredContent.totalLinesWritten).toBeGreaterThanOrEqual(logs.length);
     });
 
     validateAutoConnectBehavior(integration, "mongodb-logs", () => {
