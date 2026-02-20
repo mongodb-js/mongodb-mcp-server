@@ -9,6 +9,7 @@ import {
     defaultTestConfig,
     getResponseElements,
 } from "../../../helpers.js";
+import type { CreateIndexOutput } from "../../../../../src/tools/mongodb/create/createIndex.js";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -256,6 +257,13 @@ describeWithMongoDB(
                 `Created the index "my-index" on collection "coll1" in database "${integration.randomDbName()}".`
             );
 
+            // Validate structured content
+            const structuredContent = response.structuredContent as CreateIndexOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("coll1");
+            expect(structuredContent.indexName).toBe("my-index");
+            expect(structuredContent.indexType).toBe("classic");
+
             await validateIndex("coll1", [{ name: "my-index", key: { prop1: 1 } }]);
         });
 
@@ -274,6 +282,14 @@ describeWithMongoDB(
             expect(content).toEqual(
                 `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
             );
+
+            // Validate structured content
+            const structuredContent = response.structuredContent as CreateIndexOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("coll1");
+            expect(structuredContent.indexName).toBe("prop1_1");
+            expect(structuredContent.indexType).toBe("classic");
+
             await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
         });
 
@@ -552,6 +568,13 @@ describeWithMongoDB(
                 expect(content).toEqual(
                     `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
+
+                // Validate structured content
+                const structuredContent = response.structuredContent as CreateIndexOutput;
+                expect(structuredContent.database).toBe(integration.randomDbName());
+                expect(structuredContent.collection).toBe(collectionName);
+                expect(structuredContent.indexName).toBe("vector_1_vector");
+                expect(structuredContent.indexType).toBe("vectorSearch");
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
@@ -874,6 +897,13 @@ describeWithMongoDB(
                 expect(content).toEqual(
                     `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
+
+                // Validate structured content
+                const structuredContent = response.structuredContent as CreateIndexOutput;
+                expect(structuredContent.database).toBe(integration.randomDbName());
+                expect(structuredContent.collection).toBe(collectionName);
+                expect(structuredContent.indexName).toBe("search_index");
+                expect(structuredContent.indexType).toBe("search");
 
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
