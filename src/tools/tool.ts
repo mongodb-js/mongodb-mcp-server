@@ -481,6 +481,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
                                 text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
                             },
                         ],
+                        isError: true,
                     };
                 }
                 // We do not want to include the elicitation time in the tool execution time
