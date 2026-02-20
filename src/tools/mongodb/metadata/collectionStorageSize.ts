@@ -1,18 +1,26 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
+import { z } from "zod";
+
+const CollectionStorageSizeOutputSchema = {
+    size: z.number(),
+    units: z.string(),
+};
+
+export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
 
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     static toolName = "collection-storage-size";
     public description = "Gets the size of the collection";
     public argsShape = DbOperationArgs;
+    public override outputSchema = CollectionStorageSizeOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
         { database, collection }: ToolArgs<typeof DbOperationArgs>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const [{ value }] = (await provider
             .aggregate(
@@ -37,10 +45,14 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                size: scaledValue,
+                units,
+            },
         };
     }
 
-    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<ToolResult> {
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [
@@ -53,7 +65,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args);
+        return super.handleError(error, args) as Promise<ToolResult>;
     }
 
     private static getStats(value: number): { value: number; units: string } {
