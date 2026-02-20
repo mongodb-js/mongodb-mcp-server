@@ -6,7 +6,7 @@ import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsM
 import { similarityValues } from "../../../common/schemas.js";
 import { modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 
-export const CreateIndexOutputSchema = {
+const CreateIndexOutputSchema = {
     database: z.string(),
     collection: z.string(),
     indexName: z.string(),

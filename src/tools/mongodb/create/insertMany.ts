@@ -8,7 +8,7 @@ import { ErrorCodes, MongoDBError } from "../../../common/errors.js";
 import type { ConnectionMetadata, AutoEmbeddingsUsageMetadata } from "../../../telemetry/types.js";
 import { setFieldPath } from "../../../helpers/manageNestedFieldPaths.js";
 
-export const InsertManyOutputSchema = {
+const InsertManyOutputSchema = {
     database: z.string(),
     collection: z.string(),
     insertedCount: z.number(),

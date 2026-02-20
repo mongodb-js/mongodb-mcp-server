@@ -2,7 +2,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { OperationType, ToolArgs, ToolResult } from "../../tool.js";
 import { z } from "zod";
 
-export const CreateCollectionOutputSchema = {
+const CreateCollectionOutputSchema = {
     database: z.string(),
     collection: z.string(),
     created: z.boolean(),
