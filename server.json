@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.6.1-prerelease.3",
+  "version": "1.6.1-prerelease.4",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.6.1-prerelease.3",
+      "version": "1.6.1-prerelease.4",
       "transport": {
         "type": "stdio"
       },
@@ -36,6 +36,13 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_ASSISTANT_BASE_URL",
+          "description": "Base URL for the MongoDB Assistant API.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
@@ -273,6 +280,12 @@
           "type": "named",
           "name": "--apiClientSecret",
           "description": "Atlas API client secret for authentication. Required for running Atlas tools.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--assistantBaseUrl",
+          "description": "Base URL for the MongoDB Assistant API.",
           "isRequired": false
         },
         {
@@ -481,7 +494,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.6.1-prerelease.3",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.6.1-prerelease.4",
       "transport": {
         "type": "stdio"
       },
@@ -506,6 +519,13 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_ASSISTANT_BASE_URL",
+          "description": "Base URL for the MongoDB Assistant API.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
@@ -743,6 +763,12 @@
           "type": "named",
           "name": "--apiClientSecret",
           "description": "Atlas API client secret for authentication. Required for running Atlas tools.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--assistantBaseUrl",
+          "description": "Base URL for the MongoDB Assistant API.",
           "isRequired": false
         },
         {
