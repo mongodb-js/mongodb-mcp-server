@@ -88,6 +88,9 @@ export const LogId = {
 
     atlasLocalDockerNotRunning: mongoLogId(1_010_001),
     atlasLocalUnsupportedPlatform: mongoLogId(1_010_002),
+
+    assistantListKnowledgeSourcesError: mongoLogId(1_011_001),
+    assistantSearchKnowledgeError: mongoLogId(1_011_002),
 } as const;
 
 export interface LogPayload {

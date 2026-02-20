@@ -51,8 +51,9 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
  * - `atlas-local` is used for tools that interact with local Atlas deployments.
+ * - `assistant` is used for tools that interact with the Assistant, such as searching the public knowledge base.
  */
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 /**
  * Parameters passed to the constructor of all tools that extends `ToolBase`.

@@ -20,6 +20,11 @@ const ServerConfigSchema = z4.object({
         .string()
         .default("https://cloud.mongodb.com/")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    assistantBaseUrl: z4
+        .string()
+        .default("https://knowledge.mongodb.com/api/v1/")
+        .describe("Base URL for the MongoDB Assistant API.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     apiClientId: z4
         .string()
         .optional()
@@ -269,4 +274,4 @@ export const UserConfigSchema = z4.object({
 
 export type UserConfig = z4.infer<typeof UserConfigSchema>;
 
-export const ALL_CONFIG_KEYS: (keyof UserConfig)[] = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];
+export const ALL_CONFIG_KEYS = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];

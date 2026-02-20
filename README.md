@@ -14,6 +14,7 @@ A Model Context Protocol server for interacting with MongoDB Databases and Mongo
 - [🛠️ Supported Tools](#supported-tools)
   - [MongoDB Atlas Tools](#mongodb-atlas-tools)
   - [MongoDB Database Tools](#mongodb-database-tools)
+  - [MongoDB Assistant Tools](#mongodb-assistant-tools)
 - [📄 Supported Resources](#supported-resources)
 - [⚙️ Configuration](#configuration)
   - [Configuration Options](#configuration-options)
@@ -331,6 +332,11 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `rename-collection` - Renames a collection in a MongoDB database
 - `switch-connection` - Switch to a different MongoDB connection
 - `update-many` - Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.
+
+#### MongoDB Assistant Tools
+
+- `list-knowledge-sources` - List available data sources in the MongoDB Assistant knowledge base. Example sources include various MongoDB documentation sites, MongoDB University courses, and other useful learning resources.
+- `search-knowledge` - Search for information in the MongoDB Assistant knowledge base.
 
 ## 📄 Supported Resources
 
