@@ -61,6 +61,7 @@ Note: The configuration file syntax can be different across clients. Please refe
 - **VSCode**: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
 - **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
 - **Cursor**: https://docs.cursor.com/context/model-context-protocol
+- **Copilot CLI**: https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
@@ -277,6 +278,32 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 - `--httpPort` (default: 3000): The port number for the HTTP server.
 
 > **Note:** The default transport is `stdio`, which is suitable for integration with most MCP clients. Use `http` transport if you need to interact with the server over HTTP.
+
+#### Option 6: Copilot CLI
+
+You can use the Copilot CLI to interactively add the MCP server:
+
+```shell
+/mcp add
+```
+
+Alternatively, create or edit the configuration file `~/.copilot/mcp-config.json` and add:
+
+```json
+{
+  "mcpServers": {
+    "MongoDB": {
+      "command": "npx",
+      "args": ["-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
+      }
+    }
+  }
+}
+```
+
+For more information, see the [Copilot CLI documentation](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli).
 
 ## 🛠️ Supported Tools
 
