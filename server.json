@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.6.1-prerelease.4",
+  "version": "1.7.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.6.1-prerelease.4",
+      "version": "1.7.0",
       "transport": {
         "type": "stdio"
       },
@@ -494,7 +494,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.6.1-prerelease.4",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.7.0",
       "transport": {
         "type": "stdio"
       },
