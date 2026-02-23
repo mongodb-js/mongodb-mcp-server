@@ -34,14 +34,11 @@ export class RenameCollectionTool extends MongoDBToolBase {
         };
     }
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (error instanceof Error && "codeName" in error) {
             switch (error.codeName) {
                 case "NamespaceNotFound":
-                    return {
+                    return Promise.resolve({
                         content: [
                             {
                                 text: `Cannot rename "${args.database}.${args.collection}" because it doesn't exist.`,
@@ -49,9 +46,9 @@ export class RenameCollectionTool extends MongoDBToolBase {
                             },
                         ],
                         isError: true,
-                    };
+                    });
                 case "NamespaceExists":
-                    return {
+                    return Promise.resolve({
                         content: [
                             {
                                 text: `Cannot rename "${args.database}.${args.collection}" to "${args.newName}" because the target collection already exists. If you want to overwrite it, set the "dropTarget" argument to true.`,
@@ -59,7 +56,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
                             },
                         ],
                         isError: true,
-                    };
+                    });
             }
         }
 

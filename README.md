@@ -333,11 +333,6 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `switch-connection` - Switch to a different MongoDB connection
 - `update-many` - Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.
 
-#### MongoDB Assistant Tools
-
-- `list-knowledge-sources` - List available data sources in the MongoDB Assistant knowledge base. Example sources include various MongoDB documentation sites, MongoDB University courses, and other useful learning resources.
-- `search-knowledge` - Search for information in the MongoDB Assistant knowledge base.
-
 ## 📄 Supported Resources
 
 - `config` - Server configuration, supplied by the user either as environment variables or as startup arguments with sensitive parameters redacted. The resource can be accessed under URI `config://config`.
@@ -361,6 +356,7 @@ The MongoDB MCP Server can be configured using multiple methods, with the follow
 | `MDB_MCP_ALLOW_REQUEST_OVERRIDES` / `--allowRequestOverrides`                                  | `false`                                                                                                | When set to true, allows configuration values to be overridden via request headers and query parameters.                                                                                          |
 | `MDB_MCP_API_CLIENT_ID` / `--apiClientId`                                                      | `<not set>`                                                                                            | Atlas API client ID for authentication. Required for running Atlas tools.                                                                                                                         |
 | `MDB_MCP_API_CLIENT_SECRET` / `--apiClientSecret`                                              | `<not set>`                                                                                            | Atlas API client secret for authentication. Required for running Atlas tools.                                                                                                                     |
+| `MDB_MCP_ASSISTANT_BASE_URL` / `--assistantBaseUrl`                                            | `"https://knowledge.mongodb.com/api/v1/"`                                                              | Base URL for the MongoDB Assistant API.                                                                                                                                                           |
 | `MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS` / `--atlasTemporaryDatabaseUserLifetimeMs` | `14400000`                                                                                             | Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted.                                       |
 | `MDB_MCP_CONFIRMATION_REQUIRED_TOOLS` / `--confirmationRequiredTools`                          | `"atlas-create-access-list,atlas-create-db-user,drop-database,drop-collection,delete-many,drop-index"` | Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.                                                                 |
 | `MDB_MCP_CONNECTION_STRING` / `--connectionString`                                             | `<not set>`                                                                                            | MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.                                       |
