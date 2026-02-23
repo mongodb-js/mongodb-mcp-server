@@ -282,31 +282,6 @@ npx -y mongodb-mcp-server@latest --transport http --httpHost=0.0.0.0 --httpPort=
 
 ### Tool List
 
-#### MongoDB Atlas Tools
-
-- `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
-- `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
-- `atlas-create-db-user` - Create an MongoDB Atlas database user
-- `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
-- `atlas-create-project` - Create a MongoDB Atlas project
-- `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
-- `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
-- `atlas-inspect-cluster` - Inspect metadata of a MongoDB Atlas cluster
-- `atlas-list-alerts` - List MongoDB Atlas alerts
-- `atlas-list-clusters` - List MongoDB Atlas clusters
-- `atlas-list-db-users` - List MongoDB Atlas database users
-- `atlas-list-orgs` - List MongoDB Atlas organizations
-- `atlas-list-projects` - List MongoDB Atlas projects
-
-NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
-
-#### MongoDB Atlas Local Tools
-
-- `atlas-local-connect-deployment` - Connect to a MongoDB Atlas Local deployment
-- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment
-- `atlas-local-delete-deployment` - Delete a MongoDB Atlas local deployment
-- `atlas-local-list-deployments` - List MongoDB Atlas local deployments
-
 #### MongoDB Database Tools
 
 - `aggregate` - Run an aggregation against a MongoDB collection
@@ -332,6 +307,36 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 - `rename-collection` - Renames a collection in a MongoDB database
 - `switch-connection` - Switch to a different MongoDB connection
 - `update-many` - Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.
+
+#### MongoDB Atlas Tools
+
+- `atlas-connect-cluster` - Connect to MongoDB Atlas cluster
+- `atlas-create-access-list` - Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.
+- `atlas-create-db-user` - Create an MongoDB Atlas database user
+- `atlas-create-free-cluster` - Create a free MongoDB Atlas cluster
+- `atlas-create-project` - Create a MongoDB Atlas project
+- `atlas-get-performance-advisor` - Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max 50) slow query logs
+- `atlas-inspect-access-list` - Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.
+- `atlas-inspect-cluster` - Inspect metadata of a MongoDB Atlas cluster
+- `atlas-list-alerts` - List MongoDB Atlas alerts
+- `atlas-list-clusters` - List MongoDB Atlas clusters
+- `atlas-list-db-users` - List MongoDB Atlas database users
+- `atlas-list-orgs` - List MongoDB Atlas organizations
+- `atlas-list-projects` - List MongoDB Atlas projects
+
+NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
+
+#### MongoDB Atlas Local Tools
+
+- `atlas-local-connect-deployment` - Connect to a MongoDB Atlas Local deployment
+- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment
+- `atlas-local-delete-deployment` - Delete a MongoDB Atlas local deployment
+- `atlas-local-list-deployments` - List MongoDB Atlas local deployments
+
+#### MongoDB Assistant Tools
+
+- `list-knowledge-sources` - List available data sources in the MongoDB Assistant knowledge base. Use this to explore available data sources or to find search filter parameters to use in search-knowledge.
+- `search-knowledge` - Search for information in the MongoDB Assistant knowledge base. This includes official documentation, curated expert guidance, and other resources provided by MongoDB. Supports filtering by data source and version.
 
 ## 📄 Supported Resources
 
