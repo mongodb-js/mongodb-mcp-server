@@ -1,6 +1,7 @@
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 const CollectionStorageSizeOutputSchema = {
     size: z.number(),
@@ -52,7 +53,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
         };
     }
 
-    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<ToolResult> | ToolResult {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [

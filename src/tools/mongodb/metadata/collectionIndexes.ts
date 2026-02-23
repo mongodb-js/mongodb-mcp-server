@@ -2,6 +2,7 @@ import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 const CollectionIndexesOutputSchema = {
     classicIndexes: z.array(
@@ -74,7 +75,8 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         };
     }
 
-    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): ToolResult | Promise<ToolResult> {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        // >>>>>>> main
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [
@@ -102,7 +104,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             type: (index["type"] ?? "UNKNOWN") as string,
             status: (index["status"] ?? "UNKNOWN") as string,
             queryable: (index["queryable"] ?? false) as boolean,
-            latestDefinition: index["latestDefinition"] as Record<string, unknown>,
+            latestDefinition: (index["latestDefinition"] ?? {}) as Record<string, unknown>,
         }));
     }
 }

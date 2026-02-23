@@ -6,7 +6,7 @@ import type { AnyToolBase } from "../tools/tool.js";
 export type ConnectionErrorHandler = (
     error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>,
     additionalContext: ConnectionErrorHandlerContext
-) => ConnectionErrorUnhandled | ConnectionErrorHandled;
+) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
 
 export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; connectionState: AnyConnectionState };
 export type ConnectionErrorUnhandled = { errorHandled: false };
