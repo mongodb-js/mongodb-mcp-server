@@ -80,18 +80,6 @@ function extractToolInformation(): ToolInfo[] {
 function generateReadmeToolsList(tools: ToolInfo[]): string {
     const sections: string[] = [];
 
-    // Group tools by category
-    const toolsByCategory: Record<string, ToolInfo[]> = {};
-    for (const tool of tools) {
-        if (!toolsByCategory[tool.category]) {
-            toolsByCategory[tool.category] = [];
-        }
-        const categoryTools = toolsByCategory[tool.category];
-        if (categoryTools) {
-            categoryTools.push(tool);
-        }
-    }
-
     // Generate sections for each category
     const categoryTitles: Record<string, string> = {
         mongodb: "MongoDB Database Tools",
@@ -100,9 +88,30 @@ function generateReadmeToolsList(tools: ToolInfo[]): string {
         assistant: "MongoDB Assistant Tools",
     };
 
+    // Group tools by category
+    const toolsByCategory: Record<string, ToolInfo[]> = {};
+    for (const tool of tools) {
+        if (!toolsByCategory[tool.category]) {
+            toolsByCategory[tool.category] = [];
+        }
+
+        if (!categoryTitles[tool.category])
+            throw new Error(
+                `Category ${tool.category} not defined in categoryTitles, please specify it to generate documentation.`
+            );
+
+        const categoryTools = toolsByCategory[tool.category];
+        if (categoryTools) {
+            categoryTools.push(tool);
+        }
+    }
+
     for (const category of Object.keys(categoryTitles)) {
-        if (!toolsByCategory[category])
-            throw new Error(`Category ${category} not found. Please add it to the categoryTitles object.`);
+        if (!toolsByCategory[category]) {
+            throw new Error(
+                `No tools found for category ${category}, please remove it or ensure tools are added to the category.`
+            );
+        }
 
         sections.push(`#### ${categoryTitles[category]}\n`);
 
