@@ -1,11 +1,19 @@
 import { expectDefined, getResponseElements } from "../../helpers.js";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 
 describeWithAtlasLocal("atlas-local-create-deployment", (integration) => {
     let deploymentNamesToCleanup: string[] = [];
+    let userConfigSnapshot: Record<string, unknown> | undefined;
+
+    beforeEach(() => {
+        userConfigSnapshot = { ...integration.mcpServer().userConfig };
+    });
 
     afterEach(async () => {
+        if (userConfigSnapshot) {
+            Object.assign(integration.mcpServer().userConfig, userConfigSnapshot);
+        }
         // Clean up any deployments created during the test
         for (const deploymentName of deploymentNamesToCleanup) {
             try {
