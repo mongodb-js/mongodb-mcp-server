@@ -52,7 +52,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
         };
     }
 
-    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<ToolResult> | ToolResult {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<ToolResult> {
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [
@@ -65,7 +65,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
+        return Promise.resolve(super.handleError(error, args));
     }
 
     private static getStats(value: number): { value: number; units: string } {

@@ -74,7 +74,8 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         };
     }
 
-    protected handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): ToolResult | Promise<ToolResult> {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<ToolResult> {
+        // >>>>>>> main
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [
@@ -87,7 +88,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
+        return Promise.resolve(super.handleError(error, args));
     }
 
     /**
@@ -102,7 +103,7 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             type: (index["type"] ?? "UNKNOWN") as string,
             status: (index["status"] ?? "UNKNOWN") as string,
             queryable: (index["queryable"] ?? false) as boolean,
-            latestDefinition: index["latestDefinition"] as Record<string, unknown>,
+            latestDefinition: (index["latestDefinition"] ?? {}) as Record<string, unknown>,
         }));
     }
 }
