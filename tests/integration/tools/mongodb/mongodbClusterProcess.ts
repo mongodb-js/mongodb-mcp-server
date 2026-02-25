@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import type { MongoClusterOptions } from "mongodb-runner";
+import { DockerComposeEnvironment, Wait } from "testcontainers";
 import { MongoCluster } from "mongodb-runner";
 import { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 
@@ -11,7 +12,43 @@ export type MongoRunnerConfiguration = {
 };
 
 export type MongoSearchConfiguration = { search: true; image?: string };
-export type MongoClusterConfiguration = MongoRunnerConfiguration | MongoSearchConfiguration;
+export type MongoAutoEmbedSearchConfiguration = {
+    autoEmbed: true;
+    /**
+     * The password to be used for creating a `searchCoordinator` role in
+     * mongodb. Required for `mongot` instance to effectively communicate with
+     * `mongod`.
+     *
+     * Expected to be provided through environment variable - `MDB_MONGOT_PASSWORD`
+     */
+    mongotPassword: string;
+
+    /**
+     * The voyage key to be used by `mongod` when auto-generating embeddings for
+     * an aggregation.
+     *
+     * Expected to be provided through environment variable - `MDB_VOYAGE_API_KEY`
+     *
+     * Note: This can be same as `voyageIndexingKey` but to avoid getting rate
+     * limited, it is advised to have these two as different keys.
+     */
+    voyageQueryKey: string;
+
+    /**
+     * The voyage key to be used by `mongod` when auto-generating embeddings at
+     * the time of indexing.
+     *
+     * Expected to be provided through environment variable - `MDB_VOYAGE_API_KEY`
+     *
+     * Note: This can be same as `voyageQueryKey` but to avoid getting rate
+     * limited, it is advised to have these two as different keys.
+     */
+    voyageIndexingKey: string;
+};
+export type MongoClusterConfiguration =
+    | MongoRunnerConfiguration
+    | MongoSearchConfiguration
+    | MongoAutoEmbedSearchConfiguration;
 
 const DOWNLOAD_RETRIES = 10;
 
@@ -24,8 +61,8 @@ const DEFAULT_ATLAS_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8";
 
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
-        if (MongoDBClusterProcess.isSearchOptions(config)) {
-            const atlasLocalClient =  AtlasLocalClient.connect();
+        if (MongoDBClusterProcess.isSearchOption(config)) {
+            const atlasLocalClient = AtlasLocalClient.connect();
             const deployment = await atlasLocalClient.createDeployment({
                 image: config.image ?? DEFAULT_ATLAS_LOCAL_IMAGE,
                 waitUntilHealthy: true,
@@ -47,7 +84,28 @@ export class MongoDBClusterProcess {
                 },
                 () => connectionString
             );
-        } else if (MongoDBClusterProcess.isMongoRunnerOptions(config)) {
+        } else if (MongoDBClusterProcess.isAutoEmbedSearchOption(config)) {
+            const composeFilePath = path.join(__dirname, "mongot-community-setup");
+
+            const environment = await new DockerComposeEnvironment(composeFilePath, "docker-compose.yml")
+                .withEnvironment({
+                    MONGOT_PASSWORD: config.mongotPassword,
+                    VOYAGE_QUERY_KEY: config.voyageQueryKey,
+                    VOYAGE_INDEXING_KEY: config.voyageIndexingKey,
+                })
+                .withWaitStrategy("mongod-1", Wait.forHealthCheck())
+                .withWaitStrategy("mongot-1", Wait.forHealthCheck())
+                .up();
+
+            const mongodContainer = environment.getContainer("mongod-1");
+            const mongodHost = mongodContainer.getHost();
+            const mongodPort = mongodContainer.getMappedPort(27017);
+
+            return new MongoDBClusterProcess(
+                () => environment.down({ removeVolumes: true }),
+                () => `mongodb://${mongodHost}:${mongodPort}/?directConnection=true`
+            );
+        } else if (MongoDBClusterProcess.isMongoRunnerOption(config)) {
             const { downloadOptions, serverArgs } = config;
 
             const tmpDir = path.join(__dirname, "..", "..", "..", "tmp");
@@ -104,18 +162,51 @@ export class MongoDBClusterProcess {
     }
 
     static isConfigurationSupportedInCurrentEnv(config: MongoClusterConfiguration): boolean {
-        if (MongoDBClusterProcess.isSearchOptions(config) && process.env.GITHUB_ACTIONS === "true") {
+        if (MongoDBClusterProcess.isSearchOption(config) && process.env.GITHUB_ACTIONS === "true") {
             return process.platform === "linux";
+        }
+
+        if (MongoDBClusterProcess.isAutoEmbedSearchOption(config)) {
+            const requiredKeys: (keyof MongoAutoEmbedSearchConfiguration)[] = [
+                "mongotPassword",
+                "voyageIndexingKey",
+                "voyageQueryKey",
+            ];
+
+            const missingConfig = requiredKeys.filter((key) => !config[key]);
+
+            // If the required config is missing there is nothing to do. So we
+            // warn and exit early.
+            if (missingConfig.length > 0) {
+                console.warn(
+                    `Auto-embeddings configuration not correctly configured, missing - ${missingConfig.join(", ")}. Will skip the test.`
+                );
+                return false;
+            }
+
+            // In GHA, only linux containers has docker runtime so we only run
+            // on linux.
+            if (process.env.GITHUB_ACTIONS === "true") {
+                return process.platform === "linux";
+            }
+
+            // Very likely running locally so we assume there is a docker
+            // runtime.
+            return true;
         }
 
         return true;
     }
 
-    private static isSearchOptions(opt: MongoClusterConfiguration): opt is MongoSearchConfiguration {
+    private static isAutoEmbedSearchOption(opt: MongoClusterConfiguration): opt is MongoAutoEmbedSearchConfiguration {
+        return (opt as MongoAutoEmbedSearchConfiguration)?.autoEmbed === true;
+    }
+
+    private static isSearchOption(opt: MongoClusterConfiguration): opt is MongoSearchConfiguration {
         return (opt as MongoSearchConfiguration)?.search === true;
     }
 
-    private static isMongoRunnerOptions(opt: MongoClusterConfiguration): opt is MongoRunnerConfiguration {
+    private static isMongoRunnerOption(opt: MongoClusterConfiguration): opt is MongoRunnerConfiguration {
         return (opt as MongoRunnerConfiguration)?.runner === true;
     }
 }

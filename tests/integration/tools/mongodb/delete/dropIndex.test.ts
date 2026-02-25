@@ -17,6 +17,7 @@ import {
 } from "../mongodbHelpers.js";
 import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { Elicitation } from "../../../../../src/elicitation.js";
+import type { DropIndexOutput } from "../../../../../src/tools/mongodb/delete/dropIndex.js";
 
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
@@ -251,6 +252,12 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                                 indexName: getIndexName(),
                                 namespace: "mflix.movies",
                             });
+
+                            const structuredContent = response.structuredContent as DropIndexOutput;
+                            expect(structuredContent.database).toBe("mflix");
+                            expect(structuredContent.collection).toBe("movies");
+                            expect(structuredContent.indexName).toBe(getIndexName());
+                            expect(structuredContent.dropped).toBe(true);
                         });
                     });
                 },
@@ -427,6 +434,12 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                                     namespace: "mflix.movies",
                                 });
 
+                                const structuredContent = response.structuredContent as DropIndexOutput;
+                                expect(structuredContent.database).toBe("mflix");
+                                expect(structuredContent.collection).toBe("movies");
+                                expect(structuredContent.indexName).toBe(indexName);
+                                expect(structuredContent.dropped).toBe(true);
+
                                 indexes = await collection.listSearchIndexes().toArray();
                                 expect(indexes.find((idx) => idx.name === indexName)).toBeUndefined();
                             });
@@ -435,6 +448,69 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                     {
                         getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["search"] }),
                         downloadOptions: { search: true },
+                    }
+                );
+
+                describeWithMongoDB(
+                    "when connected to MongoDB with auto-embed index support",
+                    (integration) => {
+                        const indexName = "auto-embed-index";
+                        let collection: Collection;
+                        beforeEach(async () => {
+                            await integration.connectMcpClient();
+                            collection = integration.mongoClient().db(integration.randomDbName()).collection("foo");
+                            await collection.insertOne({ plot: "A movie about alien" });
+                            await collection.createSearchIndex({
+                                type: "vectorSearch",
+                                name: indexName,
+                                definition: {
+                                    fields: [
+                                        {
+                                            type: "autoEmbed",
+                                            path: "plot",
+                                            model: "voyage-4-large",
+                                            modality: "text",
+                                        },
+                                    ],
+                                },
+                            });
+                            await waitUntilSearchIndexIsListed(collection, indexName);
+                        });
+
+                        it("should succeed in deleting the index", async () => {
+                            let indexes = await collection.listSearchIndexes().toArray();
+                            expect(indexes.find((idx) => idx.name === indexName)).toBeDefined();
+
+                            const response = await integration.mcpClient().callTool({
+                                name: "drop-index",
+                                arguments: {
+                                    database: collection.dbName,
+                                    collection: collection.collectionName,
+                                    indexName,
+                                    type: "search",
+                                },
+                            });
+                            const content = getResponseContent(response.content);
+                            expect(content).toContain("Successfully dropped the index from the provided namespace.");
+
+                            const data = getDataFromUntrustedContent(content);
+                            expect(JSON.parse(data)).toMatchObject({
+                                indexName,
+                                namespace: `${integration.randomDbName()}.foo`,
+                            });
+
+                            indexes = await collection.listSearchIndexes().toArray();
+                            expect(indexes.find((idx) => idx.name === indexName)).toBeUndefined();
+                        });
+                    },
+                    {
+                        getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: ["search"] }),
+                        downloadOptions: {
+                            autoEmbed: true,
+                            mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,
+                            voyageIndexingKey: process.env.MDB_VOYAGE_API_KEY as string,
+                            voyageQueryKey: process.env.MDB_VOYAGE_API_KEY as string,
+                        },
                     }
                 );
 

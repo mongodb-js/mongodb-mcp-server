@@ -29,10 +29,10 @@ export const ConnectClusterArgs = {
 };
 
 export class ConnectClusterTool extends AtlasToolBase {
-    public name = "atlas-connect-cluster";
-    protected description = "Connect to MongoDB Atlas cluster";
+    static toolName = "atlas-connect-cluster";
+    public description = "Connect to MongoDB Atlas cluster";
     static operationType: OperationType = "connect";
-    protected argsShape = ConnectClusterArgs;
+    public argsShape = ConnectClusterArgs;
 
     private queryConnection(
         projectId: string,
@@ -74,7 +74,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName: string,
         connectionType: "standard" | "private" | "privateEndpoint" | undefined = "standard"
     ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
-        const cluster = await inspectCluster(this.session.apiClient, projectId, clusterName);
+        const cluster = await inspectCluster(this.apiClient, projectId, clusterName);
 
         if (cluster.connectionStrings === undefined) {
             throw new Error("Connection strings not available");
@@ -92,7 +92,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const expiryDate = new Date(Date.now() + this.config.atlasTemporaryDatabaseUserLifetimeMs);
         const role = getDefaultRoleFromConfig(this.config);
 
-        await this.session.apiClient.createDatabaseUser({
+        await this.apiClient.createDatabaseUser({
             params: {
                 path: {
                     groupId: projectId,
@@ -179,7 +179,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                 this.session.connectedAtlasCluster?.clusterName === atlas.clusterName &&
                 this.session.connectedAtlasCluster?.username
             ) {
-                void this.session.apiClient
+                void this.apiClient
                     .deleteDatabaseUser({
                         params: {
                             path: {
@@ -214,7 +214,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName,
         connectionType,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.session.apiClient, projectId);
+        const ipAccessListUpdated = await ensureCurrentIpInAccessList(this.apiClient, projectId);
         let createdUser = false;
 
         const state = this.queryConnection(projectId, clusterName);

@@ -10,6 +10,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { AllTools } from "../../src/tools/index.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
+import { UserConfigSchema } from "../../src/lib.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,6 +34,7 @@ function extractToolInformation(): ToolInfo[] {
         // Create a minimal instance to access instance properties
         // We need to provide dummy params since we only need name and description
         const dummyParams = {
+            name: ToolClass.toolName,
             category: ToolClass.category,
             operationType: ToolClass.operationType,
             session: {
@@ -41,13 +43,7 @@ function extractToolInformation(): ToolInfo[] {
                 emit: () => false,
                 connectionManager: null,
             } as never,
-            config: {
-                previewFeatures: [],
-                vectorSearchDimensions: 1024,
-                vectorSearchModel: "voyage-3-large",
-                readOnly: false,
-                disabledTools: [],
-            } as never,
+            config: UserConfigSchema.parse({}),
             telemetry: {
                 emitEvents: () => {},
             } as never,
@@ -59,9 +55,8 @@ function extractToolInformation(): ToolInfo[] {
 
         try {
             const instance = new ToolClass(dummyParams);
-            // Access the protected description property
-            const description =
-                (instance as unknown as { description?: string }).description || "No description available";
+
+            const description = instance.description || "No description available";
             tools.push({
                 name: instance.name,
                 description: overrides[instance.name] || description,
@@ -69,7 +64,7 @@ function extractToolInformation(): ToolInfo[] {
                 operationType: ToolClass.operationType,
             });
         } catch (error) {
-            console.error(`Error instantiating tool ${ToolClass.name}:`, error);
+            throw new Error(`Error instantiating tool ${ToolClass.name}: ${String(error)}`);
         }
     }
 
@@ -85,29 +80,38 @@ function extractToolInformation(): ToolInfo[] {
 function generateReadmeToolsList(tools: ToolInfo[]): string {
     const sections: string[] = [];
 
+    // Generate sections for each category
+    const categoryTitles: Record<string, string> = {
+        mongodb: "MongoDB Database Tools",
+        atlas: "MongoDB Atlas Tools",
+        "atlas-local": "MongoDB Atlas Local Tools",
+        assistant: "MongoDB Assistant Tools",
+    };
+
     // Group tools by category
     const toolsByCategory: Record<string, ToolInfo[]> = {};
     for (const tool of tools) {
         if (!toolsByCategory[tool.category]) {
             toolsByCategory[tool.category] = [];
         }
+
+        if (!categoryTitles[tool.category])
+            throw new Error(
+                `Category ${tool.category} not defined in categoryTitles, please specify it to generate documentation.`
+            );
+
         const categoryTools = toolsByCategory[tool.category];
         if (categoryTools) {
             categoryTools.push(tool);
         }
     }
 
-    // Generate sections for each category
-    const categoryTitles: Record<string, string> = {
-        atlas: "MongoDB Atlas Tools",
-        "atlas-local": "MongoDB Atlas Local Tools",
-        mongodb: "MongoDB Database Tools",
-    };
-
-    const categoryOrder = ["atlas", "atlas-local", "mongodb"];
-
-    for (const category of categoryOrder) {
-        if (!toolsByCategory[category]) continue;
+    for (const category of Object.keys(categoryTitles)) {
+        if (!toolsByCategory[category]) {
+            throw new Error(
+                `No tools found for category ${category}, please remove it or ensure tools are added to the category.`
+            );
+        }
 
         sections.push(`#### ${categoryTitles[category]}\n`);
 

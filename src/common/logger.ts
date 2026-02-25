@@ -4,7 +4,7 @@ import { mongoLogId, MongoLogManager } from "mongodb-log-writer";
 import { redact } from "mongodb-redact";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
-import type { Server } from "../lib.js";
+import type { Server, UserConfig } from "../lib.js";
 import type { Keychain } from "./keychain.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
@@ -27,6 +27,7 @@ export const LogId = {
     atlasApiRevokeFailure: mongoLogId(1_001_007),
     atlasIpAccessListAdded: mongoLogId(1_001_008),
     atlasIpAccessListAddFailure: mongoLogId(1_001_009),
+    atlasApiBaseUrlInsecure: mongoLogId(1_001_010),
 
     telemetryDisabled: mongoLogId(1_002_001),
     telemetryEmitFailure: mongoLogId(1_002_002),
@@ -46,6 +47,7 @@ export const LogId = {
     mongodbDisconnectFailure: mongoLogId(1_004_002),
     mongodbConnectTry: mongoLogId(1_004_003),
     mongodbCursorCloseError: mongoLogId(1_004_004),
+    mongodbIndexCheckFailure: mongoLogId(1_004_005),
 
     toolUpdateFailure: mongoLogId(1_005_001),
     resourceUpdateFailure: mongoLogId(1_005_002),
@@ -61,6 +63,12 @@ export const LogId = {
     streamableHttpTransportKeepAliveFailure: mongoLogId(1_006_007),
     streamableHttpTransportKeepAlive: mongoLogId(1_006_008),
     streamableHttpTransportHttpHostWarning: mongoLogId(1_006_009),
+    streamableHttpTransportSessionNotFound: mongoLogId(1_006_010),
+    streamableHttpTransportDisallowedExternalSessionError: mongoLogId(1_006_011),
+
+    httpServerStarted: mongoLogId(1_006_100),
+    httpServerStopping: mongoLogId(1_006_101),
+    httpServerStopped: mongoLogId(1_006_102),
 
     exportCleanupError: mongoLogId(1_007_001),
     exportCreationError: mongoLogId(1_007_002),
@@ -77,6 +85,12 @@ export const LogId = {
     atlasPaDropIndexSuggestionsFailure: mongoLogId(1_009_002),
     atlasPaSchemaAdviceFailure: mongoLogId(1_009_003),
     atlasPaSlowQueryLogsFailure: mongoLogId(1_009_004),
+
+    atlasLocalDockerNotRunning: mongoLogId(1_010_001),
+    atlasLocalUnsupportedPlatform: mongoLogId(1_010_002),
+
+    assistantListKnowledgeSourcesError: mongoLogId(1_011_001),
+    assistantSearchKnowledgeError: mongoLogId(1_011_002),
 } as const;
 
 export interface LogPayload {
@@ -202,6 +216,7 @@ export class ConsoleLogger extends LoggerBase {
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
         const { id, context, message } = payload;
+        // eslint-disable-next-line no-console
         console.error(
             `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid}${this.serializeAttributes(payload.attributes)})`
         );
@@ -234,7 +249,9 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
             const manager = new MongoLogManager({
                 directory: logPath,
                 retentionDays: 30,
+                // eslint-disable-next-line no-console
                 onwarn: console.warn,
+                // eslint-disable-next-line no-console
                 onerror: console.error,
                 gzip: false,
                 retentionGB: 1,
@@ -270,7 +287,7 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
     }
 }
 
-export class McpLogger extends LoggerBase {
+export class McpLogger<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends LoggerBase {
     public static readonly LOG_LEVELS: LogLevel[] = [
         "debug",
         "info",
@@ -283,7 +300,7 @@ export class McpLogger extends LoggerBase {
     ] as const;
 
     public constructor(
-        private readonly server: Server,
+        private readonly server: Server<TUserConfig, TContext>,
         keychain: Keychain
     ) {
         super(keychain);

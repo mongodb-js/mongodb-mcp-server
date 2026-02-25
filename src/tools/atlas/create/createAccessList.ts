@@ -17,10 +17,10 @@ export const CreateAccessListArgs = {
 };
 
 export class CreateAccessListTool extends AtlasToolBase {
-    public name = "atlas-create-access-list";
-    protected description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
+    static toolName = "atlas-create-access-list";
+    public description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
     static operationType: OperationType = "create";
-    protected argsShape = {
+    public argsShape = {
         ...CreateAccessListArgs,
     };
 
@@ -43,7 +43,7 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         if (currentIpAddress) {
             const input = await makeCurrentIpAccessListEntry(
-                this.session.apiClient,
+                this.apiClient,
                 projectId,
                 comment || DEFAULT_ACCESS_LIST_COMMENT
             );
@@ -58,7 +58,7 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         const inputs = [...ipInputs, ...cidrInputs];
 
-        await this.session.apiClient.createAccessListEntry({
+        await this.apiClient.createAccessListEntry({
             params: {
                 path: {
                     groupId: projectId,

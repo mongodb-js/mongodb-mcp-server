@@ -6,17 +6,17 @@ import type { ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 
 export class ListProjectsTool extends AtlasToolBase {
-    public name = "atlas-list-projects";
-    protected description = "List MongoDB Atlas projects";
+    static toolName = "atlas-list-projects";
+    public description = "List MongoDB Atlas projects";
     static operationType: OperationType = "read";
-    protected argsShape = {
+    public argsShape = {
         orgId: AtlasArgs.organizationId()
             .describe("Atlas organization ID to filter projects. If not provided, projects for all orgs are returned.")
             .optional(),
     };
 
     protected async execute({ orgId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const orgData = await this.session.apiClient.listOrgs();
+        const orgData = await this.apiClient.listOrgs();
 
         if (!orgData?.results?.length) {
             return {
@@ -30,14 +30,14 @@ export class ListProjectsTool extends AtlasToolBase {
             .reduce((acc, org) => ({ ...acc, [org.id!]: org.name }), {});
 
         const data = orgId
-            ? await this.session.apiClient.getOrgGroups({
+            ? await this.apiClient.getOrgGroups({
                   params: {
                       path: {
                           orgId,
                       },
                   },
               })
-            : await this.session.apiClient.listGroups();
+            : await this.apiClient.listGroups();
 
         if (!data?.results?.length) {
             return {

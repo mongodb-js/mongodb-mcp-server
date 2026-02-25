@@ -22,7 +22,8 @@ const MockEventCache = vi.mocked(EventCache);
 describe("Telemetry", () => {
     let mockApiClient: {
         sendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
-        hasCredentials: MockedFunction<() => boolean>;
+        validateAuthConfig: MockedFunction<() => Promise<void>>;
+        isAuthConfigured: MockedFunction<() => boolean>;
     };
     let mockEventCache: {
         getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
@@ -121,7 +122,8 @@ describe("Telemetry", () => {
         mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }, new NullLogger()));
 
         mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
-        mockApiClient.hasCredentials = vi.fn().mockReturnValue(true);
+        mockApiClient.validateAuthConfig = vi.fn().mockReturnValue(Promise.resolve());
+        mockApiClient.isAuthConfigured = vi.fn().mockReturnValue(true);
 
         // Setup mocked EventCache
         mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;

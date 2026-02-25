@@ -4,15 +4,28 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { LogId } from "../../common/logger.js";
 import { z } from "zod";
 import { ApiClientError } from "../../common/atlas/apiClientError.js";
+import type { ApiClient } from "../../common/atlas/apiClient.js";
 
 export abstract class AtlasToolBase extends ToolBase {
-    static category: ToolCategory = "atlas";
+    public static category: ToolCategory = "atlas";
 
     protected verifyAllowed(): boolean {
         if (!this.config.apiClientId || !this.config.apiClientSecret) {
             return false;
         }
         return super.verifyAllowed();
+    }
+
+    /**
+     * Gets the API client, asserting that it exists.
+     * This is safe because Atlas tools are only registered when credentials are provided.
+     */
+    protected get apiClient(): ApiClient {
+        const client = this.session.apiClient;
+        if (!client) {
+            throw new Error("API client is not available. Atlas tools require API credentials.");
+        }
+        return client;
     }
 
     protected handleError(

@@ -21,6 +21,7 @@ import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { defaultCreateApiClient } from "../../../../src/lib.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -54,27 +55,27 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
 };
 
 class RandomTool extends MongoDBToolBase {
-    name = "Random";
+    static toolName = "Random";
     static operationType: OperationType = "read";
-    protected description = "This is a tool.";
-    protected argsShape = {};
-    public async execute(): Promise<CallToolResult> {
+    public description = "This is a tool.";
+    public argsShape = {};
+    protected async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
         return { content: [{ type: "text", text: "Something" }] };
     }
 }
 
 class UnusableVoyageTool extends MongoDBToolBase {
-    name = "UnusableVoyageTool";
+    static toolName = "UnusableVoyageTool";
     static operationType: OperationType = "read";
-    protected description = "This is a Voyage tool.";
-    protected argsShape = {};
+    public description = "This is a Voyage tool.";
+    public argsShape = {};
 
     override verifyAllowed(): boolean {
         return false;
     }
 
-    public async execute(): Promise<CallToolResult> {
+    protected async execute(): Promise<CallToolResult> {
         await this.ensureConnected();
         return { content: [{ type: "text", text: "Something" }] };
     }
@@ -104,7 +105,18 @@ describe("MongoDBTool implementations", () => {
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler: errorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 
@@ -340,9 +352,10 @@ describe("MongoDBTool implementations", () => {
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
             expect(metadata).not.toHaveProperty("connection_auth_type");
+            expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
-        it("should return metadata with connection_auth_type when connected via connection string", async () => {
+        it("should return metadata with connection_auth_type and host_type when connected via connection string", async () => {
             await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
             // Connect to MongoDB to set the connection state
             await mcpClient?.callTool({
@@ -357,11 +370,13 @@ describe("MongoDBTool implementations", () => {
             const result: CallToolResult = { content: [{ type: "text", text: "test" }] };
             const metadata = randomTool["resolveTelemetryMetadata"](result, {} as never);
 
-            // When connected via connection string, connection_auth_type should be set
-            // The actual value depends on the connection string, but it should be present
+            // When connected via connection string, connection_auth_type and host_type should be set
+            // The actual value depends on the connection string, but they should be present
             expect(metadata).toHaveProperty("connection_auth_type");
             expect(typeof metadata.connection_auth_type).toBe("string");
             expect(metadata.connection_auth_type).toBe("scram");
+            expect(metadata).toHaveProperty("connection_host_type");
+            expect(typeof metadata.connection_host_type).toBe("string");
         });
     });
 });

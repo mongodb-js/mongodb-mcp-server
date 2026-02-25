@@ -2,15 +2,58 @@ name: Daily Release Docker Image
 on:
   schedule:
     - cron: "0 1 * * *" # Every day at 1:00 AM
-  workflow_dispatch: # Run the action manually
+  workflow_dispatch:
+    inputs:
+      release_channel:
+        description: "Release channel to publish (latest or prerelease)"
+        required: false
+        default: "latest"
+        type: choice
+        options:
+          - latest
+          - prerelease
 permissions:
   contents: read
   issues: write
+
 jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      VERSION: ${{ steps.versions.outputs.VERSION }}
+      RELEASE_CHANNEL: ${{ steps.versions.outputs.RELEASE_CHANNEL }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - name: Get version from npm
+        id: versions
+        env:
+          RELEASE_CHANNEL_INPUT: "${{ inputs.release_channel }}"
+        run: |
+          set -e
+
+          # Use input channel or default to 'latest' (for cron jobs, input will be empty)
+          RELEASE_CHANNEL="${RELEASE_CHANNEL_INPUT:-latest}"
+
+          # Get latest version for the selected channel
+          VERSION=$(npm view "mongodb-mcp-server@${RELEASE_CHANNEL}" version 2>/dev/null || echo "")
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::Could not find version for channel: ${RELEASE_CHANNEL}"
+            exit 1
+          fi
+
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_CHANNEL=${RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Channel: ${RELEASE_CHANNEL}, Version: ${VERSION}"
+
   docker-push:
+    needs: get-version
     uses: ./.github/workflows/docker-publish.yml
     permissions:
       contents: read
+    with:
+      npm_version: ${{ needs.get-version.outputs.VERSION }}
+      release_channel: ${{ needs.get-version.outputs.RELEASE_CHANNEL }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -20,8 +63,8 @@ jobs:
     permissions:
       contents: read
       issues: write
-    needs: docker-push
-    if: ${{ always() && needs.docker-push.result == 'failure' }}
+    needs: [get-version, docker-push]
+    if: ${{ failure() }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
         with:
@@ -30,12 +73,10 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - name: Get version and date
+      - name: Get date
         id: release-meta
         run: |
-          VERSION=$(npm pkg get version | tr -d '"')
           DATE=$(date +'%Y-%m-%d')
-          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "DATE=${DATE}" >> "$GITHUB_OUTPUT"
       - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
         id: app-token
@@ -46,6 +87,14 @@ jobs:
         uses: imjohnbo/issue-bot@572eed14422c4d6ca37e870f97e7da209422f5bd
         with:
           token: ${{ steps.app-token.outputs.token }}
-          title: Release Failure for Docker Image ${{ steps.release-meta.outputs.VERSION }}-${{ steps.release-meta.outputs.DATE }}
-          body: See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          title: Release Failure for Docker Image on ${{ steps.release-meta.outputs.DATE }}
+          body: |
+            Docker image release failed on ${{ steps.release-meta.outputs.DATE }}.
+
+            - Channel: ${{ needs.get-version.outputs.RELEASE_CHANNEL || 'N/A' }}
+            - Version: ${{ needs.get-version.outputs.VERSION || 'N/A' }}
+            - get-version result: ${{ needs.get-version.result }}
+            - docker-push result: ${{ needs.docker-push.result }}
+
+            See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           labels: "docker, release_failure"

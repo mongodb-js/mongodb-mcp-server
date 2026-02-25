@@ -1,21 +1,40 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
+import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+
+const CollectionStorageSizeOutputSchema = {
+    size: z.number(),
+    units: z.string(),
+};
+
+export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
 
 export class CollectionStorageSizeTool extends MongoDBToolBase {
-    public name = "collection-storage-size";
-    protected description = "Gets the size of the collection";
-    protected argsShape = DbOperationArgs;
+    static toolName = "collection-storage-size";
+    public description = "Gets the size of the collection";
+    public argsShape = DbOperationArgs;
+    public override outputSchema = CollectionStorageSizeOutputSchema;
 
     static operationType: OperationType = "metadata";
 
-    protected async execute({ database, collection }: ToolArgs<typeof DbOperationArgs>): Promise<CallToolResult> {
+    protected async execute(
+        { database, collection }: ToolArgs<typeof DbOperationArgs>,
+        { signal }: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const [{ value }] = (await provider
-            .aggregate(database, collection, [
-                { $collStats: { storageStats: {} } },
-                { $group: { _id: null, value: { $sum: "$storageStats.size" } } },
-            ])
+            .aggregate(
+                database,
+                collection,
+                [
+                    { $collStats: { storageStats: {} } },
+                    { $group: { _id: null, value: { $sum: "$storageStats.size" } } },
+                ],
+                {
+                    signal,
+                }
+            )
             .toArray()) as [{ value: number }];
 
         const { units, value: scaledValue } = CollectionStorageSizeTool.getStats(value);
@@ -27,13 +46,14 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                size: scaledValue,
+                units,
+            },
         };
     }
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [
@@ -46,7 +66,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
             };
         }
 
-        return super.handleError(error, args);
+        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
     }
 
     private static getStats(value: number): { value: number; units: string } {

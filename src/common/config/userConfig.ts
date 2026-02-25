@@ -20,6 +20,11 @@ const ServerConfigSchema = z4.object({
         .string()
         .default("https://cloud.mongodb.com/")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    assistantBaseUrl: z4
+        .string()
+        .default("https://knowledge.mongodb.com/api/v1/")
+        .describe("Base URL for the MongoDB Assistant API.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     apiClientId: z4
         .string()
         .optional()
@@ -229,6 +234,37 @@ const ServerConfigSchema = z4.object({
             "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    externallyManagedSessions: z4
+        .boolean()
+        .default(false)
+        .describe(
+            "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    httpResponseType: z4
+        .enum(["sse", "json"])
+        .default("sse")
+        .describe(
+            "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    healthCheckPort: z4
+        .number()
+        .int()
+        .min(0, "Invalid healthCheckPort: must be at least 0")
+        .max(65535, "Invalid healthCheckPort: must be at most 65535")
+        .optional()
+        .describe(
+            "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    healthCheckHost: z4
+        .string()
+        .optional()
+        .describe(
+            "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
 
 export const UserConfigSchema = z4.object({
@@ -238,4 +274,4 @@ export const UserConfigSchema = z4.object({
 
 export type UserConfig = z4.infer<typeof UserConfigSchema>;
 
-export const ALL_CONFIG_KEYS: (keyof UserConfig)[] = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];
+export const ALL_CONFIG_KEYS = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];

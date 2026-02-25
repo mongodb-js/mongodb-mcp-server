@@ -9,15 +9,15 @@ export const ListDBUsersArgs = {
 };
 
 export class ListDBUsersTool extends AtlasToolBase {
-    public name = "atlas-list-db-users";
-    protected description = "List MongoDB Atlas database users";
-    static operationType: OperationType = "read";
-    protected argsShape = {
+    static toolName = "atlas-list-db-users";
+    public description = "List MongoDB Atlas database users";
+    public static operationType: OperationType = "read";
+    public argsShape = {
         ...ListDBUsersArgs,
     };
 
     protected async execute({ projectId }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        const data = await this.session.apiClient.listDatabaseUsers({
+        const data = await this.apiClient.listDatabaseUsers({
             params: {
                 path: {
                     groupId: projectId,

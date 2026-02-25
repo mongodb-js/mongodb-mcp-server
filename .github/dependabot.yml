@@ -24,6 +24,12 @@ updates:
       # working with v21 of yargs-parser.
       - dependency-name: "yargs-parser"
         update-types: ["version-update:semver-major"]
+    groups:
+      ai-sdk:
+        patterns:
+          - ai
+          - "@ai-sdk/*"
+          - voyage-ai-provider
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

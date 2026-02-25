@@ -1,4 +1,4 @@
-import { describeWithAtlas, withProject, randomId } from "./atlasHelpers.js";
+import { describeWithAtlas, withProject, randomId, assertApiClientIsAvailable } from "./atlasHelpers.js";
 import { expectDefined, getResponseElements } from "../../helpers.js";
 import { ApiClientError } from "../../../../src/common/atlas/apiClientError.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -36,7 +36,10 @@ describeWithAtlas("db users", (integration) => {
             }
 
             try {
-                await integration.mcpServer().session.apiClient.deleteDatabaseUser({
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                const apiClient = session.apiClient;
+                await apiClient.deleteDatabaseUser({
                     params: {
                         path: {
                             groupId: projectId,
@@ -125,6 +128,7 @@ describeWithAtlas("db users", (integration) => {
             it("should add current IP to access list when creating a database user", async () => {
                 const projectId = getProjectId();
                 const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
                 const ipInfo = await session.apiClient.getIpInfo();
                 await createUserWithMCP();
                 const accessList = await session.apiClient.listAccessListEntries({

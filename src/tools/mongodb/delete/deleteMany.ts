@@ -1,14 +1,22 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { zEJSON } from "../../args.js";
+import { z } from "zod";
+
+const DeleteManyOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    deletedCount: z.number(),
+};
+
+export type DeleteManyOutput = z.infer<z.ZodObject<typeof DeleteManyOutputSchema>>;
 
 export class DeleteManyTool extends MongoDBToolBase {
-    public name = "delete-many";
-    protected description = "Removes all documents that match the filter from a MongoDB collection";
-    protected argsShape = {
+    static toolName = "delete-many";
+    public description = "Removes all documents that match the filter from a MongoDB collection";
+    public argsShape = {
         ...DbOperationArgs,
         filter: zEJSON()
             .optional()
@@ -16,30 +24,37 @@ export class DeleteManyTool extends MongoDBToolBase {
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
             ),
     };
+    public override outputSchema = DeleteManyOutputSchema;
     static operationType: OperationType = "delete";
 
     protected async execute({
         database,
         collection,
         filter,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
         // Check if delete operation uses an index if enabled
         if (this.config.indexCheck) {
-            await checkIndexUsage(provider, database, collection, "deleteMany", async () => {
-                return provider.runCommandWithCheck(database, {
-                    explain: {
-                        delete: collection,
-                        deletes: [
-                            {
-                                q: filter || {},
-                                limit: 0, // 0 means delete all matching documents
-                            },
-                        ],
-                    },
-                    verbosity: "queryPlanner",
-                });
+            await checkIndexUsage({
+                database,
+                collection,
+                operation: "deleteMany",
+                explainCallback: async () => {
+                    return provider.runCommandWithCheck(database, {
+                        explain: {
+                            delete: collection,
+                            deletes: [
+                                {
+                                    q: filter || {},
+                                    limit: 0, // 0 means delete all matching documents
+                                },
+                            ],
+                        },
+                        verbosity: "queryPlanner",
+                    });
+                },
+                logger: this.session.logger,
             });
         }
 
@@ -52,6 +67,11 @@ export class DeleteManyTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                database,
+                collection,
+                deletedCount: result.deletedCount,
+            },
         };
     }
 

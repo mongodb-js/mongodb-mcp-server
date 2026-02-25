@@ -13,14 +13,15 @@ import type { CompositeLogger } from "../../src/common/logger.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";
 import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types.js";
-import { expectDefined } from "../integration/helpers.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+import { expectDefined } from "../integration/helpers.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
     let mockLogger: CompositeLogger;
+    let mockLoggerWarning: ReturnType<typeof vi.fn>;
     let mockConfig: UserConfig;
     let mockTelemetry: Telemetry;
     let mockElicitation: Elicitation;
@@ -28,10 +29,11 @@ describe("ToolBase", () => {
     let testTool: TestTool;
 
     beforeEach(() => {
+        mockLoggerWarning = vi.fn();
         mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
-            warning: vi.fn(),
+            warning: mockLoggerWarning,
             error: vi.fn(),
         } as unknown as CompositeLogger;
 
@@ -56,6 +58,7 @@ describe("ToolBase", () => {
         } as unknown as Elicitation;
 
         const constructorParams: ToolConstructorParams = {
+            name: TestTool.toolName,
             category: TestTool.category,
             operationType: TestTool.operationType,
             session: mockSession,
@@ -179,15 +182,16 @@ describe("ToolBase", () => {
     });
 
     describe("getConnectionInfoMetadata", () => {
-        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringAuthType are set", () => {
+        it("should return empty metadata when neither connectedAtlasCluster nor connectionStringInfo are set", () => {
             (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({});
             expect(metadata).not.toHaveProperty("project_id");
             expect(metadata).not.toHaveProperty("connection_auth_type");
+            expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
         it("should return metadata with project_id when connectedAtlasCluster.projectId is set", () => {
@@ -197,7 +201,7 @@ describe("ToolBase", () => {
                 clusterName: "test-cluster",
                 expiryDate: new Date(),
             };
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
@@ -205,6 +209,7 @@ describe("ToolBase", () => {
                 project_id: "test-project-id",
             });
             expect(metadata).not.toHaveProperty("connection_auth_type");
+            expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
         it("should return empty metadata when connectedAtlasCluster exists but projectId is falsy", () => {
@@ -214,7 +219,7 @@ describe("ToolBase", () => {
                 clusterName: "test-cluster",
                 expiryDate: new Date(),
             };
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = undefined;
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = undefined;
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
@@ -222,14 +227,18 @@ describe("ToolBase", () => {
             expect(metadata).not.toHaveProperty("project_id");
         });
 
-        it("should return metadata with connection_auth_type when connectionStringAuthType is set", () => {
+        it("should return metadata with connection_auth_type and connection_host_type when connectionStringInfo is set", () => {
             (mockSession as { connectedAtlasCluster?: unknown }).connectedAtlasCluster = undefined;
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "scram";
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
+                authType: "scram",
+                hostType: "unknown",
+            };
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({
                 connection_auth_type: "scram",
+                connection_host_type: "unknown",
             });
             expect(metadata).not.toHaveProperty("project_id");
         });
@@ -241,23 +250,34 @@ describe("ToolBase", () => {
                 clusterName: "test-cluster",
                 expiryDate: new Date(),
             };
-            (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = "oidc-auth-flow";
+            (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
+                authType: "oidc-auth-flow",
+                hostType: "atlas",
+            };
 
             const metadata = testTool["getConnectionInfoMetadata"]();
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
                 connection_auth_type: "oidc-auth-flow",
+                connection_host_type: "atlas",
             });
         });
 
-        it("should handle different connectionStringAuthType values", () => {
+        it("should handle different connectionStringInfo authType and hostType values", () => {
             const authTypes = ["scram", "ldap", "kerberos", "oidc-auth-flow", "oidc-device-flow", "x.509"] as const;
+            const hostTypes = ["unknown", "atlas", "local", "atlas_local"] as const;
 
             for (const authType of authTypes) {
-                (mockSession as { connectionStringAuthType?: unknown }).connectionStringAuthType = authType;
-                const metadata = testTool["getConnectionInfoMetadata"]();
-                expect(metadata.connection_auth_type).toBe(authType);
+                for (const hostType of hostTypes) {
+                    (mockSession as { connectionStringInfo?: unknown }).connectionStringInfo = {
+                        authType,
+                        hostType,
+                    };
+                    const metadata = testTool["getConnectionInfoMetadata"]();
+                    expect(metadata.connection_auth_type).toBe(authType);
+                    expect(metadata.connection_host_type).toBe(hostType);
+                }
             }
         });
     });
@@ -291,14 +311,190 @@ describe("ToolBase", () => {
             expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
         });
     });
+
+    describe("appendUIResource", () => {
+        let mockUIRegistry: UIRegistry;
+        let mockUIRegistryGet: ReturnType<typeof vi.fn>;
+        let toolWithUI: TestToolWithOutputSchema;
+        let mockCallback: ToolCallback<(typeof toolWithUI)["argsShape"]>;
+
+        beforeEach(() => {
+            mockUIRegistryGet = vi.fn();
+            mockUIRegistry = {
+                get: mockUIRegistryGet,
+            } as unknown as UIRegistry;
+        });
+
+        function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
+            mockConfig.previewFeatures = previewFeatures;
+            const constructorParams: ToolConstructorParams = {
+                name: TestToolWithOutputSchema.toolName,
+                category: TestToolWithOutputSchema.category,
+                operationType: TestToolWithOutputSchema.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                uiRegistry: mockUIRegistry,
+            };
+            return new TestToolWithOutputSchema(constructorParams);
+        }
+
+        function registerTool(tool: TestToolWithOutputSchema): void {
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: {
+                            description: string;
+                            inputSchema: ZodRawShape;
+                            outputSchema?: ZodRawShape;
+                            annotations: ToolAnnotations;
+                        },
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        mockCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            tool.register(mockServer as unknown as Server);
+        }
+
+        it("should not append UIResource when mcpUI feature is disabled", async () => {
+            toolWithUI = createToolWithUI([]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(1);
+            expect(result.content[0]).toEqual({ type: "text", text: "Tool with output schema executed" });
+            expect(result.content.some((c: { type: string }) => c.type === "resource")).toBe(false);
+        });
+
+        it("should not append UIResource when no UI is registered for the tool", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue(undefined);
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(1);
+            expect(mockUIRegistryGet).toHaveBeenCalledWith("test-tool-with-output-schema");
+        });
+
+        it("should not append UIResource when structuredContent is missing", async () => {
+            const toolWithoutStructured = createToolWithoutStructuredContent(
+                ["mcpUI"],
+                mockSession,
+                mockConfig,
+                mockTelemetry,
+                mockElicitation,
+                mockUIRegistry
+            );
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+
+            let noStructuredCallback: ToolCallback<ZodRawShape> | undefined;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: unknown,
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        noStructuredCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            toolWithoutStructured.register(mockServer as unknown as Server);
+
+            expectDefined(noStructuredCallback);
+            const result = await noStructuredCallback({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(1);
+            expect(result.structuredContent).toBeUndefined();
+        });
+
+        it("should append UIResource correctly when all conditions are met", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.content).toHaveLength(2);
+            expect(result.content[0]).toEqual({ type: "text", text: "Tool with output schema executed" });
+
+            const uiResource = result.content[1] as {
+                type: string;
+                resource: { uri: string; text: string; mimeType: string; _meta?: Record<string, unknown> };
+            };
+            expect(uiResource.type).toBe("resource");
+            expect(uiResource.resource.uri).toBe("ui://test-tool-with-output-schema");
+            expect(uiResource.resource.text).toBe("<html>test UI</html>");
+            expect(uiResource.resource.mimeType).toBe("text/html");
+            expect(uiResource.resource._meta).toEqual({
+                "mcpui.dev/ui-initial-render-data": { value: "test", count: 42 },
+            });
+        });
+
+        it("should use structuredContent as initial-render-data in UIResource metadata", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>custom UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "custom-input" }, {} as never);
+
+            const uiResource = result.content[1] as { resource: { _meta?: Record<string, unknown> } };
+            expect(uiResource.resource._meta?.["mcpui.dev/ui-initial-render-data"]).toEqual({
+                value: "custom-input",
+                count: 42,
+            });
+        });
+
+        it("should preserve original result properties when appending UIResource", async () => {
+            toolWithUI = createToolWithUI(["mcpUI"]);
+            (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
+            registerTool(toolWithUI);
+
+            const result = await mockCallback({ input: "test" }, {} as never);
+
+            expect(result.structuredContent).toEqual({ value: "test", count: 42 });
+            expect(result.isError).toBeUndefined();
+        });
+    });
 });
 
+function createToolWithoutStructuredContent(
+    previewFeatures: PreviewFeature[],
+    mockSession: Session,
+    mockConfig: UserConfig,
+    mockTelemetry: Telemetry,
+    mockElicitation: Elicitation,
+    mockUIRegistry: UIRegistry
+): TestToolWithoutStructuredContent {
+    mockConfig.previewFeatures = previewFeatures;
+    const constructorParams: ToolConstructorParams = {
+        name: TestToolWithoutStructuredContent.toolName,
+        category: TestToolWithoutStructuredContent.category,
+        operationType: TestToolWithoutStructuredContent.operationType,
+        session: mockSession,
+        config: mockConfig,
+        telemetry: mockTelemetry,
+        elicitation: mockElicitation,
+        uiRegistry: mockUIRegistry,
+    };
+    return new TestToolWithoutStructuredContent(constructorParams);
+}
+
 class TestTool extends ToolBase {
-    public name = "test-tool";
+    static toolName = "test-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
-    protected description = "A test tool for verification tests";
-    protected argsShape = {
+    public description = "A test tool for verification tests";
+    public argsShape = {
         param1: z.string().describe("Test parameter 1"),
         param2: z.number().optional().describe("Test parameter 2"),
     };
@@ -325,6 +521,67 @@ class TestTool extends ToolBase {
             } as TelemetryToolMetadata;
         }
 
+        return {};
+    }
+}
+
+class TestToolWithOutputSchema extends ToolBase {
+    static toolName = "test-tool-with-output-schema";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "metadata";
+    public description = "A test tool with output schema";
+    public argsShape = {
+        input: z.string().describe("Test input"),
+    };
+    public override outputSchema = {
+        value: z.string(),
+        count: z.number(),
+    };
+
+    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [
+                {
+                    type: "text",
+                    text: "Tool with output schema executed",
+                },
+            ],
+            structuredContent: {
+                value: args.input,
+                count: 42,
+            },
+        });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+class TestToolWithoutStructuredContent extends ToolBase {
+    static toolName = "test-tool-without-structured";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "metadata";
+    public description = "A test tool without structured content";
+    public argsShape = {
+        input: z.string().describe("Test input"),
+    };
+    public override outputSchema = {
+        value: z.string(),
+    };
+
+    protected async execute(): Promise<CallToolResult> {
+        return Promise.resolve({
+            content: [
+                {
+                    type: "text",
+                    text: "Tool without structured content executed",
+                },
+            ],
+        });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
         return {};
     }
 }

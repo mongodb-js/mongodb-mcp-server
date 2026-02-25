@@ -314,7 +314,7 @@ function updateReadmeConfigTable(envVars: ArgumentInfo[]): void {
     const newTable = generateReadmeConfigTable(envVars);
 
     // Find and replace the configuration options table
-    const tableRegex = /### Configuration Options\n\n\| Option[\s\S]*?\n\n####/;
+    const tableRegex = /### Configuration Options\n\n\|[\s\S]*?\|\n\n####/;
     const replacement = `### Configuration Options\n\n${newTable}\n\n####`;
 
     content = content.replace(tableRegex, replacement);

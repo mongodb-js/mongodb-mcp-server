@@ -47,19 +47,12 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
-    protected ensureSearchIsSupported(): Promise<void> {
-        return this.session.assertSearchSupported();
-    }
-
     public register(server: Server): boolean {
         this.server = server;
         return super.register(server);
     }
 
-    protected handleError(
-        error: unknown,
-        args: ToolArgs<typeof this.argsShape>
-    ): Promise<CallToolResult> | CallToolResult {
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (error instanceof MongoDBError) {
             switch (error.code) {
                 case ErrorCodes.NotConnectedToMongoDB:
@@ -67,11 +60,11 @@ export abstract class MongoDBToolBase extends ToolBase {
                     const connectionError = error as MongoDBError<
                         ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString
                     >;
-                    const outcome = this.server?.connectionErrorHandler(connectionError, {
+                    const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
                         connectionState: this.session.connectionManager.currentConnectionState,
                     });
-                    if (outcome?.errorHandled) {
+                    if (outcome.errorHandled) {
                         return outcome.result;
                     }
 

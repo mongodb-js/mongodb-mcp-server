@@ -35,7 +35,7 @@ describe("createSessionConfig", () => {
     // Helper to create and connect client
     const createConnectedClient = async (): Promise<{ client: Client; transport: StreamableHTTPClientTransport }> => {
         client = new Client({ name: "test-client", version: "1.0.0" });
-        transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`));
+        transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
         await client.connect(transport);
         return { client, transport };
     };
@@ -135,7 +135,7 @@ describe("createSessionConfig", () => {
 
             // Error should occur when a client tries to connect
             client = new Client({ name: "test-client", version: "1.0.0" });
-            transport = new StreamableHTTPClientTransport(new URL(`${runner.serverAddress}/mcp`));
+            transport = new StreamableHTTPClientTransport(new URL(`${runner["mcpServer"]!.serverAddress}/mcp`));
 
             await expect(client.connect(transport)).rejects.toThrow();
         });

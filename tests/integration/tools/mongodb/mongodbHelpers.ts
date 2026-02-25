@@ -296,7 +296,7 @@ export async function waitUntilSearchIsReady(
 async function waitUntilSearchIndexIs(
     collection: Collection,
     searchIndex: string,
-    indexValidator: (index: { name: string; queryable: boolean }) => boolean,
+    indexValidator: (index: { name: string; status: string; queryable: boolean }) => boolean,
     timeout: number,
     interval: number,
     getValidationFailedMessage: (searchIndexes: Document[]) => string = () => "Search index did not pass validation"
@@ -305,6 +305,7 @@ async function waitUntilSearchIndexIs(
         async () => {
             const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
                 name: string;
+                status: string;
                 queryable: boolean;
             }[];
 
@@ -345,7 +346,7 @@ export async function waitUntilSearchIndexIsQueryable(
     return waitUntilSearchIndexIs(
         collection,
         searchIndex,
-        (index) => index.name === searchIndex && index.queryable,
+        (index) => index.name === searchIndex && index.status === "READY",
         timeout,
         interval,
         (searchIndexes) => {

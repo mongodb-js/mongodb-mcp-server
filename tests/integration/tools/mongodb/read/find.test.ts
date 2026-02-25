@@ -10,6 +10,7 @@ import {
 } from "../../../helpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
+import type { Client } from "@modelcontextprotocol/sdk/client";
 
 export async function freshInsertDocuments({
     collection,
@@ -448,3 +449,102 @@ describeWithMongoDB(
         getUserConfig: () => ({ ...defaultTestConfig, maxDocumentsPerQuery: -1, maxBytesPerQuery: -1 }),
     }
 );
+
+describeWithMongoDB("find tool with abort signal", (integration) => {
+    beforeEach(async () => {
+        // Insert many documents with complex data to simulate a slow query
+        await freshInsertDocuments({
+            collection: integration.mongoClient().db(integration.randomDbName()).collection("abort_collection"),
+            count: 10,
+            documentMapper: (index) => ({
+                _id: index,
+                description: `Document ${index}`,
+            }),
+        });
+    });
+
+    const runSlowFind = async (
+        signal?: AbortSignal
+    ): Promise<{ executionTime: number; result?: Awaited<ReturnType<Client["callTool"]>>; error?: Error }> => {
+        const startTime = performance.now();
+
+        let result: Awaited<ReturnType<Client["callTool"]>> | undefined;
+        let error: Error | undefined;
+        try {
+            result = await integration.mcpClient().callTool(
+                {
+                    name: "find",
+                    arguments: {
+                        database: integration.randomDbName(),
+                        collection: "abort_collection",
+                        filter: {
+                            $where: "function() { sleep(100); return true; }",
+                        },
+                    },
+                },
+                undefined,
+                { signal }
+            );
+        } catch (err: unknown) {
+            error = err as Error;
+        }
+
+        const executionTime = performance.now() - startTime;
+
+        return {
+            result,
+            error,
+            executionTime,
+        };
+    };
+
+    it("should abort find operation when signal is triggered immediately", async () => {
+        await integration.connectMcpClient();
+        const abortController = new AbortController();
+
+        const findPromise = runSlowFind(abortController.signal);
+
+        // Abort immediately
+        abortController.abort();
+
+        const { result, error, executionTime } = await findPromise;
+
+        expect(executionTime).toBeLessThan(50); // Ensure it aborted quickly
+        expect(result).toBeUndefined();
+        expectDefined(error);
+        expect(error.message).toContain("This operation was aborted");
+    });
+
+    it("should abort find operation during cursor iteration", async () => {
+        await integration.connectMcpClient();
+        const abortController = new AbortController();
+
+        // Start a query with regex and complex filter that requires scanning many documents
+        const findPromise = runSlowFind(abortController.signal);
+
+        // Give the cursor a bit of time to start processing, then abort
+        setTimeout(() => abortController.abort(), 250);
+
+        const { result, error, executionTime } = await findPromise;
+
+        // Ensure it aborted quickly, but possibly after some processing
+        expect(executionTime).toBeGreaterThanOrEqual(250);
+        expect(executionTime).toBeLessThan(450);
+        expect(result).toBeUndefined();
+        expectDefined(error);
+        expect(error.message).toContain("This operation was aborted");
+    });
+
+    it("should complete successfully when not aborted", async () => {
+        await integration.connectMcpClient();
+
+        const { result, error, executionTime } = await runSlowFind();
+
+        // 10 docs, each doc processing sleeps 100ms, so total should be around 1s
+        expect(executionTime).toBeGreaterThan(1000);
+        expectDefined(result);
+        expect(error).toBeUndefined();
+        const content = getResponseContent(result);
+        expect(content).toContain('Query on collection "abort_collection"');
+    });
+});

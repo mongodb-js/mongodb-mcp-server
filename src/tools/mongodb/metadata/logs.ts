@@ -1,12 +1,20 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
-import { type ToolArgs, type OperationType, formatUntrustedData } from "../../tool.js";
+import type { ToolExecutionContext, ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 
+const LogsOutputSchema = {
+    logs: z.array(z.string()),
+    totalLinesWritten: z.number(),
+    shownCount: z.number(),
+};
+
+export type LogsOutput = z.infer<z.ZodObject<typeof LogsOutputSchema>>;
+
 export class LogsTool extends MongoDBToolBase {
-    public name = "mongodb-logs";
-    protected description = "Returns the most recent logged mongod events";
-    protected argsShape = {
+    static toolName = "mongodb-logs";
+    public description = "Returns the most recent logged mongod events";
+    public argsShape = {
         type: z
             .enum(["global", "startupWarnings"])
             .optional()
@@ -23,15 +31,25 @@ export class LogsTool extends MongoDBToolBase {
             .default(50)
             .describe("The maximum number of log entries to return."),
     };
+    public override outputSchema = LogsOutputSchema;
 
     static operationType: OperationType = "metadata";
 
-    protected async execute({ type, limit }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(
+        { type, limit }: ToolArgs<typeof this.argsShape>,
+        { signal }: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
-        const result = await provider.runCommandWithCheck("admin", {
-            getLog: type,
-        });
+        const result = await provider.runCommandWithCheck(
+            "admin",
+            {
+                getLog: type,
+            },
+            {
+                signal,
+            }
+        );
 
         // Trim ending newlines so that when we join the logs we don't insert empty lines
         // between messages.
@@ -43,6 +61,11 @@ export class LogsTool extends MongoDBToolBase {
         }
         return {
             content: formatUntrustedData(message, logs.join("\n")),
+            structuredContent: {
+                logs,
+                totalLinesWritten: result.totalLinesWritten as number,
+                shownCount: logs.length,
+            },
         };
     }
 }

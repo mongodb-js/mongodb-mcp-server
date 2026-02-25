@@ -1,4 +1,4 @@
-import type { ElicitRequestParams } from "@modelcontextprotocol/sdk/types.js";
+import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export class Elicitation {
@@ -50,5 +50,5 @@ export class Elicitation {
             },
         },
         required: ["confirmation"],
-    } satisfies ElicitRequestParams["requestedSchema"];
+    } satisfies ElicitRequestFormParams["requestedSchema"];
 }

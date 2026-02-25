@@ -9,6 +9,8 @@ import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultTestConfig } from "../../../integration/helpers.js";
+import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
+import { defaultCreateApiClient } from "../../../../src/lib.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -22,6 +24,17 @@ describe("debug resource", () => {
             exportsManager: ExportsManager.init(defaultTestConfig, logger),
             connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler,
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: defaultTestConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: defaultTestConfig.apiClientId,
+                        clientSecret: defaultTestConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         })
     );
@@ -72,7 +85,10 @@ describe("debug resource", () => {
     it("should show the inferred authentication type", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
-            connectionStringAuthType: "scram",
+            connectionStringInfo: {
+                authType: "scram",
+                hostType: "local",
+            },
             errorReason: "Error message from the server",
         });
 
@@ -86,7 +102,10 @@ describe("debug resource", () => {
     it("should show the atlas cluster information when provided", async () => {
         debugResource.reduceApply("connection-error", {
             tag: "errored",
-            connectionStringAuthType: "scram",
+            connectionStringInfo: {
+                authType: "scram",
+                hostType: "atlas",
+            },
             errorReason: "Error message from the server",
             connectedAtlasCluster: {
                 clusterName: "My Test Cluster",

@@ -80,8 +80,8 @@ export function describeAccuracyTests(
         const { populateTestData, cleanupTestDatabases } = prepareTestData(mdbIntegration);
 
         const userConfig: Partial<{ [k in keyof UserConfig]: string }> = {
-            apiClientId: process.env.MDB_MCP_API_CLIENT_ID,
-            apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET,
+            apiClientId: process.env.MDB_API_CLIENT_ID,
+            apiClientSecret: process.env.MDB_API_CLIENT_SECRET,
             voyageApiKey: process.env.MDB_VOYAGE_API_KEY,
             ...partialUserConfig,
         };

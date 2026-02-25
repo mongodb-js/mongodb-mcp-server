@@ -1,4 +1,4 @@
-import { parseArgs } from "@mongosh/arg-parser/arg-parser";
+import { createParseArgs } from "@mongosh/arg-parser/arg-parser";
 import fs from "fs/promises";
 import type { OpenAPIV3_1 } from "openapi-types";
 import z4 from "zod/v4";
@@ -26,7 +26,9 @@ function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: Ope
 async function main(): Promise<void> {
     const {
         parsed: { spec, file },
-    } = parseArgs({ args: process.argv.slice(2), schema: z4.object({ spec: z4.string(), file: z4.string() }) });
+    } = createParseArgs({ schema: z4.object({ spec: z4.string(), file: z4.string() }) })({
+        args: process.argv.slice(2),
+    });
 
     if (!spec || !file) {
         console.error("Please provide both --spec and --file arguments.");

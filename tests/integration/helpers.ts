@@ -1,4 +1,5 @@
-import { CompositeLogger } from "../../src/common/logger.js";
+import type { LoggerType, LogLevel, LogPayload } from "../../src/common/logger.js";
+import { CompositeLogger, LoggerBase } from "../../src/common/logger.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
@@ -20,6 +21,7 @@ import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSea
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
+import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
 
 interface Parameter {
     name: string;
@@ -41,7 +43,9 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 
 export interface IntegrationTest {
     mcpClient: () => Client;
-    mcpServer: () => Server;
+    mcpServer: () => Server & {
+        getApiClient: () => ApiClient;
+    };
 }
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -102,14 +106,31 @@ export function setupIntegrationTest(
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
-            atlasLocalClient: await defaultCreateAtlasLocalClient(),
+            atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         });
 
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
-            const mockFn = vi.fn().mockResolvedValue(true);
-            session.apiClient.validateAccessToken = mockFn;
+            const mockFn = vi.fn().mockResolvedValue(undefined);
+            const mockCloseFn = vi.fn().mockResolvedValue(undefined);
+            Object.defineProperty(session, "apiClient", {
+                value: {
+                    validateAuthConfig: mockFn,
+                    close: mockCloseFn,
+                } as unknown as ApiClient,
+            });
         }
 
         userConfig.telemetry = "disabled";
@@ -128,6 +149,12 @@ export function setupIntegrationTest(
 
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
+        let uiRegistry = serverOptions?.uiRegistry;
+        if (!uiRegistry && userConfig.previewFeatures.includes("mcpUI")) {
+            const { UIRegistry } = await import("../../src/ui/registry/registry.js");
+            uiRegistry = new UIRegistry();
+        }
+
         mcpServer = new Server({
             session,
             userConfig,
@@ -135,6 +162,7 @@ export function setupIntegrationTest(
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
+            uiRegistry,
             ...serverOptions,
         });
 
@@ -169,12 +197,20 @@ export function setupIntegrationTest(
         return mcpClient;
     };
 
-    const getMcpServer = (): Server => {
+    const getMcpServer = (): Server & { getApiClient: () => ApiClient } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return mcpServer;
+        return {
+            ...mcpServer,
+            getApiClient: (): ApiClient => {
+                if (!mcpServer || !mcpServer.session.apiClient) {
+                    throw new Error("apiClient not available");
+                }
+                return mcpServer.session.apiClient;
+            },
+        } as Server & { getApiClient: () => ApiClient };
     };
 
     return {
@@ -183,22 +219,26 @@ export function setupIntegrationTest(
     };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function getResponseContent(content: unknown | { content: unknown }): string {
+export function getResponseContent(content: unknown): string {
     return getResponseElements(content)
         .map((item) => item.text)
         .join("\n");
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export function getResponseElements(content: unknown | { content: unknown }): { type: string; text: string }[] {
+export interface ResponseElement {
+    type: string;
+    text: string;
+    _meta?: unknown;
+}
+
+export function getResponseElements(content: unknown): ResponseElement[] {
     if (typeof content === "object" && content !== null && "content" in content) {
-        content = (content as { content: unknown }).content;
+        content = content.content;
     }
 
     expect(content).toBeInstanceOf(Array);
 
-    const response = content as { type: string; text: string }[];
+    const response = content as ResponseElement[];
     for (const item of response) {
         expect(item).toHaveProperty("type");
         expect(item).toHaveProperty("text");
@@ -407,4 +447,12 @@ export function getDataFromUntrustedContent(content: string): string {
 
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export class InMemoryLogger extends LoggerBase {
+    protected type?: LoggerType = "console";
+    public messages: { level: LogLevel; payload: LogPayload }[] = [];
+    protected logCore(level: LogLevel, payload: LogPayload): void {
+        this.messages.push({ level, payload });
+    }
 }

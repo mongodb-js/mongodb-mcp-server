@@ -1,6 +1,5 @@
 import { ObjectId } from "bson";
-import type { ApiClientCredentials } from "./atlas/apiClient.js";
-import { ApiClient } from "./atlas/apiClient.js";
+import type { ApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger } from "./logger.js";
 import { LogId } from "./logger.js";
@@ -11,8 +10,8 @@ import type {
     ConnectionSettings,
     ConnectionStateConnected,
     ConnectionStateErrored,
-    ConnectionStringAuthType,
 } from "./connectionManager.js";
+import type { ConnectionStringInfo } from "./connectionInfo.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
@@ -21,15 +20,18 @@ import type { Keychain } from "./keychain.js";
 import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { type UserConfig } from "../common/config/userConfig.js";
+import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
 
-export interface SessionOptions {
-    userConfig: UserConfig;
+export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
+    userConfig: TUserConfig;
     logger: CompositeLogger;
     exportsManager: ExportsManager;
     connectionManager: ConnectionManager;
     keychain: Keychain;
     atlasLocalClient?: Client;
+    connectionErrorHandler: ConnectionErrorHandler;
     vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
+    apiClient?: ApiClient;
 }
 
 export type SessionEvents = {
@@ -44,9 +46,10 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
-    readonly apiClient: ApiClient;
+    readonly apiClient?: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
+    readonly connectionErrorHandler: ConnectionErrorHandler;
     readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 
     mcpClient?: {
@@ -64,25 +67,20 @@ export class Session extends EventEmitter<SessionEvents> {
         exportsManager,
         keychain,
         atlasLocalClient,
+        connectionErrorHandler,
         vectorSearchEmbeddingsManager,
+        apiClient,
     }: SessionOptions) {
         super();
 
         this.userConfig = userConfig;
         this.keychain = keychain;
         this.logger = logger;
-        const credentials: ApiClientCredentials | undefined =
-            userConfig.apiClientId && userConfig.apiClientSecret
-                ? {
-                      clientId: userConfig.apiClientId,
-                      clientSecret: userConfig.apiClientSecret,
-                  }
-                : undefined;
-
-        this.apiClient = new ApiClient({ baseUrl: userConfig.apiBaseUrl, credentials }, logger);
+        this.apiClient = apiClient;
         this.atlasLocalClient = atlasLocalClient;
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
+        this.connectionErrorHandler = connectionErrorHandler;
         this.vectorSearchEmbeddingsManager = vectorSearchEmbeddingsManager;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
@@ -115,7 +113,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
         await this.connectionManager.close();
 
-        if (atlasCluster?.username && atlasCluster?.projectId) {
+        if (atlasCluster?.username && atlasCluster?.projectId && this.apiClient) {
             void this.apiClient
                 .deleteDatabaseUser({
                     params: {
@@ -139,7 +137,7 @@ export class Session extends EventEmitter<SessionEvents> {
 
     async close(): Promise<void> {
         await this.disconnect();
-        await this.apiClient.close();
+        await this.apiClient?.close();
         await this.exportsManager.close();
         this.emit("close");
     }
@@ -192,7 +190,7 @@ export class Session extends EventEmitter<SessionEvents> {
         return this.connectionManager.currentConnectionState.connectedAtlasCluster;
     }
 
-    get connectionStringAuthType(): ConnectionStringAuthType | undefined {
-        return this.connectionManager.currentConnectionState.connectionStringAuthType;
+    get connectionStringInfo(): ConnectionStringInfo | undefined {
+        return this.connectionManager.currentConnectionState.connectionStringInfo;
     }
 }

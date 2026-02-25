@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 
 function enableFipsIfRequested(): void {
     let fipsError: Error | undefined;

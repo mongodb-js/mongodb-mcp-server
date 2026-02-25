@@ -7,6 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
 } from "../../../helpers.js";
+import type { DropCollectionOutput } from "../../../../../src/tools/mongodb/delete/dropCollection.js";
 
 describeWithMongoDB("dropCollection tool", (integration) => {
     validateToolMetadata(
@@ -53,6 +54,12 @@ describeWithMongoDB("dropCollection tool", (integration) => {
         expect(content).toContain(
             `Successfully dropped collection "coll1" from database "${integration.randomDbName()}"`
         );
+
+        const structuredContent = response.structuredContent as DropCollectionOutput;
+        expect(structuredContent.database).toBe(integration.randomDbName());
+        expect(structuredContent.collection).toBe("coll1");
+        expect(structuredContent.dropped).toBe(true);
+
         const collections = await integration.mongoClient().db(integration.randomDbName()).listCollections().toArray();
         expect(collections).toHaveLength(1);
         expect(collections[0]?.name).toBe("coll2");
