@@ -65,6 +65,7 @@ export const LogId = {
     streamableHttpTransportHttpHostWarning: mongoLogId(1_006_009),
     streamableHttpTransportSessionNotFound: mongoLogId(1_006_010),
     streamableHttpTransportDisallowedExternalSessionError: mongoLogId(1_006_011),
+    streamableHttpTransportSessionInitialized: mongoLogId(1_006_012),
 
     httpServerStarted: mongoLogId(1_006_100),
     httpServerStopping: mongoLogId(1_006_101),
@@ -218,7 +219,7 @@ export class ConsoleLogger extends LoggerBase {
         const { id, context, message } = payload;
         // eslint-disable-next-line no-console
         console.error(
-            `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid}${this.serializeAttributes(payload.attributes)})`
+            `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${this.serializeAttributes(payload.attributes)})`
         );
     }
 
