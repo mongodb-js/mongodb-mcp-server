@@ -322,7 +322,7 @@ const banner = `
        ▐▌     ▄█ ██▄  █  █▄█ █▀▀
   `;
 
-await (async (): Promise<void> => {
+export const runSetup = async (): Promise<void> => {
     try {
         console.log(chalk.hex("#00ED64")(banner) + "\n");
 
@@ -462,4 +462,9 @@ await (async (): Promise<void> => {
         // Re-throw other errors
         throw error;
     }
-})();
+};
+
+void runSetup().catch((err: unknown) => {
+    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(1);
+});
