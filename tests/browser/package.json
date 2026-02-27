@@ -11,7 +11,7 @@
   "devDependencies": {
     "mongodb-mcp-server": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.24.2",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.2.3",
     "@vitest/browser": "^3.2.4",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
