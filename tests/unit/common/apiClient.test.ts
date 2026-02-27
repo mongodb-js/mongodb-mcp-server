@@ -66,12 +66,11 @@ describe("ApiClient", () => {
 
             await apiClient.sendEvents(mockEvents);
 
+            const expectedHeaders: Record<string, string> = { "User-Agent": "test-user-agent" };
             expect(mockFetch).toHaveBeenCalledWith(
                 expect.any(URL),
                 expect.objectContaining({
-                    headers: expect.objectContaining({
-                        "User-Agent": "test-user-agent",
-                    }),
+                    headers: expectedHeaders,
                 })
             );
         });
@@ -96,12 +95,11 @@ describe("ApiClient", () => {
             await clientWithoutUserAgent.sendEvents(mockEvents);
 
             const expectedDefaultUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
+            const expectedHeaders: Record<string, string> = { "User-Agent": expectedDefaultUserAgent };
             expect(mockFetch).toHaveBeenCalledWith(
                 expect.any(URL),
                 expect.objectContaining({
-                    headers: expect.objectContaining({
-                        "User-Agent": expectedDefaultUserAgent,
-                    }),
+                    headers: expectedHeaders,
                 })
             );
         });
@@ -126,7 +124,10 @@ describe("ApiClient", () => {
             await clientWithoutUserAgent.sendEvents(mockEvents);
 
             const call = mockFetch.mock.calls[0];
-            const userAgent = (call[1] as RequestInit)?.headers?.["User-Agent"] as string;
+            expect(call).toBeDefined();
+            const init = call![1] as RequestInit;
+            const headers = init.headers as Record<string, string>;
+            const userAgent = headers["User-Agent"];
             expect(userAgent).toBeDefined();
             // Default format is AtlasMCP/version (platform; arch) — no third segment (hostname)
             expect(userAgent).toMatch(
