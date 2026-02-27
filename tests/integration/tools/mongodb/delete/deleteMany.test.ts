@@ -7,6 +7,7 @@ import {
     validateThrowsForInvalidArguments,
 } from "../../../helpers.js";
 import { describe, expect, it } from "vitest";
+import type { DeleteManyOutput } from "../../../../../src/tools/mongodb/delete/deleteMany.js";
 
 describeWithMongoDB("deleteMany tool", (integration) => {
     validateToolMetadata(
@@ -95,6 +96,11 @@ describeWithMongoDB("deleteMany tool", (integration) => {
         });
         const content = getResponseContent(response.content);
         expect(content).toContain('Deleted `2` document(s) from collection "coll1"');
+
+        const structuredContent = response.structuredContent as DeleteManyOutput;
+        expect(structuredContent.database).toBe(integration.randomDbName());
+        expect(structuredContent.collection).toBe("coll1");
+        expect(structuredContent.deletedCount).toBe(2);
 
         await validateDocuments([
             { age: 10, name: "Peter" },

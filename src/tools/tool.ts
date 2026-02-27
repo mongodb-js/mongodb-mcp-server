@@ -1,5 +1,4 @@
-import type { z } from "zod";
-import { type ZodRawShape } from "zod";
+import type { z, ZodRawShape, ZodTypeAny } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
@@ -29,6 +28,16 @@ export interface ToolExecutionContext {
         headers?: Record<string, unknown>;
     };
 }
+
+export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
+    ? StructuredToolResult<OutputSchema>
+    : { content: { type: "text"; text: string }[]; isError?: boolean };
+
+type StructuredToolResult<OutputSchema extends ZodRawShape> = {
+    content: { type: "text"; text: string }[];
+    isError?: boolean;
+    structuredContent: z.objectOutputType<OutputSchema, ZodTypeAny>;
+};
 
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
@@ -472,6 +481,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
                                 text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
                             },
                         ],
+                        isError: true,
                     };
                 }
                 // We do not want to include the elicitation time in the tool execution time

@@ -1,6 +1,5 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { getSimplifiedSchema } from "mongodb-schema";
 import z from "zod";
@@ -9,6 +8,13 @@ import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorU
 import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
 
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
+
+const CollectionSchemaOutputSchema = {
+    schema: z.record(z.unknown()),
+    fieldsCount: z.number(),
+};
+
+export type CollectionSchemaOutput = z.infer<z.ZodObject<typeof CollectionSchemaOutputSchema>>;
 
 export class CollectionSchemaTool extends MongoDBToolBase {
     static toolName = "collection-schema";
@@ -24,13 +30,14 @@ export class CollectionSchemaTool extends MongoDBToolBase {
                 `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded.`
             ),
     };
+    public override outputSchema = CollectionSchemaOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
         { database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const cursor = provider.aggregate(
             database,
@@ -40,7 +47,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
                 signal,
             }
         );
-        const { cappedBy, documents } = await collectCursorUntilMaxBytesLimit({
+        const { documents } = await collectCursorUntilMaxBytesLimit({
             cursor,
             configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
             toolResponseBytesLimit: responseBytesLimit,
@@ -56,18 +63,22 @@ export class CollectionSchemaTool extends MongoDBToolBase {
                         type: "text",
                     },
                 ],
+                structuredContent: {
+                    schema: {},
+                    fieldsCount: 0,
+                },
             };
         }
 
         const fieldsCount = Object.keys(schema).length;
-        const header = `Found ${fieldsCount} fields in the schema for "${database}.${collection}"`;
-        const cappedWarning =
-            cappedBy !== undefined
-                ? `\nThe schema was inferred from a subset of documents due to the response size limit. (${cappedBy})`
-                : "";
+        const header = `Found ${fieldsCount} fields in the schema for "${database}.${collection}". Note that this schema is inferred from a sample and may not represent the full schema of the collection.`;
 
         return {
-            content: formatUntrustedData(`${header}${cappedWarning}`, JSON.stringify(schema)),
+            content: formatUntrustedData(`${header}`, JSON.stringify(schema)),
+            structuredContent: {
+                schema,
+                fieldsCount,
+            },
         };
     }
 }

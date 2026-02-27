@@ -1,7 +1,18 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
+import { z } from "zod";
+
+const ListCollectionsOutputSchema = {
+    collections: z.array(
+        z.object({
+            name: z.string(),
+        })
+    ),
+    totalCount: z.number(),
+};
+
+export type ListCollectionsOutput = z.infer<z.ZodObject<typeof ListCollectionsOutputSchema>>;
 
 export class ListCollectionsTool extends MongoDBToolBase {
     static toolName = "list-collections";
@@ -9,15 +20,18 @@ export class ListCollectionsTool extends MongoDBToolBase {
     public argsShape = {
         database: DbOperationArgs.database,
     };
+    public override outputSchema = ListCollectionsOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
         { database }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
-        const collections = await provider.listCollections(database, {}, { signal });
+        const collections = (await provider.listCollections(database, {}, { signal })).map((col) => ({
+            name: col.name as string,
+        }));
 
         if (collections.length === 0) {
             return {
@@ -27,14 +41,22 @@ export class ListCollectionsTool extends MongoDBToolBase {
                         text: `Found 0 collections for database "${database}". To create a collection, use the "create-collection" tool.`,
                     },
                 ],
+                structuredContent: {
+                    collections: [],
+                    totalCount: 0,
+                },
             };
         }
 
         return {
             content: formatUntrustedData(
                 `Found ${collections.length} collections for database "${database}".`,
-                collections.map((collection) => `"${collection.name}"`).join("\n")
+                JSON.stringify(collections)
             ),
+            structuredContent: {
+                collections,
+                totalCount: collections.length,
+            },
         };
     }
 }

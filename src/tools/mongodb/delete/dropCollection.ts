@@ -1,6 +1,14 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import { z } from "zod";
+
+const DropCollectionOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    dropped: z.boolean(),
+};
+
+export type DropCollectionOutput = z.infer<z.ZodObject<typeof DropCollectionOutputSchema>>;
 
 export class DropCollectionTool extends MongoDBToolBase {
     static toolName = "drop-collection";
@@ -9,9 +17,13 @@ export class DropCollectionTool extends MongoDBToolBase {
     public argsShape = {
         ...DbOperationArgs,
     };
+    public override outputSchema = DropCollectionOutputSchema;
     static operationType: OperationType = "delete";
 
-    protected async execute({ database, collection }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute({
+        database,
+        collection,
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const result = await provider.dropCollection(database, collection);
 
@@ -22,6 +34,11 @@ export class DropCollectionTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                database,
+                collection,
+                dropped: result,
+            },
         };
     }
 

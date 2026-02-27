@@ -1,9 +1,17 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { zEJSON } from "../../args.js";
+import { z } from "zod";
+
+const DeleteManyOutputSchema = {
+    database: z.string(),
+    collection: z.string(),
+    deletedCount: z.number(),
+};
+
+export type DeleteManyOutput = z.infer<z.ZodObject<typeof DeleteManyOutputSchema>>;
 
 export class DeleteManyTool extends MongoDBToolBase {
     static toolName = "delete-many";
@@ -16,13 +24,14 @@ export class DeleteManyTool extends MongoDBToolBase {
                 "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
             ),
     };
+    public override outputSchema = DeleteManyOutputSchema;
     static operationType: OperationType = "delete";
 
     protected async execute({
         database,
         collection,
         filter,
-    }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
 
         // Check if delete operation uses an index if enabled
@@ -58,6 +67,11 @@ export class DeleteManyTool extends MongoDBToolBase {
                     type: "text",
                 },
             ],
+            structuredContent: {
+                database,
+                collection,
+                deletedCount: result.deletedCount,
+            },
         };
     }
 
