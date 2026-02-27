@@ -305,7 +305,7 @@ const configureEditor = async (
     if (!config[serversKey]) {
         config[serversKey] = {};
     }
-    config[serversKey]!["mongodb-mcp-server"] = mcpServerConfig;
+    config[serversKey]["mongodb-mcp-server"] = mcpServerConfig;
 
     // Write the config file
     writeConfigFile(configPath, config);
@@ -352,10 +352,10 @@ export const runSetup = async (): Promise<void> => {
             process.exit(1);
         }
 
-        console.log("To install a Local MCP Server configuration, you’ll need:");
+        console.log("To install a Local MCP Server configuration, you'll need:");
         console.log("1. A MongoDB Cluster");
         console.log("2. The connection string for your Cluster, including SCRAM database user credentials [required]");
-        console.log("3. The credentials for your project’s Service Account [recommended]\n");
+        console.log("3. The credentials for your project's Service Account [recommended]\n");
         console.log(
             "It’s best to have this information at hand. We will not store any data or credentials in this process.\n\n"
         );
@@ -463,8 +463,3 @@ export const runSetup = async (): Promise<void> => {
         throw error;
     }
 };
-
-void runSetup().catch((err: unknown) => {
-    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(1);
-});
