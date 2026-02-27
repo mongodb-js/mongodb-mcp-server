@@ -129,7 +129,9 @@ describe("ApiClient", () => {
             const userAgent = (call[1] as RequestInit)?.headers?.["User-Agent"] as string;
             expect(userAgent).toBeDefined();
             // Default format is AtlasMCP/version (platform; arch) — no third segment (hostname)
-            expect(userAgent).toMatch(new RegExp(`^AtlasMCP/${packageInfo.version} \\(${process.platform}; ${process.arch}\\)$`));
+            expect(userAgent).toMatch(
+                new RegExp(`^AtlasMCP/${packageInfo.version} \\(${process.platform}; ${process.arch}\\)$`)
+            );
             expect(userAgent).not.toContain("; unknown");
             expect(userAgent).not.toMatch(/\bhostname\b/i);
         });
