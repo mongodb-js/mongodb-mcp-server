@@ -8,11 +8,10 @@ import { exec } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
 import { MongoClient } from "mongodb";
+import { EDITOR_CONFIGS, EDITORS, type EditorType } from "./setupEditorConstants.js";
 
 const MINIMUM_REQUIRED_NODE_VERSION = "22.12.0";
 const MINIMUM_REQUIRED_MCP_NODE22_VERSION = "22.12.0";
-
-type EditorType = "cursor" | "vscode" | "windsurf" | "claudeDesktop";
 
 interface McpServerConfig {
     command: string;
@@ -42,21 +41,12 @@ const getCurrentNodeVersion = (): string => {
 };
 
 const openEditorSettings = (editor: EditorType): void => {
-    let configPath;
-    let protocol;
+    let configPath = EDITOR_CONFIGS[editor].getConfigPath();
+    const protocol = editor;
 
-    if (editor === "cursor") {
-        configPath = getCursorConfigPath();
-        protocol = "cursor";
-    } else if (editor === "vscode") {
-        configPath = getVSCodeConfigPath();
-        protocol = "vscode";
-    } else if (editor === "windsurf") {
-        configPath = getWindsurfConfigPath();
-        protocol = "windsurf";
-    } else if (editor === "claudeDesktop") {
+    if (editor === EDITORS.CLAUDE_DESKTOP) {
         // Claude Desktop doesn't have a URL protocol, open config file in default editor
-        configPath = getClaudeDesktopConfigPath();
+        configPath = EDITOR_CONFIGS[editor].getConfigPath();
         if (isMac) {
             exec(`open "${configPath}"`);
         } else if (isWindows) {
@@ -76,89 +66,16 @@ const openEditorSettings = (editor: EditorType): void => {
     }
 };
 
-const getCursorConfigPath = (): string => {
-    if (isWindows) {
-        // Windows: %APPDATA%\Cursor\mcp.json
-        return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "Cursor", "mcp.json");
-    } else if (isMac) {
-        // macOS: ~/.cursor/mcp.json
-        return path.join(os.homedir(), ".cursor", "mcp.json");
-    } else {
-        // Linux: ~/.cursor/mcp.json
-        return path.join(os.homedir(), ".cursor", "mcp.json");
-    }
-};
-
-const getWindsurfConfigPath = (): string => {
-    if (isWindows) {
-        // Windows: %APPDATA%\Windsurf\mcp_config.json
-        return path.join(
-            process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-            "Windsurf",
-            "mcp_config.json"
-        );
-    } else if (isMac) {
-        // macOS: ~/.codeium/windsurf/mcp_config.json
-        return path.join(os.homedir(), ".codeium", "windsurf", "mcp_config.json");
-    } else {
-        // Linux: ~/.codeium/windsurf/mcp_config.json
-        return path.join(os.homedir(), ".codeium", "windsurf", "mcp_config.json");
-    }
-};
-
-const getClaudeDesktopConfigPath = (): string => {
-    if (isWindows) {
-        // Windows: %APPDATA%\Claude\claude_desktop_config.json
-        return path.join(
-            process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-            "Claude",
-            "claude_desktop_config.json"
-        );
-    } else if (isMac) {
-        // macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
-        return path.join(os.homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json");
-    } else {
-        // Linux: ~/.config/Claude/claude_desktop_config.json
-        return path.join(os.homedir(), ".config", "Claude", "claude_desktop_config.json");
-    }
-};
-
-const getVSCodeConfigPath = (): string => {
-    if (isWindows) {
-        // Windows: %APPDATA%\Code\User\mcp.json
-        return path.join(
-            process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-            "Code",
-            "User",
-            "mcp.json"
-        );
-    } else if (isMac) {
-        // macOS: ~/Library/Application Support/Code/User/mcp.json
-        return path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json");
-    } else {
-        // Linux: ~/.config/Code/User/mcp.json
-        return path.join(os.homedir(), ".config", "Code", "User", "mcp.json");
-    }
-};
-
 const getEditorConfigPath = (editor: EditorType): string => {
-    if (editor === "windsurf") return getWindsurfConfigPath();
-    if (editor === "claudeDesktop") return getClaudeDesktopConfigPath();
-    if (editor === "vscode") return getVSCodeConfigPath();
-    return getCursorConfigPath();
+    return EDITOR_CONFIGS[editor].getConfigPath();
 };
 
 const getEditorDisplayName = (editor: EditorType): string => {
-    if (editor === "windsurf") return "Windsurf";
-    if (editor === "claudeDesktop") return "Claude Desktop";
-    if (editor === "vscode") return "VS Code";
-    return "Cursor";
+    return EDITOR_CONFIGS[editor].name;
 };
 
 const getConfigFileName = (editor: EditorType): string => {
-    if (editor === "windsurf") return "mcp_config.json";
-    if (editor === "claudeDesktop") return "claude_desktop_config.json";
-    return "mcp.json";
+    return EDITOR_CONFIGS[editor].configFileName;
 };
 
 const getServersKey = (editor: EditorType): "servers" | "mcpServers" => {
@@ -357,7 +274,7 @@ export const runSetup = async (): Promise<void> => {
         console.log("2. The connection string for your Cluster, including SCRAM database user credentials [required]");
         console.log("3. The credentials for your project's Service Account [recommended]\n");
         console.log(
-            "It’s best to have this information at hand. We will not store any data or credentials in this process.\n\n"
+            "It's best to have this information at hand. We will not store any data or credentials in this process.\n\n"
         );
 
         const editor = (await select({
