@@ -58,9 +58,7 @@ export class ApiClient {
         }) as unknown as typeof fetch;
         this.options = {
             ...options,
-            userAgent:
-                options.userAgent ??
-                `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
+            userAgent: options.userAgent ?? `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
         };
 
         this.authProvider =
