@@ -60,7 +60,7 @@ export class ApiClient {
             ...options,
             userAgent:
                 options.userAgent ??
-                `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch}; ${process.env.HOSTNAME || "unknown"})`,
+                `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
         };
 
         this.authProvider =
