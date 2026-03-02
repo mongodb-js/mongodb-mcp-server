@@ -5,13 +5,16 @@ const platform = os.platform();
 const isWindows = platform === "win32";
 const isMac = platform === "darwin";
 
-export type EditorType = "cursor" | "vscode" | "windsurf" | "claudeDesktop";
+export type EditorType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
 
 export const EDITORS = {
     CURSOR: "cursor",
     VSCODE: "vscode",
     WINDSURF: "windsurf",
     CLAUDE_DESKTOP: "claudeDesktop",
+    CLAUDE_CODE: "claudeCode",
+    CODEX: "codex",
+    OPENCODE: "opencode",
 } as const satisfies Record<string, EditorType>;
 
 interface EditorConfig {
@@ -20,17 +23,16 @@ interface EditorConfig {
     getConfigPath: () => string;
 }
 
+const windowsBasePath = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+
 export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
     [EDITORS.CURSOR]: {
         name: "Cursor",
         configFileName: "mcp.json",
         getConfigPath: (): string => {
             if (isWindows) {
-                return path.join(
-                    process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-                    "Cursor",
-                    "mcp.json"
-                );
+                // windows: %APPDATA%\Cursor\mcp.json
+                return path.join(windowsBasePath, "Cursor", "mcp.json");
             }
             // macOS & Linux: ~/.cursor/mcp.json
             return path.join(os.homedir(), ".cursor", "mcp.json");
@@ -41,14 +43,11 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
         configFileName: "mcp.json",
         getConfigPath: (): string => {
             if (isWindows) {
-                return path.join(
-                    process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-                    "Code",
-                    "User",
-                    "mcp.json"
-                );
+                // windows: %APPDATA%\Code\User\mcp.json
+                return path.join(windowsBasePath, "Code", "User", "mcp.json");
             }
             if (isMac) {
+                // macOS: ~/Library/Application Support/Code/User/mcp.json
                 return path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json");
             }
             // Linux: ~/.config/Code/User/mcp.json
@@ -60,11 +59,8 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
         configFileName: "mcp_config.json",
         getConfigPath: (): string => {
             if (isWindows) {
-                return path.join(
-                    process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-                    "Windsurf",
-                    "mcp_config.json"
-                );
+                // windows: %APPDATA%\Windsurf\mcp_config.json
+                return path.join(windowsBasePath, "Windsurf", "mcp_config.json");
             }
             // macOS & Linux: ~/.codeium/windsurf/mcp_config.json
             return path.join(os.homedir(), ".codeium", "windsurf", "mcp_config.json");
@@ -75,13 +71,11 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
         configFileName: "claude_desktop_config.json",
         getConfigPath: (): string => {
             if (isWindows) {
-                return path.join(
-                    process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-                    "Claude",
-                    "claude_desktop_config.json"
-                );
+                // windows: %APPDATA%\Claude\claude_desktop_config.json
+                return path.join(windowsBasePath, "Claude", "claude_desktop_config.json");
             }
             if (isMac) {
+                // macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
                 return path.join(
                     os.homedir(),
                     "Library",
@@ -92,6 +86,33 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
             }
             // Linux: ~/.config/Claude/claude_desktop_config.json
             return path.join(os.homedir(), ".config", "Claude", "claude_desktop_config.json");
+        },
+    },
+    [EDITORS.CLAUDE_CODE]: {
+        name: "Claude Code",
+        configFileName: ".claude.json",
+        getConfigPath: (): string => {
+            // macOS/Linux: ~/.claude.json
+            // Windows: %USERPROFILE%\.claude.json
+            return path.join(os.homedir(), ".claude.json");
+        },
+    },
+    [EDITORS.CODEX]: {
+        name: "OpenAI Codex",
+        configFileName: "config.toml",
+        getConfigPath: (): string => {
+            // macOS/Linux: ~/.codex/config.toml
+            // Windows: %USERPROFILE%\.codex\config.toml (user-level only; not /etc/codex)
+            return path.join(os.homedir(), ".codex", "config.toml");
+        },
+    },
+    [EDITORS.OPENCODE]: {
+        name: "Open Code",
+        configFileName: "opencode.json",
+        getConfigPath: (): string => {
+            // macOS/Linux: ~/.config/opencode/opencode.json
+            // Windows: %USERPROFILE%\.config\opencode\opencode.json
+            return path.join(os.homedir(), ".config", "opencode", "opencode.json");
         },
     },
 };

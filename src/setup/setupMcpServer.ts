@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+/* eslint-disable no-console */
 import select from "@inquirer/select";
 import { input, confirm, password } from "@inquirer/prompts";
 import fs from "fs";
@@ -24,6 +24,21 @@ interface McpConfig {
     servers?: Record<string, McpServerConfig>;
 }
 
+interface OpenCodeMcpEntry {
+    type: "local";
+    command: string[];
+    environment?: Record<string, string>;
+    enabled?: boolean;
+}
+
+interface OpenCodeConfig {
+    mcp?: Record<string, OpenCodeMcpEntry>;
+    [key: string]: unknown;
+}
+
+/** Format an unknown catch value for display (Error.message or String). */
+const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
 // Handle Ctrl+C gracefully
 process.on("SIGINT", () => {
     console.log("\n\nSetup cancelled. Goodbye!");
@@ -40,13 +55,17 @@ const getCurrentNodeVersion = (): string => {
     return version;
 };
 
-const openEditorSettings = (editor: EditorType): void => {
-    let configPath = EDITOR_CONFIGS[editor].getConfigPath();
-    const protocol = editor;
+const EDITORS_WITHOUT_PROTOCOL: EditorType[] = [
+    EDITORS.CLAUDE_DESKTOP,
+    EDITORS.CLAUDE_CODE,
+    EDITORS.CODEX,
+    EDITORS.OPENCODE,
+];
 
-    if (editor === EDITORS.CLAUDE_DESKTOP) {
-        // Claude Desktop doesn't have a URL protocol, open config file in default editor
-        configPath = EDITOR_CONFIGS[editor].getConfigPath();
+const openEditorSettings = (editor: EditorType): void => {
+    const configPath = EDITOR_CONFIGS[editor].getConfigPath();
+
+    if (EDITORS_WITHOUT_PROTOCOL.includes(editor)) {
         if (isMac) {
             exec(`open "${configPath}"`);
         } else if (isWindows) {
@@ -57,6 +76,7 @@ const openEditorSettings = (editor: EditorType): void => {
         return;
     }
 
+    const protocol = editor;
     if (isMac) {
         exec(`open "${protocol}://file${configPath}"`);
     } else if (isWindows) {
@@ -78,14 +98,21 @@ const getConfigFileName = (editor: EditorType): string => {
     return EDITOR_CONFIGS[editor].configFileName;
 };
 
-const getServersKey = (editor: EditorType): "servers" | "mcpServers" => {
-    // VS Code uses "servers" at the top level, others use "mcpServers"
+const getServersKey = (editor: EditorType): "servers" | "mcpServers" | null => {
+    // VS Code uses "servers" at the top level; Cursor, Windsurf, Claude Desktop, Claude Code use "mcpServers"
     if (editor === "vscode") return "servers";
-    return "mcpServers";
+    if (editor === "cursor" || editor === "windsurf" || editor === "claudeDesktop" || editor === "claudeCode") {
+        return "mcpServers";
+    }
+    // OpenCode uses "mcp" (different shape); Codex uses TOML — handled separately
+    return null;
 };
 
 const readExistingConfig = (configPath: string, configFileName: string, editor: EditorType): McpConfig => {
     const serversKey = getServersKey(editor);
+    if (serversKey === null) {
+        return {};
+    }
     let config: McpConfig = { [serversKey]: {} };
     if (fs.existsSync(configPath)) {
         try {
@@ -95,11 +122,63 @@ const readExistingConfig = (configPath: string, configFileName: string, editor: 
                 config[serversKey] = {};
             }
         } catch (e: unknown) {
-            console.error(`Warning: Could not parse existing ${configFileName}, creating new config. Error is: ${e}`);
+            console.error(
+                `Warning: Could not parse existing ${configFileName}, creating new config. Error is: ${formatError(e)}`
+            );
             config = { [serversKey]: {} };
         }
     }
     return config;
+};
+
+const readOpenCodeConfig = (configPath: string): OpenCodeConfig => {
+    if (!fs.existsSync(configPath)) {
+        return { mcp: {} };
+    }
+    try {
+        const content = fs.readFileSync(configPath, "utf-8");
+        const config = JSON.parse(content) as OpenCodeConfig;
+        if (!config.mcp || typeof config.mcp !== "object") {
+            config.mcp = {};
+        }
+        return config;
+    } catch (e: unknown) {
+        console.error(`Warning: Could not parse existing opencode.json. Error is: ${formatError(e)}`);
+        return { mcp: {} };
+    }
+};
+
+const appendCodexTomlSection = (configPath: string, env: Record<string, string>, isReadOnly: boolean): void => {
+    const args = ["-y", "mongodb-mcp-server@latest"];
+    if (isReadOnly) {
+        args.push("--readOnly");
+    }
+    const envEntry =
+        Object.keys(env).length > 0
+            ? `\nenv = { ${Object.entries(env)
+                  .map(([k, v]) => `${JSON.stringify(k)} = ${JSON.stringify(v)}`)
+                  .join(", ")} }`
+            : "";
+    const section = `[mcp_servers.mongodb-mcp-server]
+command = "npx"
+args = ${JSON.stringify(args)}${envEntry}`;
+
+    let existing = "";
+    if (fs.existsSync(configPath)) {
+        existing = fs.readFileSync(configPath, "utf-8");
+        if (existing.includes("[mcp_servers.mongodb-mcp-server]")) {
+            return;
+        }
+        if (!existing.endsWith("\n")) {
+            existing += "\n";
+        }
+    } else {
+        const configDir = path.dirname(configPath);
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+    }
+    fs.writeFileSync(configPath, existing + "\n" + section + "\n");
 };
 
 const buildEnvObject = (
@@ -157,9 +236,7 @@ const testConnectionString = async (initialConnectionString: string): Promise<st
             console.log(chalk.green("✓ Connection successful!"));
             connectionSuccessful = true;
         } catch (error: unknown) {
-            console.log(
-                chalk.red("\n✗ Connection failed: " + (error instanceof Error ? error.message : String(error)))
-            );
+            console.log(chalk.red("\n✗ Connection failed: " + formatError(error)));
             console.log(chalk.yellow("\nPlease check:"));
             console.log(chalk.yellow("  • Your database user credentials are correct"));
             console.log(chalk.yellow("  • Your IP address is allowed in Network Access"));
@@ -211,21 +288,43 @@ const configureEditor = async (
         });
     }
 
-    // Read existing config or start with empty object
-    const config = readExistingConfig(configPath, configFileName, editor);
-
-    // Build and add the mongodb-mcp-server entry
     const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
-    const mcpServerConfig = buildMcpServerConfig(isReadOnly, env);
 
-    const serversKey = getServersKey(editor);
-    if (!config[serversKey]) {
-        config[serversKey] = {};
+    if (editor === EDITORS.OPENCODE) {
+        const opencodeConfig = readOpenCodeConfig(configPath);
+        if (!opencodeConfig.mcp) {
+            opencodeConfig.mcp = {};
+        }
+        const args = ["-y", "mongodb-mcp-server@latest"];
+        if (isReadOnly) {
+            args.push("--readOnly");
+        }
+        opencodeConfig.mcp["mongodb-mcp-server"] = {
+            type: "local",
+            command: ["npx", ...args],
+            environment: Object.keys(env).length > 0 ? env : undefined,
+            enabled: true,
+        };
+        const configDir = path.dirname(configPath);
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        fs.writeFileSync(configPath, JSON.stringify(opencodeConfig, null, 2));
+    } else if (editor === EDITORS.CODEX) {
+        appendCodexTomlSection(configPath, env, isReadOnly);
+    } else {
+        const config = readExistingConfig(configPath, configFileName, editor);
+        const serversKey = getServersKey(editor);
+        if (serversKey === null) {
+            throw new Error(`Unsupported editor: ${editor}`);
+        }
+        if (!config[serversKey]) {
+            config[serversKey] = {};
+        }
+        const mcpServerConfig = buildMcpServerConfig(isReadOnly, env);
+        config[serversKey]["mongodb-mcp-server"] = mcpServerConfig;
+        writeConfigFile(configPath, config);
     }
-    config[serversKey]["mongodb-mcp-server"] = mcpServerConfig;
-
-    // Write the config file
-    writeConfigFile(configPath, config);
     console.log(`\nConfiguration saved to ${configPath}`);
 };
 
@@ -280,22 +379,13 @@ export const runSetup = async (): Promise<void> => {
         const editor = (await select({
             message: "What tool would you like to use the MongoDB MCP Server with?",
             choices: [
-                {
-                    value: "cursor",
-                    name: "Cursor",
-                },
-                {
-                    value: "vscode",
-                    name: "VS Code",
-                },
-                {
-                    value: "claudeDesktop",
-                    name: "Claude Desktop",
-                },
-                {
-                    value: "windsurf",
-                    name: "Windsurf",
-                },
+                { value: EDITORS.CURSOR, name: "Cursor" },
+                { value: EDITORS.VSCODE, name: "VS Code" },
+                { value: EDITORS.CLAUDE_DESKTOP, name: "Claude Desktop" },
+                { value: EDITORS.CLAUDE_CODE, name: "Claude Code" },
+                { value: EDITORS.CODEX, name: "OpenAI Codex" },
+                { value: EDITORS.OPENCODE, name: "Open Code" },
+                { value: EDITORS.WINDSURF, name: "Windsurf" },
             ],
         })) as EditorType;
         console.log("\n");
@@ -356,6 +446,14 @@ export const runSetup = async (): Promise<void> => {
             );
         } else if (editor === "windsurf") {
             console.log(chalk.cyan(`Tip: Press ${isMac ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`));
+        } else if (editor === "claudeCode") {
+            console.log(chalk.cyan("Tip: Use the /config command in Claude Code to open Settings.\n"));
+        } else if (editor === "codex") {
+            console.log(chalk.cyan("Tip: In Codex, use MCP settings > Open config.toml from the gear menu.\n"));
+        } else if (editor === "opencode") {
+            console.log(
+                chalk.cyan("Tip: Open Code uses opencode.json for MCP; edit in your project or global config.\n")
+            );
         }
 
         console.log("Try a query to get started:\n");
