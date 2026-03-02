@@ -66,13 +66,16 @@ describe("ApiClient", () => {
 
             await apiClient.sendEvents(mockEvents);
 
-            const expectedHeaders: Record<string, string> = { "User-Agent": "test-user-agent" };
-            expect(mockFetch).toHaveBeenCalledWith(
-                expect.any(URL),
-                expect.objectContaining({
-                    headers: expectedHeaders,
-                })
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            const call = mockFetch.mock.calls[0];
+            expect(call).toBeDefined();
+            const [url, init] = call!;
+            expect(url instanceof URL ? url.href : url).toBe(
+                "https://api.test.com/api/private/v1.0/telemetry/events"
             );
+            const headers = init?.headers as Record<string, string>;
+            expect(headers).toBeDefined();
+            expect(headers["User-Agent"]).toBe("test-user-agent");
         });
 
         it("should use default userAgent with version, platform, and arch when not provided", async () => {
@@ -94,14 +97,17 @@ describe("ApiClient", () => {
 
             await clientWithoutUserAgent.sendEvents(mockEvents);
 
-            const expectedDefaultUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
-            const expectedHeaders: Record<string, string> = { "User-Agent": expectedDefaultUserAgent };
-            expect(mockFetch).toHaveBeenCalledWith(
-                expect.any(URL),
-                expect.objectContaining({
-                    headers: expectedHeaders,
-                })
+            expect(mockFetch).toHaveBeenCalledTimes(1);
+            const call = mockFetch.mock.calls[0];
+            expect(call).toBeDefined();
+            const [url, init] = call!;
+            expect(url instanceof URL ? url.href : url).toBe(
+                "https://api.test.com/api/private/unauth/telemetry/events"
             );
+            const expectedDefaultUserAgent = `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`;
+            const headers = init?.headers as Record<string, string>;
+            expect(headers).toBeDefined();
+            expect(headers["User-Agent"]).toBe(expectedDefaultUserAgent);
         });
 
         it("should not include hostname in default userAgent", async () => {
