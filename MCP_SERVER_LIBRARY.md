@@ -37,6 +37,14 @@ The package provides both CommonJS and ES Module exports.
 
 ## Core Concepts
 
+### Customizing Server Behavior
+
+There are two main approaches to customize how the MongoDB MCP Server is created and configured:
+
+1. **Override `createServerForRequest`**: When using HTTP transport, extend `StreamableHttpRunner` and override the `createServerForRequest` method. This allows you to customize the server creation for each incoming request, enabling per-session configuration based on request headers, query parameters, or authentication context.
+
+2. **Use `start({ serverOptions, sessionOptions })` with options**: Call the `start` method with `serverOptions` (for tools, error handlers, UI registry, etc.) and `sessionOptions` (for connection manager, API client, Atlas local client). This is useful for static customization that applies to all sessions.
+
 ### Exported Modules
 
 The library exports are organized in two entry points:
@@ -60,7 +68,7 @@ import {
   MongoDBError,
   ErrorCodes,
   connectionErrorHandler,
-  createMCPConnectionManager,
+  defaultCreateConnectionManager,
   applyConfigOverrides,
   // ... and more
 } from "mongodb-mcp-server";
@@ -86,6 +94,7 @@ For detailed documentation of these exports and their usage, see the [API Refere
 The MongoDB MCP Server library follows a modular architecture:
 
 - **Transport Runners**: `StdioRunner` and `StreamableHttpRunner` manage the MCP transport layer
+  - For HTTP transport, extend `StreamableHttpRunner` and override `createServerForRequest` to customize server creation per request or use `start({ serverOptions, sessionOptions })` with options to customize server behavior
 - **Server**: Core server that wraps the MCP Server and registers tools and resources
 - **Session**: Per-client (MCP Client) connection and configuration state
 - **Tools**: Individual capabilities exposed to the MCP client
@@ -151,17 +160,17 @@ await runner.start();
 
 ### Use Case 2: Per-Session Configuration
 
-Customize configuration for each MCP client session, enabling user-specific permissions and settings.
+Customize configuration for each MCP client session, enabling user-specific permissions and settings by extending `StreamableHttpRunner` and overriding the `createServerForRequest` method.
+
+**Important:** The old approach using `createSessionConfig` hook is deprecated. The examples below demonstrate the recommended pattern of extending `StreamableHttpRunner` and overriding `createServerForRequest`, which provides the same functionality with better type safety and flexibility.
 
 #### Example: User-Based Tool Permissions
 
 ```typescript
-import {
-  UserConfigSchema,
-  StreamableHttpRunner,
-  type TransportRunnerConfig,
-} from "mongodb-mcp-server";
+import { UserConfigSchema, StreamableHttpRunner } from "mongodb-mcp-server";
 import type { OperationType } from "mongodb-mcp-server/tools";
+import type { Server, UserConfig } from "mongodb-mcp-server";
+import type { RequestContext } from "mongodb-mcp-server";
 
 // Example interface for user roles and permissions
 interface UserPermissions {
@@ -199,16 +208,13 @@ async function getUserPermissions(userId: string): Promise<UserPermissions> {
   );
 }
 
-// Base configuration for all sessions
-const baseConfig = UserConfigSchema.parse({
-  transport: "http",
-  httpPort: 3000,
-  httpHost: "127.0.0.1",
-});
-
-// Session configuration hook
-const createSessionConfig: TransportRunnerConfig["createSessionConfig"] =
-  async ({ userConfig, request }) => {
+// Extend StreamableHttpRunner and override createServerForRequest
+class CustomStreamableHttpRunner extends StreamableHttpRunner {
+  protected override async createServerForRequest({
+    request,
+  }: {
+    request: RequestContext;
+  }): Promise<Server> {
     // Extract user ID from request headers
     const userId = request?.headers?.["x-user-id"];
 
@@ -233,20 +239,32 @@ const createSessionConfig: TransportRunnerConfig["createSessionConfig"] =
       (op) => !permissions.allowedOperations.includes(op)
     );
 
-    // Return customized configuration for this session
-    return {
-      ...userConfig,
+    // Build customized configuration for this session
+    const sessionConfig: UserConfig = {
+      ...this.userConfig,
       disabledTools: disabledOperations,
       maxDocumentsPerQuery: permissions.maxDocuments,
       // Analysts get read-only access
       readOnly: permissions.role === "analyst",
     };
-  };
 
-// Initialize the server with session configuration hook
-const runner = new StreamableHttpRunner({
+    // Create the server with the session-specific configuration
+    return this.createServer({
+      userConfig: sessionConfig,
+    });
+  }
+}
+
+// Base configuration for all sessions
+const baseConfig = UserConfigSchema.parse({
+  transport: "http",
+  httpPort: 3000,
+  httpHost: "127.0.0.1",
+});
+
+// Initialize the custom runner
+const runner = new CustomStreamableHttpRunner({
   userConfig: baseConfig,
-  createSessionConfig,
 });
 
 await runner.start();
@@ -258,11 +276,9 @@ console.log(
 #### Example: Dynamic Connection String Selection
 
 ```typescript
-import {
-  UserConfigSchema,
-  StreamableHttpRunner,
-  type TransportRunnerConfig,
-} from "mongodb-mcp-server";
+import { UserConfigSchema, StreamableHttpRunner } from "mongodb-mcp-server";
+import type { Server, UserConfig } from "mongodb-mcp-server";
+import type { RequestContext } from "mongodb-mcp-server";
 
 // Connection strings for different environments
 const connectionStrings = {
@@ -271,8 +287,13 @@ const connectionStrings = {
   development: process.env.MONGODB_DEV_URI,
 };
 
-const createSessionConfig: TransportRunnerConfig["createSessionConfig"] =
-  async ({ userConfig, request }) => {
+// Extend StreamableHttpRunner and override createServerForRequest
+class CustomStreamableHttpRunner extends StreamableHttpRunner {
+  protected override async createServerForRequest({
+    request,
+  }: {
+    request: RequestContext;
+  }): Promise<Server> {
     // Get environment from request header
     const environment = request?.headers?.[
       "x-environment"
@@ -282,21 +303,27 @@ const createSessionConfig: TransportRunnerConfig["createSessionConfig"] =
       throw new Error("Invalid or missing x-environment header");
     }
 
-    return {
-      ...userConfig,
+    // Build customized configuration for this session
+    const sessionConfig: UserConfig = {
+      ...this.userConfig,
       connectionString: connectionStrings[environment],
       // Production is read-only
       readOnly: environment === "production",
     };
-  };
 
-const runner = new StreamableHttpRunner({
+    // Create the server with the session-specific configuration
+    return this.createServer({
+      userConfig: sessionConfig,
+    });
+  }
+}
+
+const runner = new CustomStreamableHttpRunner({
   userConfig: UserConfigSchema.parse({
     transport: "http",
     httpPort: 3000,
     httpHost: "127.0.0.1",
   }),
-  createSessionConfig,
 });
 
 await runner.start();
@@ -307,7 +334,7 @@ console.log(
 
 #### Example: Integration with Request Overrides
 
-The library supports request-level configuration overrides when `allowRequestOverrides` is enabled. You can combine this with `createSessionConfig` for fine-grained control:
+The library supports request-level configuration overrides when `allowRequestOverrides` is enabled. You can combine this by overriding `createServerForRequest` for fine-grained control:
 
 ```typescript
 import {
@@ -315,8 +342,9 @@ import {
   UserConfigSchema,
   StreamableHttpRunner,
   type UserConfig,
-  type TransportRunnerConfig,
 } from "mongodb-mcp-server";
+import type { Server } from "mongodb-mcp-server";
+import type { RequestContext } from "mongodb-mcp-server";
 
 // Example interface for user roles and permissions
 interface UserPermissions {
@@ -349,15 +377,13 @@ async function getUserPermissions(userId: string): Promise<UserPermissions> {
   );
 }
 
-// Base configuration for all sessions
-const baseConfig = UserConfigSchema.parse({
-  transport: "http",
-  httpPort: 3000,
-  httpHost: "127.0.0.1",
-});
-
-const createSessionConfig: TransportRunnerConfig["createSessionConfig"] =
-  async ({ userConfig, request }) => {
+// Extend StreamableHttpRunner and override createServerForRequest
+class CustomStreamableHttpRunner extends StreamableHttpRunner {
+  protected override async createServerForRequest({
+    request,
+  }: {
+    request: RequestContext;
+  }): Promise<Server> {
     if (!request) {
       throw new Error("User authentication required: no headers provided");
     }
@@ -374,23 +400,32 @@ const createSessionConfig: TransportRunnerConfig["createSessionConfig"] =
 
     // Generate a base config based on the user permissions
     const roleBasedConfig: UserConfig = {
-      ...baseConfig,
+      ...this.userConfig,
       allowRequestOverrides: permissions.requestOverridesAllowed,
     };
 
     // Now attempt to apply the overrides. For roles where overrides are not
     // allowed, the default override application function will throw and reject
     // the initialization request.
-    return applyConfigOverrides({ baseConfig: roleBasedConfig, request });
-  };
+    const sessionConfig = applyConfigOverrides({
+      baseConfig: roleBasedConfig,
+      request,
+    });
 
-const runner = new StreamableHttpRunner({
+    // Create the server with the session-specific configuration
+    return this.createServer({
+      userConfig: sessionConfig,
+    });
+  }
+}
+
+const runner = new CustomStreamableHttpRunner({
   userConfig: UserConfigSchema.parse({
     transport: "http",
     httpPort: 3000,
     httpHost: "127.0.0.1",
     // For this particular example, setting `allowRequestOverrides` here is
-    // optional because if you notice the session configuration hook, we're
+    // optional because if you notice the createServerForRequest override, we're
     // constructing the `roleBasedConfig` with the appropriate value of
     // `allowRequestOverrides` already before calling the exported
     // `applyConfigOverrides` function.
@@ -401,7 +436,6 @@ const runner = new StreamableHttpRunner({
     allowRequestOverrides: true,
     connectionString: process.env.MDB_MCP_CONNECTION_STRING,
   }),
-  createSessionConfig,
 });
 
 await runner.start();
@@ -727,6 +761,8 @@ Configuration options for initializing transport runners (`StdioRunner`, `Stream
 
 See the TypeScript definition in [`src/transports/base.ts`](./src/transports/base.ts) for detailed documentation of all available options.
 
+**Note:** Several properties in `TransportRunnerConfig` are deprecated. For customizing server creation, prefer extending `StreamableHttpRunner` and overriding the `createServerForRequest` method, or using `createServer` with appropriate `serverOptions` and `sessionOptions`.
+
 ### ToolBase
 
 Base class for implementing custom MCP tools.
@@ -859,46 +895,55 @@ See "Example: Integration with Request Overrides" for further details on how to 
 
 ### Custom Connection Management
 
-You can provide a custom connection manager factory to control how the MongoDB MCP server connects to a MongoDB instance. The only use case for this is if connection handling is done differently in your application. For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of ConnectionManager because the connection handling is done by the extension itself.
+You can provide a custom connection manager to control how the MongoDB MCP server connects to a MongoDB instance. The main use case for this is if connection handling is done differently in your application. For example, the [MongoDB extension for VS Code](https://github.com/mongodb-js/vscode/blob/f45a4c774ffc01e9aed38f6ef00224bf921d9784/src/mcp/mcpConnectionManager.ts#L30) provides its own implementation of ConnectionManager because the connection handling is done by the extension itself.
 
-The default connection manager factory (`createMCPConnectionManager`) is also exported if you need to use the default implementation.
+The default connection manager factory (`defaultCreateConnectionManager`) is also exported if you need to use the default implementation.
 
 ```typescript
 import {
   ConnectionManager,
   StreamableHttpRunner,
   UserConfigSchema,
-  createMCPConnectionManager,
+  defaultCreateConnectionManager,
 } from "mongodb-mcp-server";
-import type { ConnectionManagerFactoryFn } from "mongodb-mcp-server";
+import type { Server } from "mongodb-mcp-server";
+import type { RequestContext } from "mongodb-mcp-server";
 
-// Using the default connection manager (this is the default behavior)
-const runner1 = new StreamableHttpRunner({
+// Extend StreamableHttpRunner and override createServerForRequest to provide custom connection manager
+class CustomStreamableHttpRunner extends StreamableHttpRunner {
+  protected override async createServerForRequest({
+    request,
+  }: {
+    request: RequestContext;
+  }): Promise<Server> {
+    // Create a custom connection manager instance
+    // This example uses the default, but you can provide your own implementation
+    const customConnectionManager = await defaultCreateConnectionManager({
+      logger: this.logger,
+      userConfig: this.userConfig,
+      deviceId: this.deviceId,
+    });
+
+    // Create the server with the custom connection manager
+    return this.createServer({
+      userConfig: this.userConfig,
+      sessionOptions: {
+        connectionManager: customConnectionManager,
+      },
+    });
+  }
+}
+
+const runner = new CustomStreamableHttpRunner({
   userConfig: UserConfigSchema.parse({}),
-  createConnectionManager: createMCPConnectionManager,
 });
 
-// Or provide a custom connection manager
-const customConnectionManager: ConnectionManagerFactoryFn = async ({
-  logger,
-  userConfig,
-  deviceId,
-}): Promise<ConnectionManager> => {
-  // Just for types we're using the internal mcp connection manager factory but
-  // its an example. You can return a custom ConnectionManager implementation
-  // that could delegate to your application's existing connection logic.
-  return createMCPConnectionManager({ logger, userConfig, deviceId });
-};
-
-const runner2 = new StreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({}),
-  createConnectionManager: customConnectionManager,
-});
+await runner.start();
 ```
 
 ### Custom Error Handling
 
-Provide custom error handling for connection errors. The error handler receives `MongoDBError` instances with specific error codes, and can choose to handle them or let the default handler take over.
+Provide custom error handling for connection errors by passing a custom `connectionErrorHandler` to `createServer`. The error handler receives `MongoDBError` instances with specific error codes, and can choose to handle them or let the default handler take over.
 
 The default connection error handler (`connectionErrorHandler`) is also exported if you need to use the default implementation.
 
@@ -930,12 +975,8 @@ import {
   connectionErrorHandler as defaultConnectionErrorHandler,
 } from "mongodb-mcp-server";
 import type { ConnectionErrorHandler } from "mongodb-mcp-server";
-
-// Using the default error handler (this is the default behavior)
-const runner1 = new StreamableHttpRunner({
-  userConfig: UserConfigSchema.parse({}),
-  connectionErrorHandler: defaultConnectionErrorHandler,
-});
+import type { Server } from "mongodb-mcp-server";
+import type { RequestContext } from "mongodb-mcp-server";
 
 // Or provide a custom error handler
 const customErrorHandler: ConnectionErrorHandler = (error, context) => {
@@ -968,10 +1009,28 @@ const customErrorHandler: ConnectionErrorHandler = (error, context) => {
   return defaultConnectionErrorHandler(error, context);
 };
 
-const runner2 = new StreamableHttpRunner({
+// Extend StreamableHttpRunner and override createServerForRequest to provide custom error handler
+class CustomStreamableHttpRunner extends StreamableHttpRunner {
+  protected override async createServerForRequest({
+    request,
+  }: {
+    request: RequestContext;
+  }): Promise<Server> {
+    // Create the server with the custom error handler
+    return this.createServer({
+      userConfig: this.userConfig,
+      serverOptions: {
+        connectionErrorHandler: customErrorHandler,
+      },
+    });
+  }
+}
+
+const runner = new CustomStreamableHttpRunner({
   userConfig: UserConfigSchema.parse({}),
-  connectionErrorHandler: customErrorHandler,
 });
+
+await runner.start();
 ```
 
 ### Custom Logging

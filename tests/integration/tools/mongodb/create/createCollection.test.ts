@@ -7,6 +7,7 @@ import {
     validateThrowsForInvalidArguments,
     databaseCollectionInvalidArgs,
 } from "../../../helpers.js";
+import type { CreateCollectionOutput } from "../../../../../src/tools/mongodb/create/createCollection.js";
 import { describe, expect, it } from "vitest";
 
 describeWithMongoDB("createCollection tool", (integration) => {
@@ -34,6 +35,12 @@ describeWithMongoDB("createCollection tool", (integration) => {
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Collection "bar" created in database "${integration.randomDbName()}".`);
 
+            // Validate structured content
+            const structuredContent = response.structuredContent as CreateCollectionOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("bar");
+            expect(structuredContent.created).toBe(true);
+
             collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(1);
             expect(collections[0]?.name).toEqual("bar");
@@ -54,6 +61,13 @@ describeWithMongoDB("createCollection tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Collection "collection2" created in database "${integration.randomDbName()}".`);
+
+            // Validate structured content
+            const structuredContent = response.structuredContent as CreateCollectionOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("collection2");
+            expect(structuredContent.created).toBe(true);
+
             collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(2);
             expect(collections.map((c) => c.name)).toIncludeSameMembers(["collection1", "collection2"]);
@@ -78,6 +92,13 @@ describeWithMongoDB("createCollection tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(`Collection "collection1" created in database "${integration.randomDbName()}".`);
+
+            // Validate structured content
+            const structuredContent = response.structuredContent as CreateCollectionOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("collection1");
+            expect(structuredContent.created).toBe(true);
+
             collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
             expect(collections).toHaveLength(1);
             expect(collections[0]?.name).toEqual("collection1");

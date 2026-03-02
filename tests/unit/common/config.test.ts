@@ -17,6 +17,7 @@ import { getConfigMeta } from "../../../src/common/config/configOverrides.js";
 // Expected hardcoded values (what we had before)
 const expectedDefaults = {
     apiBaseUrl: "https://cloud.mongodb.com/",
+    assistantBaseUrl: "https://knowledge.mongodb.com/api/v1/",
     logPath: getLogPath(),
     exportsPath: getExportsPath(),
     exportTimeoutMs: 5 * 60 * 1000, // 5 minutes

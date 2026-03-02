@@ -1,12 +1,19 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
-import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
+import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
 import type { Document } from "mongodb";
 import { getAggregateArgs } from "../read/aggregate.js";
 import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
+
+const ExplainOutputSchema = {
+    explainResult: z.record(z.unknown()),
+    method: z.string(),
+    verbosity: z.string(),
+};
+
+export type ExplainOutput = z.infer<z.ZodObject<typeof ExplainOutputSchema>>;
 
 export class ExplainTool extends MongoDBToolBase {
     static toolName = "explain";
@@ -47,13 +54,14 @@ export class ExplainTool extends MongoDBToolBase {
                 "The verbosity of the explain plan, defaults to queryPlanner. If the user wants to know how fast is a query in execution time, use executionStats. It supports all verbosities as defined in the MongoDB Driver."
             ),
     };
+    public override outputSchema = ExplainOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
         { database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
         { signal }: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const method = methods[0];
 
@@ -114,6 +122,11 @@ export class ExplainTool extends MongoDBToolBase {
                 `Here is some information about the winning plan chosen by the query optimizer for running the given \`${method.name}\` operation in "${database}.${collection}". The execution plan was run with the following verbosity: "${verbosity}". This information can be used to understand how the query was executed and to optimize the query performance.`,
                 JSON.stringify(result)
             ),
+            structuredContent: {
+                explainResult: result,
+                method: method.name,
+                verbosity,
+            },
         };
     }
 }

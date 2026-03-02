@@ -15,18 +15,18 @@ export const CONFIG_QUERY_PREFIX = "mongodbMcp";
  * @param request - The request context containing headers and query parameters
  * @returns The configuration with overrides applied
  */
-export function applyConfigOverrides({
+export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig>({
     baseConfig,
     request,
 }: {
-    baseConfig: UserConfig;
+    baseConfig: TUserConfig;
     request?: RequestContext;
-}): UserConfig {
+}): TUserConfig {
     if (!request) {
         return baseConfig;
     }
 
-    const result: UserConfig = { ...baseConfig };
+    const result: TUserConfig = { ...baseConfig };
     const overridesFromHeaders = extractConfigOverrides("header", request.headers);
     const overridesFromQuery = extractConfigOverrides("query", request.query);
 
@@ -45,7 +45,7 @@ export function applyConfigOverrides({
         const behavior = meta?.overrideBehavior || "not-allowed";
         const baseValue = baseConfig[key];
         const newValue = applyOverride(key, baseValue, overrideValue, behavior);
-        (result as Record<keyof UserConfig, unknown>)[key] = newValue;
+        (result as Record<keyof TUserConfig, unknown>)[key] = newValue;
     }
 
     // Apply query overrides (with precedence), but block secret fields
@@ -61,7 +61,7 @@ export function applyConfigOverrides({
         const behavior = meta?.overrideBehavior || "not-allowed";
         const baseValue = baseConfig[key];
         const newValue = applyOverride(key, baseValue, overrideValue, behavior);
-        (result as Record<keyof UserConfig, unknown>)[key] = newValue;
+        (result as Record<keyof TUserConfig, unknown>)[key] = newValue;
     }
 
     return result;

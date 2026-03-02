@@ -1,5 +1,4 @@
-import type { z } from "zod";
-import { type ZodRawShape } from "zod";
+import type { z, ZodRawShape, ZodTypeAny } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
@@ -30,6 +29,16 @@ export interface ToolExecutionContext {
     };
 }
 
+export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined> = OutputSchema extends ZodRawShape
+    ? StructuredToolResult<OutputSchema>
+    : { content: { type: "text"; text: string }[]; isError?: boolean };
+
+type StructuredToolResult<OutputSchema extends ZodRawShape> = {
+    content: { type: "text"; text: string }[];
+    isError?: boolean;
+    structuredContent: z.objectOutputType<OutputSchema, ZodTypeAny>;
+};
+
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
  * the config's `disabledTools` and `readOnly` settings.
@@ -51,8 +60,9 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
  *   aggregating data, listing databases/collections/indexes, creating indexes, etc.
  * - `atlas` is used for tools that interact with MongoDB Atlas, such as listing clusters, creating clusters, etc.
  * - `atlas-local` is used for tools that interact with local Atlas deployments.
+ * - `assistant` is used for tools that interact with the Assistant, such as searching the public knowledge base.
  */
-export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
+export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
 /**
  * Parameters passed to the constructor of all tools that extends `ToolBase`.
@@ -62,7 +72,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local";
  *
  * See `Server.registerTools` method in `src/server.ts` for further reference.
  */
-export type ToolConstructorParams<TContext = unknown> = {
+export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
     /**
      * The unique name of this tool (injected from the static
      * `toolName` property on the Tool class).
@@ -94,7 +104,7 @@ export type ToolConstructorParams<TContext = unknown> = {
      *
      * See `src/common/config/userConfig.ts` for further reference.
      */
-    config: UserConfig;
+    config: TUserConfig;
 
     /**
      * The telemetry service for tracking tool usage.
@@ -178,10 +188,9 @@ export type ToolConstructorParams<TContext = unknown> = {
  * });
  * ```
  */
-export type ToolClass = {
+export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
     /** Constructor signature for the tool class */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (params: ToolConstructorParams<any>): ToolBase<any>;
+    new (params: ToolConstructorParams<TUserConfig, TContext>): ToolBase<TUserConfig, TContext>;
 
     /**
      * The unique name of this tool.
@@ -276,7 +285,7 @@ export type ToolClass = {
  * @see {@link ToolConstructorParams} for the parameters passed to the
  * constructor
  */
-export abstract class ToolBase<TContext = unknown> {
+export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
     /**
      * The unique name of this tool.
      *
@@ -472,6 +481,7 @@ export abstract class ToolBase<TContext = unknown> {
                                 text: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
                             },
                         ],
+                        isError: true,
                     };
                 }
                 // We do not want to include the elicitation time in the tool execution time
@@ -568,7 +578,7 @@ export abstract class ToolBase<TContext = unknown> {
      * settings including connection strings, feature flags, and operational
      * limits.
      */
-    protected readonly config: UserConfig;
+    protected readonly config: TUserConfig;
 
     /**
      * Access to the telemetry service. Use this to emit custom telemetry events
@@ -611,7 +621,7 @@ export abstract class ToolBase<TContext = unknown> {
         elicitation,
         uiRegistry,
         context,
-    }: ToolConstructorParams<TContext>) {
+    }: ToolConstructorParams<TUserConfig, TContext>) {
         this.name = name;
         this.category = category;
         this.operationType = operationType;
@@ -623,7 +633,7 @@ export abstract class ToolBase<TContext = unknown> {
         this.context = context;
     }
 
-    public register(server: Server): boolean {
+    public register(server: Server<TUserConfig, TContext>): boolean {
         if (!this.verifyAllowed()) {
             return false;
         }
@@ -884,6 +894,9 @@ export abstract class ToolBase<TContext = unknown> {
         };
     }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolBase = ToolBase<any, any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags

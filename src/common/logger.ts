@@ -4,7 +4,7 @@ import { mongoLogId, MongoLogManager } from "mongodb-log-writer";
 import { redact } from "mongodb-redact";
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
-import type { Server } from "../lib.js";
+import type { Server, UserConfig } from "../lib.js";
 import type { Keychain } from "./keychain.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
@@ -88,6 +88,9 @@ export const LogId = {
 
     atlasLocalDockerNotRunning: mongoLogId(1_010_001),
     atlasLocalUnsupportedPlatform: mongoLogId(1_010_002),
+
+    assistantListKnowledgeSourcesError: mongoLogId(1_011_001),
+    assistantSearchKnowledgeError: mongoLogId(1_011_002),
 } as const;
 
 export interface LogPayload {
@@ -284,7 +287,7 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
     }
 }
 
-export class McpLogger extends LoggerBase {
+export class McpLogger<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends LoggerBase {
     public static readonly LOG_LEVELS: LogLevel[] = [
         "debug",
         "info",
@@ -297,7 +300,7 @@ export class McpLogger extends LoggerBase {
     ] as const;
 
     public constructor(
-        private readonly server: Server,
+        private readonly server: Server<TUserConfig, TContext>,
         keychain: Keychain
     ) {
         super(keychain);

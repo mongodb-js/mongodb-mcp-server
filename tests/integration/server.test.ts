@@ -7,7 +7,7 @@ import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
-import { Elicitation, Keychain, Telemetry } from "../../src/lib.js";
+import { defaultCreateApiClient, Elicitation, Keychain, Telemetry } from "../../src/lib.js";
 import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -185,8 +185,19 @@ describe("Server integration test", () => {
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
+            connectionErrorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: config.apiBaseUrl,
+                    credentials: {
+                        clientId: config.apiClientId,
+                        clientSecret: config.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         });
 
         const telemetry = Telemetry.create(session, config, deviceId);

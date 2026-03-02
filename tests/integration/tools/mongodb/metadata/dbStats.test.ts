@@ -1,4 +1,4 @@
-import { ObjectId } from "bson";
+import { ObjectId, Long } from "bson";
 import {
     databaseParameters,
     validateToolMetadata,
@@ -7,6 +7,7 @@ import {
     getResponseElements,
     getDataFromUntrustedContent,
 } from "../../../helpers.js";
+import type { DbStatsOutput } from "../../../../../src/tools/mongodb/metadata/dbStats.js";
 import * as crypto from "crypto";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../mongodbHelpers.js";
 import { describe, expect, it } from "vitest";
@@ -42,6 +43,13 @@ describeWithMongoDB("dbStats tool", (integration) => {
             expect(stats.db).toBe(integration.randomDbName());
             expect(stats.collections).toBe(0);
             expect(stats.storageSize).toBe(0);
+
+            // Validate structured content - compare specific fields since BSON types differ from JSON
+            const structuredContent = response.structuredContent as DbStatsOutput;
+            expect(structuredContent.stats.db).toBe(stats.db);
+
+            expectLongOrNumber(structuredContent.stats.collections, stats.collections);
+            expectLongOrNumber(structuredContent.stats.storageSize, stats.storageSize);
         });
     });
 
@@ -92,6 +100,13 @@ describeWithMongoDB("dbStats tool", (integration) => {
                 expect(stats.storageSize).toBeGreaterThan(1024);
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                 expect(stats.objects).toBe(Object.values(test.collections).reduce((a, b) => a + b, 0));
+
+                // Validate structured content - compare specific fields since BSON types differ from JSON
+                const structuredContent = response.structuredContent as DbStatsOutput;
+                expect(structuredContent.stats.db).toBe(stats.db);
+                expectLongOrNumber(structuredContent.stats.collections, stats.collections as number);
+                expectLongOrNumber(structuredContent.stats.storageSize, stats.storageSize as number);
+                expectLongOrNumber(structuredContent.stats.objects, stats.objects as number);
             });
         }
     });
@@ -105,4 +120,12 @@ describeWithMongoDB("dbStats tool", (integration) => {
             expectedResponse: `Statistics for database ${integration.randomDbName()}`,
         };
     });
+
+    function expectLongOrNumber(value: unknown, expected: number): void {
+        if (typeof value === "number") {
+            expect(value).toBe(expected);
+        } else {
+            expect(value).toEqual(Long.fromNumber(expected));
+        }
+    }
 });

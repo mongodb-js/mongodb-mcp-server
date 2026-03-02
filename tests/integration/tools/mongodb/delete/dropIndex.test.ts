@@ -17,6 +17,7 @@ import {
 } from "../mongodbHelpers.js";
 import { createMockElicitInput } from "../../../../utils/elicitationMocks.js";
 import { Elicitation } from "../../../../../src/elicitation.js";
+import type { DropIndexOutput } from "../../../../../src/tools/mongodb/delete/dropIndex.js";
 
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
@@ -251,6 +252,12 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                                 indexName: getIndexName(),
                                 namespace: "mflix.movies",
                             });
+
+                            const structuredContent = response.structuredContent as DropIndexOutput;
+                            expect(structuredContent.database).toBe("mflix");
+                            expect(structuredContent.collection).toBe("movies");
+                            expect(structuredContent.indexName).toBe(getIndexName());
+                            expect(structuredContent.dropped).toBe(true);
                         });
                     });
                 },
@@ -426,6 +433,12 @@ describe.each([{ vectorSearchEnabled: false }, { vectorSearchEnabled: true }])(
                                     indexName,
                                     namespace: "mflix.movies",
                                 });
+
+                                const structuredContent = response.structuredContent as DropIndexOutput;
+                                expect(structuredContent.database).toBe("mflix");
+                                expect(structuredContent.collection).toBe("movies");
+                                expect(structuredContent.indexName).toBe(indexName);
+                                expect(structuredContent.dropped).toBe(true);
 
                                 indexes = await collection.listSearchIndexes().toArray();
                                 expect(indexes.find((idx) => idx.name === indexName)).toBeUndefined();

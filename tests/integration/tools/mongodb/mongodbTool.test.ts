@@ -21,6 +21,7 @@ import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
 import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
+import { defaultCreateApiClient } from "../../../../src/lib.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -104,7 +105,18 @@ describe("MongoDBTool implementations", () => {
             exportsManager,
             connectionManager,
             keychain: new Keychain(),
+            connectionErrorHandler: errorHandler,
             vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
+            apiClient: defaultCreateApiClient(
+                {
+                    baseUrl: userConfig.apiBaseUrl,
+                    credentials: {
+                        clientId: userConfig.apiClientId,
+                        clientSecret: userConfig.apiClientSecret,
+                    },
+                },
+                logger
+            ),
         });
         const telemetry = Telemetry.create(session, userConfig, deviceId);
 

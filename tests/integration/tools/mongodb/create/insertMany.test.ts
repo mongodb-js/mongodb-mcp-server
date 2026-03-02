@@ -15,6 +15,7 @@ import {
     getDataFromUntrustedContent,
     defaultTestConfig,
 } from "../../../helpers.js";
+import type { InsertManyOutput } from "../../../../../src/tools/mongodb/create/insertMany.js";
 import { beforeEach, afterEach, expect, it, describe, vi } from "vitest";
 import { ObjectId } from "bson";
 import type { Collection } from "mongodb";
@@ -76,6 +77,13 @@ describeWithMongoDB("insertMany tool when search is disabled", (integration) => 
 
         const content = getResponseContent(response.content);
         expect(content).toContain(`Inserted \`1\` document(s) into ${integration.randomDbName()}.coll1.`);
+
+        // Validate structured content
+        const structuredContent = response.structuredContent as InsertManyOutput;
+        expect(structuredContent.database).toBe(integration.randomDbName());
+        expect(structuredContent.collection).toBe("coll1");
+        expect(structuredContent.insertedCount).toBe(1);
+        expect(structuredContent.insertedIds).toHaveLength(1);
 
         await validateDocuments("coll1", [{ prop1: "value1" }]);
     });
@@ -203,6 +211,14 @@ describeWithMongoDB(
             const insertedIds = extractInsertedIds(content);
             expect(insertedIds).toHaveLength(1);
 
+            // Validate structured content
+            const structuredContent = response.structuredContent as InsertManyOutput;
+            expect(structuredContent.database).toBe(database);
+            expect(structuredContent.collection).toBe("test");
+            expect(structuredContent.insertedCount).toBe(1);
+            expect(structuredContent.insertedIds).toHaveLength(1);
+            expect(structuredContent.insertedIds[0]).toEqual(insertedIds[0]);
+
             const docCount = await collection.countDocuments({ _id: insertedIds[0] });
             expect(docCount).toBe(1);
         });
@@ -294,6 +310,14 @@ describeWithMongoDB(
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(1);
 
+                // Validate structured content
+                const structuredContent = response.structuredContent as InsertManyOutput;
+                expect(structuredContent.database).toBe(database);
+                expect(structuredContent.collection).toBe("test");
+                expect(structuredContent.insertedCount).toBe(1);
+                expect(structuredContent.insertedIds).toHaveLength(1);
+                expect(structuredContent.insertedIds[0]).toEqual(insertedIds[0]);
+
                 const doc = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc).toBeDefined();
                 expect(doc?.title).toBe("The Matrix");
@@ -346,6 +370,13 @@ describeWithMongoDB(
                 expect(content).toContain("Documents were inserted successfully.");
                 const insertedIds = extractInsertedIds(content);
                 expect(insertedIds).toHaveLength(2);
+
+                // Validate structured content
+                const structuredContent = response.structuredContent as InsertManyOutput;
+                expect(structuredContent.database).toBe(database);
+                expect(structuredContent.collection).toBe("test");
+                expect(structuredContent.insertedCount).toBe(2);
+                expect(structuredContent.insertedIds).toHaveLength(2);
 
                 const doc1 = await collection.findOne({ _id: insertedIds[0] });
                 expect(doc1?.title).toBe("The Matrix");

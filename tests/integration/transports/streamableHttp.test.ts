@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { LogId } from "../../../src/common/logger.js";
-import { createMCPConnectionManager } from "../../../src/common/connectionManager.js";
+import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
@@ -12,9 +12,12 @@ import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
+import type { RequestContext } from "../../../src/transports/base.js";
+import type { AnyToolClass, Server } from "../../../src/lib.js";
 
 describe("StreamableHttpRunner", () => {
-    let runner: StreamableHttpRunner;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let runner: StreamableHttpRunner<UserConfig, any>;
     let config: UserConfig;
 
     let clients: Client[] = [];
@@ -227,7 +230,7 @@ describe("StreamableHttpRunner", () => {
             const logger = new InMemoryLogger(new Keychain());
             const runner = new StreamableHttpRunner({
                 userConfig: config,
-                createConnectionManager: createMCPConnectionManager,
+                createConnectionManager: defaultCreateConnectionManager,
                 additionalLoggers: [logger],
             });
             await runner.start();
@@ -691,5 +694,233 @@ describe("StreamableHttpRunner", () => {
         expect(requestInfo).toBeDefined();
         const authorizationToken = requestInfo?.headers?.["authorization"] ?? requestInfo?.headers?.["Authorization"];
         expect(authorizationToken).toBe("Bearer 1234");
+    });
+
+    describe("with createServerForRequest override", () => {
+        type ToolContext = {
+            permissions: "none" | "full";
+        };
+        it("should customize server configuration based on request headers", async () => {
+            // Create a custom runner that extends StreamableHttpRunner
+            class CustomStreamableHttpRunner extends StreamableHttpRunner<UserConfig, ToolContext> {
+                protected async createServerForRequest({
+                    request,
+                }: {
+                    request: RequestContext;
+                }): Promise<Server<UserConfig, ToolContext>> {
+                    // Extract custom header to determine configuration
+                    const userRole = request.headers?.["x-user-role"];
+
+                    // Customize config based on role
+                    let sessionConfig: UserConfig = { ...this.userConfig };
+                    let toolContext: ToolContext = {
+                        permissions: "none",
+                    };
+
+                    if (userRole === "analyst") {
+                        // Analysts get read-only access with limited results
+                        sessionConfig = {
+                            ...sessionConfig,
+                            readOnly: true,
+                            maxDocumentsPerQuery: 10,
+                        };
+                    } else if (userRole === "admin") {
+                        // Admins get full access
+                        sessionConfig = {
+                            ...sessionConfig,
+                            readOnly: false,
+                            maxDocumentsPerQuery: 1000,
+                        };
+                        toolContext = {
+                            permissions: "full",
+                        };
+                    }
+
+                    return this.createServer({
+                        userConfig: sessionConfig,
+                        serverOptions: {
+                            toolContext,
+                        },
+                    });
+                }
+            }
+
+            // Create a tool that verifies the configuration
+            class ConfigCheckTool extends ToolBase<UserConfig, ToolContext> {
+                static toolName = "config-check";
+                public description = "Check current configuration";
+                public argsShape = {};
+                static category: ToolCategory = "mongodb";
+                static operationType: OperationType = "metadata";
+
+                protected execute(): Promise<CallToolResult> {
+                    return Promise.resolve({
+                        content: [
+                            {
+                                type: "text",
+                                text: JSON.stringify({
+                                    readOnly: this.session["userConfig"].readOnly,
+                                    maxDocumentsPerQuery: this.session["userConfig"].maxDocumentsPerQuery,
+                                    permissions: this.context?.permissions,
+                                }),
+                            },
+                        ],
+                    });
+                }
+
+                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                    return {};
+                }
+            }
+
+            // Initialize custom runner with the config check tool
+            runner = new CustomStreamableHttpRunner({
+                userConfig: config,
+                tools: [ConfigCheckTool],
+            });
+            await runner.start();
+
+            // Test 1: Analyst role gets read-only with limited results
+            const analystClient = await connectClient({
+                additionalHeaders: { "x-user-role": "analyst" },
+            });
+
+            const analystResponse = (await analystClient.callTool({
+                name: "config-check",
+                arguments: {},
+            })) as { content: { text: string }[] };
+
+            const analystConfig = JSON.parse(analystResponse.content[0]?.text ?? "{}") as {
+                readOnly: boolean;
+                maxDocumentsPerQuery: number;
+            };
+            expect(analystConfig.readOnly).toBe(true);
+            expect(analystConfig.maxDocumentsPerQuery).toBe(10);
+
+            // Test 2: Admin role gets full access
+            const adminClient = await connectClient({
+                additionalHeaders: { "x-user-role": "admin" },
+            });
+
+            const adminResponse = (await adminClient.callTool({
+                name: "config-check",
+                arguments: {},
+            })) as { content: { text: string }[] };
+
+            const adminConfig = JSON.parse(adminResponse.content[0]?.text ?? "{}") as {
+                readOnly: boolean;
+                maxDocumentsPerQuery: number;
+                permissions: "none" | "full";
+            };
+            expect(adminConfig.readOnly).toBe(false);
+            expect(adminConfig.permissions).toBe("full");
+            expect(adminConfig.maxDocumentsPerQuery).toBe(1000);
+
+            // Test 3: No role header uses default config
+            const defaultClient = await connectClient({ additionalHeaders: {} });
+
+            const defaultResponse = (await defaultClient.callTool({
+                name: "config-check",
+                arguments: {},
+            })) as { content: { text: string }[] };
+
+            const defaultConfig = JSON.parse(defaultResponse.content[0]?.text ?? "{}") as {
+                readOnly: boolean;
+                maxDocumentsPerQuery: number;
+                permissions: "none" | "full";
+            };
+            expect(defaultConfig.readOnly).toBe(config.readOnly);
+            expect(defaultConfig.permissions).toBe("none");
+            expect(defaultConfig.maxDocumentsPerQuery).toBe(config.maxDocumentsPerQuery);
+        });
+
+        it("should allow customizing tools based on request context", async () => {
+            // Create different tool sets based on request headers
+            class UserTool extends ToolBase<UserConfig, ToolContext> {
+                static toolName = "user-tool";
+                public description = "Available to users";
+                public argsShape = {};
+                static category: ToolCategory = "mongodb";
+                static operationType: OperationType = "metadata";
+
+                protected execute(): Promise<CallToolResult> {
+                    return Promise.resolve({
+                        content: [{ type: "text", text: "user tool executed" }],
+                    });
+                }
+
+                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                    return {};
+                }
+            }
+
+            class AdminTool extends ToolBase<UserConfig, ToolContext> {
+                static toolName = "admin-tool";
+                public description = "Available to admins only";
+                public argsShape = {};
+                static category: ToolCategory = "mongodb";
+                static operationType: OperationType = "create";
+
+                protected execute(): Promise<CallToolResult> {
+                    return Promise.resolve({
+                        content: [{ type: "text", text: "admin tool executed" }],
+                    });
+                }
+
+                protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                    return {};
+                }
+            }
+
+            // Custom runner that customizes available tools
+            class CustomStreamableHttpRunner extends StreamableHttpRunner<UserConfig, ToolContext> {
+                protected override async createServerForRequest({
+                    request,
+                }: {
+                    request: RequestContext;
+                }): Promise<Server<UserConfig, ToolContext>> {
+                    const userRole = request.headers?.["x-user-role"];
+
+                    // Users only get UserTool
+                    let tools: AnyToolClass[] = [UserTool];
+
+                    // Admins get both tools
+                    if (userRole === "admin") {
+                        tools = [UserTool, AdminTool];
+                    }
+
+                    return this.createServer({
+                        userConfig: this.userConfig,
+                        serverOptions: {
+                            tools,
+                        },
+                    });
+                }
+            }
+
+            runner = new CustomStreamableHttpRunner({
+                userConfig: config,
+            });
+            await runner.start();
+
+            // Test 1: Regular users only see user-tool
+            const userClient = await connectClient({
+                additionalHeaders: { "x-user-role": "user" },
+            });
+
+            const userTools = await userClient.listTools();
+            expect(userTools.tools).toHaveLength(1);
+            expect(userTools.tools[0]?.name).toBe("user-tool");
+
+            // Test 2: Admins see both tools
+            const adminClient = await connectClient({
+                additionalHeaders: { "x-user-role": "admin" },
+            });
+
+            const adminTools = await adminClient.listTools();
+            expect(adminTools.tools).toHaveLength(2);
+            const toolNames = adminTools.tools.map((t) => t.name).sort();
+            expect(toolNames).toEqual(["admin-tool", "user-tool"]);
+        });
     });
 });
