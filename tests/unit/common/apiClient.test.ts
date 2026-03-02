@@ -70,9 +70,7 @@ describe("ApiClient", () => {
             const call = mockFetch.mock.calls[0];
             expect(call).toBeDefined();
             const [url, init] = call!;
-            expect(url instanceof URL ? url.href : url).toBe(
-                "https://api.test.com/api/private/v1.0/telemetry/events"
-            );
+            expect(url instanceof URL ? url.href : url).toBe("https://api.test.com/api/private/v1.0/telemetry/events");
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
             expect(headers["User-Agent"]).toBe("test-user-agent");
