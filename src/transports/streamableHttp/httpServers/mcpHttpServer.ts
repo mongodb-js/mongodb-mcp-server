@@ -1,20 +1,16 @@
 import express from "express";
-import type http from "http";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import type { LoggerBase } from "../common/logging/index.js";
-import { CompositeLogger, LogId } from "../common/logging/index.js";
-import { SessionStore } from "../common/sessionStore.js";
-import {
-    TransportRunnerBase,
-    type TransportRunnerConfig,
-    type RequestContext,
-    type CustomizableSessionOptions,
-} from "./base.js";
-import { getRandomUUID } from "../helpers/getRandomUUID.js";
-import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { applyConfigOverrides } from "../common/config/configOverrides.js";
+
+import type { Server } from "../../../server.js";
+import { SessionStore } from "../../../common/sessionStore.js";
+import { getRandomUUID } from "../../../helpers/getRandomUUID.js";
+import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import type { UserConfig } from "../../../common/config/userConfig.js";
+import { type LoggerBase, LogId } from "../../../common/logging/index.js";
+import type { CustomizableServerOptions, CustomizableSessionOptions, RequestContext } from "../../base.js";
+
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
@@ -22,262 +18,10 @@ const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 
-export class StreamableHttpRunner<
+export class MCPHttpServer<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
-> extends TransportRunnerBase<TUserConfig, TContext> {
-    private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
-    private healthCheckServer: HealthCheckServer | undefined;
-
-    constructor(config: TransportRunnerConfig<TUserConfig>) {
-        super(config);
-    }
-
-    /** Starts the transport runner. */
-    async start({
-        serverOptions,
-        sessionOptions,
-    }: {
-        /** Server options to use when creating the server. */
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        /** Session options to use when creating the session. */
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    } = {}): Promise<void> {
-        this.validateConfig();
-
-        await this.startMCPServer({ serverOptions, sessionOptions });
-        await this.startHealthCheckServer();
-
-        this.logger.info({
-            message: "Streamable HTTP Transport started",
-            context: "streamableHttpTransport",
-            id: LogId.streamableHttpTransportStarted,
-        });
-    }
-
-    async closeTransport(): Promise<void> {
-        await Promise.all([this.mcpServer?.stop(), this.healthCheckServer?.stop()]);
-    }
-
-    private shouldWarnAboutHttpHost(httpHost: string): boolean {
-        const host = httpHost.trim();
-        const safeHosts = new Set(["127.0.0.1", "localhost", "::1"]);
-        return host === "0.0.0.0" || host === "::" || (!safeHosts.has(host) && host !== "");
-    }
-
-    /**
-     * Creates a new MCP server instance for a given request.
-     */
-    protected async createServerForRequest({
-        request,
-        serverOptions,
-        sessionOptions,
-    }: {
-        request: RequestContext;
-        /** Upstream `serverOptions` passed from running `runner.start({ serverOptions })` method */
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        /** Upstream `sessionOptions` passed from running `runner.start({ sessionOptions })` method */
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }): Promise<Server<TUserConfig, TContext>> {
-        let userConfig: TUserConfig = sessionOptions?.userConfig ?? this.userConfig;
-
-        if (this.createSessionConfig) {
-            userConfig = await this.createSessionConfig({ userConfig, request });
-        } else {
-            userConfig = applyConfigOverrides({ baseConfig: userConfig, request });
-        }
-
-        const logger = new CompositeLogger(this.logger);
-
-        return this.createServer({
-            userConfig,
-            logger,
-            serverOptions: {
-                tools: this.tools,
-                ...serverOptions,
-            },
-            sessionOptions: {
-                ...sessionOptions,
-                connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
-                connectionManager:
-                    sessionOptions?.connectionManager ??
-                    (await this.createConnectionManager({
-                        logger,
-                        deviceId: this.deviceId,
-                        userConfig,
-                    })),
-                atlasLocalClient: sessionOptions?.atlasLocalClient ?? (await this.createAtlasLocalClient({ logger })),
-                apiClient:
-                    sessionOptions?.apiClient ??
-                    (userConfig.apiClientId && userConfig.apiClientSecret
-                        ? this.createApiClient(
-                              {
-                                  baseUrl: userConfig.apiBaseUrl,
-                                  credentials: {
-                                      clientId: userConfig.apiClientId,
-                                      clientSecret: userConfig.apiClientSecret,
-                                  },
-                                  requestContext: request,
-                              },
-                              logger
-                          )
-                        : undefined),
-            },
-        });
-    }
-
-    private async startMCPServer({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }): Promise<void> {
-        this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
-            userConfig: this.userConfig,
-            serverOptions,
-            sessionOptions,
-            createServerForRequest: ({
-                request,
-                serverOptions: requestServerOptions,
-                sessionOptions: requestSessionOptions,
-            }): Promise<Server<TUserConfig, TContext>> =>
-                this.createServerForRequest({
-                    request,
-                    serverOptions: requestServerOptions,
-                    sessionOptions: requestSessionOptions,
-                }),
-            logger: this.logger,
-        });
-        await this.mcpServer.start();
-    }
-
-    private async startHealthCheckServer(): Promise<void> {
-        const { healthCheckHost, healthCheckPort } = this.userConfig;
-        if (healthCheckHost && healthCheckPort !== undefined) {
-            this.healthCheckServer = new HealthCheckServer(healthCheckHost, healthCheckPort, this.logger);
-
-            await this.healthCheckServer.start();
-        }
-    }
-
-    private validateConfig(): void {
-        if ((this.userConfig.healthCheckHost === undefined) !== (this.userConfig.healthCheckPort === undefined)) {
-            throw new Error("Both healthCheckHost and healthCheckPort must be defined to enable health checks.");
-        }
-
-        if (this.userConfig.healthCheckHost !== undefined && this.userConfig.healthCheckPort !== undefined) {
-            if (this.userConfig.healthCheckPort === this.userConfig.httpPort && this.userConfig.healthCheckPort !== 0) {
-                throw new Error("healthCheckPort cannot be the same as httpPort.");
-            }
-        }
-
-        if (this.shouldWarnAboutHttpHost(this.userConfig.httpHost)) {
-            this.logger.warning({
-                id: LogId.streamableHttpTransportHttpHostWarning,
-                context: "streamableHttpTransport",
-                message: `Binding to ${this.userConfig.httpHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
-                noRedaction: true,
-            });
-        }
-    }
-}
-
-type ExpressConfig = {
-    port: number;
-    hostname: string;
-};
-
-abstract class ExpressBasedHttpServer {
-    protected httpServer: http.Server | undefined;
-    protected app: express.Express;
-
-    protected readonly logger: LoggerBase;
-    protected readonly logContext: string;
-
-    protected readonly expressConfig: ExpressConfig;
-
-    constructor(config: { logger: LoggerBase; logContext: string } & ExpressConfig) {
-        this.app = express();
-        this.app.enable("trust proxy"); // needed for reverse proxy support
-        this.expressConfig = { port: config.port, hostname: config.hostname };
-
-        this.logger = config.logger;
-        this.logContext = config.logContext;
-    }
-
-    public get serverAddress(): string {
-        const result = this.httpServer?.address();
-        if (typeof result === "string") {
-            return result;
-        }
-        if (typeof result === "object" && result) {
-            return `http://${result.address}:${result.port}`;
-        }
-
-        throw new Error("Server is not started yet");
-    }
-
-    protected abstract setupRoutes(): Promise<void>;
-
-    public async start(): Promise<void> {
-        await this.setupRoutes();
-
-        const { port, hostname } = this.expressConfig;
-
-        this.httpServer = await new Promise<http.Server>((resolve, reject) => {
-            const result = this.app.listen(port, hostname, (err?: Error) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(result);
-                }
-            });
-        });
-
-        this.logger.info({
-            message: `Http server started on address: ${this.serverAddress}`,
-            context: this.logContext,
-            noRedaction: true,
-            id: LogId.httpServerStarted,
-        });
-    }
-
-    public async stop(): Promise<void> {
-        if (this.httpServer) {
-            this.logger.info({
-                message: "Stopping server...",
-                context: this.logContext,
-                id: LogId.httpServerStopping,
-            });
-
-            const server = this.httpServer;
-
-            await new Promise((resolve, reject) => {
-                server.close((err?: Error) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(undefined);
-                    }
-                });
-            });
-            this.logger.info({
-                message: "Server stopped",
-                context: this.logContext,
-                id: LogId.httpServerStopped,
-            });
-        } else {
-            this.logger.info({
-                message: "Server is not running",
-                context: this.logContext,
-                id: LogId.httpServerStopped,
-            });
-        }
-    }
-}
-
-class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
+> extends ExpressBasedHttpServer {
     private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
     private serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private sessionOptions?: CustomizableSessionOptions<TUserConfig>;
@@ -587,26 +331,5 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 });
             });
         };
-    }
-}
-
-class HealthCheckServer extends ExpressBasedHttpServer {
-    constructor(healthCheckHost: string, healthCheckPort: number, logger: LoggerBase) {
-        super({
-            port: healthCheckPort,
-            hostname: healthCheckHost,
-            logger,
-            logContext: "healthCheckServer",
-        });
-    }
-
-    protected override setupRoutes(): Promise<void> {
-        this.app.get("/health", (_req: express.Request, res: express.Response) => {
-            res.json({
-                status: "ok",
-            });
-        });
-
-        return Promise.resolve();
     }
 }

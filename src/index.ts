@@ -42,7 +42,7 @@ import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { StdioRunner } from "./transports/stdio.js";
-import { StreamableHttpRunner } from "./transports/streamableHttp.js";
+import { StreamableHttpRunner } from "./transports/streamableHttp/streamableHttpRunner.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
