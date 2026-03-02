@@ -255,10 +255,6 @@ export class MCPHttpServer<
 
         const transport = new StreamableHTTPServerTransport(options);
 
-        if (isImplicitInitialization) {
-            sessionInitialized(sessionId);
-        }
-
         let failedPings = 0;
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         const keepAliveLoop: NodeJS.Timeout = setInterval(async () => {
@@ -307,6 +303,10 @@ export class MCPHttpServer<
         };
 
         await server.connect(transport);
+
+        if (isImplicitInitialization) {
+            sessionInitialized(sessionId);
+        }
 
         await transport.handleRequest(req, res, req.body);
     }
