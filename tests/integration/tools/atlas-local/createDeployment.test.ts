@@ -2,7 +2,8 @@ import { defaultTestConfig, expectDefined, getResponseElements } from "../../hel
 import { afterEach, expect, it } from "vitest";
 import { describeWithAtlasLocal, describeWithAtlasLocalDisabled } from "./atlasLocalHelpers.js";
 
-const voyageApiKey = "test-voyage-api-key";
+// Config used for tests that require a voyageApiKey.
+const config = { ...defaultTestConfig, voyageApiKey: "test-voyage-api-key" };
 
 describeWithAtlasLocal(
     "atlas-local-create-deployment",
@@ -166,7 +167,7 @@ describeWithAtlasLocal(
             const client = integration.mcpServer().session.atlasLocalClient;
             expectDefined(client);
             const deployment = await client.getDeployment(deploymentName);
-            expect((deployment as { voyageApiKey?: string }).voyageApiKey).toBe(voyageApiKey);
+            expect((deployment as { voyageApiKey?: string }).voyageApiKey).toBe(config.voyageApiKey);
         });
 
         it("should create a deployment with imageTag latest", async () => {
@@ -185,9 +186,7 @@ describeWithAtlasLocal(
             expect(createElements[0]?.text ?? "").toContain(deploymentName);
         });
     },
-    {
-        getUserConfig: () => ({ ...defaultTestConfig, voyageApiKey }),
-    }
+    { config }
 );
 
 describeWithAtlasLocalDisabled("[MacOS in GitHub Actions] atlas-local-create-deployment", (integration) => {

@@ -7,15 +7,16 @@ const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITH
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
 
 /**
- * Options for Atlas Local integration tests. Supports dependency injection of userConfig.
+ * Options for Atlas Local integration tests.
  */
 export interface AtlasLocalIntegrationOptions {
-    getUserConfig?: () => UserConfig;
+    config?: UserConfig;
 }
 
 /**
  * Helper function to setup integration tests for Atlas Local tools.
  * Automatically skips tests on macOS in GitHub Actions where Docker is not available.
+ * Pass options.config to inject a config into the server, otherwise defaultTestConfig is used.
  */
 export function describeWithAtlasLocal(
     name: string,
@@ -23,8 +24,8 @@ export function describeWithAtlasLocal(
     options?: AtlasLocalIntegrationOptions
 ): void {
     describe.skipIf(isMacOSInGitHubActions)(name, () => {
-        const getUserConfig = options?.getUserConfig ?? ((): UserConfig => defaultTestConfig);
-        const integration = setupIntegrationTest(getUserConfig);
+        const config = options?.config ?? defaultTestConfig;
+        const integration = setupIntegrationTest(() => config);
         fn(integration);
     });
 }
@@ -39,8 +40,8 @@ export function describeWithAtlasLocalDisabled(
     options?: AtlasLocalIntegrationOptions
 ): void {
     describe.skipIf(!isMacOSInGitHubActions)(name, () => {
-        const getUserConfig = options?.getUserConfig ?? ((): UserConfig => defaultTestConfig);
-        const integration = setupIntegrationTest(getUserConfig);
+        const config = options?.config ?? defaultTestConfig;
+        const integration = setupIntegrationTest(() => config);
         fn(integration);
     });
 }
