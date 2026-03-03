@@ -93,7 +93,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
         configFileName: ".claude.json",
         getConfigPath: (): string => {
             // macOS/Linux: ~/.claude.json
-            // Windows: %USERPROFILE%\.claude.json
+            // windows: %USERPROFILE%\.claude.json
             return path.join(os.homedir(), ".claude.json");
         },
     },
@@ -102,7 +102,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
         configFileName: "config.toml",
         getConfigPath: (): string => {
             // macOS/Linux: ~/.codex/config.toml
-            // Windows: %USERPROFILE%\.codex\config.toml (user-level only; not /etc/codex)
+            // windows: %USERPROFILE%\.codex\config.toml (user-level only; not /etc/codex)
             return path.join(os.homedir(), ".codex", "config.toml");
         },
     },
@@ -111,7 +111,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
         configFileName: "opencode.json",
         getConfigPath: (): string => {
             // macOS/Linux: ~/.config/opencode/opencode.json
-            // Windows: %USERPROFILE%\.config\opencode\opencode.json
+            // windows: %USERPROFILE%\.config\opencode\opencode.json
             return path.join(os.homedir(), ".config", "opencode", "opencode.json");
         },
     },

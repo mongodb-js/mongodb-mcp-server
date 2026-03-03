@@ -86,7 +86,7 @@ async function main(): Promise<void> {
     }
 
     if (config.previewFeatures.includes("setup") && isSetupRequested) {
-        handleSetupRequest();
+        await handleSetupRequest();
     }
 
     if (config.dryRun) {

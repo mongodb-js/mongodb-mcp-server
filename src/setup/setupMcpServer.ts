@@ -99,11 +99,14 @@ const getConfigFileName = (editor: EditorType): string => {
 };
 
 const getServersKey = (editor: EditorType): "servers" | "mcpServers" | null => {
-    // VS Code uses "servers" at the top level; Cursor, Windsurf, Claude Desktop, Claude Code use "mcpServers"
+    // VS Code uses "servers" at the top level
     if (editor === "vscode") return "servers";
+
+    // Cursor, Windsurf, Claude Desktop, Claude Code use "mcpServers"
     if (editor === "cursor" || editor === "windsurf" || editor === "claudeDesktop" || editor === "claudeCode") {
         return "mcpServers";
     }
+
     // OpenCode uses "mcp" (different shape); Codex uses TOML — handled separately
     return null;
 };
@@ -146,6 +149,28 @@ const readOpenCodeConfig = (configPath: string): OpenCodeConfig => {
         console.error(`Warning: Could not parse existing opencode.json. Error is: ${formatError(e)}`);
         return { mcp: {} };
     }
+};
+
+const appendOpenCodeJsonSection = (configPath: string, env: Record<string, string>, isReadOnly: boolean): void => {
+    const opencodeConfig = readOpenCodeConfig(configPath);
+    if (!opencodeConfig.mcp) {
+        opencodeConfig.mcp = {};
+    }
+    const args = ["-y", "mongodb-mcp-server@latest"];
+    if (isReadOnly) {
+        args.push("--readOnly");
+    }
+    opencodeConfig.mcp["mongodb-mcp-server"] = {
+        type: "local",
+        command: ["npx", ...args],
+        environment: Object.keys(env).length > 0 ? env : undefined,
+        enabled: true,
+    };
+    const configDir = path.dirname(configPath);
+    if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(configPath, JSON.stringify(opencodeConfig, null, 2));
 };
 
 const appendCodexTomlSection = (configPath: string, env: Record<string, string>, isReadOnly: boolean): void => {
@@ -291,25 +316,7 @@ const configureEditor = async (
     const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
 
     if (editor === EDITORS.OPENCODE) {
-        const opencodeConfig = readOpenCodeConfig(configPath);
-        if (!opencodeConfig.mcp) {
-            opencodeConfig.mcp = {};
-        }
-        const args = ["-y", "mongodb-mcp-server@latest"];
-        if (isReadOnly) {
-            args.push("--readOnly");
-        }
-        opencodeConfig.mcp["mongodb-mcp-server"] = {
-            type: "local",
-            command: ["npx", ...args],
-            environment: Object.keys(env).length > 0 ? env : undefined,
-            enabled: true,
-        };
-        const configDir = path.dirname(configPath);
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
-        }
-        fs.writeFileSync(configPath, JSON.stringify(opencodeConfig, null, 2));
+        appendOpenCodeJsonSection(configPath, env, isReadOnly);
     } else if (editor === EDITORS.CODEX) {
         appendCodexTomlSection(configPath, env, isReadOnly);
     } else {
