@@ -135,6 +135,8 @@ export class StreamableHttpRunner<
     }): Promise<void> {
         this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
             userConfig: this.userConfig,
+            serverOptions,
+            sessionOptions,
             createServerForRequest: ({ request }): Promise<Server<TUserConfig, TContext>> =>
                 this.createServerForRequest({ request, serverOptions, sessionOptions }),
             logger: this.logger,
