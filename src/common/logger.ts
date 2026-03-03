@@ -62,8 +62,101 @@ export type MetricHint = {
 }[keyof MetricDefinitions];
 
 /**
- * LogId constants - these are string literals used for type discrimination.
- * The actual MongoLogId values are stored separately in MongoLogIds.
+ * Alias for logs without any associated metrics.
+ */
+type NoMetrics = { metrics?: never };
+
+/**
+ * Single source of truth for all log definitions.
+ * Each log defines its required metrics (or NoMetrics if none).
+ */
+type LogDefinitions = {
+    serverStartFailure: NoMetrics;
+    serverInitialized: NoMetrics;
+    serverCloseRequested: NoMetrics;
+    serverClosed: NoMetrics;
+    serverCloseFailure: NoMetrics;
+    serverDuplicateLoggers: NoMetrics;
+    serverMcpClientSet: NoMetrics;
+
+    atlasCheckCredentials: NoMetrics;
+    atlasDeleteDatabaseUserFailure: NoMetrics;
+    atlasConnectFailure: NoMetrics;
+    atlasInspectFailure: NoMetrics;
+    atlasConnectAttempt: NoMetrics;
+    atlasConnectSucceeded: NoMetrics;
+    atlasApiRevokeFailure: NoMetrics;
+    atlasIpAccessListAdded: NoMetrics;
+    atlasIpAccessListAddFailure: NoMetrics;
+    atlasApiBaseUrlInsecure: NoMetrics;
+
+    telemetryDisabled: NoMetrics;
+    telemetryEmitFailure: NoMetrics;
+    telemetryEmitStart: NoMetrics;
+    telemetryEmitSuccess: NoMetrics;
+    telemetryMetadataError: NoMetrics;
+    deviceIdResolutionError: NoMetrics;
+    deviceIdTimeout: NoMetrics;
+    telemetryClose: NoMetrics;
+
+    toolExecute: { metrics: ["tool_execution_duration_ms"] };
+    toolExecuteFailure: { metrics: ["tool_executions_total"] };
+    toolDisabled: NoMetrics;
+    toolMetadataChange: NoMetrics;
+
+    mongodbConnectFailure: { metrics: ["mongodb_connections_total"] };
+    mongodbDisconnectFailure: NoMetrics;
+    mongodbConnectTry: { metrics: ["mongodb_connections_total"] };
+    mongodbCursorCloseError: NoMetrics;
+    mongodbIndexCheckFailure: NoMetrics;
+
+    toolUpdateFailure: NoMetrics;
+    resourceUpdateFailure: NoMetrics;
+    updateToolMetadata: NoMetrics;
+    toolValidationError: NoMetrics;
+
+    streamableHttpTransportStarted: NoMetrics;
+    streamableHttpTransportSessionCloseFailure: NoMetrics;
+    streamableHttpTransportSessionCloseNotification: NoMetrics;
+    streamableHttpTransportSessionCloseNotificationFailure: NoMetrics;
+    streamableHttpTransportRequestFailure: NoMetrics;
+    streamableHttpTransportCloseFailure: NoMetrics;
+    streamableHttpTransportKeepAliveFailure: NoMetrics;
+    streamableHttpTransportKeepAlive: NoMetrics;
+    streamableHttpTransportHttpHostWarning: NoMetrics;
+    streamableHttpTransportSessionNotFound: NoMetrics;
+    streamableHttpTransportDisallowedExternalSessionError: NoMetrics;
+
+    httpServerStarted: NoMetrics;
+    httpServerStopping: NoMetrics;
+    httpServerStopped: NoMetrics;
+
+    exportCleanupError: NoMetrics;
+    exportCreationError: NoMetrics;
+    exportCreationCleanupError: NoMetrics;
+    exportReadError: NoMetrics;
+    exportCloseError: NoMetrics;
+    exportedDataListError: NoMetrics;
+    exportedDataAutoCompleteError: NoMetrics;
+    exportLockError: NoMetrics;
+
+    oidcFlow: NoMetrics;
+
+    atlasPaSuggestedIndexesFailure: NoMetrics;
+    atlasPaDropIndexSuggestionsFailure: NoMetrics;
+    atlasPaSchemaAdviceFailure: NoMetrics;
+    atlasPaSlowQueryLogsFailure: NoMetrics;
+
+    atlasLocalDockerNotRunning: NoMetrics;
+    atlasLocalUnsupportedPlatform: NoMetrics;
+
+    assistantListKnowledgeSourcesError: NoMetrics;
+    assistantSearchKnowledgeError: NoMetrics;
+};
+
+/**
+ * LogId constants - derived from LogDefinitions keys.
+ * These are string literals used for type discrimination.
  */
 export const LogId = {
     serverStartFailure: "serverStartFailure",
@@ -147,7 +240,7 @@ export const LogId = {
 
     assistantListKnowledgeSourcesError: "assistantListKnowledgeSourcesError",
     assistantSearchKnowledgeError: "assistantSearchKnowledgeError",
-} as const;
+} as const satisfies Record<keyof LogDefinitions, string>;
 
 /**
  * Maps LogId keys to their actual MongoLogId values.
@@ -237,19 +330,7 @@ const MongoLogIds: Record<LogIdKey, MongoLogId> = {
     assistantSearchKnowledgeError: mongoLogId(1_011_002),
 };
 
-export type LogIdKey = keyof typeof LogId;
-
-/**
- * Maps LogId keys to their associated metric names.
- * When a LogId is defined here, the metrics field becomes required with the specified metrics.
- * Specify an array of metric names that should be tracked for this LogId.
- */
-type LogIdMetricMapping = {
-    toolExecute: ["tool_execution_duration_ms"];
-    toolExecuteFailure: ["tool_executions_total"];
-    mongodbConnectTry: ["mongodb_connections_total"];
-    mongodbConnectFailure: ["mongodb_connections_total"];
-};
+export type LogIdKey = keyof LogDefinitions;
 
 /**
  * Base properties shared by all log payloads.
@@ -280,13 +361,16 @@ type MetricsFromNames<T extends readonly (keyof MetricDefinitions)[]> = {
  * Log payload that enforces metric requirements based on the specific LogId key (as string).
  * This is a discriminated union where the `id` field is a string literal that maps to a LogId.
  * TypeScript can properly discriminate based on the string literal type.
+ *
+ * Metrics are required for logs defined with `metrics` property in LogDefinitions.
+ * Metrics are optional for logs defined with NoMetrics.
  */
 export type LogPayload = {
     [K in LogIdKey]: BaseLogPayload &
-        (K extends keyof LogIdMetricMapping
+        (LogDefinitions[K] extends { metrics: infer M extends readonly (keyof MetricDefinitions)[] }
             ? {
                   id: K;
-                  metrics: MetricsFromNames<LogIdMetricMapping[K]>;
+                  metrics: MetricsFromNames<M>;
               }
             : {
                   id: K;
