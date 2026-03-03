@@ -34,6 +34,13 @@ export abstract class MongoDBToolBase extends ToolBase {
                         id: LogId.mongodbConnectFailure,
                         context: "mongodbTool",
                         message: `Failed to connect to MongoDB instance using the connection string from the config: ${error as string}`,
+                        metrics: [
+                            {
+                                name: "mongodb_connections_total",
+                                type: "counter",
+                                labels: { result: "failure" },
+                            },
+                        ],
                     });
                     throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, "Not connected to MongoDB.");
                 }

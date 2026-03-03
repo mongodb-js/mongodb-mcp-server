@@ -473,6 +473,14 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
                         context: "tool",
                         message: `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`,
                         noRedaction: true,
+                        metrics: [
+                            {
+                                name: "tool_execution_duration_ms",
+                                type: "histogram",
+                                labels: { tool: this.name },
+                                value: Date.now() - startTime,
+                            },
+                        ],
                     });
                     return {
                         content: [
@@ -493,9 +501,18 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
                 context: "tool",
                 message: `Executing tool ${this.name}`,
                 noRedaction: true,
+                metrics: [
+                    {
+                        name: "tool_execution_duration_ms",
+                        type: "histogram",
+                        labels: { tool: this.name },
+                        value: 0,
+                    },
+                ],
             });
 
             const toolCallResult = await this.execute(args, context);
+            const executionDuration = Date.now() - startTime;
             const result = await this.appendUIResource(toolCallResult);
 
             this.emitToolEvent(args, { startTime, result });
@@ -505,6 +522,14 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
                 context: "tool",
                 message: `Executed tool ${this.name}`,
                 noRedaction: true,
+                metrics: [
+                    {
+                        name: "tool_execution_duration_ms",
+                        type: "histogram",
+                        labels: { tool: this.name },
+                        value: executionDuration,
+                    },
+                ],
             });
             return result;
         } catch (error: unknown) {
@@ -512,6 +537,13 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
                 id: LogId.toolExecuteFailure,
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
+                metrics: [
+                    {
+                        name: "tool_executions_total",
+                        type: "counter",
+                        labels: { tool: this.name, result: "failure" },
+                    },
+                ],
             });
             const toolResult = await this.handleError(error, args);
             this.emitToolEvent(args, { startTime, result: toolResult });

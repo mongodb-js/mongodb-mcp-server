@@ -11,7 +11,7 @@ import { pipeline } from "stream/promises";
 import type { MongoLogId } from "mongodb-log-writer";
 
 import type { UserConfig } from "./config/userConfig.js";
-import type { LoggerBase } from "./logger.js";
+import type { LoggerBase, LogIdKey } from "./logger.js";
 import { LogId } from "./logger.js";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
@@ -337,7 +337,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    private async silentlyRemoveExport(exportPath: string, logId: MongoLogId, logContext: string): Promise<void> {
+    private async silentlyRemoveExport(exportPath: string, logId: LogIdKey, logContext: string): Promise<void> {
         try {
             await fs.unlink(exportPath);
         } catch (error) {
@@ -349,7 +349,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                     id: logId,
                     context: logContext,
                     message: error instanceof Error ? error.message : String(error),
-                });
+                } as any);
             }
         }
     }

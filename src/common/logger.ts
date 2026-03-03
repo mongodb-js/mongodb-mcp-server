@@ -9,7 +9,151 @@ import type { Keychain } from "./keychain.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
+export type CounterMetric<TLabels extends Record<string, string>> = {
+    type: "counter";
+    labels: TLabels;
+};
+
+export type HistogramMetric<TLabels extends Record<string, string>> = {
+    type: "histogram";
+    labels: TLabels;
+    value: number;
+};
+
+/**
+ * Type-safe metric definitions that enforce the correct shape for each metric.
+ * Each metric name has specific requirements for type, labels, and value.
+ */
+type MetricDefinitions = {
+    /** Counter: Total number of tool executions by tool name and result (success/failure). */
+    tool_executions_total: CounterMetric<{ tool: string; result: "success" | "failure" }>;
+    /** Histogram: Duration of tool execution in milliseconds, labeled by tool name. */
+    tool_execution_duration_ms: HistogramMetric<{ tool: string }>;
+    /** Counter: Total number of MongoDB connection attempts and their results. */
+    mongodb_connections_total: CounterMetric<{ result: "attempt" | "success" | "failure" }>;
+};
+
+/**
+ * Carries structured, machine-readable metric metadata alongside a log event.
+ * The shape is enforced based on the metric name - each metric requires specific
+ * labels, type, and value based on its definition in MetricDefinitions.
+ *
+ * @example
+ * // Correct: histogram with required value and labels
+ * const metric: MetricHint = {
+ *   name: "tool_execution_duration_ms",
+ *   type: "histogram",
+ *   labels: { tool: "find" },
+ *   value: 123
+ * };
+ *
+ * @example
+ * // Correct: counter with required labels
+ * const metric: MetricHint = {
+ *   name: "tool_executions_total",
+ *   type: "counter",
+ *   labels: { tool: "find", result: "failure" }
+ * };
+ */
+export type MetricHint = {
+    [K in keyof MetricDefinitions]: {
+        name: K;
+    } & MetricDefinitions[K];
+}[keyof MetricDefinitions];
+
+/**
+ * LogId constants - these are string literals used for type discrimination.
+ * The actual MongoLogId values are stored separately in MongoLogIds.
+ */
 export const LogId = {
+    serverStartFailure: "serverStartFailure",
+    serverInitialized: "serverInitialized",
+    serverCloseRequested: "serverCloseRequested",
+    serverClosed: "serverClosed",
+    serverCloseFailure: "serverCloseFailure",
+    serverDuplicateLoggers: "serverDuplicateLoggers",
+    serverMcpClientSet: "serverMcpClientSet",
+
+    atlasCheckCredentials: "atlasCheckCredentials",
+    atlasDeleteDatabaseUserFailure: "atlasDeleteDatabaseUserFailure",
+    atlasConnectFailure: "atlasConnectFailure",
+    atlasInspectFailure: "atlasInspectFailure",
+    atlasConnectAttempt: "atlasConnectAttempt",
+    atlasConnectSucceeded: "atlasConnectSucceeded",
+    atlasApiRevokeFailure: "atlasApiRevokeFailure",
+    atlasIpAccessListAdded: "atlasIpAccessListAdded",
+    atlasIpAccessListAddFailure: "atlasIpAccessListAddFailure",
+    atlasApiBaseUrlInsecure: "atlasApiBaseUrlInsecure",
+
+    telemetryDisabled: "telemetryDisabled",
+    telemetryEmitFailure: "telemetryEmitFailure",
+    telemetryEmitStart: "telemetryEmitStart",
+    telemetryEmitSuccess: "telemetryEmitSuccess",
+    telemetryMetadataError: "telemetryMetadataError",
+    deviceIdResolutionError: "deviceIdResolutionError",
+    deviceIdTimeout: "deviceIdTimeout",
+    telemetryClose: "telemetryClose",
+
+    toolExecute: "toolExecute",
+    toolExecuteFailure: "toolExecuteFailure",
+    toolDisabled: "toolDisabled",
+    toolMetadataChange: "toolMetadataChange",
+
+    mongodbConnectFailure: "mongodbConnectFailure",
+    mongodbDisconnectFailure: "mongodbDisconnectFailure",
+    mongodbConnectTry: "mongodbConnectTry",
+    mongodbCursorCloseError: "mongodbCursorCloseError",
+    mongodbIndexCheckFailure: "mongodbIndexCheckFailure",
+
+    toolUpdateFailure: "toolUpdateFailure",
+    resourceUpdateFailure: "resourceUpdateFailure",
+    updateToolMetadata: "updateToolMetadata",
+    toolValidationError: "toolValidationError",
+
+    streamableHttpTransportStarted: "streamableHttpTransportStarted",
+    streamableHttpTransportSessionCloseFailure: "streamableHttpTransportSessionCloseFailure",
+    streamableHttpTransportSessionCloseNotification: "streamableHttpTransportSessionCloseNotification",
+    streamableHttpTransportSessionCloseNotificationFailure: "streamableHttpTransportSessionCloseNotificationFailure",
+    streamableHttpTransportRequestFailure: "streamableHttpTransportRequestFailure",
+    streamableHttpTransportCloseFailure: "streamableHttpTransportCloseFailure",
+    streamableHttpTransportKeepAliveFailure: "streamableHttpTransportKeepAliveFailure",
+    streamableHttpTransportKeepAlive: "streamableHttpTransportKeepAlive",
+    streamableHttpTransportHttpHostWarning: "streamableHttpTransportHttpHostWarning",
+    streamableHttpTransportSessionNotFound: "streamableHttpTransportSessionNotFound",
+    streamableHttpTransportDisallowedExternalSessionError: "streamableHttpTransportDisallowedExternalSessionError",
+
+    httpServerStarted: "httpServerStarted",
+    httpServerStopping: "httpServerStopping",
+    httpServerStopped: "httpServerStopped",
+
+    exportCleanupError: "exportCleanupError",
+    exportCreationError: "exportCreationError",
+    exportCreationCleanupError: "exportCreationCleanupError",
+    exportReadError: "exportReadError",
+    exportCloseError: "exportCloseError",
+    exportedDataListError: "exportedDataListError",
+    exportedDataAutoCompleteError: "exportedDataAutoCompleteError",
+    exportLockError: "exportLockError",
+
+    oidcFlow: "oidcFlow",
+
+    atlasPaSuggestedIndexesFailure: "atlasPaSuggestedIndexesFailure",
+    atlasPaDropIndexSuggestionsFailure: "atlasPaDropIndexSuggestionsFailure",
+    atlasPaSchemaAdviceFailure: "atlasPaSchemaAdviceFailure",
+    atlasPaSlowQueryLogsFailure: "atlasPaSlowQueryLogsFailure",
+
+    atlasLocalDockerNotRunning: "atlasLocalDockerNotRunning",
+    atlasLocalUnsupportedPlatform: "atlasLocalUnsupportedPlatform",
+
+    assistantListKnowledgeSourcesError: "assistantListKnowledgeSourcesError",
+    assistantSearchKnowledgeError: "assistantSearchKnowledgeError",
+} as const;
+
+/**
+ * Maps LogId keys to their actual MongoLogId values.
+ * Used internally by the logger to convert from string keys to MongoLogId.
+ */
+const MongoLogIds: Record<LogIdKey, MongoLogId> = {
     serverStartFailure: mongoLogId(1_000_001),
     serverInitialized: mongoLogId(1_000_002),
     serverCloseRequested: mongoLogId(1_000_003),
@@ -91,17 +235,75 @@ export const LogId = {
 
     assistantListKnowledgeSourcesError: mongoLogId(1_011_001),
     assistantSearchKnowledgeError: mongoLogId(1_011_002),
-} as const;
+};
 
-export interface LogPayload {
-    id: MongoLogId;
+export type LogIdKey = keyof typeof LogId;
+
+/**
+ * Maps LogId keys to their associated metric names.
+ * When a LogId is defined here, the metrics field becomes required with the specified metrics.
+ * Specify an array of metric names that should be tracked for this LogId.
+ */
+type LogIdMetricMapping = {
+    toolExecute: ["tool_execution_duration_ms"];
+    toolExecuteFailure: ["tool_executions_total"];
+    mongodbConnectTry: ["mongodb_connections_total"];
+    mongodbConnectFailure: ["mongodb_connections_total"];
+};
+
+/**
+ * Base properties shared by all log payloads.
+ */
+type BaseLogPayload = {
     context: string;
     message: string;
     noRedaction?: boolean | LoggerType | LoggerType[];
     attributes?: Record<string, string>;
-}
+};
+
+/**
+ * Internal payload type used by logCore - has MongoLogId instead of string key.
+ */
+type InternalLogPayload = BaseLogPayload & {
+    id: MongoLogId;
+    metrics?: MetricHint[];
+};
+
+/**
+ * Helper type to convert an array of metric names to their corresponding metric definitions.
+ */
+type MetricsFromNames<T extends readonly (keyof MetricDefinitions)[]> = {
+    [K in keyof T]: T[K] extends keyof MetricDefinitions ? { name: T[K] } & MetricDefinitions[T[K]] : never;
+};
+
+/**
+ * Log payload that enforces metric requirements based on the specific LogId key (as string).
+ * This is a discriminated union where the `id` field is a string literal that maps to a LogId.
+ * TypeScript can properly discriminate based on the string literal type.
+ */
+export type LogPayload = {
+    [K in LogIdKey]: BaseLogPayload &
+        (K extends keyof LogIdMetricMapping
+            ? {
+                  id: K;
+                  metrics: MetricsFromNames<LogIdMetricMapping[K]>;
+              }
+            : {
+                  id: K;
+                  metrics?: MetricHint[];
+              });
+}[LogIdKey];
 
 export type LoggerType = "console" | "disk" | "mcp";
+
+/**
+ * The argument passed to `LoggerBase.onLogEvent`.
+ */
+export type LogEvent = {
+    level: LogLevel;
+    /** A payload with the message redacted according to this logger's configuration. */
+    payload: LogPayload;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventMap<T> = Record<keyof T, any[]> | DefaultEventMap;
@@ -118,15 +320,51 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         // If no explicit value is supplied for unredacted loggers, default to "mcp"
         const noRedaction = payload.noRedaction !== undefined ? payload.noRedaction : this.defaultUnredactedLogger;
 
-        this.logCore(level, {
+        // Convert string id to MongoLogId
+        const mongoLogId = MongoLogIds[payload.id];
+
+        const redacted: LogPayload = {
             ...payload,
             message: this.redactIfNecessary(payload.message, noRedaction),
-        });
+        };
+
+        // Create internal payload with MongoLogId for logCore
+        const internalPayload: InternalLogPayload = {
+            ...redacted,
+            id: mongoLogId,
+        };
+
+        this.logCore(level, internalPayload);
+        this.onLogEvent({ level, payload: redacted });
     }
 
     protected abstract readonly type?: LoggerType;
 
-    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+    protected abstract logCore(level: LogLevel, payload: InternalLogPayload): void;
+
+    /**
+     * Called on every log event after `logCore`, with the already-redacted payload.
+     * Override to add observability behavior such as Prometheus metrics.
+     *
+     * @example
+     * ```ts
+     * class PrometheusLogger extends LoggerBase {
+     *
+     *     protected override onLogEvent({ level, payload }: LogEvent): void {
+     *         this.logEvents.inc({ level, context: payload.context });
+     *         payload.metrics?.forEach(metric => {
+     *             if (metric.type === "counter") {
+     *                 this.getCounter(metric.name).inc(metric.labels);
+     *             } else if (metric.type === "histogram") {
+     *                 this.getHistogram(metric.name).observe(metric.labels, metric.value);
+     *             }
+     *         });
+     *     }
+     * }
+     * ```
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected onLogEvent(_: LogEvent): void {}
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
         if (typeof noRedaction === "boolean" && noRedaction) {
@@ -162,6 +400,7 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     public error(payload: LogPayload): void {
         this.log("error", payload);
     }
+
     public debug(payload: LogPayload): void {
         this.log("debug", payload);
     }
@@ -214,7 +453,7 @@ export class ConsoleLogger extends LoggerBase {
         super(keychain);
     }
 
-    protected logCore(level: LogLevel, payload: LogPayload): void {
+    protected logCore(level: LogLevel, payload: InternalLogPayload): void {
         const { id, context, message } = payload;
         // eslint-disable-next-line no-console
         console.error(
@@ -233,7 +472,7 @@ export class ConsoleLogger extends LoggerBase {
 }
 
 export class DiskLogger extends LoggerBase<{ initialized: [] }> {
-    private bufferedMessages: { level: LogLevel; payload: LogPayload }[] = [];
+    private bufferedMessages: { level: LogLevel; payload: InternalLogPayload }[] = [];
     private logWriter?: MongoLogWriter;
 
     public constructor(logPath: string, onError: (error: Error) => void, keychain: Keychain) {
@@ -273,7 +512,7 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
 
     protected type: LoggerType = "disk";
 
-    protected logCore(level: LogLevel, payload: LogPayload): void {
+    protected logCore(level: LogLevel, payload: InternalLogPayload): void {
         if (!this.logWriter) {
             // If the log writer is not initialized, buffer the message
             this.bufferedMessages.push({ level, payload });
@@ -308,7 +547,7 @@ export class McpLogger<TUserConfig extends UserConfig = UserConfig, TContext = u
 
     protected readonly type: LoggerType = "mcp";
 
-    protected logCore(level: LogLevel, payload: LogPayload): void {
+    protected logCore(level: LogLevel, payload: InternalLogPayload): void {
         // Only log if the server is connected
         if (!this.server.mcpServer.isConnected()) {
             return;
@@ -347,7 +586,9 @@ export class CompositeLogger extends LoggerBase {
     }
 
     public log(level: LogLevel, payload: LogPayload): void {
-        // Override the public method to avoid the base logger redacting the message payload
+        // The composite does not redact — each child handles its own redaction.
+        this.onLogEvent({ level, payload });
+
         for (const logger of this.loggers) {
             const attributes =
                 Object.keys(this.attributes).length > 0 || payload.attributes

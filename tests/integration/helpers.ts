@@ -451,8 +451,8 @@ export function sleep(ms: number): Promise<void> {
 
 export class InMemoryLogger extends LoggerBase {
     protected type?: LoggerType = "console";
-    public messages: { level: LogLevel; payload: LogPayload }[] = [];
-    protected logCore(level: LogLevel, payload: LogPayload): void {
+    public messages: { level: LogLevel; payload: any }[] = [];
+    protected logCore(level: LogLevel, payload: any): void {
         this.messages.push({ level, payload });
     }
 }

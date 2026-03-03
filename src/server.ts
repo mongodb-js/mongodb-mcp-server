@@ -380,6 +380,13 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                     id: LogId.mongodbConnectTry,
                     context: "server",
                     message: `Detected a MongoDB connection string in the configuration, trying to connect...`,
+                    metrics: [
+                        {
+                            name: "mongodb_connections_total",
+                            type: "counter",
+                            labels: { result: "attempt" },
+                        },
+                    ],
                 });
                 await this.session.connectToConfiguredConnection();
             } catch (error) {
@@ -388,6 +395,13 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                     id: LogId.mongodbConnectFailure,
                     context: "server",
                     message: `Failed to connect to MongoDB instance using the connection string from the config: ${error instanceof Error ? error.message : String(error)}`,
+                    metrics: [
+                        {
+                            name: "mongodb_connections_total",
+                            type: "counter",
+                            labels: { result: "failure" },
+                        },
+                    ],
                 });
             }
         }
