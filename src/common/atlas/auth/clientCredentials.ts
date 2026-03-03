@@ -1,6 +1,6 @@
 import * as oauth from "oauth4webapi";
-import type { LoggerBase } from "../../logger.js";
-import { LogId } from "../../logger.js";
+import type { LoggerBase } from "../../logging/index.js";
+import { LogId } from "../../logging/index.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import type { AccessToken, AuthProvider } from "./authProvider.js";
 

@@ -5,7 +5,7 @@ import {
     type SearchIndex,
 } from "../../../src/helpers/assertVectorSearchFilterFieldsAreIndexed.js";
 import { ErrorCodes, MongoDBError } from "../../../src/common/errors.js";
-import { type CompositeLogger, LogId } from "../../../src/common/logger.js";
+import { type CompositeLogger, LogId } from "../../../src/common/logging/index.js";
 
 describe("#collectFieldsFromVectorSearchFilter", () => {
     it("should return empty list if filter is not an object or an empty object", () => {
