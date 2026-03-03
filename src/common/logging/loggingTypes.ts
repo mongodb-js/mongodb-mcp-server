@@ -15,5 +15,5 @@ export interface LogPayload {
 export type LoggerType = "console" | "disk" | "mcp";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type EventMap<T> = Record<keyof T, any[]> | DefaultEventMap;
-export type DefaultEventMap = [never];
+type EventMap<T> = Record<keyof T, any[]> | DefaultEventMap;
+type DefaultEventMap = [never];
