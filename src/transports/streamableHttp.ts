@@ -137,8 +137,16 @@ export class StreamableHttpRunner<
             userConfig: this.userConfig,
             serverOptions,
             sessionOptions,
-            createServerForRequest: ({ request }): Promise<Server<TUserConfig, TContext>> =>
-                this.createServerForRequest({ request, serverOptions, sessionOptions }),
+            createServerForRequest: ({
+                request,
+                serverOptions: requestServerOptions,
+                sessionOptions: requestSessionOptions,
+            }): Promise<Server<TUserConfig, TContext>> =>
+                this.createServerForRequest({
+                    request,
+                    serverOptions: requestServerOptions,
+                    sessionOptions: requestSessionOptions,
+                }),
             logger: this.logger,
         });
         await this.mcpServer.start();
@@ -272,17 +280,13 @@ abstract class ExpressBasedHttpServer {
 class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
     private serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-    private sessionOptions?: CustomizableSessionOptions;
+    private sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     private userConfig: UserConfig;
 
-    private createServerForRequest: ({
-        request,
-        serverOptions,
-        sessionOptions,
-    }: {
+    private createServerForRequest: (createParams: {
         request: RequestContext;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }) => Promise<Server<TUserConfig, TContext>>;
 
     constructor({
@@ -293,7 +297,11 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         logger,
     }: {
         userConfig: TUserConfig;
-        createServerForRequest: ({ request }: { request: RequestContext }) => Promise<Server<TUserConfig, TContext>>;
+        createServerForRequest: (createParams: {
+            request: RequestContext;
+            serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+            sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        }) => Promise<Server<TUserConfig, TContext>>;
         logger: LoggerBase;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
