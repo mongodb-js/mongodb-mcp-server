@@ -445,7 +445,7 @@ describe("Telemetry", () => {
      * These tests use the real EventCache (via importActual) so getEvents/removeEvents are shared.
      * Regression test: delayed first send exposes the race if the emit lock is removed.
      */
-    describe("EventCache race condition (CLOUDP-380317)", () => {
+    describe("when sending multiple events concurrently", () => {
         let RealEventCache: typeof EventCache;
 
         beforeAll(async () => {
@@ -453,7 +453,7 @@ describe("Telemetry", () => {
             RealEventCache = mod.EventCache;
         });
 
-        it("concurrent emit() calls should not send the same cached events twice", async () => {
+        it("should not send the same cached events twice", async () => {
             const eventCache = new RealEventCache();
             const CACHED_MARKER = "cached-race-test";
 
@@ -493,7 +493,7 @@ describe("Telemetry", () => {
             expect(cachedEventSendCount, "Cached event should be sent exactly once").toBe(1);
         });
 
-        it("regression: delayed first send still sends cached event only once (lock prevents race)", async () => {
+        it("should send cached event only once when the first send is delayed", async () => {
             const eventCache = new RealEventCache();
             const CACHED_MARKER = "cached-regression-test";
 
