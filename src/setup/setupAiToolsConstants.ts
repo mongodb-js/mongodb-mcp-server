@@ -59,11 +59,11 @@ export const AI_TOOL_CONFIGS: Record<AiToolType, AiToolConfig> = {
         configFileName: "mcp_config.json",
         getConfigPath: (): string => {
             if (isWindows) {
-                // windows: %APPDATA%\Windsurf\mcp_config.json
-                return path.join(windowsBasePath, "Windsurf", "mcp_config.json");
+                // windows: %APPDATA%\cascade\mcp_config.json
+                return path.join(windowsBasePath, "cascade", "mcp_config.json");
             }
-            // macOS & Linux: ~/.codeium/windsurf/mcp_config.json
-            return path.join(os.homedir(), ".codeium", "windsurf", "mcp_config.json");
+            // macOS & Linux: ~/.config/cascade/mcp_config.json
+            return path.join(os.homedir(), ".config", "cascade", "mcp_config.json");
         },
     },
     [AI_TOOLS.CLAUDE_DESKTOP]: {

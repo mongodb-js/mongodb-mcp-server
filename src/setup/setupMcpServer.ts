@@ -8,7 +8,7 @@ import { exec } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
 import { MongoClient } from "mongodb";
-import { AI_TOOL_CONFIGS, AI_TOOLS, type AiToolType } from "./setupEditorConstants.js";
+import { AI_TOOL_CONFIGS, AI_TOOLS, type AiToolType } from "./setupAiToolsConstants.js";
 
 const MINIMUM_REQUIRED_NODE_VERSION = "22.12.0";
 const MINIMUM_REQUIRED_MCP_NODE22_VERSION = "22.12.0";
@@ -459,11 +459,15 @@ export const runSetup = async (): Promise<void> => {
         }
 
         if (serviceWorkerId && serviceWorkerSecret) {
-            availablePrompts.push('\t"What are the clusters in my project"');
-            availablePrompts.push('\t"Does my project have any active alerts"');
+            availablePrompts.push('\t"What are the clusters in my project?"');
+            availablePrompts.push('\t"Does my project have any active alerts?"');
         }
 
-        console.log(chalk.green("\nSetup complete! You can now use the MongoDB MCP Server in your application.\n"));
+        console.log(
+            chalk.green(
+                "\nSetup complete! You can now use the MongoDB MCP Server in your application. You may need to restart your application to see the changes.\n"
+            )
+        );
 
         // Show keyboard shortcut hint for opening agent/copilot panel
         if (tool === AI_TOOLS.CURSOR) {
@@ -476,14 +480,6 @@ export const runSetup = async (): Promise<void> => {
             );
         } else if (tool === AI_TOOLS.WINDSURF) {
             console.log(chalk.cyan(`Tip: Press ${isMac ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`));
-        } else if (tool === AI_TOOLS.CLAUDE_CODE) {
-            console.log(chalk.cyan("Tip: Use the /config command in Claude Code to open Settings.\n"));
-        } else if (tool === AI_TOOLS.CODEX) {
-            console.log(chalk.cyan("Tip: In Codex, use MCP settings > Open config.toml from the gear menu.\n"));
-        } else if (tool === AI_TOOLS.OPENCODE) {
-            console.log(
-                chalk.cyan("Tip: Open Code uses opencode.json for MCP; edit in your project or global config.\n")
-            );
         }
 
         console.log("Try a query to get started:\n");
@@ -493,7 +489,7 @@ export const runSetup = async (): Promise<void> => {
         //TODO: if this is not a tool that supports editing, omit the last part
         let openConfigMessage = `Would you like to open the config file in ${getAiToolDisplayName(tool)}?`;
         if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
-            openConfigMessage = `Would you like to open the config file`;
+            openConfigMessage = `Would you like to open the config file in your default editor?`;
         }
         const openConfig = await confirm({
             message: openConfigMessage,
