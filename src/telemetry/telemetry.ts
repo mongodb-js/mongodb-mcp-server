@@ -183,6 +183,7 @@ export class Telemetry {
             return;
         }
 
+        // Use a lock to serialize emit() calls and prevent the same events from being sent twice
         const prevLock = this.emitLock;
         let releaseLock!: () => void;
         this.emitLock = new Promise<void>((r) => {

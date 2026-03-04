@@ -449,9 +449,7 @@ describe("Telemetry", () => {
         let RealEventCache: typeof EventCache;
 
         beforeAll(async () => {
-            const mod = await vi.importActual<{ EventCache: typeof EventCache }>(
-                "../../src/telemetry/eventCache.js"
-            );
+            const mod = await vi.importActual<{ EventCache: typeof EventCache }>("../../src/telemetry/eventCache.js");
             RealEventCache = mod.EventCache;
         });
 
@@ -459,9 +457,7 @@ describe("Telemetry", () => {
             const eventCache = new RealEventCache();
             const CACHED_MARKER = "cached-race-test";
 
-            eventCache.appendEvents([
-                createTestEvent({ command: CACHED_MARKER, component: "cached" }),
-            ]);
+            eventCache.appendEvents([createTestEvent({ command: CACHED_MARKER, component: "cached" })]);
 
             mockApiClient.sendEvents.mockResolvedValue(undefined);
 
@@ -472,7 +468,7 @@ describe("Telemetry", () => {
 
             const emitted = new Promise<void>((resolve) => {
                 let count = 0;
-                const onDone = () => {
+                const onDone = (): void => {
                     count++;
                     if (count >= 2) resolve();
                 };
@@ -501,9 +497,7 @@ describe("Telemetry", () => {
             const eventCache = new RealEventCache();
             const CACHED_MARKER = "cached-regression-test";
 
-            eventCache.appendEvents([
-                createTestEvent({ command: CACHED_MARKER, component: "cached" }),
-            ]);
+            eventCache.appendEvents([createTestEvent({ command: CACHED_MARKER, component: "cached" })]);
 
             const delayMs = 50;
             let sendCallCount = 0;
@@ -522,7 +516,7 @@ describe("Telemetry", () => {
 
             const emitted = new Promise<void>((resolve) => {
                 let count = 0;
-                const onDone = () => {
+                const onDone = (): void => {
                     count++;
                     if (count >= 2) resolve();
                 };
