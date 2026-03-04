@@ -351,8 +351,6 @@ const configureEditor = async (
         }
         const mcpServerConfig = buildMcpServerConfig(isReadOnly, env);
         config[serversKey]["mongodb-mcp-server"] = mcpServerConfig;
-        // TODO: REMOVE THIS
-        console.log("configPath", configPath);
         writeConfigFile(configPath, config);
     }
     console.log(`\nConfiguration saved to ${configPath}`);
