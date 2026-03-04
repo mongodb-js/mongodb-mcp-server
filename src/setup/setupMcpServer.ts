@@ -8,7 +8,7 @@ import { exec } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
 import { MongoClient } from "mongodb";
-import { EDITOR_CONFIGS, EDITORS, type EditorType } from "./setupEditorConstants.js";
+import { AI_TOOL_CONFIGS, AI_TOOLS, type AiToolType } from "./setupEditorConstants.js";
 
 const MINIMUM_REQUIRED_NODE_VERSION = "22.12.0";
 const MINIMUM_REQUIRED_MCP_NODE22_VERSION = "22.12.0";
@@ -55,17 +55,18 @@ const getCurrentNodeVersion = (): string => {
     return version;
 };
 
-const EDITORS_WITHOUT_PROTOCOL: EditorType[] = [
-    EDITORS.CLAUDE_DESKTOP,
-    EDITORS.CLAUDE_CODE,
-    EDITORS.CODEX,
-    EDITORS.OPENCODE,
+// These are tools that don't have a designated editor to open the config file
+const TOOLS_WITHOUT_EDITORS: AiToolType[] = [
+    AI_TOOLS.CLAUDE_DESKTOP,
+    AI_TOOLS.CLAUDE_CODE,
+    AI_TOOLS.CODEX,
+    AI_TOOLS.OPENCODE,
 ];
 
-const openEditorSettings = (editor: EditorType): void => {
-    const configPath = EDITOR_CONFIGS[editor].getConfigPath();
+const openConfigSettings = (tool: AiToolType): void => {
+    const configPath = AI_TOOL_CONFIGS[tool].getConfigPath();
 
-    if (EDITORS_WITHOUT_PROTOCOL.includes(editor)) {
+    if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
         if (isMac) {
             exec(`open "${configPath}"`);
         } else if (isWindows) {
@@ -76,34 +77,39 @@ const openEditorSettings = (editor: EditorType): void => {
         return;
     }
 
-    const protocol = editor;
+    const editor = tool;
     if (isMac) {
-        exec(`open "${protocol}://file${configPath}"`);
+        exec(`open "${editor}://file${configPath}"`);
     } else if (isWindows) {
-        exec(`start "" "${protocol}://file${configPath}"`);
+        exec(`start "" "${editor}://file${configPath}"`);
     } else {
-        exec(`xdg-open "${protocol}://file${configPath}"`);
+        exec(`xdg-open "${editor}://file${configPath}"`);
     }
 };
 
-const getEditorConfigPath = (editor: EditorType): string => {
-    return EDITOR_CONFIGS[editor].getConfigPath();
+const getAiToolConfigPath = (tool: AiToolType): string => {
+    return AI_TOOL_CONFIGS[tool].getConfigPath();
 };
 
-const getEditorDisplayName = (editor: EditorType): string => {
-    return EDITOR_CONFIGS[editor].name;
+const getAiToolDisplayName = (tool: AiToolType): string => {
+    return AI_TOOL_CONFIGS[tool].name;
 };
 
-const getConfigFileName = (editor: EditorType): string => {
-    return EDITOR_CONFIGS[editor].configFileName;
+const getConfigFileName = (tool: AiToolType): string => {
+    return AI_TOOL_CONFIGS[tool].configFileName;
 };
 
-const getServersKey = (editor: EditorType): "servers" | "mcpServers" | null => {
+const getServersKey = (tool: AiToolType): "servers" | "mcpServers" | null => {
     // VS Code uses "servers" at the top level
-    if (editor === "vscode") return "servers";
+    if (tool === AI_TOOLS.VSCODE) return "servers";
 
     // Cursor, Windsurf, Claude Desktop, Claude Code use "mcpServers"
-    if (editor === "cursor" || editor === "windsurf" || editor === "claudeDesktop" || editor === "claudeCode") {
+    if (
+        tool === AI_TOOLS.CURSOR ||
+        tool === AI_TOOLS.WINDSURF ||
+        tool === AI_TOOLS.CLAUDE_DESKTOP ||
+        tool === AI_TOOLS.CLAUDE_CODE
+    ) {
         return "mcpServers";
     }
 
@@ -111,8 +117,8 @@ const getServersKey = (editor: EditorType): "servers" | "mcpServers" | null => {
     return null;
 };
 
-const readExistingConfig = (configPath: string, configFileName: string, editor: EditorType): McpConfig => {
-    const serversKey = getServersKey(editor);
+const readExistingConfig = (configPath: string, configFileName: string, tool: AiToolType): McpConfig => {
+    const serversKey = getServersKey(tool);
     if (serversKey === null) {
         return {};
     }
@@ -237,11 +243,23 @@ const buildMcpServerConfig = (isReadOnly: boolean, env: Record<string, string>):
 };
 
 const writeConfigFile = (configPath: string, config: McpConfig): void => {
-    const configDir = path.dirname(configPath);
-    if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
+    const resolvedPath = path.resolve(configPath);
+    const configDir = path.dirname(resolvedPath);
+    try {
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        fs.writeFileSync(resolvedPath, JSON.stringify(config, null, 2), "utf-8");
+    } catch (err: unknown) {
+        throw new Error(
+            `Could not write config to ${resolvedPath}: ${formatError(err)}. ` +
+                "Check that the path is correct and you have permission to write to that location."
+        );
     }
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    // Verify the write
+    if (!fs.existsSync(resolvedPath)) {
+        throw new Error(`Config file was not created at ${resolvedPath}.`);
+    }
 };
 
 const testConnectionString = async (initialConnectionString: string): Promise<string> => {
@@ -290,15 +308,15 @@ const testConnectionString = async (initialConnectionString: string): Promise<st
 };
 
 const configureEditor = async (
-    editor: EditorType,
+    tool: AiToolType,
     connectionString: string,
     serviceWorkerId: string,
     serviceWorkerSecret: string,
     isReadOnly: boolean
 ): Promise<void> => {
-    const displayName = getEditorDisplayName(editor);
-    const configFileName = getConfigFileName(editor);
-    let configPath = getEditorConfigPath(editor);
+    const displayName = getAiToolDisplayName(tool);
+    const configFileName = getConfigFileName(tool);
+    let configPath = getAiToolConfigPath(tool);
 
     // Confirm the config path with the user
     const useDetectedPath = await confirm({
@@ -313,23 +331,28 @@ const configureEditor = async (
         });
     }
 
+    // Resolve to absolute path and trim so we always write to the intended file
+    configPath = path.resolve(configPath.trim());
+
     const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
 
-    if (editor === EDITORS.OPENCODE) {
+    if (tool === AI_TOOLS.OPENCODE) {
         appendOpenCodeJsonSection(configPath, env, isReadOnly);
-    } else if (editor === EDITORS.CODEX) {
+    } else if (tool === AI_TOOLS.CODEX) {
         appendCodexTomlSection(configPath, env, isReadOnly);
     } else {
-        const config = readExistingConfig(configPath, configFileName, editor);
-        const serversKey = getServersKey(editor);
+        const config = readExistingConfig(configPath, configFileName, tool);
+        const serversKey = getServersKey(tool);
         if (serversKey === null) {
-            throw new Error(`Unsupported editor: ${editor}`);
+            throw new Error(`Unsupported tool: ${tool}`);
         }
         if (!config[serversKey]) {
             config[serversKey] = {};
         }
         const mcpServerConfig = buildMcpServerConfig(isReadOnly, env);
         config[serversKey]["mongodb-mcp-server"] = mcpServerConfig;
+        // TODO: REMOVE THIS
+        console.log("configPath", configPath);
         writeConfigFile(configPath, config);
     }
     console.log(`\nConfiguration saved to ${configPath}`);
@@ -383,18 +406,18 @@ export const runSetup = async (): Promise<void> => {
             "It's best to have this information at hand. We will not store any data or credentials in this process.\n\n"
         );
 
-        const editor = (await select({
+        const tool = (await select({
             message: "What tool would you like to use the MongoDB MCP Server with?",
             choices: [
-                { value: EDITORS.CURSOR, name: "Cursor" },
-                { value: EDITORS.VSCODE, name: "VS Code" },
-                { value: EDITORS.CLAUDE_DESKTOP, name: "Claude Desktop" },
-                { value: EDITORS.CLAUDE_CODE, name: "Claude Code" },
-                { value: EDITORS.CODEX, name: "OpenAI Codex" },
-                { value: EDITORS.OPENCODE, name: "Open Code" },
-                { value: EDITORS.WINDSURF, name: "Windsurf" },
+                { value: AI_TOOLS.CURSOR, name: "Cursor" },
+                { value: AI_TOOLS.VSCODE, name: "VS Code" },
+                { value: AI_TOOLS.CLAUDE_DESKTOP, name: "Claude Desktop" },
+                { value: AI_TOOLS.CLAUDE_CODE, name: "Claude Code" },
+                { value: AI_TOOLS.CODEX, name: "OpenAI Codex" },
+                { value: AI_TOOLS.OPENCODE, name: "Open Code" },
+                { value: AI_TOOLS.WINDSURF, name: "Windsurf" },
             ],
-        })) as EditorType;
+        })) as AiToolType;
         console.log("\n");
 
         let connectionString = "";
@@ -427,7 +450,7 @@ export const runSetup = async (): Promise<void> => {
         });
         console.log("\n");
 
-        await configureEditor(editor, connectionString, serviceWorkerId, serviceWorkerSecret, isReadOnly);
+        await configureEditor(tool, connectionString, serviceWorkerId, serviceWorkerSecret, isReadOnly);
 
         const availablePrompts = [];
         if (connectionString) {
@@ -440,24 +463,24 @@ export const runSetup = async (): Promise<void> => {
             availablePrompts.push('\t"Does my project have any active alerts"');
         }
 
-        console.log(chalk.green("\nSetup complete! You can now use the MongoDB MCP Server in your editor.\n"));
+        console.log(chalk.green("\nSetup complete! You can now use the MongoDB MCP Server in your application.\n"));
 
         // Show keyboard shortcut hint for opening agent/copilot panel
-        if (editor === "cursor") {
+        if (tool === AI_TOOLS.CURSOR) {
             console.log(chalk.cyan(`Tip: Press ${isMac ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`));
-        } else if (editor === "vscode") {
+        } else if (tool === AI_TOOLS.VSCODE) {
             console.log(
                 chalk.cyan(
                     `Tip: Press ${isMac ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`
                 )
             );
-        } else if (editor === "windsurf") {
+        } else if (tool === AI_TOOLS.WINDSURF) {
             console.log(chalk.cyan(`Tip: Press ${isMac ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`));
-        } else if (editor === "claudeCode") {
+        } else if (tool === AI_TOOLS.CLAUDE_CODE) {
             console.log(chalk.cyan("Tip: Use the /config command in Claude Code to open Settings.\n"));
-        } else if (editor === "codex") {
+        } else if (tool === AI_TOOLS.CODEX) {
             console.log(chalk.cyan("Tip: In Codex, use MCP settings > Open config.toml from the gear menu.\n"));
-        } else if (editor === "opencode") {
+        } else if (tool === AI_TOOLS.OPENCODE) {
             console.log(
                 chalk.cyan("Tip: Open Code uses opencode.json for MCP; edit in your project or global config.\n")
             );
@@ -467,13 +490,18 @@ export const runSetup = async (): Promise<void> => {
         console.log(availablePrompts.join("\n"));
         console.log("\n");
 
+        //TODO: if this is not a tool that supports editing, omit the last part
+        let openConfigMessage = `Would you like to open the config file in ${getAiToolDisplayName(tool)}?`;
+        if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
+            openConfigMessage = `Would you like to open the config file`;
+        }
         const openConfig = await confirm({
-            message: `Would you like to open the config file in ${getEditorDisplayName(editor)}?`,
+            message: openConfigMessage,
             default: true,
         });
 
         if (openConfig) {
-            openEditorSettings(editor);
+            openConfigSettings(tool);
         }
     } catch (error: unknown) {
         // Handle Ctrl+C during prompts (inquirer throws ExitPromptError)

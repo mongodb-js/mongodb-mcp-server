@@ -5,9 +5,9 @@ const platform = os.platform();
 const isWindows = platform === "win32";
 const isMac = platform === "darwin";
 
-export type EditorType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
+export type AiToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
 
-export const EDITORS = {
+export const AI_TOOLS = {
     CURSOR: "cursor",
     VSCODE: "vscode",
     WINDSURF: "windsurf",
@@ -15,9 +15,9 @@ export const EDITORS = {
     CLAUDE_CODE: "claudeCode",
     CODEX: "codex",
     OPENCODE: "opencode",
-} as const satisfies Record<string, EditorType>;
+} as const satisfies Record<string, AiToolType>;
 
-interface EditorConfig {
+interface AiToolConfig {
     name: string;
     configFileName: string;
     getConfigPath: () => string;
@@ -25,8 +25,8 @@ interface EditorConfig {
 
 const windowsBasePath = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
 
-export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
-    [EDITORS.CURSOR]: {
+export const AI_TOOL_CONFIGS: Record<AiToolType, AiToolConfig> = {
+    [AI_TOOLS.CURSOR]: {
         name: "Cursor",
         configFileName: "mcp.json",
         getConfigPath: (): string => {
@@ -38,7 +38,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
             return path.join(os.homedir(), ".cursor", "mcp.json");
         },
     },
-    [EDITORS.VSCODE]: {
+    [AI_TOOLS.VSCODE]: {
         name: "VS Code",
         configFileName: "mcp.json",
         getConfigPath: (): string => {
@@ -54,7 +54,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
             return path.join(os.homedir(), ".config", "Code", "User", "mcp.json");
         },
     },
-    [EDITORS.WINDSURF]: {
+    [AI_TOOLS.WINDSURF]: {
         name: "Windsurf",
         configFileName: "mcp_config.json",
         getConfigPath: (): string => {
@@ -66,7 +66,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
             return path.join(os.homedir(), ".codeium", "windsurf", "mcp_config.json");
         },
     },
-    [EDITORS.CLAUDE_DESKTOP]: {
+    [AI_TOOLS.CLAUDE_DESKTOP]: {
         name: "Claude Desktop",
         configFileName: "claude_desktop_config.json",
         getConfigPath: (): string => {
@@ -88,7 +88,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
             return path.join(os.homedir(), ".config", "Claude", "claude_desktop_config.json");
         },
     },
-    [EDITORS.CLAUDE_CODE]: {
+    [AI_TOOLS.CLAUDE_CODE]: {
         name: "Claude Code",
         configFileName: ".claude.json",
         getConfigPath: (): string => {
@@ -97,7 +97,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
             return path.join(os.homedir(), ".claude.json");
         },
     },
-    [EDITORS.CODEX]: {
+    [AI_TOOLS.CODEX]: {
         name: "OpenAI Codex",
         configFileName: "config.toml",
         getConfigPath: (): string => {
@@ -106,7 +106,7 @@ export const EDITOR_CONFIGS: Record<EditorType, EditorConfig> = {
             return path.join(os.homedir(), ".codex", "config.toml");
         },
     },
-    [EDITORS.OPENCODE]: {
+    [AI_TOOLS.OPENCODE]: {
         name: "Open Code",
         configFileName: "opencode.json",
         getConfigPath: (): string => {
