@@ -29,6 +29,8 @@ export class Telemetry {
 
     private eventCache: EventCache;
     private deviceId: DeviceId;
+    /** Serializes getEvents → send → removeEvents to prevent duplicate sends (CLOUDP-380317) */
+    private emitLock: Promise<void> = Promise.resolve();
 
     private constructor(
         private readonly session: Session,
@@ -181,6 +183,13 @@ export class Telemetry {
             return;
         }
 
+        const prevLock = this.emitLock;
+        let releaseLock!: () => void;
+        this.emitLock = new Promise<void>((r) => {
+            releaseLock = r;
+        });
+        await prevLock;
+
         try {
             const cachedEvents = this.eventCache.getEvents();
             const allEvents = [...cachedEvents.map((e) => e.event), ...events];
@@ -218,6 +227,8 @@ export class Telemetry {
                 noRedaction: true,
             });
             this.events.emit("events-send-failed");
+        } finally {
+            releaseLock();
         }
     }
 

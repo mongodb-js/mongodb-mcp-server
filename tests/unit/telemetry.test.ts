@@ -3,7 +3,7 @@ import type { Session } from "../../src/common/session.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
-import { afterEach, beforeEach, describe, it, vi, expect } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, it, vi, expect } from "vitest";
 import { NullLogger } from "../../tests/utils/index.js";
 import type { MockedFunction } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
@@ -379,7 +379,7 @@ describe("Telemetry", () => {
 
                 await telemetry.setupPromise;
 
-                telemetry.emitEvents([createTestEvent()]);
+                await emitEventsForTest([createTestEvent()]);
 
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
@@ -397,12 +397,13 @@ describe("Telemetry", () => {
                 expect(eventProps.os_version).toBe("<password>-version");
             });
 
-            it("should redact sensitive data from CommonProperties", () => {
+            it("should redact sensitive data from CommonProperties", async () => {
                 // register the common properties as sensitive data
                 session.keychain.register("test-device-id", "password");
                 session.keychain.register(session.sessionId, "password");
 
-                telemetry.emitEvents([createTestEvent()]);
+                await telemetry.setupPromise;
+                await emitEventsForTest([createTestEvent()]);
 
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
@@ -417,12 +418,13 @@ describe("Telemetry", () => {
                 expect(eventProps.session_id).toBe("<password>");
             });
 
-            it("should redact sensitive data that is added to events", () => {
+            it("should redact sensitive data that is added to events", async () => {
                 session.keychain.register("test-device-id", "password");
                 session.keychain.register(session.sessionId, "password");
                 session.keychain.register("test-component", "password");
 
-                telemetry.emitEvents([createTestEvent()]);
+                await telemetry.setupPromise;
+                await emitEventsForTest([createTestEvent()]);
 
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
@@ -436,6 +438,116 @@ describe("Telemetry", () => {
                 expect(eventProps.session_id).toBe("<password>");
                 expect(eventProps.component).toBe("<password>");
             });
+        });
+    });
+
+    /**
+     * These tests use the real EventCache (via importActual) so getEvents/removeEvents are shared.
+     * Regression test: delayed first send exposes the race if the emit lock is removed.
+     */
+    describe("EventCache race condition (CLOUDP-380317)", () => {
+        let RealEventCache: typeof EventCache;
+
+        beforeAll(async () => {
+            const mod = await vi.importActual<{ EventCache: typeof EventCache }>(
+                "../../src/telemetry/eventCache.js"
+            );
+            RealEventCache = mod.EventCache;
+        });
+
+        it("concurrent emit() calls should not send the same cached events twice", async () => {
+            const eventCache = new RealEventCache();
+            const CACHED_MARKER = "cached-race-test";
+
+            eventCache.appendEvents([
+                createTestEvent({ command: CACHED_MARKER, component: "cached" }),
+            ]);
+
+            mockApiClient.sendEvents.mockResolvedValue(undefined);
+
+            const raceTelemetry = Telemetry.create(session, config, mockDeviceId, {
+                eventCache,
+            });
+            await raceTelemetry.setupPromise;
+
+            const emitted = new Promise<void>((resolve) => {
+                let count = 0;
+                const onDone = () => {
+                    count++;
+                    if (count >= 2) resolve();
+                };
+                raceTelemetry.events.once("events-emitted", onDone);
+                raceTelemetry.events.once("events-send-failed", onDone);
+                raceTelemetry.events.once("events-emitted", onDone);
+                raceTelemetry.events.once("events-send-failed", onDone);
+            });
+
+            raceTelemetry.emitEvents([createTestEvent({ command: "event-a" })]);
+            raceTelemetry.emitEvents([createTestEvent({ command: "event-b" })]);
+
+            await emitted;
+
+            let cachedEventSendCount = 0;
+            for (const call of mockApiClient.sendEvents.mock.calls) {
+                const events = call[0] as Array<{ properties?: { command?: string } }>;
+                for (const e of events) {
+                    if (e.properties?.command === CACHED_MARKER) cachedEventSendCount++;
+                }
+            }
+            expect(cachedEventSendCount, "Cached event should be sent exactly once").toBe(1);
+        });
+
+        it("regression: delayed first send still sends cached event only once (lock prevents race)", async () => {
+            const eventCache = new RealEventCache();
+            const CACHED_MARKER = "cached-regression-test";
+
+            eventCache.appendEvents([
+                createTestEvent({ command: CACHED_MARKER, component: "cached" }),
+            ]);
+
+            const delayMs = 50;
+            let sendCallCount = 0;
+            mockApiClient.sendEvents.mockImplementation(() => {
+                sendCallCount++;
+                if (sendCallCount === 1) {
+                    return new Promise((resolve) => setTimeout(resolve, delayMs));
+                }
+                return Promise.resolve();
+            });
+
+            const raceTelemetry = Telemetry.create(session, config, mockDeviceId, {
+                eventCache,
+            });
+            await raceTelemetry.setupPromise;
+
+            const emitted = new Promise<void>((resolve) => {
+                let count = 0;
+                const onDone = () => {
+                    count++;
+                    if (count >= 2) resolve();
+                };
+                raceTelemetry.events.once("events-emitted", onDone);
+                raceTelemetry.events.once("events-send-failed", onDone);
+                raceTelemetry.events.once("events-emitted", onDone);
+                raceTelemetry.events.once("events-send-failed", onDone);
+            });
+
+            raceTelemetry.emitEvents([createTestEvent({ command: "event-a" })]);
+            raceTelemetry.emitEvents([createTestEvent({ command: "event-b" })]);
+
+            await emitted;
+
+            let cachedEventSendCount = 0;
+            for (const call of mockApiClient.sendEvents.mock.calls) {
+                const events = call[0] as Array<{ properties?: { command?: string } }>;
+                for (const e of events) {
+                    if (e.properties?.command === CACHED_MARKER) cachedEventSendCount++;
+                }
+            }
+            expect(
+                cachedEventSendCount,
+                "Regression: without the emit lock, both concurrent emit() read the same cache; cached would be 2"
+            ).toBe(1);
         });
     });
 });
