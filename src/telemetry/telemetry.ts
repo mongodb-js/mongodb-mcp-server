@@ -29,7 +29,7 @@ export class Telemetry {
 
     private eventCache: EventCache;
     private deviceId: DeviceId;
-    /** Serializes getEvents → send → removeEvents to prevent duplicate sends (CLOUDP-380317) */
+    /** Used to serialize emit() calls */
     private emitLock: Promise<void> = Promise.resolve();
 
     private constructor(
