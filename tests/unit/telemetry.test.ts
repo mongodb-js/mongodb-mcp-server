@@ -443,7 +443,7 @@ describe("Telemetry", () => {
 
     /**
      * These tests use the real EventCache (via importActual) so getEvents/removeEvents are shared.
-     * Regression test: delayed first send exposes the race if the emit lock is removed.
+     * This is a regression test to ensure that the emit lock prevents the same events from being sent twice.
      */
     describe("when sending multiple events concurrently", () => {
         let RealEventCache: typeof EventCache;
@@ -531,7 +531,7 @@ describe("Telemetry", () => {
 
             await emitted;
 
-            let cachedEventSendCount = 0;
+            let cachedEventSendCount = 0; 
             for (const call of mockApiClient.sendEvents.mock.calls) {
                 const events = call[0] as Array<{ properties?: { command?: string } }>;
                 for (const e of events) {
