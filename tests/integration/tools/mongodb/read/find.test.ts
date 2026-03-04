@@ -110,6 +110,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             projection?: unknown;
             sort?: unknown;
             expected: unknown[];
+            expectedTotalCount?: number;
         }[] = [
             {
                 name: "returns all documents when no filter is provided",
@@ -141,6 +142,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                     { _id: expect.any(Object) as unknown, value: 6 },
                     { _id: expect.any(Object) as unknown, value: 7 },
                 ],
+                expectedTotalCount: 4,
             },
             {
                 name: "returns documents matching the filter with sort",
@@ -153,7 +155,7 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
             },
         ];
 
-        for (const { name, filter, limit, projection, sort, expected } of testCases) {
+        for (const { name, filter, limit, projection, sort, expected, expectedTotalCount } of testCases) {
             it(name, async () => {
                 await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
@@ -168,7 +170,8 @@ describeWithMongoDB("find tool with default configuration", (integration) => {
                     },
                 });
                 const content = getResponseContent(response);
-                expect(content).toContain(`Query on collection "foo" resulted in ${expected.length} documents.`);
+                const expectedCount = expectedTotalCount ?? expected.length;
+                expect(content).toContain(`Query on collection "foo" resulted in ${expectedCount} documents.`);
 
                 const docs = getDocsFromUntrustedContent(content);
 
@@ -318,7 +321,7 @@ describeWithMongoDB(
             });
 
             const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 8 documents.`);
+            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
             expect(content).toContain(`Returning 8 documents.`);
         });
 
@@ -421,7 +424,7 @@ describeWithMongoDB(
             });
 
             const content = getResponseContent(response);
-            expect(content).toContain(`Query on collection "foo" resulted in 8 documents.`);
+            expect(content).toContain(`Query on collection "foo" resulted in 1000 documents.`);
             expect(content).toContain(`Returning 8 documents.`);
         });
 
