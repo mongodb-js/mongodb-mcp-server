@@ -1,0 +1,34 @@
+{
+  "name": "mongodb",
+  "version": "1.0.0",
+  "description": "MongoDB MCP Server for interacting with MongoDB Databases and MongoDB Atlas.",
+  "settings": [
+    {
+      "name": "MongoDB Connection String",
+      "description": "MongoDB connection string for direct database connections (optional if using Atlas API tools).",
+      "envVar": "MDB_MCP_CONNECTION_STRING",
+      "sensitive": true
+    },
+    {
+      "name": "Atlas API Client ID",
+      "description": "Atlas API client ID for authentication (optional).",
+      "envVar": "MDB_MCP_API_CLIENT_ID",
+      "sensitive": false
+    },
+    {
+      "name": "Atlas API Client Secret",
+      "description": "Atlas API client secret for authentication (optional).",
+      "envVar": "MDB_MCP_API_CLIENT_SECRET",
+      "sensitive": true
+    }
+  ],
+  "mcpServers": {
+    "mongodb": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mongodb-mcp-server@latest"
+      ]
+    }
+  }
+}
