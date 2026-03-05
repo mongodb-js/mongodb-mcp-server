@@ -116,6 +116,14 @@ export MDB_MCP_API_CLIENT_SECRET="your-atlas-service-accounts-client-secret"
 npx -y mongodb-mcp-server@latest --readOnly
 ```
 
+#### Option 4: Using with Gemini CLI
+
+You can seamlessly install and configure the MongoDB MCP server using the Gemini CLI. 
+
+```bash
+gemini extensions install [https://github.com/mongodb-js/mongodb-mcp-server](https://github.com/mongodb-js/mongodb-mcp-server)
+```
+
 > **💡 Platform Note:** The examples above use Unix/Linux/macOS syntax. For Windows users, see [Environment Variables](#environment-variables) for platform-specific instructions.
 
 - For a complete list of configuration options see [Configuration Options](#configuration-options)
