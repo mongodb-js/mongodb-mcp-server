@@ -29,6 +29,7 @@ describe("Telemetry", () => {
         getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
         removeEvents: MockedFunction<(ids: number[]) => Promise<void>>;
         appendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
+        runExclusive: MockedFunction<<T>(fn: () => Promise<T>) => Promise<T>>;
     };
     let session: Session;
     let telemetry: Telemetry;
@@ -130,6 +131,7 @@ describe("Telemetry", () => {
         mockEventCache.getEvents = vi.fn().mockReturnValue([]);
         mockEventCache.removeEvents = vi.fn().mockResolvedValue(undefined);
         mockEventCache.appendEvents = vi.fn().mockResolvedValue(undefined);
+        mockEventCache.runExclusive = vi.fn().mockImplementation(<T>(fn: () => Promise<T>) => fn());
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
         mockDeviceId = {
@@ -531,7 +533,7 @@ describe("Telemetry", () => {
 
             await emitted;
 
-            let cachedEventSendCount = 0; 
+            let cachedEventSendCount = 0;
             for (const call of mockApiClient.sendEvents.mock.calls) {
                 const events = call[0] as Array<{ properties?: { command?: string } }>;
                 for (const e of events) {
