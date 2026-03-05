@@ -12,6 +12,8 @@ export class EventCache {
 
     private cache: LRUCache<number, BaseEvent>;
     private nextId = 0;
+    /** Serializes runExclusive callbacks so multiple sessions don't race on get/send/remove */
+    private _lock: Promise<void> = Promise.resolve();
 
     constructor() {
         this.cache = new LRUCache({
@@ -38,6 +40,25 @@ export class EventCache {
      */
     public get size(): number {
         return this.cache.size;
+    }
+
+    /**
+     * Runs a callback with exclusive access to the cache so getEvents/send/removeEvents
+     * are serialized across all callers (e.g. multiple Telemetry instances / sessions).
+     * Prevents duplicate sends when the server handles many sessions.
+     */
+    public async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+        const prevLock = this._lock;
+        let releaseLock!: () => void;
+        this._lock = new Promise<void>((r) => {
+            releaseLock = r;
+        });
+        await prevLock;
+        try {
+            return await fn();
+        } finally {
+            releaseLock();
+        }
     }
 
     /**
