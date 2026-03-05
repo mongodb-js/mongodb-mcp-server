@@ -5,7 +5,7 @@ import {
     type RequestContext,
     type CustomizableSessionOptions,
 } from "../base.js";
-import type { CustomizableServerOptions, Server, UserConfig } from "../../lib.js";
+import type { CustomizableServerOptions, ISessionStore, Server, UserConfig } from "../../lib.js";
 import { applyConfigOverrides } from "../../common/config/configOverrides.js";
 import { HealthCheckServer } from "./httpServers/healthCheckServer.js";
 import { MCPHttpServer } from "./httpServers/mcpHttpServer.js";
@@ -25,15 +25,18 @@ export class StreamableHttpRunner<
     async start({
         serverOptions,
         sessionOptions,
+        sessionStore,
     }: {
         /** Server options to use when creating the server. */
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         /** Session options to use when creating the session. */
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        /** Session Store implementation to use when storing sessionId to transport mappings. */
+        sessionStore?: ISessionStore;
     } = {}): Promise<void> {
         this.validateConfig();
 
-        await this.startMCPServer({ serverOptions, sessionOptions });
+        await this.startMCPServer({ serverOptions, sessionOptions, sessionStore });
         await this.startHealthCheckServer();
 
         this.logger.info({
@@ -117,14 +120,17 @@ export class StreamableHttpRunner<
     private async startMCPServer({
         serverOptions,
         sessionOptions,
+        sessionStore,
     }: {
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        sessionStore?: ISessionStore;
     }): Promise<void> {
         this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
             userConfig: this.userConfig,
             serverOptions,
             sessionOptions,
+            sessionStore,
             createServerForRequest: ({
                 request,
                 serverOptions: requestServerOptions,

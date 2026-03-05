@@ -1,10 +1,9 @@
 import express from "express";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 
 import type { Server } from "../../../server.js";
-import { SessionStore } from "../../../common/sessionStore.js";
+import { SessionStore, type ISessionStore } from "../../../common/sessionStore.js";
 import { getRandomUUID } from "../../../helpers/getRandomUUID.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import type { UserConfig } from "../../../common/config/userConfig.js";
@@ -22,7 +21,7 @@ export class MCPHttpServer<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
 > extends ExpressBasedHttpServer {
-    private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
+    private sessionStore: ISessionStore;
     private serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     private userConfig: UserConfig;
@@ -39,6 +38,7 @@ export class MCPHttpServer<
         serverOptions,
         sessionOptions,
         logger,
+        sessionStore,
     }: {
         userConfig: TUserConfig;
         createServerForRequest: (createParams: {
@@ -49,6 +49,7 @@ export class MCPHttpServer<
         logger: LoggerBase;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        sessionStore?: ISessionStore;
     }) {
         super({
             port: userConfig.httpPort,
@@ -60,6 +61,9 @@ export class MCPHttpServer<
         this.sessionOptions = sessionOptions;
         this.createServerForRequest = createServerForRequest;
         this.userConfig = userConfig;
+        this.sessionStore =
+            sessionStore ??
+            new SessionStore(this.userConfig.idleTimeoutMs, this.userConfig.notificationTimeoutMs, logger);
     }
 
     public async stop(): Promise<void> {
@@ -68,12 +72,6 @@ export class MCPHttpServer<
 
     // eslint-disable-next-line @typescript-eslint/require-await
     protected override async setupRoutes(): Promise<void> {
-        this.sessionStore = new SessionStore(
-            this.userConfig.idleTimeoutMs,
-            this.userConfig.notificationTimeoutMs,
-            this.logger
-        );
-
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
         this.app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
@@ -165,7 +163,7 @@ export class MCPHttpServer<
             return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
         }
 
-        const transport = this.sessionStore.getSession(sessionId);
+        const transport = await this.sessionStore.getSession(sessionId);
         if (!transport) {
             if (this.userConfig.externallyManagedSessions) {
                 this.logger.debug({
@@ -223,10 +221,14 @@ export class MCPHttpServer<
             enableJsonResponse: this.userConfig.httpResponseType === "json",
         };
 
-        const sessionInitialized = (sessionId: string): void => {
+        const sessionInitialized = async (sessionId: string): Promise<void> => {
             server.session.logger.setAttribute("sessionId", sessionId);
 
-            this.sessionStore.setSession(sessionId, transport, server.session.logger);
+            await this.sessionStore.setSession(sessionId, {
+                server,
+                transport,
+                logger: server.session.logger,
+            });
             server.session.logger.info({
                 id: LogId.streamableHttpTransportSessionInitialized,
                 context: "streamableHttpTransport",
@@ -305,7 +307,7 @@ export class MCPHttpServer<
         await server.connect(transport);
 
         if (isImplicitInitialization) {
-            sessionInitialized(sessionId);
+            await sessionInitialized(sessionId);
         }
 
         await transport.handleRequest(req, res, req.body);

@@ -296,9 +296,9 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
-    const getSessionFromStore = (sessionId: string): StreamableHTTPServerTransport | undefined => {
+    const getSessionFromStore = async (sessionId: string): Promise<StreamableHTTPServerTransport | undefined> => {
         const sessionStore = runner["mcpServer"]!["sessionStore"];
-        return sessionStore.getSession(sessionId);
+        return await sessionStore.getSession(sessionId);
     };
 
     describe("with externallyManagedSessions enabled", () => {
@@ -325,7 +325,7 @@ describe("StreamableHttpRunner", () => {
                     expect(response.tools.length).toBeGreaterThan(0);
 
                     // Verify the session is stored with the external ID
-                    const storedSession = getSessionFromStore(sessionId);
+                    const storedSession = await getSessionFromStore(sessionId);
                     expect(storedSession).toBeDefined();
                 });
 
@@ -337,7 +337,7 @@ describe("StreamableHttpRunner", () => {
                     const response1 = await client1.listTools();
                     expect(response1.tools).toBeDefined();
 
-                    const session1 = getSessionFromStore(sessionId);
+                    const session1 = await getSessionFromStore(sessionId);
                     expect(session1).toBeDefined();
 
                     // Second client reuses the session
@@ -345,7 +345,7 @@ describe("StreamableHttpRunner", () => {
                     const response2 = await client2.listTools();
                     expect(response2.tools).toBeDefined();
 
-                    const session2 = getSessionFromStore(sessionId);
+                    const session2 = await getSessionFromStore(sessionId);
                     expect(session2).toBe(session1);
                 });
 
@@ -357,7 +357,7 @@ describe("StreamableHttpRunner", () => {
                     const response1 = await client1.listTools();
                     expect(response1.tools).toBeDefined();
 
-                    const session1 = getSessionFromStore(sessionId);
+                    const session1 = await getSessionFromStore(sessionId);
                     expect(session1).toBeDefined();
 
                     await client1.close();
@@ -368,7 +368,7 @@ describe("StreamableHttpRunner", () => {
                     expect(response2.tools).toBeDefined();
 
                     // Verify it's the same session - the session should persist even after the first client closes
-                    const session2 = getSessionFromStore(sessionId);
+                    const session2 = await getSessionFromStore(sessionId);
                     expect(session2).toBe(session1);
                 });
 
@@ -391,9 +391,9 @@ describe("StreamableHttpRunner", () => {
                     expect(response2.tools).toBeDefined();
                     expect(response3.tools).toBeDefined();
 
-                    const session1 = getSessionFromStore(sessionId1);
-                    const session2 = getSessionFromStore(sessionId2);
-                    const session3 = getSessionFromStore(sessionId3);
+                    const session1 = await getSessionFromStore(sessionId1);
+                    const session2 = await getSessionFromStore(sessionId2);
+                    const session3 = await getSessionFromStore(sessionId3);
 
                     expect(session1).toBeDefined();
                     expect(session2).toBeDefined();
@@ -411,7 +411,7 @@ describe("StreamableHttpRunner", () => {
 
                     await client.listTools();
 
-                    const session = getSessionFromStore(sessionId);
+                    const session = await getSessionFromStore(sessionId);
                     expect(session).toBeDefined();
                 });
 
@@ -431,7 +431,7 @@ describe("StreamableHttpRunner", () => {
                         expect(data).toContain('data: {"result":{"tools":');
                     }
 
-                    const session = getSessionFromStore(externalSessionId);
+                    const session = await getSessionFromStore(externalSessionId);
                     expect(session).toBeDefined();
                 });
 
@@ -459,11 +459,11 @@ describe("StreamableHttpRunner", () => {
                         const client = await connectClient({ sessionId });
                         await client.listTools();
 
-                        const sessionBefore = getSessionFromStore(sessionId);
+                        const sessionBefore = await getSessionFromStore(sessionId);
                         expect(sessionBefore).toBeDefined();
                         await timeout(1100);
 
-                        const sessionAfter = getSessionFromStore(sessionId);
+                        const sessionAfter = await getSessionFromStore(sessionId);
                         expect(sessionAfter).toBeUndefined();
                     });
                 });
@@ -559,7 +559,7 @@ describe("StreamableHttpRunner", () => {
                     expect(data.error?.message).toBe("session not found");
 
                     const sessionStore = runner["mcpServer"]!["sessionStore"];
-                    const session = sessionStore.getSession(unknownSessionId);
+                    const session = await sessionStore.getSession(unknownSessionId);
                     expect(session).toBeUndefined();
                 });
 

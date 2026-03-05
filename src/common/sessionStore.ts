@@ -2,20 +2,29 @@ import type { LoggerBase } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
+import { type Server } from "../server.js";
+import { type StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
-/**
- * Minimal interface for a transport that can be stored in a SessionStore.
- * The transport must have a close method for cleanup.
- */
-export type CloseableTransport = {
-    close(): Promise<void>;
-};
+export interface ISessionStore {
+    getSession(sessionId: string): Promise<StreamableHTTPServerTransport | undefined>;
+    setSession(
+        sessionId: string,
+        sessionState: {
+            transport: StreamableHTTPServerTransport;
+            server: Server;
+            logger: LoggerBase;
+        }
+    ): Promise<void>;
+    closeSession(sessionId: string, closeTransport: boolean): Promise<void>;
+    closeAllSessions(): Promise<void>;
+}
 
-export class SessionStore<T extends CloseableTransport = CloseableTransport> {
+export class SessionStore implements ISessionStore {
     private sessions: {
         [sessionId: string]: {
             logger: LoggerBase;
-            transport: T;
+            transport: StreamableHTTPServerTransport;
+            server: Server;
             abortTimeout: ManagedTimeout;
             notificationTimeout: ManagedTimeout;
         };
@@ -37,7 +46,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         }
     }
 
-    getSession(sessionId: string): T | undefined {
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async getSession(sessionId: string): Promise<StreamableHTTPServerTransport | undefined> {
         this.resetTimeout(sessionId);
         return this.sessions[sessionId]?.transport;
     }
@@ -70,7 +80,15 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         });
     }
 
-    setSession(sessionId: string, transport: T, logger: LoggerBase): void {
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async setSession(
+        sessionId: string,
+        sessionState: {
+            transport: StreamableHTTPServerTransport;
+            server: Server;
+            logger: LoggerBase;
+        }
+    ): Promise<void> {
         const session = this.sessions[sessionId];
         if (session) {
             throw new Error(`Session ${sessionId} already exists`);
@@ -91,10 +109,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
             this.notificationTimeoutMS
         );
         this.sessions[sessionId] = {
-            transport,
+            ...sessionState,
             abortTimeout,
             notificationTimeout,
-            logger,
         };
     }
 
