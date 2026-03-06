@@ -11,6 +11,7 @@ import { AI_TOOL_REGISTRY } from "./AiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
+import { validateConnectionString } from "../helpers/connectionOptions.js";
 
 /** Format an unknown catch value for display (Error.message or String). */
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
@@ -77,6 +78,7 @@ const testConnectionString = async (connectionString: string): Promise<string> =
         let serviceProvider: NodeDriverServiceProvider | undefined;
 
         try {
+            validateConnectionString(connectionString, false);
             serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                 productName: "MongoDB MCP",
@@ -162,7 +164,6 @@ export const runSetup = async (): Promise<void> => {
         console.log(chalk.hex("#00ED64")(banner) + "\n");
 
         const nodeVersion = process.versions.node;
-        /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument -- packageInfo.engines.node is string (generated file type can be mis-inferred) */
         const requiredNodeRange = packageInfo.engines.node;
         if (!nodeVersion || !semver.satisfies(nodeVersion, requiredNodeRange)) {
             console.log(
