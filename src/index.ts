@@ -46,9 +46,17 @@ import { StreamableHttpRunner } from "./transports/streamableHttp.js";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
+import { runSetup } from "./setup/setupMcpServer.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
+
+    const args = process.argv.slice(2);
+    const isSetupRequested = args[0] === "setup";
+    if (isSetupRequested) {
+        // remove the "setup" argument so it doesn't interfere with arg parsings
+        args.shift();
+    }
 
     const {
         error,
@@ -75,6 +83,17 @@ async function main(): Promise<void> {
 
     if (config.version) {
         handleVersionRequest();
+    }
+
+    if (isSetupRequested) {
+        if (config.previewFeatures.includes("setup")) {
+            await handleSetupRequest();
+        } else {
+            console.error(
+                "Automated MCP setup is in preview. If you want to run the setup flow, enable the 'setup' preview feature"
+            );
+            process.exit(1);
+        }
     }
 
     if (config.dryRun) {
@@ -170,6 +189,11 @@ function handleHelpRequest(): never {
 
 function handleVersionRequest(): never {
     console.log(packageInfo.version);
+    process.exit(0);
+}
+
+async function handleSetupRequest(): Promise<never> {
+    await runSetup();
     process.exit(0);
 }
 
