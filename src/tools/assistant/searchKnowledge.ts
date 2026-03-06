@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { type ToolArgs, type OperationType, type ToolCategory, formatUntrustedData } from "../tool.js";
 import { AssistantToolBase } from "./assistantTool.js";
-import { LogId } from "../../common/logger.js";
+import { LogId } from "../../common/logging/index.js";
 import { stringify as yamlStringify } from "yaml";
 
 export const SearchKnowledgeToolArgs = {

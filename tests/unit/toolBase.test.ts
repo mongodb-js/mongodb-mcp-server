@@ -9,7 +9,7 @@ import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { Elicitation } from "../../src/elicitation.js";
-import type { CompositeLogger } from "../../src/common/logger.js";
+import type { CompositeLogger } from "../../src/common/logging/index.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";
 import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types.js";

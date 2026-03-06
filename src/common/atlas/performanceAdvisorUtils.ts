@@ -1,4 +1,4 @@
-import { LogId } from "../logger.js";
+import { LogId } from "../logging/index.js";
 import type { ApiClient } from "./apiClient.js";
 import { getProcessIdsFromCluster } from "./cluster.js";
 import type { components } from "./openapi.js";

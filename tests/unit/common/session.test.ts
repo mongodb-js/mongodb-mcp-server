@@ -2,7 +2,7 @@ import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { Session } from "../../../src/common/session.js";
-import { CompositeLogger } from "../../../src/common/logger.js";
+import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
