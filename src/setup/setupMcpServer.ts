@@ -3,12 +3,13 @@ import select from "@inquirer/select";
 import { input, confirm, password } from "@inquirer/prompts";
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { exec } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
 import { MongoClient } from "mongodb";
 import { AI_TOOL_CONFIGS, AI_TOOLS, type AiToolType } from "./setupAiToolsConstants.js";
+import type { Platform } from "./setupAiToolsUtils.js";
+import { getPlatform } from "./setupAiToolsUtils.js";
 
 const MINIMUM_REQUIRED_NODE_VERSION = "22.12.0";
 const MINIMUM_REQUIRED_MCP_NODE22_VERSION = "22.12.0";
@@ -39,21 +40,11 @@ interface OpenCodeConfig {
 /** Format an unknown catch value for display (Error.message or String). */
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
-// Handle Ctrl+C gracefully
-process.on("SIGINT", () => {
-    console.log("\n\nSetup cancelled. Goodbye!");
-    process.exit(0);
-});
-
 // Detect OS
-const platform = os.platform();
-const isWindows = platform === "win32";
-const isMac = platform === "darwin";
-
-const getCurrentNodeVersion = (): string => {
-    const version = process.versions.node;
-    return version;
-};
+const platform: Platform | null = getPlatform();
+const isWindows = platform === "windows";
+const isMac = platform === "mac";
+const isLinux = platform === "linux";
 
 // These are tools that don't have a designated editor to open the config file
 const TOOLS_WITHOUT_EDITORS: AiToolType[] = [
@@ -71,7 +62,7 @@ const openConfigSettings = (tool: AiToolType): void => {
             exec(`open "${configPath}"`);
         } else if (isWindows) {
             exec(`start "" "${configPath}"`);
-        } else {
+        } else if (isLinux) {
             exec(`xdg-open "${configPath}"`);
         }
         return;
@@ -82,21 +73,9 @@ const openConfigSettings = (tool: AiToolType): void => {
         exec(`open "${editor}://file${configPath}"`);
     } else if (isWindows) {
         exec(`start "" "${editor}://file${configPath}"`);
-    } else {
+    } else if (isLinux) {
         exec(`xdg-open "${editor}://file${configPath}"`);
     }
-};
-
-const getAiToolConfigPath = (tool: AiToolType): string => {
-    return AI_TOOL_CONFIGS[tool].getConfigPath();
-};
-
-const getAiToolDisplayName = (tool: AiToolType): string => {
-    return AI_TOOL_CONFIGS[tool].name;
-};
-
-const getConfigFileName = (tool: AiToolType): string => {
-    return AI_TOOL_CONFIGS[tool].configFileName;
 };
 
 const getServersKey = (tool: AiToolType): "servers" | "mcpServers" | null => {
@@ -262,11 +241,8 @@ const writeConfigFile = (configPath: string, config: McpConfig): void => {
     }
 };
 
-const testConnectionString = async (initialConnectionString: string): Promise<string> => {
-    let connectionString = initialConnectionString;
-    let connectionSuccessful = false;
-
-    while (!connectionSuccessful) {
+const testConnectionString = async (connectionString: string): Promise<string> => {
+    while (true) {
         console.log("\nTesting connection...");
         let client;
 
@@ -277,7 +253,7 @@ const testConnectionString = async (initialConnectionString: string): Promise<st
             await client.connect();
             await client.db("admin").command({ ping: 1 });
             console.log(chalk.green("✓ Connection successful!"));
-            connectionSuccessful = true;
+            return connectionString;
         } catch (error: unknown) {
             console.log(chalk.red("\n✗ Connection failed: " + formatError(error)));
             console.log(chalk.yellow("\nPlease check:"));
@@ -293,7 +269,8 @@ const testConnectionString = async (initialConnectionString: string): Promise<st
             if (retry) {
                 connectionString = await password({ message: "Enter your MongoDB connection string:", mask: true });
             } else {
-                connectionSuccessful = true; // Exit loop, proceed with potentially invalid connection string
+                console.log(chalk.yellow("\nYou might be proceeding with a potentially invalid connection string."));
+                return connectionString; // Exit loop, proceed with potentially invalid connection string
             }
         } finally {
             try {
@@ -314,9 +291,8 @@ const configureEditor = async (
     serviceWorkerSecret: string,
     isReadOnly: boolean
 ): Promise<void> => {
-    const displayName = getAiToolDisplayName(tool);
-    const configFileName = getConfigFileName(tool);
-    let configPath = getAiToolConfigPath(tool);
+    const { name: displayName, configFileName } = AI_TOOL_CONFIGS[tool];
+    let configPath = AI_TOOL_CONFIGS[tool].getConfigPath();
 
     // Confirm the config path with the user
     const useDetectedPath = await confirm({
@@ -370,7 +346,7 @@ export const runSetup = async (): Promise<void> => {
     try {
         console.log(chalk.hex("#00ED64")(banner) + "\n");
 
-        const nodeVersion = semver.coerce(getCurrentNodeVersion());
+        const nodeVersion = semver.coerce(process.versions.node);
         const minimumRequiredNodeVersion = semver.coerce(MINIMUM_REQUIRED_NODE_VERSION);
         const minimumRequiredMcpNode22Version = semver.coerce(MINIMUM_REQUIRED_MCP_NODE22_VERSION);
 
@@ -396,6 +372,11 @@ export const runSetup = async (): Promise<void> => {
             process.exit(1);
         }
 
+        if (!platform) {
+            console.error("Unsupported platform. Only macOS, Windows and Linux are supported.");
+            process.exit(1);
+        }
+
         console.log("To install a Local MCP Server configuration, you'll need:");
         console.log("1. A MongoDB Cluster");
         console.log("2. The connection string for your Cluster, including SCRAM database user credentials [required]");
@@ -404,23 +385,20 @@ export const runSetup = async (): Promise<void> => {
             "It's best to have this information at hand. We will not store any data or credentials in this process.\n\n"
         );
 
-        const tool = (await select({
+        const tool = await select<AiToolType>({
             message: "What tool would you like to use the MongoDB MCP Server with?",
             choices: [
-                { value: AI_TOOLS.CURSOR, name: "Cursor" },
-                { value: AI_TOOLS.VSCODE, name: "VS Code" },
-                { value: AI_TOOLS.CLAUDE_DESKTOP, name: "Claude Desktop" },
-                { value: AI_TOOLS.CLAUDE_CODE, name: "Claude Code" },
-                { value: AI_TOOLS.CODEX, name: "OpenAI Codex" },
-                { value: AI_TOOLS.OPENCODE, name: "Open Code" },
-                { value: AI_TOOLS.WINDSURF, name: "Windsurf" },
+                { value: "cursor", name: "Cursor" },
+                { value: "vscode", name: "VS Code" },
+                { value: "claudeDesktop", name: "Claude Desktop" },
+                { value: "claudeCode", name: "Claude Code" },
+                { value: "codex", name: "OpenAI Codex" },
+                { value: "opencode", name: "Open Code" },
+                { value: "windsurf", name: "Windsurf" },
             ],
-        })) as AiToolType;
+        });
+        const { name: displayName } = AI_TOOL_CONFIGS[tool];
         console.log("\n");
-
-        let connectionString = "";
-        let serviceWorkerId = "";
-        let serviceWorkerSecret = "";
 
         const isReadOnly = await confirm({ message: "Install MCP server as Read-only?", default: false });
         console.log("\n");
@@ -428,7 +406,7 @@ export const runSetup = async (): Promise<void> => {
         console.log(
             "Providing a connection string allows the MCP server to read and write data to your MongoDB cluster."
         );
-        connectionString = await password({ message: "Enter your MongoDB connection string:", mask: true });
+        let connectionString = await password({ message: "Enter your MongoDB connection string:", mask: true });
 
         if (connectionString) {
             const shouldTest = await confirm({ message: "Test your connection string?", default: true });
@@ -439,16 +417,18 @@ export const runSetup = async (): Promise<void> => {
         }
 
         console.log(
-            "\nService Accounts allow the MCP Server to access your MongoDB cluster and perform actions on your behalf."
+            "\nService Accounts allow the MCP Server to access Atlas tools and perform actions on your behalf."
         );
-        serviceWorkerId = await input({ message: "Enter your Atlas Service Account Client ID (press enter to skip):" });
-        serviceWorkerSecret = await password({
+        const serviceAccountId = await input({
+            message: "Enter your Atlas Service Account Client ID (press enter to skip):",
+        });
+        const serviceAccountSecret = await password({
             message: "Enter your Atlas Service Account Secret (press enter to skip):",
             mask: true,
         });
         console.log("\n");
 
-        await configureEditor(tool, connectionString, serviceWorkerId, serviceWorkerSecret, isReadOnly);
+        await configureEditor(tool, connectionString, serviceAccountId, serviceAccountSecret, isReadOnly);
 
         const availablePrompts = [];
         if (connectionString) {
@@ -456,14 +436,14 @@ export const runSetup = async (): Promise<void> => {
             availablePrompts.push('\t"Show me some db stats about my Atlas cluster"');
         }
 
-        if (serviceWorkerId && serviceWorkerSecret) {
+        if (serviceAccountId && serviceAccountSecret) {
             availablePrompts.push('\t"What are the clusters in my project?"');
             availablePrompts.push('\t"Does my project have any active alerts?"');
         }
 
         console.log(
             chalk.green(
-                "\nSetup complete! You can now use the MongoDB MCP Server in your application. You may need to restart your application to see the changes.\n"
+                `\nSetup complete! You can now use the MongoDB MCP Server in ${displayName}. You may need to restart your application to see the changes.\n`
             )
         );
 
@@ -484,8 +464,7 @@ export const runSetup = async (): Promise<void> => {
         console.log(availablePrompts.join("\n"));
         console.log("\n");
 
-        //TODO: if this is not a tool that supports editing, omit the last part
-        let openConfigMessage = `Would you like to open the config file in ${getAiToolDisplayName(tool)}?`;
+        let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
         if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
             openConfigMessage = `Would you like to open the config file in your default editor?`;
         }

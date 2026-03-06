@@ -1,9 +1,11 @@
 import path from "path";
 import os from "os";
+import { getPlatform, type Platform } from "./setupAiToolsUtils.js";
 
-const platform = os.platform();
-const isWindows = platform === "win32";
-const isMac = platform === "darwin";
+const platform: Platform | null = getPlatform();
+const isWindows = platform === "windows";
+const isMac = platform === "mac";
+const isLinux = platform === "linux";
 
 export type AiToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
 
@@ -34,8 +36,12 @@ export const AI_TOOL_CONFIGS: Record<AiToolType, AiToolConfig> = {
                 // windows: %APPDATA%\Cursor\mcp.json
                 return path.join(windowsBasePath, "Cursor", "mcp.json");
             }
-            // macOS & Linux: ~/.cursor/mcp.json
-            return path.join(os.homedir(), ".cursor", "mcp.json");
+
+            if (isMac || isLinux) {
+                // macOS & Linux: ~/.cursor/mcp.json
+                return path.join(os.homedir(), ".cursor", "mcp.json");
+            }
+            return "";
         },
     },
     [AI_TOOLS.VSCODE]: {
@@ -50,8 +56,11 @@ export const AI_TOOL_CONFIGS: Record<AiToolType, AiToolConfig> = {
                 // macOS: ~/Library/Application Support/Code/User/mcp.json
                 return path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json");
             }
-            // Linux: ~/.config/Code/User/mcp.json
-            return path.join(os.homedir(), ".config", "Code", "User", "mcp.json");
+            if (isLinux) {
+                // Linux: ~/.config/Code/User/mcp.json
+                return path.join(os.homedir(), ".config", "Code", "User", "mcp.json");
+            }
+            return "";
         },
     },
     [AI_TOOLS.WINDSURF]: {
@@ -62,8 +71,11 @@ export const AI_TOOL_CONFIGS: Record<AiToolType, AiToolConfig> = {
                 // windows: %APPDATA%\cascade\mcp_config.json
                 return path.join(windowsBasePath, "cascade", "mcp_config.json");
             }
-            // macOS & Linux: ~/.config/cascade/mcp_config.json
-            return path.join(os.homedir(), ".config", "cascade", "mcp_config.json");
+            if (isMac || isLinux) {
+                // macOS & Linux: ~/.config/cascade/mcp_config.json
+                return path.join(os.homedir(), ".config", "cascade", "mcp_config.json");
+            }
+            return "";
         },
     },
     [AI_TOOLS.CLAUDE_DESKTOP]: {
@@ -84,8 +96,12 @@ export const AI_TOOL_CONFIGS: Record<AiToolType, AiToolConfig> = {
                     "claude_desktop_config.json"
                 );
             }
-            // Linux: ~/.config/Claude/claude_desktop_config.json
-            return path.join(os.homedir(), ".config", "Claude", "claude_desktop_config.json");
+
+            if (isLinux) {
+                // Linux: ~/.config/Claude/claude_desktop_config.json
+                return path.join(os.homedir(), ".config", "Claude", "claude_desktop_config.json");
+            }
+            return "";
         },
     },
     [AI_TOOLS.CLAUDE_CODE]: {
