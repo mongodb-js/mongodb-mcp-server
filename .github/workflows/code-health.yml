@@ -45,7 +45,7 @@ jobs:
           MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
       - name: Upload test results
         if: always() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: coverage/lcov.info
@@ -73,7 +73,7 @@ jobs:
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
         run: pnpm test tests/integration/tools/atlas/
       - name: Upload test results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: atlas-test-results
@@ -98,7 +98,7 @@ jobs:
       - name: Run tests
         run: pnpm test tests/integration/tools/atlas-local/
       - name: Upload test results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: atlas-local-test-results
@@ -126,7 +126,7 @@ jobs:
         run: pnpm run test:browser
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: browser-test-results
           path: coverage/tests/browser/lcov.info
