@@ -1,41 +1,18 @@
 /* eslint-disable no-console */
 import select from "@inquirer/select";
 import { input, confirm, password } from "@inquirer/prompts";
-import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
-import { MongoClient } from "mongodb";
-import { AI_TOOL_CONFIGS, AI_TOOLS, type AiToolType } from "./setupAiToolsConstants.js";
+import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { AI_TOOLS, type AiToolType } from "./setupAiToolsConstants.js";
+import { AI_TOOL_REGISTRY } from "./AiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { getPlatform } from "./setupAiToolsUtils.js";
 
 const MINIMUM_REQUIRED_NODE_VERSION = "22.12.0";
 const MINIMUM_REQUIRED_MCP_NODE22_VERSION = "22.12.0";
-
-interface McpServerConfig {
-    command: string;
-    args: string[];
-    env: Record<string, string>;
-}
-
-interface McpConfig {
-    mcpServers?: Record<string, McpServerConfig>;
-    servers?: Record<string, McpServerConfig>;
-}
-
-interface OpenCodeMcpEntry {
-    type: "local";
-    command: string[];
-    environment?: Record<string, string>;
-    enabled?: boolean;
-}
-
-interface OpenCodeConfig {
-    mcp?: Record<string, OpenCodeMcpEntry>;
-    [key: string]: unknown;
-}
 
 /** Format an unknown catch value for display (Error.message or String). */
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
@@ -55,7 +32,7 @@ const TOOLS_WITHOUT_EDITORS: AiToolType[] = [
 ];
 
 const openConfigSettings = (tool: AiToolType): void => {
-    const configPath = AI_TOOL_CONFIGS[tool].getConfigPath();
+    const configPath = AI_TOOL_REGISTRY[tool].configPath;
 
     if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
         if (isMac) {
@@ -78,119 +55,6 @@ const openConfigSettings = (tool: AiToolType): void => {
     }
 };
 
-const getServersKey = (tool: AiToolType): "servers" | "mcpServers" | null => {
-    // VS Code uses "servers" at the top level
-    if (tool === AI_TOOLS.VSCODE) return "servers";
-
-    // Cursor, Windsurf, Claude Desktop, Claude Code use "mcpServers"
-    if (
-        tool === AI_TOOLS.CURSOR ||
-        tool === AI_TOOLS.WINDSURF ||
-        tool === AI_TOOLS.CLAUDE_DESKTOP ||
-        tool === AI_TOOLS.CLAUDE_CODE
-    ) {
-        return "mcpServers";
-    }
-
-    // OpenCode uses "mcp" (different shape); Codex uses TOML — handled separately
-    return null;
-};
-
-const readExistingConfig = (configPath: string, configFileName: string, tool: AiToolType): McpConfig => {
-    const serversKey = getServersKey(tool);
-    if (serversKey === null) {
-        return {};
-    }
-    let config: McpConfig = { [serversKey]: {} };
-    if (fs.existsSync(configPath)) {
-        try {
-            const existingContent = fs.readFileSync(configPath, "utf-8");
-            config = JSON.parse(existingContent) as McpConfig;
-            if (!config[serversKey]) {
-                config[serversKey] = {};
-            }
-        } catch (e: unknown) {
-            console.error(
-                `Warning: Could not parse existing ${configFileName}, creating new config. Error is: ${formatError(e)}`
-            );
-            config = { [serversKey]: {} };
-        }
-    }
-    return config;
-};
-
-const readOpenCodeConfig = (configPath: string): OpenCodeConfig => {
-    if (!fs.existsSync(configPath)) {
-        return { mcp: {} };
-    }
-    try {
-        const content = fs.readFileSync(configPath, "utf-8");
-        const config = JSON.parse(content) as OpenCodeConfig;
-        if (!config.mcp || typeof config.mcp !== "object") {
-            config.mcp = {};
-        }
-        return config;
-    } catch (e: unknown) {
-        console.error(`Warning: Could not parse existing opencode.json. Error is: ${formatError(e)}`);
-        return { mcp: {} };
-    }
-};
-
-const appendOpenCodeJsonSection = (configPath: string, env: Record<string, string>, isReadOnly: boolean): void => {
-    const opencodeConfig = readOpenCodeConfig(configPath);
-    if (!opencodeConfig.mcp) {
-        opencodeConfig.mcp = {};
-    }
-    const args = ["-y", "mongodb-mcp-server@latest"];
-    if (isReadOnly) {
-        args.push("--readOnly");
-    }
-    opencodeConfig.mcp["mongodb-mcp-server"] = {
-        type: "local",
-        command: ["npx", ...args],
-        environment: Object.keys(env).length > 0 ? env : undefined,
-        enabled: true,
-    };
-    const configDir = path.dirname(configPath);
-    if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
-    }
-    fs.writeFileSync(configPath, JSON.stringify(opencodeConfig, null, 2));
-};
-
-const appendCodexTomlSection = (configPath: string, env: Record<string, string>, isReadOnly: boolean): void => {
-    const args = ["-y", "mongodb-mcp-server@latest"];
-    if (isReadOnly) {
-        args.push("--readOnly");
-    }
-    const envEntry =
-        Object.keys(env).length > 0
-            ? `\nenv = { ${Object.entries(env)
-                  .map(([k, v]) => `${JSON.stringify(k)} = ${JSON.stringify(v)}`)
-                  .join(", ")} }`
-            : "";
-    const section = `[mcp_servers.mongodb-mcp-server]
-command = "npx"
-args = ${JSON.stringify(args)}${envEntry}`;
-
-    let existing = "";
-    if (fs.existsSync(configPath)) {
-        existing = fs.readFileSync(configPath, "utf-8");
-        if (existing.includes("[mcp_servers.mongodb-mcp-server]")) {
-            return;
-        }
-        if (!existing.endsWith("\n")) {
-            existing += "\n";
-        }
-    } else {
-        const configDir = path.dirname(configPath);
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
-        }
-    }
-    fs.writeFileSync(configPath, existing + "\n" + section + "\n");
-};
-
 const buildEnvObject = (
     connectionString: string,
     serviceWorkerId: string,
@@ -209,49 +73,18 @@ const buildEnvObject = (
     return env;
 };
 
-const buildMcpServerConfig = (isReadOnly: boolean, env: Record<string, string>): McpServerConfig => {
-    const args = ["-y", "mongodb-mcp-server@latest"];
-    if (isReadOnly) {
-        args.push("--readOnly");
-    }
-    return {
-        command: "npx",
-        args,
-        env,
-    };
-};
-
-const writeConfigFile = (configPath: string, config: McpConfig): void => {
-    const resolvedPath = path.resolve(configPath);
-    const configDir = path.dirname(resolvedPath);
-    try {
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
-        }
-        fs.writeFileSync(resolvedPath, JSON.stringify(config, null, 2), "utf-8");
-    } catch (err: unknown) {
-        throw new Error(
-            `Could not write config to ${resolvedPath}: ${formatError(err)}. ` +
-                "Check that the path is correct and you have permission to write to that location."
-        );
-    }
-    // Verify the write
-    if (!fs.existsSync(resolvedPath)) {
-        throw new Error(`Config file was not created at ${resolvedPath}.`);
-    }
-};
-
 const testConnectionString = async (connectionString: string): Promise<string> => {
     while (true) {
         console.log("\nTesting connection...");
-        let client;
+        let serviceProvider: NodeDriverServiceProvider | undefined;
 
         try {
-            client = new MongoClient(connectionString, {
+            serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
+                productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
+                productName: "MongoDB MCP",
                 serverSelectionTimeoutMS: 10000,
             });
-            await client.connect();
-            await client.db("admin").command({ ping: 1 });
+            await serviceProvider.runCommand("admin", { ping: 1 });
             console.log(chalk.green("✓ Connection successful!"));
             return connectionString;
         } catch (error: unknown) {
@@ -274,7 +107,7 @@ const testConnectionString = async (connectionString: string): Promise<string> =
             }
         } finally {
             try {
-                await client?.close();
+                await serviceProvider?.close();
             } catch {
                 // Ignore close errors
             }
@@ -291,8 +124,9 @@ const configureEditor = async (
     serviceWorkerSecret: string,
     isReadOnly: boolean
 ): Promise<void> => {
-    const { name: displayName, configFileName } = AI_TOOL_CONFIGS[tool];
-    let configPath = AI_TOOL_CONFIGS[tool].getConfigPath();
+    const aiTool = AI_TOOL_REGISTRY[tool];
+    const { name: displayName, configFileName } = aiTool;
+    let configPath = aiTool.configPath;
 
     // Confirm the config path with the user
     const useDetectedPath = await confirm({
@@ -311,24 +145,7 @@ const configureEditor = async (
     configPath = path.resolve(configPath.trim());
 
     const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
-
-    if (tool === AI_TOOLS.OPENCODE) {
-        appendOpenCodeJsonSection(configPath, env, isReadOnly);
-    } else if (tool === AI_TOOLS.CODEX) {
-        appendCodexTomlSection(configPath, env, isReadOnly);
-    } else {
-        const config = readExistingConfig(configPath, configFileName, tool);
-        const serversKey = getServersKey(tool);
-        if (serversKey === null) {
-            throw new Error(`Unsupported tool: ${tool}`);
-        }
-        if (!config[serversKey]) {
-            config[serversKey] = {};
-        }
-        const mcpServerConfig = buildMcpServerConfig(isReadOnly, env);
-        config[serversKey]["mongodb-mcp-server"] = mcpServerConfig;
-        writeConfigFile(configPath, config);
-    }
+    aiTool.updateConfig(configPath, env, isReadOnly);
     console.log(`\nConfiguration saved to ${configPath}`);
 };
 
@@ -397,7 +214,7 @@ export const runSetup = async (): Promise<void> => {
                 { value: "windsurf", name: "Windsurf" },
             ],
         });
-        const { name: displayName } = AI_TOOL_CONFIGS[tool];
+        const displayName = AI_TOOL_REGISTRY[tool].name;
         console.log("\n");
 
         const isReadOnly = await confirm({ message: "Install MCP server as Read-only?", default: false });
@@ -441,6 +258,14 @@ export const runSetup = async (): Promise<void> => {
             availablePrompts.push('\t"Does my project have any active alerts?"');
         }
 
+        if (availablePrompts.length === 0) {
+            console.log(
+                chalk.red("Please try setting up again with connection string or service account credentials.\n")
+            );
+            process.exit(1);
+            return;
+        }
+
         console.log(
             chalk.green(
                 `\nSetup complete! You can now use the MongoDB MCP Server in ${displayName}. You may need to restart your application to see the changes.\n`
@@ -448,16 +273,8 @@ export const runSetup = async (): Promise<void> => {
         );
 
         // Show keyboard shortcut hint for opening agent/copilot panel
-        if (tool === AI_TOOLS.CURSOR) {
-            console.log(chalk.cyan(`Tip: Press ${isMac ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`));
-        } else if (tool === AI_TOOLS.VSCODE) {
-            console.log(
-                chalk.cyan(
-                    `Tip: Press ${isMac ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`
-                )
-            );
-        } else if (tool === AI_TOOLS.WINDSURF) {
-            console.log(chalk.cyan(`Tip: Press ${isMac ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`));
+        if (AI_TOOL_REGISTRY[tool].tip) {
+            console.log(chalk.cyan(AI_TOOL_REGISTRY[tool].tip));
         }
 
         console.log("Try a query to get started:\n");

@@ -14,3 +14,5 @@ export const getPlatform = (): Platform | null => {
             return null;
     }
 };
+
+export const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
