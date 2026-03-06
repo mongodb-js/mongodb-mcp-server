@@ -10,9 +10,7 @@ import { AI_TOOLS, type AiToolType } from "./setupAiToolsConstants.js";
 import { AI_TOOL_REGISTRY } from "./AiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { getPlatform } from "./setupAiToolsUtils.js";
-
-const MINIMUM_REQUIRED_NODE_VERSION = "22.12.0";
-const MINIMUM_REQUIRED_MCP_NODE22_VERSION = "22.12.0";
+import { packageInfo } from "../common/packageInfo.js";
 
 /** Format an unknown catch value for display (Error.message or String). */
 const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
@@ -163,34 +161,20 @@ export const runSetup = async (): Promise<void> => {
     try {
         console.log(chalk.hex("#00ED64")(banner) + "\n");
 
-        const nodeVersion = semver.coerce(process.versions.node);
-        const minimumRequiredNodeVersion = semver.coerce(MINIMUM_REQUIRED_NODE_VERSION);
-        const minimumRequiredMcpNode22Version = semver.coerce(MINIMUM_REQUIRED_MCP_NODE22_VERSION);
-
-        if (
-            !nodeVersion ||
-            !minimumRequiredNodeVersion ||
-            !minimumRequiredMcpNode22Version ||
-            semver.lt(nodeVersion, minimumRequiredNodeVersion)
-        ) {
-            console.error(
-                `Node version >=${minimumRequiredNodeVersion?.toString() ?? MINIMUM_REQUIRED_NODE_VERSION} is required for the MongoDB Local MCP Server. Please install or activate a compatible version.`
-            );
-            process.exit(1);
-        } else if (
-            nodeVersion &&
-            minimumRequiredMcpNode22Version &&
-            nodeVersion.major === minimumRequiredMcpNode22Version.major &&
-            nodeVersion.minor < minimumRequiredMcpNode22Version.minor
-        ) {
-            console.error(
-                `Node version >=${minimumRequiredMcpNode22Version.toString()} is required for the MongoDB Local MCP Server. Please install or activate a compatible version.`
+        const nodeVersion = process.versions.node;
+        /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument -- packageInfo.engines.node is string (generated file type can be mis-inferred) */
+        const requiredNodeRange = packageInfo.engines.node;
+        if (!nodeVersion || !semver.satisfies(nodeVersion, requiredNodeRange)) {
+            console.log(
+                chalk.red(
+                    `Node version satisfying "${requiredNodeRange}" is required for the MongoDB Local MCP Server. Current version: ${nodeVersion ?? "unknown"}. Please install or activate a compatible version.\n`
+                )
             );
             process.exit(1);
         }
 
         if (!platform) {
-            console.error("Unsupported platform. Only macOS, Windows and Linux are supported.");
+            console.log(chalk.red("Unsupported platform. Only macOS, Windows and Linux are supported.\n"));
             process.exit(1);
         }
 
@@ -245,9 +229,17 @@ export const runSetup = async (): Promise<void> => {
         });
         console.log("\n");
 
+        if (!connectionString && !serviceAccountId && !serviceAccountSecret) {
+            console.log(
+                chalk.red("Please try setting up again with connection string or service account credentials.\n")
+            );
+            process.exit(1);
+            return;
+        }
+
         await configureEditor(tool, connectionString, serviceAccountId, serviceAccountSecret, isReadOnly);
 
-        const availablePrompts = [];
+        const availablePrompts: string[] = [];
         if (connectionString) {
             availablePrompts.push('\t"List the collections in my Atlas cluster"');
             availablePrompts.push('\t"Show me some db stats about my Atlas cluster"');
@@ -256,14 +248,6 @@ export const runSetup = async (): Promise<void> => {
         if (serviceAccountId && serviceAccountSecret) {
             availablePrompts.push('\t"What are the clusters in my project?"');
             availablePrompts.push('\t"Does my project have any active alerts?"');
-        }
-
-        if (availablePrompts.length === 0) {
-            console.log(
-                chalk.red("Please try setting up again with connection string or service account credentials.\n")
-            );
-            process.exit(1);
-            return;
         }
 
         console.log(
