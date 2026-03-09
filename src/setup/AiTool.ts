@@ -2,8 +2,11 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { AI_TOOLS, type AiToolType } from "./setupAiToolsConstants.js";
 import { formatError, getPlatform, type Platform } from "./setupAiToolsUtils.js";
+
+export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
+// These are tools that don't have a designated editor to open the config file
+export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "codex", "opencode"];
 
 const platform: Platform | null = getPlatform();
 const isWindows = platform === "windows";
@@ -12,16 +15,13 @@ const isLinux = platform === "linux";
 
 const windowsBasePath = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
 
-export interface McpServerConfig {
+export interface McpConfigEntry {
     command: string;
     args: string[];
     env: Record<string, string>;
 }
 
-export interface McpConfig {
-    mcpServers?: Record<string, McpServerConfig>;
-    servers?: Record<string, McpServerConfig>;
-}
+export type McpConfig = { mcpServers: Record<string, McpConfigEntry> } | { servers: Record<string, McpConfigEntry> };
 
 interface OpenCodeMcpEntry {
     type: "local";
@@ -35,7 +35,7 @@ interface OpenCodeConfig {
     [key: string]: unknown;
 }
 
-function buildMcpServerConfig(isReadOnly: boolean, env: Record<string, string>): McpServerConfig {
+function buildMcpConfigEntry(isReadOnly: boolean, env: Record<string, string>): McpConfigEntry {
     const args = ["-y", "mongodb-mcp-server@latest"];
     if (isReadOnly) {
         args.push("--readOnly");
@@ -45,6 +45,17 @@ function buildMcpServerConfig(isReadOnly: boolean, env: Record<string, string>):
         args,
         env,
     };
+}
+
+function getOrCreateServersEntry(
+    config: McpConfig,
+    serversKey: "servers" | "mcpServers"
+): Record<string, McpConfigEntry> {
+    const mutable = config as Record<string, Record<string, McpConfigEntry>>;
+    if (!mutable[serversKey]) {
+        mutable[serversKey] = {};
+    }
+    return mutable[serversKey];
 }
 
 function writeConfigFile(configPath: string, config: McpConfig): void {
@@ -66,7 +77,7 @@ function writeConfigFile(configPath: string, config: McpConfig): void {
     }
 }
 
-export abstract class AiTool {
+export abstract class AITool {
     abstract name: string;
     abstract configFileName: string;
     abstract get configPath(): string;
@@ -82,19 +93,17 @@ export abstract class AiTool {
 
     protected readConfig(configPath: string): McpConfig {
         const serversKey = this.getServersKey();
-        let config: McpConfig = { [serversKey]: {} };
+        let config: McpConfig = serversKey === "mcpServers" ? { mcpServers: {} } : { servers: {} };
         if (fs.existsSync(configPath)) {
             try {
                 const existingContent = fs.readFileSync(configPath, "utf-8");
                 config = JSON.parse(existingContent) as McpConfig;
-                if (!config[serversKey]) {
-                    config[serversKey] = {};
-                }
+                getOrCreateServersEntry(config, serversKey);
             } catch (e: unknown) {
                 console.error(
                     `Warning: Could not parse existing ${this.configFileName}, creating new config. Error is: ${formatError(e)}`
                 );
-                config = { [serversKey]: {} };
+                config = serversKey === "mcpServers" ? { mcpServers: {} } : { servers: {} };
             }
         }
         return config;
@@ -103,15 +112,13 @@ export abstract class AiTool {
     updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
         const config = this.readConfig(configPath);
         const serversKey = this.getServersKey();
-        if (!config[serversKey]) {
-            config[serversKey] = {};
-        }
-        config[serversKey]["mongodb-mcp-server"] = buildMcpServerConfig(isReadOnly, env);
+        const servers = getOrCreateServersEntry(config, serversKey);
+        servers["mongodb-mcp-server"] = buildMcpConfigEntry(isReadOnly, env);
         writeConfigFile(configPath, config);
     }
 }
 
-class Cursor extends AiTool {
+class Cursor extends AITool {
     name = "Cursor";
     configFileName = "mcp.json";
     get configPath(): string {
@@ -126,7 +133,7 @@ class Cursor extends AiTool {
     tip = `Tip: Press ${isMac ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
 }
 
-class VSCode extends AiTool {
+class VSCode extends AITool {
     name = "VS Code";
     configFileName = "mcp.json";
     protected override getServersKey(): "servers" | "mcpServers" {
@@ -147,7 +154,7 @@ class VSCode extends AiTool {
     tip = `Tip: Press ${isMac ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
 }
 
-class Windsurf extends AiTool {
+class Windsurf extends AITool {
     name = "Windsurf";
     configFileName = "mcp_config.json";
     get configPath(): string {
@@ -162,7 +169,7 @@ class Windsurf extends AiTool {
     tip = `Tip: Press ${isMac ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
 }
 
-class ClaudeDesktop extends AiTool {
+class ClaudeDesktop extends AITool {
     name = "Claude Desktop";
     configFileName = "claude_desktop_config.json";
     get configPath(): string {
@@ -179,7 +186,7 @@ class ClaudeDesktop extends AiTool {
     }
 }
 
-class ClaudeCode extends AiTool {
+class ClaudeCode extends AITool {
     name = "Claude Code";
     configFileName = ".claude.json";
     get configPath(): string {
@@ -187,7 +194,7 @@ class ClaudeCode extends AiTool {
     }
 }
 
-class Codex extends AiTool {
+class Codex extends AITool {
     name = "OpenAI Codex";
     configFileName = "config.toml";
     get configPath(): string {
@@ -228,7 +235,7 @@ args = ${JSON.stringify(args)}${envEntry}`;
     }
 }
 
-class OpenCode extends AiTool {
+class OpenCode extends AITool {
     name = "Open Code";
     configFileName = "opencode.json";
     get configPath(): string {
@@ -275,12 +282,12 @@ class OpenCode extends AiTool {
     }
 }
 
-export const AI_TOOL_REGISTRY: Record<AiToolType, AiTool> = {
-    [AI_TOOLS.CURSOR]: new Cursor(),
-    [AI_TOOLS.VSCODE]: new VSCode(),
-    [AI_TOOLS.WINDSURF]: new Windsurf(),
-    [AI_TOOLS.CLAUDE_DESKTOP]: new ClaudeDesktop(),
-    [AI_TOOLS.CLAUDE_CODE]: new ClaudeCode(),
-    [AI_TOOLS.CODEX]: new Codex(),
-    [AI_TOOLS.OPENCODE]: new OpenCode(),
+export const AI_TOOL_REGISTRY: Record<AIToolType, AITool> = {
+    ["cursor"]: new Cursor(),
+    ["vscode"]: new VSCode(),
+    ["windsurf"]: new Windsurf(),
+    ["claudeDesktop"]: new ClaudeDesktop(),
+    ["claudeCode"]: new ClaudeCode(),
+    ["codex"]: new Codex(),
+    ["opencode"]: new OpenCode(),
 };

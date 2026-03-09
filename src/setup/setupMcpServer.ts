@@ -6,51 +6,48 @@ import { exec } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { AI_TOOLS, type AiToolType } from "./setupAiToolsConstants.js";
-import { AI_TOOL_REGISTRY } from "./AiTool.js";
+import type { AIToolType } from "./aiTool.js";
+import { AI_TOOL_REGISTRY, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
-import { getPlatform } from "./setupAiToolsUtils.js";
+import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { validateConnectionString } from "../helpers/connectionOptions.js";
 
-/** Format an unknown catch value for display (Error.message or String). */
-const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
-// Detect OS
+// Detect the user's operating system
 const platform: Platform | null = getPlatform();
-const isWindows = platform === "windows";
-const isMac = platform === "mac";
-const isLinux = platform === "linux";
 
-// These are tools that don't have a designated editor to open the config file
-const TOOLS_WITHOUT_EDITORS: AiToolType[] = [
-    AI_TOOLS.CLAUDE_DESKTOP,
-    AI_TOOLS.CLAUDE_CODE,
-    AI_TOOLS.CODEX,
-    AI_TOOLS.OPENCODE,
-];
-
-const openConfigSettings = (tool: AiToolType): void => {
+const openConfigSettings = (tool: AIToolType): void => {
     const configPath = AI_TOOL_REGISTRY[tool].configPath;
 
     if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
-        if (isMac) {
-            exec(`open "${configPath}"`);
-        } else if (isWindows) {
-            exec(`start "" "${configPath}"`);
-        } else if (isLinux) {
-            exec(`xdg-open "${configPath}"`);
+        switch (platform) {
+            case "mac":
+                exec(`open "${configPath}"`);
+                break;
+            case "windows":
+                exec(`start "" "${configPath}"`);
+                break;
+            case "linux":
+                exec(`xdg-open "${configPath}"`);
+                break;
+            default:
+                break;
         }
-        return;
-    }
-
-    const editor = tool;
-    if (isMac) {
-        exec(`open "${editor}://file${configPath}"`);
-    } else if (isWindows) {
-        exec(`start "" "${editor}://file${configPath}"`);
-    } else if (isLinux) {
-        exec(`xdg-open "${editor}://file${configPath}"`);
+    } else {
+        const editor = tool;
+        switch (platform) {
+            case "mac":
+                exec(`open "${editor}://file${configPath}"`);
+                break;
+            case "windows":
+                exec(`start "" "${editor}://file${configPath}"`);
+                break;
+            case "linux":
+                exec(`xdg-open "${editor}://file${configPath}"`);
+                break;
+            default:
+                break;
+        }
     }
 };
 
@@ -118,15 +115,14 @@ const testConnectionString = async (connectionString: string): Promise<string> =
 };
 
 const configureEditor = async (
-    tool: AiToolType,
+    tool: AIToolType,
     connectionString: string,
     serviceWorkerId: string,
     serviceWorkerSecret: string,
     isReadOnly: boolean
 ): Promise<void> => {
-    const aiTool = AI_TOOL_REGISTRY[tool];
-    const { name: displayName, configFileName } = aiTool;
-    let configPath = aiTool.configPath;
+    const { name: displayName, configFileName } = AI_TOOL_REGISTRY[tool];
+    let { configPath } = AI_TOOL_REGISTRY[tool];
 
     // Confirm the config path with the user
     const useDetectedPath = await confirm({
@@ -145,7 +141,7 @@ const configureEditor = async (
     configPath = path.resolve(configPath.trim());
 
     const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
-    aiTool.updateConfig(configPath, env, isReadOnly);
+    AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly);
     console.log(`\nConfiguration saved to ${configPath}`);
 };
 
@@ -179,15 +175,14 @@ export const runSetup = async (): Promise<void> => {
             process.exit(1);
         }
 
-        console.log("To install a Local MCP Server configuration, you'll need:");
-        console.log("1. A MongoDB Cluster");
-        console.log("2. The connection string for your Cluster, including SCRAM database user credentials [required]");
-        console.log("3. The credentials for your project's Service Account [recommended]\n");
+        console.log("To install a Local MCP Server configuration, you will need at least ONE of the following:");
+        console.log("1. A MongoDB connection string (requires a cluster or local MongoDB instance)");
+        console.log("2. Your Atlas project's Service Account credentials\n");
         console.log(
             "It's best to have this information at hand. We will not store any data or credentials in this process.\n\n"
         );
 
-        const tool = await select<AiToolType>({
+        const tool = await select<AIToolType>({
             message: "What tool would you like to use the MongoDB MCP Server with?",
             choices: [
                 { value: "cursor", name: "Cursor" },
@@ -208,7 +203,10 @@ export const runSetup = async (): Promise<void> => {
         console.log(
             "Providing a connection string allows the MCP server to read and write data to your MongoDB cluster."
         );
-        let connectionString = await password({ message: "Enter your MongoDB connection string:", mask: true });
+        let connectionString = await password({
+            message: "Enter your MongoDB connection string (press enter to skip):",
+            mask: true,
+        });
 
         if (connectionString) {
             const shouldTest = await confirm({ message: "Test your connection string?", default: true });
