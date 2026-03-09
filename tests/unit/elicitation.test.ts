@@ -79,11 +79,14 @@ describe("Elicitation", () => {
             expect(result).toBe(true);
             expect(mockGetClientCapabilities).toHaveBeenCalledTimes(1);
             expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-            expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                message: testMessage,
-                requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                mode: "form",
-            });
+            expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                {
+                    message: testMessage,
+                    requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                    mode: "form",
+                },
+                { timeout: 300000 }
+            );
         });
 
         it("should return false when user selects 'No' with action 'accept'", async () => {
