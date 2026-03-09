@@ -21,7 +21,7 @@ const MockEventCache = vi.mocked(EventCache);
 
 describe("Telemetry", () => {
     let mockApiClient: {
-        sendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
+        sendEvents: MockedFunction<(events: BaseEvent[], signal?: AbortSignal) => Promise<void>>;
         validateAuthConfig: MockedFunction<() => Promise<void>>;
         isAuthConfigured: MockedFunction<() => boolean>;
     };

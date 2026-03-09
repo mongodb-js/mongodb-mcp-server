@@ -144,14 +144,17 @@ export class ApiClient {
         }>;
     }
 
-    public async sendEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
+    public async sendEvents(
+        events: TelemetryEvent<CommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         if (!this.authProvider) {
-            await this.sendUnauthEvents(events);
+            await this.sendUnauthEvents(events, signal);
             return;
         }
 
         try {
-            await this.sendAuthEvents(events);
+            await this.sendAuthEvents(events, signal);
         } catch (error) {
             if (error instanceof ApiClientError) {
                 if (error.response.status !== 401) {
@@ -162,11 +165,14 @@ export class ApiClient {
             // send unauth events if any of the following are true:
             // 1: the token is not valid (not ApiClientError)
             // 2: if the api responded with 401 (ApiClientError with status 401)
-            await this.sendUnauthEvents(events);
+            await this.sendUnauthEvents(events, signal);
         }
     }
 
-    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
+    private async sendAuthEvents(
+        events: TelemetryEvent<CommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
@@ -181,6 +187,7 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
             },
             body: JSON.stringify(events),
+            signal,
         });
 
         if (!response.ok) {
@@ -188,7 +195,10 @@ export class ApiClient {
         }
     }
 
-    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
+    private async sendUnauthEvents(
+        events: TelemetryEvent<CommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -200,6 +210,7 @@ export class ApiClient {
             method: "POST",
             headers,
             body: JSON.stringify(events),
+            signal,
         });
 
         if (!response.ok) {

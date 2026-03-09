@@ -21,6 +21,11 @@ export interface TelemetryEvents {
     "events-skipped": [];
 }
 
+/**
+ * The timeout for sending events to the telemetry API in milliseconds.
+ */
+const SEND_TIMEOUT_MS = 5_000;
+
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
@@ -183,6 +188,8 @@ export class Telemetry {
 
         const apiClient = this.session.apiClient;
 
+        const signal = AbortSignal.timeout(SEND_TIMEOUT_MS);
+
         try {
             await this.eventCache.processAndClear(events, async (allEvents, cachedCount) => {
                 this.session.logger.debug({
@@ -191,7 +198,7 @@ export class Telemetry {
                     message: `Attempting to send ${allEvents.length} events (${cachedCount} cached)`,
                 });
 
-                const result = await this.sendEvents(apiClient, allEvents);
+                const result = await this.sendEvents(apiClient, allEvents, signal);
                 if (!result.success) {
                     throw result.error || new Error("Failed to send events");
                 }
@@ -218,7 +225,11 @@ export class Telemetry {
      * Attempts to send events through the provided API client.
      * Events are redacted before being sent to ensure no sensitive data is transmitted
      */
-    private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
+    private async sendEvents(
+        client: ApiClient,
+        events: BaseEvent[],
+        signal?: AbortSignal
+    ): Promise<EventResult> {
         try {
             await client.sendEvents(
                 events.map((event) => ({
@@ -227,7 +238,8 @@ export class Telemetry {
                         ...redact(this.getCommonProperties(), this.session.keychain.allSecrets),
                         ...redact(event.properties, this.session.keychain.allSecrets),
                     },
-                }))
+                })),
+                signal
             );
             return { success: true };
         } catch (error) {
