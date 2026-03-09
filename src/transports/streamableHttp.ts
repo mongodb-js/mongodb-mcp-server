@@ -21,6 +21,7 @@ const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
+const JSON_RPC_ERROR_CODE_TRANSPORT_MISSING = -32006;
 
 export class StreamableHttpRunner<
     TUserConfig extends UserConfig = UserConfig,
@@ -322,6 +323,23 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         await Promise.all([this.sessionStore.closeAllSessions(), super.stop()]);
     }
 
+    private createTransportOptions(): WebStandardStreamableHTTPServerTransportOptions {
+        return {
+            enableJsonResponse: this.userConfig.httpResponseType === "json",
+            onsessionclosed: async (sessionId): Promise<void> => {
+                try {
+                    await this.sessionStore.closeSession(sessionId, false);
+                } catch (error) {
+                    this.logger.error({
+                        id: LogId.streamableHttpTransportSessionCloseFailure,
+                        context: "streamableHttpTransport",
+                        message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                }
+            },
+        };
+    }
+
     protected override async setupRoutes(): Promise<void> {
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
@@ -365,6 +383,10 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 case JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION:
                     message = "cannot provide sessionId when externally managed sessions are disabled";
                     break;
+                case JSON_RPC_ERROR_CODE_TRANSPORT_MISSING:
+                    message = "transport is missing for session";
+                    statusCode = 500;
+                    break;
                 default:
                     message = "unknown error";
                     statusCode = 500;
@@ -388,8 +410,8 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
 
-            const transport = this.sessionStore.getSession(sessionId);
-            if (!transport) {
+            const sessionInfo = this.sessionStore.getSession(sessionId);
+            if (!sessionInfo) {
                 if (this.userConfig.externallyManagedSessions) {
                     this.logger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
@@ -409,7 +431,27 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
             }
 
+            let transport = sessionInfo.transport;
+            if (!transport) {
+                if (this.userConfig.httpResponseType !== "json") {
+                    this.logger.debug({
+                        id: LogId.streamableHttpTransportTransportMissing,
+                        context: "streamableHttpTransport",
+                        message: `Transport is missing for session with ID ${sessionId}`,
+                    });
+
+                    return reportSessionError(res, JSON_RPC_ERROR_CODE_TRANSPORT_MISSING);
+                }
+
+                transport = new StreamableHTTPServerTransport(this.createTransportOptions());
+                await sessionInfo.server.connect(transport);
+            }
+
             await transport.handleRequest(req, res, req.body);
+
+            if (this.userConfig.httpResponseType === "json") {
+                await transport.close();
+            }
         };
 
         /**
@@ -441,91 +483,86 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 sessionOptions: this.sessionOptions,
             });
 
-            const options: WebStandardStreamableHTTPServerTransportOptions = {
-                enableJsonResponse: this.userConfig.httpResponseType === "json",
-            };
+            const options = this.createTransportOptions();
 
-            const sessionInitialized = (sessionId: string): void => {
+            const onSessionInitialized = (sessionId: string): void => {
                 server.session.logger.setAttribute("sessionId", sessionId);
 
-                this.sessionStore.setSession(sessionId, transport, server.session.logger);
+                const storedTransport = this.userConfig.httpResponseType === "json" ? undefined : transport;
+                this.sessionStore.setSession(sessionId, storedTransport, server.session.logger, server.mcpServer);
             };
 
             // When we're implicitly initializing a session, the client is not going through the initialization
             // flow. This means that it won't do proper session lifecycle management, so we should not add hooks for
-            // onsessioninitialized and onsessionclosed.
+            // onsessioninitialized.
             if (!isImplicitInitialization) {
-                options.sessionIdGenerator = (): string => sessionId ?? getRandomUUID();
-                options.onsessioninitialized = sessionInitialized.bind(this);
-                options.onsessionclosed = async (sessionId): Promise<void> => {
-                    try {
-                        await this.sessionStore.closeSession(sessionId, false);
-                    } catch (error) {
-                        this.logger.error({
-                            id: LogId.streamableHttpTransportSessionCloseFailure,
-                            context: "streamableHttpTransport",
-                            message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-                        });
-                    }
-                };
+                if (this.userConfig.httpResponseType !== "json") {
+                    options.sessionIdGenerator = (): string => sessionId ?? getRandomUUID();
+                }
+
+                options.onsessioninitialized = onSessionInitialized.bind(this);
             }
 
             const transport = new StreamableHTTPServerTransport(options);
 
             if (isImplicitInitialization) {
-                sessionInitialized(sessionId);
+                onSessionInitialized(sessionId);
             }
 
-            let failedPings = 0;
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            const keepAliveLoop: NodeJS.Timeout = setInterval(async () => {
-                try {
-                    server.session.logger.debug({
-                        id: LogId.streamableHttpTransportKeepAlive,
-                        context: "streamableHttpTransport",
-                        message: "Sending ping",
-                    });
-
-                    await transport.send({
-                        jsonrpc: "2.0",
-                        method: "ping",
-                    });
-                    failedPings = 0;
-                } catch (err) {
+            if (this.userConfig.httpResponseType !== "json") {
+                let failedPings = 0;
+                // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                const keepAliveLoop: NodeJS.Timeout = setInterval(async () => {
                     try {
-                        failedPings++;
-                        server.session.logger.warning({
-                            id: LogId.streamableHttpTransportKeepAliveFailure,
+                        server.session.logger.debug({
+                            id: LogId.streamableHttpTransportKeepAlive,
                             context: "streamableHttpTransport",
-                            message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                            message: "Sending ping",
                         });
 
-                        if (failedPings > 3) {
-                            clearInterval(keepAliveLoop);
-                            await transport.close();
+                        await transport.send({
+                            jsonrpc: "2.0",
+                            method: "ping",
+                        });
+                        failedPings = 0;
+                    } catch (err) {
+                        try {
+                            failedPings++;
+                            server.session.logger.warning({
+                                id: LogId.streamableHttpTransportKeepAliveFailure,
+                                context: "streamableHttpTransport",
+                                message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                            });
+
+                            if (failedPings > 3) {
+                                clearInterval(keepAliveLoop);
+                                await transport.close();
+                            }
+                        } catch {
+                            // Ignore the error of the transport close as there's nothing else
+                            // we can do at this point.
                         }
-                    } catch {
-                        // Ignore the error of the transport close as there's nothing else
-                        // we can do at this point.
                     }
-                }
-            }, 30_000);
+                }, 30_000);
+                transport.onclose = (): void => {
+                    clearInterval(keepAliveLoop);
 
-            transport.onclose = (): void => {
-                clearInterval(keepAliveLoop);
-
-                server.close().catch((error) => {
-                    this.logger.error({
-                        id: LogId.streamableHttpTransportCloseFailure,
-                        context: "streamableHttpTransport",
-                        message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
+                    server.close().catch((error) => {
+                        this.logger.error({
+                            id: LogId.streamableHttpTransportCloseFailure,
+                            context: "streamableHttpTransport",
+                            message: `Error closing server: ${error instanceof Error ? error.message : String(error)}`,
+                        });
                     });
-                });
-            };
+                };
+            }
 
             await server.connect(transport);
-
             await transport.handleRequest(req, res, req.body);
+
+            if (this.userConfig.httpResponseType === "json") {
+                await transport.close();
+            }
         };
 
         this.app.post(

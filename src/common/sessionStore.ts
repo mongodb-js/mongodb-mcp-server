@@ -1,3 +1,4 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "./logger.js";
 import { LogId } from "./logger.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
@@ -11,14 +12,17 @@ export type CloseableTransport = {
     close(): Promise<void>;
 };
 
+export type SessionInfo<T extends CloseableTransport> = {
+    logger: LoggerBase;
+    server: McpServer;
+    transport: T | undefined;
+    abortTimeout: ManagedTimeout;
+    notificationTimeout: ManagedTimeout;
+};
+
 export class SessionStore<T extends CloseableTransport = CloseableTransport> {
     private sessions: {
-        [sessionId: string]: {
-            logger: LoggerBase;
-            transport: T;
-            abortTimeout: ManagedTimeout;
-            notificationTimeout: ManagedTimeout;
-        };
+        [sessionId: string]: SessionInfo<T>;
     } = {};
 
     constructor(
@@ -37,9 +41,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         }
     }
 
-    getSession(sessionId: string): T | undefined {
+    getSession(sessionId: string): SessionInfo<T> | undefined {
         this.resetTimeout(sessionId);
-        return this.sessions[sessionId]?.transport;
+        return this.sessions[sessionId];
     }
 
     private resetTimeout(sessionId: string): void {
@@ -70,7 +74,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         });
     }
 
-    setSession(sessionId: string, transport: T, logger: LoggerBase): void {
+    setSession(sessionId: string, transport: T | undefined, logger: LoggerBase, server: McpServer): void {
         const session = this.sessions[sessionId];
         if (session) {
             throw new Error(`Session ${sessionId} already exists`);
@@ -95,6 +99,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
             abortTimeout,
             notificationTimeout,
             logger,
+            server,
         };
     }
 
@@ -107,7 +112,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         session.notificationTimeout.cancel();
         if (closeTransport) {
             try {
-                await session.transport.close();
+                await session.transport?.close();
             } catch (error) {
                 this.logger.error({
                     id: LogId.streamableHttpTransportSessionCloseFailure,

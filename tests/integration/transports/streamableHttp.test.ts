@@ -14,6 +14,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
+import type { SessionInfo } from "../../../src/common/sessionStore.js";
 
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -296,7 +297,7 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
-    const getSessionFromStore = (sessionId: string): StreamableHTTPServerTransport | undefined => {
+    const getSessionFromStore = (sessionId: string): SessionInfo<StreamableHTTPServerTransport> | undefined => {
         const sessionStore = runner["mcpServer"]!["sessionStore"];
         return sessionStore.getSession(sessionId);
     };
