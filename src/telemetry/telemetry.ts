@@ -183,38 +183,26 @@ export class Telemetry {
 
         const apiClient = this.session.apiClient;
 
-        // Serialize getEvents → send → removeEvents at the cache so all sessions share one lock
         try {
-            await this.eventCache.runExclusive(async () => {
-                const cachedEvents = this.eventCache.getEvents();
-                const allEvents = [...cachedEvents.map((e) => e.event), ...events];
-
+            await this.eventCache.processAndClear(events, async (allEvents, cachedCount) => {
                 this.session.logger.debug({
                     id: LogId.telemetryEmitStart,
                     context: "telemetry",
-                    message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
+                    message: `Attempting to send ${allEvents.length} events (${cachedCount} cached)`,
                 });
 
                 const result = await this.sendEvents(apiClient, allEvents);
-                if (result.success) {
-                    this.eventCache.removeEvents(cachedEvents.map((e) => e.id));
-                    this.session.logger.debug({
-                        id: LogId.telemetryEmitSuccess,
-                        context: "telemetry",
-                        message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
-                    });
-                    this.events.emit("events-emitted");
-                    return;
+                if (!result.success) {
+                    throw result.error || new Error("Failed to send events");
                 }
 
                 this.session.logger.debug({
-                    id: LogId.telemetryEmitFailure,
+                    id: LogId.telemetryEmitSuccess,
                     context: "telemetry",
-                    message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
+                    message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
                 });
-                this.eventCache.appendEvents(events);
-                this.events.emit("events-send-failed");
             });
+            this.events.emit("events-emitted");
         } catch (error) {
             this.session.logger.debug({
                 id: LogId.telemetryEmitFailure,
@@ -222,7 +210,6 @@ export class Telemetry {
                 message: `Error emitting telemetry events: ${error instanceof Error ? error.message : String(error)}`,
                 noRedaction: true,
             });
-            this.eventCache.appendEvents(events);
             this.events.emit("events-send-failed");
         }
     }

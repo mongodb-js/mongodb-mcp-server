@@ -27,9 +27,14 @@ describe("Telemetry", () => {
     };
     let mockEventCache: {
         getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
-        removeEvents: MockedFunction<(ids: number[]) => Promise<void>>;
-        appendEvents: MockedFunction<(events: BaseEvent[]) => Promise<void>>;
-        runExclusive: MockedFunction<<T>(fn: () => Promise<T>) => Promise<T>>;
+        removeEvents: MockedFunction<(ids: number[]) => void>;
+        appendEvents: MockedFunction<(events: BaseEvent[]) => void>;
+        processAndClear: MockedFunction<
+            (
+                newEvents: BaseEvent[],
+                processor: (allEvents: BaseEvent[], cachedCount: number) => Promise<void>
+            ) => Promise<void>
+        >;
     };
     let session: Session;
     let telemetry: Telemetry;
@@ -129,9 +134,26 @@ describe("Telemetry", () => {
         // Setup mocked EventCache
         mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;
         mockEventCache.getEvents = vi.fn().mockReturnValue([]);
-        mockEventCache.removeEvents = vi.fn().mockResolvedValue(undefined);
-        mockEventCache.appendEvents = vi.fn().mockResolvedValue(undefined);
-        mockEventCache.runExclusive = vi.fn().mockImplementation(<T>(fn: () => Promise<T>) => fn());
+        mockEventCache.removeEvents = vi.fn();
+        mockEventCache.appendEvents = vi.fn();
+        mockEventCache.processAndClear = vi
+            .fn()
+            .mockImplementation(
+                async (
+                    newEvents: BaseEvent[],
+                    processor: (allEvents: BaseEvent[], cachedCount: number) => Promise<void>
+                ) => {
+                    const cachedEvents = mockEventCache.getEvents();
+                    const allEvents = [...cachedEvents.map((e) => e.event), ...newEvents];
+                    try {
+                        await processor(allEvents, cachedEvents.length);
+                        mockEventCache.removeEvents(cachedEvents.map((e) => e.id));
+                    } catch (error) {
+                        mockEventCache.appendEvents(newEvents);
+                        throw error;
+                    }
+                }
+            );
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
         mockDeviceId = {
