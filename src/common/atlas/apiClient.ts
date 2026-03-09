@@ -144,10 +144,7 @@ export class ApiClient {
         }>;
     }
 
-    public async sendEvents(
-        events: TelemetryEvent<CommonProperties>[],
-        signal?: AbortSignal
-    ): Promise<void> {
+    public async sendEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);
             return;
@@ -169,10 +166,7 @@ export class ApiClient {
         }
     }
 
-    private async sendAuthEvents(
-        events: TelemetryEvent<CommonProperties>[],
-        signal?: AbortSignal
-    ): Promise<void> {
+    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
         const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
@@ -195,10 +189,7 @@ export class ApiClient {
         }
     }
 
-    private async sendUnauthEvents(
-        events: TelemetryEvent<CommonProperties>[],
-        signal?: AbortSignal
-    ): Promise<void> {
+    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",
