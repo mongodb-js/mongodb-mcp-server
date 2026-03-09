@@ -50,18 +50,20 @@ export class EventCache {
     public async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
         const prevOperation = this.currentOperation;
 
-        let resolve: () => void;
+        let resolve: (() => void) | undefined;
         const promise = new Promise<void>((res) => {
             resolve = res;
         });
-        this.currentOperation = { promise, resolve: resolve! };
+        // resolve is guaranteed to be assigned by the Promise constructor
+        const release = resolve as () => void;
+        this.currentOperation = { promise, resolve: release };
 
         await prevOperation?.promise;
 
         try {
             return await fn();
         } finally {
-            resolve!();
+            release();
         }
     }
 
