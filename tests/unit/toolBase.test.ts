@@ -1,10 +1,8 @@
 import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
-import { z } from "zod";
-import type { OperationType, ToolCategory, ToolConstructorParams, ToolArgs } from "../../src/tools/tool.js";
-import { ToolBase } from "../../src/tools/tool.js";
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { ToolConstructorParams } from "../../src/tools/tool.js";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../../src/common/session.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { Telemetry } from "../../src/telemetry/telemetry.js";
@@ -12,12 +10,13 @@ import type { Elicitation } from "../../src/elicitation.js";
 import type { CompositeLogger } from "../../src/common/logging/index.js";
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Server } from "../../src/server.js";
-import type { TelemetryToolMetadata, ToolEvent } from "../../src/telemetry/types.js";
+import type { ToolEvent } from "../../src/telemetry/types.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
-import { defaultMetrics, type DefaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
+import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
+import { MockMetrics } from "./mocks/metrics.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -28,7 +27,7 @@ describe("ToolBase", () => {
     let mockElicitation: Elicitation;
     let mockRequestConfirmation: MockedFunction<(message: string) => Promise<boolean>>;
     let testTool: TestTool;
-    let mockMetrics: PrometheusMetrics<DefaultMetrics>;
+    let mockMetrics: MockMetrics;
 
     beforeEach(() => {
         mockLoggerWarning = vi.fn();
@@ -59,7 +58,7 @@ describe("ToolBase", () => {
             requestConfirmation: mockRequestConfirmation,
         } as unknown as Elicitation;
 
-        mockMetrics = new PrometheusMetrics({ definitions: defaultMetrics });
+        mockMetrics = new MockMetrics();
 
         const constructorParams: ToolConstructorParams = {
             name: TestTool.toolName,
@@ -472,6 +471,118 @@ describe("ToolBase", () => {
             expect(result.isError).toBeUndefined();
         });
     });
+
+    describe("metrics emission", () => {
+        let mockCallback: ToolCallback<(typeof testTool)["argsShape"]>;
+
+        beforeEach(() => {
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        mockCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            testTool.register(mockServer as unknown as Server);
+        });
+
+        it("increments toolExecutionTotal with status=success on a successful execution", async () => {
+            await mockCallback({ param1: "value", param2: 1 }, {} as never);
+
+            const output = await mockMetrics.getMetrics();
+            expect(output).toContain(
+                'mcp_tool_execution_total{tool_name="test-tool",category="mongodb",status="success"} 1'
+            );
+        });
+
+        it("observes toolExecutionDuration on a successful execution", async () => {
+            await mockCallback({ param1: "value", param2: 1 }, {} as never);
+
+            const output = await mockMetrics.getMetrics();
+            expect(output).toContain("mcp_tool_execution_duration_ms");
+            // The _count bucket should be 1 after one successful observation
+            expect(output).toContain(
+                'mcp_tool_execution_duration_ms_count{tool_name="test-tool",category="mongodb"} 1'
+            );
+        });
+
+        it("increments toolExecutionTotal with status=error when execute() throws", async () => {
+            const errorTool = new ErrorTool({
+                name: ErrorTool.toolName,
+                category: ErrorTool.category,
+                operationType: ErrorTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+
+            let errorCallback: ToolCallback<ZodRawShape> | undefined;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: unknown,
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        errorCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            errorTool.register(mockServer as unknown as Server);
+
+            expectDefined(errorCallback);
+            const result = await errorCallback({}, {} as never);
+
+            expect(result.isError).toBe(true);
+            const output = await mockMetrics.getMetrics();
+            expect(output).toContain(
+                'mcp_tool_execution_total{tool_name="error-tool",category="mongodb",status="error"} 1'
+            );
+        });
+
+        it("does not observe toolExecutionDuration when execute() throws", async () => {
+            const errorTool = new ErrorTool({
+                name: ErrorTool.toolName,
+                category: ErrorTool.category,
+                operationType: ErrorTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+
+            let errorCallback: ToolCallback<ZodRawShape> | undefined;
+            const mockServer = {
+                mcpServer: {
+                    registerTool: (
+                        _name: string,
+                        _config: unknown,
+                        cb: ToolCallback<ZodRawShape>
+                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                        errorCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                },
+            };
+            errorTool.register(mockServer as unknown as Server);
+
+            expectDefined(errorCallback);
+            await errorCallback({}, {} as never);
+
+            const output = await mockMetrics.getMetrics();
+            // Duration is only observed on the success path; the error path skips it
+            expect(output).not.toContain('mcp_tool_execution_duration_ms_count{tool_name="error-tool"');
+        });
+    });
 });
 
 function createToolWithoutStructuredContent(
@@ -481,7 +592,7 @@ function createToolWithoutStructuredContent(
     mockTelemetry: Telemetry,
     mockElicitation: Elicitation,
     mockUIRegistry: UIRegistry,
-    mockMetrics: PrometheusMetrics<DefaultMetrics>
+    mockMetrics: MockMetrics
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
     const constructorParams: ToolConstructorParams = {
@@ -496,101 +607,4 @@ function createToolWithoutStructuredContent(
         metrics: mockMetrics,
     };
     return new TestToolWithoutStructuredContent(constructorParams);
-}
-
-class TestTool extends ToolBase {
-    static toolName = "test-tool";
-    static category: ToolCategory = "mongodb";
-    static operationType: OperationType = "delete";
-    public description = "A test tool for verification tests";
-    public argsShape = {
-        param1: z.string().describe("Test parameter 1"),
-        param2: z.number().optional().describe("Test parameter 2"),
-    };
-
-    protected async execute(): Promise<CallToolResult> {
-        return Promise.resolve({
-            content: [
-                {
-                    type: "text",
-                    text: "Test tool executed successfully",
-                },
-            ],
-        });
-    }
-
-    protected resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        { result }: { result: CallToolResult }
-    ): TelemetryToolMetadata {
-        if (args.param2 === 3) {
-            return {
-                test_param2: "three",
-            } as TelemetryToolMetadata;
-        }
-
-        return {};
-    }
-}
-
-class TestToolWithOutputSchema extends ToolBase {
-    static toolName = "test-tool-with-output-schema";
-    static category: ToolCategory = "mongodb";
-    static operationType: OperationType = "metadata";
-    public description = "A test tool with output schema";
-    public argsShape = {
-        input: z.string().describe("Test input"),
-    };
-    public override outputSchema = {
-        value: z.string(),
-        count: z.number(),
-    };
-
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        return Promise.resolve({
-            content: [
-                {
-                    type: "text",
-                    text: "Tool with output schema executed",
-                },
-            ],
-            structuredContent: {
-                value: args.input,
-                count: 42,
-            },
-        });
-    }
-
-    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-        return {};
-    }
-}
-
-class TestToolWithoutStructuredContent extends ToolBase {
-    static toolName = "test-tool-without-structured";
-    static category: ToolCategory = "mongodb";
-    static operationType: OperationType = "metadata";
-    public description = "A test tool without structured content";
-    public argsShape = {
-        input: z.string().describe("Test input"),
-    };
-    public override outputSchema = {
-        value: z.string(),
-    };
-
-    protected async execute(): Promise<CallToolResult> {
-        return Promise.resolve({
-            content: [
-                {
-                    type: "text",
-                    text: "Tool without structured content executed",
-                },
-            ],
-        });
-    }
-
-    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-        return {};
-    }
 }
