@@ -1,5 +1,5 @@
-import type { LoggerType, LogLevel, LogPayload } from "../../src/common/logger.js";
-import { CompositeLogger, LoggerBase } from "../../src/common/logger.js";
+import type { LoggerType, LogLevel, LogPayload } from "../../src/common/logging/index.js";
+import { CompositeLogger, LoggerBase } from "../../src/common/logging/index.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";

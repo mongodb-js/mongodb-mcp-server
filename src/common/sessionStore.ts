@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { LoggerBase } from "./logger.js";
-import { LogId } from "./logger.js";
+import type { LoggerBase } from "./logging/index.js";
+import { LogId } from "./logging/index.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
 

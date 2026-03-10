@@ -68,7 +68,7 @@ describe("enforce-zod-v4", () => {
                 },
                 {
                     filename: resolve("src/resources/resource.ts"),
-                    code: 'import { Logger } from "./logger.js";\n',
+                    code: 'import { Logger } from "./logging/index.js";\n',
                 },
             ],
             invalid: [],

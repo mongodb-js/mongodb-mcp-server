@@ -1,0 +1,86 @@
+import { mongoLogId } from "mongodb-log-writer";
+
+export const LogId = {
+    serverStartFailure: mongoLogId(1_000_001),
+    serverInitialized: mongoLogId(1_000_002),
+    serverCloseRequested: mongoLogId(1_000_003),
+    serverClosed: mongoLogId(1_000_004),
+    serverCloseFailure: mongoLogId(1_000_005),
+    serverDuplicateLoggers: mongoLogId(1_000_006),
+    serverMcpClientSet: mongoLogId(1_000_007),
+
+    atlasCheckCredentials: mongoLogId(1_001_001),
+    atlasDeleteDatabaseUserFailure: mongoLogId(1_001_002),
+    atlasConnectFailure: mongoLogId(1_001_003),
+    atlasInspectFailure: mongoLogId(1_001_004),
+    atlasConnectAttempt: mongoLogId(1_001_005),
+    atlasConnectSucceeded: mongoLogId(1_001_006),
+    atlasApiRevokeFailure: mongoLogId(1_001_007),
+    atlasIpAccessListAdded: mongoLogId(1_001_008),
+    atlasIpAccessListAddFailure: mongoLogId(1_001_009),
+    atlasApiBaseUrlInsecure: mongoLogId(1_001_010),
+
+    telemetryDisabled: mongoLogId(1_002_001),
+    telemetryEmitFailure: mongoLogId(1_002_002),
+    telemetryEmitStart: mongoLogId(1_002_003),
+    telemetryEmitSuccess: mongoLogId(1_002_004),
+    telemetryMetadataError: mongoLogId(1_002_005),
+    deviceIdResolutionError: mongoLogId(1_002_006),
+    deviceIdTimeout: mongoLogId(1_002_007),
+    telemetryClose: mongoLogId(1_002_008),
+
+    toolExecute: mongoLogId(1_003_001),
+    toolExecuteFailure: mongoLogId(1_003_002),
+    toolDisabled: mongoLogId(1_003_003),
+    toolMetadataChange: mongoLogId(1_003_004),
+
+    mongodbConnectFailure: mongoLogId(1_004_001),
+    mongodbDisconnectFailure: mongoLogId(1_004_002),
+    mongodbConnectTry: mongoLogId(1_004_003),
+    mongodbCursorCloseError: mongoLogId(1_004_004),
+    mongodbIndexCheckFailure: mongoLogId(1_004_005),
+
+    toolUpdateFailure: mongoLogId(1_005_001),
+    resourceUpdateFailure: mongoLogId(1_005_002),
+    updateToolMetadata: mongoLogId(1_005_003),
+    toolValidationError: mongoLogId(1_005_004),
+
+    streamableHttpTransportStarted: mongoLogId(1_006_001),
+    streamableHttpTransportSessionCloseFailure: mongoLogId(1_006_002),
+    streamableHttpTransportSessionCloseNotification: mongoLogId(1_006_003),
+    streamableHttpTransportSessionCloseNotificationFailure: mongoLogId(1_006_004),
+    streamableHttpTransportRequestFailure: mongoLogId(1_006_005),
+    streamableHttpTransportCloseFailure: mongoLogId(1_006_006),
+    streamableHttpTransportKeepAliveFailure: mongoLogId(1_006_007),
+    streamableHttpTransportKeepAlive: mongoLogId(1_006_008),
+    streamableHttpTransportHttpHostWarning: mongoLogId(1_006_009),
+    streamableHttpTransportSessionNotFound: mongoLogId(1_006_010),
+    streamableHttpTransportDisallowedExternalSessionError: mongoLogId(1_006_011),
+    streamableHttpTransportTransportMissing: mongoLogId(1_006_012),
+
+    httpServerStarted: mongoLogId(1_006_100),
+    httpServerStopping: mongoLogId(1_006_101),
+    httpServerStopped: mongoLogId(1_006_102),
+
+    exportCleanupError: mongoLogId(1_007_001),
+    exportCreationError: mongoLogId(1_007_002),
+    exportCreationCleanupError: mongoLogId(1_007_003),
+    exportReadError: mongoLogId(1_007_004),
+    exportCloseError: mongoLogId(1_007_005),
+    exportedDataListError: mongoLogId(1_007_006),
+    exportedDataAutoCompleteError: mongoLogId(1_007_007),
+    exportLockError: mongoLogId(1_007_008),
+
+    oidcFlow: mongoLogId(1_008_001),
+
+    atlasPaSuggestedIndexesFailure: mongoLogId(1_009_001),
+    atlasPaDropIndexSuggestionsFailure: mongoLogId(1_009_002),
+    atlasPaSchemaAdviceFailure: mongoLogId(1_009_003),
+    atlasPaSlowQueryLogsFailure: mongoLogId(1_009_004),
+
+    atlasLocalDockerNotRunning: mongoLogId(1_010_001),
+    atlasLocalUnsupportedPlatform: mongoLogId(1_010_002),
+
+    assistantListKnowledgeSourcesError: mongoLogId(1_011_001),
+    assistantSearchKnowledgeError: mongoLogId(1_011_002),
+} as const;
