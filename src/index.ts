@@ -37,7 +37,7 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { ConsoleLogger, LogId } from "./common/logger.js";
+import { ConsoleLogger, LogId } from "./common/logging/index.js";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
