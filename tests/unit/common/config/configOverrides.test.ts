@@ -239,6 +239,9 @@ describe("configOverrides", () => {
                         "httpResponseType",
                         "healthCheckHost",
                         "healthCheckPort",
+                        "monitoringServerHost",
+                        "monitoringServerPort",
+                        "monitoringServerFeatures",
                     ])
                 );
             });
