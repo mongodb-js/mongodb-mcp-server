@@ -8,16 +8,14 @@ import semver from "semver";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { AIToolType } from "./aiTool.js";
 import { AI_TOOL_REGISTRY, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
-import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
-import { validateConnectionString } from "../helpers/connectionOptions.js";
-
-// Detect the user's operating system
-const platform: Platform | null = getPlatform();
+import { getAuthType } from "../common/connectionInfo.js";
+import { type UserConfig } from "../common/config/userConfig.js";
 
 const openConfigSettings = (tool: AIToolType): void => {
     const configPath = AI_TOOL_REGISTRY[tool].configPath;
+    const platform = getPlatform();
 
     if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
         switch (platform) {
@@ -75,7 +73,6 @@ const testConnectionString = async (connectionString: string): Promise<string> =
         let serviceProvider: NodeDriverServiceProvider | undefined;
 
         try {
-            validateConnectionString(connectionString, false);
             serviceProvider = await NodeDriverServiceProvider.connect(connectionString, {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                 productName: "MongoDB MCP",
@@ -155,7 +152,7 @@ const banner = `
        ▐▌     ▄█ ██▄  █  █▄█ █▀▀
   `;
 
-export const runSetup = async (): Promise<void> => {
+export const runSetup = async (config: UserConfig): Promise<void> => {
     try {
         console.log(chalk.hex("#00ED64")(banner) + "\n");
 
@@ -170,6 +167,7 @@ export const runSetup = async (): Promise<void> => {
             process.exit(1);
         }
 
+        const platform = getPlatform();
         if (!platform) {
             console.log(chalk.red("Unsupported platform. Only macOS, Windows and Linux are supported.\n"));
             process.exit(1);
@@ -209,10 +207,18 @@ export const runSetup = async (): Promise<void> => {
         });
 
         if (connectionString) {
-            const shouldTest = await confirm({ message: "Test your connection string?", default: true });
+            try {
+                const auth = getAuthType(config, connectionString);
+                if (auth === "scram") {
+                    const shouldTest = await confirm({ message: "Test your connection string?", default: true });
 
-            if (shouldTest) {
-                connectionString = await testConnectionString(connectionString);
+                    if (shouldTest) {
+                        connectionString = await testConnectionString(connectionString);
+                    }
+                }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (error: unknown) {
+                // silently fail and continue, we will not prompt the user to enter a new connection string
             }
         }
 

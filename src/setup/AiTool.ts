@@ -13,8 +13,6 @@ const isWindows = platform === "windows";
 const isMac = platform === "mac";
 const isLinux = platform === "linux";
 
-const windowsBasePath = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
-
 export interface McpConfigEntry {
     command: string;
     args: string[];
@@ -35,7 +33,11 @@ interface OpenCodeConfig {
     [key: string]: unknown;
 }
 
-function buildMcpConfigEntry(isReadOnly: boolean, env: Record<string, string>): McpConfigEntry {
+const getWindowsBasePath = (): string => {
+    return process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+};
+
+const buildMcpConfigEntry = (isReadOnly: boolean, env: Record<string, string>): McpConfigEntry => {
     const args = ["-y", "mongodb-mcp-server@latest"];
     if (isReadOnly) {
         args.push("--readOnly");
@@ -45,20 +47,20 @@ function buildMcpConfigEntry(isReadOnly: boolean, env: Record<string, string>): 
         args,
         env,
     };
-}
+};
 
-function getOrCreateServersEntry(
+const getOrCreateServersEntry = (
     config: McpConfig,
     serversKey: "servers" | "mcpServers"
-): Record<string, McpConfigEntry> {
+): Record<string, McpConfigEntry> => {
     const mutable = config as Record<string, Record<string, McpConfigEntry>>;
     if (!mutable[serversKey]) {
         mutable[serversKey] = {};
     }
     return mutable[serversKey];
-}
+};
 
-function writeConfigFile(configPath: string, config: McpConfig): void {
+const writeConfigFile = (configPath: string, config: McpConfig): void => {
     const resolvedPath = path.resolve(configPath);
     const configDir = path.dirname(resolvedPath);
     try {
@@ -75,7 +77,7 @@ function writeConfigFile(configPath: string, config: McpConfig): void {
     if (!fs.existsSync(resolvedPath)) {
         throw new Error(`Config file was not created at ${resolvedPath}.`);
     }
-}
+};
 
 export abstract class AITool {
     abstract name: string;
@@ -123,7 +125,7 @@ class Cursor extends AITool {
     configFileName = "mcp.json";
     get configPath(): string {
         if (isWindows) {
-            return path.join(windowsBasePath, "Cursor", "mcp.json");
+            return path.join(getWindowsBasePath(), "Cursor", "mcp.json");
         }
         if (isMac || isLinux) {
             return path.join(os.homedir(), ".cursor", "mcp.json");
@@ -141,7 +143,7 @@ class VSCode extends AITool {
     }
     get configPath(): string {
         if (isWindows) {
-            return path.join(windowsBasePath, "Code", "User", "mcp.json");
+            return path.join(getWindowsBasePath(), "Code", "User", "mcp.json");
         }
         if (isMac) {
             return path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json");
@@ -159,7 +161,7 @@ class Windsurf extends AITool {
     configFileName = "mcp_config.json";
     get configPath(): string {
         if (isWindows) {
-            return path.join(windowsBasePath, "cascade", "mcp_config.json");
+            return path.join(getWindowsBasePath(), "cascade", "mcp_config.json");
         }
         if (isMac || isLinux) {
             return path.join(os.homedir(), ".config", "cascade", "mcp_config.json");
@@ -174,7 +176,7 @@ class ClaudeDesktop extends AITool {
     configFileName = "claude_desktop_config.json";
     get configPath(): string {
         if (isWindows) {
-            return path.join(windowsBasePath, "Claude", "claude_desktop_config.json");
+            return path.join(getWindowsBasePath(), "Claude", "claude_desktop_config.json");
         }
         if (isMac) {
             return path.join(os.homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json");

@@ -87,7 +87,7 @@ async function main(): Promise<void> {
 
     if (isSetupRequested) {
         if (config.previewFeatures.includes("setup")) {
-            await handleSetupRequest();
+            await handleSetupRequest(config);
         } else {
             console.error(
                 "Automated MCP setup is in preview. If you want to run the setup flow, enable the 'setup' preview feature"
@@ -192,8 +192,8 @@ function handleVersionRequest(): never {
     process.exit(0);
 }
 
-async function handleSetupRequest(): Promise<never> {
-    await runSetup();
+async function handleSetupRequest(config: UserConfig): Promise<never> {
+    await runSetup(config);
     process.exit(0);
 }
 
