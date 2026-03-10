@@ -214,7 +214,10 @@ describe("StreamsBuildTool", () => {
             });
 
             expect(mockApiClient.startStreamProcessor).toHaveBeenCalledOnce();
-            expect((result.content[0] as { text: string }).text).toContain("created and started");
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("created and started");
+            expect(text).toContain("Billing");
+            expect(text).toContain("stop-processor");
         });
     });
 

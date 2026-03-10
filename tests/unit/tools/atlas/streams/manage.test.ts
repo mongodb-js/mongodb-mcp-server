@@ -87,7 +87,10 @@ describe("StreamsManageTool", () => {
             });
 
             expect(mockApiClient.startStreamProcessor).toHaveBeenCalledOnce();
-            expect((result.content[0] as { text: string }).text).toContain("started");
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("started");
+            expect(text).toContain("Billing");
+            expect(text).toContain("stop-processor");
         });
 
         it("should return already-running message for STARTED processor", async () => {
@@ -303,6 +306,22 @@ describe("StreamsManageTool", () => {
                     requesterVpcId: "vpc-1",
                 })
             ).rejects.toThrow("peeringId is required");
+        });
+    });
+
+    describe("getConfirmationMessage", () => {
+        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+        const confirmMsg = (args: Record<string, unknown>) =>
+            tool["getConfirmationMessage"](args as never);
+
+        it("should include billing warning for start-processor", () => {
+            const msg = confirmMsg({
+                ...baseArgs,
+                action: "start-processor",
+                resourceName: "proc1",
+            });
+            expect(msg).toContain("billing");
+            expect(msg).toContain("proc1");
         });
     });
 

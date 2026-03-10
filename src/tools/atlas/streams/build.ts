@@ -708,6 +708,11 @@ export class StreamsBuildTool extends StreamsToolBase {
             ? ` DLQ configured: ${args.dlq.db}.${args.dlq.coll} via '${args.dlq.connectionName}'.`
             : " Consider adding a DLQ for production use.";
 
+        const billingNote = args.autoStart
+            ? `\n\nNote: Billing for stream processing usage is now active for this processor. ` +
+              `Use \`atlas-streams-manage\` with action 'stop-processor' to stop billing.`
+            : "";
+
         return {
             content: [
                 {
@@ -716,7 +721,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `${startMessage} Processor '${args.processorName}' deployed in workspace '${args.workspaceName}'.${dlqNote}\n\n` +
                         (args.autoStart
                             ? `Use \`atlas-streams-discover\` with action 'diagnose-processor' to monitor health.`
-                            : `Use \`atlas-streams-manage\` with action 'start-processor' to begin processing.`),
+                            : `Use \`atlas-streams-manage\` with action 'start-processor' to begin processing.`) +
+                        billingNote,
                 },
             ],
         };

@@ -139,7 +139,10 @@ export class StreamsManageTool extends StreamsToolBase {
     protected override getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
         switch (args.action) {
             case "start-processor":
-                return `You are about to start processor '${args.resourceName}' in workspace '${args.workspaceName}'. This will allocate processing resources. Proceed?`;
+                return (
+                    `You are about to start processor '${args.resourceName}' in workspace '${args.workspaceName}'. ` +
+                    `Starting a processor will begin billing for stream processing usage based on the workspace tier. Proceed?`
+                );
             case "stop-processor":
                 return `You are about to stop processor '${args.resourceName}' in workspace '${args.workspaceName}'. In-flight data will complete processing. Proceed?`;
             case "modify-processor":
@@ -239,7 +242,9 @@ export class StreamsManageTool extends StreamsToolBase {
                     type: "text",
                     text:
                         `Processor '${name}' started in workspace '${args.workspaceName}'.${checkpointNote}\n\n` +
-                        `Use \`atlas-streams-discover\` with action 'diagnose-processor' to monitor health.`,
+                        `Note: Billing for stream processing usage is now active for this processor.\n\n` +
+                        `Use \`atlas-streams-discover\` with action 'diagnose-processor' to monitor health. ` +
+                        `Use \`atlas-streams-manage\` with action 'stop-processor' to stop billing.`,
                 },
             ],
         };
