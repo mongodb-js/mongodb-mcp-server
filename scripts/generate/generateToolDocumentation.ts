@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { AllTools } from "../../src/tools/index.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { UserConfigSchema } from "../../src/lib.js";
-import { defaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
+import { createDefaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,7 +30,7 @@ const overrides: Record<string, string> = {
 
 function extractToolInformation(): ToolInfo[] {
     const tools: ToolInfo[] = [];
-    const metrics = new PrometheusMetrics({ definitions: defaultMetrics });
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     for (const ToolClass of AllTools) {
         // Create a minimal instance to access instance properties

@@ -707,16 +707,22 @@ describe("StreamableHttpRunner", () => {
                 expect(metricsResponse.status).toBe(404);
             });
 
-            it("exposes /metrics when features includes 'metrics' and metrics are provided", async () => {
+            it("exposes /metrics when features includes 'metrics'", async () => {
                 config.monitoringServerFeatures = ["health-check", "metrics"];
-                const { PrometheusMetrics, defaultMetrics } = await import("../../../src/common/metrics/index.js");
-                const metrics = new PrometheusMetrics({ definitions: defaultMetrics });
                 runner = new StreamableHttpRunner({ userConfig: config });
-                await runner.start({ serverOptions: { metrics } });
+                await runner.start();
+
+                // Increment a counter so we can verify the runner's own metrics are served
+                runner.metrics
+                    .get("toolExecutionTotal")
+                    .inc({ tool_name: "test", category: "mongodb", status: "success" });
 
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.headers.get("content-type")).toMatch(/text\/plain/);
+
+                const body = await metricsResponse.text();
+                expect(body).toContain("mcp_tool_execution_total");
             });
         });
     });

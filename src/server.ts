@@ -23,7 +23,7 @@ import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "./ui/registry/index.js";
 import type { Metrics, DefaultMetrics } from "./common/metrics/index.js";
-import { defaultMetrics, PrometheusMetrics } from "./common/metrics/index.js";
+import { createDefaultMetrics, PrometheusMetrics } from "./common/metrics/index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyToolClass = ToolClass<any, any>;
@@ -155,7 +155,7 @@ export class Server<
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = uiRegistry;
         this.toolContext = toolContext;
-        this.metrics = metrics ?? new PrometheusMetrics<TMetrics>({ definitions: defaultMetrics as TMetrics });
+        this.metrics = metrics ?? new PrometheusMetrics<TMetrics>({ definitions: createDefaultMetrics() as TMetrics });
     }
 
     async connect(transport: Transport): Promise<void> {
