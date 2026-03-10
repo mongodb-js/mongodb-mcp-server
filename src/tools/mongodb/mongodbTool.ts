@@ -4,7 +4,7 @@ import { ToolBase } from "../tool.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
-import { LogId } from "../../common/logger.js";
+import { LogId } from "../../common/logging/index.js";
 import type { Server } from "../../server.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
 

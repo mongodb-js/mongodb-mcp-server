@@ -1,4 +1,4 @@
-import type { LoggerBase } from "../../logger.js";
+import type { LoggerBase } from "../../logging/index.js";
 import { ClientCredentialsAuthProvider } from "./clientCredentials.js";
 
 export interface AccessToken {
