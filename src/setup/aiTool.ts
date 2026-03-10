@@ -6,6 +6,7 @@ import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 
 export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
+
 // These are tools that don't have a designated editor to open the config file
 export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "codex", "opencode"];
 
@@ -15,7 +16,12 @@ export interface McpConfigEntry {
     env: Record<string, string>;
 }
 
-export type McpConfig = { mcpServers: Record<string, McpConfigEntry> } | { servers: Record<string, McpConfigEntry> };
+export type McpConfig =
+    | { mcpServers: Record<string, McpConfigEntry> }
+    | { servers: Record<string, McpConfigEntry> }
+    | { mcp: Record<string, McpConfigEntry> };
+
+type McpServers = "mcpServers" | "servers" | "mcp";
 
 interface OpenCodeMcpEntry {
     type: "local";
@@ -40,6 +46,16 @@ const getBasePath = (): string => {
     }
 };
 
+// Gets an existing servers: {}, mcpServers: {}, or mcp: {} object in the config file or create it if it doesn't exist
+const getOrCreateServersEntry = (config: McpConfig, serversKey: McpServers): Record<string, McpConfigEntry> => {
+    const mutable = config as Record<string, Record<string, McpConfigEntry>>;
+    if (!mutable[serversKey]) {
+        mutable[serversKey] = {};
+    }
+    return mutable[serversKey];
+};
+
+// Builds the rest of the MCP config entry
 const buildMcpConfigEntry = (isReadOnly: boolean, env: Record<string, string>): McpConfigEntry => {
     const args = ["-y", "mongodb-mcp-server@latest"];
     if (isReadOnly) {
@@ -50,17 +66,6 @@ const buildMcpConfigEntry = (isReadOnly: boolean, env: Record<string, string>): 
         args,
         env,
     };
-};
-
-const getOrCreateServersEntry = (
-    config: McpConfig,
-    serversKey: "servers" | "mcpServers"
-): Record<string, McpConfigEntry> => {
-    const mutable = config as Record<string, Record<string, McpConfigEntry>>;
-    if (!mutable[serversKey]) {
-        mutable[serversKey] = {};
-    }
-    return mutable[serversKey];
 };
 
 const writeConfigFile = (configPath: string, config: McpConfig): void => {
@@ -88,17 +93,15 @@ export abstract class AITool {
     abstract get configPath(): string;
     tip?: string;
 
-    /**
-     * Key used in the config file for the MCP servers object.
-     * Override in subclasses (e.g. VS Code uses "servers").
-     */
-    protected getServersKey(): "servers" | "mcpServers" {
+    // Default key is mcpServers, but we will use this function to override in subclasses (e.g. VS Code uses "servers").
+    protected getServersKey(): McpServers {
         return "mcpServers";
     }
 
     protected readConfig(configPath: string): McpConfig {
         const serversKey = this.getServersKey();
-        let config: McpConfig = serversKey === "mcpServers" ? { mcpServers: {} } : { servers: {} };
+        const emptyConfig = (): McpConfig => ({ [serversKey]: {} }) as McpConfig;
+        let config: McpConfig = emptyConfig();
         if (fs.existsSync(configPath)) {
             try {
                 const existingContent = fs.readFileSync(configPath, "utf-8");
@@ -108,7 +111,7 @@ export abstract class AITool {
                 console.error(
                     `Warning: Could not parse existing ${this.configFileName}, creating new config. Error is: ${formatError(e)}`
                 );
-                config = serversKey === "mcpServers" ? { mcpServers: {} } : { servers: {} };
+                config = emptyConfig();
             }
         }
         return config;
@@ -146,7 +149,7 @@ class Cursor extends AITool {
 class VSCode extends AITool {
     name = "VS Code";
     configFileName = "mcp.json";
-    protected override getServersKey(): "servers" | "mcpServers" {
+    protected override getServersKey(): McpServers {
         return "servers";
     }
     get configPath(): string {
@@ -226,6 +229,7 @@ class Codex extends AITool {
         return path.join(getBasePath(), ".codex", "config.toml");
     }
 
+    // The config file for codex is in TOML format, so the the values for each field is in-line
     override updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
         const args = ["-y", "mongodb-mcp-server@latest"];
         if (isReadOnly) {
@@ -245,6 +249,7 @@ args = ${JSON.stringify(args)}${envEntry}`;
         if (fs.existsSync(configPath)) {
             existing = fs.readFileSync(configPath, "utf-8");
             if (existing.includes("[mcp_servers.mongodb-mcp-server]")) {
+                // TODO: this cannot return, we'd need to modify with new fields
                 return;
             }
             if (!existing.endsWith("\n")) {
@@ -266,7 +271,9 @@ class OpenCode extends AITool {
     get configPath(): string {
         return path.join(getBasePath(), ".config", "opencode", "opencode.json");
     }
-
+    protected override getServersKey(): McpServers {
+        return "mcp";
+    }
     override updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
         const opencodeConfig = this.readOpenCodeConfig(configPath);
         if (!opencodeConfig.mcp) {
@@ -278,6 +285,7 @@ class OpenCode extends AITool {
         }
         opencodeConfig.mcp["mongodb-mcp-server"] = {
             type: "local",
+            // Open Code uses a single array command and groups args within the command array
             command: ["npx", ...args],
             environment: Object.keys(env).length > 0 ? env : undefined,
             enabled: true,
@@ -289,7 +297,7 @@ class OpenCode extends AITool {
         fs.writeFileSync(configPath, JSON.stringify(opencodeConfig, null, 2));
     }
 
-    private readOpenCodeConfig(configPath: string): OpenCodeConfig {
+    protected readOpenCodeConfig(configPath: string): OpenCodeConfig {
         if (!fs.existsSync(configPath)) {
             return { mcp: {} };
         }
