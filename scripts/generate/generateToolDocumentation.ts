@@ -30,6 +30,7 @@ const overrides: Record<string, string> = {
 
 function extractToolInformation(): ToolInfo[] {
     const tools: ToolInfo[] = [];
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     for (const ToolClass of AllTools) {
         // Create a minimal instance to access instance properties
@@ -52,7 +53,7 @@ function extractToolInformation(): ToolInfo[] {
                 requestConfirmation: () => Promise.resolve(false),
             } as never,
             uiRegistry: new UIRegistry(),
-            metrics: new PrometheusMetrics({ definitions: createDefaultMetrics() }),
+            metrics,
         };
 
         try {
