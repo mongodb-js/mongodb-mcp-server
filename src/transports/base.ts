@@ -23,7 +23,7 @@ import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
-import { createDefaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
+import { defaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
 import type { EmptyMetricInstances, MetricInstances, Metrics } from "../common/metrics/metricsTypes.js";
 
 /**
@@ -225,7 +225,7 @@ export abstract class TransportRunnerBase<
         this.createApiClient = createApiClient;
         this.metrics = new PrometheusMetrics({
             definitions: {
-                ...createDefaultMetrics(),
+                ...defaultMetrics,
                 ...additionalMetrics,
             } as DefaultMetrics & TMetrics,
         });

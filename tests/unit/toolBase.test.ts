@@ -17,7 +17,7 @@ import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
-import { createDefaultMetrics, type DefaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
+import { defaultMetrics, type DefaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -59,7 +59,7 @@ describe("ToolBase", () => {
             requestConfirmation: mockRequestConfirmation,
         } as unknown as Elicitation;
 
-        mockMetrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+        mockMetrics = new PrometheusMetrics({ definitions: defaultMetrics });
 
         const constructorParams: ToolConstructorParams = {
             name: TestTool.toolName,

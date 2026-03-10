@@ -709,10 +709,10 @@ describe("StreamableHttpRunner", () => {
 
             it("exposes /metrics when features includes 'metrics' and metrics are provided", async () => {
                 config.monitoringServerFeatures = ["health-check", "metrics"];
-                const { PrometheusMetrics, createDefaultMetrics } = await import(
+                const { PrometheusMetrics, defaultMetrics } = await import(
                     "../../../src/common/metrics/index.js"
                 );
-                const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+                const metrics = new PrometheusMetrics({ definitions: defaultMetrics });
                 runner = new StreamableHttpRunner({ userConfig: config });
                 await runner.start({ serverOptions: { metrics } });
 
