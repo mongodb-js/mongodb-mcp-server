@@ -17,6 +17,7 @@ import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
+import { createDefaultMetrics, type DefaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -27,6 +28,7 @@ describe("ToolBase", () => {
     let mockElicitation: Elicitation;
     let mockRequestConfirmation: MockedFunction<(message: string) => Promise<boolean>>;
     let testTool: TestTool;
+    let mockMetrics: PrometheusMetrics<DefaultMetrics>;
 
     beforeEach(() => {
         mockLoggerWarning = vi.fn();
@@ -57,6 +59,8 @@ describe("ToolBase", () => {
             requestConfirmation: mockRequestConfirmation,
         } as unknown as Elicitation;
 
+        mockMetrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
         const constructorParams: ToolConstructorParams = {
             name: TestTool.toolName,
             category: TestTool.category,
@@ -66,6 +70,7 @@ describe("ToolBase", () => {
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             uiRegistry: new UIRegistry(),
+            metrics: mockMetrics,
         };
 
         testTool = new TestTool(constructorParams);
@@ -336,6 +341,7 @@ describe("ToolBase", () => {
                 telemetry: mockTelemetry,
                 elicitation: mockElicitation,
                 uiRegistry: mockUIRegistry,
+                metrics: mockMetrics,
             };
             return new TestToolWithOutputSchema(constructorParams);
         }
@@ -391,7 +397,8 @@ describe("ToolBase", () => {
                 mockConfig,
                 mockTelemetry,
                 mockElicitation,
-                mockUIRegistry
+                mockUIRegistry,
+                mockMetrics
             );
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
 
@@ -473,7 +480,8 @@ function createToolWithoutStructuredContent(
     mockConfig: UserConfig,
     mockTelemetry: Telemetry,
     mockElicitation: Elicitation,
-    mockUIRegistry: UIRegistry
+    mockUIRegistry: UIRegistry,
+    mockMetrics: PrometheusMetrics<DefaultMetrics>
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
     const constructorParams: ToolConstructorParams = {
@@ -485,6 +493,7 @@ function createToolWithoutStructuredContent(
         telemetry: mockTelemetry,
         elicitation: mockElicitation,
         uiRegistry: mockUIRegistry,
+        metrics: mockMetrics,
     };
     return new TestToolWithoutStructuredContent(constructorParams);
 }

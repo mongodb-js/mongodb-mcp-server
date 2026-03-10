@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import { AllTools } from "../../src/tools/index.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { UserConfigSchema } from "../../src/lib.js";
+import { createDefaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,6 +52,7 @@ function extractToolInformation(): ToolInfo[] {
                 requestConfirmation: () => Promise.resolve(false),
             } as never,
             uiRegistry: new UIRegistry(),
+            metrics: new PrometheusMetrics({ definitions: createDefaultMetrics() }),
         };
 
         try {

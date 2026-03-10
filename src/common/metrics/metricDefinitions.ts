@@ -1,17 +1,9 @@
-import type { Gauge } from "prom-client";
 import { Counter, Histogram } from "prom-client";
 
-/**
- * Helper type to extract label names from a Prometheus metric
- */
-export type LabelNames<T> =
-    T extends Histogram<infer L> ? L : T extends Counter<infer L> ? L : T extends Gauge<infer L> ? L : never;
-
-/**
- * Helper type to create a record of label values
- */
-export type Labels<T> = Record<LabelNames<T>, string>;
-
+/** Returns the default metrics for the MCP server. */
+// This is one of the cases where leaving it to the type system is better
+// than explicitly typing the return type since we want it to be inferred
+// from the returned complex object.
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createDefaultMetrics() {
     return {
