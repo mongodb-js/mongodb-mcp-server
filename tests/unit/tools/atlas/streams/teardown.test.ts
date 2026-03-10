@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
 import { StreamsTeardownTool } from "../../../../../src/tools/atlas/streams/teardown.js";
 import type { Session } from "../../../../../src/common/session.js";
@@ -71,14 +70,18 @@ describe("StreamsTeardownTool", () => {
     });
 
     const baseArgs = { projectId: "proj1" };
+    // Helper to call execute/getConfirmationMessage with partial args (tests validate missing fields at runtime)
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
+    const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
     describe("deleteProcessor", () => {
         it("should stop then delete a STARTED processor", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STARTED", name: "proc1" });
-            mockApiClient.stopStreamProcessor.mockResolvedValue({});
-            mockApiClient.deleteStreamProcessor.mockResolvedValue({});
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STARTED", name: "proc1" });
+            mockApiClient.stopStreamProcessor!.mockResolvedValue({});
+            mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "processor",
                 workspaceName: "ws1",
@@ -91,10 +94,10 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should delete a STOPPED processor without stopping first", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STOPPED", name: "proc1" });
-            mockApiClient.deleteStreamProcessor.mockResolvedValue({});
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
 
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 resource: "processor",
                 workspaceName: "ws1",
@@ -107,7 +110,7 @@ describe("StreamsTeardownTool", () => {
 
         it("should throw when workspaceName is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "processor",
                     resourceName: "proc1",
@@ -117,7 +120,7 @@ describe("StreamsTeardownTool", () => {
 
         it("should throw when resourceName is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "processor",
                     workspaceName: "ws1",
@@ -128,10 +131,10 @@ describe("StreamsTeardownTool", () => {
 
     describe("deleteConnection", () => {
         it("should delete connection when no processors reference it", async () => {
-            mockApiClient.getStreamProcessors.mockResolvedValue({ results: [] });
-            mockApiClient.deleteStreamConnection.mockResolvedValue({});
+            mockApiClient.getStreamProcessors!.mockResolvedValue({ results: [] });
+            mockApiClient.deleteStreamConnection!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "connection",
                 workspaceName: "ws1",
@@ -143,7 +146,7 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should warn and NOT delete when running processor references connection", async () => {
-            mockApiClient.getStreamProcessors.mockResolvedValue({
+            mockApiClient.getStreamProcessors!.mockResolvedValue({
                 results: [
                     {
                         name: "proc1",
@@ -153,7 +156,7 @@ describe("StreamsTeardownTool", () => {
                 ],
             });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "connection",
                 workspaceName: "ws1",
@@ -167,7 +170,7 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should proceed with deletion when only stopped processors reference connection", async () => {
-            mockApiClient.getStreamProcessors.mockResolvedValue({
+            mockApiClient.getStreamProcessors!.mockResolvedValue({
                 results: [
                     {
                         name: "proc1",
@@ -176,9 +179,9 @@ describe("StreamsTeardownTool", () => {
                     },
                 ],
             });
-            mockApiClient.deleteStreamConnection.mockResolvedValue({});
+            mockApiClient.deleteStreamConnection!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "connection",
                 workspaceName: "ws1",
@@ -190,10 +193,10 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should proceed with deletion when processor list API fails", async () => {
-            mockApiClient.getStreamProcessors.mockRejectedValue(new Error("API error"));
-            mockApiClient.deleteStreamConnection.mockResolvedValue({});
+            mockApiClient.getStreamProcessors!.mockRejectedValue(new Error("API error"));
+            mockApiClient.deleteStreamConnection!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "connection",
                 workspaceName: "ws1",
@@ -207,15 +210,15 @@ describe("StreamsTeardownTool", () => {
 
     describe("deleteWorkspace", () => {
         it("should include impact note when workspace has connections and processors", async () => {
-            mockApiClient.listStreamConnections.mockResolvedValue({
+            mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "c1" }, { name: "c2" }, { name: "c3" }],
             });
-            mockApiClient.getStreamProcessors.mockResolvedValue({
+            mockApiClient.getStreamProcessors!.mockResolvedValue({
                 results: [{ name: "p1" }, { name: "p2" }],
             });
-            mockApiClient.deleteStreamWorkspace.mockResolvedValue({});
+            mockApiClient.deleteStreamWorkspace!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "workspace",
                 workspaceName: "ws1",
@@ -226,11 +229,11 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should not include impact note for empty workspace", async () => {
-            mockApiClient.listStreamConnections.mockResolvedValue({ results: [] });
-            mockApiClient.getStreamProcessors.mockResolvedValue({ results: [] });
-            mockApiClient.deleteStreamWorkspace.mockResolvedValue({});
+            mockApiClient.listStreamConnections!.mockResolvedValue({ results: [] });
+            mockApiClient.getStreamProcessors!.mockResolvedValue({ results: [] });
+            mockApiClient.deleteStreamWorkspace!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "workspace",
                 workspaceName: "ws1",
@@ -241,11 +244,11 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should proceed without impact note when count APIs fail", async () => {
-            mockApiClient.listStreamConnections.mockRejectedValue(new Error("fail"));
-            mockApiClient.getStreamProcessors.mockRejectedValue(new Error("fail"));
-            mockApiClient.deleteStreamWorkspace.mockResolvedValue({});
+            mockApiClient.listStreamConnections!.mockRejectedValue(new Error("fail"));
+            mockApiClient.getStreamProcessors!.mockRejectedValue(new Error("fail"));
+            mockApiClient.deleteStreamWorkspace!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "workspace",
                 workspaceName: "ws1",
@@ -257,9 +260,9 @@ describe("StreamsTeardownTool", () => {
 
     describe("deletePrivateLink", () => {
         it("should call correct API and return confirmation", async () => {
-            mockApiClient.deletePrivateLinkConnection.mockResolvedValue({});
+            mockApiClient.deletePrivateLinkConnection!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "privatelink",
                 resourceName: "pl-123",
@@ -275,9 +278,9 @@ describe("StreamsTeardownTool", () => {
 
     describe("deletePeering", () => {
         it("should call correct API and return confirmation", async () => {
-            mockApiClient.deleteVpcPeeringConnection.mockResolvedValue({});
+            mockApiClient.deleteVpcPeeringConnection!.mockResolvedValue({});
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "peering",
                 resourceName: "peer-456",
@@ -292,7 +295,7 @@ describe("StreamsTeardownTool", () => {
 
     describe("getConfirmationMessage", () => {
         it("should return workspace deletion warning", () => {
-            const msg = tool["getConfirmationMessage"]({
+            const msg = confirmMsg({
                 ...baseArgs,
                 resource: "workspace",
                 workspaceName: "ws1",
@@ -302,7 +305,7 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should return processor deletion warning", () => {
-            const msg = tool["getConfirmationMessage"]({
+            const msg = confirmMsg({
                 ...baseArgs,
                 resource: "processor",
                 workspaceName: "ws1",
@@ -313,7 +316,7 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should return connection deletion warning", () => {
-            const msg = tool["getConfirmationMessage"]({
+            const msg = confirmMsg({
                 ...baseArgs,
                 resource: "connection",
                 workspaceName: "ws1",
@@ -323,7 +326,7 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should return privatelink deletion warning", () => {
-            const msg = tool["getConfirmationMessage"]({
+            const msg = confirmMsg({
                 ...baseArgs,
                 resource: "privatelink",
                 resourceName: "pl-1",
@@ -332,7 +335,7 @@ describe("StreamsTeardownTool", () => {
         });
 
         it("should return peering deletion warning", () => {
-            const msg = tool["getConfirmationMessage"]({
+            const msg = confirmMsg({
                 ...baseArgs,
                 resource: "peering",
                 resourceName: "peer-1",

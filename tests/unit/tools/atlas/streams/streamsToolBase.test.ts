@@ -24,12 +24,15 @@ class TestStreamsTool extends StreamsToolBase {
         action: z.string().optional().describe("action"),
     };
 
-    protected async execute(): Promise<CallToolResult> {
-        return { content: [{ type: "text", text: "ok" }] };
+    protected execute(): Promise<CallToolResult> {
+        return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
     }
 
     // Expose protected methods for testing
-    public testHandleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> | CallToolResult {
+    public testHandleError(
+        error: unknown,
+        args: ToolArgs<typeof this.argsShape>
+    ): Promise<CallToolResult> | CallToolResult {
         return this.handleError(error, args);
     }
 
@@ -47,7 +50,7 @@ class TestStreamsTool extends StreamsToolBase {
 
 function createApiClientError(status: number, message: string): ApiClientError {
     const response = new Response(null, { status, statusText: "Error" });
-    return ApiClientError.fromError(response, { reason: message });
+    return ApiClientError.fromError(response, { reason: message, error: status, errorCode: `${status}` });
 }
 
 describe("StreamsToolBase", () => {
@@ -101,7 +104,8 @@ describe("StreamsToolBase", () => {
         tool = new TestStreamsTool(params);
     });
 
-    const defaultArgs = { projectId: "proj1" };
+    // Cast partial args since ToolArgs requires all keys even for optional Zod fields
+    const defaultArgs = { projectId: "proj1" } as never;
 
     describe("handleError", () => {
         it("should handle 404 with discover hint", () => {
@@ -253,7 +257,7 @@ describe("StreamsToolBase", () => {
 
         it("should include workspace_name when workspaceName arg is present", () => {
             const metadata = tool.testResolveTelemetryMetadata(
-                { projectId: "proj1", workspaceName: "ws1" },
+                { projectId: "proj1", workspaceName: "ws1" } as never,
                 okResult
             );
             expect(metadata).toHaveProperty("workspace_name", "ws1");
@@ -261,7 +265,7 @@ describe("StreamsToolBase", () => {
 
         it("should include connection_name when resourceName + connection action", () => {
             const metadata = tool.testResolveTelemetryMetadata(
-                { projectId: "proj1", resourceName: "my-conn", action: "delete-connection" },
+                { projectId: "proj1", resourceName: "my-conn", action: "delete-connection" } as never,
                 okResult
             );
             expect(metadata).toHaveProperty("connection_name", "my-conn");
@@ -270,7 +274,7 @@ describe("StreamsToolBase", () => {
 
         it("should include processor_name when resourceName + non-connection action", () => {
             const metadata = tool.testResolveTelemetryMetadata(
-                { projectId: "proj1", resourceName: "my-proc", action: "start-processor" },
+                { projectId: "proj1", resourceName: "my-proc", action: "start-processor" } as never,
                 okResult
             );
             expect(metadata).toHaveProperty("processor_name", "my-proc");
@@ -279,7 +283,7 @@ describe("StreamsToolBase", () => {
 
         it("should include action in metadata", () => {
             const metadata = tool.testResolveTelemetryMetadata(
-                { projectId: "proj1", action: "list-workspaces" },
+                { projectId: "proj1", action: "list-workspaces" } as never,
                 okResult
             );
             expect(metadata).toHaveProperty("action", "list-workspaces");

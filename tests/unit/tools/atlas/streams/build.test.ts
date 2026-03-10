@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
 import { StreamsBuildTool } from "../../../../../src/tools/atlas/streams/build.js";
@@ -70,10 +71,13 @@ describe("StreamsBuildTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
+    // Helper to call execute with partial args (tests validate missing fields at runtime)
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "workspace",
                 cloudProvider: "AWS",
@@ -94,7 +98,7 @@ describe("StreamsBuildTool", () => {
         });
 
         it("should default tier to SP10", async () => {
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 resource: "workspace",
                 cloudProvider: "AWS",
@@ -111,7 +115,7 @@ describe("StreamsBuildTool", () => {
         });
 
         it("should skip sample data when includeSampleData is false", async () => {
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 resource: "workspace",
                 cloudProvider: "AWS",
@@ -125,7 +129,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when cloudProvider is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "workspace",
                     region: "VIRGINIA_USA",
@@ -135,7 +139,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when region is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "workspace",
                     cloudProvider: "AWS",
@@ -150,11 +154,11 @@ describe("StreamsBuildTool", () => {
                 { $source: { connectionName: "src" } },
                 { $merge: { into: { connectionName: "sink", db: "db1", coll: "coll1" } } },
             ];
-            mockApiClient.listStreamConnections.mockResolvedValue({
+            mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "sink" }],
             });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "processor",
                 processorName: "proc1",
@@ -175,7 +179,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when processorName is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "processor",
                     pipeline: [{ $source: { connectionName: "src" } }],
@@ -185,7 +189,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when pipeline is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "processor",
                     processorName: "proc1",
@@ -194,11 +198,11 @@ describe("StreamsBuildTool", () => {
         });
 
         it("should auto-start processor when autoStart is true", async () => {
-            mockApiClient.listStreamConnections.mockResolvedValue({
+            mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "sink" }],
             });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "processor",
                 processorName: "proc1",
@@ -216,7 +220,7 @@ describe("StreamsBuildTool", () => {
 
     describe("createConnection", () => {
         it("should create Kafka connection and normalize bootstrapServers array", async () => {
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 resource: "connection",
                 connectionName: "kafka1",
@@ -228,14 +232,19 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            const callBody = mockApiClient.createStreamConnection.mock.calls[0][0].body;
-            expect(callBody.bootstrapServers).toBe("broker1:9092,broker2:9092");
-            expect(callBody.name).toBe("kafka1");
-            expect(callBody.type).toBe("Kafka");
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        bootstrapServers: "broker1:9092,broker2:9092",
+                        name: "kafka1",
+                        type: "Kafka",
+                    }),
+                })
+            );
         });
 
         it("should create Cluster connection and set default dbRoleToExecute", async () => {
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 resource: "connection",
                 connectionName: "cluster1",
@@ -245,13 +254,18 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            const callBody = mockApiClient.createStreamConnection.mock.calls[0][0].body;
-            expect(callBody.clusterName).toBe("my-cluster");
-            expect(callBody.dbRoleToExecute).toEqual({ role: "readWriteAnyDatabase", type: "BUILT_IN" });
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        clusterName: "my-cluster",
+                        dbRoleToExecute: { role: "readWriteAnyDatabase", type: "BUILT_IN" },
+                    }),
+                })
+            );
         });
 
         it("should create S3 connection with roleArn in aws config", async () => {
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 resource: "connection",
                 connectionName: "s3-conn",
@@ -261,15 +275,20 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            const callBody = mockApiClient.createStreamConnection.mock.calls[0][0].body;
-            expect(callBody.aws.roleArn).toBe("arn:aws:iam::123456789:role/my-role");
-            expect(callBody.type).toBe("S3");
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        aws: expect.objectContaining({ roleArn: "arn:aws:iam::123456789:role/my-role" }),
+                        type: "S3",
+                    }),
+                })
+            );
         });
 
         it("should trigger elicitation when Kafka missing required fields", async () => {
             mockElicitation.requestInput.mockResolvedValue({ accepted: false });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "connection",
                 connectionName: "kafka1",
@@ -294,7 +313,7 @@ describe("StreamsBuildTool", () => {
                 },
             });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 resource: "connection",
                 connectionName: "kafka1",
@@ -308,7 +327,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when connectionName is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "connection",
                     connectionType: "Kafka",
@@ -318,7 +337,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when connectionType is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "connection",
                     connectionName: "conn1",
@@ -327,9 +346,264 @@ describe("StreamsBuildTool", () => {
         });
     });
 
+    describe("createConnection - Https", () => {
+        it("should create Https connection with url", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "https1",
+                connectionType: "Https",
+                connectionConfig: { url: "https://example.com/api" },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        url: "https://example.com/api",
+                        name: "https1",
+                        type: "Https",
+                    }),
+                })
+            );
+        });
+
+        it("should trigger elicitation when Https url is missing", async () => {
+            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "https1",
+                connectionType: "Https",
+                connectionConfig: {},
+            });
+
+            expect(mockElicitation.requestInput).toHaveBeenCalled();
+            expect((result.content[0] as { text: string }).text).toContain("missing");
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("createConnection - AWSKinesisDataStreams", () => {
+        it("should create Kinesis connection with roleArn", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "kinesis1",
+                connectionType: "AWSKinesisDataStreams",
+                connectionConfig: {
+                    aws: { roleArn: "arn:aws:iam::123:role/my-role" },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        aws: expect.objectContaining({ roleArn: "arn:aws:iam::123:role/my-role" }),
+                        type: "AWSKinesisDataStreams",
+                    }),
+                })
+            );
+        });
+
+        it("should trigger elicitation when roleArn is missing", async () => {
+            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "kinesis1",
+                connectionType: "AWSKinesisDataStreams",
+                connectionConfig: {},
+            });
+
+            expect(mockElicitation.requestInput).toHaveBeenCalled();
+            expect((result.content[0] as { text: string }).text).toContain("missing");
+            expect((result.content[0] as { text: string }).text).toContain("IAM role ARN");
+        });
+    });
+
+    describe("createConnection - AWSLambda", () => {
+        it("should create Lambda connection with roleArn", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "lambda1",
+                connectionType: "AWSLambda",
+                connectionConfig: {
+                    aws: { roleArn: "arn:aws:iam::456:role/lambda-role" },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        aws: expect.objectContaining({ roleArn: "arn:aws:iam::456:role/lambda-role" }),
+                        type: "AWSLambda",
+                    }),
+                })
+            );
+        });
+    });
+
+    describe("createConnection - SchemaRegistry", () => {
+        it("should create SchemaRegistry connection with normalized URL and default provider", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "sr1",
+                connectionType: "SchemaRegistry",
+                connectionConfig: {
+                    schemaRegistryUrls: ["https://sr.example.com"],
+                    schemaRegistryAuthentication: {
+                        type: "USER_INFO",
+                        username: "user",
+                        password: "pass",
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "SchemaRegistry",
+                        provider: "CONFLUENT",
+                        schemaRegistryUrls: ["https://sr.example.com"],
+                    }),
+                })
+            );
+        });
+
+        it("should normalize single URL string to array", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "sr2",
+                connectionType: "SchemaRegistry",
+                connectionConfig: {
+                    schemaRegistryUrls: "https://sr.example.com",
+                    schemaRegistryAuthentication: {
+                        type: "USER_INFO",
+                        username: "user",
+                        password: "pass",
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        schemaRegistryUrls: ["https://sr.example.com"],
+                    }),
+                })
+            );
+        });
+
+        it("should normalize alternative key names (url → schemaRegistryUrls)", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "sr3",
+                connectionType: "SchemaRegistry",
+                connectionConfig: {
+                    url: "https://sr.example.com",
+                    username: "user",
+                    password: "pass",
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        schemaRegistryUrls: ["https://sr.example.com"],
+                        schemaRegistryAuthentication: expect.objectContaining({
+                            type: "USER_INFO",
+                            username: "user",
+                            password: "pass",
+                        }),
+                    }),
+                })
+            );
+        });
+
+        it("should trigger elicitation when SchemaRegistry URL and auth are missing", async () => {
+            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "sr4",
+                connectionType: "SchemaRegistry",
+                connectionConfig: {},
+            });
+
+            expect(mockElicitation.requestInput).toHaveBeenCalled();
+            expect((result.content[0] as { text: string }).text).toContain("missing");
+        });
+    });
+
+    describe("pipeline connection validation", () => {
+        it("should return error when pipeline references non-existent connections", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "existing-conn" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "missing-conn" } },
+                    { $merge: { into: { connectionName: "existing-conn", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("missing-conn");
+            expect(text).toContain("do not exist");
+        });
+
+        it("should succeed when all pipeline connections exist", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
+        });
+
+        it("should skip validation when connection list API fails", async () => {
+            mockApiClient.listStreamConnections!.mockRejectedValue(new Error("API error"));
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
+        });
+    });
+
     describe("createPrivateLink", () => {
         it("should create PrivateLink connection with correct params", async () => {
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 resource: "privatelink",
                 privateLinkProvider: "AWS",
@@ -357,7 +631,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when privateLinkProvider is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "privatelink",
                     privateLinkConfig: { region: "us-east-1" },
@@ -367,7 +641,7 @@ describe("StreamsBuildTool", () => {
 
         it("should throw when privateLinkConfig is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     resource: "privatelink",
                     privateLinkProvider: "AWS",

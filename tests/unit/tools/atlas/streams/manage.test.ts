@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "../../../../../src/tools/tool.js";
 import { StreamsManageTool } from "../../../../../src/tools/atlas/streams/manage.js";
@@ -71,12 +72,15 @@ describe("StreamsManageTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
+    // Helper to call execute with partial args (tests validate missing fields at runtime)
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
 
     describe("start-processor", () => {
         it("should start a STOPPED processor", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "start-processor",
                 resourceName: "proc1",
@@ -87,9 +91,9 @@ describe("StreamsManageTool", () => {
         });
 
         it("should return already-running message for STARTED processor", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STARTED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STARTED", name: "proc1" });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "start-processor",
                 resourceName: "proc1",
@@ -101,9 +105,9 @@ describe("StreamsManageTool", () => {
         });
 
         it("should use startStreamProcessorWith when tier override is provided", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 action: "start-processor",
                 resourceName: "proc1",
@@ -119,9 +123,9 @@ describe("StreamsManageTool", () => {
         });
 
         it("should use startStreamProcessorWith when resumeFromCheckpoint is set", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
-            await tool["execute"]({
+            await exec({
                 ...baseArgs,
                 action: "start-processor",
                 resourceName: "proc1",
@@ -137,7 +141,7 @@ describe("StreamsManageTool", () => {
 
         it("should throw when resourceName is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     action: "start-processor",
                 })
@@ -147,9 +151,9 @@ describe("StreamsManageTool", () => {
 
     describe("stop-processor", () => {
         it("should stop a STARTED processor", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STARTED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STARTED", name: "proc1" });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "stop-processor",
                 resourceName: "proc1",
@@ -160,9 +164,9 @@ describe("StreamsManageTool", () => {
         });
 
         it("should return already-stopped message for STOPPED processor", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "stop-processor",
                 resourceName: "proc1",
@@ -175,9 +179,9 @@ describe("StreamsManageTool", () => {
 
     describe("modify-processor", () => {
         it("should return error when processor is STARTED", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STARTED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STARTED", name: "proc1" });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "modify-processor",
                 resourceName: "proc1",
@@ -190,10 +194,10 @@ describe("StreamsManageTool", () => {
         });
 
         it("should update processor with new pipeline when STOPPED", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
             const newPipeline = [{ $source: { connectionName: "new-src" } }];
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "modify-processor",
                 resourceName: "proc1",
@@ -209,9 +213,9 @@ describe("StreamsManageTool", () => {
         });
 
         it("should return error when no modifications specified", async () => {
-            mockApiClient.getStreamProcessor.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "modify-processor",
                 resourceName: "proc1",
@@ -224,7 +228,7 @@ describe("StreamsManageTool", () => {
 
     describe("update-workspace", () => {
         it("should update workspace with new tier", async () => {
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
                 newTier: "SP30",
@@ -238,7 +242,7 @@ describe("StreamsManageTool", () => {
         });
 
         it("should return error when no updates specified", async () => {
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
             });
@@ -250,7 +254,7 @@ describe("StreamsManageTool", () => {
 
     describe("update-connection", () => {
         it("should update connection with new config", async () => {
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "update-connection",
                 resourceName: "conn1",
@@ -264,7 +268,7 @@ describe("StreamsManageTool", () => {
 
         it("should throw when connectionConfig is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     action: "update-connection",
                     resourceName: "conn1",
@@ -275,7 +279,7 @@ describe("StreamsManageTool", () => {
 
     describe("accept-peering", () => {
         it("should call correct API with peering params", async () => {
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "accept-peering",
                 peeringId: "peer-1",
@@ -292,7 +296,7 @@ describe("StreamsManageTool", () => {
 
         it("should throw when peeringId is missing", async () => {
             await expect(
-                tool["execute"]({
+                exec({
                     ...baseArgs,
                     action: "accept-peering",
                     requesterAccountId: "123",
@@ -304,7 +308,7 @@ describe("StreamsManageTool", () => {
 
     describe("reject-peering", () => {
         it("should call correct API", async () => {
-            const result = await tool["execute"]({
+            const result = await exec({
                 ...baseArgs,
                 action: "reject-peering",
                 peeringId: "peer-1",

@@ -534,6 +534,11 @@ List of available preview features:
 - `search` - Enables tools or functionality related to Atlas Search and Vector Search in MongoDB Atlas:
   - Index management, such as creating, listing, and dropping search and vector search indexes.
   - Querying collections using vector search capabilities. This requires a configured embedding model that will be used to generate vector representations of the query data. Currently, only [Voyage AI](https://www.voyageai.com) embedding models are supported. Set the `voyageApiKey` configuration option with your Voyage AI API key to use this feature.
+- `streams` - Enables Atlas Stream Processing tools for building, managing, and debugging streaming data pipelines:
+  - Create and manage stream processing workspaces, connections (Kafka, Cluster, S3, and more), and processors.
+  - Start, stop, modify, and monitor stream processors.
+  - Diagnose processor issues with combined health reports including state, stats, and connection health.
+  - Requires Atlas API credentials with appropriate stream processing permissions. See [Atlas API Permissions](#atlas-api-permissions).
 
 ### Atlas API Access
 
@@ -576,6 +581,7 @@ To learn more about Service Accounts, check the [MongoDB Atlas documentation](ht
 | Create/manage clusters in a project  | Project Cluster Manager (Project)       |
 | Manage project access lists          | Project IP Access List Admin (Project)  |
 | Manage database users                | Project Database Access Admin (Project) |
+| Manage stream processing resources   | Project Stream Processing Owner (Project) |
 
 - **Prefer project-level roles** for most operations. Assign only to the specific projects you need to manage or view.
 - **Avoid Organization Owner** unless you require full administrative control over all projects and settings in the organization.
