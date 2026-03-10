@@ -188,8 +188,6 @@ export class Telemetry {
 
         const apiClient = this.session.apiClient;
 
-        const signal = AbortSignal.timeout(SEND_TIMEOUT_MS);
-
         try {
             await this.eventCache.processAndClear(events, async (allEvents, cachedCount) => {
                 this.session.logger.debug({
@@ -198,6 +196,7 @@ export class Telemetry {
                     message: `Attempting to send ${allEvents.length} events (${cachedCount} cached)`,
                 });
 
+                const signal = AbortSignal.timeout(SEND_TIMEOUT_MS);
                 const result = await this.sendEvents(apiClient, allEvents, signal);
                 if (!result.success) {
                     throw result.error || new Error("Failed to send events");

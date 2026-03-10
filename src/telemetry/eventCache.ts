@@ -12,7 +12,6 @@ export class EventCache {
 
     private cache: LRUCache<number, BaseEvent>;
     private nextId = 0;
-    private prependId = 0;
     /** Current exclusive operation, if any. The next caller awaits this before starting. */
     private currentOperation: { promise: Promise<void>; resolve: () => void } | undefined;
 
@@ -105,16 +104,6 @@ export class EventCache {
     public appendEvents(events: BaseEvent[]): void {
         for (const event of events) {
             this.cache.set(this.nextId++, event);
-        }
-    }
-
-    /**
-     * Prepends events to the cache using negative IDs so they are
-     * returned first by getEvents, preserving chronological order on retry.
-     */
-    public prependEvents(events: BaseEvent[]): void {
-        for (const event of events) {
-            this.cache.set(--this.prependId, event);
         }
     }
 
