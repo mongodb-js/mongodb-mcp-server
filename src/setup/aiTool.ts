@@ -2,16 +2,12 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { formatError, getPlatform, type Platform } from "./setupAiToolsUtils.js";
+import type { Platform } from "./setupAiToolsUtils.js";
+import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 
 export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
 // These are tools that don't have a designated editor to open the config file
 export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "codex", "opencode"];
-
-const platform: Platform | null = getPlatform();
-const isWindows = platform === "windows";
-const isMac = platform === "mac";
-const isLinux = platform === "linux";
 
 export interface McpConfigEntry {
     command: string;
@@ -33,8 +29,15 @@ interface OpenCodeConfig {
     [key: string]: unknown;
 }
 
-const getWindowsBasePath = (): string => {
-    return process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+const getBasePath = (): string => {
+    const platform: Platform | null = getPlatform();
+    const isWindows = platform === "windows";
+
+    if (isWindows) {
+        return process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+    } else {
+        return os.homedir();
+    }
 };
 
 const buildMcpConfigEntry = (isReadOnly: boolean, env: Record<string, string>): McpConfigEntry => {
@@ -124,15 +127,20 @@ class Cursor extends AITool {
     name = "Cursor";
     configFileName = "mcp.json";
     get configPath(): string {
+        const platform: Platform | null = getPlatform();
+        const isWindows = platform === "windows";
+        const isMac = platform === "mac";
+        const isLinux = platform === "linux";
+
         if (isWindows) {
-            return path.join(getWindowsBasePath(), "Cursor", "mcp.json");
+            return path.join(getBasePath(), "Cursor", "mcp.json");
         }
         if (isMac || isLinux) {
-            return path.join(os.homedir(), ".cursor", "mcp.json");
+            return path.join(getBasePath(), ".cursor", "mcp.json");
         }
         return "";
     }
-    tip = `Tip: Press ${isMac ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
+    tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
 }
 
 class VSCode extends AITool {
@@ -142,47 +150,62 @@ class VSCode extends AITool {
         return "servers";
     }
     get configPath(): string {
+        const platform: Platform | null = getPlatform();
+        const isWindows = platform === "windows";
+        const isMac = platform === "mac";
+        const isLinux = platform === "linux";
+
         if (isWindows) {
-            return path.join(getWindowsBasePath(), "Code", "User", "mcp.json");
+            return path.join(getBasePath(), "Code", "User", "mcp.json");
         }
         if (isMac) {
-            return path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json");
+            return path.join(getBasePath(), "Library", "Application Support", "Code", "User", "mcp.json");
         }
         if (isLinux) {
-            return path.join(os.homedir(), ".config", "Code", "User", "mcp.json");
+            return path.join(getBasePath(), ".config", "Code", "User", "mcp.json");
         }
         return "";
     }
-    tip = `Tip: Press ${isMac ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
+    tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
 }
 
 class Windsurf extends AITool {
     name = "Windsurf";
     configFileName = "mcp_config.json";
     get configPath(): string {
+        const platform: Platform | null = getPlatform();
+        const isWindows = platform === "windows";
+        const isMac = platform === "mac";
+        const isLinux = platform === "linux";
+
         if (isWindows) {
-            return path.join(getWindowsBasePath(), "cascade", "mcp_config.json");
+            return path.join(getBasePath(), "cascade", "mcp_config.json");
         }
         if (isMac || isLinux) {
-            return path.join(os.homedir(), ".config", "cascade", "mcp_config.json");
+            return path.join(getBasePath(), ".config", "cascade", "mcp_config.json");
         }
         return "";
     }
-    tip = `Tip: Press ${isMac ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
+    tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
 }
 
 class ClaudeDesktop extends AITool {
     name = "Claude Desktop";
     configFileName = "claude_desktop_config.json";
     get configPath(): string {
+        const platform: Platform | null = getPlatform();
+        const isWindows = platform === "windows";
+        const isMac = platform === "mac";
+        const isLinux = platform === "linux";
+
         if (isWindows) {
-            return path.join(getWindowsBasePath(), "Claude", "claude_desktop_config.json");
+            return path.join(getBasePath(), "Claude", "claude_desktop_config.json");
         }
         if (isMac) {
-            return path.join(os.homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json");
+            return path.join(getBasePath(), "Claude", "claude_desktop_config.json");
         }
         if (isLinux) {
-            return path.join(os.homedir(), ".config", "Claude", "claude_desktop_config.json");
+            return path.join(getBasePath(), ".config", "Claude", "claude_desktop_config.json");
         }
         return "";
     }
@@ -192,7 +215,7 @@ class ClaudeCode extends AITool {
     name = "Claude Code";
     configFileName = ".claude.json";
     get configPath(): string {
-        return path.join(os.homedir(), ".claude.json");
+        return path.join(getBasePath(), ".claude.json");
     }
 }
 
@@ -200,7 +223,7 @@ class Codex extends AITool {
     name = "OpenAI Codex";
     configFileName = "config.toml";
     get configPath(): string {
-        return path.join(os.homedir(), ".codex", "config.toml");
+        return path.join(getBasePath(), ".codex", "config.toml");
     }
 
     override updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
@@ -241,7 +264,7 @@ class OpenCode extends AITool {
     name = "Open Code";
     configFileName = "opencode.json";
     get configPath(): string {
-        return path.join(os.homedir(), ".config", "opencode", "opencode.json");
+        return path.join(getBasePath(), ".config", "opencode", "opencode.json");
     }
 
     override updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
