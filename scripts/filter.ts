@@ -45,6 +45,47 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "listClusterSuggestedIndexes",
         "listSchemaAdvice",
         "listSlowQueryLogs",
+
+        // Streams: Workspaces
+        "listStreamWorkspaces",
+        "createStreamWorkspace",
+        "getStreamWorkspace",
+        "updateStreamWorkspace",
+        "deleteStreamWorkspace",
+        "withStreamSampleConnections",
+
+        // Streams: Connections
+        "listStreamConnections",
+        "createStreamConnection",
+        "getStreamConnection",
+        "updateStreamConnection",
+        "deleteStreamConnection",
+
+        // Streams: Processors
+        "getStreamProcessors",
+        "createStreamProcessor",
+        "getStreamProcessor",
+        "updateStreamProcessor",
+        "deleteStreamProcessor",
+        "startStreamProcessor",
+        "startStreamProcessorWith",
+        "stopStreamProcessor",
+
+        // Streams: Networking
+        "listPrivateLinkConnections",
+        "createPrivateLinkConnection",
+        "getPrivateLinkConnection",
+        "deletePrivateLinkConnection",
+        "listVpcPeeringConnections",
+        "deleteVpcPeeringConnection",
+        "acceptVpcPeeringConnection",
+        "rejectVpcPeeringConnection",
+        "getAccountDetails",
+        "listActivePeeringConnections",
+
+        // Streams: Logs
+        "downloadAuditLogs",
+        "downloadOperationalLogs",
     ];
 
     const filteredPaths = {};

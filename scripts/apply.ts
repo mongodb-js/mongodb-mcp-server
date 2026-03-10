@@ -117,6 +117,10 @@ async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations
         })
         .join("\n");
 
+    const eslintDisableBlock = `/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */\n`;
+    const eslintEnableBlock = `/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */`;
+    const wrappedOperationOutput = eslintDisableBlock + operationOutput + eslintEnableBlock;
+
     const templateFile = await fs.readFile(file, "utf8");
     const templateLines = templateFile.split("\n");
     const outputLines: string[] = [];
@@ -126,7 +130,7 @@ async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations
             addLines = !addLines;
             outputLines.push(line);
             if (!addLines) {
-                outputLines.push(operationOutput);
+                outputLines.push(wrappedOperationOutput);
             }
             continue;
         }
