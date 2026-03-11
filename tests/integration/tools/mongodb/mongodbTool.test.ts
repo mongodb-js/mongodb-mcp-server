@@ -7,7 +7,7 @@ import { type OperationType, type ToolClass } from "../../../../src/tools/tool.j
 import { type UserConfig } from "../../../../src/common/config/userConfig.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { Session } from "../../../../src/common/session.js";
-import { CompositeLogger } from "../../../../src/common/logger.js";
+import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { InMemoryTransport } from "../../../../src/transports/inMemoryTransport.js";

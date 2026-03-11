@@ -2,7 +2,7 @@ import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { LogId } from "../../../src/common/logger.js";
+import { LogId } from "../../../src/common/logging/index.js";
 import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";

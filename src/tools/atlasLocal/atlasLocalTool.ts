@@ -2,7 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolArgs, ToolCategory, ToolExecutionContext } from "../tool.js";
 import { ToolBase } from "../tool.js";
 import type { Client } from "@mongodb-js/atlas-local";
-import { LogId } from "../../common/logger.js";
+import { LogId } from "../../common/logging/index.js";
 import type { ConnectionMetadata } from "../../telemetry/types.js";
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";

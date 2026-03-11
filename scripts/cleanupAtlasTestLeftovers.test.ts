@@ -1,6 +1,6 @@
 import type { Group, AtlasOrganization } from "../src/common/atlas/openapi.js";
 import { ApiClient } from "../src/common/atlas/apiClient.js";
-import { ConsoleLogger } from "../src/common/logger.js";
+import { ConsoleLogger } from "../src/common/logging/index.js";
 import { Keychain } from "../src/lib.js";
 import { describe, it } from "vitest";
 
