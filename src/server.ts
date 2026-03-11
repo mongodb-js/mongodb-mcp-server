@@ -26,7 +26,7 @@ import type { Metrics, DefaultMetrics } from "./common/metrics/index.js";
 import { createDefaultMetrics, PrometheusMetrics } from "./common/metrics/index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolClass = ToolClass<any, any>;
+export type AnyToolClass = ToolClass<any, any, any>;
 
 export interface ServerOptions<
     TUserConfig extends UserConfig = UserConfig,

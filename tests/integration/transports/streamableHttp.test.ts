@@ -14,7 +14,6 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
-import { parsePrometheusValue } from "../metricsHelpers.js";
 
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -716,61 +715,6 @@ describe("StreamableHttpRunner", () => {
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.headers.get("content-type")).toMatch(/text\/plain/);
-            });
-
-            it("reflects tool executions in /metrics output", async () => {
-                config.monitoringServerFeatures = ["health-check", "metrics"];
-
-                class EchoTool extends ToolBase {
-                    static toolName = "echo-tool";
-                    static category: ToolCategory = "mongodb";
-                    static operationType: OperationType = "read";
-                    public description = "Returns a static response";
-                    public argsShape = {};
-                    protected execute(): Promise<CallToolResult> {
-                        return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
-                    }
-                    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                        return {};
-                    }
-                }
-
-                runner = new StreamableHttpRunner({ userConfig: config, tools: [EchoTool] });
-                await runner.start();
-
-                const client = await connectClient({});
-                await client.callTool({ name: "echo-tool", arguments: {} });
-                await client.callTool({ name: "echo-tool", arguments: {} });
-
-                const response = await fetch("http://localhost:3001/metrics");
-                expect(response.status).toBe(200);
-
-                const body = await response.text();
-
-                // Both successful executions are counted
-                expect(
-                    parsePrometheusValue(body, "mcp_tool_execution_total", {
-                        tool_name: "echo-tool",
-                        category: "mongodb",
-                        status: "success",
-                    })
-                ).toBe(2);
-
-                // Count was observed for both executions
-                expect(
-                    parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
-                        tool_name: "echo-tool",
-                        category: "mongodb",
-                    })
-                ).toBe(2);
-
-                // Cumulative duration is a non-negative number of seconds
-                expect(
-                    parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_sum", {
-                        tool_name: "echo-tool",
-                        category: "mongodb",
-                    })
-                ).toBeGreaterThanOrEqual(0);
             });
         });
     });

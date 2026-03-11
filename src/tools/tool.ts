@@ -201,9 +201,13 @@ export type ToolConstructorParams<
  * });
  * ```
  */
-export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+export type ToolClass<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = {
     /** Constructor signature for the tool class */
-    new (params: ToolConstructorParams<TUserConfig, TContext>): ToolBase<TUserConfig, TContext>;
+    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
 
     /**
      * The unique name of this tool.
@@ -940,7 +944,7 @@ export abstract class ToolBase<
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolBase = ToolBase<any, any>;
+export type AnyToolBase = ToolBase<any, any, any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
