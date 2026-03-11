@@ -346,7 +346,7 @@ abstract class MCPHttpServer<
             onsessionclosed: async (sessionId): Promise<void> => {
                 try {
                     // TODO: check if true/false
-                    await this.sessionStore.closeSession(sessionId, true);
+                    await this.sessionStore.closeSession(sessionId, false);
                 } catch (error) {
                     this.logger.error({
                         id: LogId.streamableHttpTransportSessionCloseFailure,
@@ -593,24 +593,23 @@ class SSEResponseHttpServer<TUserConfig extends UserConfig = UserConfig, TContex
     }): Promise<void> {
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
-        const onSessionInitialized = (sessionId: string): void => {
-            server.session.logger.setAttribute("sessionId", sessionId);
-            this.sessionStore.setSession(sessionId, transport, server.session.logger);
-        };
-
-        // When we're implicitly initializing a session, the client is not going through the initialization
-        // flow. This means that it won't do proper session lifecycle management, so we should not add hooks for
-        // onsessioninitialized.
-        if (!isImplicitInitialization) {
-            options.sessionIdGenerator = (): string => sessionId ?? getRandomUUID();
-            options.onsessioninitialized = onSessionInitialized.bind(this);
-        }
+        sessionId = sessionId ?? getRandomUUID();
+        options.sessionIdGenerator = (): string => sessionId;
 
         const transport = new StreamableHTTPServerTransport(options);
-
+        // HACK: When we're implicitly initializing the session, we want to configure the session id and _inititized flag on the transport
+        // so that it believes it actually went through the initialization flow.
         if (isImplicitInitialization) {
-            onSessionInitialized(sessionId);
+            const internalTransport = transport["_webStandardTransport"] as {
+                _initialized: boolean;
+                sessionId: string;
+            };
+            internalTransport._initialized = true;
+            internalTransport.sessionId = sessionId;
         }
+
+        server.session.logger.setAttribute("sessionId", sessionId);
+        this.sessionStore.setSession(sessionId, transport, server.session.logger);
 
         let failedPings = 0;
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -699,30 +698,23 @@ class JsonResponseHttpServer<TUserConfig extends UserConfig = UserConfig, TConte
         req,
         res,
         server,
-        sessionInfo: { sessionId, isImplicitInitialization },
-        options,
+        sessionInfo: { sessionId },
     }: InitializeServerArgs & {
         server: Server;
         options: WebStandardStreamableHTTPServerTransportOptions;
     }): Promise<void> {
-        const onSessionInitialized = (sessionId: string): void => {
+        if (sessionId) {
             server.session.logger.setAttribute("sessionId", sessionId);
             this.sessionStore.setSession(sessionId, server.mcpServer, server.session.logger);
-        };
-
-        // When we're implicitly initializing a session, the client is not going through the initialization
-        // flow. This means that it won't do proper session lifecycle management, so we should not add hooks for
-        // onsessioninitialized.
-        if (!isImplicitInitialization) {
-            options.onsessioninitialized = onSessionInitialized.bind(this);
-        }
-
-        if (isImplicitInitialization) {
-            onSessionInitialized(sessionId);
         }
 
         // Here it's important to pass our server wrapper as the connect method will setup all the list and resource handlers.
         await this.handleTransportRequest(server, req, res);
+
+        // Stateless request without external session id, we should close the server
+        if (!sessionId) {
+            await server.close();
+        }
     }
 }
 
