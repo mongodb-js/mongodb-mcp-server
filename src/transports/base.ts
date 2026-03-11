@@ -24,7 +24,7 @@ import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { createDefaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
-import type { EmptyMetricInstances, MetricInstances, Metrics } from "../common/metrics/metricsTypes.js";
+import type { EmptyMetricDefinitions, MetricDefinitions, Metrics } from "../common/metrics/metricsTypes.js";
 
 /**
  * Request context containing HTTP headers and query parameters.
@@ -94,7 +94,7 @@ type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (conte
  */
 export type TransportRunnerConfig<
     TUserConfig extends UserConfig = UserConfig,
-    TMetrics extends MetricInstances = EmptyMetricInstances,
+    TMetrics extends MetricDefinitions = EmptyMetricDefinitions,
 > = {
     /**
      * Base user configuration for the server.
@@ -180,7 +180,7 @@ export type TransportRunnerConfig<
 export abstract class TransportRunnerBase<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
-    TMetrics extends MetricInstances = EmptyMetricInstances,
+    TMetrics extends MetricDefinitions = EmptyMetricDefinitions,
 > {
     public logger: LoggerBase;
     public metrics: Metrics<DefaultMetrics & TMetrics>;
@@ -209,7 +209,7 @@ export abstract class TransportRunnerBase<
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
-        additionalMetrics = {} as EmptyMetricInstances,
+        additionalMetrics = {} as EmptyMetricDefinitions,
         telemetryProperties = {},
         tools,
         createSessionConfig,

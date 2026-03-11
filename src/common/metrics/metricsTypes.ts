@@ -1,12 +1,12 @@
 import type { Counter, Histogram, Gauge } from "prom-client";
 
-export type MetricInstances = {
+export type MetricDefinitions = {
     [key: string]: Histogram | Counter | Gauge;
 };
 
-export type EmptyMetricInstances = MetricInstances & {};
+export type EmptyMetricDefinitions = MetricDefinitions & {};
 
-export type Metrics<TMetrics extends MetricInstances = MetricInstances> = {
+export type Metrics<TMetrics extends MetricDefinitions = MetricDefinitions> = {
     /**
      * Get a metric instance by key
      */
