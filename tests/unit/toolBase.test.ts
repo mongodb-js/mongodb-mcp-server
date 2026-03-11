@@ -527,7 +527,7 @@ describe("ToolBase", () => {
 
             const count = values.find(
                 (v) =>
-                    v.metricName === "mcp_tool_execution_duration_ms_count" &&
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" &&
                     v.labels.tool_name === "test-tool" &&
                     v.labels.category === "mongodb"
             );
@@ -535,7 +535,7 @@ describe("ToolBase", () => {
 
             const sum = values.find(
                 (v) =>
-                    v.metricName === "mcp_tool_execution_duration_ms_sum" &&
+                    v.metricName === "mcp_tool_execution_duration_seconds_sum" &&
                     v.labels.tool_name === "test-tool" &&
                     v.labels.category === "mongodb"
             );
@@ -562,7 +562,8 @@ describe("ToolBase", () => {
 
             const { values } = await mockMetrics.get("toolExecutionDuration").get();
             const count = values.find(
-                (v) => v.metricName === "mcp_tool_execution_duration_ms_count" && v.labels.tool_name === "error-tool"
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" && v.labels.tool_name === "error-tool"
             );
             expect(count).toBeUndefined();
         });

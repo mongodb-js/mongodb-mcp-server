@@ -758,15 +758,15 @@ describe("StreamableHttpRunner", () => {
 
                 // Count was observed for both executions
                 expect(
-                    parsePrometheusValue(body, "mcp_tool_execution_duration_ms_count", {
+                    parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
                         tool_name: "echo-tool",
                         category: "mongodb",
                     })
                 ).toBe(2);
 
-                // Cumulative duration is a non-negative number
+                // Cumulative duration is a non-negative number of seconds
                 expect(
-                    parsePrometheusValue(body, "mcp_tool_execution_duration_ms_sum", {
+                    parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_sum", {
                         tool_name: "echo-tool",
                         category: "mongodb",
                     })

@@ -518,11 +518,11 @@ export abstract class ToolBase<
 
             this.emitToolEvent(args, { startTime, result });
 
-            const duration = Date.now() - startTime;
+            const durationSeconds = (Date.now() - startTime) / 1000;
 
             this.metrics
                 .get("toolExecutionDuration")
-                .observe({ tool_name: this.name, category: this.category }, duration);
+                .observe({ tool_name: this.name, category: this.category }, durationSeconds);
             this.metrics.get("toolExecutionTotal").inc({
                 tool_name: this.name,
                 category: this.category,

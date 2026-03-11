@@ -1,23 +1,20 @@
 import { Counter, Histogram } from "prom-client";
 
 /**
- * Creates a fresh set of default metrics for the MCP server.
- *
- * Each call returns new Counter/Histogram instances so that separate
- * `PrometheusMetrics` instances (e.g. per-server or per-test) get fully
- * isolated metric state with no shared counters.
+ * Creates a new set of default metrics for the MCP server.
  *
  * NOTE: `registers: []` prevents prom-client from auto-registering these into
  * the global registry; `PrometheusMetrics` registers them into its own
  * isolated `Registry` instead.
  */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createDefaultMetrics() {
     return {
         toolExecutionDuration: new Histogram({
-            name: "mcp_tool_execution_duration_ms",
-            help: "Duration of tool executions in milliseconds",
+            name: "mcp_tool_execution_duration_seconds",
+            help: "Duration of tool executions in seconds",
             labelNames: ["tool_name", "category"] as const,
-            buckets: [1, 5, 10, 50, 100, 500, 1000, 2500, 5000, 10000],
+            buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10],
             registers: [],
         }),
         toolExecutionTotal: new Counter({
