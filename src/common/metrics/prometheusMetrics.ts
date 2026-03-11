@@ -1,7 +1,7 @@
 import { Counter, Histogram, Gauge, Registry, type Metric } from "prom-client";
-import type { Metrics, MetricInstances } from "./metricsTypes.js";
+import type { Metrics, MetricDefinitions } from "./metricsTypes.js";
 
-export class PrometheusMetrics<TMetrics extends MetricInstances> implements Metrics<TMetrics> {
+export class PrometheusMetrics<TMetrics extends MetricDefinitions> implements Metrics<TMetrics> {
     public readonly registry: Registry;
     private readonly definitions: TMetrics;
 
