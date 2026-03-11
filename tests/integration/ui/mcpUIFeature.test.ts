@@ -1,7 +1,7 @@
 import { describe, expect, it, afterAll } from "vitest";
 import { describeWithMongoDB } from "../tools/mongodb/mongodbHelpers.js";
 import { defaultTestConfig, expectDefined, getResponseElements } from "../helpers.js";
-import { CompositeLogger } from "../../../src/common/logger.js";
+import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { Session } from "../../../src/common/session.js";
 import { Telemetry } from "../../../src/telemetry/telemetry.js";

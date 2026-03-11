@@ -4,7 +4,7 @@ import { ApiClientError } from "./apiClientError.js";
 import type { paths, operations } from "./openapi.js";
 import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
-import type { LoggerBase } from "../logger.js";
+import type { LoggerBase } from "../logging/index.js";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
 import { Request as NodeFetchRequest } from "node-fetch";
 import type { Credentials, AuthProvider } from "./auth/authProvider.js";
@@ -58,9 +58,7 @@ export class ApiClient {
         }) as unknown as typeof fetch;
         this.options = {
             ...options,
-            userAgent:
-                options.userAgent ??
-                `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch}; ${process.env.HOSTNAME || "unknown"})`,
+            userAgent: options.userAgent ?? `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
         };
 
         this.authProvider =

@@ -1,6 +1,6 @@
 import { MCPConnectionManager } from "../../src/common/connectionManager.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
-import { CompositeLogger } from "../../src/common/logger.js";
+import { CompositeLogger } from "../../src/common/logging/index.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { Session } from "../../src/common/session.js";
 import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";

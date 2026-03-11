@@ -1,5 +1,5 @@
 import { type ConnectionManagerEvents } from "../../src/common/connectionManager.js";
-import { LoggerBase, type LoggerType } from "../../src/common/logger.js";
+import { LoggerBase, type LoggerType } from "../../src/common/logging/index.js";
 import { type ConnectionManager } from "../../src/lib.js";
 
 export function createEnvironment(): {

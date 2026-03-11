@@ -11,8 +11,8 @@ import { pipeline } from "stream/promises";
 import type { MongoLogId } from "mongodb-log-writer";
 
 import type { UserConfig } from "./config/userConfig.js";
-import type { LoggerBase } from "./logger.js";
-import { LogId } from "./logger.js";
+import type { LoggerBase } from "./logging/index.js";
+import { LogId } from "./logging/index.js";
 
 export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
