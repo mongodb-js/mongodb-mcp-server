@@ -116,12 +116,12 @@ const updateConfigInPlace = (
     patch: ConfigEntryPatch,
     entry: McpConfigEntry | OpenCodeMcpEntry
 ): string => {
-    const root = parseTree(existingContent);
+    const parsedContent = parseTree(existingContent);
     const basePath: [string, string] = [serversKey, MCP_SERVER_KEY];
-    const entryNode = root ? findNodeAtLocation(root, basePath) : undefined;
+    const contentBlock = parsedContent ? findNodeAtLocation(parsedContent, basePath) : undefined;
     const opts = { formattingOptions: { tabSize: 2, insertSpaces: true, eol: "\n" } };
 
-    if (entryNode) {
+    if (contentBlock) {
         let text = existingContent;
         text = applyEdits(text, modify(text, [...basePath, "command"], patch.command, opts));
         if (patch.args !== undefined) {
