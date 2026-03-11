@@ -2,7 +2,7 @@ import type { z, ZodRawShape, ZodTypeAny } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
-import { LogId } from "../common/logger.js";
+import { LogId } from "../common/logging/index.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { ConnectionMetadata, TelemetryToolMetadata, ToolEvent } from "../telemetry/types.js";
 import type { UserConfig } from "../common/config/userConfig.js";

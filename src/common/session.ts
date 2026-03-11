@@ -1,8 +1,8 @@
 import { ObjectId } from "bson";
 import type { ApiClient } from "./atlas/apiClient.js";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import type { CompositeLogger } from "./logger.js";
-import { LogId } from "./logger.js";
+import type { CompositeLogger } from "./logging/index.js";
+import { LogId } from "./logging/index.js";
 import EventEmitter from "events";
 import type {
     AtlasClusterConnectionInfo,

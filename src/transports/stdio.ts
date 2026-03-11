@@ -1,5 +1,5 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { LogId } from "../common/logger.js";
+import { LogId } from "../common/logging/index.js";
 import type { Server } from "../server.js";
 import type { CustomizableServerOptions } from "./base.js";
 import type { CustomizableSessionOptions } from "./base.js";
