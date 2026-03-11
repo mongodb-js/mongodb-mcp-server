@@ -316,6 +316,8 @@ abstract class MCPHttpServer<
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     protected readonly userConfig: UserConfig;
 
+    protected isSSEUpgradeAllowed: boolean = true;
+
     private createServerForRequest: (createParams: {
         request: RequestContext;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
@@ -358,7 +360,11 @@ abstract class MCPHttpServer<
         };
     }
 
-    protected abstract handleRequest(sessionId: string, req: express.Request, res: express.Response): Promise<void>;
+    protected abstract handleSessionRequestImpl(
+        sessionId: string,
+        req: express.Request,
+        res: express.Response
+    ): Promise<void>;
 
     protected abstract initializeServer(
         args: InitializeServerArgs & {
@@ -464,7 +470,7 @@ abstract class MCPHttpServer<
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
             }
 
-            await this.handleRequest(sessionId, req, res);
+            await this.handleSessionRequestImpl(sessionId, req, res);
         };
 
         /**
@@ -530,7 +536,16 @@ abstract class MCPHttpServer<
             })
         );
 
-        this.app.get("/mcp", this.withErrorHandling(handleSessionRequest));
+        this.app.get(
+            "/mcp",
+            this.withErrorHandling(async (req, res): Promise<void> => {
+                if (this.isSSEUpgradeAllowed) {
+                    await handleSessionRequest(req, res);
+                } else {
+                    res.status(405).set("Allow", ["POST", "DELETE"]).send("Method Not Allowed");
+                }
+            })
+        );
         this.app.delete("/mcp", this.withErrorHandling(handleSessionRequest));
     }
 
@@ -562,7 +577,7 @@ class SSEResponseHttpServer<TUserConfig extends UserConfig = UserConfig, TContex
     TContext,
     StreamableHTTPServerTransport
 > {
-    protected override async handleRequest(
+    protected override async handleSessionRequestImpl(
         sessionId: string,
         req: express.Request,
         res: express.Response
@@ -667,6 +682,8 @@ class JsonResponseHttpServer<TUserConfig extends UserConfig = UserConfig, TConte
     TContext,
     McpServer
 > {
+    protected isSSEUpgradeAllowed: boolean = false;
+
     protected createTransportOptions(): WebStandardStreamableHTTPServerTransportOptions {
         const options = super.createTransportOptions();
         options.enableJsonResponse = true;
@@ -685,7 +702,11 @@ class JsonResponseHttpServer<TUserConfig extends UserConfig = UserConfig, TConte
         await transport.close();
     }
 
-    override async handleRequest(sessionId: string, req: express.Request, res: express.Response): Promise<void> {
+    override async handleSessionRequestImpl(
+        sessionId: string,
+        req: express.Request,
+        res: express.Response
+    ): Promise<void> {
         const server = this.sessionStore.getSession(sessionId)?.value;
         if (!server) {
             throw new Error(`Assertion failed: session ${sessionId} not found`);
