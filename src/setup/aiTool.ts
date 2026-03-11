@@ -2,6 +2,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 
@@ -10,30 +11,25 @@ export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "c
 // These are tools that don't have a designated editor to open the config file
 export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "codex", "opencode"];
 
-export interface McpConfigEntry {
+const MCP_SERVER_KEY = "mongodb-mcp-server";
+type EnvironmentKey = "env" | "environment";
+type McpConfigEntry = {
     command: string;
     args: string[];
-    env: Record<string, string>;
-}
-
-export type McpConfig =
-    | { mcpServers: Record<string, McpConfigEntry> }
-    | { servers: Record<string, McpConfigEntry> }
-    | { mcp: Record<string, McpConfigEntry> };
-
-type McpServers = "mcpServers" | "servers" | "mcp";
-
-interface OpenCodeMcpEntry {
+    env?: Record<string, string>;
+};
+type OpenCodeMcpEntry = {
     type: "local";
     command: string[];
     environment?: Record<string, string>;
     enabled?: boolean;
-}
+};
+type McpConfig =
+    | { mcpServers: Record<string, McpConfigEntry> }
+    | { servers: Record<string, McpConfigEntry> }
+    | { mcp: Record<string, OpenCodeMcpEntry> };
 
-interface OpenCodeConfig {
-    mcp?: Record<string, OpenCodeMcpEntry>;
-    [key: string]: unknown;
-}
+type McpServers = "mcpServers" | "servers" | "mcp";
 
 const getBasePath = (): string => {
     const platform: Platform | null = getPlatform();
@@ -47,34 +43,32 @@ const getBasePath = (): string => {
 };
 
 // Gets an existing servers: {}, mcpServers: {}, or mcp: {} object in the config file or create it if it doesn't exist
-const getOrCreateServersEntry = (config: McpConfig, serversKey: McpServers): Record<string, McpConfigEntry> => {
-    const mutable = config as Record<string, Record<string, McpConfigEntry>>;
+const getOrCreateServersEntry = (
+    config: McpConfig,
+    serversKey: McpServers
+): Record<string, McpConfigEntry | OpenCodeMcpEntry> => {
+    const mutable = config as Record<string, Record<string, McpConfigEntry | OpenCodeMcpEntry>>;
     if (!mutable[serversKey]) {
         mutable[serversKey] = {};
     }
-    return mutable[serversKey];
+    // Cast so callers can assign OpenCodeMcpEntry when serversKey is "mcp" (avoids TS narrowing)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    return mutable[serversKey] as Record<string, McpConfigEntry | OpenCodeMcpEntry>;
 };
 
-// Builds the rest of the MCP config entry
-const buildMcpConfigEntry = (isReadOnly: boolean, env: Record<string, string>): McpConfigEntry => {
-    const args = ["-y", "mongodb-mcp-server@latest"];
-    if (isReadOnly) {
-        args.push("--readOnly");
+// Ensures the directory for the config file exists
+const ensureConfigDir = (configPath: string): void => {
+    const resolvedPath = path.resolve(configPath);
+    const configDir = path.dirname(resolvedPath);
+    if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
     }
-    return {
-        command: "npx",
-        args,
-        env,
-    };
 };
 
 const writeConfigFile = (configPath: string, config: McpConfig): void => {
     const resolvedPath = path.resolve(configPath);
-    const configDir = path.dirname(resolvedPath);
+    ensureConfigDir(configPath);
     try {
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
-        }
         fs.writeFileSync(resolvedPath, JSON.stringify(config, null, 2), "utf-8");
     } catch (err: unknown) {
         throw new Error(
@@ -87,6 +81,67 @@ const writeConfigFile = (configPath: string, config: McpConfig): void => {
     }
 };
 
+// Normalized shape for in-place patches (works for both McpConfigEntry and OpenCodeMcpEntry)
+type ConfigEntryPatch = {
+    command: string | string[];
+    args?: string[];
+    envKey: EnvironmentKey;
+    envRecord: Record<string, string>;
+    enabled?: boolean; // Used for Open Code only
+    type?: "local"; // Used for Open Code only
+};
+
+function toPatch(entry: McpConfigEntry | OpenCodeMcpEntry, envKey: EnvironmentKey): ConfigEntryPatch {
+    const envRecord: Record<string, string> =
+        "env" in entry ? (entry.env ?? {}) : "environment" in entry ? (entry.environment ?? {}) : {};
+    const patch: ConfigEntryPatch = {
+        command: entry.command,
+        args: "args" in entry ? entry.args : undefined,
+        envKey,
+        envRecord,
+    };
+    if ("type" in entry) {
+        patch.type = entry.type;
+    }
+    if ("enabled" in entry) {
+        patch.enabled = entry.enabled;
+    }
+    return patch;
+}
+
+// Updates existing config content in place using jsonc-parser; preserves comments and spacing.
+const updateConfigInPlace = (
+    existingContent: string,
+    serversKey: McpServers,
+    patch: ConfigEntryPatch,
+    entry: McpConfigEntry | OpenCodeMcpEntry
+): string => {
+    const root = parseTree(existingContent);
+    const basePath: [string, string] = [serversKey, MCP_SERVER_KEY];
+    const entryNode = root ? findNodeAtLocation(root, basePath) : undefined;
+    const opts = { formattingOptions: { tabSize: 2, insertSpaces: true, eol: "\n" } };
+
+    if (entryNode) {
+        let text = existingContent;
+        text = applyEdits(text, modify(text, [...basePath, "command"], patch.command, opts));
+        if (patch.args !== undefined) {
+            text = applyEdits(text, modify(text, [...basePath, "args"], patch.args, opts));
+        }
+        for (const [k, v] of Object.entries(patch.envRecord)) {
+            text = applyEdits(text, modify(text, [...basePath, patch.envKey, k], v, opts));
+        }
+        if (patch.enabled !== undefined) {
+            text = applyEdits(text, modify(text, [...basePath, "enabled"], patch.enabled, opts));
+        }
+        if (patch.type !== undefined) {
+            text = applyEdits(text, modify(text, [...basePath, "type"], patch.type, opts));
+        }
+        return text;
+    }
+
+    return applyEdits(existingContent, modify(existingContent, basePath, entry, opts));
+};
+
 export abstract class AITool {
     abstract name: string;
     abstract configFileName: string;
@@ -96,6 +151,10 @@ export abstract class AITool {
     // Default key is mcpServers, but we will use this function to override in subclasses (e.g. VS Code uses "servers").
     protected getServersKey(): McpServers {
         return "mcpServers";
+    }
+
+    protected getEnvironmentKey(): "env" | "environment" {
+        return "env";
     }
 
     protected readConfig(configPath: string): McpConfig {
@@ -117,12 +176,46 @@ export abstract class AITool {
         return config;
     }
 
+    protected buildMcpConfigEntry(isReadOnly: boolean, env: Record<string, string>): McpConfigEntry | OpenCodeMcpEntry {
+        const args = ["-y", "mongodb-mcp-server@latest"];
+        if (isReadOnly) {
+            args.push("--readOnly");
+        }
+        return {
+            command: "npx",
+            args: ["-y", "mongodb-mcp-server@latest"],
+            env,
+        };
+    }
+
     updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
-        const config = this.readConfig(configPath);
         const serversKey = this.getServersKey();
-        const servers = getOrCreateServersEntry(config, serversKey);
-        servers["mongodb-mcp-server"] = buildMcpConfigEntry(isReadOnly, env);
-        writeConfigFile(configPath, config);
+        const environmentKey = this.getEnvironmentKey();
+        const updatedMcpConfigEntry = this.buildMcpConfigEntry(isReadOnly, env);
+
+        const existingContent = fs.existsSync(configPath) ? fs.readFileSync(configPath, "utf-8") : null;
+        if (existingContent !== null && existingContent.trim().length > 0) {
+            // Patch in place with jsonc-parser (preserves comments and rest of file)
+            const resolvedPath = path.resolve(configPath);
+            ensureConfigDir(configPath);
+            try {
+                const patch = toPatch(updatedMcpConfigEntry, environmentKey);
+                const newContent = updateConfigInPlace(existingContent, serversKey, patch, updatedMcpConfigEntry);
+                fs.writeFileSync(resolvedPath, newContent, "utf-8");
+            } catch {
+                // Fallback: write full config if in-place update fails (e.g. invalid JSONC)
+                const config = this.readConfig(configPath);
+                const servers = getOrCreateServersEntry(config, serversKey);
+                servers[MCP_SERVER_KEY] = updatedMcpConfigEntry;
+                writeConfigFile(configPath, config);
+            }
+        } else {
+            // New file: write full config
+            const config = this.readConfig(configPath);
+            const servers = getOrCreateServersEntry(config, serversKey);
+            servers[MCP_SERVER_KEY] = updatedMcpConfigEntry;
+            writeConfigFile(configPath, config);
+        }
     }
 }
 
@@ -274,44 +367,20 @@ class OpenCode extends AITool {
     protected override getServersKey(): McpServers {
         return "mcp";
     }
-    override updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
-        const opencodeConfig = this.readOpenCodeConfig(configPath);
-        if (!opencodeConfig.mcp) {
-            opencodeConfig.mcp = {};
-        }
+    protected override getEnvironmentKey(): EnvironmentKey {
+        return "environment";
+    }
+    override buildMcpConfigEntry(isReadOnly: boolean, env: Record<string, string>): OpenCodeMcpEntry {
         const args = ["-y", "mongodb-mcp-server@latest"];
         if (isReadOnly) {
             args.push("--readOnly");
         }
-        opencodeConfig.mcp["mongodb-mcp-server"] = {
+        return {
             type: "local",
-            // Open Code uses a single array command and groups args within the command array
             command: ["npx", ...args],
             environment: Object.keys(env).length > 0 ? env : undefined,
             enabled: true,
         };
-        const configDir = path.dirname(configPath);
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
-        }
-        fs.writeFileSync(configPath, JSON.stringify(opencodeConfig, null, 2));
-    }
-
-    protected readOpenCodeConfig(configPath: string): OpenCodeConfig {
-        if (!fs.existsSync(configPath)) {
-            return { mcp: {} };
-        }
-        try {
-            const content = fs.readFileSync(configPath, "utf-8");
-            const config = JSON.parse(content) as OpenCodeConfig;
-            if (!config.mcp || typeof config.mcp !== "object") {
-                config.mcp = {};
-            }
-            return config;
-        } catch (e: unknown) {
-            console.error(`Warning: Could not parse existing opencode.json. Error is: ${formatError(e)}`);
-            return { mcp: {} };
-        }
     }
 }
 
