@@ -10,7 +10,7 @@ import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { Counter } from "prom-client";
-import type { MetricInstances } from "../../src/common/metrics/metricsTypes.js";
+import type { MetricDefinitions } from "../../src/common/metrics/metricsTypes.js";
 import type { DefaultMetrics } from "../../src/common/metrics/metricDefinitions.js";
 
 describe("/metrics endpoint", () => {
@@ -104,7 +104,7 @@ describe("/metrics endpoint", () => {
                 labelNames: ["tool_name"] as const,
                 registers: [],
             }),
-        } satisfies MetricInstances;
+        } satisfies MetricDefinitions;
         type CustomMetrics = typeof additionalMetrics & DefaultMetrics;
 
         class CustomTool extends ToolBase<UserConfig, unknown, CustomMetrics> {
