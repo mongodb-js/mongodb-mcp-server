@@ -473,114 +473,98 @@ describe("ToolBase", () => {
     });
 
     describe("metrics emission", () => {
-        let mockCallback: ToolCallback<(typeof testTool)["argsShape"]>;
+        let successCallback: ToolCallback<(typeof testTool)["argsShape"]>;
+        let errorCallback: ToolCallback<ZodRawShape>;
 
-        beforeEach(() => {
-            const mockServer = {
+        function makeMockServer(capture: (cb: ToolCallback<ZodRawShape>) => void): Server {
+            return {
                 mcpServer: {
                     registerTool: (
                         _name: string,
-                        _config: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
+                        _config: unknown,
                         cb: ToolCallback<ZodRawShape>
                     ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        mockCallback = cb;
+                        capture(cb);
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };
                     },
                 },
-            };
-            testTool.register(mockServer as unknown as Server);
+            } as unknown as Server;
+        }
+
+        beforeEach(() => {
+            testTool.register(makeMockServer((cb) => (successCallback = cb)));
+
+            const errorTool = new ErrorTool({
+                name: ErrorTool.toolName,
+                category: ErrorTool.category,
+                operationType: ErrorTool.operationType,
+                session: mockSession,
+                config: mockConfig,
+                telemetry: mockTelemetry,
+                elicitation: mockElicitation,
+                metrics: mockMetrics,
+            });
+            errorTool.register(makeMockServer((cb) => (errorCallback = cb)));
         });
 
         it("increments toolExecutionTotal with status=success on a successful execution", async () => {
-            await mockCallback({ param1: "value", param2: 1 }, {} as never);
+            await successCallback({ param1: "value", param2: 1 }, {} as never);
 
-            const output = await mockMetrics.getMetrics();
-            expect(output).toContain(
-                'mcp_tool_execution_total{tool_name="test-tool",category="mongodb",status="success"} 1'
+            const { values } = await mockMetrics.get("toolExecutionTotal").get();
+            const sample = values.find(
+                (v) =>
+                    v.labels.tool_name === "test-tool" &&
+                    v.labels.category === "mongodb" &&
+                    v.labels.status === "success"
             );
+            expect(sample?.value).toBe(1);
         });
 
-        it("observes toolExecutionDuration on a successful execution", async () => {
-            await mockCallback({ param1: "value", param2: 1 }, {} as never);
+        it("records toolExecutionDuration on a successful execution", async () => {
+            await successCallback({ param1: "value", param2: 1 }, {} as never);
 
-            const output = await mockMetrics.getMetrics();
-            expect(output).toContain("mcp_tool_execution_duration_ms");
-            // The _count bucket should be 1 after one successful observation
-            expect(output).toContain(
-                'mcp_tool_execution_duration_ms_count{tool_name="test-tool",category="mongodb"} 1'
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+
+            const count = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_ms_count" &&
+                    v.labels.tool_name === "test-tool" &&
+                    v.labels.category === "mongodb"
             );
+            expect(count?.value).toBe(1);
+
+            const sum = values.find(
+                (v) =>
+                    v.metricName === "mcp_tool_execution_duration_ms_sum" &&
+                    v.labels.tool_name === "test-tool" &&
+                    v.labels.category === "mongodb"
+            );
+            expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
-        it("increments toolExecutionTotal with status=error when execute() throws", async () => {
-            const errorTool = new ErrorTool({
-                name: ErrorTool.toolName,
-                category: ErrorTool.category,
-                operationType: ErrorTool.operationType,
-                session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
-                elicitation: mockElicitation,
-                metrics: mockMetrics,
-            });
-
-            let errorCallback: ToolCallback<ZodRawShape> | undefined;
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: unknown,
-                        cb: ToolCallback<ZodRawShape>
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        errorCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
-            };
-            errorTool.register(mockServer as unknown as Server);
-
-            expectDefined(errorCallback);
+        it("increments toolExecutionTotal with status=error when execute() rejects", async () => {
             const result = await errorCallback({}, {} as never);
 
             expect(result.isError).toBe(true);
-            const output = await mockMetrics.getMetrics();
-            expect(output).toContain(
-                'mcp_tool_execution_total{tool_name="error-tool",category="mongodb",status="error"} 1'
+
+            const { values } = await mockMetrics.get("toolExecutionTotal").get();
+            const sample = values.find(
+                (v) =>
+                    v.labels.tool_name === "error-tool" &&
+                    v.labels.category === "mongodb" &&
+                    v.labels.status === "error"
             );
+            expect(sample?.value).toBe(1);
         });
 
-        it("does not observe toolExecutionDuration when execute() throws", async () => {
-            const errorTool = new ErrorTool({
-                name: ErrorTool.toolName,
-                category: ErrorTool.category,
-                operationType: ErrorTool.operationType,
-                session: mockSession,
-                config: mockConfig,
-                telemetry: mockTelemetry,
-                elicitation: mockElicitation,
-                metrics: mockMetrics,
-            });
-
-            let errorCallback: ToolCallback<ZodRawShape> | undefined;
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: unknown,
-                        cb: ToolCallback<ZodRawShape>
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        errorCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
-            };
-            errorTool.register(mockServer as unknown as Server);
-
-            expectDefined(errorCallback);
+        it("does not record toolExecutionDuration when execute() rejects", async () => {
             await errorCallback({}, {} as never);
 
-            const output = await mockMetrics.getMetrics();
-            // Duration is only observed on the success path; the error path skips it
-            expect(output).not.toContain('mcp_tool_execution_duration_ms_count{tool_name="error-tool"');
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const count = values.find(
+                (v) => v.metricName === "mcp_tool_execution_duration_ms_count" && v.labels.tool_name === "error-tool"
+            );
+            expect(count).toBeUndefined();
         });
     });
 });
