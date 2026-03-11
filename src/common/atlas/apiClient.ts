@@ -494,19 +494,6 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listActivePeeringConnections(
-        options: FetchOptions<operations["listGroupStreamActiveVpcPeeringConnections"]>
-    ) {
-        const { error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/streams/activeVpcPeeringConnections",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
@@ -551,17 +538,6 @@ export class ApiClient {
             throw ApiClientError.fromError(response, error);
         }
         return data;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listVpcPeeringConnections(options: FetchOptions<operations["listGroupStreamVpcPeeringConnections"]>) {
-        const { error, response } = await this.client.GET(
-            "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections",
-            options
-        );
-        if (error) {
-            throw ApiClientError.fromError(response, error);
-        }
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

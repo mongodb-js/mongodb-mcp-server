@@ -410,26 +410,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/atlas/v2/groups/{groupId}/streams/activeVpcPeeringConnections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Return All Active Incoming VPC Peering Connections
-         * @description Returns a list of active incoming VPC Peering Connections.
-         */
-        get: operations["listGroupStreamActiveVpcPeeringConnections"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections": {
         parameters: {
             query?: never;
@@ -473,26 +453,6 @@ export interface paths {
          * @description Deletes one Private Link in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Stream Processing Owner role.
          */
         delete: operations["deleteGroupStreamPrivateLinkConnection"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Return All VPC Peering Connections
-         * @description Returns a list of incoming VPC Peering Connections.
-         */
-        get: operations["listGroupStreamVpcPeeringConnections"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -9697,49 +9657,6 @@ export interface operations {
             500: components["responses"]["internalServerError"];
         };
     };
-    listGroupStreamActiveVpcPeeringConnections: {
-        parameters: {
-            query?: {
-                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
-                envelope?: components["parameters"]["envelope"];
-                /** @description Number of items that the response returns per page. */
-                itemsPerPage?: components["parameters"]["itemsPerPage"];
-                /** @description Number of the page that displays the current set of the total objects that the response returns. */
-                pageNum?: components["parameters"]["pageNum"];
-                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
-                pretty?: components["parameters"]["pretty"];
-            };
-            header?: never;
-            path: {
-                /**
-                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
-                 *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
-                 */
-                groupId: components["parameters"]["groupId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
-                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.atlas.2024-11-13+json": unknown;
-                };
-            };
-            401: components["responses"]["unauthorized"];
-            403: components["responses"]["forbidden"];
-            404: components["responses"]["notFound"];
-            429: components["responses"]["tooManyRequests"];
-            500: components["responses"]["internalServerError"];
-        };
-    };
     listGroupStreamPrivateLinkConnections: {
         parameters: {
             query?: {
@@ -9893,51 +9810,6 @@ export interface operations {
         responses: {
             /** @description Accepted */
             202: {
-                headers: {
-                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
-                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.atlas.2023-02-01+json": unknown;
-                };
-            };
-            401: components["responses"]["unauthorized"];
-            403: components["responses"]["forbidden"];
-            404: components["responses"]["notFound"];
-            429: components["responses"]["tooManyRequests"];
-            500: components["responses"]["internalServerError"];
-        };
-    };
-    listGroupStreamVpcPeeringConnections: {
-        parameters: {
-            query: {
-                /** @description The Account ID of the VPC Peering connection/s. */
-                requesterAccountId: string;
-                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
-                envelope?: components["parameters"]["envelope"];
-                /** @description Number of items that the response returns per page. */
-                itemsPerPage?: components["parameters"]["itemsPerPage"];
-                /** @description Number of the page that displays the current set of the total objects that the response returns. */
-                pageNum?: components["parameters"]["pageNum"];
-                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
-                pretty?: components["parameters"]["pretty"];
-            };
-            header?: never;
-            path: {
-                /**
-                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
-                 *
-                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
-                 */
-                groupId: components["parameters"]["groupId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
                 headers: {
                     "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
                     "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];

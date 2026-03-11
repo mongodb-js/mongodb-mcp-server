@@ -76,12 +76,10 @@ function filterOpenapi(openapi: OpenAPIV3_1.Document): OpenAPIV3_1.Document {
         "createPrivateLinkConnection",
         "getPrivateLinkConnection",
         "deletePrivateLinkConnection",
-        "listVpcPeeringConnections",
         "deleteVpcPeeringConnection",
         "acceptVpcPeeringConnection",
         "rejectVpcPeeringConnection",
         "getAccountDetails",
-        "listActivePeeringConnections",
 
         // Streams: Logs
         "downloadAuditLogs",
