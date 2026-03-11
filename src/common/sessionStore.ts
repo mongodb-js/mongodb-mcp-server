@@ -1,4 +1,3 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
@@ -12,15 +11,14 @@ export type CloseableTransport = {
     close(): Promise<void>;
 };
 
-export type SessionInfo<T extends CloseableTransport> = {
+export type SessionInfo<T extends { close: () => Promise<void> }> = {
     logger: LoggerBase;
-    server: McpServer;
-    transport: T | undefined;
+    value: T;
     abortTimeout: ManagedTimeout;
     notificationTimeout: ManagedTimeout;
 };
 
-export class SessionStore<T extends CloseableTransport = CloseableTransport> {
+export class SessionStore<T extends { close: () => Promise<void> }> {
     private sessions: {
         [sessionId: string]: SessionInfo<T>;
     } = {};
@@ -74,7 +72,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         });
     }
 
-    setSession(sessionId: string, transport: T | undefined, logger: LoggerBase, server: McpServer): void {
+    setSession(sessionId: string, transport: T, logger: LoggerBase): void {
         const session = this.sessions[sessionId];
         if (session) {
             throw new Error(`Session ${sessionId} already exists`);
@@ -95,11 +93,10 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
             this.notificationTimeoutMS
         );
         this.sessions[sessionId] = {
-            transport,
+            value: transport,
             abortTimeout,
             notificationTimeout,
             logger,
-            server,
         };
     }
 
@@ -112,7 +109,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         session.notificationTimeout.cancel();
         if (closeTransport) {
             try {
-                await session.transport?.close();
+                await session.value?.close();
             } catch (error) {
                 this.logger.error({
                     id: LogId.streamableHttpTransportSessionCloseFailure,
