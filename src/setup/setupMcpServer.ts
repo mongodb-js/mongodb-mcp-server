@@ -13,6 +13,16 @@ import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
 
+/**
+ * Builds an editor file URI (e.g. vscode://file/...) with correct path format.
+ * Editors expect a slash after "file" and forward slashes in the path (including on Windows).
+ */
+const toEditorFileUri = (editor: string, configPath: string): string => {
+    const absolutePath = path.resolve(configPath);
+    const pathWithForwardSlashes = absolutePath.replace(/\\/g, "/");
+    return `${editor}://file/${pathWithForwardSlashes}`;
+};
+
 const openConfigSettings = (tool: AIToolType): void => {
     const configPath = AI_TOOL_REGISTRY[tool].configPath;
     const platform = getPlatform();
@@ -33,15 +43,16 @@ const openConfigSettings = (tool: AIToolType): void => {
         }
     } else {
         const editor = tool;
+        const fileUri = toEditorFileUri(editor, configPath);
         switch (platform) {
             case "mac":
-                exec(`open "${editor}://file${configPath}"`);
+                exec(`open "${fileUri}"`);
                 break;
             case "windows":
-                exec(`start "" "${editor}://file${configPath}"`);
+                exec(`start "" "${fileUri}"`);
                 break;
             case "linux":
-                exec(`xdg-open "${editor}://file${configPath}"`);
+                exec(`xdg-open "${fileUri}"`);
                 break;
             default:
                 break;
