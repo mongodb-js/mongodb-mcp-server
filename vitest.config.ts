@@ -13,7 +13,7 @@ const vitestDefaultExcludes = [
 const longRunningTests = ["tests/integration/tools/atlas/performanceAdvisor.test.ts"];
 
 if (process.env.SKIP_ATLAS_TESTS === "true") {
-    vitestDefaultExcludes.push("**/atlas/**");
+    vitestDefaultExcludes.push("**/integration/**/atlas/**");
 }
 
 if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
