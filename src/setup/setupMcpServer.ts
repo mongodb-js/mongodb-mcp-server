@@ -2,7 +2,7 @@
 import select from "@inquirer/select";
 import { input, confirm, password } from "@inquirer/prompts";
 import path from "path";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
@@ -20,7 +20,26 @@ import { type UserConfig } from "../common/config/userConfig.js";
 const toEditorFileUri = (editor: string, configPath: string): string => {
     const absolutePath = path.resolve(configPath);
     const pathWithForwardSlashes = absolutePath.replace(/\\/g, "/");
-    return `${editor}://file/${pathWithForwardSlashes}`;
+    const encodedPath = encodeURI(pathWithForwardSlashes);
+    return `${editor}://file/${encodedPath}`;
+};
+
+/**
+ * On Windows, open a file using the editor's CLI (code / cursor) so we don't depend on
+ * the protocol handler. Uses cmd /c so that code.cmd/cursor.cmd in PATH are found.
+ * Falls back to start + URI if the CLI isn't available.
+ */
+const openWithEditorCliOnWindows = (editorTool: "vscode" | "cursor", configPath: string): void => {
+    const absolutePath = path.resolve(configPath);
+    const cli = editorTool === "vscode" ? "code" : "cursor";
+    const fileUri = toEditorFileUri(editorTool, configPath);
+    const comspec = process.env.COMSPEC ?? "cmd.exe";
+
+    execFile(comspec, ["/c", cli, absolutePath], { shell: false }, (error) => {
+        if (error) {
+            exec(`start "" "${fileUri}"`);
+        }
+    });
 };
 
 const openConfigSettings = (tool: AIToolType): void => {
@@ -49,7 +68,11 @@ const openConfigSettings = (tool: AIToolType): void => {
                 exec(`open "${fileUri}"`);
                 break;
             case "windows":
-                exec(`start "" "${fileUri}"`);
+                if (editor === "vscode" || editor === "cursor") {
+                    openWithEditorCliOnWindows(editor, configPath);
+                } else {
+                    exec(`start "" "${fileUri}"`);
+                }
                 break;
             case "linux":
                 exec(`xdg-open "${fileUri}"`);
