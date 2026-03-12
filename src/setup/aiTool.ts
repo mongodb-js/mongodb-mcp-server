@@ -6,10 +6,10 @@ import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser"
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 
-export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "codex" | "opencode";
+export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "opencode";
 
 // These are tools that don't have a designated editor to open the config file
-export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "codex", "opencode"];
+export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "opencode"];
 
 const MCP_SERVER_KEY = "mongodb-mcp-server";
 type EnvironmentKey = "env" | "environment";
@@ -195,10 +195,10 @@ export abstract class AITool {
 
         const existingContent = fs.existsSync(configPath) ? fs.readFileSync(configPath, "utf-8") : null;
         if (existingContent !== null && existingContent.trim().length > 0) {
-            // Patch in place with jsonc-parser (preserves comments and rest of file)
             const resolvedPath = path.resolve(configPath);
             ensureConfigDir(configPath);
             try {
+                // Patch in place if file already has content
                 const patch = toPatch(updatedMcpConfigEntry, environmentKey);
                 const newContent = updateConfigInPlace(existingContent, serversKey, patch, updatedMcpConfigEntry);
                 fs.writeFileSync(resolvedPath, newContent, "utf-8");
@@ -315,49 +315,6 @@ class ClaudeCode extends AITool {
     }
 }
 
-class Codex extends AITool {
-    name = "OpenAI Codex";
-    configFileName = "config.toml";
-    get configPath(): string {
-        return path.join(getBasePath(), ".codex", "config.toml");
-    }
-
-    // The config file for codex is in TOML format, so the the values for each field is in-line
-    override updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
-        const args = ["-y", "mongodb-mcp-server@latest"];
-        if (isReadOnly) {
-            args.push("--readOnly");
-        }
-        const envEntry =
-            Object.keys(env).length > 0
-                ? `\nenv = { ${Object.entries(env)
-                      .map(([k, v]) => `${JSON.stringify(k)} = ${JSON.stringify(v)}`)
-                      .join(", ")} }`
-                : "";
-        const section = `[mcp_servers.mongodb-mcp-server]
-command = "npx"
-args = ${JSON.stringify(args)}${envEntry}`;
-
-        let existing = "";
-        if (fs.existsSync(configPath)) {
-            existing = fs.readFileSync(configPath, "utf-8");
-            if (existing.includes("[mcp_servers.mongodb-mcp-server]")) {
-                // TODO: this cannot return, we'd need to modify with new fields
-                return;
-            }
-            if (!existing.endsWith("\n")) {
-                existing += "\n";
-            }
-        } else {
-            const configDir = path.dirname(configPath);
-            if (!fs.existsSync(configDir)) {
-                fs.mkdirSync(configDir, { recursive: true });
-            }
-        }
-        fs.writeFileSync(configPath, existing + "\n" + section + "\n");
-    }
-}
-
 class OpenCode extends AITool {
     name = "Open Code";
     configFileName = "opencode.json";
@@ -390,6 +347,5 @@ export const AI_TOOL_REGISTRY: Record<AIToolType, AITool> = {
     ["windsurf"]: new Windsurf(),
     ["claudeDesktop"]: new ClaudeDesktop(),
     ["claudeCode"]: new ClaudeCode(),
-    ["codex"]: new Codex(),
     ["opencode"]: new OpenCode(),
 };

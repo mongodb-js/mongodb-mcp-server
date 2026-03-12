@@ -187,7 +187,6 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
                 { value: "vscode", name: "VS Code" },
                 { value: "claudeDesktop", name: "Claude Desktop" },
                 { value: "claudeCode", name: "Claude Code" },
-                { value: "codex", name: "OpenAI Codex" },
                 { value: "opencode", name: "Open Code" },
                 { value: "windsurf", name: "Windsurf" },
             ],
