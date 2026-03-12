@@ -11,6 +11,7 @@ import type { Credentials, AuthProvider } from "./auth/authProvider.js";
 import { AuthProviderFactory } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
+const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
 export interface ApiClientOptions {
     baseUrl: string;
@@ -144,7 +145,10 @@ export class ApiClient {
         }>;
     }
 
-    public async sendEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
+    public async sendEvents(
+        events: TelemetryEvent<CommonProperties>[],
+        { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
+    ): Promise<void> {
         if (!this.authProvider) {
             await this.sendUnauthEvents(events, signal);
             return;

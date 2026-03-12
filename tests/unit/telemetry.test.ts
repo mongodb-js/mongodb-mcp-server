@@ -21,7 +21,7 @@ const MockEventCache = vi.mocked(EventCache);
 
 describe("Telemetry", () => {
     let mockApiClient: {
-        sendEvents: MockedFunction<(events: BaseEvent[], signal?: AbortSignal) => Promise<void>>;
+        sendEvents: MockedFunction<(events: BaseEvent[], options?: { signal?: AbortSignal }) => Promise<void>>;
         validateAuthConfig: MockedFunction<() => Promise<void>>;
         isAuthConfigured: MockedFunction<() => boolean>;
     };
@@ -30,10 +30,7 @@ describe("Telemetry", () => {
         removeEvents: MockedFunction<(ids: number[]) => void>;
         appendEvents: MockedFunction<(events: BaseEvent[]) => void>;
         processAndClear: MockedFunction<
-            (
-                newEvents: BaseEvent[],
-                processor: (allEvents: BaseEvent[], cachedCount: number) => Promise<void>
-            ) => Promise<void>
+            (processor: (cachedEvents: BaseEvent[]) => Promise<BaseEvent[]>) => Promise<void>
         >;
     };
     let session: Session;
@@ -138,22 +135,17 @@ describe("Telemetry", () => {
         mockEventCache.appendEvents = vi.fn();
         mockEventCache.processAndClear = vi
             .fn()
-            .mockImplementation(
-                async (
-                    newEvents: BaseEvent[],
-                    processor: (allEvents: BaseEvent[], cachedCount: number) => Promise<void>
-                ) => {
-                    const cachedEvents = mockEventCache.getEvents();
-                    const allEvents = [...cachedEvents.map((e) => e.event), ...newEvents];
-                    try {
-                        await processor(allEvents, cachedEvents.length);
-                        mockEventCache.removeEvents(cachedEvents.map((e) => e.id));
-                    } catch (error) {
-                        mockEventCache.appendEvents(newEvents);
-                        throw error;
-                    }
+            .mockImplementation(async (processor: (cachedEvents: BaseEvent[]) => Promise<BaseEvent[]>) => {
+                const cachedEvents = mockEventCache.getEvents();
+                const remainingEvents = await processor(cachedEvents.map((e) => e.event));
+
+                if (cachedEvents.length > 0) {
+                    mockEventCache.removeEvents(cachedEvents.map((e) => e.id));
                 }
-            );
+                if (remainingEvents.length > 0) {
+                    mockEventCache.appendEvents(remainingEvents);
+                }
+            });
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
         mockDeviceId = {
@@ -189,7 +181,6 @@ describe("Telemetry", () => {
 
             verifyMockCalls({
                 sendEventsCalls: 1,
-                removeEventsCalls: 1,
                 sendEventsCalledWith: [testEvent],
             });
         });
