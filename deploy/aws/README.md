@@ -50,7 +50,7 @@ The Dockerfile is pre-configured for AgentCore compatibility:
 
 Set these environment variables in your AgentCore runtime configuration:
 
-- `MDB_MCP_CONNECTION_STRING` — MongoDB connection string
+- `MDB_MCP_CONNECTION_STRING` — MongoDB connection string (use standard `mongodb://` format; `mongodb+srv://` is not yet supported by AgentCore)
 - `MDB_MCP_API_CLIENT_ID` / `MDB_MCP_API_CLIENT_SECRET` — Atlas API credentials (if Atlas tools are enabled)
 
 See the [main README](../../README.md#configuration-options) for all available options.
