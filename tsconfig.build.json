@@ -23,6 +23,9 @@
       "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
       "mongodb-connection-string-url": [
         "./node_modules/mongodb-connection-string-url/lib/index.d.ts"
+      ],
+      "openapi-typescript-helpers": [
+        "./node_modules/openapi-typescript-helpers/index.d.ts"
       ]
     }
   },
