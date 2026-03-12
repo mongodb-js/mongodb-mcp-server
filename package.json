@@ -153,7 +153,7 @@
   },
   "dependencies": {
     "@mcp-ui/server": "^5.13.1",
-    "@modelcontextprotocol/sdk": "^1.24.2",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@mongodb-js/device-id": "^0.4.6",
     "@mongodb-js/devtools-proxy-support": "^0.7.5",
     "@mongosh/arg-parser": "^5.0.1",
