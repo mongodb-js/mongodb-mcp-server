@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 
 import { writeFileSync, mkdirSync } from "fs";
 import { resolve } from "path";
