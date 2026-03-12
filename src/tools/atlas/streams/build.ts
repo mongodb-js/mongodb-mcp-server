@@ -104,7 +104,9 @@ export class StreamsBuildTool extends StreamsToolBase {
         "Typical workflow: create workspace → add connections → deploy processor.";
 
     public argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID. Use `atlas-list-projects` to find project IDs."),
+        projectId: AtlasArgs.projectId().describe(
+            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+        ),
         resource: BuildResource.describe(
             "What to create. Start with 'workspace', then 'connection', then 'processor'. " +
                 "Use 'privatelink' only if connections need private networking."

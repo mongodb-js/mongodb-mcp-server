@@ -19,7 +19,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
         "Use `atlas-streams-discover` to review resources before deleting.";
 
     public argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID. Use `atlas-list-projects` to find project IDs."),
+        projectId: AtlasArgs.projectId().describe(
+            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+        ),
         resource: TeardownResource.describe(
             "What to delete. 'processor': stop first recommended. 'connection': ensure no processor references it. " +
                 "'workspace': removes all contained connections and processors."

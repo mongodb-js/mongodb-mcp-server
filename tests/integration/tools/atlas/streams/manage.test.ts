@@ -119,7 +119,7 @@ describeWithStreams("atlas-streams-manage", (integration) => {
             }, 30_000);
         });
 
-        // TODO: Add integration tests requiring VPC peering infrastructure:
+        // TODO(CLOUDP-388366): Add integration tests requiring VPC peering infrastructure:
         // - accept-peering
         // - reject-peering
     });

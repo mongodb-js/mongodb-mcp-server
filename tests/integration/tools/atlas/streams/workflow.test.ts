@@ -192,20 +192,6 @@ describeWithStreams("atlas-streams workflows", (integration) => {
                     expect(content).toContain("<untrusted-user-data-");
                 });
 
-                it("find-processor — finds across workspaces", async () => {
-                    const response = await integration.mcpClient().callTool({
-                        name: "atlas-streams-discover",
-                        arguments: {
-                            projectId: getProjectId(),
-                            action: "find-processor",
-                            resourceName: processorName,
-                        },
-                    });
-                    const content = getResponseContent(response.content);
-                    expect(content).toContain(processorName);
-                    expect(content).toContain(getWorkspaceName());
-                });
-
                 it("diagnose-processor — returns health report", async () => {
                     const response = await integration.mcpClient().callTool({
                         name: "atlas-streams-discover",

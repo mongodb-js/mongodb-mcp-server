@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { gunzipSync } from "node:zlib";
 import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
@@ -16,8 +17,6 @@ const DiscoverAction = z.enum([
     "diagnose-processor",
     "get-logs",
     "get-networking",
-    "find-processor",
-    "list-all-processors",
 ]);
 
 const ResponseFormat = z.enum(["concise", "detailed"]);
@@ -32,28 +31,24 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         "Use 'list-workspaces' to see all workspaces in a project. " +
         "Use inspect actions for details on a specific resource. " +
         "Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. " +
-        "Use 'find-processor' to search for a processor by name across all workspaces without knowing which workspace it's in. " +
-        "Use 'list-all-processors' to get all processors across all workspaces in a single call. " +
         "Use 'get-logs' for operational or audit logs and 'get-networking' for PrivateLink and VPC peering details.";
 
     public argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID. Use `atlas-list-projects` to find project IDs."),
+        projectId: AtlasArgs.projectId().describe(
+            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+        ),
         action: DiscoverAction.describe(
             "What to look up. Start with 'list-workspaces' to see available workspaces, " +
-                "then use inspect actions for details or 'diagnose-processor' for a health report. " +
-                "Use 'find-processor' to search for a processor by name across all workspaces. " +
-                "Use 'list-all-processors' to get all processors across all workspaces in one call."
+                "then use inspect actions for details or 'diagnose-processor' for a health report."
         ),
         workspaceName: StreamsArgs.workspaceName()
             .optional()
-            .describe(
-                "Workspace name. Required for all actions except 'list-workspaces', 'get-networking', 'find-processor', and 'list-all-processors'."
-            ),
+            .describe("Workspace name. Required for all actions except 'list-workspaces' and 'get-networking'."),
         resourceName: z
             .string()
             .optional()
             .describe(
-                "Connection or processor name. Required for 'inspect-connection', 'inspect-processor', 'diagnose-processor', and 'find-processor'. Optional for 'get-logs' to filter logs by processor."
+                "Connection or processor name. Required for 'inspect-connection', 'inspect-processor', and 'diagnose-processor'. Optional for 'get-logs' to filter logs by processor."
             ),
         responseFormat: ResponseFormat.optional().describe(
             "Response detail level. 'concise' returns names and states only. " +
@@ -142,10 +137,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                 return this.getLogs(projectId, this.requireWorkspaceName(workspaceName), resourceName, logType);
             case "get-networking":
                 return this.getNetworking(projectId, cloudProvider, region);
-            case "find-processor":
-                return this.findProcessor(projectId, this.requireResourceName(resourceName, "processor"));
-            case "list-all-processors":
-                return this.listAllProcessors(projectId, responseFormat);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown action: ${action as string}` }],
@@ -512,7 +503,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         try {
-            const { gunzipSync } = await import("node:zlib");
             const buffer = Buffer.from(data as unknown as ArrayBuffer);
             const decompressed = gunzipSync(buffer).toString("utf-8");
 
@@ -588,178 +578,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         return {
             content: formatUntrustedData("Streams networking details:", sections.join("\n\n")),
-        };
-    }
-
-    private async getAllWorkspaceNames(projectId: string): Promise<string[]> {
-        const names: string[] = [];
-        let page = 1;
-        const pageSize = 100;
-
-        for (;;) {
-            const data = await this.apiClient.listStreamWorkspaces({
-                params: {
-                    path: { groupId: projectId },
-                    query: { itemsPerPage: pageSize, pageNum: page },
-                },
-            });
-
-            if (!data?.results?.length) {
-                break;
-            }
-
-            for (const ws of data.results) {
-                if (ws.name) {
-                    names.push(ws.name);
-                }
-            }
-
-            if (data.results.length < pageSize) {
-                break;
-            }
-            page++;
-        }
-
-        return names;
-    }
-
-    private async findProcessor(projectId: string, processorName: string): Promise<CallToolResult> {
-        const workspaceNames = await this.getAllWorkspaceNames(projectId);
-
-        if (workspaceNames.length === 0) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "No Stream Processing workspaces found in this project.",
-                    },
-                ],
-            };
-        }
-
-        // Search in batches of 10, early-exit when found (processor names are unique per project)
-        const batchSize = 10;
-        for (let i = 0; i < workspaceNames.length; i += batchSize) {
-            const batch = workspaceNames.slice(i, i + batchSize);
-            const searchResults = await Promise.allSettled(
-                batch.map(async (wsName) => {
-                    const data = await this.apiClient.getStreamProcessor({
-                        params: {
-                            path: { groupId: projectId, tenantName: wsName, processorName },
-                        },
-                    });
-                    return { workspaceName: wsName, processor: data };
-                })
-            );
-
-            for (const result of searchResults) {
-                if (result.status === "fulfilled" && result.value.processor) {
-                    const proc = result.value.processor;
-                    return {
-                        content: formatUntrustedData(
-                            `Found processor '${processorName}' in workspace '${result.value.workspaceName}':`,
-                            JSON.stringify(
-                                {
-                                    workspaceName: result.value.workspaceName,
-                                    name: proc.name,
-                                    state: proc.state,
-                                    tier: proc.tier,
-                                },
-                                null,
-                                2
-                            )
-                        ),
-                    };
-                }
-            }
-        }
-
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Processor '${processorName}' not found in any of the ${workspaceNames.length} workspace(s) in this project.`,
-                },
-            ],
-        };
-    }
-
-    private async listAllProcessors(projectId: string, responseFormat: string | undefined): Promise<CallToolResult> {
-        const workspaceNames = await this.getAllWorkspaceNames(projectId);
-
-        if (workspaceNames.length === 0) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "No Stream Processing workspaces found in this project.",
-                    },
-                ],
-            };
-        }
-
-        const format = responseFormat ?? "concise";
-        const allProcessors: {
-            workspaceName: string;
-            name: string;
-            state: string;
-            tier?: string;
-            pipeline?: unknown;
-        }[] = [];
-
-        // Fetch processors in batches of 10
-        const batchSize = 10;
-        for (let i = 0; i < workspaceNames.length; i += batchSize) {
-            const batch = workspaceNames.slice(i, i + batchSize);
-            const results = await Promise.allSettled(
-                batch.map(async (wsName) => {
-                    const data = await this.apiClient.getStreamProcessors({
-                        params: {
-                            path: { groupId: projectId, tenantName: wsName },
-                            query: { itemsPerPage: 100, pageNum: 1 },
-                        },
-                    });
-                    return { workspaceName: wsName, processors: data?.results ?? [] };
-                })
-            );
-
-            for (const result of results) {
-                if (result.status === "fulfilled" && result.value.processors.length > 0) {
-                    for (const proc of result.value.processors) {
-                        if (format === "concise") {
-                            allProcessors.push({
-                                workspaceName: result.value.workspaceName,
-                                name: proc.name,
-                                state: proc.state,
-                                tier: proc.tier,
-                            });
-                        } else {
-                            allProcessors.push({
-                                workspaceName: result.value.workspaceName,
-                                ...proc,
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        if (allProcessors.length === 0) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `No processors found in any of the ${workspaceNames.length} workspace(s) in this project.`,
-                    },
-                ],
-            };
-        }
-
-        return {
-            content: formatUntrustedData(
-                `Found ${allProcessors.length} processor(s) across ${workspaceNames.length} workspace(s):`,
-                JSON.stringify(allProcessors, null, 2)
-            ),
         };
     }
 }

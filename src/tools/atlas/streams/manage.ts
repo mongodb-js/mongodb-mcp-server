@@ -26,7 +26,9 @@ export class StreamsManageTool extends StreamsToolBase {
         "Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.";
 
     public argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID. Use `atlas-list-projects` to find project IDs."),
+        projectId: AtlasArgs.projectId().describe(
+            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+        ),
         workspaceName: StreamsArgs.workspaceName().describe("Workspace name containing the resource to manage."),
         action: ManageAction.describe(
             "Action to perform. Processor must be stopped before 'modify-processor'. " +
