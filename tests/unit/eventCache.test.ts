@@ -22,7 +22,7 @@ describe("EventCache", () => {
             cache.appendEvents([createEvent("a"), createEvent("b")]);
             expect(cache.size).toBe(2);
 
-            await cache.processAndClear(async () => []);
+            await cache.processAndClear(() => Promise.resolve([]));
 
             expect(cache.size).toBe(0);
         });
@@ -31,7 +31,7 @@ describe("EventCache", () => {
             const eventA = createEvent("a");
             cache.appendEvents([eventA, createEvent("b")]);
 
-            await cache.processAndClear(async () => [eventA]);
+            await cache.processAndClear(() => Promise.resolve([eventA]));
 
             expect(cache.size).toBe(1);
             const remaining = cache.getEvents();
@@ -42,9 +42,9 @@ describe("EventCache", () => {
             cache.appendEvents([createEvent("x"), createEvent("y")]);
 
             let receivedCommands: string[] = [];
-            await cache.processAndClear(async (events) => {
+            await cache.processAndClear((events) => {
                 receivedCommands = events.map((e) => e.properties.command as string);
-                return [];
+                return Promise.resolve([]);
             });
 
             expect(receivedCommands).toEqual(expect.arrayContaining(["x", "y"]));
@@ -68,9 +68,9 @@ describe("EventCache", () => {
                 return [];
             });
 
-            const second = cache.processAndClear(async (events) => {
+            const second = cache.processAndClear((events) => {
                 observedBySecond.push(...events.map((e) => e.properties.command as string));
-                return [];
+                return Promise.resolve([]);
             });
 
             // The second call should be blocked while the first holds the lock.
@@ -110,10 +110,10 @@ describe("EventCache", () => {
                 return [];
             });
 
-            const p3 = cache.processAndClear(async (events) => {
+            const p3 = cache.processAndClear((events) => {
                 order.push(3);
                 expect(events).toEqual([]);
-                return [];
+                return Promise.resolve([]);
             });
 
             resolve1!();
@@ -127,7 +127,7 @@ describe("EventCache", () => {
             cache.appendEvents([createEvent("survive")]);
 
             await expect(
-                cache.processAndClear(async () => {
+                cache.processAndClear(() => {
                     throw new Error("boom");
                 })
             ).rejects.toThrow("boom");
@@ -138,9 +138,9 @@ describe("EventCache", () => {
             // from the return path, so the original removal stands).
             // A subsequent call should be able to acquire the lock.
             let secondRan = false;
-            await cache.processAndClear(async () => {
+            await cache.processAndClear(() => {
                 secondRan = true;
-                return [];
+                return Promise.resolve([]);
             });
 
             expect(secondRan).toBe(true);
@@ -163,14 +163,14 @@ describe("EventCache", () => {
                 return [];
             });
 
-            const second = cache.processAndClear(async (events) => {
+            const second = cache.processAndClear((events) => {
                 allObserved.push(events.map((e) => e.properties.command as string));
-                return [];
+                return Promise.resolve([]);
             });
 
-            const third = cache.processAndClear(async (events) => {
+            const third = cache.processAndClear((events) => {
                 allObserved.push(events.map((e) => e.properties.command as string));
-                return [];
+                return Promise.resolve([]);
             });
 
             resolveFirst!();
