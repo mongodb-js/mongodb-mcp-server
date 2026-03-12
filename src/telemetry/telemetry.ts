@@ -21,6 +21,11 @@ export interface TelemetryEvents {
     "events-skipped": [];
 }
 
+/**
+ * The timeout for sending events to the telemetry API in milliseconds.
+ */
+const SEND_TIMEOUT_MS = 5_000;
+
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
@@ -181,35 +186,40 @@ export class Telemetry {
             return;
         }
 
+        const apiClient = this.session.apiClient;
+        let sendSucceeded = false;
+
         try {
-            const cachedEvents = this.eventCache.getEvents();
-            const allEvents = [...cachedEvents.map((e) => e.event), ...events];
+            await this.eventCache.processAndClear(async (cachedEvents) => {
+                const allEvents = [...cachedEvents, ...events];
 
-            this.session.logger.debug({
-                id: LogId.telemetryEmitStart,
-                context: "telemetry",
-                message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
-            });
+                this.session.logger.debug({
+                    id: LogId.telemetryEmitStart,
+                    context: "telemetry",
+                    message: `Attempting to send ${allEvents.length} events (${cachedEvents.length} cached)`,
+                });
 
-            const result = await this.sendEvents(this.session.apiClient, allEvents);
-            if (result.success) {
-                this.eventCache.removeEvents(cachedEvents.map((e) => e.id));
+                const signal = AbortSignal.timeout(SEND_TIMEOUT_MS);
+                const result = await this.sendEvents(apiClient, allEvents, { signal });
+                if (!result.success) {
+                    this.session.logger.debug({
+                        id: LogId.telemetryEmitFailure,
+                        context: "telemetry",
+                        message: `Error emitting telemetry events: ${result.error?.message ?? "unknown error"}`,
+                        noRedaction: true,
+                    });
+                    return allEvents;
+                }
+
                 this.session.logger.debug({
                     id: LogId.telemetryEmitSuccess,
                     context: "telemetry",
                     message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
                 });
-                this.events.emit("events-emitted");
-                return;
-            }
 
-            this.session.logger.debug({
-                id: LogId.telemetryEmitFailure,
-                context: "telemetry",
-                message: `Error sending event to client: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
+                sendSucceeded = true;
+                return [];
             });
-            this.eventCache.appendEvents(events);
-            this.events.emit("events-send-failed");
         } catch (error) {
             this.session.logger.debug({
                 id: LogId.telemetryEmitFailure,
@@ -217,6 +227,11 @@ export class Telemetry {
                 message: `Error emitting telemetry events: ${error instanceof Error ? error.message : String(error)}`,
                 noRedaction: true,
             });
+        }
+
+        if (sendSucceeded) {
+            this.events.emit("events-emitted");
+        } else {
             this.events.emit("events-send-failed");
         }
     }
@@ -225,7 +240,11 @@ export class Telemetry {
      * Attempts to send events through the provided API client.
      * Events are redacted before being sent to ensure no sensitive data is transmitted
      */
-    private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<EventResult> {
+    private async sendEvents(
+        client: ApiClient,
+        events: BaseEvent[],
+        { signal }: { signal?: AbortSignal } = {}
+    ): Promise<EventResult> {
         try {
             await client.sendEvents(
                 events.map((event) => ({
@@ -234,7 +253,8 @@ export class Telemetry {
                         ...redact(this.getCommonProperties(), this.session.keychain.allSecrets),
                         ...redact(event.properties, this.session.keychain.allSecrets),
                     },
-                }))
+                })),
+                { signal }
             );
             return { success: true };
         } catch (error) {
