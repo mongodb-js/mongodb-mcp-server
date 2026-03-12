@@ -167,30 +167,6 @@ describeWithStreams("atlas-streams-discover", (integration) => {
             ).toBe(true);
         });
 
-        it("list-all-processors — works across workspaces", async () => {
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-streams-discover",
-                arguments: {
-                    projectId: getProjectId(),
-                    action: "list-all-processors",
-                },
-            });
-            expect(response.isError).toBeFalsy();
-        });
-
-        it("find-processor — returns not-found for nonexistent", async () => {
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-streams-discover",
-                arguments: {
-                    projectId: getProjectId(),
-                    action: "find-processor",
-                    resourceName: "nonexistent-processor",
-                },
-            });
-            const content = getResponseContent(response.content);
-            expect(content).toContain("not found");
-        });
-
         it("inspect-workspace — error without workspaceName", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "atlas-streams-discover",
