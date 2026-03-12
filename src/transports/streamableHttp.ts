@@ -449,6 +449,11 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 server.session.logger.setAttribute("sessionId", sessionId);
 
                 this.sessionStore.setSession(sessionId, transport, server.session.logger);
+                server.session.logger.info({
+                    id: LogId.streamableHttpTransportSessionInitialized,
+                    context: "streamableHttpTransport",
+                    message: `Session ${sessionId} initialized, response type: ${options.enableJsonResponse ? "JSON" : "SSE"}`,
+                });
             };
 
             // When we're implicitly initializing a session, the client is not going through the initialization
