@@ -171,9 +171,6 @@ export type PerfAdvisorToolMetadata = AtlasMetadata &
     };
 
 export type StreamsToolMetadata = AtlasMetadata & {
-    workspace_name?: string;
-    processor_name?: string;
-    connection_name?: string;
     action?: string;
     resource?: string;
 };

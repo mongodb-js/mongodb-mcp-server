@@ -32,32 +32,12 @@ export abstract class StreamsToolBase extends AtlasToolBase {
                 };
             }
 
-            if (statusCode === 402) {
+            if (statusCode === 403 && error.message.includes("active") && error.message.includes("processor")) {
                 return {
                     content: [
                         {
                             type: "text",
-                            text:
-                                `Received a Payment Required API Error: ${error.message}\n\n` +
-                                `Stream Processing requires an active billing setup. ` +
-                                `To try Stream Processing without billing, use \`sp.process()\` in mongosh for ad-hoc processing.\n` +
-                                `For more information on setting up payment, visit: https://www.mongodb.com/docs/atlas/billing/`,
-                        },
-                    ],
-                    isError: true,
-                };
-            }
-
-            if (statusCode === 403) {
-                const isActiveProcessorBlock = error.message.includes("active") && error.message.includes("processor");
-                const hint = isActiveProcessorBlock
-                    ? `This may be because the workspace has active processors. Stop all processors first with \`atlas-streams-manage\` action 'stop-processor', then retry deletion.`
-                    : `You don't have sufficient permissions to perform this action. Ensure your API key has the necessary roles assigned.`;
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `Received a Forbidden API Error: ${error.message}\n\n${hint}`,
+                            text: `Received a Forbidden API Error: ${error.message}\n\nThis may be because the workspace has active processors. Stop all processors first with \`atlas-streams-manage\` action 'stop-processor', then retry deletion.`,
                         },
                     ],
                     isError: true,
@@ -198,17 +178,6 @@ export abstract class StreamsToolBase extends AtlasToolBase {
 
         const data = parsedResult.data;
 
-        if ("workspaceName" in data && typeof data.workspaceName === "string") {
-            metadata.workspace_name = data.workspaceName;
-        }
-        if ("resourceName" in data && typeof data.resourceName === "string") {
-            const action = "action" in data && typeof data.action === "string" ? data.action : "";
-            if (action.includes("connection")) {
-                metadata.connection_name = data.resourceName;
-            } else {
-                metadata.processor_name = data.resourceName;
-            }
-        }
         if ("action" in data && typeof data.action === "string") {
             metadata.action = data.action;
         }

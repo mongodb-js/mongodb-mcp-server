@@ -122,26 +122,11 @@ describe("StreamsToolBase", () => {
             expect((result.content[0] as { text: string }).text).toContain("atlas-streams-discover");
         });
 
-        it("should handle 402 with billing hint and sp.process() suggestion", () => {
-            const error = createApiClientError(402, "Payment required");
-            const result = tool.testHandleError(error, defaultArgs) as CallToolResult;
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("Payment Required");
-            expect((result.content[0] as { text: string }).text).toContain("sp.process()");
-        });
-
         it("should handle 403 with active processor in message", () => {
             const error = createApiClientError(403, "Cannot delete workspace with active processor");
             const result = tool.testHandleError(error, defaultArgs) as CallToolResult;
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("Stop all processors first");
-        });
-
-        it("should handle 403 without active processor", () => {
-            const error = createApiClientError(403, "Forbidden");
-            const result = tool.testHandleError(error, defaultArgs) as CallToolResult;
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("sufficient permissions");
         });
 
         it("should handle 400 with topic + AtlasCollection ($emit not $merge hint)", () => {
@@ -260,32 +245,6 @@ describe("StreamsToolBase", () => {
     describe("resolveTelemetryMetadata", () => {
         const okResult: CallToolResult = { content: [{ type: "text", text: "ok" }] };
 
-        it("should include workspace_name when workspaceName arg is present", () => {
-            const metadata = tool.testResolveTelemetryMetadata(
-                { projectId: "proj1", workspaceName: "ws1" } as never,
-                okResult
-            );
-            expect(metadata).toHaveProperty("workspace_name", "ws1");
-        });
-
-        it("should include connection_name when resourceName + connection action", () => {
-            const metadata = tool.testResolveTelemetryMetadata(
-                { projectId: "proj1", resourceName: "my-conn", action: "delete-connection" } as never,
-                okResult
-            );
-            expect(metadata).toHaveProperty("connection_name", "my-conn");
-            expect(metadata).not.toHaveProperty("processor_name");
-        });
-
-        it("should include processor_name when resourceName + non-connection action", () => {
-            const metadata = tool.testResolveTelemetryMetadata(
-                { projectId: "proj1", resourceName: "my-proc", action: "start-processor" } as never,
-                okResult
-            );
-            expect(metadata).toHaveProperty("processor_name", "my-proc");
-            expect(metadata).not.toHaveProperty("connection_name");
-        });
-
         it("should include action in metadata", () => {
             const metadata = tool.testResolveTelemetryMetadata(
                 { projectId: "proj1", action: "list-workspaces" } as never,
@@ -297,7 +256,6 @@ describe("StreamsToolBase", () => {
         it("should return base metadata on invalid args", () => {
             // projectId is required, passing empty object should fail Zod parse
             const metadata = tool.testResolveTelemetryMetadata({} as never, okResult);
-            expect(metadata).not.toHaveProperty("workspace_name");
             expect(metadata).not.toHaveProperty("action");
         });
     });
