@@ -6,7 +6,6 @@ export enum ErrorCodes {
     AtlasSearchNotSupported = 1_000_004,
     AtlasVectorSearchIndexNotFound = 1_000_006,
     AtlasVectorSearchInvalidQuery = 1_000_007,
-    Unexpected = 1_000_008,
 }
 
 export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {

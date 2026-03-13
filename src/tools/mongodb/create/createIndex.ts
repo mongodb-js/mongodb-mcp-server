@@ -2,7 +2,6 @@ import { z } from "zod";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
-import { similarityValues } from "../../../common/schemas.js";
 import { modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 
 const CreateIndexOutputSchema = {
@@ -45,7 +44,7 @@ For nested fields, use dot notation to specify path to embedded fields.\
                     "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
                 ),
             similarity: z
-                .enum(similarityValues)
+                .enum(["cosine", "euclidean", "dotProduct"])
                 .default("euclidean")
                 .describe(
                     "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."

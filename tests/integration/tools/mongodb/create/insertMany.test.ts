@@ -3,7 +3,6 @@ import {
     validateAutoConnectBehavior,
     createVectorSearchIndexAndWait,
     waitUntilSearchIsReady,
-    waitUntilSearchIndexIsListed,
 } from "../mongodbHelpers.js";
 
 import {
@@ -12,11 +11,10 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-    getDataFromUntrustedContent,
     defaultTestConfig,
 } from "../../../helpers.js";
 import type { InsertManyOutput } from "../../../../../src/tools/mongodb/create/insertMany.js";
-import { beforeEach, afterEach, expect, it, describe, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { ObjectId } from "bson";
 import type { Collection } from "mongodb";
 import type { ToolEvent } from "../../../../../src/telemetry/types.js";
