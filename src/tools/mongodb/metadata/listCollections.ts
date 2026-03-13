@@ -34,11 +34,16 @@ export class ListCollectionsTool extends MongoDBToolBase {
         }));
 
         if (collections.length === 0) {
+            const dbs = (await provider.listDatabases("")).databases as { name: string }[];
+            const databaseExists = dbs.some((db) => db.name === database);
+            const message = databaseExists
+                ? `Found 0 collections for database "${database}". To create a collection, use the "create-collection" tool.`
+                : `No collections found. The database "${database}" does not exist. To create a collection, use the "create-collection" tool.`;
             return {
                 content: [
                     {
                         type: "text",
-                        text: `Found 0 collections for database "${database}". To create a collection, use the "create-collection" tool.`,
+                        text: message,
                     },
                 ],
                 structuredContent: {

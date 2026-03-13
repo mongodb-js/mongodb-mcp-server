@@ -32,7 +32,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
             });
             const content = getResponseContent(response.content);
             expect(content).toEqual(
-                'Found 0 collections for database "non-existent". To create a collection, use the "create-collection" tool.'
+                'No collections found. The database "non-existent" does not exist. To create a collection, use the "create-collection" tool.'
             );
 
             // Structured content should have empty array for empty database
@@ -100,7 +100,7 @@ describeWithMongoDB("listCollections tool", (integration) => {
         () => {
             return {
                 args: { database: integration.randomDbName() },
-                expectedResponse: `Found 0 collections for database "${integration.randomDbName()}". To create a collection, use the "create-collection" tool.`,
+                expectedResponse: `No collections found. The database "${integration.randomDbName()}" does not exist. To create a collection, use the "create-collection" tool.`,
             };
         }
     );
