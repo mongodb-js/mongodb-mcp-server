@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser";
+import { exec } from "child_process";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 
@@ -10,6 +11,19 @@ export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "c
 
 // These are tools that don't have a designated editor to open the config file
 export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "opencode"];
+
+// Mac: open path in default app, or in editor (e.g. "cursor") if supported
+const getOpenCommandMac = (configPath: string, tool: AIToolType): string =>
+    tool && !TOOLS_WITHOUT_EDITORS.includes(tool) ? `open "${tool}://file${configPath}"` : `open "${configPath}"`;
+
+// Linux: open path in default app, or in editor if supported
+const getOpenCommandLinux = (configPath: string, tool: AIToolType): string =>
+    tool && !TOOLS_WITHOUT_EDITORS.includes(tool)
+        ? `xdg-open "${tool}://file${configPath}"`
+        : `xdg-open "${configPath}"`;
+
+// Windows: open path in default app (for tools without a dedicated editor)
+const getOpenCommandWindowsDefault = (configPath: string): string => `start "" "${configPath}"`;
 
 const MCP_SERVER_KEY = "mongodb-mcp-server";
 type EnvironmentKey = "env" | "environment";
@@ -143,7 +157,8 @@ const updateConfigInPlace = (
 };
 
 export abstract class AITool {
-    abstract name: string;
+    abstract name: string; // readable name for the tool for users
+    abstract toolType: AIToolType; // used internallly
     abstract configFileName: string;
     abstract get configPath(): string;
     tip?: string;
@@ -217,19 +232,55 @@ export abstract class AITool {
             writeConfigFile(configPath, config);
         }
     }
+
+    // Returns the shell command to open the config file. Override in subclasses for editor-specific behavior.
+    getOpenConfigCommand(configPath: string, platform: Platform, editor: AIToolType): string | null {
+        switch (platform) {
+            case "mac":
+                return getOpenCommandMac(configPath, editor);
+            case "windows":
+                return getOpenCommandWindowsDefault(configPath);
+            case "linux":
+                return getOpenCommandLinux(configPath, editor);
+            default:
+                return null;
+        }
+    }
+
+    openConfigSettings(): void {
+        const platform = getPlatform();
+        if (!platform) return;
+        const cmd = this.getOpenConfigCommand(this.configPath, platform, this.toolType);
+        if (cmd) exec(cmd);
+    }
 }
 
 class Cursor extends AITool {
     name = "Cursor";
+    toolType = "cursor" as AIToolType;
     configFileName = "mcp.json";
     get configPath(): string {
         return path.join(getBasePath(), ".cursor", "mcp.json");
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
+
+    override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
+        switch (platform) {
+            case "mac":
+                return getOpenCommandMac(configPath, "cursor");
+            case "windows":
+                return `cursor "${configPath}"`;
+            case "linux":
+                return getOpenCommandLinux(configPath, "cursor");
+            default:
+                return null;
+        }
+    }
 }
 
 class VSCode extends AITool {
     name = "VS Code";
+    toolType = "vscode" as AIToolType;
     configFileName = "mcp.json";
     protected override getServersKey(): McpServers {
         return "servers";
@@ -252,10 +303,24 @@ class VSCode extends AITool {
         return "";
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
+
+    override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
+        switch (platform) {
+            case "mac":
+                return getOpenCommandMac(configPath, "vscode");
+            case "windows":
+                return `code "${configPath}"`;
+            case "linux":
+                return getOpenCommandLinux(configPath, "vscode");
+            default:
+                return null;
+        }
+    }
 }
 
 class Windsurf extends AITool {
     name = "Windsurf";
+    toolType = "windsurf" as AIToolType;
     configFileName = "mcp_config.json";
     get configPath(): string {
         const platform: Platform | null = getPlatform();
@@ -272,10 +337,23 @@ class Windsurf extends AITool {
         return "";
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
+    getOpenConfigCommand(configPath: string, platform: Platform): string | null {
+        switch (platform) {
+            case "mac":
+                return getOpenCommandMac(configPath, "windsurf");
+            case "windows":
+                return `windsurf "${configPath}"`;
+            case "linux":
+                return getOpenCommandLinux(configPath, "windsurf");
+            default:
+                return null;
+        }
+    }
 }
 
 class ClaudeDesktop extends AITool {
     name = "Claude Desktop";
+    toolType = "claudeDesktop" as AIToolType;
     configFileName = "claude_desktop_config.json";
     get configPath(): string {
         const platform: Platform | null = getPlatform();
@@ -298,6 +376,7 @@ class ClaudeDesktop extends AITool {
 
 class ClaudeCode extends AITool {
     name = "Claude Code";
+    toolType = "claudeCode" as AIToolType;
     configFileName = ".claude.json";
     get configPath(): string {
         return path.join(getBasePath(), ".claude.json");
@@ -306,6 +385,7 @@ class ClaudeCode extends AITool {
 
 class OpenCode extends AITool {
     name = "Open Code";
+    toolType = "opencode" as AIToolType;
     configFileName = "opencode.json";
     get configPath(): string {
         return path.join(getBasePath(), ".config", "opencode", "opencode.json");
@@ -329,6 +409,11 @@ class OpenCode extends AITool {
         };
     }
 }
+
+// Opens the config file for the given tool using the tool's platform-specific command.
+export const openConfigSettings = (tool: AIToolType): void => {
+    AI_TOOL_REGISTRY[tool].openConfigSettings();
+};
 
 export const AI_TOOL_REGISTRY: Record<AIToolType, AITool> = {
     ["cursor"]: new Cursor(),

@@ -2,52 +2,15 @@
 import select from "@inquirer/select";
 import { input, confirm, password } from "@inquirer/prompts";
 import path from "path";
-import { exec } from "child_process";
 import chalk from "chalk";
 import semver from "semver";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { AIToolType } from "./aiTool.js";
-import { AI_TOOL_REGISTRY, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
+import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
 import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
-
-const openConfigSettings = (tool: AIToolType): void => {
-    const configPath = AI_TOOL_REGISTRY[tool].configPath;
-    const platform = getPlatform();
-
-    if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
-        switch (platform) {
-            case "mac":
-                exec(`open "${configPath}"`);
-                break;
-            case "windows":
-                exec(`start "" "${configPath}"`);
-                break;
-            case "linux":
-                exec(`xdg-open "${configPath}"`);
-                break;
-            default:
-                break;
-        }
-    } else {
-        const editor = tool;
-        switch (platform) {
-            case "mac":
-                exec(`open "${editor}://file${configPath}"`);
-                break;
-            case "windows":
-                exec(`start "" "${editor}://file${configPath}"`);
-                break;
-            case "linux":
-                exec(`xdg-open "${editor}://file${configPath}"`);
-                break;
-            default:
-                break;
-        }
-    }
-};
 
 const buildEnvObject = (
     connectionString: string,
