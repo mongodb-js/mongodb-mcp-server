@@ -31,7 +31,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         "Use 'list-workspaces' to see all workspaces in a project. " +
         "Use inspect actions for details on a specific resource. " +
         "Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. " +
-        "Use 'get-logs' for operational or audit logs and 'get-networking' for PrivateLink and VPC peering details.";
+        "Use 'get-logs' for operational or audit logs and 'get-networking' for PrivateLink and account details.";
 
     public argsShape = {
         projectId: AtlasArgs.projectId().describe(
@@ -59,7 +59,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             .string()
             .optional()
             .describe(
-                "Cloud provider (AWS, AZURE, GCP). Only for 'get-networking': returns account details for VPC peering setup."
+                "Cloud provider (AWS, AZURE, GCP). Only for 'get-networking': returns account details for the specified provider."
             ),
         region: z
             .string()

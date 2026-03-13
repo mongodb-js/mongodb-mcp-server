@@ -41,10 +41,10 @@ export class StreamsManageTool extends StreamsToolBase {
 
         // start-processor options
         tier: z
-            .string()
+            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
             .optional()
             .describe(
-                "Override processing tier for this run (SP2, SP5, SP10, SP30, SP50). " +
+                "Override processing tier for this run. " +
                     "Must not exceed the workspace's max tier. Use `atlas-streams-discover` action='inspect-workspace' to check. " +
                     "Only for 'start-processor'."
             ),
@@ -86,9 +86,9 @@ export class StreamsManageTool extends StreamsToolBase {
                 "New region for workspace. Only for 'update-workspace'. Use Atlas region names (e.g. AWS: 'VIRGINIA_USA', Azure: 'eastus2', GCP: 'US_CENTRAL1')."
             ),
         newTier: z
-            .string()
+            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
             .optional()
-            .describe("New default tier for workspace (SP2, SP5, SP10, SP30, SP50). Only for 'update-workspace'."),
+            .describe("New default tier for workspace. Only for 'update-workspace'."),
 
         // update-connection options
         connectionConfig: z

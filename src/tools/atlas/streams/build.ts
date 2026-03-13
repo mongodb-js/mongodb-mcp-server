@@ -126,9 +126,9 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "Azure examples: 'eastus2', 'westeurope'. GCP examples: 'US_CENTRAL1', 'EUROPE_WEST1'."
             ),
         tier: z
-            .string()
+            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
             .optional()
-            .describe("Processing tier: SP2, SP5, SP10, SP30, or SP50. Default: SP10. Only for resource='workspace'."),
+            .describe("Processing tier. Default: SP10. Only for resource='workspace'."),
         includeSampleData: z
             .boolean()
             .optional()
@@ -174,14 +174,16 @@ export class StreamsBuildTool extends StreamsToolBase {
             .optional()
             .describe(
                 "Aggregation pipeline stages. Required when resource='processor'. " +
-                    "Must start with a $source stage and end with $merge or $emit. " +
+                    "Must start with a $source stage and end with a terminal stage ($merge, $emit, $https, or $externalFunction). " +
                     "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
-                    "Use $emit to write to Kafka, Kinesis, HTTPS, or other external sinks: {$emit: {connectionName, topic}}. " +
+                    "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
+                    "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
+                    "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
                     "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
                     "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
                     "Kafka/Kinesis $source must include a 'topic'/'stream' field. " +
                     "$$NOW, $$ROOT, and $$CURRENT are not available in streaming context. " +
-                    "Connections referenced in $source/$merge/$emit must already exist in the workspace."
+                    "Connections referenced in $source/$merge/$emit/$https must already exist in the workspace."
             ),
         dlq: z
             .object({

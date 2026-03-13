@@ -14,8 +14,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     public description =
         "Delete Atlas Stream Processing resources. " +
         "Also use for 'remove my workspace', 'delete all processors', or 'clean up my streams environment'. " +
-        "Performs safety checks before deletion: warns about active processors when deleting a workspace, " +
-        "warns about connections referenced by processors, and recommends stopping running processors before deletion. " +
+        "Performs safety checks before deletion: warns about connections referenced by running processors, " +
+        "summarizes workspace contents before deletion, and recommends stopping running processors before deletion. " +
         "Use `atlas-streams-discover` to review resources before deleting.";
 
     public argsShape = {
@@ -191,7 +191,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
                 processorsResult.status === "fulfilled" ? (processorsResult.value?.results?.length ?? 0) : 0;
 
             if (connectionCount > 0 || processorCount > 0) {
-                impactNote = ` This also removed ${processorCount} processor(s) and ${connectionCount} connection(s).`;
+                impactNote = ` This will also remove ${processorCount} processor(s) and ${connectionCount} connection(s).`;
             }
         } catch {
             // If we can't get counts, proceed anyway

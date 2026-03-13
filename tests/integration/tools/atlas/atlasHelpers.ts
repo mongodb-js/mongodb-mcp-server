@@ -406,6 +406,7 @@ export function withWorkspace(integration: IntegrationTest, fn: WorkspaceTestFun
                 ]);
 
                 // Wait for workspace readiness (up to 120s)
+                let workspaceReady = false;
                 for (let i = 0; i < 120; i++) {
                     try {
                         const ws = await apiClient.getStreamWorkspace({
@@ -414,12 +415,18 @@ export function withWorkspace(integration: IntegrationTest, fn: WorkspaceTestFun
                             },
                         });
                         if (ws?.name === workspaceName) {
+                            workspaceReady = true;
                             break;
                         }
                     } catch {
                         // Workspace not ready yet
                     }
                     await sleep(1000);
+                }
+                if (!workspaceReady) {
+                    throw new Error(
+                        `Workspace readiness timeout: '${workspaceName}' did not become readable within 120 seconds`
+                    );
                 }
 
                 // Create a Sample connection for tests
