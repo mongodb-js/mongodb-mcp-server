@@ -579,69 +579,143 @@ describe("StreamableHttpRunner", () => {
         }
     });
 
-    describe("healthcheck", () => {
-        beforeEach(() => {
-            config = {
-                ...config,
-                transport: "http",
-                healthCheckPort: 3001,
-                healthCheckHost: "127.0.0.1",
-            };
+    describe("monitoring server", () => {
+        describe("using legacy healthCheck config (backwards compat)", () => {
+            beforeEach(() => {
+                config = {
+                    ...config,
+                    transport: "http",
+                    healthCheckPort: 3001,
+                    healthCheckHost: "127.0.0.1",
+                };
+            });
+
+            it("starts the monitoring server when configured", async () => {
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+
+                expect(runner["monitoringServer"]).toBeDefined();
+                expect(runner["monitoringServer"]!.serverAddress).toEqual("http://127.0.0.1:3001");
+                const healthResponse = await fetch("http://localhost:3001/health");
+                expect(healthResponse.status).toBe(200);
+                const healthData = (await healthResponse.json()) as unknown;
+                expect(healthData).toEqual({ status: "ok" });
+            });
+
+            it("does not start the monitoring server when not configured", async () => {
+                config.healthCheckHost = undefined;
+                config.healthCheckPort = undefined;
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+
+                expect(runner["monitoringServer"]).toBeUndefined();
+            });
+
+            it("errors out when healthCheck port is missing but host is provided", async () => {
+                config.healthCheckPort = undefined;
+                runner = new StreamableHttpRunner({ userConfig: config });
+
+                await expect(runner.start()).rejects.toThrowError();
+            });
+
+            it("errors out when healthCheck host is missing but port is provided", async () => {
+                config.healthCheckHost = undefined;
+                runner = new StreamableHttpRunner({ userConfig: config });
+
+                await expect(runner.start()).rejects.toThrowError();
+            });
+
+            it("errors out when healthcheck port is equal to MCP server port", async () => {
+                config.healthCheckPort = 3000;
+                config.httpPort = 3000;
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await expect(runner.start()).rejects.toThrowError();
+            });
+
+            it("handles correctly when healthCheckPort is set to 0", async () => {
+                config.httpPort = 3000;
+                config.healthCheckPort = 0;
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+
+                expect(runner["monitoringServer"]).toBeDefined();
+                const healthResponse = await fetch(`${runner["monitoringServer"]!.serverAddress}/health`);
+                expect(healthResponse.status).toBe(200);
+                const healthData = (await healthResponse.json()) as unknown;
+                expect(healthData).toEqual({ status: "ok" });
+            });
         });
 
-        it("starts the healthCheck server when configured", async () => {
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await runner.start();
+        describe("using monitoringServer config", () => {
+            beforeEach(() => {
+                config = {
+                    ...config,
+                    transport: "http",
+                    monitoringServerPort: 3001,
+                    monitoringServerHost: "127.0.0.1",
+                };
+            });
 
-            expect(runner["healthCheckServer"]).toBeDefined();
-            expect(runner["healthCheckServer"]!.serverAddress).toEqual("http://127.0.0.1:3001");
-            const healthResponse = await fetch("http://localhost:3001/health");
-            expect(healthResponse.status).toBe(200);
-            const healthData = (await healthResponse.json()) as unknown;
-            expect(healthData).toEqual({ status: "ok" });
-        });
+            it("starts the monitoring server and exposes /health by default", async () => {
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
 
-        it("does not start the healthCheck server when not configured", async () => {
-            config.healthCheckHost = undefined;
-            config.healthCheckPort = undefined;
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await runner.start();
+                expect(runner["monitoringServer"]).toBeDefined();
+                expect(runner["monitoringServer"]!.serverAddress).toEqual("http://127.0.0.1:3001");
+                const healthResponse = await fetch("http://localhost:3001/health");
+                expect(healthResponse.status).toBe(200);
+                const healthData = (await healthResponse.json()) as unknown;
+                expect(healthData).toEqual({ status: "ok" });
+            });
 
-            expect(runner["healthCheckServer"]).toBeUndefined();
-        });
+            it("does not start the monitoring server when not configured", async () => {
+                config.monitoringServerHost = undefined;
+                config.monitoringServerPort = undefined;
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
 
-        it("errors out when healthCheck port is missing but host is provided", async () => {
-            config.healthCheckPort = undefined;
-            runner = new StreamableHttpRunner({ userConfig: config });
+                expect(runner["monitoringServer"]).toBeUndefined();
+            });
 
-            await expect(runner.start()).rejects.toThrowError();
-        });
+            it("errors out when monitoringServerPort is missing but host is provided", async () => {
+                config.monitoringServerPort = undefined;
+                runner = new StreamableHttpRunner({ userConfig: config });
 
-        it("errors out when healthCheck host is missing but port is provided", async () => {
-            config.healthCheckHost = undefined;
-            runner = new StreamableHttpRunner({ userConfig: config });
+                await expect(runner.start()).rejects.toThrowError();
+            });
 
-            await expect(runner.start()).rejects.toThrowError();
-        });
+            it("errors out when monitoringServerHost is missing but port is provided", async () => {
+                config.monitoringServerHost = undefined;
+                runner = new StreamableHttpRunner({ userConfig: config });
 
-        it("errors out when healthcheck port is equal to MCP server port", async () => {
-            config.healthCheckPort = 3000;
-            config.httpPort = 3000;
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await expect(runner.start()).rejects.toThrowError();
-        });
+                await expect(runner.start()).rejects.toThrowError();
+            });
 
-        it("handles correctly when healthCheckPort is set to 0", async () => {
-            config.httpPort = 3000;
-            config.healthCheckPort = 0;
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await runner.start();
+            it("errors out when monitoringServerPort is equal to MCP server port", async () => {
+                config.monitoringServerPort = 3000;
+                config.httpPort = 3000;
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await expect(runner.start()).rejects.toThrowError();
+            });
 
-            expect(runner["healthCheckServer"]).toBeDefined();
-            const healthResponse = await fetch(`${runner["healthCheckServer"]!.serverAddress}/health`);
-            expect(healthResponse.status).toBe(200);
-            const healthData = (await healthResponse.json()) as unknown;
-            expect(healthData).toEqual({ status: "ok" });
+            it("does not expose /metrics when features does not include 'metrics'", async () => {
+                config.monitoringServerFeatures = ["health-check"];
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+
+                const metricsResponse = await fetch("http://localhost:3001/metrics");
+                expect(metricsResponse.status).toBe(404);
+            });
+
+            it("exposes /metrics when features includes 'metrics'", async () => {
+                config.monitoringServerFeatures = ["health-check", "metrics"];
+                runner = new StreamableHttpRunner({ userConfig: config });
+                await runner.start();
+
+                const metricsResponse = await fetch("http://localhost:3001/metrics");
+                expect(metricsResponse.status).toBe(200);
+                expect(metricsResponse.headers.get("content-type")).toMatch(/text\/plain/);
+            });
         });
     });
 
