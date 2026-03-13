@@ -223,18 +223,7 @@ class Cursor extends AITool {
     name = "Cursor";
     configFileName = "mcp.json";
     get configPath(): string {
-        const platform: Platform | null = getPlatform();
-        const isWindows = platform === "windows";
-        const isMac = platform === "mac";
-        const isLinux = platform === "linux";
-
-        if (isWindows) {
-            return path.join(getBasePath(), "Cursor", "mcp.json");
-        }
-        if (isMac || isLinux) {
-            return path.join(getBasePath(), ".cursor", "mcp.json");
-        }
-        return "";
+        return path.join(getBasePath(), ".cursor", "mcp.json");
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
 }
