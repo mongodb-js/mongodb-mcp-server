@@ -471,8 +471,8 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
             req: express.Request,
             res: express.Response,
             {
-                isImplicitInitialization,
                 sessionId,
+                isImplicitInitialization,
             }:
                 | { sessionId?: string; isImplicitInitialization?: false }
                 | { sessionId: string; isImplicitInitialization: true }
