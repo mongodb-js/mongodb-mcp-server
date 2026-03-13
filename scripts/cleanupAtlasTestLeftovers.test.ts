@@ -165,38 +165,48 @@ async function main(): Promise<void> {
 
     const allErrors: string[] = [];
 
-    for (const project of testProjects) {
-        console.log(`Cleaning up project: ${project.name} (${project.id})`);
-        if (!project.id) {
-            console.warn(`Skipping project with missing ID: ${project.name}`);
-            continue;
-        }
+    const projectsWithIds = testProjects.filter((p): p is Group & { id: string } => !!p.id);
 
-        // Try to delete all stream processing workspaces first
-        const workspaceErrors = await deleteAllWorkspacesOnStaleProject(apiClient, project.id);
-        allErrors.push(...workspaceErrors);
+    // Phase 1: Delete all workspaces and clusters in parallel across all projects
+    await Promise.allSettled(
+        projectsWithIds.map(async (project) => {
+            console.log(`Cleaning up project: ${project.name} (${project.id})`);
+            const workspaceErrors = await deleteAllWorkspacesOnStaleProject(apiClient, project.id);
+            allErrors.push(...workspaceErrors);
+            const clusterErrors = await deleteAllClustersOnStaleProject(apiClient, project.id);
+            allErrors.push(...clusterErrors);
+        })
+    );
 
-        // Try to delete all clusters
-        const clusterErrors = await deleteAllClustersOnStaleProject(apiClient, project.id);
-        allErrors.push(...clusterErrors);
-
-        // Try to delete the project
-        try {
-            await apiClient.deleteGroup({
-                params: {
-                    path: {
-                        groupId: project.id,
-                    },
-                },
-            });
-            console.log(`Deleted project: ${project.name} (${project.id})`);
-        } catch (error) {
-            const errorStr = String(error);
-            const errorMessage = `Failed to delete project ${project.name} (${project.id}): ${errorStr}`;
-            console.error(errorMessage);
-            allErrors.push(errorMessage);
-        }
-    }
+    // Phase 2: Wait for clusters to terminate, then delete projects in parallel
+    await Promise.allSettled(
+        projectsWithIds.map(async (project) => {
+            // Wait for clusters to be fully deleted (up to 300s)
+            for (let i = 0; i < 300; i++) {
+                try {
+                    const remaining = await apiClient
+                        .listClusters({ params: { path: { groupId: project.id } } })
+                        .then((res) => res.results || []);
+                    if (remaining.length === 0) {
+                        break;
+                    }
+                    await sleep(1000);
+                } catch {
+                    break;
+                }
+            }
+            try {
+                await apiClient.deleteGroup({
+                    params: { path: { groupId: project.id } },
+                });
+                console.log(`Deleted project: ${project.name} (${project.id})`);
+            } catch (error) {
+                const errorMessage = `Failed to delete project ${project.name} (${project.id}): ${String(error)}`;
+                console.error(errorMessage);
+                allErrors.push(errorMessage);
+            }
+        })
+    );
 
     if (allErrors.length > 0) {
         const errorList = allErrors.map((err, i) => `${i + 1}. ${err}`).join("\n");
