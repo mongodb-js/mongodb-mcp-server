@@ -409,5 +409,24 @@ describe("StreamsTeardownTool", () => {
             });
             expect(msg).toContain("VPC peering");
         });
+
+        it("should throw when workspaceName is missing for workspace/processor/connection", () => {
+            for (const resource of ["workspace", "processor", "connection"]) {
+                expect(() => confirmMsg({ ...baseArgs, resource, resourceName: "r1" })).toThrow(
+                    "workspaceName is required"
+                );
+            }
+        });
+
+        it("should throw when resourceName is missing for processor/connection/privatelink/peering", () => {
+            for (const resource of ["processor", "connection"]) {
+                expect(() => confirmMsg({ ...baseArgs, resource, workspaceName: "ws1" })).toThrow(
+                    "resourceName is required"
+                );
+            }
+            for (const resource of ["privatelink", "peering"]) {
+                expect(() => confirmMsg({ ...baseArgs, resource })).toThrow("resourceName is required");
+            }
+        });
     });
 });

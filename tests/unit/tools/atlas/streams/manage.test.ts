@@ -577,6 +577,17 @@ describe("StreamsManageTool", () => {
             expect(msg).toContain("cannot be undone");
             expect(msg).toContain("peer-1");
         });
+
+        it("should throw when resourceName is missing for processor actions", () => {
+            for (const action of ["start-processor", "stop-processor", "modify-processor", "update-connection"]) {
+                expect(() => confirmMsg({ ...baseArgs, action })).toThrow("resourceName is required");
+            }
+        });
+
+        it("should throw when peeringId is missing for peering actions", () => {
+            expect(() => confirmMsg({ ...baseArgs, action: "accept-peering" })).toThrow("peeringId is required");
+            expect(() => confirmMsg({ ...baseArgs, action: "reject-peering" })).toThrow("peeringId is required");
+        });
     });
 
     describe("reject-peering", () => {

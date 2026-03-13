@@ -141,27 +141,38 @@ export class StreamsManageTool extends StreamsToolBase {
     protected override getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
         switch (args.action) {
             case "start-processor": {
+                const name = this.requireResourceName(args.resourceName, "start-processor");
                 const checkpointWarning =
                     args.resumeFromCheckpoint === false
                         ? ` WARNING: resumeFromCheckpoint is false — all accumulated window state will be permanently lost.`
                         : "";
                 return (
-                    `You are about to start processor '${args.resourceName}' in workspace '${args.workspaceName}'. ` +
+                    `You are about to start processor '${name}' in workspace '${args.workspaceName}'. ` +
                     `Starting a processor will begin billing for stream processing usage based on the workspace tier.${checkpointWarning} Proceed?`
                 );
             }
-            case "stop-processor":
-                return `You are about to stop processor '${args.resourceName}' in workspace '${args.workspaceName}'. In-flight data will complete processing. Proceed?`;
-            case "modify-processor":
-                return `You are about to modify processor '${args.resourceName}' in workspace '${args.workspaceName}'. This may affect pipeline behavior. Proceed?`;
+            case "stop-processor": {
+                const name = this.requireResourceName(args.resourceName, "stop-processor");
+                return `You are about to stop processor '${name}' in workspace '${args.workspaceName}'. In-flight data will complete processing. Proceed?`;
+            }
+            case "modify-processor": {
+                const name = this.requireResourceName(args.resourceName, "modify-processor");
+                return `You are about to modify processor '${name}' in workspace '${args.workspaceName}'. This may affect pipeline behavior. Proceed?`;
+            }
             case "update-workspace":
                 return `You are about to update workspace '${args.workspaceName}'. Proceed?`;
-            case "update-connection":
-                return `You are about to update connection '${args.resourceName}' in workspace '${args.workspaceName}'. Proceed?`;
-            case "accept-peering":
+            case "update-connection": {
+                const name = this.requireResourceName(args.resourceName, "update-connection");
+                return `You are about to update connection '${name}' in workspace '${args.workspaceName}'. Proceed?`;
+            }
+            case "accept-peering": {
+                if (!args.peeringId) throw new Error("peeringId is required for 'accept-peering'.");
                 return `You are about to accept VPC peering connection '${args.peeringId}'. Proceed?`;
-            case "reject-peering":
+            }
+            case "reject-peering": {
+                if (!args.peeringId) throw new Error("peeringId is required for 'reject-peering'.");
                 return `You are about to reject VPC peering connection '${args.peeringId}'. This cannot be undone. Proceed?`;
+            }
         }
     }
 

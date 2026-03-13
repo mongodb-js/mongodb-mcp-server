@@ -14,8 +14,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     public description =
         "Delete Atlas Stream Processing resources. " +
         "Also use for 'remove my workspace', 'delete all processors', or 'clean up my streams environment'. " +
-        "Performs safety checks before deletion: warns about connections referenced by running processors, " +
-        "summarizes workspace contents before deletion, and recommends stopping running processors before deletion. " +
+        "Performs basic safety checks before deletion: summarizes counts of processors and connections, " +
+        "highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. " +
         "Use `atlas-streams-discover` to review resources before deleting.";
 
     public argsShape = {
@@ -34,27 +34,39 @@ export class StreamsTeardownTool extends StreamsToolBase {
 
     protected override getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
         switch (args.resource) {
-            case "workspace":
+            case "workspace": {
+                const workspace = this.requireWorkspaceName(args);
                 return (
-                    `You are about to delete workspace '${args.workspaceName}'. ` +
+                    `You are about to delete workspace '${workspace}'. ` +
                     `This will permanently remove ALL connections and processors in this workspace. ` +
                     `This action cannot be undone. Proceed?`
                 );
-            case "processor":
+            }
+            case "processor": {
+                const workspace = this.requireWorkspaceName(args);
+                const name = this.requireResourceName(args);
                 return (
-                    `You are about to delete processor '${args.resourceName}' from workspace '${args.workspaceName}'. ` +
+                    `You are about to delete processor '${name}' from workspace '${workspace}'. ` +
                     `If the processor is running, it will be stopped first. ` +
                     `All processor state and checkpoints will be permanently lost. Proceed?`
                 );
-            case "connection":
+            }
+            case "connection": {
+                const workspace = this.requireWorkspaceName(args);
+                const name = this.requireResourceName(args);
                 return (
-                    `You are about to delete connection '${args.resourceName}' from workspace '${args.workspaceName}'. ` +
+                    `You are about to delete connection '${name}' from workspace '${workspace}'. ` +
                     `Any processors referencing this connection will fail. Proceed?`
                 );
-            case "privatelink":
-                return `You are about to delete PrivateLink connection '${args.resourceName}'. This cannot be undone. Proceed?`;
-            case "peering":
-                return `You are about to delete VPC peering connection '${args.resourceName}'. This cannot be undone. Proceed?`;
+            }
+            case "privatelink": {
+                const name = this.requireResourceName(args);
+                return `You are about to delete PrivateLink connection '${name}'. This cannot be undone. Proceed?`;
+            }
+            case "peering": {
+                const name = this.requireResourceName(args);
+                return `You are about to delete VPC peering connection '${name}'. This cannot be undone. Proceed?`;
+            }
         }
     }
 
