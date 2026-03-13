@@ -269,6 +269,7 @@ class Cursor extends AITool {
             case "mac":
                 return getOpenCommandMac(configPath, "cursor");
             case "windows":
+                // TODO: fix in CLOUDP-385463
                 return `cursor "${configPath}"`;
             case "linux":
                 return getOpenCommandLinux(configPath, "cursor");
@@ -309,6 +310,7 @@ class VSCode extends AITool {
             case "mac":
                 return getOpenCommandMac(configPath, "vscode");
             case "windows":
+                // TODO: fix in CLOUDP-385463
                 return `code "${configPath}"`;
             case "linux":
                 return getOpenCommandLinux(configPath, "vscode");
@@ -326,18 +328,6 @@ class Windsurf extends AITool {
         return path.join(getBasePath(true), ".codeium", "windsurf", "mcp_config.json");
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
-    getOpenConfigCommand(configPath: string, platform: Platform): string | null {
-        switch (platform) {
-            case "mac":
-                return getOpenCommandMac(configPath, "windsurf");
-            case "windows":
-                return `windsurf "${configPath}"`;
-            case "linux":
-                return getOpenCommandLinux(configPath, "windsurf");
-            default:
-                return null;
-        }
-    }
 }
 
 class ClaudeDesktop extends AITool {
@@ -350,10 +340,7 @@ class ClaudeDesktop extends AITool {
         const isMac = platform === "mac";
         const isLinux = platform === "linux";
 
-        if (isWindows) {
-            return path.join(getBasePath(), "Claude", "claude_desktop_config.json");
-        }
-        if (isMac) {
+        if (isWindows || isMac) {
             return path.join(getBasePath(), "Claude", "claude_desktop_config.json");
         }
         if (isLinux) {

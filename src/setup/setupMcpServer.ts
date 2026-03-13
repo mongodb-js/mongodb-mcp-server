@@ -231,19 +231,21 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
 
         console.log("Try a query to get started:\n");
         console.log(availablePrompts.join("\n"));
-        console.log("\n");
 
-        let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
-        if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
-            openConfigMessage = `Would you like to open the config file in your default editor?`;
-        }
-        const openConfig = await confirm({
-            message: openConfigMessage,
-            default: true,
-        });
+        if (platform !== "windows") {
+            console.log("\n");
+            let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
+            if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
+                openConfigMessage = `Would you like to open the config file in your default editor?`;
+            }
+            const openConfig = await confirm({
+                message: openConfigMessage,
+                default: true,
+            });
 
-        if (openConfig) {
-            openConfigSettings(tool);
+            if (openConfig) {
+                openConfigSettings(tool);
+            }
         }
     } catch (error: unknown) {
         // Handle Ctrl+C during prompts (inquirer throws ExitPromptError)
