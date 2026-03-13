@@ -11,16 +11,14 @@ export type CloseableTransport = {
     close(): Promise<void>;
 };
 
-export type SessionInfo<T extends { close: () => Promise<void> }> = {
-    logger: LoggerBase;
-    value: T;
-    abortTimeout: ManagedTimeout;
-    notificationTimeout: ManagedTimeout;
-};
-
-export class SessionStore<T extends { close: () => Promise<void> }> {
+export class SessionStore<T extends CloseableTransport = CloseableTransport> {
     private sessions: {
-        [sessionId: string]: SessionInfo<T>;
+        [sessionId: string]: {
+            logger: LoggerBase;
+            transport: T;
+            abortTimeout: ManagedTimeout;
+            notificationTimeout: ManagedTimeout;
+        };
     } = {};
 
     constructor(
@@ -39,9 +37,9 @@ export class SessionStore<T extends { close: () => Promise<void> }> {
         }
     }
 
-    getSession(sessionId: string): SessionInfo<T> | undefined {
+    getSession(sessionId: string): T | undefined {
         this.resetTimeout(sessionId);
-        return this.sessions[sessionId];
+        return this.sessions[sessionId]?.transport;
     }
 
     private resetTimeout(sessionId: string): void {
@@ -93,7 +91,7 @@ export class SessionStore<T extends { close: () => Promise<void> }> {
             this.notificationTimeoutMS
         );
         this.sessions[sessionId] = {
-            value: transport,
+            transport,
             abortTimeout,
             notificationTimeout,
             logger,
@@ -109,7 +107,7 @@ export class SessionStore<T extends { close: () => Promise<void> }> {
         session.notificationTimeout.cancel();
         if (closeTransport) {
             try {
-                await session.value?.close();
+                await session.transport.close();
             } catch (error) {
                 this.logger.error({
                     id: LogId.streamableHttpTransportSessionCloseFailure,

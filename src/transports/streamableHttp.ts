@@ -1,6 +1,9 @@
 import express from "express";
 import type http from "http";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type {
+    StreamableHTTPServerTransport,
+    StreamableHTTPServerTransportOptions,
+} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "../common/logging/index.js";
 import { CompositeLogger, LogId } from "../common/logging/index.js";
@@ -22,7 +25,6 @@ const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
 const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
-const JSON_RPC_ERROR_CODE_TRANSPORT_MISSING = -32006;
 
 export class StreamableHttpRunner<
     TUserConfig extends UserConfig = UserConfig,
@@ -135,7 +137,7 @@ export class StreamableHttpRunner<
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }): Promise<void> {
-        const args: MCPHttpServerConfig<TUserConfig, TContext> = {
+        this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
             userConfig: this.userConfig,
             serverOptions,
             sessionOptions,
@@ -150,9 +152,7 @@ export class StreamableHttpRunner<
                     sessionOptions: requestSessionOptions,
                 }),
             logger: this.logger,
-        };
-
-        this.mcpServer = new MCPHttpServer(args);
+        });
         await this.mcpServer.start();
     }
 
@@ -222,7 +222,7 @@ abstract class ExpressBasedHttpServer {
         throw new Error("Server is not started yet");
     }
 
-    protected abstract setupRoutes(): Promise<void> | void;
+    protected abstract setupRoutes(): Promise<void>;
 
     public async start(): Promise<void> {
         await this.setupRoutes();
@@ -281,26 +281,11 @@ abstract class ExpressBasedHttpServer {
     }
 }
 
-type MCPHttpServerConfig<TUserConfig extends UserConfig, TContext> = {
-    userConfig: TUserConfig;
-    createServerForRequest: (createParams: {
-        request: RequestContext;
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }) => Promise<Server<TUserConfig, TContext>>;
-    logger: LoggerBase;
-    serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-    sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-};
-
 class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
-    protected sessionStore!: SessionStore<StreamableHTTPServerTransport>;
-
+    private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    protected readonly userConfig: UserConfig;
-
-    protected isSSEUpgradeAllowed: boolean = true;
+    private readonly userConfig: UserConfig;
 
     private createServerForRequest: (createParams: {
         request: RequestContext;
@@ -314,7 +299,17 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         serverOptions,
         sessionOptions,
         logger,
-    }: MCPHttpServerConfig<TUserConfig, TContext>) {
+    }: {
+        userConfig: TUserConfig;
+        createServerForRequest: (createParams: {
+            request: RequestContext;
+            serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+            sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        }) => Promise<Server<TUserConfig, TContext>>;
+        logger: LoggerBase;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }) {
         super({
             port: userConfig.httpPort,
             hostname: userConfig.httpHost,
@@ -327,7 +322,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.userConfig = userConfig;
     }
 
-    protected createTransportOptions(): WebStandardStreamableHTTPServerTransportOptions {
+    private createTransportOptions(): WebStandardStreamableHTTPServerTransportOptions {
         return {
             enableJsonResponse: this.userConfig.httpResponseType === "json",
             onsessionclosed: async (sessionId): Promise<void> => {
@@ -369,10 +364,6 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
             case JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION:
                 message = "cannot provide sessionId when externally managed sessions are disabled";
                 break;
-            case JSON_RPC_ERROR_CODE_TRANSPORT_MISSING:
-                message = "transport is missing for session";
-                statusCode = 500;
-                break;
             default:
                 message = "unknown error";
                 statusCode = 500;
@@ -386,7 +377,8 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         });
     }
 
-    protected override setupRoutes(): void {
+    protected override async setupRoutes(): Promise<void> {
+        const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
         this.sessionStore = new SessionStore(
             this.userConfig.idleTimeoutMs,
             this.userConfig.notificationTimeoutMs,
@@ -416,7 +408,8 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
 
-            if (!this.sessionStore.getSession(sessionId)) {
+            const transport = this.sessionStore.getSession(sessionId);
+            if (!transport) {
                 if (this.userConfig.externallyManagedSessions) {
                     this.logger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
@@ -438,17 +431,6 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 });
 
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
-            }
-
-            const transport = this.sessionStore.getSession(sessionId)?.value;
-            if (!transport) {
-                this.logger.debug({
-                    id: LogId.streamableHttpTransportTransportMissing,
-                    context: "streamableHttpTransport",
-                    message: `Transport is missing for session with ID ${sessionId}`,
-                });
-
-                return this.reportSessionError(res, JSON_RPC_ERROR_CODE_TRANSPORT_MISSING);
             }
 
             await transport.handleRequest(req, res, req.body);
@@ -484,12 +466,22 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 sessionOptions: this.sessionOptions,
             });
 
-            const options = this.createTransportOptions();
             sessionId = sessionId ?? getRandomUUID();
-            options.sessionIdGenerator = (): string => sessionId;
-
-            const { StreamableHTTPServerTransport } =
-                await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+            const options: StreamableHTTPServerTransportOptions = {
+                sessionIdGenerator: (): string => sessionId,
+                enableJsonResponse: this.userConfig.httpResponseType === "json",
+                onsessionclosed: async (sessionId): Promise<void> => {
+                    try {
+                        await this.sessionStore.closeSession(sessionId, true);
+                    } catch (error) {
+                        this.logger.error({
+                            id: LogId.streamableHttpTransportSessionCloseFailure,
+                            context: "streamableHttpTransport",
+                            message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                        });
+                    }
+                },
+            };
 
             const transport = new StreamableHTTPServerTransport(options);
             // HACK: When we're implicitly initializing the session, we want to configure the session id and _inititized flag on the transport
@@ -593,9 +585,10 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.app.get(
             "/mcp",
             this.withErrorHandling(async (req, res): Promise<void> => {
-                if (this.isSSEUpgradeAllowed) {
+                if (this.userConfig.httpResponseType === "sse") {
                     await handleSessionRequest(req, res);
                 } else {
+                    // Don't allow SSE upgrades if the response type is JSON
                     res.status(405).set("Allow", ["POST", "DELETE"]).send("Method Not Allowed");
                 }
             })

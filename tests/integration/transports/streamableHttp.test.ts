@@ -7,6 +7,7 @@ import { defaultCreateConnectionManager } from "../../../src/common/connectionMa
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from "../../../src/tools/tool.js";
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -295,20 +296,25 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
-    const getSessionFromStore = (sessionId: string): unknown => {
-        return runner["mcpServer"]?.["sessionStore"]?.getSession(sessionId);
+    const getSessionFromStore = (sessionId: string): StreamableHTTPServerTransport | undefined => {
+        const sessionStore = runner["mcpServer"]!["sessionStore"];
+        return sessionStore.getSession(sessionId);
     };
-    for (const responseType of ["json", "sse"] as const) {
-        describe("with externallyManagedSessions enabled", () => {
-            beforeEach(async () => {
-                config.externallyManagedSessions = true;
-                config.httpResponseType = responseType;
 
-                runner = new StreamableHttpRunner({ userConfig: config });
-                await runner.start();
-            });
+    describe("with externallyManagedSessions enabled", () => {
+        beforeEach(async () => {
+            config.externallyManagedSessions = true;
 
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+        });
+
+        for (const responseType of ["json", "sse"] as const) {
             describe(`and httpResponseType set to ${responseType}`, () => {
+                beforeEach(() => {
+                    config.httpResponseType = responseType;
+                });
+
                 it("should create a new session with external session ID on initialize", async () => {
                     const sessionId = "test-external-session-123";
                     const client = await connectClient({ sessionId });
@@ -491,20 +497,35 @@ describe("StreamableHttpRunner", () => {
                     }
                 });
             });
+        }
+    });
+
+    describe("with externallyManagedSessions disabled", () => {
+        beforeEach(async () => {
+            config.externallyManagedSessions = false;
+
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
         });
-    }
 
-    for (const responseType of ["json", "sse"] as const) {
-        describe("with externallyManagedSessions disabled", () => {
-            beforeEach(async () => {
-                config.externallyManagedSessions = false;
-                config.httpResponseType = responseType;
+        it("should return SSE responses instead of JSON", async () => {
+            const response = await sendHttpRequest("initialize");
 
-                runner = new StreamableHttpRunner({ userConfig: config });
-                await runner.start();
-            });
+            expect(response.ok).toBe(true);
+            expect(response.headers.get("content-type")).toContain("text/event-stream");
+            expect(response.headers.get("content-type")).not.toContain("application/json");
 
+            const data = await response.text();
+            expect(data).toContain("event: message");
+            expect(data).toContain("data: ");
+        });
+
+        for (const responseType of ["json", "sse"] as const) {
             describe(`and httpResponseType set to ${responseType}`, () => {
+                beforeEach(() => {
+                    config.httpResponseType = responseType;
+                });
+
                 it(`should return ${responseType} responses`, async () => {
                     const response = await sendHttpRequest("initialize");
 
@@ -537,7 +558,8 @@ describe("StreamableHttpRunner", () => {
                     expect(data.error?.code).toBe(-32003);
                     expect(data.error?.message).toBe("session not found");
 
-                    const session = getSessionFromStore(unknownSessionId);
+                    const sessionStore = runner["mcpServer"]!["sessionStore"];
+                    const session = sessionStore.getSession(unknownSessionId);
                     expect(session).toBeUndefined();
                 });
 
@@ -554,8 +576,8 @@ describe("StreamableHttpRunner", () => {
                     );
                 });
             });
-        });
-    }
+        }
+    });
 
     describe("healthcheck", () => {
         beforeEach(() => {
