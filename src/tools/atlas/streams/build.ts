@@ -155,7 +155,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             .record(z.unknown())
             .optional()
             .describe(
-                "Type-specific connection configuration. Required when resource='connection'. " +
+                "Type-specific connection configuration. Typically required for non-Sample connections when resource='connection'. " +
+                    "For connectionType='Sample', no config is needed. You may also provide an empty or partial config; missing fields can be filled via elicitation. " +
                     "Kafka: {bootstrapServers: string (comma-separated), authentication: {mechanism: 'PLAIN'|'SCRAM-256'|'SCRAM-512', username: string, password: string}, security: {protocol: 'SASL_SSL'|'SASL_PLAINTEXT'|'SSL'}}. " +
                     "Cluster: {clusterName: string, dbRoleToExecute: {role: string, type: 'BUILT_IN'|'CUSTOM'}}. " +
                     "S3: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
@@ -593,6 +594,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                         `Please ask the user to provide these values and retry.${note}`,
                 },
             ],
+            isError: true,
         };
     }
 
@@ -705,7 +707,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
         if (!args.pipeline || args.pipeline.length === 0) {
             throw new Error(
-                "pipeline is required. Provide an array of aggregation stages starting with $source and ending with $merge or $emit."
+                "pipeline is required. Provide an array of aggregation stages starting with $source and ending with a terminal stage ($merge, $emit, $https, or $externalFunction)."
             );
         }
 
