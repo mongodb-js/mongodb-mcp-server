@@ -529,6 +529,33 @@ describe("StreamsBuildTool", () => {
             );
         });
 
+        it("should not require username/password when SASL_INHERIT is used", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "sr-sasl",
+                connectionType: "SchemaRegistry",
+                connectionConfig: {
+                    schemaRegistryUrls: ["https://sr.example.com"],
+                    schemaRegistryAuthentication: {
+                        type: "SASL_INHERIT",
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "SchemaRegistry",
+                        schemaRegistryAuthentication: expect.objectContaining({
+                            type: "SASL_INHERIT",
+                        }),
+                    }),
+                })
+            );
+            expect(mockElicitation.requestInput).not.toHaveBeenCalled();
+        });
+
         it("should trigger elicitation when SchemaRegistry URL and auth are missing", async () => {
             mockElicitation.requestInput.mockResolvedValue({ accepted: false });
 

@@ -480,14 +480,23 @@ export class StreamsBuildTool extends StreamsToolBase {
             auth.type = "USER_INFO";
         }
 
+        const requiresCredentials = auth.type !== "SASL_INHERIT";
         const missingFields = StreamsBuildTool.collectMissingFields([
             {
                 key: "schemaRegistryUrl",
                 present: Array.isArray(config.schemaRegistryUrls) && config.schemaRegistryUrls.length > 0,
                 schema: SCHEMA_REGISTRY_FIELDS.schemaRegistryUrl,
             },
-            { key: "username", present: !!auth.username, schema: SCHEMA_REGISTRY_FIELDS.username },
-            { key: "password", present: !!auth.password, schema: SCHEMA_REGISTRY_FIELDS.password },
+            {
+                key: "username",
+                present: !requiresCredentials || !!auth.username,
+                schema: SCHEMA_REGISTRY_FIELDS.username,
+            },
+            {
+                key: "password",
+                present: !requiresCredentials || !!auth.password,
+                schema: SCHEMA_REGISTRY_FIELDS.password,
+            },
         ]);
 
         if (missingFields.length === 0) {
