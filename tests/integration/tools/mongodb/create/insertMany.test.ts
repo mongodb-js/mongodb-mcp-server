@@ -215,7 +215,6 @@ describeWithMongoDB(
             const docCount = await collection.countDocuments({ _id: insertedIds[0] });
             expect(docCount).toBe(1);
         });
-
     },
     {
         getUserConfig: () => ({
@@ -265,7 +264,6 @@ describeWithMongoDB(
             const content = getResponseContent(response.content);
             expect(content).toContain(`Inserted \`2\` document(s) into ${integration.randomDbName()}.test.`);
         });
-
     },
     {
         getUserConfig: () => ({

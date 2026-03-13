@@ -154,7 +154,6 @@ describe("configOverrides", () => {
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
                 expect(result.readOnly).toBe(true);
             });
-
         });
 
         describe("merge behavior", () => {
@@ -317,7 +316,6 @@ describe("configOverrides", () => {
                     applyConfigOverrides({ baseConfig: { ...baseConfig, indexCheck: true } as UserConfig, request })
                 ).toThrow("Cannot apply override for indexCheck: Can only set to true");
             });
-
         });
 
         describe("query parameter overrides", () => {
