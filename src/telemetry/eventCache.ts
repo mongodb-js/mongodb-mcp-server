@@ -12,6 +12,8 @@ export class EventCache {
 
     private cache: LRUCache<number, BaseEvent>;
     private nextId = 0;
+    /** Current exclusive operation, if any. The next caller awaits this before starting. */
+    private currentOperation: { promise: Promise<void>; resolve: () => void } | undefined;
 
     constructor() {
         this.cache = new LRUCache({
@@ -41,6 +43,48 @@ export class EventCache {
     }
 
     /**
+     * Runs a callback with exclusive access to the cache so operations
+     * are serialized across all callers (e.g. multiple Telemetry instances / sessions).
+     */
+    private async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+        const prevOperation = this.currentOperation;
+
+        let resolve: (() => void) | undefined;
+        const promise = new Promise<void>((res) => {
+            resolve = res;
+        });
+        // resolve is guaranteed to be assigned by the Promise constructor
+        const release = resolve as () => void;
+        this.currentOperation = { promise, resolve: release };
+
+        await prevOperation?.promise;
+
+        try {
+            return await fn();
+        } finally {
+            release();
+        }
+    }
+
+    /**
+     * Under exclusive access: reads cached events, passes them to the processor,
+     * then replaces the cache contents with the events returned by the processor.
+     */
+    public async processAndClear(processor: (cachedEvents: BaseEvent[]) => Promise<BaseEvent[]>): Promise<void> {
+        await this.runExclusive(async () => {
+            const cachedEvents = this.getEvents();
+            const remainingEvents = await processor(cachedEvents.map((e) => e.event));
+
+            if (cachedEvents.length > 0) {
+                this.removeEvents(cachedEvents.map((e) => e.id));
+            }
+            if (remainingEvents.length > 0) {
+                this.appendEvents(remainingEvents);
+            }
+        });
+    }
+
+    /**
      * Gets a copy of the currently cached events along with their ids
      * @returns Array of cached BaseEvent objects
      */
@@ -49,9 +93,8 @@ export class EventCache {
     }
 
     /**
-     * Appends new events to the cached events
-     * LRU cache automatically handles dropping oldest events when limit is exceeded
-     * @param events - The events to append
+     * Appends new events to the cache.
+     * LRU cache automatically handles dropping oldest events when limit is exceeded.
      */
     public appendEvents(events: BaseEvent[]): void {
         for (const event of events) {
