@@ -48,7 +48,7 @@ type McpServers = "mcpServers" | "servers" | "mcp";
 const getBasePath = (useDefaultPath?: boolean): string => {
     const platform: Platform | null = getPlatform();
     const isWindows = platform === "windows";
-
+    // Sometimes in Windows we want to use the user home directory instead of APPDATA
     if (isWindows && !useDefaultPath) {
         return process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
     } else {
@@ -355,7 +355,7 @@ class ClaudeCode extends AITool {
     toolType = "claudeCode" as AIToolType;
     configFileName = ".claude.json";
     get configPath(): string {
-        return path.join(getBasePath(), ".claude.json");
+        return path.join(getBasePath(true), ".claude.json");
     }
 }
 
@@ -364,7 +364,7 @@ class OpenCode extends AITool {
     toolType = "opencode" as AIToolType;
     configFileName = "opencode.json";
     get configPath(): string {
-        return path.join(getBasePath(), ".config", "opencode", "opencode.json");
+        return path.join(getBasePath(true), ".config", "opencode", "opencode.json");
     }
     protected override getServersKey(): McpServers {
         return "mcp";

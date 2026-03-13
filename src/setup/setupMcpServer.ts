@@ -220,7 +220,7 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
 
         console.log(
             chalk.green(
-                `\nSetup complete! You can now use the MongoDB MCP Server in ${displayName}. You may need to restart your application to see the changes.\n`
+                `\nSetup complete! You can now use the MongoDB MCP Server in ${displayName}. You will probably need to restart your application to see the changes.\n`
             )
         );
 
@@ -231,9 +231,10 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
 
         console.log("Try a query to get started:\n");
         console.log(availablePrompts.join("\n"));
+        console.log("\n");
 
+        // TODO: support opening files in Windows in CLOUDP-385463
         if (platform !== "windows") {
-            console.log("\n");
             let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
             if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
                 openConfigMessage = `Would you like to open the config file in your default editor?`;
