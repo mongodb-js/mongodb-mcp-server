@@ -78,6 +78,8 @@ const ServerConfigSchema = z4.object({
             "drop-collection",
             "delete-many",
             "drop-index",
+            "atlas-streams-manage",
+            "atlas-streams-teardown",
         ])
         .describe(
             "An array of tool names that require user confirmation before execution. Requires the client to support elicitation."
