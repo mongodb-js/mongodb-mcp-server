@@ -4,7 +4,6 @@ export enum ErrorCodes {
     ForbiddenCollscan = 1_000_002,
     ForbiddenWriteOperation = 1_000_003,
     AtlasSearchNotSupported = 1_000_004,
-    NoEmbeddingsProviderConfigured = 1_000_005,
     AtlasVectorSearchIndexNotFound = 1_000_006,
     AtlasVectorSearchInvalidQuery = 1_000_007,
     Unexpected = 1_000_008,

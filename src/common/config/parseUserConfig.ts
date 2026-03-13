@@ -187,20 +187,5 @@ function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): strin
         );
     }
 
-    const searchEnabled = config.previewFeatures?.includes("search");
-    const embeddingsProviderConfigured = !!config.voyageApiKey;
-    if (searchEnabled && !embeddingsProviderConfigured) {
-        warnings.push(`\
-Warning: Vector search is enabled but no embeddings provider is configured.
-- Set an embeddings provider configuration option to enable auto-embeddings during document insertion and text-based queries with $vectorSearch.\
-`);
-    }
-
-    if (!searchEnabled && embeddingsProviderConfigured) {
-        warnings.push(`\
-Warning: An embeddings provider is configured but the 'search' preview feature is not enabled.
-- Enable vector search by adding 'search' to the 'previewFeatures' configuration option, or remove the embeddings provider configuration if not needed.\
-`);
-    }
     return warnings;
 }

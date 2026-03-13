@@ -17,7 +17,6 @@ import { ErrorCodes, MongoDBError } from "./errors.js";
 import type { ExportsManager } from "./exportsManager.js";
 import type { Client } from "@mongodb-js/atlas-local";
 import type { Keychain } from "./keychain.js";
-import type { VectorSearchEmbeddingsManager } from "./search/vectorSearchEmbeddingsManager.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { type ConnectionErrorHandler } from "./connectionErrorHandler.js";
@@ -30,7 +29,6 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     keychain: Keychain;
     atlasLocalClient?: Client;
     connectionErrorHandler: ConnectionErrorHandler;
-    vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
     apiClient?: ApiClient;
 }
 
@@ -50,7 +48,6 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly connectionErrorHandler: ConnectionErrorHandler;
-    readonly vectorSearchEmbeddingsManager: VectorSearchEmbeddingsManager;
 
     mcpClient?: {
         name?: string;
@@ -68,7 +65,6 @@ export class Session extends EventEmitter<SessionEvents> {
         keychain,
         atlasLocalClient,
         connectionErrorHandler,
-        vectorSearchEmbeddingsManager,
         apiClient,
     }: SessionOptions) {
         super();
@@ -81,7 +77,6 @@ export class Session extends EventEmitter<SessionEvents> {
         this.exportsManager = exportsManager;
         this.connectionManager = connectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
-        this.vectorSearchEmbeddingsManager = vectorSearchEmbeddingsManager;
         this.connectionManager.events.on("connection-success", () => this.emit("connect"));
         this.connectionManager.events.on("connection-time-out", (error) => this.emit("connection-error", error));
         this.connectionManager.events.on("connection-close", () => this.emit("disconnect"));

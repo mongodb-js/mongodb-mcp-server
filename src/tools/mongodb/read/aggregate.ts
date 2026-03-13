@@ -27,7 +27,7 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 - **Index Type Detection:**
   Use the collection-indexes tool to determine if the target field has a classic vector index (type: 'vector') or an auto-embed index (type: 'autoEmbed').
 - **Classic Vector Search (type: 'vector'):**
-  Use 'queryVector' with embeddings as an array of numbers, or as a string with 'embeddingParameters' to generate embeddings.
+  Use 'queryVector' with embeddings as an array of numbers.
 - **Auto-Embed Vector Search (type: 'autoEmbed'):**
   Use 'query' - MongoDB automatically generates embeddings at query time. Do NOT use 'queryVector' or 'embeddingParameters' for auto-embed indexes.
 - **Unset embeddings:**
@@ -47,11 +47,11 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 
 const genericPipelineDescription = "An array of aggregation stages to execute.";
 
-export const getAggregateArgs = (vectorSearchEnabled: boolean) =>
+export const getAggregateArgs = (searchEnabled: boolean) =>
     ({
         pipeline: z
-            .array(vectorSearchEnabled ? z.union([VectorSearchStage, AnyAggregateStage]) : AnyAggregateStage)
-            .describe(vectorSearchEnabled ? pipelineDescriptionWithVectorSearch : genericPipelineDescription),
+            .array(searchEnabled ? z.union([VectorSearchStage, AnyAggregateStage]) : AnyAggregateStage)
+            .describe(searchEnabled ? pipelineDescriptionWithVectorSearch : genericPipelineDescription),
     }) as const;
 
 export class AggregateTool extends MongoDBToolBase {
@@ -118,15 +118,10 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                             `Could not find an index with name "${indexName}" in namespace "${database}.${collection}".`
                         );
                     case "valid-index":
-                    // nothing to do, everything is correct so ready to run the query
+                        // nothing to do, everything is correct so ready to run the query
+                        break;
                 }
             }
-
-            pipeline = await this.replaceRawValuesWithEmbeddingsIfNecessary({
-                database,
-                collection,
-                pipeline,
-            });
 
             let successMessage: string;
             let documents: unknown[];
@@ -275,86 +270,6 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }, undefined);
     }
 
-    private async replaceRawValuesWithEmbeddingsIfNecessary({
-        database,
-        collection,
-        pipeline,
-    }: {
-        database: string;
-        collection: string;
-        pipeline: Document[];
-    }): Promise<Document[]> {
-        for (const stage of pipeline) {
-            if ("$vectorSearch" in stage) {
-                const { $vectorSearch: vectorSearchStage } = stage as z.infer<typeof VectorSearchStage>;
-
-                // If the stage is using 'query' field (auto-embed indexes) then
-                // it is targeting an `autoEmbed` index. In this case, we don't
-                // need to generate embeddings for the query because MongoDB is
-                // configured to handle the embeddings generation automatically.
-                if ("query" in vectorSearchStage) {
-                    continue;
-                }
-
-                // If queryVector is already an array, no embedding generation
-                // needed.
-                if (Array.isArray(vectorSearchStage.queryVector)) {
-                    continue;
-                }
-
-                // At this point, queryVector must be a string for which we need
-                // to generate embeddings.
-                if (!vectorSearchStage.queryVector) {
-                    throw new MongoDBError(
-                        ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        "Either 'queryVector' (for classic vector indexes) or 'query' (for auto-embed indexes) must be provided in $vectorSearch. Use the collection-indexes tool to verify which type of index the target field has."
-                    );
-                }
-
-                if (!vectorSearchStage.embeddingParameters) {
-                    throw new MongoDBError(
-                        ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        "embeddingParameters is mandatory when providing queryVector as a string for classic vector search indexes (type: 'vector'). If the target field has an auto-embed index (type: 'autoEmbed'), use 'query' instead of 'queryVector'. Use the collection-indexes tool to verify the index type."
-                    );
-                }
-
-                const embeddingParameters = vectorSearchStage.embeddingParameters;
-                delete vectorSearchStage.embeddingParameters;
-
-                await this.session.vectorSearchEmbeddingsManager.assertVectorSearchIndexExists({
-                    database,
-                    collection,
-                    path: vectorSearchStage.path,
-                });
-
-                const [embeddings] = await this.session.vectorSearchEmbeddingsManager.generateEmbeddings({
-                    rawValues: [vectorSearchStage.queryVector],
-                    embeddingParameters,
-                    inputType: "query",
-                });
-
-                if (!embeddings) {
-                    throw new MongoDBError(
-                        ErrorCodes.AtlasVectorSearchInvalidQuery,
-                        "Failed to generate embeddings for the query vector."
-                    );
-                }
-
-                // $vectorSearch.queryVector can be a BSON.Binary: that it's not either number or an array.
-                // It's not exactly valid from the LLM perspective (they can't provide binaries).
-                // That's why we overwrite the stage in an untyped way, as what we expose and what LLMs can use is different.
-                vectorSearchStage.queryVector = embeddings as string | number[];
-            }
-        }
-
-        await this.session.vectorSearchEmbeddingsManager.assertFieldsHaveCorrectEmbeddings(
-            { database, collection },
-            pipeline
-        );
-
-        return pipeline;
-    }
-
     private async isVectorSearchIndexUsed({
         database,
         collection,
@@ -381,11 +296,13 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             return ["not-vector-search-query"];
         }
 
-        const indexExists = await this.session.vectorSearchEmbeddingsManager.indexExists({
-            database,
-            collection,
-            indexName,
-        });
+        const isSearchSupported = await this.session.isSearchSupported();
+        let indexExists = false;
+        if (isSearchSupported) {
+            const provider = await this.ensureConnected();
+            const indexes = await provider.getSearchIndexes(database, collection, indexName);
+            indexExists = indexes.length >= 1;
+        }
 
         return [indexExists ? "valid-index" : "non-existent-index", indexName];
     }
@@ -426,16 +343,6 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         const [maybeVectorStage] = args.pipeline;
         const usesVectorSearch =
             maybeVectorStage !== null && maybeVectorStage instanceof Object && "$vectorSearch" in maybeVectorStage;
-        if (
-            usesVectorSearch &&
-            "embeddingParameters" in maybeVectorStage["$vectorSearch"] &&
-            this.config.voyageApiKey
-        ) {
-            return {
-                ...super.resolveTelemetryMetadata(args, { result }),
-                embeddingsGeneratedBy: "mcp",
-            };
-        }
 
         if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
             return {

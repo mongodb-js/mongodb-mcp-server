@@ -12,7 +12,6 @@ import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { connectionErrorHandler } from "../../../src/common/connectionErrorHandler.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { Elicitation } from "../../../src/elicitation.js";
-import { VectorSearchEmbeddingsManager } from "../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
@@ -183,7 +182,6 @@ describe("mcpUI feature with custom UIs", () => {
             connectionManager,
             keychain: Keychain.root,
             connectionErrorHandler,
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
             apiClient: defaultCreateApiClient(
                 {

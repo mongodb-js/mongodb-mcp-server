@@ -2,7 +2,6 @@ import { z } from "zod";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
 import type { IndexDirection } from "mongodb";
-import { quantizationEnum } from "../../../common/search/vectorSearchEmbeddingsManager.js";
 import { similarityValues } from "../../../common/schemas.js";
 import { modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 
@@ -41,17 +40,18 @@ For nested fields, use dot notation to specify path to embedded fields.\
                 .number()
                 .min(1)
                 .max(8192)
-                .default(this.config.vectorSearchDimensions)
+                .default(1024)
                 .describe(
                     "Number of vector dimensions that MongoDB Vector Search enforces at index-time and query-time"
                 ),
             similarity: z
                 .enum(similarityValues)
-                .default(this.config.vectorSearchSimilarityFunction)
+                .default("euclidean")
                 .describe(
                     "Vector similarity function to use to search for top K-nearest neighbors. You can set this field only for vector-type fields."
                 ),
-            quantization: quantizationEnum
+            quantization: z
+                .enum(["none", "scalar", "binary"])
                 .default("none")
                 .describe(
                     "Type of automatic vector quantization for your vectors. Use this setting only if your embeddings are float or double vectors."
@@ -262,9 +262,6 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
 
                     responseClarification =
                         " Since this is a vector search index, it may take a while for the index to build. Use the `collection-indexes` tool to check the index status.";
-
-                    // clean up the embeddings cache so it considers the new index
-                    this.session.vectorSearchEmbeddingsManager.cleanupEmbeddingsForNamespace({ database, collection });
                 }
 
                 break;

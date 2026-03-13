@@ -158,7 +158,6 @@
     "@mongodb-js/devtools-proxy-support": "^0.7.5",
     "@mongosh/arg-parser": "^5.0.2",
     "@mongosh/service-provider-node-driver": "^5.0.2",
-    "ai": "^6.0.116",
     "bson": "^7.2.0",
     "express": "^5.1.0",
     "lru-cache": "^11.2.6",
@@ -172,7 +171,6 @@
     "oauth4webapi": "^3.8.5",
     "openapi-fetch": "^0.15.0",
     "ts-levenshtein": "^1.0.7",
-    "voyage-ai-provider": "^3.0.0",
     "yaml": "^2.8.1",
     "zod": "^3.25.76"
   },

@@ -9,7 +9,7 @@ import {
     onlySubsetOfBaseValueOverride,
     parseBoolean,
 } from "./configUtils.js";
-import { previewFeatureValues, similarityValues } from "../schemas.js";
+import { previewFeatureValues } from "../schemas.js";
 import { CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
 
@@ -197,21 +197,6 @@ const ServerConfigSchema = z4.object({
             "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
-    embeddingsValidation: z4
-        .preprocess(parseBoolean, z4.boolean())
-        .default(true)
-        .describe("When set to false, disables validation of embeddings dimensions.")
-        .register(configRegistry, { overrideBehavior: oneWayOverride(true) }),
-    vectorSearchDimensions: z4.coerce
-        .number()
-        .default(1024)
-        .describe("Default number of dimensions for vector search embeddings.")
-        .register(configRegistry, { overrideBehavior: "override" }),
-    vectorSearchSimilarityFunction: z4
-        .enum(similarityValues)
-        .default("euclidean")
-        .describe("Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.")
-        .register(configRegistry, { overrideBehavior: "override" }),
     previewFeatures: z4
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),

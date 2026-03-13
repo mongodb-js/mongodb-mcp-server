@@ -7,7 +7,6 @@ import { MCPConnectionManager } from "../../../../src/common/connectionManager.j
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
 import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
-import { VectorSearchEmbeddingsManager } from "../../../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultTestConfig } from "../../../integration/helpers.js";
 import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
 import { defaultCreateApiClient } from "../../../../src/lib.js";
@@ -35,7 +34,6 @@ describe("debug resource", () => {
                 },
                 logger
             ),
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(defaultTestConfig, connectionManager),
         })
     );
 
