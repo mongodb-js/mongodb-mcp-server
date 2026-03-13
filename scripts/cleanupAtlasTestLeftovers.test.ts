@@ -4,6 +4,10 @@ import { ConsoleLogger } from "../src/common/logging/index.js";
 import { Keychain } from "../src/lib.js";
 import { describe, it } from "vitest";
 
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function isOlderThanTwoHours(date: string): boolean {
     const twoHoursInMs = 2 * 60 * 60 * 1000;
     const projectDate = new Date(date);
@@ -35,6 +39,78 @@ async function findAllTestProjects(client: ApiClient, orgId: string): Promise<Gr
     return testProjects.filter((proj) => isOlderThanTwoHours(proj.created));
 }
 
+async function deleteAllWorkspacesOnStaleProject(client: ApiClient, projectId: string): Promise<string[]> {
+    const errors: string[] = [];
+
+    try {
+        const workspaces = await client
+            .listStreamWorkspaces({
+                params: {
+                    path: {
+                        groupId: projectId,
+                    },
+                },
+            })
+            .then((res) => res.results || []);
+
+        await Promise.allSettled(
+            workspaces.map(async (workspace) => {
+                const name = workspace.name || "";
+                try {
+                    // Delete all processors first (auto-stops running ones)
+                    try {
+                        const processors = await client
+                            .getStreamProcessors({
+                                params: { path: { groupId: projectId, tenantName: name } },
+                            })
+                            .then((res) => res.results || []);
+                        await Promise.allSettled(
+                            processors.map((p) =>
+                                client.deleteStreamProcessor({
+                                    params: {
+                                        path: {
+                                            groupId: projectId,
+                                            tenantName: name,
+                                            processorName: p.name || "",
+                                        },
+                                    },
+                                })
+                            )
+                        );
+                    } catch {
+                        // Ignore errors listing/deleting processors
+                    }
+                    await client.deleteStreamWorkspace({
+                        params: {
+                            path: { groupId: projectId, tenantName: name },
+                        },
+                    });
+                    // Wait for workspace to be fully deleted (up to 120s)
+                    for (let i = 0; i < 120; i++) {
+                        try {
+                            await client.getStreamWorkspace({
+                                params: {
+                                    path: { groupId: projectId, tenantName: name },
+                                },
+                            });
+                            await sleep(1000);
+                        } catch {
+                            break;
+                        }
+                    }
+                    console.log(`  Deleted workspace: ${name}`);
+                } catch (error) {
+                    errors.push(`Failed to delete workspace ${name} in project ${projectId}: ${String(error)}`);
+                }
+            })
+        );
+    } catch {
+        // Project may not have streams enabled, ignore
+    }
+
+    return errors;
+}
+
 async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: string): Promise<string[]> {
     const errors: string[] = [];
 
@@ -50,12 +126,13 @@ async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: str
 
     await Promise.allSettled(
         allClusters.map(async (cluster) => {
+            const name = cluster.name || "";
             try {
                 await client.deleteCluster({
-                    params: { path: { groupId: projectId || "", clusterName: cluster.name || "" } },
+                    params: { path: { groupId: projectId || "", clusterName: name } },
                 });
             } catch (error) {
-                errors.push(`Failed to delete cluster ${cluster.name} in project ${projectId}: ${String(error)}`);
+                errors.push(`Failed to delete cluster ${name} in project ${projectId}: ${String(error)}`);
             }
         })
     );
@@ -95,7 +172,11 @@ async function main(): Promise<void> {
             continue;
         }
 
-        // Try to delete all clusters first
+        // Try to delete all stream processing workspaces first
+        const workspaceErrors = await deleteAllWorkspacesOnStaleProject(apiClient, project.id);
+        allErrors.push(...workspaceErrors);
+
+        // Try to delete all clusters
         const clusterErrors = await deleteAllClustersOnStaleProject(apiClient, project.id);
         allErrors.push(...clusterErrors);
 

@@ -474,11 +474,28 @@ export function withWorkspace(integration: IntegrationTest, fn: WorkspaceTestFun
                             },
                         },
                     });
+                    // Wait for workspace deletion to complete before deleting the cluster,
+                    // because the cluster cannot be deleted while a workspace connection references it.
+                    for (let i = 0; i < 120; i++) {
+                        try {
+                            await apiClient.getStreamWorkspace({
+                                params: {
+                                    path: {
+                                        groupId: getProjectId(),
+                                        tenantName: workspaceName,
+                                    },
+                                },
+                            });
+                            await sleep(1000);
+                        } catch {
+                            break;
+                        }
+                    }
                 } catch (error) {
                     console.log("Failed to delete workspace:", error);
                 }
                 try {
-                    await deleteCluster(session, getProjectId(), clusterName, true);
+                    await deleteCluster(session, getProjectId(), clusterName);
                 } catch (error) {
                     console.log("Failed to delete cluster:", error);
                 }
