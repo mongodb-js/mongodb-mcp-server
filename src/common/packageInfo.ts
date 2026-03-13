@@ -2,4 +2,7 @@
 export const packageInfo = {
     version: "1.8.1",
     mcpServerName: "MongoDB MCP Server",
+    engines: {
+        node: "^20.19.0 || ^22.12.0 || >= 23.0.0",
+    },
 };
