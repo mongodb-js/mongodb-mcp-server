@@ -45,11 +45,11 @@ type McpConfig =
 
 type McpServers = "mcpServers" | "servers" | "mcp";
 
-const getBasePath = (): string => {
+const getBasePath = (useDefaultPath?: boolean): string => {
     const platform: Platform | null = getPlatform();
     const isWindows = platform === "windows";
 
-    if (isWindows) {
+    if (isWindows && !useDefaultPath) {
         return process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
     } else {
         return os.homedir();
@@ -260,7 +260,7 @@ class Cursor extends AITool {
     toolType = "cursor" as AIToolType;
     configFileName = "mcp.json";
     get configPath(): string {
-        return path.join(getBasePath(), ".cursor", "mcp.json");
+        return path.join(getBasePath(true), ".cursor", "mcp.json");
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
 
@@ -323,18 +323,7 @@ class Windsurf extends AITool {
     toolType = "windsurf" as AIToolType;
     configFileName = "mcp_config.json";
     get configPath(): string {
-        const platform: Platform | null = getPlatform();
-        const isWindows = platform === "windows";
-        const isMac = platform === "mac";
-        const isLinux = platform === "linux";
-
-        if (isWindows) {
-            return path.join(getBasePath(), "cascade", "mcp_config.json");
-        }
-        if (isMac || isLinux) {
-            return path.join(getBasePath(), ".config", "cascade", "mcp_config.json");
-        }
-        return "";
+        return path.join(getBasePath(true), ".codeium", "windsurf", "mcp_config.json");
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
     getOpenConfigCommand(configPath: string, platform: Platform): string | null {

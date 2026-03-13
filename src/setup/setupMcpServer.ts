@@ -196,7 +196,8 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
         });
         console.log("\n");
 
-        if (!connectionString && !serviceAccountId && !serviceAccountSecret) {
+        // If either the connection string is missing or one of the service account credentials, throw error
+        if (!connectionString && (!serviceAccountId || !serviceAccountSecret)) {
             console.log(
                 chalk.red("Please try setting up again with connection string or service account credentials.\n")
             );
