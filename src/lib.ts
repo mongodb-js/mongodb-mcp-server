@@ -32,7 +32,7 @@ export {
     type LogLevel,
     CompositeLogger,
 } from "./common/logging/index.js";
-export { StreamableHttpRunner } from "./transports/streamableHttp.js";
+export { StreamableHttpRunner } from "./transports/streamableHttp/streamableHttpRunner.js";
 export { StdioRunner } from "./transports/stdio.js";
 export {
     TransportRunnerBase,

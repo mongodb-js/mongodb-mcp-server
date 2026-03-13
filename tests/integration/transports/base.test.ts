@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner } from "../../../src/transports/streamableHttp/streamableHttpRunner.js";
 import { defaultTestConfig } from "../helpers.js";
 import type { UIRegistry } from "../../../src/ui/registry/index.js";
 import type { Server } from "../../../src/server.js";
