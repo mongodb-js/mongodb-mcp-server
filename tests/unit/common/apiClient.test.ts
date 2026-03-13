@@ -74,6 +74,7 @@ describe("ApiClient", () => {
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
             expect(headers["User-Agent"]).toBe("test-user-agent");
+            expect(init?.signal).toBeInstanceOf(AbortSignal);
         });
 
         it("should use default userAgent with version, platform, and arch when not provided", async () => {
@@ -194,16 +195,19 @@ describe("ApiClient", () => {
             await apiClient.sendEvents(mockEvents);
 
             const url = new URL("api/private/v1.0/telemetry/events", "https://api.test.com");
-            expect(mockFetch).toHaveBeenCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer mockToken",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer mockToken",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should fall back to unauthenticated endpoint when token is not available via exception", async () => {
@@ -216,15 +220,18 @@ describe("ApiClient", () => {
             await apiClient.sendEvents(mockEvents);
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
-            expect(mockFetch).toHaveBeenCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should fall back to unauthenticated endpoint when token is undefined", async () => {
@@ -237,15 +244,18 @@ describe("ApiClient", () => {
             await apiClient.sendEvents(mockEvents);
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
-            expect(mockFetch).toHaveBeenCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should fall back to unauthenticated endpoint on 401 error", async () => {
@@ -258,15 +268,18 @@ describe("ApiClient", () => {
 
             const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
             expect(mockFetch).toHaveBeenCalledTimes(2);
-            expect(mockFetch).toHaveBeenLastCalledWith(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "User-Agent": "test-user-agent",
-                },
-                body: JSON.stringify(mockEvents),
-            });
+            expect(mockFetch).toHaveBeenLastCalledWith(
+                url,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "User-Agent": "test-user-agent",
+                    },
+                    body: JSON.stringify(mockEvents),
+                })
+            );
         });
 
         it("should throw error when both authenticated and unauthenticated requests fail", async () => {
