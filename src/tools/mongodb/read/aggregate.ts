@@ -45,21 +45,16 @@ If the user has asked for lexical/Atlas search, use \`$search\` instead of \`$te
 - The \`$search\` stage supports multiple operators, such as 'autocomplete', 'text', 'geoWithin', and others. Choose the approprate operator based on the user's query. If unsure of the exact syntax, consult the MongoDB Atlas Search documentation, which can be found here: https://www.mongodb.com/docs/atlas/atlas-search/operators-and-collectors/
 `;
 
-const genericPipelineDescription = "An array of aggregation stages to execute.";
-
-export const getAggregateArgs = (searchEnabled: boolean) =>
-    ({
-        pipeline: z
-            .array(searchEnabled ? z.union([VectorSearchStage, AnyAggregateStage]) : AnyAggregateStage)
-            .describe(searchEnabled ? pipelineDescriptionWithVectorSearch : genericPipelineDescription),
-    }) as const;
+export const AggregateArgs = {
+    pipeline: z.array(z.union([VectorSearchStage, AnyAggregateStage])).describe(pipelineDescriptionWithVectorSearch),
+};
 
 export class AggregateTool extends MongoDBToolBase {
     static toolName = "aggregate";
     public description = "Run an aggregation against a MongoDB collection";
     public argsShape = {
         ...DbOperationArgs,
-        ...getAggregateArgs(this.isFeatureEnabled("search")),
+        ...AggregateArgs,
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
 The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \
 Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.\

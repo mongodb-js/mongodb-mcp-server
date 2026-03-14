@@ -209,13 +209,12 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                             keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
                         })
                         .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial/text)."),
-                    ...(this.isFeatureEnabled("search")
-                        ? [this.vectorSearchIndexDefinition, this.atlasSearchIndexDefinition]
-                        : []),
+                    this.vectorSearchIndexDefinition,
+                    this.atlasSearchIndexDefinition,
                 ])
             )
             .describe(
-                `The index definition. Use 'classic' for standard indexes${this.isFeatureEnabled("search") ? ", 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes" : ""}.`
+                "The index definition. Use 'classic' for standard indexes, 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes."
             ),
     };
     public override outputSchema = CreateIndexOutputSchema;

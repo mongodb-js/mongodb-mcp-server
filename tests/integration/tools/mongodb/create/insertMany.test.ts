@@ -11,7 +11,6 @@ import {
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     expectDefined,
-    defaultTestConfig,
 } from "../../../helpers.js";
 import type { InsertManyOutput } from "../../../../../src/tools/mongodb/create/insertMany.js";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
@@ -215,13 +214,6 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => ({
-            ...defaultTestConfig,
-            // This is expected to be set through the CI env. When not set we
-            // get a warning in the run logs.
-            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["search"],
-        }),
         downloadOptions: { search: true },
     }
 );
@@ -264,13 +256,6 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => ({
-            ...defaultTestConfig,
-            // This is expected to be set through the CI env. When not set we
-            // get a warning in the run logs.
-            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["search"],
-        }),
         downloadOptions: {
             autoEmbed: true,
             mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,

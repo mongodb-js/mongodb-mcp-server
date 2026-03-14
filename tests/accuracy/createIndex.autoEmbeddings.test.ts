@@ -73,7 +73,6 @@ If not present then create an auto embed vector search index on the 'plot' field
         },
     ],
     {
-        userConfig: { voyageApiKey: process.env.MDB_VOYAGE_API_KEY, previewFeatures: "search" },
         clusterConfig: {
             autoEmbed: true,
             mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,

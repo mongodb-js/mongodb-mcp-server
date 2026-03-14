@@ -1,2 +1,2 @@
-export const previewFeatureValues = ["search", "mcpUI"] as const;
+export const previewFeatureValues = ["mcpUI"] as const;
 export type PreviewFeature = (typeof previewFeatureValues)[number];
