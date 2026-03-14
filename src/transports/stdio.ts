@@ -26,6 +26,10 @@ export class StdioRunner<TUserConfig extends UserConfig = UserConfig, TContext =
         try {
             this.server = await this.createServer({ serverOptions, sessionOptions });
             const transport = new StdioServerTransport();
+            transport.onclose = async () => {
+                await this.server?.close();
+                process.exit(0);
+            };
 
             await this.server.connect(transport);
         } catch (error: unknown) {
