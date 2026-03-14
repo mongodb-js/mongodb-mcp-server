@@ -82,7 +82,6 @@ export function describeAccuracyTests(
         const userConfig: Partial<{ [k in keyof UserConfig]: string }> = {
             apiClientId: process.env.MDB_API_CLIENT_ID,
             apiClientSecret: process.env.MDB_API_CLIENT_SECRET,
-            voyageApiKey: process.env.MDB_VOYAGE_API_KEY,
             ...partialUserConfig,
         };
 
