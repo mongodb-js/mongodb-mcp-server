@@ -160,6 +160,186 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
+        {
+            prompt: `Add an S3 connection named 'archive' to workspace '${workspaceName}' using my AWS IAM role`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "archive",
+                        connectionType: "S3",
+                        connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Add an HTTPS webhook connection named 'alerts' with URL https://hooks.example.com/webhook to workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "alerts",
+                        connectionType: "Https",
+                        connectionConfig: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Add an AWS Kinesis connection named 'kinesis-ingest' to workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "kinesis-ingest",
+                        connectionType: "AWSKinesisDataStreams",
+                        connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Add an AWS Lambda connection named 'transform' to workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "transform",
+                        connectionType: "AWSLambda",
+                        connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Add a Confluent Schema Registry connection named 'registry' with URL https://schema-registry.example.com to workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "registry",
+                        connectionType: "SchemaRegistry",
+                        connectionConfig: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Deploy a processor named 'solar-rollup' in workspace '${workspaceName}' that reads from 'sample_stream_solar', aggregates into 10-second tumbling windows grouped by device_id, and writes averages to the 'analytics.solar_rollup' collection via 'mycluster'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "solar-rollup",
+                        pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Create a processor named 'filter-alerts' in workspace '${workspaceName}' that reads from Kafka topic 'input-events' via connection 'kafka-source', filters documents where severity is 'critical', and emits to Kafka topic 'critical-alerts' via connection 'kafka-sink'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "filter-alerts",
+                        pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Deploy a processor named 'webhook-notifier' in workspace '${workspaceName}' that reads from Kafka connection 'events' topic 'alerts' and sends each document to the HTTPS connection 'webhook'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "webhook-notifier",
+                        pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Deploy a processor named 'etl-safe' in workspace '${workspaceName}' that reads from 'events' topic 'raw-data' and writes to 'mycluster' collection 'processed.output', with a dead letter queue writing to connection 'dlq-cluster' database 'errors' collection 'failed'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "etl-safe",
+                        pipeline: Matcher.anyValue,
+                        dlq: {
+                            connectionName: "dlq-cluster",
+                            db: "errors",
+                            coll: "failed",
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Create a processor named 'mongo-sync' in workspace '${workspaceName}' that reads change stream data from 'source-cluster' database 'app' collection 'orders' and merges into 'dest-cluster' database 'warehouse' collection 'orders'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "mongo-sync",
+                        pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
     ],
     { userConfig: { previewFeatures: "streams" } }
 );
