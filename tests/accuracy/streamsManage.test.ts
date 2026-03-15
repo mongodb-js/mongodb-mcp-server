@@ -161,6 +161,40 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
+        {
+            prompt: `Update the configuration of connection 'events' in workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        projectId,
+                        action: "update-connection",
+                        workspaceName,
+                        resourceName: "events",
+                        connectionConfig: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Rename processor '${processorName}' to 'etl-v2' in workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        projectId,
+                        action: "modify-processor",
+                        workspaceName,
+                        resourceName: processorName,
+                        newName: "etl-v2",
+                    },
+                },
+            ],
+            mockedTools,
+        },
     ],
     { userConfig: { previewFeatures: "streams" } }
 );
