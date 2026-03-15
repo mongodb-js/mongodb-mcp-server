@@ -172,6 +172,54 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
+        {
+            prompt: `Show me the details of connection 'events' in workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-discover",
+                    parameters: {
+                        projectId,
+                        action: "inspect-connection",
+                        workspaceName,
+                        resourceName: "events",
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Show me the full configuration of processor '${processorName}' in workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-discover",
+                    parameters: {
+                        projectId,
+                        action: "inspect-processor",
+                        workspaceName,
+                        resourceName: processorName,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Show me the audit logs for workspace '${workspaceName}'`,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-discover",
+                    parameters: {
+                        projectId,
+                        action: "get-logs",
+                        workspaceName,
+                        logType: "audit",
+                    },
+                },
+            ],
+            mockedTools,
+        },
     ],
     { userConfig: { previewFeatures: "streams" } }
 );
