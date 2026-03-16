@@ -35,7 +35,7 @@ export type PromptDefinition = string | string[];
 // Generic interface for Agent, in case we need to switch to some other agent
 // development SDK
 export interface Agent<Model = unknown, Tools = unknown, Result = unknown> {
-    prompt(prompt: PromptDefinition, model: Model, tools: Tools): Promise<Result>;
+    prompt(prompt: PromptDefinition, model: Model, tools: Tools, additionalSystemPrompt?: string): Promise<Result>;
 }
 
 export function getVercelToolCallingAgent(
@@ -45,7 +45,8 @@ export function getVercelToolCallingAgent(
         async prompt(
             prompt: PromptDefinition,
             model: Model<LanguageModel>,
-            tools: VercelMCPClientTools
+            tools: VercelMCPClientTools,
+            additionalSystemPrompt?: string
         ): Promise<VercelAgentPromptResult> {
             let prompts: string[];
             if (typeof prompt === "string") {
@@ -68,7 +69,7 @@ export function getVercelToolCallingAgent(
             for (const p of prompts) {
                 const intermediateResult = await generateText({
                     model: model.getModel(),
-                    system: [...systemPrompt, requestedSystemPrompt].filter(Boolean).join("\n"),
+                    system: [...systemPrompt, requestedSystemPrompt, additionalSystemPrompt].filter(Boolean).join("\n"),
                     prompt: p,
                     tools,
                     stopWhen: stepCountIs(100),

@@ -121,7 +121,7 @@ export function describeAccuracyTests(
             const toolsForModel = await testMCPClient.vercelTools();
 
             const timeBeforePrompt = Date.now();
-            const result = await agent.prompt(testConfig.prompt, model, toolsForModel);
+            const result = await agent.prompt(testConfig.prompt, model, toolsForModel, testConfig.systemPrompt);
             const timeAfterPrompt = Date.now();
 
             const llmToolCalls = testMCPClient.getLLMToolCalls();

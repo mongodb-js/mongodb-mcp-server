@@ -1,6 +1,7 @@
 import { formatUntrustedData } from "../../src/tools/tool.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { Matcher } from "./sdk/matcher.js";
 
 const projectId = "68f600519f16226591d054c0";
 const workspaceName = "myworkspace";
@@ -50,19 +51,26 @@ const mockedTools = {
     },
 };
 
-const optionalProjectDiscovery = [
-    { toolName: "atlas-list-projects", parameters: {}, optional: true },
-];
+const optionalProjectDiscovery = [{ toolName: "atlas-list-projects", parameters: {}, optional: true }];
 
 const optionalWorkspaceDiscovery = [
     ...optionalProjectDiscovery,
     { toolName: "atlas-streams-discover", parameters: { projectId, action: "list-workspaces" }, optional: true },
 ];
 
+// Simulate prior conversation context where the project was already established
+const projectContext = `The user is working in Atlas project 'StreamsProject' (projectId: '${projectId}').`;
+
+// Guard against extra optional params the LLM commonly includes
+const optionalTeardownParams = {
+    resourceName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+};
+
 describeAccuracyTests(
     [
         {
             prompt: `Delete processor '${processorName}' from workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
@@ -79,6 +87,7 @@ describeAccuracyTests(
         },
         {
             prompt: `Remove connection 'events' from workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
@@ -95,11 +104,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Delete workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-teardown",
                     parameters: {
+                        ...optionalTeardownParams,
                         projectId,
                         resource: "workspace",
                         workspaceName,
@@ -110,11 +121,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Clean up my streams environment — remove workspace '${workspaceName}' and everything in it`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-teardown",
                     parameters: {
+                        ...optionalTeardownParams,
                         projectId,
                         resource: "workspace",
                         workspaceName,
