@@ -136,6 +136,40 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
+        {
+            prompt: "Delete the PrivateLink connection 'pl-abc123'",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-teardown",
+                    parameters: {
+                        ...optionalTeardownParams,
+                        projectId,
+                        resource: "privatelink",
+                        resourceName: "pl-abc123",
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Remove VPC peering connection 'pcx-def456'",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-teardown",
+                    parameters: {
+                        ...optionalTeardownParams,
+                        projectId,
+                        resource: "peering",
+                        resourceName: "pcx-def456",
+                    },
+                },
+            ],
+            mockedTools,
+        },
     ],
     { userConfig: { previewFeatures: "streams" } }
 );

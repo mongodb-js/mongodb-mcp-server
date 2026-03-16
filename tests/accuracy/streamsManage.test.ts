@@ -71,6 +71,9 @@ const optionalManageParams = {
     connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     newRegion: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     newTier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    peeringId: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    requesterAccountId: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    requesterVpcId: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
 };
 
 describeAccuracyTests(
@@ -116,6 +119,7 @@ describeAccuracyTests(
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
+                { toolName: "atlas-streams-manage", parameters: Matcher.anyValue, optional: true },
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
@@ -187,7 +191,10 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: `Update the configuration of connection 'events' in workspace '${workspaceName}'`,
+            prompt: [
+                `Update the configuration of connection 'events' in workspace '${workspaceName}'`,
+                "Change the bootstrap servers to broker2.example.com:9092",
+            ],
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
@@ -219,6 +226,44 @@ describeAccuracyTests(
                         workspaceName,
                         resourceName: processorName,
                         newName: "etl-v2",
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Accept the VPC peering request 'pcx-abc123' from AWS account 123456789012 with VPC vpc-def456",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        ...optionalManageParams,
+                        projectId,
+                        workspaceName,
+                        action: "accept-peering",
+                        peeringId: "pcx-abc123",
+                        requesterAccountId: "123456789012",
+                        requesterVpcId: "vpc-def456",
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Reject the VPC peering request 'pcx-xyz789'",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        ...optionalManageParams,
+                        projectId,
+                        workspaceName,
+                        action: "reject-peering",
+                        peeringId: "pcx-xyz789",
                     },
                 },
             ],

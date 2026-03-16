@@ -97,19 +97,22 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: `Add a Kafka connection named 'events' to workspace '${workspaceName}'`,
+            prompt: [
+                `Add a Kafka connection named 'events' to workspace '${workspaceName}'`,
+                "Use bootstrap server broker.example.com:9092 with PLAIN authentication, username 'user1', and SASL_SSL security",
+            ],
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-build",
                     parameters: {
-                        ...optionalConnectionParams,
                         projectId,
                         resource: "connection",
                         workspaceName,
                         connectionName: "events",
                         connectionType: "Kafka",
+                        connectionConfig: Matcher.anyValue,
                     },
                 },
             ],
@@ -227,7 +230,10 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: `Add an AWS Kinesis connection named 'kinesis-ingest' to workspace '${workspaceName}'`,
+            prompt: [
+                `Add an AWS Kinesis connection named 'kinesis-ingest' to workspace '${workspaceName}'`,
+                "Use IAM role arn:aws:iam::123456789012:role/my-kinesis-role",
+            ],
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
@@ -239,14 +245,17 @@ describeAccuracyTests(
                         workspaceName,
                         connectionName: "kinesis-ingest",
                         connectionType: "AWSKinesisDataStreams",
-                        connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                        connectionConfig: Matcher.anyValue,
                     },
                 },
             ],
             mockedTools,
         },
         {
-            prompt: `Add an AWS Lambda connection named 'transform' to workspace '${workspaceName}'`,
+            prompt: [
+                `Add an AWS Lambda connection named 'transform' to workspace '${workspaceName}'`,
+                "Use IAM role arn:aws:iam::123456789012:role/my-lambda-role",
+            ],
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
@@ -258,7 +267,7 @@ describeAccuracyTests(
                         workspaceName,
                         connectionName: "transform",
                         connectionType: "AWSLambda",
-                        connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                        connectionConfig: Matcher.anyValue,
                     },
                 },
             ],
@@ -378,6 +387,23 @@ describeAccuracyTests(
                         workspaceName,
                         processorName: "mongo-sync",
                         pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up an AWS PrivateLink connection for my streams project with ARN arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123 and DNS domain streaming.example.com",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "privatelink",
+                        privateLinkProvider: "AWS",
+                        privateLinkConfig: Matcher.anyValue,
                     },
                 },
             ],
