@@ -105,7 +105,8 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     public argsShape = {
         projectId: AtlasArgs.projectId().describe(
-            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+            "Atlas project ID — a 24-character hexadecimal string. " +
+                "Call atlas-list-projects first to obtain the correct project ID. Never guess or use placeholder values."
         ),
         resource: BuildResource.describe(
             "What to create. Start with 'workspace', then 'connection', then 'processor'. " +
@@ -155,8 +156,9 @@ export class StreamsBuildTool extends StreamsToolBase {
             .record(z.unknown())
             .optional()
             .describe(
-                "Type-specific connection configuration. Typically required for non-Sample connections when resource='connection'. " +
-                    "For connectionType='Sample', no config is needed. You may also provide an empty or partial config; missing fields can be filled via elicitation. " +
+                "Type-specific connection configuration. Only for resource='connection'. " +
+                    "Omit entirely for connectionType='Sample' (no config needed). " +
+                    "Required for all other connection types. You may provide a partial config; missing fields can be filled via elicitation. " +
                     "Kafka: {bootstrapServers: string (comma-separated), authentication: {mechanism: 'PLAIN'|'SCRAM-256'|'SCRAM-512', username: string, password: string}, security: {protocol: 'SASL_SSL'|'SASL_PLAINTEXT'|'SSL'}}. " +
                     "Cluster: {clusterName: string, dbRoleToExecute: {role: string, type: 'BUILT_IN'|'CUSTOM'}}. " +
                     "S3: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
@@ -193,11 +195,18 @@ export class StreamsBuildTool extends StreamsToolBase {
                 coll: z.string().describe("Collection name for DLQ documents"),
             })
             .optional()
-            .describe("Dead letter queue configuration. Recommended for resource='processor'."),
+            .describe(
+                "Dead letter queue configuration. Only for resource='processor'. " +
+                    "Only include when the user explicitly requests a DLQ, or when the pipeline uses $https with default onError='dlq'. " +
+                    "The DLQ connection must already exist in the workspace."
+            ),
         autoStart: z
             .boolean()
             .optional()
-            .describe("Start the processor immediately after creation. Default: false. Only for resource='processor'."),
+            .describe(
+                "Start the processor immediately after creation. Default: false. Only for resource='processor'. " +
+                    "Omit unless the user explicitly asks to start the processor right away."
+            ),
 
         // PrivateLink fields
         privateLinkProvider: CloudProvider.optional().describe(
