@@ -41,7 +41,7 @@ export interface ServerOptions<
     /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
-    metrics?: Metrics<TMetrics>;
+    metrics: Metrics<TMetrics>;
     /**
      * An optional list of tools constructors to be registered to the MongoDB
      * MCP Server.
@@ -155,7 +155,7 @@ export class Server<
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = uiRegistry;
         this.toolContext = toolContext;
-        this.metrics = metrics ?? new PrometheusMetrics<TMetrics>({ definitions: createDefaultMetrics() as TMetrics });
+        this.metrics = metrics;
     }
 
     async connect(transport: Transport): Promise<void> {
