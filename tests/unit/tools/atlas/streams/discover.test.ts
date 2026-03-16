@@ -8,6 +8,7 @@ import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
 import type { ApiClient } from "../../../../../src/common/atlas/apiClient.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
+import { MockMetrics } from "../../../mocks/metrics.js";
 
 describe("StreamsDiscoverTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -64,6 +65,7 @@ describe("StreamsDiscoverTool", () => {
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
+            metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 

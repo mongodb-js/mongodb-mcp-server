@@ -11,6 +11,7 @@ import type { Elicitation } from "../../../../../src/elicitation.js";
 import type { CompositeLogger } from "../../../../../src/common/logging/index.js";
 import type { TelemetryToolMetadata } from "../../../../../src/telemetry/types.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
+import { MockMetrics } from "../../../mocks/metrics.js";
 
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";
@@ -103,6 +104,7 @@ describe("StreamsToolBase", () => {
             config: mockConfig,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
+            metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
