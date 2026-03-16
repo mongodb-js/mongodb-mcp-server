@@ -146,9 +146,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
             });
 
             if (referencingProcessors.length > 0) {
-                const names = referencingProcessors.map((p) => p.name).join(", ");
                 const runningOnes = referencingProcessors.filter((p) => p.state === "STARTED");
                 if (runningOnes.length > 0) {
+                    const names = runningOnes.map((p) => p.name).join(", ");
                     return {
                         content: [
                             {

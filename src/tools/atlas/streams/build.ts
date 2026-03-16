@@ -792,8 +792,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         const body: Record<string, unknown> = {
-            provider: args.privateLinkProvider,
             ...args.privateLinkConfig,
+            provider: args.privateLinkProvider,
         };
 
         await this.apiClient.createPrivateLinkConnection({

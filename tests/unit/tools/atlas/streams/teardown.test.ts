@@ -202,6 +202,36 @@ describe("StreamsTeardownTool", () => {
             expect(mockApiClient.deleteStreamConnection).not.toHaveBeenCalled();
         });
 
+        it("should only name running processors in warning when mix of running and stopped reference connection", async () => {
+            mockApiClient.getStreamProcessors!.mockResolvedValue({
+                results: [
+                    {
+                        name: "running-proc",
+                        state: "STARTED",
+                        pipeline: [{ $source: { connectionName: "conn1" } }],
+                    },
+                    {
+                        name: "stopped-proc",
+                        state: "STOPPED",
+                        pipeline: [{ $emit: { connectionName: "conn1" } }],
+                    },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                workspaceName: "ws1",
+                resourceName: "conn1",
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("running-proc");
+            expect(text).not.toContain("stopped-proc");
+            expect(mockApiClient.deleteStreamConnection).not.toHaveBeenCalled();
+        });
+
         it("should proceed with deletion when only stopped processors reference connection", async () => {
             mockApiClient.getStreamProcessors!.mockResolvedValue({
                 results: [

@@ -779,6 +779,25 @@ describe("StreamsBuildTool", () => {
             });
         });
 
+        it("should not allow privateLinkConfig.provider to overwrite privateLinkProvider", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkProvider: "AWS",
+                privateLinkConfig: {
+                    provider: "GCP",
+                    region: "us-east-1",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: expect.objectContaining({
+                    provider: "AWS",
+                }),
+            });
+        });
+
         it("should throw when privateLinkProvider is missing", async () => {
             await expect(
                 exec({
