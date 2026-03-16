@@ -51,24 +51,39 @@ const mockedTools = {
     },
 };
 
-const optionalProjectDiscovery = [
-    { toolName: "atlas-list-projects", parameters: {}, optional: true },
-];
+const optionalProjectDiscovery = [{ toolName: "atlas-list-projects", parameters: {}, optional: true }];
 
 const optionalWorkspaceDiscovery = [
     ...optionalProjectDiscovery,
     { toolName: "atlas-streams-discover", parameters: { projectId, action: "list-workspaces" }, optional: true },
 ];
 
+// Simulate prior conversation context where the project was already established
+const projectContext = `The user is working in Atlas project 'StreamsProject' (projectId: '${projectId}').`;
+
+// Guard against extra optional params the LLM commonly includes
+const optionalManageParams = {
+    pipeline: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    dlq: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    newName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    tier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    resumeFromCheckpoint: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    newRegion: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    newTier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+};
+
 describeAccuracyTests(
     [
         {
             prompt: `Start processor '${processorName}' in workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -80,11 +95,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Stop processor '${processorName}' in workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "stop-processor",
                         workspaceName,
@@ -96,11 +113,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Update the pipeline for processor '${processorName}' in workspace '${workspaceName}' to add a $match stage`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -113,11 +132,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Scale up workspace '${workspaceName}' to SP30`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "update-workspace",
                         workspaceName,
@@ -129,11 +150,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Restart processor '${processorName}' in workspace '${workspaceName}' from the beginning`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -146,11 +169,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Change processor '${processorName}' pipeline in workspace '${workspaceName}' to filter documents where status is active`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -163,11 +188,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Update the configuration of connection 'events' in workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "update-connection",
                         workspaceName,
@@ -180,11 +207,13 @@ describeAccuracyTests(
         },
         {
             prompt: `Rename processor '${processorName}' to 'etl-v2' in workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
+                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
