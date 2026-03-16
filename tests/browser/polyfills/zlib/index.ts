@@ -4,4 +4,7 @@ export function inflate() {
 export function deflate() {
     // noop
 }
-export default { inflate, deflate };
+export function gunzipSync(buf: Buffer) {
+    return buf;
+}
+export default { inflate, deflate, gunzipSync };

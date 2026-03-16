@@ -38,7 +38,7 @@ jobs:
       - name: Run tests
         run: pnpm test
         env:
-          SKIP_ATLAS_TESTS: "true"
+          SKIP_ATLAS_INTEGRATION_TESTS: "true"
           SKIP_ATLAS_LOCAL_TESTS: "true"
   run-atlas-local-tests:
     name: Run Atlas Local tests

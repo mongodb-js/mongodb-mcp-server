@@ -91,7 +91,7 @@
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:browser": "pnpm --filter browser test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
-    "test:local": "SKIP_ATLAS_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
+    "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
     "atlas:cleanup": "vitest --project atlas-cleanup"
   },
   "license": "Apache-2.0",

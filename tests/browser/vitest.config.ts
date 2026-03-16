@@ -74,6 +74,7 @@ export default defineConfig({
             // Built-in Node.js modules imported by the driver directly and used in
             // ways that requires us to provide a no-op polyfill
             zlib: localPolyfill("zlib"),
+            "node:zlib": localPolyfill("zlib"),
         },
     },
 });
