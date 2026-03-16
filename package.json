@@ -174,7 +174,8 @@
     "ts-levenshtein": "^1.0.7",
     "voyage-ai-provider": "^3.0.0",
     "yaml": "^2.8.1",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "prom-client": "^15.1.3"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >= 23.0.0"

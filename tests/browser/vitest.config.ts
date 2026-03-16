@@ -12,6 +12,7 @@ export default defineConfig({
         "process.env": JSON.stringify({}),
         "process.version": JSON.stringify("v24.0.0"),
         "process.argv": JSON.stringify([]),
+        "process.uptime": "() => (performance.now() / 1000)",
         global: "globalThis",
     },
     test: {

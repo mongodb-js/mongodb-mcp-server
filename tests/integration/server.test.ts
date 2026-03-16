@@ -19,6 +19,7 @@ import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+import { MockMetrics } from "../unit/mocks/metrics.js";
 
 class TestToolOne extends ToolBase {
     static toolName = "test-tool-one";
@@ -212,6 +213,7 @@ describe("Server integration test", () => {
             elicitation,
             connectionErrorHandler,
             tools: [...tools],
+            metrics: new MockMetrics(),
         });
 
         const transport = new InMemoryTransport();

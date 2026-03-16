@@ -55,6 +55,7 @@ const expectedDefaults = {
     allowRequestOverrides: false,
     externallyManagedSessions: false,
     httpResponseType: "sse",
+    monitoringServerFeatures: ["health-check"],
 };
 
 const CONFIG_FIXTURES = {

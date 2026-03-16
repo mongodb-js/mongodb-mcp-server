@@ -23,6 +23,8 @@ import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
+import { createDefaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
+import type { EmptyMetricDefinitions, MetricDefinitions, Metrics } from "../common/metrics/metricsTypes.js";
 
 /**
  * Request context containing HTTP headers and query parameters.
@@ -90,7 +92,10 @@ type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (conte
  *
  * @template TContext - The type of the custom tool context object
  */
-export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> = {
+export type TransportRunnerConfig<
+    TUserConfig extends UserConfig = UserConfig,
+    TMetrics extends MetricDefinitions = EmptyMetricDefinitions,
+> = {
     /**
      * Base user configuration for the server.
      *
@@ -142,6 +147,12 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> =
     additionalLoggers?: LoggerBase[];
 
     /**
+     * An optional list of metrics to be used in addition to the default.
+     * These custom metrics are meant to be used by custom tools.
+     */
+    additionalMetrics?: TMetrics;
+
+    /**
      * @deprecated This field will be removed in a future version. Use `createServer({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead.
      */
     telemetryProperties?: Partial<CommonProperties>;
@@ -166,8 +177,14 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> =
     createApiClient?: ApiClientFactoryFn;
 };
 
-export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
+export abstract class TransportRunnerBase<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends MetricDefinitions = EmptyMetricDefinitions,
+> {
     public logger: LoggerBase;
+    public metrics: Metrics<DefaultMetrics & TMetrics>;
+
     public deviceId: DeviceId;
     /** Base user configuration for the server. */
     protected readonly userConfig: TUserConfig;
@@ -192,6 +209,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
+        additionalMetrics = {} as EmptyMetricDefinitions,
         telemetryProperties = {},
         tools,
         createSessionConfig,
@@ -205,6 +223,12 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
+        this.metrics = new PrometheusMetrics({
+            definitions: {
+                ...createDefaultMetrics(),
+                ...additionalMetrics,
+            } as DefaultMetrics & TMetrics,
+        });
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -310,6 +334,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
             toolContext: serverOptions?.toolContext,
+            metrics: this.metrics,
         });
 
         // We need to create the MCP logger after the server is constructed

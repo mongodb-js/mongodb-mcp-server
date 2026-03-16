@@ -70,7 +70,7 @@ export class Session extends EventEmitter<SessionEvents> {
         connectionErrorHandler,
         vectorSearchEmbeddingsManager,
         apiClient,
-    }: SessionOptions) {
+    }: SessionOptions<UserConfig>) {
         super();
 
         this.userConfig = userConfig;
