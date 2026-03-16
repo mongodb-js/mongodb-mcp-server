@@ -13,7 +13,7 @@ export type CloseableTransport = {
     close(): Promise<void>;
 };
 
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop";
+export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
 
 export class SessionStore<T extends CloseableTransport = CloseableTransport> {
     private sessions: {
@@ -104,7 +104,10 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         this.metrics.get("sessionCreated").inc();
     }
 
-    async closeSession(sessionId: string, { reason }: { reason: SessionCloseReason }): Promise<void> {
+    async closeSession(
+        sessionId: string,
+        { reason }: { reason: SessionCloseReason } = { reason: "unknown" }
+    ): Promise<void> {
         const session = this.sessions[sessionId];
         if (!session) {
             throw new Error(`Session ${sessionId} not found`);
@@ -120,9 +123,6 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
 
         if (reason !== "transport_closed") {
             // Only close the transport when the server initiates the close.
-            // For "transport_closed" the transport is already torn down by the
-            // SDK; calling close() again would double-close and re-trigger
-            // onsessionclosed.
             try {
                 await session.transport.close();
             } catch (error) {
