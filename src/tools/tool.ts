@@ -524,14 +524,15 @@ export abstract class ToolBase<
 
             const durationSeconds = (Date.now() - startTime) / 1000;
 
-            this.metrics
-                .get("toolExecutionDuration")
-                .observe({ tool_name: this.name, category: this.category }, durationSeconds);
-            this.metrics.get("toolExecutionTotal").inc({
-                tool_name: this.name,
-                category: this.category,
-                status: result.isError ? "error" : "success",
-            });
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: result.isError ? "error" : "success",
+                    operation_type: this.operationType,
+                },
+                durationSeconds
+            );
 
             this.session.logger.debug({
                 id: LogId.toolExecute,
@@ -549,11 +550,16 @@ export abstract class ToolBase<
             const toolResult = await this.handleError(error, args);
             this.emitToolEvent(args, { startTime, result: toolResult });
 
-            this.metrics.get("toolExecutionTotal").inc({
-                tool_name: this.name,
-                category: this.category,
-                status: "error",
-            });
+            const durationSeconds = (Date.now() - startTime) / 1000;
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: "error",
+                    operation_type: this.operationType,
+                },
+                durationSeconds
+            );
 
             return toolResult;
         }

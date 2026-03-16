@@ -507,20 +507,7 @@ describe("ToolBase", () => {
             errorTool.register(makeMockServer((cb) => (errorCallback = cb)));
         });
 
-        it("increments toolExecutionTotal with status=success on a successful execution", async () => {
-            await successCallback({ param1: "value", param2: 1 }, {} as never);
-
-            const { values } = await mockMetrics.get("toolExecutionTotal").get();
-            const sample = values.find(
-                (v) =>
-                    v.labels.tool_name === "test-tool" &&
-                    v.labels.category === "mongodb" &&
-                    v.labels.status === "success"
-            );
-            expect(sample?.value).toBe(1);
-        });
-
-        it("records toolExecutionDuration on a successful execution", async () => {
+        it("records toolExecutionDuration with status=success on a successful execution", async () => {
             await successCallback({ param1: "value", param2: 1 }, {} as never);
 
             const { values } = await mockMetrics.get("toolExecutionDuration").get();
@@ -529,7 +516,9 @@ describe("ToolBase", () => {
                 (v) =>
                     v.metricName === "mcp_tool_execution_duration_seconds_count" &&
                     v.labels.tool_name === "test-tool" &&
-                    v.labels.category === "mongodb"
+                    v.labels.category === "mongodb" &&
+                    v.labels.status === "success" &&
+                    v.labels.operation_type === "delete"
             );
             expect(count?.value).toBe(1);
 
@@ -537,35 +526,27 @@ describe("ToolBase", () => {
                 (v) =>
                     v.metricName === "mcp_tool_execution_duration_seconds_sum" &&
                     v.labels.tool_name === "test-tool" &&
-                    v.labels.category === "mongodb"
+                    v.labels.category === "mongodb" &&
+                    v.labels.status === "success" &&
+                    v.labels.operation_type === "delete"
             );
             expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
-        it("increments toolExecutionTotal with status=error when execute() rejects", async () => {
+        it("records toolExecutionDuration with status=error when execute() rejects", async () => {
             const result = await errorCallback({}, {} as never);
 
             expect(result.isError).toBe(true);
 
-            const { values } = await mockMetrics.get("toolExecutionTotal").get();
-            const sample = values.find(
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const count = values.find(
                 (v) =>
+                    v.metricName === "mcp_tool_execution_duration_seconds_count" &&
                     v.labels.tool_name === "error-tool" &&
                     v.labels.category === "mongodb" &&
                     v.labels.status === "error"
             );
-            expect(sample?.value).toBe(1);
-        });
-
-        it("does not record toolExecutionDuration when execute() rejects", async () => {
-            await errorCallback({}, {} as never);
-
-            const { values } = await mockMetrics.get("toolExecutionDuration").get();
-            const count = values.find(
-                (v) =>
-                    v.metricName === "mcp_tool_execution_duration_seconds_count" && v.labels.tool_name === "error-tool"
-            );
-            expect(count).toBeUndefined();
+            expect(count?.value).toBe(1);
         });
     });
 });
