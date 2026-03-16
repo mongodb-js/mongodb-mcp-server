@@ -494,7 +494,7 @@ describe("ToolBase", () => {
         beforeEach(() => {
             testTool.register(makeMockServer((cb) => (successCallback = cb)));
 
-            const errorTool = new ErrorTool({
+            const failingTool = new ErrorTool({
                 name: ErrorTool.toolName,
                 category: ErrorTool.category,
                 operationType: ErrorTool.operationType,
@@ -504,10 +504,10 @@ describe("ToolBase", () => {
                 elicitation: mockElicitation,
                 metrics: mockMetrics,
             });
-            errorTool.register(makeMockServer((cb) => (errorCallback = cb)));
+            failingTool.register(makeMockServer((cb) => (errorCallback = cb)));
         });
 
-        it("records toolExecutionDuration with status=success on a successful execution", async () => {
+        it("records toolExecutionDuration with status and operation_type on a successful execution", async () => {
             await successCallback({ param1: "value", param2: 1 }, {} as never);
 
             const { values } = await mockMetrics.get("toolExecutionDuration").get();

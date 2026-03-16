@@ -18,6 +18,7 @@ import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { Metrics } from "../common/metrics/index.js";
+import type { DefaultMetrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
@@ -55,6 +56,7 @@ export class StreamableHttpRunner<
             createServerForRequest: ({ request }): Promise<Server<TUserConfig, TContext>> =>
                 this.createServerForRequest({ request, serverOptions, sessionOptions }),
             logger: this.logger,
+            metrics: this.metrics,
         });
         await this.mcpServer.start();
 
@@ -273,6 +275,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     private readonly userConfig: UserConfig;
+    private readonly metrics: Metrics<DefaultMetrics>;
 
     private createServerForRequest: (createParams: {
         request: RequestContext;
@@ -286,6 +289,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         serverOptions,
         sessionOptions,
         logger,
+        metrics,
     }: {
         userConfig: TUserConfig;
         createServerForRequest: (createParams: {
@@ -296,6 +300,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         logger: LoggerBase;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        metrics: Metrics<DefaultMetrics>;
     }) {
         super({
             port: userConfig.httpPort,
@@ -307,6 +312,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.sessionOptions = sessionOptions;
         this.createServerForRequest = createServerForRequest;
         this.userConfig = userConfig;
+        this.metrics = metrics;
     }
 
     public async stop(): Promise<void> {
@@ -400,7 +406,8 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.sessionStore = new SessionStore(
             this.userConfig.idleTimeoutMs,
             this.userConfig.notificationTimeoutMs,
-            this.logger
+            this.logger,
+            this.metrics
         );
 
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
@@ -485,7 +492,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 enableJsonResponse: this.userConfig.httpResponseType === "json",
                 onsessionclosed: async (sessionId): Promise<void> => {
                     try {
-                        await this.sessionStore.closeSession(sessionId, true);
+                        await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
                     } catch (error) {
                         this.logger.error({
                             id: LogId.streamableHttpTransportSessionCloseFailure,

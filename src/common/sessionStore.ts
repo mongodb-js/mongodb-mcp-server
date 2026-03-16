@@ -2,6 +2,8 @@ import type { LoggerBase } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
+import type { Metrics } from "./metrics/metricsTypes.js";
+import type { DefaultMetrics } from "./metrics/metricDefinitions.js";
 
 /**
  * Minimal interface for a transport that can be stored in a SessionStore.
@@ -10,6 +12,8 @@ import { setManagedTimeout } from "./managedTimeout.js";
 export type CloseableTransport = {
     close(): Promise<void>;
 };
+
+export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop";
 
 export class SessionStore<T extends CloseableTransport = CloseableTransport> {
     private sessions: {
@@ -24,7 +28,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
     constructor(
         private readonly idleTimeoutMS: number,
         private readonly notificationTimeoutMS: number,
-        private readonly logger: LoggerBase
+        private readonly logger: LoggerBase,
+        private readonly metrics: Metrics<DefaultMetrics>
     ) {
         if (idleTimeoutMS <= 0) {
             throw new Error("idleTimeoutMS must be greater than 0");
@@ -83,7 +88,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
                     message: "Session closed due to inactivity",
                 });
 
-                await this.closeSession(sessionId);
+                await this.closeSession({ sessionId, reason: "idle_timeout" });
             }
         }, this.idleTimeoutMS);
         const notificationTimeout = setManagedTimeout(
@@ -96,30 +101,38 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
             notificationTimeout,
             logger,
         };
+        this.metrics.get("sessionCreated").inc();
     }
 
-    async closeSession(sessionId: string, closeTransport: boolean = true): Promise<void> {
+    async closeSession({ sessionId, reason }: { sessionId: string; reason: SessionCloseReason }): Promise<void> {
         const session = this.sessions[sessionId];
         if (!session) {
             throw new Error(`Session ${sessionId} not found`);
         }
+
+        // Remove from map before closing transport to prevent double-counting:
+        // transport.close() can trigger onsessionclosed which re-enters closeSession.
+        delete this.sessions[sessionId];
+
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
-        if (closeTransport) {
-            try {
-                await session.transport.close();
-            } catch (error) {
-                this.logger.error({
-                    id: LogId.streamableHttpTransportSessionCloseFailure,
-                    context: "streamableHttpTransport",
-                    message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-                });
-            }
+
+        try {
+            await session.transport.close();
+        } catch (error) {
+            this.logger.error({
+                id: LogId.streamableHttpTransportSessionCloseFailure,
+                context: "streamableHttpTransport",
+                message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+            });
         }
-        delete this.sessions[sessionId];
+
+        this.metrics.get("sessionClosed").inc({ reason: reason });
     }
 
     async closeAllSessions(): Promise<void> {
-        await Promise.all(Object.keys(this.sessions).map((sessionId) => this.closeSession(sessionId)));
+        await Promise.all(
+            Object.keys(this.sessions).map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
+        );
     }
 }

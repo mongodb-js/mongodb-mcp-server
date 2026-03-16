@@ -560,6 +560,12 @@ export abstract class ToolBase<
                 },
                 durationSeconds
             );
+            this.metrics.get("toolExecutionErrors").inc(
+                {
+                    error_type: error instanceof Error ? error.name : "unknown",
+                },
+                1
+            );
 
             return toolResult;
         }
