@@ -11,6 +11,9 @@
       "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
       "@mongosh/arg-parser/arg-parser": [
         "./node_modules/@mongosh/arg-parser/lib/arg-parser"
+      ],
+      "openapi-typescript-helpers": [
+        "./node_modules/openapi-typescript-helpers/index.d.ts"
       ]
     }
   }

@@ -1,6 +1,9 @@
 import express from "express";
 import type http from "http";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type {
+    StreamableHTTPServerTransport,
+    StreamableHTTPServerTransportOptions,
+} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "../common/logging/index.js";
 import { CompositeLogger, LogId } from "../common/logging/index.js";
@@ -13,10 +16,10 @@ import {
 } from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
-import type { WebStandardStreamableHTTPServerTransportOptions } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { Metrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
+
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
@@ -267,9 +270,9 @@ abstract class ExpressBasedHttpServer {
 
 class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
-    private serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-    private sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    private userConfig: UserConfig;
+    private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+    private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    private readonly userConfig: UserConfig;
 
     private createServerForRequest: (createParams: {
         request: RequestContext;
@@ -310,6 +313,87 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         await Promise.all([this.sessionStore.closeAllSessions(), super.stop()]);
     }
 
+    private reportSessionError(res: express.Response, errorCode: number): void {
+        let message: string;
+        let statusCode = 400;
+
+        switch (errorCode) {
+            case JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED:
+                message = "session id is required";
+                break;
+            case JSON_RPC_ERROR_CODE_SESSION_ID_INVALID:
+                message = "session id is invalid";
+                break;
+            case JSON_RPC_ERROR_CODE_INVALID_REQUEST:
+                message = "invalid request";
+                break;
+            case JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND:
+                message = "session not found";
+                statusCode = 404;
+                break;
+            case JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION:
+                message = "cannot provide sessionId when externally managed sessions are disabled";
+                break;
+            default:
+                message = "unknown error";
+                statusCode = 500;
+        }
+        res.status(statusCode).json({
+            jsonrpc: "2.0",
+            error: {
+                code: errorCode,
+                message,
+            },
+        });
+    }
+
+    private startKeepAliveLoop(
+        transport: StreamableHTTPServerTransport,
+        server: Server<TUserConfig, TContext>
+    ): NodeJS.Timeout | undefined {
+        if (this.userConfig.httpResponseType === "json") {
+            // Don't start the ping loop for JSON response type since the connection is short-lived and pings aren't needed
+            return undefined;
+        }
+
+        let failedPings = 0;
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        const keepAliveLoop = setInterval(async () => {
+            try {
+                server.session.logger.debug({
+                    id: LogId.streamableHttpTransportKeepAlive,
+                    context: "streamableHttpTransport",
+                    message: "Sending ping",
+                });
+
+                await transport.send({
+                    jsonrpc: "2.0",
+                    method: "ping",
+                });
+                failedPings = 0;
+            } catch (err) {
+                try {
+                    failedPings++;
+                    server.session.logger.warning({
+                        id: LogId.streamableHttpTransportKeepAliveFailure,
+                        context: "streamableHttpTransport",
+                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                    });
+
+                    if (failedPings > 3) {
+                        clearInterval(keepAliveLoop);
+                        await transport.close();
+                    }
+                } catch {
+                    // Ignore the error of the transport close as there's nothing else
+                    // we can do at this point.
+                }
+            }
+        }, 30_000);
+
+        return keepAliveLoop;
+    }
+
     protected override async setupRoutes(): Promise<void> {
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
@@ -332,48 +416,14 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
             next();
         });
 
-        const reportSessionError = (res: express.Response, errorCode: number): void => {
-            let message: string;
-            let statusCode = 400;
-
-            switch (errorCode) {
-                case JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED:
-                    message = "session id is required";
-                    break;
-                case JSON_RPC_ERROR_CODE_SESSION_ID_INVALID:
-                    message = "session id is invalid";
-                    break;
-                case JSON_RPC_ERROR_CODE_INVALID_REQUEST:
-                    message = "invalid request";
-                    break;
-                case JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND:
-                    message = "session not found";
-                    statusCode = 404;
-                    break;
-                case JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION:
-                    message = "cannot provide sessionId when externally managed sessions are disabled";
-                    break;
-                default:
-                    message = "unknown error";
-                    statusCode = 500;
-            }
-            res.status(statusCode).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: errorCode,
-                    message,
-                },
-            });
-        };
-
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
             if (!sessionId) {
-                return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
+                return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
             }
 
             if (typeof sessionId !== "string") {
-                return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
+                return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             }
 
             const transport = this.sessionStore.getSession(sessionId);
@@ -394,7 +444,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                     message: `Session with ID ${sessionId} not found`,
                 });
 
-                return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
             }
 
             await transport.handleRequest(req, res, req.body);
@@ -429,25 +479,13 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 sessionOptions: this.sessionOptions,
             });
 
-            const options: WebStandardStreamableHTTPServerTransportOptions = {
+            sessionId = sessionId ?? getRandomUUID();
+            const options: StreamableHTTPServerTransportOptions = {
+                sessionIdGenerator: (): string => sessionId,
                 enableJsonResponse: this.userConfig.httpResponseType === "json",
-            };
-
-            const sessionInitialized = (sessionId: string): void => {
-                server.session.logger.setAttribute("sessionId", sessionId);
-
-                this.sessionStore.setSession(sessionId, transport, server.session.logger);
-            };
-
-            // When we're implicitly initializing a session, the client is not going through the initialization
-            // flow. This means that it won't do proper session lifecycle management, so we should not add hooks for
-            // onsessioninitialized and onsessionclosed.
-            if (!isImplicitInitialization) {
-                options.sessionIdGenerator = (): string => sessionId ?? getRandomUUID();
-                options.onsessioninitialized = sessionInitialized.bind(this);
-                options.onsessionclosed = async (sessionId): Promise<void> => {
+                onsessionclosed: async (sessionId): Promise<void> => {
                     try {
-                        await this.sessionStore.closeSession(sessionId, false);
+                        await this.sessionStore.closeSession(sessionId, true);
                     } catch (error) {
                         this.logger.error({
                             id: LogId.streamableHttpTransportSessionCloseFailure,
@@ -455,50 +493,29 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                             message: `Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                         });
                     }
-                };
-            }
+                },
+            };
 
             const transport = new StreamableHTTPServerTransport(options);
-
+            // HACK: When we're implicitly initializing the session, we want to configure the session id and _inititized flag on the transport
+            // so that it believes it actually went through the initialization flow. Without it, we'd get errors like "transport not initialized"
+            // when we try to use it without initialize request
             if (isImplicitInitialization) {
-                sessionInitialized(sessionId);
+                const internalTransport = transport["_webStandardTransport"] as {
+                    _initialized: boolean;
+                    sessionId: string;
+                };
+                internalTransport._initialized = true;
+                internalTransport.sessionId = sessionId;
             }
 
-            let failedPings = 0;
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            const keepAliveLoop: NodeJS.Timeout = setInterval(async () => {
-                try {
-                    server.session.logger.debug({
-                        id: LogId.streamableHttpTransportKeepAlive,
-                        context: "streamableHttpTransport",
-                        message: "Sending ping",
-                    });
+            // This is eagerly setting the session in the session store to ensure that follow-up requests
+            // reuse it. This may cause issues if server.connect fails as we'll try to use a transport that's
+            // not fully set up.
+            server.session.logger.setAttribute("sessionId", sessionId);
+            this.sessionStore.setSession(sessionId, transport, server.session.logger);
 
-                    await transport.send({
-                        jsonrpc: "2.0",
-                        method: "ping",
-                    });
-                    failedPings = 0;
-                } catch (err) {
-                    try {
-                        failedPings++;
-                        server.session.logger.warning({
-                            id: LogId.streamableHttpTransportKeepAliveFailure,
-                            context: "streamableHttpTransport",
-                            message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
-                        });
-
-                        if (failedPings > 3) {
-                            clearInterval(keepAliveLoop);
-                            await transport.close();
-                        }
-                    } catch {
-                        // Ignore the error of the transport close as there's nothing else
-                        // we can do at this point.
-                    }
-                }
-            }, 30_000);
-
+            const keepAliveLoop = this.startKeepAliveLoop(transport, server);
             transport.onclose = (): void => {
                 clearInterval(keepAliveLoop);
 
@@ -512,7 +529,6 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
             };
 
             await server.connect(transport);
-
             await transport.handleRequest(req, res, req.body);
         };
 
@@ -521,7 +537,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
             this.withErrorHandling(async (req: express.Request, res: express.Response) => {
                 const sessionId = req.headers["mcp-session-id"];
                 if (sessionId && typeof sessionId !== "string") {
-                    return reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
+                    return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
                 }
 
                 if (isInitializeRequest(req.body)) {
@@ -532,21 +548,31 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                             message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
                         });
 
-                        return reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
+                        return this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
                     }
 
-                    return await initializeServer(req, res, { sessionId });
+                    return await initializeServer(req, res, { sessionId, isImplicitInitialization: false });
                 }
 
                 if (sessionId) {
                     return await handleSessionRequest(req, res);
                 }
 
-                return reportSessionError(res, JSON_RPC_ERROR_CODE_INVALID_REQUEST);
+                return this.reportSessionError(res, JSON_RPC_ERROR_CODE_INVALID_REQUEST);
             })
         );
 
-        this.app.get("/mcp", this.withErrorHandling(handleSessionRequest));
+        this.app.get(
+            "/mcp",
+            this.withErrorHandling(async (req, res): Promise<void> => {
+                if (this.userConfig.httpResponseType === "sse") {
+                    await handleSessionRequest(req, res);
+                } else {
+                    // Don't allow SSE upgrades if the response type is JSON
+                    res.status(405).set("Allow", ["POST", "DELETE"]).send("Method Not Allowed");
+                }
+            })
+        );
         this.app.delete("/mcp", this.withErrorHandling(handleSessionRequest));
     }
 

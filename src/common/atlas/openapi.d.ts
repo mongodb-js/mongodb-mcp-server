@@ -366,6 +366,426 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/atlas/v2/groups/{groupId}/streams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return All Stream Workspaces in One Project
+         * @description Returns all stream workspaces for the specified project.
+         */
+        get: operations["listGroupStreamWorkspaces"];
+        put?: never;
+        /**
+         * Create One Stream Workspace
+         * @description Creates one stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         */
+        post: operations["createGroupStreamWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/accountDetails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return Account ID and VPC ID for One Project and Region
+         * @description Returns the Account ID, and the VPC ID for the group and region specified.
+         */
+        get: operations["getGroupStreamAccountDetails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return All Private Link Connections
+         * @description Returns all Private Link connections for the specified project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role, Project Data Access roles, Project Owner role or Project Stream Processing Owner role.
+         */
+        get: operations["listGroupStreamPrivateLinkConnections"];
+        put?: never;
+        /**
+         * Create One Private Link Connection
+         * @description Creates one Private Link in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Stream Processing Owner role.
+         */
+        post: operations["createGroupStreamPrivateLinkConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return One Private Link Connection
+         * @description Returns the details of one Private Link connection within the project. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         */
+        get: operations["getGroupStreamPrivateLinkConnection"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete One Private Link Connection
+         * @description Deletes one Private Link in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Stream Processing Owner role.
+         */
+        delete: operations["deleteGroupStreamPrivateLinkConnection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete One VPC Peering Connection
+         * @description Deletes an incoming VPC Peering connection.
+         */
+        delete: operations["deleteGroupStreamVpcPeeringConnection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept One Incoming VPC Peering Connection
+         * @description Requests the acceptance of an incoming VPC Peering connection.
+         */
+        post: operations["acceptGroupStreamVpcPeeringConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject One Incoming VPC Peering Connection
+         * @description Requests the rejection of an incoming VPC Peering connection.
+         */
+        post: operations["rejectGroupStreamVpcPeeringConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return One Stream Workspace
+         * @description Returns the details of one stream workspace within the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role.
+         */
+        get: operations["getGroupStreamWorkspace"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete One Stream Workspace
+         * @description Delete one stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         */
+        delete: operations["deleteGroupStreamWorkspace"];
+        options?: never;
+        head?: never;
+        /**
+         * Update One Stream Workspace
+         * @description Update one stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         */
+        patch: operations["updateGroupStreamWorkspace"];
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/auditLogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Audit Logs for One Atlas Stream Processing Workspace
+         * @description Downloads the audit logs for the specified Atlas Streams Processing workspace or stream processor. By default, logs cover periods of 30 days. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role. The API does not support direct calls with the json response schema. You must request a gzip response schema using an accept header of the format: `Accept: application/vnd.atlas.YYYY-MM-DD+gzip`.
+         */
+        get: operations["downloadGroupStreamAuditLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return All Connections of the Stream Workspaces
+         * @description Returns all connections of the stream workspace for the specified project. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role.
+         */
+        get: operations["listGroupStreamConnections"];
+        put?: never;
+        /**
+         * Create One Stream Connection
+         * @description Creates one connection for a stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner or Project Stream Processing Owner role.
+         */
+        post: operations["createGroupStreamConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return One Stream Connection
+         * @description Returns the details of one stream connection within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Read Only role.
+         */
+        get: operations["getGroupStreamConnection"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete One Stream Connection
+         * @description Delete one connection of the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        delete: operations["deleteGroupStreamConnection"];
+        options?: never;
+        head?: never;
+        /**
+         * Update One Stream Connection
+         * @description Update one connection for the specified stream workspace in the specified project. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        patch: operations["updateGroupStreamConnection"];
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create One Stream Processor
+         * @description Create one Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        post: operations["createGroupStreamProcessor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return One Stream Processor
+         * @description Get one Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        get: operations["getGroupStreamProcessor"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete One Stream Processor
+         * @description Delete a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        delete: operations["deleteGroupStreamProcessor"];
+        options?: never;
+        head?: never;
+        /**
+         * Update One Stream Processor
+         * @description Modify one existing Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        patch: operations["updateGroupStreamProcessor"];
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start One Stream Processor
+         * @description Start a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        post: operations["startGroupStreamProcessor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:startWith": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start One Stream Processor With Options
+         * @description Start a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        post: operations["startGroupStreamProcessorWith"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop One Stream Processor
+         * @description Stop a Stream Processor within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        post: operations["stopGroupStreamProcessor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return All Stream Processors in One Stream Workspace
+         * @description Returns all Stream Processors within the specified stream workspace. To use this resource, the requesting Service Account or API Key must have the Project Owner role or Project Stream Processing Owner role.
+         */
+        get: operations["getGroupStreamProcessors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams/{tenantName}:downloadOperationalLogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Operational Logs for One Atlas Stream Processing Workspace
+         * @description Downloads the operational logs for the specified Atlas Streams Processing workspace or stream processor. By default, logs cover periods of 30 days. To use this resource, the requesting Service Account or API Key must have the Project Data Access roles, Project Owner role or Project Stream Processing Owner role. The API does not support direct calls with the json response schema. You must request a gzip response schema using an accept header of the format: "Accept: application/vnd.atlas.2025-03-12+gzip".
+         */
+        get: operations["downloadGroupStreamOperationalLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/atlas/v2/groups/{groupId}/streams:withSampleConnections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create One Stream Workspace with Sample Connections
+         * @description Creates one stream workspace in the specified project with sample connections. To use this resource the requesting Service Account or API Key must have the Project Data Access Admin role, Project Owner role or Project Stream Processing Owner role.
+         */
+        post: operations["withGroupStreamSampleConnections"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/atlas/v2/orgs": {
         parameters: {
             query?: never;
@@ -417,6 +837,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AWSAccountDetails: {
+            /** @description The AWS Account ID. */
+            awsAccountId?: string;
+            /** @description The VPC CIDR Block. */
+            cidrBlock?: string;
+            /**
+             * @description Cloud provider. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            cloudProvider: "aws";
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description The VPC ID. */
+            vpcId?: string;
+        };
         /**
          * AWS
          * @description Collection of settings that configures the network container for a virtual private connection on Amazon Web Services.
@@ -638,6 +1073,8 @@ export interface components {
              */
             providerName: "AWS";
         };
+        /** @description Account details for the group, region, and provider. */
+        AccountDetails: components["schemas"]["AWSAccountDetails"] | components["schemas"]["AzureAccountDetails"] | components["schemas"]["GCPAccountDetails"];
         /**
          * Automatic Scaling Settings
          * @description Options that determine how this cluster handles resource scaling.
@@ -739,6 +1176,21 @@ export interface components {
             /** @description Application error message returned with this error. */
             readonly reason?: string;
         };
+        /**
+         * @description Atlas Streams AWS Regions.
+         * @enum {string}
+         */
+        ApiStreamsAWSRegionView: "SYDNEY_AUS" | "MUMBAI_IND" | "FRANKFURT_DEU" | "DUBLIN_IRL" | "LONDON_GBR" | "VIRGINIA_USA" | "OHIO_USA" | "OREGON_USA" | "SAOPAULO_BRA" | "MONTREAL_CAN" | "TOKYO_JPN" | "SINGAPORE_SGP";
+        /**
+         * @description Atlas Streams Azure Regions.
+         * @enum {string}
+         */
+        ApiStreamsAzureRegionView: "eastus" | "westus" | "eastus2" | "westeurope";
+        /**
+         * @description Atlas Streams GCP Regions.
+         * @enum {string}
+         */
+        ApiStreamsGCPRegionView: "US_CENTRAL1" | "EUROPE_WEST1" | "US_EAST4";
         /**
          * App Services Alerts
          * @description App Services alert notifies different activities about a BAAS application.
@@ -862,6 +1314,21 @@ export interface components {
             tokenizer: {
                 [key: string]: Record<string, never>;
             };
+        };
+        AzureAccountDetails: {
+            /** @description The Azure Subscription ID. */
+            azureSubscriptionId?: string;
+            /** @description The VPC CIDR Block. */
+            cidrBlock?: string;
+            /**
+             * @description Cloud provider. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            cloudProvider: "azure";
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description The name of the virtual network. */
+            virtualNetworkName?: string;
         };
         /**
          * AZURE
@@ -1027,6 +1494,92 @@ export interface components {
             nodeCount?: number;
         };
         /**
+         * Azure Log Export Integration Request
+         * @description Request schema for creating or updating an Azure Blob Storage log export integration.
+         */
+        AzureLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+            /**
+             * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
+             * @example logs/mongodb/
+             */
+            prefixPath: string;
+            /**
+             * @description Unique 24-character hexadecimal string that identifies the Atlas Cloud Provider Access role.
+             * @example 507f1f77bcf86cd799439011
+             */
+            roleId: string;
+            /**
+             * @description Storage account name where logs will be stored.
+             * @example mylogstorageaccount
+             */
+            storageAccountName: string;
+            /**
+             * @description Storage container name for log files.
+             * @example mongodb-logs
+             */
+            storageContainerName: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "AZURE_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "AZURE_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "AZURE_LOG_EXPORT";
+        };
+        /**
+         * Azure Log Export Integration Response
+         * @description Details to integrate Azure Blob Storage log export with one Atlas project.
+         */
+        AzureLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+            /**
+             * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
+             * @example logs/mongodb/
+             */
+            prefixPath: string;
+            /**
+             * @description Unique 24-character hexadecimal string that identifies the Atlas Cloud Provider Access role.
+             * @example 507f1f77bcf86cd799439011
+             */
+            roleId: string;
+            /**
+             * @description Storage account name where logs will be stored.
+             * @example mylogstorageaccount
+             */
+            storageAccountName: string;
+            /**
+             * @description Storage container name for log files.
+             * @example mongodb-logs
+             */
+            storageContainerName: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "AZURE_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "AZURE_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "AZURE_LOG_EXPORT";
+        };
+        /**
          * Azure Regional Replication Specifications
          * @description Details that explain how MongoDB Cloud replicates data in one region on the specified MongoDB database.
          */
@@ -1058,6 +1611,8 @@ export interface components {
         };
         /** @description Instance size boundary to which your cluster can automatically scale. */
         BaseCloudProviderInstanceSize: ("M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M100" | "M140" | "M200" | "M300" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R700" | "M40_NVME" | "M50_NVME" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M400_NVME") | ("M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M90" | "M200" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "M60_NVME" | "M80_NVME" | "M200_NVME" | "M300_NVME" | "M400_NVME" | "M600_NVME") | ("M10" | "M20" | "M30" | "M40" | "M50" | "M60" | "M80" | "M140" | "M200" | "M250" | "M300" | "M400" | "R40" | "R50" | "R60" | "R80" | "R200" | "R300" | "R400" | "R600");
+        /** @description Name of the cloud provider region hosting Atlas Stream Processing. */
+        BaseStreamsRegion: components["schemas"]["ApiStreamsAWSRegionView"] | components["schemas"]["ApiStreamsAzureRegionView"] | components["schemas"]["ApiStreamsGCPRegionView"];
         BasicDBObject: {
             [key: string]: Record<string, never>;
         };
@@ -1404,7 +1959,7 @@ export interface components {
             /** @description Alphanumeric string that authenticates this database user against the database specified in `databaseName`. To authenticate with SCRAM-SHA, you must specify this parameter. This parameter doesn't appear in this response. */
             password?: string;
             /** @description List that provides the pairings of one role with one applicable database. */
-            roles?: components["schemas"]["DatabaseUserRole"][];
+            roles: components["schemas"]["DatabaseUserRole"][];
             /** @description List that contains clusters, MongoDB Atlas Data Lakes, and MongoDB Atlas Streams Workspaces that this database user can access. If omitted, MongoDB Cloud grants the database user access to all the clusters, MongoDB Atlas Data Lakes, and MongoDB Atlas Streams Workspaces in the project. */
             scopes?: components["schemas"]["UserScope"][];
             /**
@@ -1554,6 +2109,16 @@ export interface components {
              */
             providerName: "AWS";
         };
+        /** @description Details that describe the Atlas log integration linked to this cloud provider access role. */
+        CloudProviderAccessAtlasLogIntegrationFeatureUsage: Omit<components["schemas"]["CloudProviderAccessFeatureUsage"], "featureType"> & {
+            featureId?: components["schemas"]["CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            featureType: "ATLAS_LOG_INTEGRATION";
+        };
         /** @description Details that describe the features linked to the Azure Service Principal. */
         CloudProviderAccessAzureServicePrincipal: Omit<WithRequired<components["schemas"]["CloudProviderAccessRole"], "providerName">, "providerName"> & {
             /**
@@ -1678,7 +2243,22 @@ export interface components {
              * @description Human-readable label that describes one MongoDB Cloud feature linked to this Amazon Web Services (AWS) Identity and Access Management (IAM) role.
              * @enum {string}
              */
-            readonly featureType?: "ATLAS_DATA_LAKE" | "ENCRYPTION_AT_REST" | "EXPORT_SNAPSHOT" | "PUSH_BASED_LOG_EXPORT";
+            readonly featureType?: "ATLAS_DATA_LAKE" | "ENCRYPTION_AT_REST" | "EXPORT_SNAPSHOT" | "PUSH_BASED_LOG_EXPORT" | "ATLAS_LOG_INTEGRATION";
+        };
+        /** @description Identifying characteristics about the Atlas log integration linked to this cloud provider access role. */
+        CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId: {
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies the Atlas log integration configuration.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly configId?: string;
+            /**
+             * @description Unique 24-hexadecimal digit string that identifies your project.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly groupId?: string;
+            /** @description Human-readable label that identifies the sink, such as an S3/GCS bucket or Azure container name. */
+            readonly sinkName?: string;
         };
         /** @description Identifying characteristics about the data lake linked to this Amazon Web Services (AWS) Identity and Access Management (IAM) role. */
         CloudProviderAccessFeatureUsageDataLakeFeatureId: {
@@ -2850,6 +3430,76 @@ export interface components {
             roleName: "atlasAdmin" | "backup" | "clusterMonitor" | "dbAdmin" | "dbAdminAnyDatabase" | "enableSharding" | "read" | "readAnyDatabase" | "readWrite" | "readWriteAnyDatabase" | "<a custom role name>";
         };
         /**
+         * Datadog Log Export Integration Request
+         * @description Request schema for creating or updating a Datadog log export integration.
+         */
+        DatadogLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+            /**
+             * Format: password
+             * @description API key for authentication.
+             * @example a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+             */
+            apiKey: string;
+            /**
+             * @description Datadog site/region for log ingestion. Valid values: US1, US3, US5, EU, AP1, AP2, US1_FED.
+             * @example US1
+             * @enum {string}
+             */
+            region: "US1" | "US3" | "US5" | "EU" | "AP1" | "AP2" | "US1_FED";
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "DATADOG_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DATADOG_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DATADOG_LOG_EXPORT";
+        };
+        /**
+         * Datadog Log Export Integration Response
+         * @description Details to integrate Datadog log export with one Atlas project.
+         */
+        DatadogLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+            /**
+             * Format: password
+             * @description API key for authentication.
+             * @example ****************************o5p6
+             */
+            apiKey: string;
+            /**
+             * @description Datadog site/region for log ingestion. Valid values: US1, US3, US5, EU, AP1, AP2, US1_FED.
+             * @example US1
+             * @enum {string}
+             */
+            region: "US1" | "US3" | "US5" | "EU" | "AP1" | "AP2" | "US1_FED";
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "DATADOG_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DATADOG_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DATADOG_LOG_EXPORT";
+        };
+        /**
          * Archival Criteria
          * @description Date-Based archival criteria.
          */
@@ -2935,7 +3585,7 @@ export interface components {
              */
             readonly created: string;
             /** @description Incident that triggered this alert. */
-            readonly eventTypeName: ("CREDIT_CARD_ABOUT_TO_EXPIRE" | "PENDING_INVOICE_OVER_THRESHOLD" | "DAILY_BILL_OVER_THRESHOLD") | ("CPS_SNAPSHOT_STARTED" | "CPS_SNAPSHOT_SUCCESSFUL" | "CPS_SNAPSHOT_FAILED" | "CPS_CONCURRENT_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_SNAPSHOT_BEHIND" | "CPS_COPY_SNAPSHOT_STARTED" | "CPS_COPY_SNAPSHOT_FAILED" | "CPS_COPY_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_COPY_SNAPSHOT_SUCCESSFUL" | "CPS_PREV_SNAPSHOT_OLD" | "CPS_SNAPSHOT_FALLBACK_SUCCESSFUL" | "CPS_SNAPSHOT_FALLBACK_FAILED" | "CPS_RESTORE_SUCCESSFUL" | "CPS_EXPORT_SUCCESSFUL" | "CPS_RESTORE_FAILED" | "CPS_EXPORT_FAILED" | "CPS_COLLECTION_RESTORE_SUCCESSFUL" | "CPS_COLLECTION_RESTORE_FAILED" | "CPS_COLLECTION_RESTORE_PARTIAL_SUCCESS" | "CPS_COLLECTION_RESTORE_CANCELED" | "CPS_AUTO_EXPORT_FAILED" | "CPS_SNAPSHOT_DOWNLOAD_REQUEST_FAILED" | "CPS_OPLOG_BEHIND" | "CPS_OPLOG_CAUGHT_UP") | ("AWS_ENCRYPTION_KEY_NEEDS_ROTATION" | "AZURE_ENCRYPTION_KEY_NEEDS_ROTATION" | "GCP_ENCRYPTION_KEY_NEEDS_ROTATION" | "AWS_ENCRYPTION_KEY_INVALID" | "AZURE_ENCRYPTION_KEY_INVALID" | "GCP_ENCRYPTION_KEY_INVALID") | ("FTS_INDEX_DELETION_FAILED" | "FTS_INDEX_BUILD_COMPLETE" | "FTS_INDEX_BUILD_FAILED" | "FTS_INDEX_STALE" | "FTS_INDEXES_RESTORE_FAILED" | "FTS_INDEXES_SYNONYM_MAPPING_INVALID") | ("USERS_WITHOUT_MULTI_FACTOR_AUTH" | "ENCRYPTION_AT_REST_KMS_NETWORK_ACCESS_DENIED" | "ENCRYPTION_AT_REST_CONFIG_NO_LONGER_VALID" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRING" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED" | "ACTIVE_LEGACY_TLS_CONNECTIONS") | "MONGOTUNE_ALERT" | ("CLUSTER_INSTANCE_STOP_START" | "CLUSTER_INSTANCE_RESYNC_REQUESTED" | "CLUSTER_INSTANCE_UPDATE_REQUESTED" | "SAMPLE_DATASET_LOAD_REQUESTED" | "TENANT_UPGRADE_TO_SERVERLESS_SUCCESSFUL" | "TENANT_UPGRADE_TO_SERVERLESS_FAILED" | "NETWORK_PERMISSION_ENTRY_ADDED" | "NETWORK_PERMISSION_ENTRY_REMOVED" | "NETWORK_PERMISSION_ENTRY_UPDATED" | "CLUSTER_BLOCK_WRITE" | "CLUSTER_UNBLOCK_WRITE") | ("MAINTENANCE_IN_ADVANCED" | "MAINTENANCE_AUTO_DEFERRED" | "MAINTENANCE_STARTED" | "MAINTENANCE_COMPLETED" | "MAINTENANCE_NO_LONGER_NEEDED") | ("NDS_X509_USER_AUTHENTICATION_CUSTOMER_CA_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_CUSTOMER_CRL_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_MANAGED_USER_CERTS_EXPIRATION_CHECK") | ("ONLINE_ARCHIVE_INSUFFICIENT_INDEXES_CHECK" | "ONLINE_ARCHIVE_MAX_CONSECUTIVE_OFFLOAD_WINDOWS_CHECK") | "OUTSIDE_SERVERLESS_METRIC_THRESHOLD" | "OUTSIDE_FLEX_METRIC_THRESHOLD" | ("JOINED_GROUP" | "REMOVED_FROM_GROUP" | "USER_ROLES_CHANGED_AUDIT") | ("TAGS_MODIFIED" | "CLUSTER_TAGS_MODIFIED" | "GROUP_TAGS_MODIFIED") | ("STREAM_PROCESSOR_STATE_IS_FAILED" | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD") | ("COMPUTE_AUTO_SCALE_INITIATED_BASE" | "COMPUTE_AUTO_SCALE_INITIATED_ANALYTICS" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_BASE" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_ANALYTICS" | "DISK_AUTO_SCALE_INITIATED" | "DISK_AUTO_SCALE_MAX_DISK_SIZE_FAIL" | "DISK_AUTO_SCALE_OPLOG_FAIL" | "PREDICTIVE_COMPUTE_AUTO_SCALE_INITIATED_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "CLUSTER_AUTO_SHARDING_INITIATED") | ("CPS_DATA_PROTECTION_ENABLE_REQUESTED" | "CPS_DATA_PROTECTION_ENABLED" | "CPS_DATA_PROTECTION_UPDATE_REQUESTED" | "CPS_DATA_PROTECTION_UPDATED" | "CPS_DATA_PROTECTION_DISABLE_REQUESTED" | "CPS_DATA_PROTECTION_DISABLED" | "CPS_DATA_PROTECTION_APPROVED_FOR_DISABLEMENT") | "RESOURCE_POLICY_VIOLATED" | ("HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED");
+            readonly eventTypeName: ("CREDIT_CARD_ABOUT_TO_EXPIRE" | "PENDING_INVOICE_OVER_THRESHOLD" | "DAILY_BILL_OVER_THRESHOLD") | ("CPS_SNAPSHOT_STARTED" | "CPS_SNAPSHOT_SUCCESSFUL" | "CPS_SNAPSHOT_FAILED" | "CPS_CONCURRENT_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_SNAPSHOT_BEHIND" | "CPS_COPY_SNAPSHOT_STARTED" | "CPS_COPY_SNAPSHOT_FAILED" | "CPS_COPY_SNAPSHOT_FAILED_WILL_RETRY" | "CPS_COPY_SNAPSHOT_SUCCESSFUL" | "CPS_PREV_SNAPSHOT_OLD" | "CPS_SNAPSHOT_FALLBACK_SUCCESSFUL" | "CPS_SNAPSHOT_FALLBACK_FAILED" | "CPS_RESTORE_SUCCESSFUL" | "CPS_EXPORT_SUCCESSFUL" | "CPS_RESTORE_FAILED" | "CPS_EXPORT_FAILED" | "CPS_COLLECTION_RESTORE_SUCCESSFUL" | "CPS_COLLECTION_RESTORE_FAILED" | "CPS_COLLECTION_RESTORE_PARTIAL_SUCCESS" | "CPS_COLLECTION_RESTORE_CANCELED" | "CPS_AUTO_EXPORT_FAILED" | "CPS_SNAPSHOT_DOWNLOAD_REQUEST_FAILED" | "CPS_OPLOG_BEHIND" | "CPS_OPLOG_CAUGHT_UP") | ("AWS_ENCRYPTION_KEY_NEEDS_ROTATION" | "AZURE_ENCRYPTION_KEY_NEEDS_ROTATION" | "GCP_ENCRYPTION_KEY_NEEDS_ROTATION" | "AWS_ENCRYPTION_KEY_INVALID" | "AZURE_ENCRYPTION_KEY_INVALID" | "GCP_ENCRYPTION_KEY_INVALID") | ("FTS_INDEX_DELETION_FAILED" | "FTS_INDEX_BUILD_COMPLETE" | "FTS_INDEX_BUILD_FAILED" | "FTS_INDEX_STALE" | "FTS_INDEXES_RESTORE_FAILED" | "FTS_INDEXES_SYNONYM_MAPPING_INVALID") | ("USERS_WITHOUT_MULTI_FACTOR_AUTH" | "ENCRYPTION_AT_REST_KMS_NETWORK_ACCESS_DENIED" | "ENCRYPTION_AT_REST_CONFIG_NO_LONGER_VALID" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRING" | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED" | "ACTIVE_LEGACY_TLS_CONNECTIONS") | "MONGOTUNE_ALERT" | ("CLUSTER_INSTANCE_STOP_START" | "CLUSTER_INSTANCE_RESYNC_REQUESTED" | "CLUSTER_INSTANCE_UPDATE_REQUESTED" | "SAMPLE_DATASET_LOAD_REQUESTED" | "TENANT_UPGRADE_TO_SERVERLESS_SUCCESSFUL" | "TENANT_UPGRADE_TO_SERVERLESS_FAILED" | "NETWORK_PERMISSION_ENTRY_ADDED" | "NETWORK_PERMISSION_ENTRY_REMOVED" | "NETWORK_PERMISSION_ENTRY_UPDATED" | "CLUSTER_BLOCK_WRITE" | "CLUSTER_UNBLOCK_WRITE") | ("MAINTENANCE_IN_ADVANCED" | "MAINTENANCE_AUTO_DEFERRED" | "MAINTENANCE_STARTED" | "MAINTENANCE_COMPLETED" | "MAINTENANCE_NO_LONGER_NEEDED") | ("NDS_X509_USER_AUTHENTICATION_CUSTOMER_CA_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_CUSTOMER_CRL_EXPIRATION_CHECK" | "NDS_X509_USER_AUTHENTICATION_MANAGED_USER_CERTS_EXPIRATION_CHECK") | ("ONLINE_ARCHIVE_INSUFFICIENT_INDEXES_CHECK" | "ONLINE_ARCHIVE_MAX_CONSECUTIVE_OFFLOAD_WINDOWS_CHECK") | "OUTSIDE_SERVERLESS_METRIC_THRESHOLD" | "OUTSIDE_FLEX_METRIC_THRESHOLD" | ("JOINED_GROUP" | "REMOVED_FROM_GROUP" | "USER_ROLES_CHANGED_AUDIT") | ("TAGS_MODIFIED" | "CLUSTER_TAGS_MODIFIED" | "GROUP_TAGS_MODIFIED") | ("STREAM_PROCESSOR_STATE_IS_FAILED" | "OUTSIDE_STREAM_PROCESSOR_METRIC_THRESHOLD") | ("COMPUTE_AUTO_SCALE_INITIATED_BASE" | "COMPUTE_AUTO_SCALE_INITIATED_ANALYTICS" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_BASE" | "COMPUTE_AUTO_SCALE_SCALE_DOWN_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_ANALYTICS" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_ANALYTICS" | "DISK_AUTO_SCALE_INITIATED" | "DISK_AUTO_SCALE_MAX_DISK_SIZE_FAIL" | "DISK_AUTO_SCALE_OPLOG_FAIL" | "PREDICTIVE_COMPUTE_AUTO_SCALE_INITIATED_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE" | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE" | "CLUSTER_AUTO_SHARDING_INITIATED") | ("CPS_DATA_PROTECTION_ENABLE_REQUESTED" | "CPS_DATA_PROTECTION_ENABLED" | "CPS_DATA_PROTECTION_UPDATE_REQUESTED" | "CPS_DATA_PROTECTION_UPDATED" | "CPS_DATA_PROTECTION_DISABLE_REQUESTED" | "CPS_DATA_PROTECTION_DISABLED" | "CPS_DATA_PROTECTION_APPROVED_FOR_DISABLEMENT") | "RESOURCE_POLICY_VIOLATED" | ("HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED" | "PROFILER_CONFIGURED_TOO_WIDELY");
             /**
              * @description Unique 24-hexadecimal digit string that identifies the project that owns this alert.
              * @example 32b6e34b3d91647abb20e7b8
@@ -3209,6 +3859,9 @@ export interface components {
             /** @description Flag that indicates whether this cluster enables disk auto-scaling. The maximum memory allowed for the selected cluster tier and the oplog size can limit storage auto-scaling. */
             enabled?: boolean;
         };
+        Document: {
+            [key: string]: Record<string, never>;
+        };
         DropIndexSuggestionsIndex: {
             /**
              * Format: int64
@@ -3429,6 +4082,21 @@ export interface components {
              */
             minInstanceSize?: "M0" | "M2" | "M5";
         };
+        GCPAccountDetails: {
+            /** @description The VPC CIDR Block. */
+            cidrBlock?: string;
+            /**
+             * @description Cloud provider. (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            cloudProvider: "gcp";
+            /** @description The GCP Project ID. */
+            gcpProjectId?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description The name of the VPC network. */
+            vpcNetworkName?: string;
+        };
         /**
          * GCP
          * @description Collection of settings that configures the network container for a virtual private connection on Amazon Web Services.
@@ -3454,7 +4122,7 @@ export interface components {
             /** @description Human-readable label that identifies the network in which MongoDB Cloud clusters in this network peering container exist. MongoDB Cloud returns **null** if no clusters exist in this network peering container. */
             readonly networkName?: string;
             /** @description List of GCP regions to which you want to deploy this MongoDB Cloud network peering container.  In this MongoDB Cloud project, you can deploy clusters only to the GCP regions in this list. To deploy MongoDB Cloud clusters to other GCP regions, create additional projects. */
-            regions?: ("AFRICA_SOUTH_1" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "CENTRAL_US" | "EASTERN_ASIA_PACIFIC" | "EASTERN_US" | "EUROPE_CENTRAL_2" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "SOUTHEASTERN_ASIA_PACIFIC" | "US_EAST_4" | "US_EAST_5" | "US_WEST_2" | "US_WEST_3" | "US_WEST_4" | "US_SOUTH_1" | "WESTERN_EUROPE" | "WESTERN_US")[];
+            regions: ("AFRICA_SOUTH_1" | "ASIA_EAST_2" | "ASIA_NORTHEAST_2" | "ASIA_NORTHEAST_3" | "ASIA_SOUTH_1" | "ASIA_SOUTH_2" | "ASIA_SOUTHEAST_2" | "AUSTRALIA_SOUTHEAST_1" | "AUSTRALIA_SOUTHEAST_2" | "CENTRAL_US" | "EASTERN_ASIA_PACIFIC" | "EASTERN_US" | "EUROPE_CENTRAL_2" | "EUROPE_NORTH_1" | "EUROPE_WEST_2" | "EUROPE_WEST_3" | "EUROPE_WEST_4" | "EUROPE_WEST_6" | "EUROPE_WEST_10" | "EUROPE_WEST_12" | "MIDDLE_EAST_CENTRAL_1" | "MIDDLE_EAST_CENTRAL_2" | "MIDDLE_EAST_WEST_1" | "NORTH_AMERICA_NORTHEAST_1" | "NORTH_AMERICA_NORTHEAST_2" | "NORTH_AMERICA_SOUTH_1" | "NORTHEASTERN_ASIA_PACIFIC" | "SOUTH_AMERICA_EAST_1" | "SOUTH_AMERICA_WEST_1" | "SOUTHEASTERN_ASIA_PACIFIC" | "US_EAST_4" | "US_EAST_5" | "US_WEST_2" | "US_WEST_3" | "US_WEST_4" | "US_SOUTH_1" | "WESTERN_EUROPE" | "WESTERN_US")[];
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3566,6 +4234,82 @@ export interface components {
              * @enum {string}
              */
             providerName: "GCP";
+        };
+        /**
+         * GCS Log Export Integration Request
+         * @description Request schema for creating or updating a Google Cloud Storage log export integration.
+         */
+        GcsLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+            /**
+             * @description Name of the bucket to store log files.
+             * @example my-gcs-log-bucket
+             */
+            bucketName: string;
+            /**
+             * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
+             * @example mongodb-logs/
+             */
+            prefixPath: string;
+            /**
+             * @description Unique 24-character hexadecimal string that identifies the Atlas Cloud Provider Access role.
+             * @example 507f1f77bcf86cd799439011
+             */
+            roleId: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "GCS_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "GCS_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "GCS_LOG_EXPORT";
+        };
+        /**
+         * GCS Log Export Integration Response
+         * @description Details to integrate Google Cloud Storage log export with one Atlas project.
+         */
+        GcsLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+            /**
+             * @description Name of the bucket to store log files.
+             * @example my-gcs-log-bucket
+             */
+            bucketName: string;
+            /**
+             * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
+             * @example mongodb-logs/
+             */
+            prefixPath: string;
+            /**
+             * @description Unique 24-character hexadecimal string that identifies the Atlas Cloud Provider Access role.
+             * @example 507f1f77bcf86cd799439011
+             */
+            roleId: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "GCS_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "GCS_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "GCS_LOG_EXPORT";
         };
         Group: {
             /**
@@ -3732,6 +4476,20 @@ export interface components {
              */
             diskSizeGB?: number;
         } & (components["schemas"]["AWSHardwareSpec20240805"] | components["schemas"]["AzureHardwareSpec20240805"] | components["schemas"]["GCPHardwareSpec20240805"] | components["schemas"]["TenantHardwareSpec20240805"]);
+        /** @description HTTP header with name and value. */
+        Header: {
+            /**
+             * @description Header name.
+             * @example Authorization
+             */
+            name: string;
+            /**
+             * Format: password
+             * @description Header value.
+             * @example Bearer token123
+             */
+            value: string;
+        };
         /**
          * Host Alerts
          * @description Host alert notifies about activities on mongod host.
@@ -3827,7 +4585,7 @@ export interface components {
          * @example HOST_DOWN
          * @enum {string}
          */
-        HostEventTypeViewForNdsGroupAlertable: "HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED";
+        HostEventTypeViewForNdsGroupAlertable: "HOST_DOWN" | "HOST_HAS_INDEX_SUGGESTIONS" | "HOST_MONGOT_CRASHING_OOM" | "HOST_MONGOT_STOP_REPLICATION" | "HOST_MONGOT_APPROACHING_STOP_REPLICATION" | "HOST_MONGOT_PAUSE_INITIAL_SYNC" | "HOST_SEARCH_NODE_INDEX_FAILED" | "HOST_EXTERNAL_LOG_SINK_EXPORT_DOWN" | "HOST_NOT_ENOUGH_DISK_SPACE" | "SSH_KEY_NDS_HOST_ACCESS_REQUESTED" | "SSH_KEY_NDS_HOST_ACCESS_REFRESHED" | "PUSH_BASED_LOG_EXPORT_STOPPED" | "PUSH_BASED_LOG_EXPORT_DROPPED_LOG" | "HOST_VERSION_BEHIND" | "VERSION_BEHIND" | "HOST_EXPOSED" | "HOST_SSL_CERTIFICATE_STALE" | "HOST_SECURITY_CHECKUP_NOT_MET" | "ALERT_HOST_SSH_SESSION_STARTED" | "PROFILER_CONFIGURED_TOO_WIDELY";
         /**
          * Host Metric Alerts
          * @description Host Metric Alert notifies about changes of measurements or metrics for mongod host.
@@ -4068,19 +4826,19 @@ export interface components {
          */
         LogIntegrationRequest: {
             /**
-             * @description Array of log types exported by this integration. The specific log types available and maximum number of items depend on the integration type. See the integration-specific schema for details.
+             * @description Array of log types exported by this integration.
              * @example [
              *       "MONGOD",
              *       "MONGOS"
              *     ]
              */
-            logTypes: string[];
+            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
             /**
-             * @description Type of log integration. Identifies which service will receive the exported logs.
+             * @description Type of log integration. Identifies which service will receive the exported logs. This value cannot be modified after the integration is created.
              * @enum {string}
              */
-            type: "S3_LOG_EXPORT";
-        } & components["schemas"]["S3LogIntegrationRequest"];
+            type: "S3_LOG_EXPORT" | "DATADOG_LOG_EXPORT" | "GCS_LOG_EXPORT" | "OTEL_LOG_EXPORT" | "SPLUNK_LOG_EXPORT" | "AZURE_LOG_EXPORT";
+        } & (components["schemas"]["S3LogIntegrationRequest"] | components["schemas"]["DatadogLogIntegrationRequest"] | components["schemas"]["GcsLogIntegrationRequest"] | components["schemas"]["OtelLogIntegrationRequest"] | components["schemas"]["SplunkLogIntegrationRequest"] | components["schemas"]["AzureLogIntegrationRequest"]);
         /**
          * Log Integration Response
          * @description Response schema for log integration operations.
@@ -4092,19 +4850,19 @@ export interface components {
              */
             id: string;
             /**
-             * @description Array of log types exported by this integration. The specific log types available and maximum number of items depend on the integration type. See the integration-specific schema for details.
+             * @description Array of log types exported by this integration.
              * @example [
              *       "MONGOD",
              *       "MONGOS"
              *     ]
              */
-            logTypes?: string[];
+            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
             /**
-             * @description Type of log integration. Identifies which service will receive the exported logs.
+             * @description Type of log integration. Identifies which service will receive the exported logs. This value cannot be modified after the integration is created.
              * @enum {string}
              */
-            type: "S3_LOG_EXPORT";
-        } & components["schemas"]["S3LogIntegrationResponse"];
+            type: "S3_LOG_EXPORT" | "DATADOG_LOG_EXPORT" | "GCS_LOG_EXPORT" | "OTEL_LOG_EXPORT" | "SPLUNK_LOG_EXPORT" | "AZURE_LOG_EXPORT";
+        } & (components["schemas"]["S3LogIntegrationResponse"] | components["schemas"]["DatadogLogIntegrationResponse"] | components["schemas"]["GcsLogIntegrationResponse"] | components["schemas"]["OtelLogIntegrationResponse"] | components["schemas"]["SplunkLogIntegrationResponse"] | components["schemas"]["AzureLogIntegrationResponse"]);
         MonthlyScheduleView: Omit<WithRequired<components["schemas"]["OnlineArchiveSchedule"], "type">, "type"> & {
             /**
              * Format: int32
@@ -4427,11 +5185,71 @@ export interface components {
             /** @description One or more organization-level roles assigned to the MongoDB Cloud user. */
             orgRoles?: ("ORG_OWNER" | "ORG_GROUP_CREATOR" | "ORG_BILLING_ADMIN" | "ORG_BILLING_READ_ONLY" | "ORG_STREAM_PROCESSING_ADMIN" | "ORG_READ_ONLY" | "ORG_MEMBER")[];
         };
+        /**
+         * OTel Log Export Integration Request
+         * @description Request schema for creating or updating an OpenTelemetry log export integration.
+         */
+        OtelLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+            /**
+             * @description OpenTelemetry collector endpoint URL. Must be HTTPS and not exceed 2048 characters.
+             * @example https://otel-collector.example.com:4318/v1/logs
+             */
+            otelEndpoint: string;
+            /** @description HTTP headers for authentication and configuration. Maximum 10 headers, total size limit 2KB. */
+            otelSuppliedHeaders: components["schemas"]["Header"][];
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        };
+        /**
+         * OTel Log Export Integration Response
+         * @description Details to integrate OpenTelemetry log export with one Atlas project.
+         */
+        OtelLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+            /**
+             * @description OpenTelemetry collector endpoint URL.
+             * @example https://otel-collector.example.com:4318/v1/logs
+             */
+            otelEndpoint: string;
+            /** @description HTTP headers for authentication and configuration. Maximum 10 headers, total size limit 2KB. */
+            otelSuppliedHeaders: components["schemas"]["Header"][];
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        };
         PaginatedAlertView: {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["AlertViewForNdsGroup"][];
+            readonly results: components["schemas"]["AlertViewForNdsGroup"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4443,7 +5261,51 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["CloudDatabaseUser"][];
+            readonly results: components["schemas"]["CloudDatabaseUser"][];
+            /**
+             * Format: int32
+             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             */
+            readonly totalCount?: number;
+        };
+        PaginatedApiStreamsConnectionView: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
+            readonly results: components["schemas"]["StreamsConnection"][];
+            /**
+             * Format: int32
+             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             */
+            readonly totalCount?: number;
+        };
+        PaginatedApiStreamsPrivateLinkView: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
+            readonly results: components["schemas"]["StreamsPrivateLinkConnection"][];
+            /**
+             * Format: int32
+             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             */
+            readonly totalCount?: number;
+        };
+        PaginatedApiStreamsStreamProcessorWithStatsView: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
+            readonly results: components["schemas"]["StreamsProcessorWithStats"][];
+            /**
+             * Format: int32
+             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             */
+            readonly totalCount?: number;
+        };
+        PaginatedApiStreamsTenantView: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
+            readonly results: components["schemas"]["StreamsTenant"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4454,7 +5316,7 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["Group"][];
+            readonly results: components["schemas"]["Group"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4465,7 +5327,7 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["ClusterDescription20240805"][];
+            readonly results: components["schemas"]["ClusterDescription20240805"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4476,7 +5338,7 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["FlexClusterDescription20241113"][];
+            readonly results: components["schemas"]["FlexClusterDescription20241113"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4487,7 +5349,7 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["NetworkPermissionEntry"][];
+            readonly results: components["schemas"]["NetworkPermissionEntry"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4498,7 +5360,7 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["OrgGroup"][];
+            readonly results: components["schemas"]["OrgGroup"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4509,7 +5371,7 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description List of returned documents that MongoDB Cloud provides when completing this request. */
-            readonly results?: components["schemas"]["AtlasOrganization"][];
+            readonly results: components["schemas"]["AtlasOrganization"][];
             /**
              * Format: int32
              * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
@@ -4953,12 +5815,12 @@ export interface components {
          */
         S3LogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
             /**
-             * @description Human-readable label that identifies the S3 bucket name for storing log files.
+             * @description Name of the bucket to store log files.
              * @example my-log-bucket
              */
             bucketName: string;
             /**
-             * @description Unique 24-hexadecimal digit string that identifies the AWS IAM role that MongoDB Cloud uses to access your S3 bucket.
+             * @description Unique 24-character hexadecimal string that identifies the AWS IAM role that Atlas uses to access the S3 bucket.
              * @example 507f1f77bcf86cd799439011
              */
             iamRoleId: string;
@@ -4968,12 +5830,12 @@ export interface components {
              */
             kmsKey?: string | null;
             /**
-             * @description S3 directory path prefix where the log files will be stored. MongoDB Cloud will add further sub-directories based on the log type.
+             * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
              * @example mongo-logs/
              */
             prefixPath: string;
             /**
-             * @description Human-readable label that identifies the service to which you want to integrate with MongoDB Cloud. The value must match the log integration type.
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
              * @enum {string}
              */
             type: "S3_LOG_EXPORT";
@@ -4992,16 +5854,16 @@ export interface components {
         };
         /**
          * S3 Log Export Integration Response
-         * @description Details to integrate S3 log export with one MongoDB Cloud project.
+         * @description Details to integrate S3 log export with one Atlas project.
          */
-        S3LogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "type">, "type"> & {
+        S3LogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
             /**
-             * @description Human-readable label that identifies the S3 bucket name for storing log files.
+             * @description Name of the bucket to store log files.
              * @example my-log-bucket
              */
             bucketName: string;
             /**
-             * @description Unique 24-hexadecimal digit string that identifies the AWS IAM role that MongoDB Cloud uses to access your S3 bucket.
+             * @description Unique 24-character hexadecimal string that identifies the AWS IAM role that Atlas uses to access the S3 bucket.
              * @example 507f1f77bcf86cd799439011
              */
             iamRoleId: string;
@@ -5011,12 +5873,12 @@ export interface components {
              */
             kmsKey?: string | null;
             /**
-             * @description S3 directory path prefix where the log files will be stored. MongoDB Cloud will add further sub-directories based on the log type.
+             * @description Path prefix where the log files will be stored. Atlas will add further sub-directories based on the log type.
              * @example mongo-logs/
              */
             prefixPath: string;
             /**
-             * @description Human-readable label that identifies the service to which you want to integrate with MongoDB Cloud. The value must match the log integration type.
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
              * @enum {string}
              */
             type: "S3_LOG_EXPORT";
@@ -5301,7 +6163,7 @@ export interface components {
             /** @description Label that identifies the type set name. Each `typeSets.name` must be unique within the same index definition. */
             name: string;
             /** @description List of types associated with the type set. Each type definition must include a `type` field specifying the search field type (`autocomplete`, `boolean`, `date`, `geo`, `number`, `objectId`, `string`, `token`, or `uuid`) and may include additional configuration properties specific to that type. */
-            types?: components["schemas"]["BasicDBObject"][];
+            types: components["schemas"]["BasicDBObject"][];
         };
         /**
          * AWS
@@ -5343,6 +6205,91 @@ export interface components {
              */
             providerName: "AWS" | "AZURE";
         };
+        /**
+         * Splunk Log Export Integration Request
+         * @description Request schema for creating or updating a Splunk log export integration.
+         */
+        SplunkLogIntegrationRequest: Omit<WithRequired<components["schemas"]["LogIntegrationRequest"], "logTypes" | "type">, "type"> & {
+            /**
+             * Format: password
+             * @description HTTP Event Collector (HEC) token for authentication.
+             * @example 12345678-1234-1234-1234-123456789012
+             */
+            hecToken: string;
+            /**
+             * @description HTTP Event Collector (HEC) endpoint URL.
+             * @example https://http-inputs-acme.splunkcloud.com:8088/services/collector/event
+             */
+            hecUrl: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "SPLUNK_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SPLUNK_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SPLUNK_LOG_EXPORT";
+        };
+        /**
+         * Splunk Log Export Integration Response
+         * @description Details to integrate Splunk log export with one Atlas project.
+         */
+        SplunkLogIntegrationResponse: Omit<WithRequired<components["schemas"]["LogIntegrationResponse"], "id" | "logTypes" | "type">, "type"> & {
+            /**
+             * Format: password
+             * @description HTTP Event Collector (HEC) token for authentication.
+             * @example ****************************9012
+             */
+            hecToken: string;
+            /**
+             * @description HTTP Event Collector (HEC) endpoint URL.
+             * @example https://http-inputs-acme.splunkcloud.com:8088/services/collector
+             */
+            hecUrl: string;
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "SPLUNK_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SPLUNK_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SPLUNK_LOG_EXPORT";
+        };
+        /** @description Configuration options for an Atlas Stream Processing Workspace. */
+        StreamConfig: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * Stream Workspace Max Tier Size
+             * @description Max tier size for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @enum {string}
+             */
+            maxTierSize?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
+            /**
+             * Stream Workspace Tier
+             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @enum {string}
+             */
+            tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
+        } | null;
         /**
          * Stream Processor Alerts
          * @description Stream Processor alert notifies about activities on Stream Processor in Atlas Streams.
@@ -5505,7 +6452,7 @@ export interface components {
             /** @description Human-readable label that identifies the stream connection. In the case of the Sample type, this is the name of the sample source. */
             name?: string;
             /** @description The connection's region. */
-            readonly region?: string;
+            region?: string;
             /**
              * @description The state of the connection.
              * @enum {string}
@@ -5517,6 +6464,28 @@ export interface components {
              */
             type?: "Kafka" | "Cluster" | "Sample" | "Https" | "AWSLambda" | "AWSKinesisDataStreams" | "SchemaRegistry";
         } & (components["schemas"]["StreamsSampleConnection"] | components["schemas"]["StreamsClusterConnection"] | components["schemas"]["StreamsKafkaConnection"] | components["schemas"]["StreamsHttpsConnection"] | components["schemas"]["StreamsAWSLambdaConnection"] | components["schemas"]["StreamsS3Connection"] | components["schemas"]["StreamsAWSKinesisDataStreamsConnection"] | components["schemas"]["StreamsSchemaRegistryConnection"]);
+        /** @description Dead letter queue for the stream processor. */
+        StreamsDLQ: {
+            /** @description Name of the collection to use for the DLQ. */
+            coll?: string;
+            /** @description Name of the connection to write DLQ messages to. Must be an Atlas connection. */
+            connectionName?: string;
+            /** @description Name of the database to use for the DLQ. */
+            db?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+        };
+        /** @description Information about the cloud provider region in which MongoDB Cloud processes the stream. */
+        StreamsDataProcessRegion: {
+            /**
+             * @description Human-readable label that identifies the cloud provider.
+             * @enum {string}
+             */
+            cloudProvider: "AWS" | "GCP" | "AZURE" | "TENANT" | "SERVERLESS";
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            region: components["schemas"]["BaseStreamsRegion"];
+        };
         StreamsHttpsConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             /** @description A map of key-value pairs that will be passed as headers for the request. */
             headers?: {
@@ -5639,6 +6608,133 @@ export interface components {
             /** @description Describes the transport type. Can be either `SASL_PLAINTEXT`, `SASL_SSL`, or `SSL`. */
             protocol?: string;
         };
+        /** @description A request to modify an existing stream processor. */
+        StreamsModifyStreamProcessor: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description New name for the stream processor. */
+            name?: string;
+            options?: components["schemas"]["StreamsModifyStreamProcessorOptions"];
+            /** @description New pipeline for the stream processor. */
+            pipeline?: components["schemas"]["Document"][];
+        };
+        /** @description Additional options for modifying a stream processor. */
+        StreamsModifyStreamProcessorOptions: {
+            dlq?: components["schemas"]["StreamsDLQ"];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description When true, the modified stream processor resumes from its last checkpoint. */
+            resumeFromCheckpoint?: boolean;
+        };
+        /** @description Optional configuration for the stream processor. */
+        StreamsOptions: {
+            dlq?: components["schemas"]["StreamsDLQ"];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+        };
+        /** @description Container for metadata needed to create a Private Link connection. */
+        StreamsPrivateLinkConnection: {
+            /**
+             * @description The ID of the Private Link connection.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly _id?: string;
+            /** @description Amazon Resource Name (ARN). Required for AWS Provider and MSK vendor. */
+            arn?: string;
+            /** @description Azure Resource IDs of each availability zone for the Azure Confluent cluster. */
+            azureResourceIds?: string[];
+            /**
+             * @description The domain hostname. Required for the following provider and vendor combinations:
+             *     - AWS provider with CONFLUENT vendor.
+             *     - AZURE provider with EVENTHUB or CONFLUENT vendor.
+             */
+            dnsDomain?: string;
+            /** @description Sub-Domain name of Confluent cluster. These are typically your availability zones. Required for AWS Provider and CONFLUENT vendor, if your AWS CONFLUENT cluster doesn't use subdomains, you must set this to the empty array []. */
+            dnsSubDomain?: string[];
+            /** @description Error message if the state is FAILED. */
+            readonly errorMessage?: string;
+            /** @description List of GCP Private Service Connect connection IDs. */
+            gcpConnectionIds?: string[];
+            /** @description Service Attachment URIs of each availability zone for the GCP Confluent cluster. */
+            gcpServiceAttachmentUris?: string[];
+            /** @description Interface endpoint ID that is created from the service endpoint ID provided. */
+            readonly interfaceEndpointId?: string;
+            /** @description Interface endpoint name that is created from the service endpoint ID provided. */
+            readonly interfaceEndpointName?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description Provider where the Kafka cluster is deployed. Valid values are AWS and AZURE. */
+            provider: string;
+            /** @description Account ID from the cloud provider. */
+            readonly providerAccountId?: string;
+            /** @description The region of the Provider’s cluster. See [AZURE](https://www.mongodb.com/docs/atlas/reference/microsoft-azure/#stream-processing-instances) and [AWS](https://www.mongodb.com/docs/atlas/reference/amazon-aws/#stream-processing-instances) supported regions. */
+            region?: string;
+            /** @description For AZURE EVENTHUB, this is the [namespace endpoint ID](https://learn.microsoft.com/en-us/rest/api/eventhub/namespaces/get). For AWS CONFLUENT cluster, this is the [VPC Endpoint service name](https://docs.confluent.io/cloud/current/networking/private-links/aws-privatelink.html). */
+            serviceEndpointId?: string;
+            /** @description State the connection is in. */
+            readonly state?: string;
+            /**
+             * @description Vendor that manages the cloud service. The list of supported vendor values is:
+             *     - AWS
+             *     -- MSK for AWS MSK Kafka clusters
+             *     -- CONFLUENT for Confluent Kafka clusters on AWS
+             *     -- KINESIS for AWS Kinesis Data Streams
+             *
+             *     - Azure
+             *     -- EVENTHUB for Azure EventHub.
+             *     -- CONFLUENT for Confluent Kafka clusters on Azure
+             *
+             *     - GCP
+             *     -- CONFLUENT for Confluent Kafka clusters on GCP
+             *
+             *     **NOTE** Omitting the vendor field will default to using the GENERIC vendor.
+             */
+            vendor?: string;
+        };
+        /** @description An atlas stream processor. */
+        StreamsProcessor: {
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the stream processor.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly _id?: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description Human-readable name of the stream processor. */
+            name?: string;
+            options?: components["schemas"]["StreamsOptions"];
+            /** @description Stream aggregation pipeline you want to apply to your streaming data. */
+            pipeline?: components["schemas"]["Document"][];
+        };
+        /** @description An atlas stream processor with optional stats. */
+        StreamsProcessorWithStats: {
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the stream processor.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly _id: string;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description Human-readable name of the stream processor. */
+            readonly name: string;
+            options?: components["schemas"]["StreamsOptions"];
+            /** @description Stream aggregation pipeline you want to apply to your streaming data. */
+            readonly pipeline: {
+                [key: string]: Record<string, never>;
+            }[];
+            /** @description The state of the stream processor. Commonly occurring states are 'CREATED', 'STARTED', 'STOPPED' and 'FAILED'. */
+            readonly state: string;
+            /** @description The stats associated with the stream processor. */
+            readonly stats?: {
+                [key: string]: Record<string, never>;
+            };
+            /**
+             * Stream Workspace Tier
+             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @enum {string}
+             */
+            tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
+        };
         /** @description The configuration for S3 connections. */
         StreamsS3Connection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             aws?: components["schemas"]["StreamsAWSConnectionConfig"];
@@ -5669,6 +6765,16 @@ export interface components {
              */
             type: "Sample";
         };
+        /** @description Sample connections to add to SPI. */
+        StreamsSampleConnections: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * @description Flag that indicates whether to add a `sample_stream_solar` connection.
+             * @default false
+             */
+            solar: boolean;
+        };
         /** @description The configuration for Schema Registry connections. */
         StreamsSchemaRegistryConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             /**
@@ -5691,6 +6797,59 @@ export interface components {
              * @enum {string}
              */
             type: "SchemaRegistry";
+        };
+        /** @description A request to start a stream processor. */
+        StreamsStartStreamProcessorWith: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description When true or not specified, the stream processor resumes from its last checkpoint. When false, the stream processor starts fresh. */
+            resumeFromCheckpoint?: boolean;
+            /**
+             * Format: date-time
+             * @description The operation time after which the change stream source should begin reporting. This parameter expresses its value in the ISO 8601 timestamp format in UTC.
+             */
+            startAtOperationTime?: string;
+            /**
+             * Stream Workspace Tier
+             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @enum {string}
+             */
+            tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
+        };
+        StreamsTenant: {
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the project.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly _id?: string;
+            /** @description List of connections configured in the stream workspace. */
+            readonly connections?: components["schemas"]["StreamsConnection"][];
+            dataProcessRegion?: components["schemas"]["StreamsDataProcessRegion"];
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the project.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly groupId?: string;
+            /** @description List that contains the hostnames assigned to the stream workspace. */
+            readonly hostnames?: string[];
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description Label that identifies the stream workspace. */
+            name?: string;
+            sampleConnections?: components["schemas"]["StreamsSampleConnections"];
+            streamConfig?: components["schemas"]["StreamConfig"];
+        };
+        /** @description Details to update a stream tenant. */
+        StreamsTenantUpdateRequest: {
+            /**
+             * @description Human-readable label that identifies the cloud provider.
+             * @enum {string}
+             */
+            cloudProvider?: "AWS" | "GCP" | "AZURE" | "TENANT" | "SERVERLESS";
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            region?: components["schemas"]["BaseStreamsRegion"];
+            streamConfig?: components["schemas"]["StreamConfig"];
         };
         /**
          * Synonym Mapping Status Detail
@@ -5770,6 +6929,7 @@ export interface components {
              */
             providerName: "TENANT";
         };
+        TenantWithSampleConnections: Record<string, never>;
         /** Text Search Host Status Detail */
         TextSearchHostStatusDetail: {
             /** @description Hostname that corresponds to the status detail. */
@@ -6181,6 +7341,15 @@ export interface components {
              */
             type: "CLUSTER" | "DATA_LAKE" | "STREAM";
         };
+        /** @description Container for elements used to challenge the user before taking certain actions on VPC Peering connections. */
+        VPCPeeringActionChallenge: {
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /** @description The AWS requester account ID. */
+            requesterAccountId?: string;
+            /** @description The AWS requester VPC ID. */
+            requesterVpcId?: string;
+        };
         /** Vector Search Host Status Detail */
         VectorSearchHostStatusDetail: {
             /** @description Hostname that corresponds to the status detail. */
@@ -6205,6 +7374,11 @@ export interface components {
         VectorSearchIndex: Omit<WithRequired<components["schemas"]["ClusterSearchIndex"], "collectionName" | "database" | "name">, "type"> & {
             /** @description Settings that configure the fields, one per object, to index. You must define at least one "vector" type field. You can optionally define "filter" type fields also. */
             fields?: components["schemas"]["BasicDBObject"][];
+            /**
+             * @description Top-level path to the array that contains vector fields. When provided, vector fields under this path are treated as nested.
+             * @example sections
+             */
+            nestedRoot?: string;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -6228,7 +7402,12 @@ export interface components {
          */
         VectorSearchIndexDefinition: {
             /** @description Settings that configure the fields, one per object, to index. You must define at least one "vector" type field. You can optionally define "filter" type fields also. */
-            fields?: components["schemas"]["BasicDBObject"][];
+            fields: components["schemas"]["BasicDBObject"][];
+            /**
+             * @description Top-level path to the array that contains vector fields. When provided, vector fields under this path are treated as nested.
+             * @example sections
+             */
+            nestedRoot?: string;
             /**
              * Format: int32
              * @description Number of index partitions. Allowed values are [1, 2, 4].
@@ -6839,6 +8018,9 @@ export interface components {
         /** @description Too Many Requests. */
         tooManyRequests: {
             headers: {
+                "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                "Retry-After": components["headers"]["HeaderRetryAfter"];
                 [name: string]: unknown;
             };
             content: {
@@ -6892,9 +8074,17 @@ export interface components {
         pretty: boolean;
     };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /** @description The maximum number of requests that a user can make within a specific time window. */
+        HeaderRateLimitLimit: number;
+        /** @description The number of requests remaining in the current rate limit window before the limit is reached. */
+        HeaderRateLimitRemaining: number;
+        /** @description The minimum time you should wait, in seconds, before retrying the API request. This header might be returned for 429 or 503 error responses. */
+        HeaderRetryAfter: number;
+    };
     pathItems: never;
 }
+export type AwsAccountDetails = components['schemas']['AWSAccountDetails'];
 export type AwsCloudProviderContainer = components['schemas']['AWSCloudProviderContainer'];
 export type AwsCloudProviderSettings = components['schemas']['AWSCloudProviderSettings'];
 export type AwsComputeAutoScaling = components['schemas']['AWSComputeAutoScaling'];
@@ -6902,6 +8092,7 @@ export type AwsCreateDataProcessRegionView = components['schemas']['AWSCreateDat
 export type AwsDataProcessRegionView = components['schemas']['AWSDataProcessRegionView'];
 export type AwsHardwareSpec20240805 = components['schemas']['AWSHardwareSpec20240805'];
 export type AwsRegionConfig20240805 = components['schemas']['AWSRegionConfig20240805'];
+export type AccountDetails = components['schemas']['AccountDetails'];
 export type AdvancedAutoScalingSettings = components['schemas']['AdvancedAutoScalingSettings'];
 export type AdvancedComputeAutoScaling = components['schemas']['AdvancedComputeAutoScaling'];
 export type AlertViewForNdsGroup = components['schemas']['AlertViewForNdsGroup'];
@@ -6910,19 +8101,26 @@ export type ApiAtlasClusterAdvancedConfigurationView = components['schemas']['Ap
 export type ApiAtlasFtsAnalyzersViewManual = components['schemas']['ApiAtlasFTSAnalyzersViewManual'];
 export type ApiAtlasFtsMappingsViewManual = components['schemas']['ApiAtlasFTSMappingsViewManual'];
 export type ApiError = components['schemas']['ApiError'];
+export type ApiStreamsAwsRegionView = components['schemas']['ApiStreamsAWSRegionView'];
+export type ApiStreamsAzureRegionView = components['schemas']['ApiStreamsAzureRegionView'];
+export type ApiStreamsGcpRegionView = components['schemas']['ApiStreamsGCPRegionView'];
 export type AppServiceAlertView = components['schemas']['AppServiceAlertView'];
 export type AppServiceEventTypeViewAlertable = components['schemas']['AppServiceEventTypeViewAlertable'];
 export type AtlasOrganization = components['schemas']['AtlasOrganization'];
 export type AtlasSearchAnalyzer = components['schemas']['AtlasSearchAnalyzer'];
+export type AzureAccountDetails = components['schemas']['AzureAccountDetails'];
 export type AzureCloudProviderContainer = components['schemas']['AzureCloudProviderContainer'];
 export type AzureCloudProviderSettings = components['schemas']['AzureCloudProviderSettings'];
 export type AzureComputeAutoScalingRules = components['schemas']['AzureComputeAutoScalingRules'];
 export type AzureCreateDataProcessRegionView = components['schemas']['AzureCreateDataProcessRegionView'];
 export type AzureDataProcessRegionView = components['schemas']['AzureDataProcessRegionView'];
 export type AzureHardwareSpec20240805 = components['schemas']['AzureHardwareSpec20240805'];
+export type AzureLogIntegrationRequest = components['schemas']['AzureLogIntegrationRequest'];
+export type AzureLogIntegrationResponse = components['schemas']['AzureLogIntegrationResponse'];
 export type AzureRegionConfig20240805 = components['schemas']['AzureRegionConfig20240805'];
 export type BadRequestDetail = components['schemas']['BadRequestDetail'];
 export type BaseCloudProviderInstanceSize = components['schemas']['BaseCloudProviderInstanceSize'];
+export type BaseStreamsRegion = components['schemas']['BaseStreamsRegion'];
 export type BasicDbObject = components['schemas']['BasicDBObject'];
 export type BiConnector = components['schemas']['BiConnector'];
 export type BillingInvoice = components['schemas']['BillingInvoice'];
@@ -6935,12 +8133,14 @@ export type CloudGcpProviderSettings = components['schemas']['CloudGCPProviderSe
 export type CloudProviderAwsAutoScaling = components['schemas']['CloudProviderAWSAutoScaling'];
 export type CloudProviderAccessAwsiamRole = components['schemas']['CloudProviderAccessAWSIAMRole'];
 export type CloudProviderAccessAwsiamRoleRequestUpdate = components['schemas']['CloudProviderAccessAWSIAMRoleRequestUpdate'];
+export type CloudProviderAccessAtlasLogIntegrationFeatureUsage = components['schemas']['CloudProviderAccessAtlasLogIntegrationFeatureUsage'];
 export type CloudProviderAccessAzureServicePrincipal = components['schemas']['CloudProviderAccessAzureServicePrincipal'];
 export type CloudProviderAccessAzureServicePrincipalRequestUpdate = components['schemas']['CloudProviderAccessAzureServicePrincipalRequestUpdate'];
 export type CloudProviderAccessDataLakeFeatureUsage = components['schemas']['CloudProviderAccessDataLakeFeatureUsage'];
 export type CloudProviderAccessEncryptionAtRestFeatureUsage = components['schemas']['CloudProviderAccessEncryptionAtRestFeatureUsage'];
 export type CloudProviderAccessExportSnapshotFeatureUsage = components['schemas']['CloudProviderAccessExportSnapshotFeatureUsage'];
 export type CloudProviderAccessFeatureUsage = components['schemas']['CloudProviderAccessFeatureUsage'];
+export type CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId = components['schemas']['CloudProviderAccessFeatureUsageAtlasLogIntegrationFeatureId'];
 export type CloudProviderAccessFeatureUsageDataLakeFeatureId = components['schemas']['CloudProviderAccessFeatureUsageDataLakeFeatureId'];
 export type CloudProviderAccessFeatureUsageExportSnapshotFeatureId = components['schemas']['CloudProviderAccessFeatureUsageExportSnapshotFeatureId'];
 export type CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId = components['schemas']['CloudProviderAccessFeatureUsagePushBasedLogExportFeatureId'];
@@ -6996,6 +8196,8 @@ export type DataMetricUnits = components['schemas']['DataMetricUnits'];
 export type DataMetricValueView = components['schemas']['DataMetricValueView'];
 export type DataProcessRegionView = components['schemas']['DataProcessRegionView'];
 export type DatabaseUserRole = components['schemas']['DatabaseUserRole'];
+export type DatadogLogIntegrationRequest = components['schemas']['DatadogLogIntegrationRequest'];
+export type DatadogLogIntegrationResponse = components['schemas']['DatadogLogIntegrationResponse'];
 export type DateCriteriaView = components['schemas']['DateCriteriaView'];
 export type DedicatedHardwareSpec20240805 = components['schemas']['DedicatedHardwareSpec20240805'];
 export type DefaultAlertViewForNdsGroup = components['schemas']['DefaultAlertViewForNdsGroup'];
@@ -7012,6 +8214,7 @@ export type DiskBackupSnapshotGcpExportBucketRequest = components['schemas']['Di
 export type DiskBackupSnapshotGcpExportBucketResponse = components['schemas']['DiskBackupSnapshotGCPExportBucketResponse'];
 export type DiskBackupTimeBasedCopyPolicyItem = components['schemas']['DiskBackupTimeBasedCopyPolicyItem'];
 export type DiskGbAutoScaling = components['schemas']['DiskGBAutoScaling'];
+export type Document = components['schemas']['Document'];
 export type DropIndexSuggestionsIndex = components['schemas']['DropIndexSuggestionsIndex'];
 export type DropIndexSuggestionsResponse = components['schemas']['DropIndexSuggestionsResponse'];
 export type EmployeeAccessGrantView = components['schemas']['EmployeeAccessGrantView'];
@@ -7024,18 +8227,22 @@ export type FlexConnectionStrings20241113 = components['schemas']['FlexConnectio
 export type FlexProviderSettings20241113 = components['schemas']['FlexProviderSettings20241113'];
 export type FlexProviderSettingsCreate20241113 = components['schemas']['FlexProviderSettingsCreate20241113'];
 export type FreeComputeAutoScalingRules = components['schemas']['FreeComputeAutoScalingRules'];
+export type GcpAccountDetails = components['schemas']['GCPAccountDetails'];
 export type GcpCloudProviderContainer = components['schemas']['GCPCloudProviderContainer'];
 export type GcpComputeAutoScaling = components['schemas']['GCPComputeAutoScaling'];
 export type GcpCreateDataProcessRegionView = components['schemas']['GCPCreateDataProcessRegionView'];
 export type GcpDataProcessRegionView = components['schemas']['GCPDataProcessRegionView'];
 export type GcpHardwareSpec20240805 = components['schemas']['GCPHardwareSpec20240805'];
 export type GcpRegionConfig20240805 = components['schemas']['GCPRegionConfig20240805'];
+export type GcsLogIntegrationRequest = components['schemas']['GcsLogIntegrationRequest'];
+export type GcsLogIntegrationResponse = components['schemas']['GcsLogIntegrationResponse'];
 export type Group = components['schemas']['Group'];
 export type GroupActiveUserResponse = components['schemas']['GroupActiveUserResponse'];
 export type GroupPendingUserResponse = components['schemas']['GroupPendingUserResponse'];
 export type GroupRoleAssignment = components['schemas']['GroupRoleAssignment'];
 export type GroupUserResponse = components['schemas']['GroupUserResponse'];
 export type HardwareSpec20240805 = components['schemas']['HardwareSpec20240805'];
+export type Header = components['schemas']['Header'];
 export type HostAlertViewForNdsGroup = components['schemas']['HostAlertViewForNdsGroup'];
 export type HostEventTypeViewForNdsGroupAlertable = components['schemas']['HostEventTypeViewForNdsGroupAlertable'];
 export type HostMetricAlert = components['schemas']['HostMetricAlert'];
@@ -7059,8 +8266,14 @@ export type OrgGroup = components['schemas']['OrgGroup'];
 export type OrgPendingUserResponse = components['schemas']['OrgPendingUserResponse'];
 export type OrgUserResponse = components['schemas']['OrgUserResponse'];
 export type OrgUserRolesResponse = components['schemas']['OrgUserRolesResponse'];
+export type OtelLogIntegrationRequest = components['schemas']['OtelLogIntegrationRequest'];
+export type OtelLogIntegrationResponse = components['schemas']['OtelLogIntegrationResponse'];
 export type PaginatedAlertView = components['schemas']['PaginatedAlertView'];
 export type PaginatedApiAtlasDatabaseUserView = components['schemas']['PaginatedApiAtlasDatabaseUserView'];
+export type PaginatedApiStreamsConnectionView = components['schemas']['PaginatedApiStreamsConnectionView'];
+export type PaginatedApiStreamsPrivateLinkView = components['schemas']['PaginatedApiStreamsPrivateLinkView'];
+export type PaginatedApiStreamsStreamProcessorWithStatsView = components['schemas']['PaginatedApiStreamsStreamProcessorWithStatsView'];
+export type PaginatedApiStreamsTenantView = components['schemas']['PaginatedApiStreamsTenantView'];
 export type PaginatedAtlasGroupView = components['schemas']['PaginatedAtlasGroupView'];
 export type PaginatedClusterDescription20240805 = components['schemas']['PaginatedClusterDescription20240805'];
 export type PaginatedFlexClusters20241113 = components['schemas']['PaginatedFlexClusters20241113'];
@@ -7104,26 +8317,42 @@ export type SearchTypeSets = components['schemas']['SearchTypeSets'];
 export type ServerlessAwsTenantEndpointUpdate = components['schemas']['ServerlessAWSTenantEndpointUpdate'];
 export type ServerlessAzureTenantEndpointUpdate = components['schemas']['ServerlessAzureTenantEndpointUpdate'];
 export type ServerlessTenantEndpointUpdate = components['schemas']['ServerlessTenantEndpointUpdate'];
+export type SplunkLogIntegrationRequest = components['schemas']['SplunkLogIntegrationRequest'];
+export type SplunkLogIntegrationResponse = components['schemas']['SplunkLogIntegrationResponse'];
+export type StreamConfig = components['schemas']['StreamConfig'];
 export type StreamProcessorAlertViewForNdsGroup = components['schemas']['StreamProcessorAlertViewForNdsGroup'];
 export type StreamsAwsConnectionConfig = components['schemas']['StreamsAWSConnectionConfig'];
 export type StreamsAwsKinesisDataStreamsConnection = components['schemas']['StreamsAWSKinesisDataStreamsConnection'];
 export type StreamsAwsLambdaConnection = components['schemas']['StreamsAWSLambdaConnection'];
 export type StreamsClusterConnection = components['schemas']['StreamsClusterConnection'];
 export type StreamsConnection = components['schemas']['StreamsConnection'];
+export type StreamsDlq = components['schemas']['StreamsDLQ'];
+export type StreamsDataProcessRegion = components['schemas']['StreamsDataProcessRegion'];
 export type StreamsHttpsConnection = components['schemas']['StreamsHttpsConnection'];
 export type StreamsKafkaAuthentication = components['schemas']['StreamsKafkaAuthentication'];
 export type StreamsKafkaConnection = components['schemas']['StreamsKafkaConnection'];
 export type StreamsKafkaNetworking = components['schemas']['StreamsKafkaNetworking'];
 export type StreamsKafkaNetworkingAccess = components['schemas']['StreamsKafkaNetworkingAccess'];
 export type StreamsKafkaSecurity = components['schemas']['StreamsKafkaSecurity'];
+export type StreamsModifyStreamProcessor = components['schemas']['StreamsModifyStreamProcessor'];
+export type StreamsModifyStreamProcessorOptions = components['schemas']['StreamsModifyStreamProcessorOptions'];
+export type StreamsOptions = components['schemas']['StreamsOptions'];
+export type StreamsPrivateLinkConnection = components['schemas']['StreamsPrivateLinkConnection'];
+export type StreamsProcessor = components['schemas']['StreamsProcessor'];
+export type StreamsProcessorWithStats = components['schemas']['StreamsProcessorWithStats'];
 export type StreamsS3Connection = components['schemas']['StreamsS3Connection'];
 export type StreamsSampleConnection = components['schemas']['StreamsSampleConnection'];
+export type StreamsSampleConnections = components['schemas']['StreamsSampleConnections'];
 export type StreamsSchemaRegistryConnection = components['schemas']['StreamsSchemaRegistryConnection'];
+export type StreamsStartStreamProcessorWith = components['schemas']['StreamsStartStreamProcessorWith'];
+export type StreamsTenant = components['schemas']['StreamsTenant'];
+export type StreamsTenantUpdateRequest = components['schemas']['StreamsTenantUpdateRequest'];
 export type SynonymMappingStatusDetail = components['schemas']['SynonymMappingStatusDetail'];
 export type SynonymMappingStatusDetailMap = components['schemas']['SynonymMappingStatusDetailMap'];
 export type SynonymSource = components['schemas']['SynonymSource'];
 export type TenantHardwareSpec20240805 = components['schemas']['TenantHardwareSpec20240805'];
 export type TenantRegionConfig20240805 = components['schemas']['TenantRegionConfig20240805'];
+export type TenantWithSampleConnections = components['schemas']['TenantWithSampleConnections'];
 export type TextSearchHostStatusDetail = components['schemas']['TextSearchHostStatusDetail'];
 export type TextSearchIndexCreateRequest = components['schemas']['TextSearchIndexCreateRequest'];
 export type TextSearchIndexDefinition = components['schemas']['TextSearchIndexDefinition'];
@@ -7140,6 +8369,7 @@ export type TokenFilterStempel = components['schemas']['TokenFilterStempel'];
 export type TokenFilterWordDelimiterGraph = components['schemas']['TokenFilterWordDelimiterGraph'];
 export type TokenFilterkStemming = components['schemas']['TokenFilterkStemming'];
 export type UserScope = components['schemas']['UserScope'];
+export type VpcPeeringActionChallenge = components['schemas']['VPCPeeringActionChallenge'];
 export type VectorSearchHostStatusDetail = components['schemas']['VectorSearchHostStatusDetail'];
 export type VectorSearchIndex = components['schemas']['VectorSearchIndex'];
 export type VectorSearchIndexCreateRequest = components['schemas']['VectorSearchIndexCreateRequest'];
@@ -7188,6 +8418,9 @@ export type ParameterItemsPerPage = components['parameters']['itemsPerPage'];
 export type ParameterOrgId = components['parameters']['orgId'];
 export type ParameterPageNum = components['parameters']['pageNum'];
 export type ParameterPretty = components['parameters']['pretty'];
+export type HeaderHeaderRateLimitLimit = components['headers']['HeaderRateLimitLimit'];
+export type HeaderHeaderRateLimitRemaining = components['headers']['HeaderRateLimitRemaining'];
+export type HeaderHeaderRetryAfter = components['headers']['HeaderRetryAfter'];
 export type $defs = Record<string, never>;
 export interface operations {
     listClusterDetails: {
@@ -7213,6 +8446,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7221,6 +8456,7 @@ export interface operations {
             };
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7247,6 +8483,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7257,6 +8495,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7284,6 +8523,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7295,6 +8536,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7322,6 +8564,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7332,6 +8576,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7359,6 +8604,8 @@ export interface operations {
             /** @description This endpoint does not return a response body. */
             204: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7370,6 +8617,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7403,6 +8651,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7412,6 +8662,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7450,6 +8701,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7460,6 +8713,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7495,6 +8749,8 @@ export interface operations {
             /** @description This endpoint does not return a response body. */
             204: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7504,6 +8760,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7539,6 +8796,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7549,6 +8808,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7587,6 +8847,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7596,6 +8858,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7633,6 +8896,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7645,6 +8910,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7679,6 +8945,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7689,6 +8957,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7720,6 +8989,8 @@ export interface operations {
             /** @description Accepted */
             202: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7731,6 +9002,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7755,6 +9027,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7790,6 +9064,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7844,6 +9120,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7888,6 +9166,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7897,6 +9177,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7929,6 +9210,8 @@ export interface operations {
             /** @description OK */
             201: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7940,6 +9223,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -7985,6 +9269,8 @@ export interface operations {
             /** @description This endpoint does not return a response body. */
             204: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -7994,6 +9280,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -8027,6 +9314,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -8037,6 +9326,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -8069,6 +9359,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -8081,6 +9373,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -8110,6 +9403,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -8121,6 +9416,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -8150,6 +9446,8 @@ export interface operations {
             /** @description This endpoint does not return a response body. */
             204: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -8161,6 +9459,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -8214,12 +9513,1298 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
                     "application/vnd.atlas.2023-01-01+json": components["schemas"]["PerformanceAdvisorSlowQueryList"];
                 };
             };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    listGroupStreamWorkspaces: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Number of items that the response returns per page. */
+                itemsPerPage?: components["parameters"]["itemsPerPage"];
+                /** @description Number of the page that displays the current set of the total objects that the response returns. */
+                pageNum?: components["parameters"]["pageNum"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["PaginatedApiStreamsTenantView"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    createGroupStreamWorkspace: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        /** @description Details to create one streams workspace in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsTenant"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsTenant"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupStreamAccountDetails: {
+        parameters: {
+            query: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description One of "aws", "azure" or "gcp". */
+                cloudProvider: string;
+                /** @description The cloud provider specific region name, i.e. "US_EAST_1" for cloud provider "aws". */
+                regionName: string;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-11-13+json": components["schemas"]["AccountDetails"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    listGroupStreamPrivateLinkConnections: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Number of items that the response returns per page. */
+                itemsPerPage?: components["parameters"]["itemsPerPage"];
+                /** @description Number of the page that displays the current set of the total objects that the response returns. */
+                pageNum?: components["parameters"]["pageNum"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["PaginatedApiStreamsPrivateLinkView"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    createGroupStreamPrivateLinkConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        /** @description Details to create one Private Link connection for a project. project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsPrivateLinkConnection"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsPrivateLinkConnection"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["unauthorized"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupStreamPrivateLinkConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Unique ID that identifies the Private Link connection. */
+                connectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsPrivateLinkConnection"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    deleteGroupStreamPrivateLinkConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Unique ID that identifies the Private Link connection. */
+                connectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    deleteGroupStreamVpcPeeringConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description The VPC Peering Connection id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    acceptGroupStreamVpcPeeringConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description The VPC Peering Connection id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Challenge values for VPC Peering requester account ID, and requester VPC ID. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-02-01+json": components["schemas"]["VPCPeeringActionChallenge"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    rejectGroupStreamVpcPeeringConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description The VPC Peering Connection id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupStreamWorkspace: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag to indicate whether connections information should be included in the stream workspace. */
+                includeConnections?: boolean;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace to return. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsTenant"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    deleteGroupStreamWorkspace: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace to delete. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    updateGroupStreamWorkspace: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace to update. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Details to update in the streams workspace. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsTenantUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsTenant"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    downloadGroupStreamAuditLogs: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Timestamp that specifies the end point for the range of log messages to download.  MongoDB Cloud expresses this timestamp in the number of seconds that have elapsed since the UNIX epoch. */
+                endDate?: number;
+                /** @description Timestamp that specifies the starting point for the range of log messages to download. MongoDB Cloud expresses this timestamp in the number of seconds that have elapsed since the UNIX epoch. */
+                startDate?: number;
+                /** @description Name of the stream processor to download logs for. An empty string will download logs for all stream processors in the workspace. */
+                spName?: string;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+gzip": string;
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    listGroupStreamConnections: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Number of items that the response returns per page. */
+                itemsPerPage?: components["parameters"]["itemsPerPage"];
+                /** @description Number of the page that displays the current set of the total objects that the response returns. */
+                pageNum?: components["parameters"]["pageNum"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["PaginatedApiStreamsConnectionView"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    createGroupStreamConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Details to create one connection for a streams workspace in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsConnection"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsConnection"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["unauthorized"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupStreamConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace to return. */
+                tenantName: string;
+                /** @description Label that identifies the stream connection to return. */
+                connectionName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsConnection"];
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    deleteGroupStreamConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream connection. */
+                connectionName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    updateGroupStreamConnection: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream connection. */
+                connectionName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Details to update one connection for a streams workspace in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsConnection"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2023-02-01+json": components["schemas"]["StreamsConnection"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    createGroupStreamProcessor: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Details to create an Atlas Streams Processor. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2024-05-30+json": components["schemas"]["StreamsProcessor"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-05-30+json": components["schemas"]["StreamsProcessor"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["unauthorized"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupStreamProcessor: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream processor. */
+                processorName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-05-30+json": components["schemas"]["StreamsProcessorWithStats"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    deleteGroupStreamProcessor: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream processor. */
+                processorName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description This endpoint does not return a response body. */
+            204: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-05-30+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    updateGroupStreamProcessor: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream processor. */
+                processorName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Modifications to apply to the stream processor. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2024-05-30+json": components["schemas"]["StreamsModifyStreamProcessor"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-05-30+json": components["schemas"]["StreamsProcessorWithStats"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    startGroupStreamProcessor: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream processor. */
+                processorName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-05-30+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    startGroupStreamProcessorWith: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream processor. */
+                processorName: string;
+            };
+            cookie?: never;
+        };
+        /** @description Options for starting a stream processor. */
+        requestBody?: {
+            content: {
+                "application/vnd.atlas.2025-03-12+json": components["schemas"]["StreamsStartStreamProcessorWith"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2025-03-12+json": unknown;
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    stopGroupStreamProcessor: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+                /** @description Label that identifies the stream processor. */
+                processorName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-05-30+json": unknown;
+                };
+            };
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    getGroupStreamProcessors: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+                /** @description Number of items that the response returns per page. */
+                itemsPerPage?: components["parameters"]["itemsPerPage"];
+                /** @description Number of the page that displays the current set of the total objects that the response returns. */
+                pageNum?: components["parameters"]["pageNum"];
+                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                includeCount?: components["parameters"]["includeCount"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-05-30+json": components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"];
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    downloadGroupStreamOperationalLogs: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Timestamp that specifies the end point for the range of log messages to download.  MongoDB Cloud expresses this timestamp in the number of seconds that have elapsed since the UNIX epoch. */
+                endDate?: number;
+                /** @description Timestamp that specifies the starting point for the range of log messages to download. MongoDB Cloud expresses this timestamp in the number of seconds that have elapsed since the UNIX epoch. */
+                startDate?: number;
+                /** @description Name of the stream processor to download logs for. An empty string will download logs for all stream processors in the workspace. */
+                spName?: string;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+                /** @description Label that identifies the stream workspace. */
+                tenantName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2025-03-12+gzip": string;
+                };
+            };
+            400: components["responses"]["badRequest"];
+            401: components["responses"]["unauthorized"];
+            403: components["responses"]["forbidden"];
+            404: components["responses"]["notFound"];
+            409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
+            500: components["responses"]["internalServerError"];
+        };
+    };
+    withGroupStreamSampleConnections: {
+        parameters: {
+            query?: {
+                /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
+                envelope?: components["parameters"]["envelope"];
+                /** @description Flag that indicates whether the response body should be in the prettyprint format. */
+                pretty?: components["parameters"]["pretty"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Unique 24-hexadecimal digit string that identifies your project. Use the [/groups](#tag/Projects/operation/listProjects) endpoint to retrieve all projects to which the authenticated user has access.
+                 *
+                 *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
+                 */
+                groupId: components["parameters"]["groupId"];
+            };
+            cookie?: never;
+        };
+        /** @description Details to create one streams workspace in the specified project. */
+        requestBody: {
+            content: {
+                "application/vnd.atlas.2024-08-05+json": components["schemas"]["TenantWithSampleConnections"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.atlas.2024-08-05+json": components["schemas"]["StreamsTenant"];
+                };
+            };
+            400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
@@ -8252,6 +10837,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -8263,6 +10850,7 @@ export interface operations {
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };
@@ -8294,6 +10882,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    "RateLimit-Limit": components["headers"]["HeaderRateLimitLimit"];
+                    "RateLimit-Remaining": components["headers"]["HeaderRateLimitRemaining"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -8304,6 +10894,7 @@ export interface operations {
             401: components["responses"]["unauthorized"];
             403: components["responses"]["forbidden"];
             404: components["responses"]["notFound"];
+            429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
         };
     };

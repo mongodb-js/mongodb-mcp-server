@@ -11,6 +11,7 @@ import type { Credentials, AuthProvider } from "./auth/authProvider.js";
 import { AuthProviderFactory } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
+const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
 export interface ApiClientOptions {
     baseUrl: string;
@@ -144,14 +145,17 @@ export class ApiClient {
         }>;
     }
 
-    public async sendEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
+    public async sendEvents(
+        events: TelemetryEvent<CommonProperties>[],
+        { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
+    ): Promise<void> {
         if (!this.authProvider) {
-            await this.sendUnauthEvents(events);
+            await this.sendUnauthEvents(events, signal);
             return;
         }
 
         try {
-            await this.sendAuthEvents(events);
+            await this.sendAuthEvents(events, signal);
         } catch (error) {
             if (error instanceof ApiClientError) {
                 if (error.response.status !== 401) {
@@ -162,11 +166,11 @@ export class ApiClient {
             // send unauth events if any of the following are true:
             // 1: the token is not valid (not ApiClientError)
             // 2: if the api responded with 401 (ApiClientError with status 401)
-            await this.sendUnauthEvents(events);
+            await this.sendUnauthEvents(events, signal);
         }
     }
 
-    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
+    private async sendAuthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
         const authHeaders = await this.authProvider?.getAuthHeaders();
         if (!authHeaders) {
             throw new Error("No access token available");
@@ -181,6 +185,7 @@ export class ApiClient {
                 "User-Agent": this.options.userAgent,
             },
             body: JSON.stringify(events),
+            signal,
         });
 
         if (!response.ok) {
@@ -188,7 +193,7 @@ export class ApiClient {
         }
     }
 
-    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[]): Promise<void> {
+    private async sendUnauthEvents(events: TelemetryEvent<CommonProperties>[], signal?: AbortSignal): Promise<void> {
         const headers: Record<string, string> = {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -200,6 +205,7 @@ export class ApiClient {
             method: "POST",
             headers,
             body: JSON.stringify(events),
+            signal,
         });
 
         if (!response.ok) {
@@ -208,6 +214,7 @@ export class ApiClient {
     }
 
     // DO NOT EDIT. This is auto-generated code.
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/clusters", options);
@@ -463,6 +470,338 @@ export class ApiClient {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>) {
+        const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/streams", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>) {
+        const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/streams", options);
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/accountDetails",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>) {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deletePrivateLinkConnection(options: FetchOptions<operations["deleteGroupStreamPrivateLinkConnection"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteVpcPeeringConnection(options: FetchOptions<operations["deleteGroupStreamVpcPeeringConnection"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:accept",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async rejectVpcPeeringConnection(options: FetchOptions<operations["rejectGroupStreamVpcPeeringConnection"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/vpcPeeringConnections/{id}:reject",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteStreamWorkspace(options: FetchOptions<operations["deleteGroupStreamWorkspace"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>) {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/auditLogs",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>) {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteStreamConnection(options: FetchOptions<operations["deleteGroupStreamConnection"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>) {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>) {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async deleteStreamProcessor(options: FetchOptions<operations["deleteGroupStreamProcessor"]>) {
+        const { error, response } = await this.client.DELETE(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>) {
+        const { data, error, response } = await this.client.PATCH(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async startStreamProcessor(options: FetchOptions<operations["startGroupStreamProcessor"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:start",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async startStreamProcessorWith(options: FetchOptions<operations["startGroupStreamProcessorWith"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:startWith",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async stopStreamProcessor(options: FetchOptions<operations["stopGroupStreamProcessor"]>) {
+        const { error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}:stop",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processors",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>) {
+        const { data, error, response } = await this.client.GET(
+            "/api/atlas/v2/groups/{groupId}/streams/{tenantName}:downloadOperationalLogs",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>) {
+        const { data, error, response } = await this.client.POST(
+            "/api/atlas/v2/groups/{groupId}/streams:withSampleConnections",
+            options
+        );
+        if (error) {
+            throw ApiClientError.fromError(response, error);
+        }
+        return data;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listOrgs(options?: FetchOptions<operations["listOrgs"]>) {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
         if (error) {
@@ -479,6 +818,6 @@ export class ApiClient {
         }
         return data;
     }
-
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
     // DO NOT EDIT. This is auto-generated code.
 }

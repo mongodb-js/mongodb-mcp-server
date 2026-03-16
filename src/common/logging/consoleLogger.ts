@@ -13,7 +13,7 @@ export class ConsoleLogger extends LoggerBase {
         const { id, context, message } = payload;
         // eslint-disable-next-line no-console
         console.error(
-            `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message} (${process.pid}${this.serializeAttributes(payload.attributes)})`
+            `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message}${this.serializeAttributes(payload.attributes)}`
         );
     }
 
@@ -21,8 +21,8 @@ export class ConsoleLogger extends LoggerBase {
         if (!attributes || Object.keys(attributes).length === 0) {
             return "";
         }
-        return `, ${Object.entries(attributes)
+        return ` (${Object.entries(attributes)
             .map(([key, value]) => `${key}=${value}`)
-            .join(", ")}`;
+            .join(", ")})`;
     }
 }
