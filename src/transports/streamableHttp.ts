@@ -652,15 +652,14 @@ class MonitoringServer extends ExpressBasedHttpServer {
 
         if (this.features.includes("metrics") && this.metrics?.getMetrics) {
             const getMetrics = this.metrics.getMetrics.bind(this.metrics);
-            this.app.get("/metrics", (_req: express.Request, res: express.Response) => {
-                getMetrics()
-                    .then((output) => {
-                        res.set("Content-Type", "text/plain");
-                        res.send(output);
-                    })
-                    .catch((err: unknown) => {
-                        res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
-                    });
+            this.app.get("/metrics", async (_req: express.Request, res: express.Response) => {
+                try {
+                    const output = await getMetrics();
+                    res.set("Content-Type", "text/plain");
+                    res.send(output);
+                } catch (err) {
+                    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+                }
             });
         }
 

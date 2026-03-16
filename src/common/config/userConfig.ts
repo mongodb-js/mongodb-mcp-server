@@ -10,7 +10,7 @@ import {
     parseBoolean,
 } from "./configUtils.js";
 import { monitoringServerFeatureValues, previewFeatureValues, similarityValues } from "../schemas.js";
-import { CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
+import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
@@ -258,7 +258,8 @@ const ServerConfigSchema = z4.object({
         .describe(
             "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
         )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "monitoringServerPort" }),
     /** @deprecated Use `monitoringServerHost` instead. */
     healthCheckHost: z4
         .string()
@@ -266,7 +267,8 @@ const ServerConfigSchema = z4.object({
         .describe(
             "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
         )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "monitoringServerHost" }),
     monitoringServerPort: z4
         .number()
         .int()

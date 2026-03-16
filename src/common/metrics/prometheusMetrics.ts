@@ -1,4 +1,4 @@
-import { Counter, Histogram, Gauge, Registry, type Metric } from "prom-client";
+import { Registry, type Metric } from "prom-client";
 import type { Metrics, MetricDefinitions } from "./metricsTypes.js";
 
 export class PrometheusMetrics<TMetrics extends MetricDefinitions> implements Metrics<TMetrics> {
@@ -11,9 +11,7 @@ export class PrometheusMetrics<TMetrics extends MetricDefinitions> implements Me
 
         for (const key in this.definitions) {
             const metric = this.definitions[key];
-            if (metric instanceof Histogram || metric instanceof Counter || metric instanceof Gauge) {
-                this.registry.registerMetric(metric as Metric);
-            }
+            this.registry.registerMetric(metric as Metric);
         }
     }
 
