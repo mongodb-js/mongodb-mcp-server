@@ -492,7 +492,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 enableJsonResponse: this.userConfig.httpResponseType === "json",
                 onsessionclosed: async (sessionId): Promise<void> => {
                     try {
-                        await this.sessionStore.closeSession(sessionId, { reason: "transport_closed" });
+                        await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
                     } catch (error) {
                         this.logger.error({
                             id: LogId.streamableHttpTransportSessionCloseFailure,
