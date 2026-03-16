@@ -110,21 +110,28 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
             throw new Error(`Session ${sessionId} not found`);
         }
 
-        // Remove from map before closing transport to prevent double-counting:
-        // transport.close() can trigger onsessionclosed which re-enters closeSession.
+        // Remove from map before closing transport so that a re-entrant
+        // onsessionclosed callback (fired by transport.close()) sees the
+        // session as already gone and doesn't double-count metrics.
         delete this.sessions[sessionId];
 
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
 
-        try {
-            await session.transport.close();
-        } catch (error) {
-            this.logger.error({
-                id: LogId.streamableHttpTransportSessionCloseFailure,
-                context: "streamableHttpTransport",
-                message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-            });
+        if (reason !== "transport_closed") {
+            // Only close the transport when the server initiates the close.
+            // For "transport_closed" the transport is already torn down by the
+            // SDK; calling close() again would double-close and re-trigger
+            // onsessionclosed.
+            try {
+                await session.transport.close();
+            } catch (error) {
+                this.logger.error({
+                    id: LogId.streamableHttpTransportSessionCloseFailure,
+                    context: "streamableHttpTransport",
+                    message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                });
+            }
         }
 
         this.metrics.get("sessionClosed").inc({ reason: reason });

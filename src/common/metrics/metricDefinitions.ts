@@ -19,7 +19,7 @@ export function createDefaultMetrics() {
         }),
         toolExecutionErrors: new Counter({
             name: "mcp_tool_execution_errors_total",
-            help: "Total MongoDB connection errors",
+            help: "Total tool execution errors",
             labelNames: ["error_type"] as const,
             registers: [],
         }),

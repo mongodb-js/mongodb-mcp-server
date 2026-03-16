@@ -76,6 +76,27 @@ describe("SessionStore metrics", () => {
         }
     });
 
+    it("does not call transport.close() when reason is transport_closed", async () => {
+        const closeFn = vi.fn().mockResolvedValue(undefined);
+        store.setSession("s1", { close: closeFn }, createMockLogger());
+        await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
+
+        expect(closeFn).not.toHaveBeenCalled();
+    });
+
+    it("calls transport.close() for server-initiated close reasons", async () => {
+        const closeFn1 = vi.fn().mockResolvedValue(undefined);
+        const closeFn2 = vi.fn().mockResolvedValue(undefined);
+        store.setSession("s1", { close: closeFn1 }, createMockLogger());
+        store.setSession("s2", { close: closeFn2 }, createMockLogger());
+
+        await store.closeSession({ sessionId: "s1", reason: "server_stop" });
+        await store.closeSession({ sessionId: "s2", reason: "idle_timeout" });
+
+        expect(closeFn1).toHaveBeenCalledOnce();
+        expect(closeFn2).toHaveBeenCalledOnce();
+    });
+
     it("tracks separate reasons independently", async () => {
         store.setSession("s1", createMockTransport(), createMockLogger());
         store.setSession("s2", createMockTransport(), createMockLogger());
