@@ -13,14 +13,8 @@ export function createDefaultMetrics() {
         toolExecutionDuration: new Histogram({
             name: "mcp_tool_execution_duration_seconds",
             help: "Duration of tool executions in seconds",
-            labelNames: ["tool_name", "category", "status", "operation_type"] as const,
+            labelNames: ["tool_name", "category", "status", "operation_type", "error_type"] as const,
             buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10],
-            registers: [],
-        }),
-        toolExecutionErrors: new Counter({
-            name: "mcp_tool_execution_errors_total",
-            help: "Total tool execution errors",
-            labelNames: ["error_type"] as const,
             registers: [],
         }),
         sessionCreated: new Counter({

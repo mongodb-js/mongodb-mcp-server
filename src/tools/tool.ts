@@ -557,14 +557,9 @@ export abstract class ToolBase<
                     category: this.category,
                     status: "error",
                     operation_type: this.operationType,
-                },
-                durationSeconds
-            );
-            this.metrics.get("toolExecutionErrors").inc(
-                {
                     error_type: error instanceof Error ? error.name : "unknown",
                 },
-                1
+                durationSeconds
             );
 
             return toolResult;

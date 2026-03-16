@@ -79,7 +79,7 @@ describe("/metrics endpoint", () => {
         ).toBeGreaterThanOrEqual(0);
     });
 
-    it("increments toolExecutionErrors counter when a tool throws", async () => {
+    it("records error_type label on toolExecutionDuration histogram when a tool throws", async () => {
         runner = new StreamableHttpRunner({ userConfig: config, tools: [ErrorTool] });
         await runner.start();
 
@@ -88,13 +88,12 @@ describe("/metrics endpoint", () => {
 
         const body = await (await fetch(monitoringUrl("/metrics"))).text();
 
-        expect(parsePrometheusValue(body, "mcp_tool_execution_errors_total", { error_type: "TypeError" })).toBe(1);
-
         expect(
             parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
                 tool_name: "error-tool",
                 status: "error",
                 operation_type: "read",
+                error_type: "TypeError",
             })
         ).toBe(1);
     });
