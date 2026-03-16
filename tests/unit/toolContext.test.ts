@@ -11,6 +11,7 @@ import type { Elicitation } from "../../src/elicitation.js";
 import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import type { UserConfig } from "../../src/lib.js";
+import { MockMetrics } from "./mocks/metrics.js";
 
 // Define a custom context type
 interface CustomContext {
@@ -122,6 +123,7 @@ describe("Tool Context", () => {
             connectionErrorHandler,
             tools: [ToolWithContext],
             toolContext: customContext,
+            metrics: new MockMetrics(),
         });
 
         server.registerTools();
@@ -193,6 +195,7 @@ describe("Tool Context", () => {
             connectionErrorHandler,
             tools: [ToolWithoutContext],
             toolContext: customContext,
+            metrics: new MockMetrics(),
         });
 
         server.registerTools();
