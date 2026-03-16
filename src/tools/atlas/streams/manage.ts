@@ -27,7 +27,8 @@ export class StreamsManageTool extends StreamsToolBase {
 
     public argsShape = {
         projectId: AtlasArgs.projectId().describe(
-            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+            "Atlas project ID — a 24-character hexadecimal string. " +
+                "Call atlas-list-projects first to obtain the correct project ID. Never guess or use placeholder values."
         ),
         workspaceName: StreamsArgs.workspaceName().describe("Workspace name containing the resource to manage."),
         action: ManageAction.describe(
