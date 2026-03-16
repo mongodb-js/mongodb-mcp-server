@@ -1,11 +1,14 @@
 import { z } from "zod";
-import { gunzipSync } from "node:zlib";
+import { gunzip } from "node:zlib";
+import { promisify } from "node:util";
 import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "./streamsArgs.js";
+
+const gunzipAsync = promisify(gunzip);
 
 const DiscoverAction = z.enum([
     "list-workspaces",
@@ -504,7 +507,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         try {
             const buffer = Buffer.from(data as unknown as ArrayBuffer);
-            const decompressed = gunzipSync(buffer).toString("utf-8");
+            const decompressed = (await gunzipAsync(buffer)).toString("utf-8");
 
             // Limit output to avoid overwhelming the context
             const lines = decompressed.split("\n").filter((line) => line.trim());
