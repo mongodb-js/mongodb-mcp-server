@@ -88,7 +88,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
                     message: "Session closed due to inactivity",
                 });
 
-                await this.closeSession({ sessionId, reason: "idle_timeout" });
+                await this.closeSession(sessionId, { reason: "idle_timeout" });
             }
         }, this.idleTimeoutMS);
         const notificationTimeout = setManagedTimeout(
@@ -104,7 +104,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         this.metrics.get("sessionCreated").inc();
     }
 
-    async closeSession({ sessionId, reason }: { sessionId: string; reason: SessionCloseReason }): Promise<void> {
+    async closeSession(sessionId: string, { reason }: { reason: SessionCloseReason }): Promise<void> {
         const session = this.sessions[sessionId];
         if (!session) {
             throw new Error(`Session ${sessionId} not found`);
@@ -139,7 +139,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
 
     async closeAllSessions(): Promise<void> {
         await Promise.all(
-            Object.keys(this.sessions).map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
+            Object.keys(this.sessions).map((sessionId) => this.closeSession(sessionId, { reason: "server_stop" }))
         );
     }
 }

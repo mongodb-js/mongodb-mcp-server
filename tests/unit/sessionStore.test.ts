@@ -44,7 +44,7 @@ describe("SessionStore metrics", () => {
 
     it("increments sessionClosed with reason when a session is closed", async () => {
         store.setSession("s1", createMockTransport(), createMockLogger());
-        await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
+        await store.closeSession("s1", { reason: "transport_closed" });
 
         const { values } = await metrics.get("sessionClosed").get();
         const sample = values.find((v) => v.labels.reason === "transport_closed");
@@ -79,7 +79,7 @@ describe("SessionStore metrics", () => {
     it("does not call transport.close() when reason is transport_closed", async () => {
         const closeFn = vi.fn().mockResolvedValue(undefined);
         store.setSession("s1", { close: closeFn }, createMockLogger());
-        await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
+        await store.closeSession("s1", { reason: "transport_closed" });
 
         expect(closeFn).not.toHaveBeenCalled();
     });
@@ -90,8 +90,8 @@ describe("SessionStore metrics", () => {
         store.setSession("s1", { close: closeFn1 }, createMockLogger());
         store.setSession("s2", { close: closeFn2 }, createMockLogger());
 
-        await store.closeSession({ sessionId: "s1", reason: "server_stop" });
-        await store.closeSession({ sessionId: "s2", reason: "idle_timeout" });
+        await store.closeSession("s1", { reason: "server_stop" });
+        await store.closeSession("s2", { reason: "idle_timeout" });
 
         expect(closeFn1).toHaveBeenCalledOnce();
         expect(closeFn2).toHaveBeenCalledOnce();
@@ -102,9 +102,9 @@ describe("SessionStore metrics", () => {
         store.setSession("s2", createMockTransport(), createMockLogger());
         store.setSession("s3", createMockTransport(), createMockLogger());
 
-        await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
-        await store.closeSession({ sessionId: "s2", reason: "transport_closed" });
-        await store.closeSession({ sessionId: "s3", reason: "server_stop" });
+        await store.closeSession("s1", { reason: "transport_closed" });
+        await store.closeSession("s2", { reason: "transport_closed" });
+        await store.closeSession("s3", { reason: "server_stop" });
 
         const { values } = await metrics.get("sessionClosed").get();
         expect(values.find((v) => v.labels.reason === "transport_closed")?.value).toBe(2);
