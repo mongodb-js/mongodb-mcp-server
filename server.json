@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.8.1",
+  "version": "1.8.2-prerelease.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.8.1",
+      "version": "1.8.2-prerelease.1",
       "transport": {
         "type": "stdio"
       },
@@ -116,14 +116,14 @@
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_PORT",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -201,6 +201,27 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_HOST",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_PORT",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -357,13 +378,13 @@
         {
           "type": "named",
           "name": "--healthCheckHost",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--healthCheckPort",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
@@ -436,6 +457,25 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerFeatures",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerHost",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerPort",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
@@ -494,7 +534,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.8.1",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.8.2-prerelease.1",
       "transport": {
         "type": "stdio"
       },
@@ -599,14 +639,14 @@
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_PORT",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -684,6 +724,27 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_HOST",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_PORT",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -840,13 +901,13 @@
         {
           "type": "named",
           "name": "--healthCheckHost",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--healthCheckPort",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
@@ -919,6 +980,25 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerFeatures",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerHost",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerPort",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
