@@ -255,15 +255,22 @@ describe("drop-index tool", () => {
                         type: "classic",
                     },
                 });
+
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    message: expect.stringContaining(
-                        "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
-                    ),
-                    mode: "form",
-                    requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                });
+
+                console.log(mockElicitInput.mock.mock.calls);
+
+                expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                    {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                        message: expect.stringContaining(
+                            "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
+                        ),
+                        mode: "form",
+                        requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                    },
+                    { timeout: 300000 }
+                );
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(1);
             });
 
@@ -280,14 +287,17 @@ describe("drop-index tool", () => {
                     },
                 });
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    message: expect.stringContaining(
-                        "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
-                    ),
-                    mode: "form",
-                    requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                });
+                expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                    {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                        message: expect.stringContaining(
+                            "You are about to drop the index named `year_1` from the `mflix.movies` namespace"
+                        ),
+                        mode: "form",
+                        requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                    },
+                    { timeout: 300000 }
+                );
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(2);
             });
         },
@@ -503,14 +513,17 @@ describe("drop-index tool", () => {
                         },
                     });
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                        message: expect.stringContaining(
-                            "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
-                        ),
-                        mode: "form",
-                        requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                    });
+                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                        {
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                            message: expect.stringContaining(
+                                "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
+                            ),
+                            mode: "form",
+                            requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                        },
+                        { timeout: 300000 }
+                    );
 
                     expect(dropSearchIndexSpy).toHaveBeenCalledExactlyOnceWith("mflix", "movies", getIndexName());
                 });
@@ -527,14 +540,17 @@ describe("drop-index tool", () => {
                         },
                     });
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                        message: expect.stringContaining(
-                            "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
-                        ),
-                        mode: "form",
-                        requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                    });
+                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                        {
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                            message: expect.stringContaining(
+                                "You are about to drop the search index named `searchIdx` from the `mflix.movies` namespace"
+                            ),
+                            mode: "form",
+                            requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                        },
+                        { timeout: 300000 }
+                    );
                     expect(dropSearchIndexSpy).not.toHaveBeenCalled();
                 });
             },
