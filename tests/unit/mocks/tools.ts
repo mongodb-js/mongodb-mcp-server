@@ -92,7 +92,41 @@ export class ErrorTool extends ToolBase {
     public argsShape = {};
 
     protected execute(): Promise<CallToolResult> {
-        return Promise.reject(new Error("intentional error"));
+        return Promise.reject(new TypeError("intentional error"));
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+/** Minimal tool that returns a static "ok" response. */
+export class EchoTool extends ToolBase {
+    static toolName = "echo-tool";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "read";
+    public description = "Returns a static response";
+    public argsShape = {};
+
+    protected execute(): Promise<CallToolResult> {
+        return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
+    }
+
+    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+        return {};
+    }
+}
+
+/** No-op tool used for session / lifecycle tests that don't need tool logic. */
+export class NoopTool extends ToolBase {
+    static toolName = "noop-tool";
+    static category: ToolCategory = "mongodb";
+    static operationType: OperationType = "read";
+    public description = "No-op tool";
+    public argsShape = {};
+
+    protected execute(): Promise<CallToolResult> {
+        return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
     }
 
     protected resolveTelemetryMetadata(): TelemetryToolMetadata {
