@@ -146,6 +146,7 @@ export type TelemetryToolMetadata =
     | AtlasMetadata
     | ConnectionMetadata
     | PerfAdvisorToolMetadata
+    | StreamsToolMetadata
     | AutoEmbeddingsUsageMetadata;
 
 export type AtlasMetadata = {
@@ -167,6 +168,11 @@ export type PerfAdvisorToolMetadata = AtlasMetadata &
     ConnectionMetadata & {
         operations: string[];
     };
+
+export type StreamsToolMetadata = AtlasMetadata & {
+    action?: string;
+    resource?: string;
+};
 
 export type AutoEmbeddingsUsageMetadata = ConnectionMetadata & {
     /**

@@ -21,6 +21,7 @@ import { Keychain } from "../../../../src/common/keychain.js";
 import { Elicitation } from "../../../../src/elicitation.js";
 import * as MongoDbTools from "../../../../src/tools/mongodb/tools.js";
 import { defaultCreateApiClient } from "../../../../src/lib.js";
+import { MockMetrics } from "../../../unit/mocks/metrics.js";
 
 const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     switch (error.code) {
@@ -151,6 +152,7 @@ describe("MongoDBTool implementations", () => {
             connectionErrorHandler: errorHandler,
             elicitation,
             tools: toolConstructors,
+            metrics: new MockMetrics(),
         });
 
         await mcpServer.connect(serverTransport);

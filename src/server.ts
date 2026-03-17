@@ -22,11 +22,16 @@ import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js"
 import type { Elicitation } from "./elicitation.js";
 import { AllTools } from "./tools/index.js";
 import type { UIRegistry } from "./ui/registry/index.js";
+import type { Metrics, DefaultMetrics } from "./common/metrics/index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolClass = ToolClass<any, any>;
+export type AnyToolClass = ToolClass<any, any, any>;
 
-export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
+export interface ServerOptions<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> {
     session: Session;
     userConfig: TUserConfig;
     mcpServer: McpServer;
@@ -35,6 +40,7 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: UIRegistry;
+    metrics: Metrics<TMetrics>;
     /**
      * An optional list of tools constructors to be registered to the MongoDB
      * MCP Server.
@@ -100,7 +106,11 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
     toolContext?: TContext;
 }
 
-export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
+export class Server<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> {
     public readonly session: Session;
     public readonly mcpServer: McpServer;
     private readonly telemetry: Telemetry;
@@ -111,6 +121,7 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: UIRegistry;
     public readonly toolContext?: TContext;
+    public readonly metrics: Metrics<TMetrics>;
 
     private _mcpLogLevel: LogLevel = "debug";
 
@@ -131,7 +142,8 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         tools,
         uiRegistry,
         toolContext,
-    }: ServerOptions<TUserConfig, TContext>) {
+        metrics,
+    }: ServerOptions<TUserConfig, TContext, TMetrics>) {
         this.startTime = Date.now();
         this.session = session;
         this.telemetry = telemetry;
@@ -142,6 +154,7 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.toolConstructors = tools ?? AllTools;
         this.uiRegistry = uiRegistry;
         this.toolContext = toolContext;
+        this.metrics = metrics;
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -304,6 +317,7 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 config: this.userConfig,
                 telemetry: this.telemetry,
                 elicitation: this.elicitation,
+                metrics: this.metrics,
                 uiRegistry: this.uiRegistry,
                 context: this.toolContext,
             });

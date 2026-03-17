@@ -17,6 +17,7 @@ import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js"
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "../../../src/ui/index.js";
 import { defaultCreateApiClient } from "../../../src/lib.js";
+import { MockMetrics } from "../../unit/mocks/metrics.js";
 
 describeWithMongoDB(
     "mcpUI feature with feature disabled (default)",
@@ -207,6 +208,7 @@ describe("mcpUI feature with custom UIs", () => {
             elicitation,
             connectionErrorHandler,
             uiRegistry: new UIRegistry({ customUIs: customUIsFunction }),
+            metrics: new MockMetrics(),
         });
 
         const transport = new InMemoryTransport();

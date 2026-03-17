@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: docker/setup-docker-action@v4
+      - uses: docker/setup-docker-action@v5
         if: matrix.os == 'ubuntu-latest'
         name: Setup Docker Environment
         with:
@@ -38,7 +38,7 @@ jobs:
       - name: Run tests
         run: pnpm test
         env:
-          SKIP_ATLAS_TESTS: "true"
+          SKIP_ATLAS_INTEGRATION_TESTS: "true"
           SKIP_ATLAS_LOCAL_TESTS: "true"
   run-atlas-local-tests:
     name: Run Atlas Local tests

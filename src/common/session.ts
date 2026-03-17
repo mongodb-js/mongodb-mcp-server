@@ -66,7 +66,7 @@ export class Session extends EventEmitter<SessionEvents> {
         atlasLocalClient,
         connectionErrorHandler,
         apiClient,
-    }: SessionOptions) {
+    }: SessionOptions<UserConfig>) {
         super();
 
         this.userConfig = userConfig;

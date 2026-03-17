@@ -34,6 +34,8 @@ const expectedDefaults = {
         "drop-collection",
         "delete-many",
         "drop-index",
+        "atlas-streams-manage",
+        "atlas-streams-teardown",
     ],
     transport: "stdio",
     httpPort: 3000,
@@ -52,6 +54,7 @@ const expectedDefaults = {
     allowRequestOverrides: false,
     externallyManagedSessions: false,
     httpResponseType: "sse",
+    monitoringServerFeatures: ["health-check"],
 };
 
 const CONFIG_FIXTURES = {

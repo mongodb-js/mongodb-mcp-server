@@ -21,6 +21,7 @@ import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
+import { MockMetrics } from "../unit/mocks/metrics.js";
 
 interface Parameter {
     name: string;
@@ -161,6 +162,7 @@ export function setupIntegrationTest(
             elicitation,
             connectionErrorHandler,
             uiRegistry,
+            metrics: new MockMetrics(),
             ...serverOptions,
         });
 

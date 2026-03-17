@@ -13,6 +13,7 @@ import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
+import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -72,7 +73,11 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
  *
  * See `Server.registerTools` method in `src/server.ts` for further reference.
  */
-export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+export type ToolConstructorParams<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = {
     /**
      * The unique name of this tool (injected from the static
      * `toolName` property on the Tool class).
@@ -119,6 +124,14 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
      * See `src/elicitation.ts` for further reference.
      */
     elicitation: Elicitation;
+
+    /**
+     * The metrics service for tracking tool usage.
+     *
+     * See `src/common/metrics/index.ts` for further reference.
+     */
+    metrics: Metrics<TMetrics>;
+
     uiRegistry?: UIRegistry;
 
     /**
@@ -188,9 +201,13 @@ export type ToolConstructorParams<TUserConfig extends UserConfig = UserConfig, T
  * });
  * ```
  */
-export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+export type ToolClass<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = {
     /** Constructor signature for the tool class */
-    new (params: ToolConstructorParams<TUserConfig, TContext>): ToolBase<TUserConfig, TContext>;
+    new (params: ToolConstructorParams<TUserConfig, TContext, TMetrics>): ToolBase<TUserConfig, TContext, TMetrics>;
 
     /**
      * The unique name of this tool.
@@ -285,7 +302,11 @@ export type ToolClass<TUserConfig extends UserConfig = UserConfig, TContext = un
  * @see {@link ToolConstructorParams} for the parameters passed to the
  * constructor
  */
-export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
+export abstract class ToolBase<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> {
     /**
      * The unique name of this tool.
      *
@@ -501,6 +522,18 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
 
             this.emitToolEvent(args, { startTime, result });
 
+            const durationSeconds = (Date.now() - startTime) / 1000;
+
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: result.isError ? "error" : "success",
+                    operation_type: this.operationType,
+                },
+                durationSeconds
+            );
+
             this.session.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
@@ -516,6 +549,18 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
             });
             const toolResult = await this.handleError(error, args);
             this.emitToolEvent(args, { startTime, result: toolResult });
+
+            const durationSeconds = (Date.now() - startTime) / 1000;
+            this.metrics.get("toolExecutionDuration").observe(
+                {
+                    tool_name: this.name,
+                    category: this.category,
+                    status: "error",
+                    operation_type: this.operationType,
+                },
+                durationSeconds
+            );
+
             return toolResult;
         }
     }
@@ -591,6 +636,13 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
      * or inputs during tool execution.
      */
     protected readonly elicitation: Elicitation;
+
+    /**
+     * Access to the metrics service. Use this to emit custom metrics events
+     * if needed.
+     */
+    protected readonly metrics: Metrics<TMetrics>;
+
     private readonly uiRegistry?: UIRegistry;
 
     /**
@@ -619,9 +671,10 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
         config,
         telemetry,
         elicitation,
+        metrics,
         uiRegistry,
         context,
-    }: ToolConstructorParams<TUserConfig, TContext>) {
+    }: ToolConstructorParams<TUserConfig, TContext, TMetrics>) {
         this.name = name;
         this.category = category;
         this.operationType = operationType;
@@ -629,11 +682,12 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
         this.config = config;
         this.telemetry = telemetry;
         this.elicitation = elicitation;
+        this.metrics = metrics;
         this.uiRegistry = uiRegistry;
         this.context = context;
     }
 
-    public register(server: Server<TUserConfig, TContext>): boolean {
+    public register(server: Server<TUserConfig, TContext, TMetrics>): boolean {
         if (!this.verifyAllowed()) {
             return false;
         }
@@ -896,7 +950,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyToolBase = ToolBase<any, any>;
+export type AnyToolBase = ToolBase<any, any, any>;
 
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
