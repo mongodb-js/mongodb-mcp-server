@@ -27,6 +27,7 @@ updates:
     groups:
       ai-sdk:
         patterns:
+          - ai
           - "@ai-sdk/*"
   - package-ecosystem: "github-actions"
     directory: "/"
