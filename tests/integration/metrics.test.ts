@@ -9,8 +9,8 @@ import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { Counter } from "prom-client";
-import type { MetricDefinitions } from "../../src/common/metrics/metricsTypes.js";
 import type { DefaultMetrics } from "../../src/common/metrics/metricDefinitions.js";
+import { PrometheusMetrics, createDefaultMetrics } from "../../src/common/metrics/index.js";
 import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
 import type { OperationType, ToolCategory } from "../../src/tools/tool.js";
 
@@ -124,16 +124,20 @@ describe("/metrics endpoint", () => {
         expect(parsePrometheusValue(body, "mcp_session_closed", { reason: "server_stop" })).toBe(2);
     });
 
-    it("exposes additionalMetrics in /metrics output", async () => {
-        const additionalMetrics = {
-            callCount: new Counter({
-                name: "custom_tool_call_count",
-                help: "Counts how many times the custom tool was invoked",
-                labelNames: ["tool_name"] as const,
-                registers: [],
-            }),
-        } satisfies MetricDefinitions;
-        type CustomMetrics = typeof additionalMetrics & DefaultMetrics;
+    it("exposes custom metrics in /metrics output", async () => {
+        type CustomMetrics = DefaultMetrics & { callCount: Counter<"tool_name"> };
+
+        const metrics = new PrometheusMetrics({
+            definitions: {
+                ...createDefaultMetrics(),
+                callCount: new Counter({
+                    name: "custom_tool_call_count",
+                    help: "Counts how many times the custom tool was invoked",
+                    labelNames: ["tool_name"] as const,
+                    registers: [],
+                }),
+            } satisfies CustomMetrics,
+        });
 
         class CustomTool extends ToolBase<UserConfig, unknown, CustomMetrics> {
             static toolName = "custom-tool";
@@ -150,11 +154,8 @@ describe("/metrics endpoint", () => {
             }
         }
 
-        runner = new StreamableHttpRunner({
-            userConfig: config,
-            tools: [CustomTool],
-            additionalMetrics,
-        });
+        runner = new StreamableHttpRunner({ userConfig: config, tools: [CustomTool], metrics });
+
         await runner.start();
 
         const client = await connectClient();

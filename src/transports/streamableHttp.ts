@@ -17,8 +17,7 @@ import {
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { Metrics } from "../common/metrics/index.js";
-import type { DefaultMetrics } from "../common/metrics/index.js";
+import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
@@ -31,11 +30,12 @@ const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 export class StreamableHttpRunner<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
-> extends TransportRunnerBase<TUserConfig, TContext> {
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
     private monitoringServer: MonitoringServer | undefined;
 
-    constructor(config: TransportRunnerConfig<TUserConfig>) {
+    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
     }
 
