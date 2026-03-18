@@ -4,8 +4,6 @@ export type MetricDefinitions = {
     [key: string]: Histogram | Counter | Gauge;
 };
 
-export type EmptyMetricDefinitions = MetricDefinitions & {};
-
 export type Metrics<TMetrics extends MetricDefinitions = MetricDefinitions> = {
     /**
      * Get a metric instance by key

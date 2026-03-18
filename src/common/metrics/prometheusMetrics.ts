@@ -1,12 +1,24 @@
-import { Registry, type Metric } from "prom-client";
+import { Registry, type Metric, collectDefaultMetrics } from "prom-client";
 import type { Metrics, MetricDefinitions } from "./metricsTypes.js";
 
 export class PrometheusMetrics<TMetrics extends MetricDefinitions> implements Metrics<TMetrics> {
     public readonly registry: Registry;
     private readonly definitions: TMetrics;
 
-    constructor({ definitions, registry }: { definitions: TMetrics; registry?: Registry }) {
+    constructor({
+        definitions,
+        registry,
+        collectProcessMetrics = false,
+    }: {
+        definitions: TMetrics;
+        /** Whether to collect Node.js and process metrics. */
+        collectProcessMetrics?: boolean;
+        registry?: Registry;
+    }) {
         this.registry = registry ?? new Registry();
+        if (collectProcessMetrics) {
+            collectDefaultMetrics({ register: this.registry });
+        }
         this.definitions = definitions;
 
         for (const key in this.definitions) {
