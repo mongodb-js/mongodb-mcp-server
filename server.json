@@ -80,13 +80,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -116,14 +109,14 @@
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_PORT",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -206,6 +199,27 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_HOST",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_PORT",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -241,22 +255,8 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -350,13 +350,13 @@
         {
           "type": "named",
           "name": "--healthCheckHost",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--healthCheckPort",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
@@ -434,6 +434,25 @@
         },
         {
           "type": "named",
+          "name": "--monitoringServerFeatures",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerHost",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerPort",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -467,7 +486,7 @@
         {
           "type": "named",
           "name": "--voyageApiKey",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false
         }
       ]
@@ -543,13 +562,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -579,14 +591,14 @@
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
           "name": "MDB_MCP_HEALTH_CHECK_PORT",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -669,6 +681,27 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_HOST",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MONITORING_SERVER_PORT",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -704,22 +737,8 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -813,13 +832,13 @@
         {
           "type": "named",
           "name": "--healthCheckHost",
-          "description": "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
+          "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
         },
         {
           "type": "named",
           "name": "--healthCheckPort",
-          "description": "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
+          "description": "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set.",
           "isRequired": false,
           "format": "number"
         },
@@ -897,6 +916,25 @@
         },
         {
           "type": "named",
+          "name": "--monitoringServerFeatures",
+          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerHost",
+          "description": "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--monitoringServerPort",
+          "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
           "name": "--notificationTimeoutMs",
           "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
@@ -930,7 +968,7 @@
         {
           "type": "named",
           "name": "--voyageApiKey",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false
         }
       ]

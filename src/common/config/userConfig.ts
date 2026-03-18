@@ -196,7 +196,7 @@ const ServerConfigSchema = z4.object({
         .string()
         .default("")
         .describe(
-            "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion)."
+            "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities)."
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
     previewFeatures: z4

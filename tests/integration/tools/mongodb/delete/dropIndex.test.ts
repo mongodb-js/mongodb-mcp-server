@@ -258,8 +258,6 @@ describe("drop-index tool", () => {
 
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
 
-                console.log(mockElicitInput.mock.mock.calls);
-
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
                     {
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
