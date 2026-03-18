@@ -162,7 +162,7 @@ export type TransportRunnerConfig<
      * construct the value is:
      *
      * ```ts
-     * import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mongodb-mcp-server";
+     * import { PrometheusMetrics, createDefaultMetrics } from "mongodb-mcp-server";
      * import { Counter } from "prom-client";
      *
      * const metrics = new PrometheusMetrics({
