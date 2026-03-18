@@ -18,7 +18,6 @@ import type { CommonProperties } from "../telemetry/types.js";
 import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
-import { VectorSearchEmbeddingsManager } from "../common/search/vectorSearchEmbeddingsManager.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
@@ -328,7 +327,6 @@ export abstract class TransportRunnerBase<
             exportsManager,
             connectionManager,
             keychain: Keychain.root,
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(userConfig, connectionManager),
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
 

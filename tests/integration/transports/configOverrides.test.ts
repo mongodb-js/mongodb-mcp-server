@@ -493,12 +493,12 @@ describe("Config Overrides via HTTP", () => {
                 await startRunner({
                     ...defaultTestConfig,
                     httpPort: 0,
-                    previewFeatures: ["search"],
+                    previewFeatures: ["mcpUI"],
                     allowRequestOverrides: true,
                 });
 
                 await connectClient({
-                    ["x-mongodb-mcp-preview-features"]: "search",
+                    ["x-mongodb-mcp-preview-features"]: "mcpUI",
                 });
 
                 const response = await client.listTools();
@@ -509,7 +509,7 @@ describe("Config Overrides via HTTP", () => {
                 await startRunner({
                     ...defaultTestConfig,
                     httpPort: 0,
-                    previewFeatures: ["search"],
+                    previewFeatures: ["mcpUI"],
                     allowRequestOverrides: true,
                 });
 
@@ -532,7 +532,7 @@ describe("Config Overrides via HTTP", () => {
                 // Empty array trying to override with non-empty should fail (superset)
                 try {
                     await connectClient({
-                        ["x-mongodb-mcp-preview-features"]: "search",
+                        ["x-mongodb-mcp-preview-features"]: "mcpUI",
                     });
                     expect.fail("Expected an error to be thrown");
                 } catch (error) {
