@@ -5,14 +5,16 @@ import type { CustomizableServerOptions } from "./base.js";
 import type { CustomizableSessionOptions } from "./base.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 import type { UserConfig } from "../lib.js";
+import type { DefaultMetrics } from "../common/metrics/index.js";
 
-export class StdioRunner<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends TransportRunnerBase<
-    TUserConfig,
-    TContext
-> {
+export class StdioRunner<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private server: Server<TUserConfig, TContext> | undefined;
 
-    constructor(config: TransportRunnerConfig<TUserConfig>) {
+    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
     }
 

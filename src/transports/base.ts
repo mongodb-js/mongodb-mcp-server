@@ -23,6 +23,8 @@ import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
+import { createDefaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
+import type { Metrics } from "../common/metrics/metricsTypes.js";
 
 /**
  * Request context containing HTTP headers and query parameters.
@@ -90,7 +92,10 @@ type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (conte
  *
  * @template TContext - The type of the custom tool context object
  */
-export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> = {
+export type TransportRunnerConfig<
+    TUserConfig extends UserConfig = UserConfig,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = {
     /**
      * Base user configuration for the server.
      *
@@ -142,6 +147,35 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> =
     additionalLoggers?: LoggerBase[];
 
     /**
+     * An optional `Metrics` instance to use for recording metrics. When not
+     * provided, MongoDB MCP Server creates an internal `PrometheusMetrics`
+     * instance that tracks the built-in default metrics.
+     *
+     * Pass a custom instance when you need to:
+     * - Add application-specific metrics alongside the built-in ones (e.g. for
+     *   use by custom tools).
+     * - Control the underlying Prometheus `Registry` (e.g. to share it with
+     *   other parts of your application).
+     *
+     * The instance must expose every metric in `DefaultMetrics` so that the
+     * built-in tools continue to work correctly.  The recommended way to
+     * construct the value is:
+     *
+     * ```ts
+     * import { PrometheusMetrics, createDefaultMetrics } from "mongodb-mcp-server";
+     * import { Counter } from "prom-client";
+     *
+     * const metrics = new PrometheusMetrics({
+     *     definitions: {
+     *         ...createDefaultMetrics(),
+     *         myCounter: new Counter({ name: "my_counter", help: "...", registers: [] }),
+     *     },
+     * });
+     * ```
+     */
+    metrics?: Metrics<TMetrics>;
+
+    /**
      * @deprecated This field will be removed in a future version. Use `createServer({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead.
      */
     telemetryProperties?: Partial<CommonProperties>;
@@ -166,8 +200,14 @@ export type TransportRunnerConfig<TUserConfig extends UserConfig = UserConfig> =
     createApiClient?: ApiClientFactoryFn;
 };
 
-export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown> {
+export abstract class TransportRunnerBase<
+    TUserConfig extends UserConfig = UserConfig,
+    TContext = unknown,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> {
     public logger: LoggerBase;
+    public metrics: Metrics<TMetrics>;
+
     public deviceId: DeviceId;
     /** Base user configuration for the server. */
     protected readonly userConfig: TUserConfig;
@@ -192,11 +232,12 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
         connectionErrorHandler = defaultConnectionErrorHandler,
         createAtlasLocalClient = defaultCreateAtlasLocalClient,
         additionalLoggers = [],
+        metrics,
         telemetryProperties = {},
         tools,
         createSessionConfig,
         createApiClient = defaultCreateApiClient,
-    }: TransportRunnerConfig<TUserConfig>) {
+    }: TransportRunnerConfig<TUserConfig, TMetrics>) {
         this.userConfig = userConfig;
         this.createConnectionManager = createConnectionManager;
         this.connectionErrorHandler = connectionErrorHandler;
@@ -205,6 +246,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;
         this.createApiClient = createApiClient;
+        this.metrics = metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() as TMetrics });
         const loggers: LoggerBase[] = [...additionalLoggers];
         if (this.userConfig.loggers.includes("stderr")) {
             loggers.push(new ConsoleLogger(Keychain.root));
@@ -310,6 +352,7 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
             tools: serverOptions?.tools ?? this.tools,
             uiRegistry,
             toolContext: serverOptions?.toolContext,
+            metrics: this.metrics,
         });
 
         // We need to create the MCP logger after the server is constructed

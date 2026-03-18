@@ -8,6 +8,7 @@ export const platform = "browser";
 export const browser = true;
 export const argv = [] as string[];
 export const cwd = (): string => "/";
+export const uptime = (): number => performance.now() / 1000;
 export const nextTick = (callback: (...args: any[]) => void, ...args: any[]): void => {
     Promise.resolve().then(() => callback(...args));
 };
@@ -20,6 +21,7 @@ const processPolyfill = {
     browser,
     argv,
     cwd,
+    uptime,
     nextTick,
 };
 

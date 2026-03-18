@@ -9,8 +9,8 @@ import {
     onlySubsetOfBaseValueOverride,
     parseBoolean,
 } from "./configUtils.js";
-import { previewFeatureValues, similarityValues } from "../schemas.js";
-import { CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
+import { monitoringServerFeatureValues, previewFeatureValues, similarityValues } from "../schemas.js";
+import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
@@ -78,6 +78,8 @@ const ServerConfigSchema = z4.object({
             "drop-collection",
             "delete-many",
             "drop-index",
+            "atlas-streams-manage",
+            "atlas-streams-teardown",
         ])
         .describe(
             "An array of tool names that require user confirmation before execution. Requires the client to support elicitation."
@@ -248,6 +250,7 @@ const ServerConfigSchema = z4.object({
             "The HTTP response type for tool responses: 'sse' for Server-Sent Events, 'json' for standard JSON responses."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    /** @deprecated Use `monitoringServerPort` instead. */
     healthCheckPort: z4
         .number()
         .int()
@@ -255,14 +258,44 @@ const ServerConfigSchema = z4.object({
         .max(65535, "Invalid healthCheckPort: must be at most 65535")
         .optional()
         .describe(
-            "Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
+            "Deprecated. Use `monitoringServerPort` instead. Port number for the healthCheck HTTP server (only used when transport is 'http'). If provided, `healthCheckHost` must also be set."
         )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "monitoringServerPort" }),
+    /** @deprecated Use `monitoringServerHost` instead. */
     healthCheckHost: z4
         .string()
         .optional()
         .describe(
-            "Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
+            "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "monitoringServerHost" }),
+    monitoringServerPort: z4
+        .number()
+        .int()
+        .min(0, "Invalid monitoringServerPort: must be at least 0")
+        .max(65535, "Invalid monitoringServerPort: must be at most 65535")
+        .optional()
+        .describe(
+            "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    monitoringServerHost: z4
+        .string()
+        .optional()
+        .describe(
+            "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    monitoringServerFeatures: z4
+        .preprocess(
+            (val: string | string[] | undefined) => commaSeparatedToArray(val),
+            z4.array(z4.enum(monitoringServerFeatureValues))
+        )
+        .default(["health-check"])
+        .describe(
+            "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });

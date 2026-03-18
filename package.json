@@ -1,7 +1,7 @@
 {
   "name": "mongodb-mcp-server",
   "description": "MongoDB Model Context Protocol Server",
-  "version": "1.8.1",
+  "version": "1.8.2-prerelease.2",
   "type": "module",
   "packageManager": "pnpm@10.23.0",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
@@ -92,7 +92,7 @@
     "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
     "test:browser": "pnpm --filter browser test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
-    "test:local": "SKIP_ATLAS_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
+    "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
     "atlas:cleanup": "vitest --project atlas-cleanup"
   },
   "license": "Apache-2.0",
@@ -180,7 +180,8 @@
     "ts-levenshtein": "^1.0.7",
     "voyage-ai-provider": "^3.0.0",
     "yaml": "^2.8.1",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "prom-client": "^15.1.3"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >= 23.0.0"

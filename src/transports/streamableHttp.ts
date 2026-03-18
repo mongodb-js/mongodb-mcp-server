@@ -17,6 +17,8 @@ import {
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
+import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
+import type { MonitoringServerFeature } from "../common/schemas.js";
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
@@ -28,11 +30,12 @@ const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 export class StreamableHttpRunner<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
-> extends TransportRunnerBase<TUserConfig, TContext> {
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
-    private healthCheckServer: HealthCheckServer | undefined;
+    private monitoringServer: MonitoringServer | undefined;
 
-    constructor(config: TransportRunnerConfig<TUserConfig>) {
+    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
     }
 
@@ -48,8 +51,22 @@ export class StreamableHttpRunner<
     } = {}): Promise<void> {
         this.validateConfig();
 
-        await this.startMCPServer({ serverOptions, sessionOptions });
-        await this.startHealthCheckServer();
+        this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
+            userConfig: this.userConfig,
+            createServerForRequest: ({ request }): Promise<Server<TUserConfig, TContext>> =>
+                this.createServerForRequest({ request, serverOptions, sessionOptions }),
+            logger: this.logger,
+            metrics: this.metrics,
+        });
+        await this.mcpServer.start();
+
+        this.monitoringServer = await MonitoringServer.create({
+            host: this.userConfig.monitoringServerHost ?? this.userConfig.healthCheckHost,
+            port: this.userConfig.monitoringServerPort ?? this.userConfig.healthCheckPort,
+            features: this.userConfig.monitoringServerFeatures,
+            logger: this.logger,
+            metrics: this.metrics,
+        });
 
         this.logger.info({
             message: "Streamable HTTP Transport started",
@@ -59,7 +76,7 @@ export class StreamableHttpRunner<
     }
 
     async closeTransport(): Promise<void> {
-        await Promise.all([this.mcpServer?.stop(), this.healthCheckServer?.stop()]);
+        await Promise.all([this.mcpServer?.stop(), this.monitoringServer?.stop()]);
     }
 
     private shouldWarnAboutHttpHost(httpHost: string): boolean {
@@ -129,50 +146,23 @@ export class StreamableHttpRunner<
         });
     }
 
-    private async startMCPServer({
-        serverOptions,
-        sessionOptions,
-    }: {
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    }): Promise<void> {
-        this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
-            userConfig: this.userConfig,
-            serverOptions,
-            sessionOptions,
-            createServerForRequest: ({
-                request,
-                serverOptions: requestServerOptions,
-                sessionOptions: requestSessionOptions,
-            }): Promise<Server<TUserConfig, TContext>> =>
-                this.createServerForRequest({
-                    request,
-                    serverOptions: requestServerOptions,
-                    sessionOptions: requestSessionOptions,
-                }),
-            logger: this.logger,
-        });
-        await this.mcpServer.start();
-    }
-
-    private async startHealthCheckServer(): Promise<void> {
-        const { healthCheckHost, healthCheckPort } = this.userConfig;
-        if (healthCheckHost && healthCheckPort !== undefined) {
-            this.healthCheckServer = new HealthCheckServer(healthCheckHost, healthCheckPort, this.logger);
-
-            await this.healthCheckServer.start();
-        }
-    }
-
     private validateConfig(): void {
         if ((this.userConfig.healthCheckHost === undefined) !== (this.userConfig.healthCheckPort === undefined)) {
             throw new Error("Both healthCheckHost and healthCheckPort must be defined to enable health checks.");
         }
 
-        if (this.userConfig.healthCheckHost !== undefined && this.userConfig.healthCheckPort !== undefined) {
-            if (this.userConfig.healthCheckPort === this.userConfig.httpPort && this.userConfig.healthCheckPort !== 0) {
-                throw new Error("healthCheckPort cannot be the same as httpPort.");
-            }
+        if (
+            (this.userConfig.monitoringServerHost === undefined) !==
+            (this.userConfig.monitoringServerPort === undefined)
+        ) {
+            throw new Error(
+                "Both monitoringServerHost and monitoringServerPort must be defined to enable the monitoring server."
+            );
+        }
+
+        const effectivePort = this.userConfig.monitoringServerPort ?? this.userConfig.healthCheckPort;
+        if (effectivePort !== undefined && effectivePort !== 0 && effectivePort === this.userConfig.httpPort) {
+            throw new Error("Monitoring server port cannot be the same as httpPort.");
         }
 
         if (this.shouldWarnAboutHttpHost(this.userConfig.httpHost)) {
@@ -285,6 +275,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     private readonly userConfig: UserConfig;
+    private readonly metrics: Metrics<DefaultMetrics>;
 
     private createServerForRequest: (createParams: {
         request: RequestContext;
@@ -298,6 +289,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         serverOptions,
         sessionOptions,
         logger,
+        metrics,
     }: {
         userConfig: TUserConfig;
         createServerForRequest: (createParams: {
@@ -308,6 +300,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         logger: LoggerBase;
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        metrics: Metrics<DefaultMetrics>;
     }) {
         super({
             port: userConfig.httpPort,
@@ -319,6 +312,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.sessionOptions = sessionOptions;
         this.createServerForRequest = createServerForRequest;
         this.userConfig = userConfig;
+        this.metrics = metrics;
     }
 
     public async stop(): Promise<void> {
@@ -412,7 +406,8 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.sessionStore = new SessionStore(
             this.userConfig.idleTimeoutMs,
             this.userConfig.notificationTimeoutMs,
-            this.logger
+            this.logger,
+            this.metrics
         );
 
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
@@ -497,7 +492,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 enableJsonResponse: this.userConfig.httpResponseType === "json",
                 onsessionclosed: async (sessionId): Promise<void> => {
                     try {
-                        await this.sessionStore.closeSession(sessionId, true);
+                        await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
                     } catch (error) {
                         this.logger.error({
                             id: LogId.streamableHttpTransportSessionCloseFailure,
@@ -611,22 +606,69 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     }
 }
 
-class HealthCheckServer extends ExpressBasedHttpServer {
-    constructor(healthCheckHost: string, healthCheckPort: number, logger: LoggerBase) {
-        super({
-            port: healthCheckPort,
-            hostname: healthCheckHost,
-            logger,
-            logContext: "healthCheckServer",
-        });
+class MonitoringServer extends ExpressBasedHttpServer {
+    static async create({
+        host,
+        port,
+        features,
+        logger,
+        metrics,
+    }: {
+        host: string | undefined;
+        port: number | undefined;
+        features: MonitoringServerFeature[];
+        logger: LoggerBase;
+        metrics: Metrics;
+    }): Promise<MonitoringServer | undefined> {
+        if (!host || port === undefined) {
+            return undefined;
+        }
+
+        const server = new MonitoringServer({ host, port, features, logger, metrics });
+        await server.start();
+        return server;
+    }
+
+    private readonly features: MonitoringServerFeature[];
+    private readonly metrics: Metrics;
+
+    private constructor({
+        host,
+        port,
+        features,
+        logger,
+        metrics,
+    }: {
+        host: string;
+        port: number;
+        features: MonitoringServerFeature[];
+        logger: LoggerBase;
+        metrics: Metrics;
+    }) {
+        super({ port, hostname: host, logger, logContext: "monitoringServer" });
+        this.features = features;
+        this.metrics = metrics;
     }
 
     protected override setupRoutes(): Promise<void> {
-        this.app.get("/health", (_req: express.Request, res: express.Response) => {
-            res.json({
-                status: "ok",
+        if (this.features.includes("health-check")) {
+            this.app.get("/health", (_req: express.Request, res: express.Response) => {
+                res.json({ status: "ok" });
             });
-        });
+        }
+
+        if (this.features.includes("metrics") && this.metrics?.getMetrics) {
+            const getMetrics = this.metrics.getMetrics.bind(this.metrics);
+            this.app.get("/metrics", async (_req: express.Request, res: express.Response) => {
+                try {
+                    const output = await getMetrics();
+                    res.set("Content-Type", "text/plain");
+                    res.send(output);
+                } catch (err) {
+                    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+                }
+            });
+        }
 
         return Promise.resolve();
     }
