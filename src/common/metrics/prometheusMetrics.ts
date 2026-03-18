@@ -1,6 +1,5 @@
-import { Registry, type Metric } from "prom-client";
+import { Registry, type Metric, collectDefaultMetrics } from "prom-client";
 import type { Metrics, MetricDefinitions } from "./metricsTypes.js";
-import { collectDefaultMetrics } from "prom-client";
 
 export class PrometheusMetrics<TMetrics extends MetricDefinitions> implements Metrics<TMetrics> {
     public readonly registry: Registry;
