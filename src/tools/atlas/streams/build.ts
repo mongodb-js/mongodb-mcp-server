@@ -4,7 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "./streamsArgs.js";
+import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "./streamsArgs.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -151,20 +151,11 @@ export class StreamsBuildTool extends StreamsToolBase {
                 "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
                 "Sample: provides sample data for testing (no config needed)."
         ),
-        connectionConfig: z
-            .record(z.unknown())
-            .optional()
-            .describe(
-                "Type-specific connection configuration. Typically required for non-Sample connections when resource='connection'. " +
-                    "For connectionType='Sample', no config is needed. You may also provide an empty or partial config; missing fields can be filled via elicitation. " +
-                    "Kafka: {bootstrapServers: string (comma-separated), authentication: {mechanism: 'PLAIN'|'SCRAM-256'|'SCRAM-512', username: string, password: string}, security: {protocol: 'SASL_SSL'|'SASL_PLAINTEXT'|'SSL'}}. " +
-                    "Cluster: {clusterName: string, dbRoleToExecute: {role: string, type: 'BUILT_IN'|'CUSTOM'}}. " +
-                    "S3: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
-                    "AWSKinesisDataStreams: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
-                    "AWSLambda: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
-                    "Https: {url: string, headers: Record<string, string>}. " +
-                    "SchemaRegistry: {provider: 'CONFLUENT', schemaRegistryUrls: [string], schemaRegistryAuthentication: {type: 'USER_INFO'|'SASL_INHERIT', username: string, password: string}}. Use 'USER_INFO' with explicit credentials or 'SASL_INHERIT' to inherit from a Kafka connection."
-            ),
+        connectionConfig: ConnectionConfig.optional().describe(
+            "Type-specific connection configuration. Only for resource='connection'. " +
+                "Omit entirely for connectionType='Sample' (no config needed). " +
+                "You may pass a partial config — the tool uses elicitation to collect missing required fields directly from the user."
+        ),
 
         // Processor fields
         processorName: StreamsArgs.processorName()
@@ -179,6 +170,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
                     "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
                     "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
+                    "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a terminal stage or execution='sync' for mid-pipeline enrichment. " +
                     "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
                     "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
                     "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
@@ -193,25 +185,29 @@ export class StreamsBuildTool extends StreamsToolBase {
                 coll: z.string().describe("Collection name for DLQ documents"),
             })
             .optional()
-            .describe("Dead letter queue configuration. Recommended for resource='processor'."),
+            .describe(
+                "Dead letter queue configuration. Only for resource='processor'. " +
+                    "Only include when the user explicitly requests a DLQ, or when the pipeline uses $https with default onError='dlq'. " +
+                    "The DLQ connection must already exist in the workspace."
+            ),
         autoStart: z
             .boolean()
             .optional()
-            .describe("Start the processor immediately after creation. Default: false. Only for resource='processor'."),
+            .describe(
+                "Start the processor immediately after creation. Default: false. Only for resource='processor'. " +
+                    "Omit unless the user explicitly asks to start the processor right away."
+            ),
 
         // PrivateLink fields
         privateLinkProvider: CloudProvider.optional().describe(
-            "Cloud provider for PrivateLink. Required when resource='privatelink'."
+            "Cloud provider for PrivateLink — must be a plain string, exactly one of: 'AWS', 'AZURE', or 'GCP'. " +
+                "Do NOT pass an object here — this is just the provider name string. " +
+                "All configuration details (ARN, DNS, region, etc.) go in the separate `privateLinkConfig` parameter. " +
+                "Required when resource='privatelink'."
         ),
-        privateLinkConfig: z
-            .record(z.unknown())
-            .optional()
-            .describe(
-                "Provider-specific PrivateLink configuration. Required when resource='privatelink'. " +
-                    "AWS: {region, vendor, arn, dnsDomain, dnsSubDomain}. " +
-                    "Azure: {region, serviceEndpointId}. " +
-                    "GCP: {region, gcpServiceAttachmentUris}."
-            ),
+        privateLinkConfig: PrivateLinkConfig.optional().describe(
+            "Provider-specific PrivateLink configuration. Required when resource='privatelink'."
+        ),
     };
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
