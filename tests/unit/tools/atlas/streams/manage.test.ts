@@ -367,6 +367,20 @@ describe("StreamsManageTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("updated");
         });
 
+        it("should update workspace with region only", async () => {
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "DUBLIN_IRL",
+            });
+
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                body: { region: "DUBLIN_IRL" },
+            });
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
         it("should update workspace with tier only", async () => {
             const result = await exec({
                 ...baseArgs,

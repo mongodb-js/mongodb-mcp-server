@@ -339,6 +339,26 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
+        // PrivateLink-specific: LLM might try list-connections or build/teardown instead of get-networking
+        {
+            prompt: `Show me the PrivateLink connections for workspace '${workspaceName}'`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-discover",
+                    parameters: {
+                        ...optionalDiscoverParams,
+                        cloudProvider: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                        region: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                        projectId,
+                        action: "get-networking",
+                        workspaceName,
+                    },
+                },
+            ],
+            mockedTools,
+        },
         // Ambiguous: "what's the current pipeline" could suggest manage (modify), but should use discover (inspect)
         {
             prompt: `What's the current pipeline for processor '${processorName}' in workspace '${workspaceName}'?`,
