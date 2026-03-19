@@ -73,7 +73,6 @@ describe("StreamsBuildTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
-    // Helper to call execute with partial args (tests validate missing fields at runtime)
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
 
@@ -348,6 +347,23 @@ describe("StreamsBuildTool", () => {
                     connectionName: "conn1",
                 })
             ).rejects.toThrow("connectionType is required");
+        });
+    });
+
+    describe("createConnection - Sample", () => {
+        it("should create Sample connection with no config", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "sample1",
+                connectionType: "Sample",
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({ name: "sample1", type: "Sample" }),
+                })
+            );
         });
     });
 

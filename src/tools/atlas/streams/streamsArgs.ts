@@ -9,8 +9,12 @@ export const ConnectionConfig = z
         // Kafka
         bootstrapServers: z
             .union([z.string(), z.array(z.string())])
+            .transform((val) => (Array.isArray(val) ? val.join(",") : val))
             .optional()
-            .describe("Kafka broker addresses. Comma-separated string or array (auto-converted)."),
+            .describe(
+                "Comma-separated Kafka broker addresses (e.g. 'broker1:9092,broker2:9092'). " +
+                    "Also accepts an array of strings, which will be joined with commas."
+            ),
         authentication: z
             .object({
                 mechanism: z.enum(["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]).optional(),
@@ -52,8 +56,12 @@ export const ConnectionConfig = z
         provider: z.string().optional().describe("Schema registry provider. Defaults to 'CONFLUENT'."),
         schemaRegistryUrls: z
             .union([z.array(z.string()), z.string()])
+            .transform((val) => (typeof val === "string" ? val.split(",").map((s) => s.trim()) : val))
             .optional()
-            .describe("Schema registry URL(s). String auto-wrapped in array."),
+            .describe(
+                "Schema registry URL(s) as an array of strings. " +
+                    "Also accepts a single comma-separated string, which will be split into an array."
+            ),
         schemaRegistryAuthentication: z
             .object({
                 type: z.enum(["USER_INFO", "SASL_INHERIT"]).optional(),

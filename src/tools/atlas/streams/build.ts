@@ -281,7 +281,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
 
-        const config: Record<string, unknown> = { ...args.connectionConfig };
+        const config: Record<string, unknown> = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
         const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType);
         if (missingInfo) {
@@ -343,11 +343,6 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async validateKafkaConfig(config: Record<string, unknown>): Promise<CallToolResult | null> {
-        // Normalize bootstrapServers: accept array and convert to comma-separated string
-        if (Array.isArray(config.bootstrapServers)) {
-            config.bootstrapServers = (config.bootstrapServers as string[]).join(",");
-        }
-
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
@@ -436,11 +431,6 @@ export class StreamsBuildTool extends StreamsToolBase {
                 delete config.endpoint;
                 delete config.schemaRegistryUrl;
             }
-        }
-
-        // Normalize schemaRegistryUrls: accept a single string and wrap in array
-        if (typeof config.schemaRegistryUrls === "string") {
-            config.schemaRegistryUrls = [config.schemaRegistryUrls];
         }
 
         // Normalize common alternative key names for authentication
