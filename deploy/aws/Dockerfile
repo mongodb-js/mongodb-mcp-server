@@ -5,16 +5,17 @@ ARG VERSION=latest
 # Create user and group
 RUN addgroup -S mcp && adduser -S mcp -G mcp
 
-
 # Install production dependencies only
 RUN npm install -g mongodb-mcp-server@latest
-USER mcp
 WORKDIR /home/mcp
 
 ENV MDB_MCP_LOGGERS=stderr,mcp
 ENV MDB_MCP_DISABLED_TOOLS=atlas-local
 ENV MDB_MCP_EXTERNALLY_MANAGED_SESSIONS=true
 ENV MDB_MCP_HTTP_RESPONSE_TYPE=json
+ENV MDB_MCP_TRANSPORT=http
+ENV MDB_MCP_HTTP_HOST=0.0.0.0
+ENV MDB_MCP_HTTP_PORT=8000
 
 # Run as non-root user
 USER mcp
@@ -27,4 +28,4 @@ ENV DOCKER_CONTAINER=1
 
 EXPOSE 8000
 
-ENTRYPOINT ["mongodb-mcp-server", "--transport", "http", "--httpHost", "0.0.0.0", "--httpPort", "8000", "--loggers", "stderr"]
+ENTRYPOINT ["mongodb-mcp-server"]
