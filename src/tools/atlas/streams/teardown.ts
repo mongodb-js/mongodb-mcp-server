@@ -13,7 +13,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
 
     public description =
         "Delete Atlas Stream Processing resources. " +
-        "Also use for 'remove my workspace', 'delete all processors', or 'clean up my streams environment'. " +
+        "Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. " +
         "Performs basic safety checks before deletion: summarizes counts of processors and connections, " +
         "highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. " +
         "Use `atlas-streams-discover` to review resources before deleting.";

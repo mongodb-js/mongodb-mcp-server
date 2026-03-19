@@ -72,7 +72,7 @@ export class StreamsManageTool extends StreamsToolBase {
             .array(z.record(z.unknown()))
             .optional()
             .describe(
-                "New aggregation pipeline stages as an array of objects, e.g. " +
+                "New pipeline stages as an array of objects, e.g. " +
                     "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
                     "Only for 'modify-processor'. Processor must be stopped first. " +
                     "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."

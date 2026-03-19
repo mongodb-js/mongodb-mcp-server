@@ -99,7 +99,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         "Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. " +
         "Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). " +
         "Use resource='connection' to add a data source or sink to an existing workspace. " +
-        "Use resource='processor' to deploy a stream processor with an aggregation pipeline. " +
+        "Use resource='processor' to deploy a stream processor with a pipeline. " +
         "Use resource='privatelink' to set up private networking. " +
         "Typical workflow: create workspace → add connections → deploy processor.";
 
@@ -122,8 +122,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             .optional()
             .describe(
                 "Cloud region. Required when resource='workspace'. " +
-                    "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'DUBLIN_IRL'. " +
-                    "Azure examples: 'eastus2', 'westeurope'. GCP examples: 'US_CENTRAL1', 'EUROPE_WEST1'."
+                    "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'IRELAND_IRL'. " +
+                    "Azure examples: 'US_EAST_2', 'EUROPE_WEST'. GCP examples: 'US_CENTRAL1', 'WESTERN_EUROPE'."
             ),
         tier: z
             .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
@@ -165,7 +165,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             .array(z.record(z.unknown()))
             .optional()
             .describe(
-                "Aggregation pipeline stages. Required when resource='processor'. " +
+                "Pipeline stages for the stream processor. Required when resource='processor'. " +
                     "Must start with a $source stage and end with a terminal stage ($merge, $emit, $https, or $externalFunction). " +
                     "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
                     "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
