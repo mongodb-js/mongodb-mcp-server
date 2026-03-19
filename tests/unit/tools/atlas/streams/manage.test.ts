@@ -353,7 +353,22 @@ describe("StreamsManageTool", () => {
     });
 
     describe("update-workspace", () => {
-        it("should update workspace with new tier", async () => {
+        it("should update workspace with region and tier", async () => {
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "OREGON_USA",
+                newTier: "SP30",
+            });
+
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                body: { region: "OREGON_USA", streamConfig: { tier: "SP30" } },
+            });
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should update workspace with tier only", async () => {
             const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
@@ -375,20 +390,6 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("No updates specified");
-        });
-
-        it("should update region only", async () => {
-            const result = await exec({
-                ...baseArgs,
-                action: "update-workspace",
-                newRegion: "OREGON_USA",
-            });
-
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { dataProcessRegion: { region: "OREGON_USA" } },
-            });
-            expect((result.content[0] as { text: string }).text).toContain("updated");
         });
     });
 

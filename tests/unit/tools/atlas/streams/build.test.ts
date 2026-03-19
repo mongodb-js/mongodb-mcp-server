@@ -733,6 +733,28 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
         });
 
+        it("should return error when DLQ references non-existent connection", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+                dlq: { connectionName: "missing-dlq-conn", db: "errors", coll: "dlq" },
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("missing-dlq-conn");
+            expect(text).toContain("do not exist");
+        });
+
         it("should skip validation when connection list API fails", async () => {
             mockApiClient.listStreamConnections!.mockRejectedValue(new Error("API error"));
 
@@ -756,8 +778,8 @@ describe("StreamsBuildTool", () => {
             await exec({
                 ...baseArgs,
                 resource: "privatelink",
-                privateLinkProvider: "AWS",
                 privateLinkConfig: {
+                    provider: "AWS",
                     region: "us-east-1",
                     vendor: "AWS",
                     arn: "arn:aws:...",
@@ -779,43 +801,23 @@ describe("StreamsBuildTool", () => {
             });
         });
 
-        it("should not allow privateLinkConfig.provider to overwrite privateLinkProvider", async () => {
-            await exec({
-                ...baseArgs,
-                resource: "privatelink",
-                privateLinkProvider: "AWS",
-                privateLinkConfig: {
-                    provider: "GCP",
-                    region: "us-east-1",
-                },
-            });
-
-            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1" } },
-                body: expect.objectContaining({
-                    provider: "AWS",
-                }),
-            });
+        it("should throw when privateLinkConfig is missing", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "privatelink",
+                })
+            ).rejects.toThrow("privateLinkConfig is required");
         });
 
-        it("should throw when privateLinkProvider is missing", async () => {
+        it("should throw when privateLinkConfig.provider is missing", async () => {
             await expect(
                 exec({
                     ...baseArgs,
                     resource: "privatelink",
                     privateLinkConfig: { region: "us-east-1" },
                 })
-            ).rejects.toThrow("privateLinkProvider is required");
-        });
-
-        it("should throw when privateLinkConfig is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    resource: "privatelink",
-                    privateLinkProvider: "AWS",
-                })
-            ).rejects.toThrow("privateLinkConfig is required");
+            ).rejects.toThrow("privateLinkConfig.provider is required");
         });
     });
 });

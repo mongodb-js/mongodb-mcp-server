@@ -68,6 +68,7 @@ const optionalManageParams = {
     newName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     tier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     resumeFromCheckpoint: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    startAtOperationTime: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     newRegion: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     newTier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
@@ -293,6 +294,25 @@ describeAccuracyTests(
                             db: "errors",
                             coll: "failed_docs",
                         },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Start processor '${processorName}' in workspace '${workspaceName}' from timestamp 2026-01-15T08:00:00Z`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        ...optionalManageParams,
+                        projectId,
+                        action: "start-processor",
+                        workspaceName,
+                        resourceName: processorName,
+                        startAtOperationTime: "2026-01-15T08:00:00Z",
                     },
                 },
             ],

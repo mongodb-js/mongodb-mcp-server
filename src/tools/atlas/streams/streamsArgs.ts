@@ -84,6 +84,7 @@ export const ConnectionConfig = z
 export const PrivateLinkConfig = z
     .object({
         // Common
+        provider: z.enum(["AWS", "AZURE", "GCP"]).describe("Cloud provider for the PrivateLink endpoint. Required."),
         region: z.string().optional().describe("Cloud region for the PrivateLink endpoint."),
         // AWS
         vendor: z.string().optional().describe("AWS PrivateLink vendor (e.g., 'CONFLUENT'). AWS only."),

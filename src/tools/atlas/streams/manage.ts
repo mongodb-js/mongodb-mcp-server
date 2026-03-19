@@ -364,7 +364,7 @@ export class StreamsManageTool extends StreamsToolBase {
     private async updateWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const body: Record<string, unknown> = {};
         if (args.newRegion) {
-            body.dataProcessRegion = { region: args.newRegion };
+            body.region = args.newRegion;
         }
         if (args.newTier) {
             body.streamConfig = { tier: args.newTier };

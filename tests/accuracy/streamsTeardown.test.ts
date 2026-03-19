@@ -171,6 +171,55 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
+        // Multi-turn: list processors first, then delete one
+        {
+            prompt: [
+                `What processors are running in workspace '${workspaceName}'?`,
+                `Delete processor '${processorName}'`,
+            ],
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-discover",
+                    parameters: {
+                        projectId,
+                        action: "list-processors",
+                        workspaceName,
+                        responseFormat: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                        resourceName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                        limit: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                        pageNum: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+                    },
+                },
+                {
+                    toolName: "atlas-streams-teardown",
+                    parameters: {
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        resourceName: processorName,
+                    },
+                },
+            ],
+            mockedTools: {
+                ...mockedTools,
+                "atlas-streams-discover": (): CallToolResult => {
+                    return {
+                        content: formatUntrustedData(
+                            "Found 1 processor(s)",
+                            JSON.stringify([
+                                {
+                                    name: processorName,
+                                    state: "STARTED",
+                                    tier: "SP10",
+                                },
+                            ])
+                        ),
+                    };
+                },
+            },
+        },
     ],
     { userConfig: { previewFeatures: "streams" } }
 );

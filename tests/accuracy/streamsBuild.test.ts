@@ -383,8 +383,8 @@ describeAccuracyTests(
                         projectId,
                         resource: "privatelink",
                         workspaceName: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                        privateLinkProvider: "AWS",
                         privateLinkConfig: {
+                            provider: "AWS",
                             region: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                             arn: Matcher.anyOf(Matcher.undefined, Matcher.string()),
                             dnsDomain: Matcher.anyOf(Matcher.undefined, Matcher.string()),

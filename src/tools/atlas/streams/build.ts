@@ -199,14 +199,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             ),
 
         // PrivateLink fields
-        privateLinkProvider: CloudProvider.optional().describe(
-            "Cloud provider for PrivateLink — must be a plain string, exactly one of: 'AWS', 'AZURE', or 'GCP'. " +
-                "Do NOT pass an object here — this is just the provider name string. " +
-                "All configuration details (ARN, DNS, region, etc.) go in the separate `privateLinkConfig` parameter. " +
-                "Required when resource='privatelink'."
-        ),
         privateLinkConfig: PrivateLinkConfig.optional().describe(
-            "Provider-specific PrivateLink configuration. Required when resource='privatelink'."
+            "PrivateLink configuration including provider and provider-specific fields. Required when resource='privatelink'."
         ),
     };
 
@@ -777,19 +771,18 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createPrivateLink(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        if (!args.privateLinkProvider) {
-            throw new Error("privateLinkProvider is required. Choose from: AWS, AZURE, GCP.");
-        }
         if (!args.privateLinkConfig) {
             throw new Error(
-                "privateLinkConfig is required. Provide provider-specific configuration " +
-                    "(AWS: {region, vendor, arn, dnsDomain, dnsSubDomain}, Azure: {region, serviceEndpointId}, GCP: {region, gcpServiceAttachmentUris})."
+                "privateLinkConfig is required. Provide provider and provider-specific configuration " +
+                    "(AWS: {provider, region, vendor, arn, dnsDomain, dnsSubDomain}, Azure: {provider, region, serviceEndpointId}, GCP: {provider, region, gcpServiceAttachmentUris})."
             );
+        }
+        if (!args.privateLinkConfig.provider) {
+            throw new Error("privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP.");
         }
 
         const body: Record<string, unknown> = {
             ...args.privateLinkConfig,
-            provider: args.privateLinkProvider,
         };
 
         await this.apiClient.createPrivateLinkConnection({
@@ -802,7 +795,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 {
                     type: "text",
                     text:
-                        `PrivateLink connection created for ${args.privateLinkProvider}. ` +
+                        `PrivateLink connection created for ${args.privateLinkConfig.provider}. ` +
                         `It may take a few minutes to become active. ` +
                         `Use \`atlas-streams-discover\` with action 'get-networking' to check status.\n\n` +
                         `Once active, create connections with networking.access.type='PRIVATE_LINK' to use it.`,
