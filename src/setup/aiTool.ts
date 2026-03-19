@@ -288,20 +288,16 @@ class VSCode extends AITool {
     }
     get configPath(): string {
         const platform: Platform | null = getPlatform();
-        const isWindows = platform === "windows";
-        const isMac = platform === "mac";
-        const isLinux = platform === "linux";
-
-        if (isWindows) {
-            return path.join(getBasePath(), "Code", "User", "mcp.json");
+        switch (platform) {
+            case "windows":
+                return path.join(getBasePath(), "Code", "User", "mcp.json");
+            case "mac":
+                return path.join(getBasePath(), "Library", "Application Support", "Code", "User", "mcp.json");
+            case "linux":
+                return path.join(getBasePath(), ".config", "Code", "User", "mcp.json");
+            default:
+                return "";
         }
-        if (isMac) {
-            return path.join(getBasePath(), "Library", "Application Support", "Code", "User", "mcp.json");
-        }
-        if (isLinux) {
-            return path.join(getBasePath(), ".config", "Code", "User", "mcp.json");
-        }
-        return "";
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
 
@@ -336,17 +332,22 @@ class ClaudeDesktop extends AITool {
     configFileName = "claude_desktop_config.json";
     get configPath(): string {
         const platform: Platform | null = getPlatform();
-        const isWindows = platform === "windows";
-        const isMac = platform === "mac";
-        const isLinux = platform === "linux";
-
-        if (isWindows || isMac) {
-            return path.join(getBasePath(), "Claude", "claude_desktop_config.json");
+        switch (platform) {
+            case "windows":
+                return path.join(getBasePath(), "Claude", "claude_desktop_config.json");
+            case "mac":
+                return path.join(
+                    getBasePath(),
+                    "Library",
+                    "Application Support",
+                    "Claude",
+                    "claude_desktop_config.json"
+                );
+            case "linux":
+                return path.join(getBasePath(), ".config", "Claude", "claude_desktop_config.json");
+            default:
+                return "";
         }
-        if (isLinux) {
-            return path.join(getBasePath(), ".config", "Claude", "claude_desktop_config.json");
-        }
-        return "";
     }
 }
 
