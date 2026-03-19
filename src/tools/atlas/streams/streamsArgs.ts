@@ -88,7 +88,7 @@ export const ConnectionConfig = z
     })
     .passthrough();
 
-/** Typed schema for privateLinkConfig — all fields optional, per-provider. */
+/** Typed schema for privateLinkConfig — provider is required, all other fields optional and per-provider. */
 export const PrivateLinkConfig = z
     .object({
         // Common

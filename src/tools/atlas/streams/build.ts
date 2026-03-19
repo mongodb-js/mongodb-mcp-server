@@ -122,8 +122,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             .optional()
             .describe(
                 "Cloud region. Required when resource='workspace'. " +
-                    "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'IRELAND_IRL'. " +
-                    "Azure examples: 'US_EAST_2', 'EUROPE_WEST'. GCP examples: 'US_CENTRAL1', 'WESTERN_EUROPE'."
+                    "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'DUBLIN_IRL'. " +
+                    "Azure examples: 'eastus2', 'westeurope'. GCP examples: 'US_CENTRAL1', 'EUROPE_WEST1'."
             ),
         tier: z
             .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])

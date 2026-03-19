@@ -449,7 +449,7 @@ describeAccuracyTests(
                         resource: "workspace",
                         workspaceName: "eu-analytics",
                         cloudProvider: "AZURE",
-                        region: "EUROPE_WEST",
+                        region: "westeurope",
                     },
                 },
             ],
