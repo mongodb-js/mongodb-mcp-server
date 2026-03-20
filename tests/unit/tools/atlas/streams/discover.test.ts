@@ -73,7 +73,6 @@ describe("StreamsDiscoverTool", () => {
     });
 
     const baseArgs = { projectId: "proj1" };
-    // Helper to call execute with partial args (tests validate missing fields at runtime)
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
 

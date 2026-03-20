@@ -34,7 +34,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         "Use 'list-workspaces' to see all workspaces in a project. " +
         "Use inspect actions for details on a specific resource. " +
         "Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. " +
-        "Use 'get-logs' for operational or audit logs and 'get-networking' for PrivateLink and account details.";
+        "Use 'get-logs' for workspace-level operational or audit logs (optionally filter by processor with resourceName) and 'get-networking' for PrivateLink and account details.";
 
     public argsShape = {
         projectId: AtlasArgs.projectId().describe(
@@ -81,7 +81,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             .optional()
             .describe(
                 "Type of logs to retrieve. 'operational' returns runtime logs (errors, Kafka failures, schema issues). " +
-                    "'audit' returns lifecycle events (start/stop). Default: 'operational'. Only for 'get-logs' action."
+                    "'audit' returns lifecycle events (start/stop). Default: 'operational'. Only for 'get-logs' action. " +
+                    "Logs are retrieved at workspace level; use resourceName to filter by a specific processor."
             ),
     };
 
@@ -481,9 +482,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                               ? ({ spName: processorName } as { spName?: string; startDate?: number; endDate?: number })
                               : {},
                       },
-                      headers: {
-                          Accept: "application/vnd.atlas.2025-03-12+gzip",
-                      },
                       parseAs: "arrayBuffer",
                   })
                 : await this.apiClient.downloadAuditLogs({
@@ -492,9 +490,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                           query: processorName
                               ? ({ spName: processorName } as { spName?: string; startDate?: number; endDate?: number })
                               : {},
-                      },
-                      headers: {
-                          Accept: "application/vnd.atlas.2023-02-01+gzip",
                       },
                       parseAs: "arrayBuffer",
                   });
