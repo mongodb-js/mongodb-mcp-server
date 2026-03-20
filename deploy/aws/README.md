@@ -39,12 +39,12 @@ When creating or updating your AgentCore MCP runtime, point the container image 
 
 The Dockerfile is pre-configured for AgentCore compatibility:
 
-| Setting | Value | Purpose |
-|---|---|---|
-| `MDB_MCP_EXTERNALLY_MANAGED_SESSIONS` | `true` | Lets AgentCore manage MCP session IDs |
-| `MDB_MCP_HTTP_RESPONSE_TYPE` | `json` | Returns JSON instead of SSE |
-| `MDB_MCP_DISABLED_TOOLS` | `atlas-local` | Disables tools unavailable in containers |
-| Port | `8000` | HTTP listener port |
+| Setting                               | Value         | Purpose                                  |
+| ------------------------------------- | ------------- | ---------------------------------------- |
+| `MDB_MCP_EXTERNALLY_MANAGED_SESSIONS` | `true`        | Lets AgentCore manage MCP session IDs    |
+| `MDB_MCP_HTTP_RESPONSE_TYPE`          | `json`        | Returns JSON instead of SSE              |
+| `MDB_MCP_DISABLED_TOOLS`              | `atlas-local` | Disables tools unavailable in containers |
+| Port                                  | `8000`        | HTTP listener port                       |
 
 ### Passing MongoDB Credentials
 
