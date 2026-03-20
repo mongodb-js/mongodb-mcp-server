@@ -53,7 +53,12 @@ export const ConnectionConfig = z
         url: z.string().optional().describe("Webhook URL for Https connections."),
         headers: z.record(z.string()).optional().describe("HTTP headers for Https connections."),
         // SchemaRegistry
-        provider: z.string().optional().describe("Schema registry provider. Defaults to 'CONFLUENT'."),
+        provider: z
+            .string()
+            .optional()
+            .describe(
+                "Schema registry provider (e.g. 'CONFLUENT'). Only for SchemaRegistry connections. Defaults to 'CONFLUENT'."
+            ),
         schemaRegistryUrls: z
             .union([z.array(z.string()), z.string()])
             .transform((val) => (typeof val === "string" ? val.split(",").map((s) => s.trim()) : val))
