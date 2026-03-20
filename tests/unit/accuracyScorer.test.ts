@@ -70,7 +70,7 @@ describe("calculateToolCallingAccuracy", () => {
     });
 
     describe("additional parameters", () => {
-        it("should return 0.75 when tool call has additional nested parameters (default behavior)", () => {
+        it("should return 0 when tool call has additional nested parameters (default behavior)", () => {
             const expected: ExpectedToolCall[] = [
                 { toolName: "find", parameters: { db: "test", collection: "users", filter: { status: "active" } } },
             ];
@@ -87,7 +87,7 @@ describe("calculateToolCallingAccuracy", () => {
                 },
             ];
             const result = calculateToolCallingAccuracy(expected, actual);
-            expect(result).toBe(0.75);
+            expect(result).toBe(0);
         });
 
         it("should return 1 when expected has no filter but actual has empty filter", () => {
@@ -167,7 +167,7 @@ describe("calculateToolCallingAccuracy", () => {
             expect(result).toBe(0);
         });
 
-        it("should return 0.75 when there are additional nested fields", () => {
+        it("should return 0 when there are additional nested fields", () => {
             const expected: ExpectedToolCall[] = [
                 {
                     toolName: "find",
@@ -190,7 +190,7 @@ describe("calculateToolCallingAccuracy", () => {
                 },
             ];
             const result = calculateToolCallingAccuracy(expected, actual);
-            expect(result).toBe(0.75);
+            expect(result).toBe(0);
         });
 
         it("should return 1 when ignored additional fields are provided", () => {

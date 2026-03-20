@@ -281,7 +281,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
 
-        const config: Record<string, unknown> = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
+        const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
         const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType);
         if (missingInfo) {

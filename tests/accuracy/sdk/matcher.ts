@@ -23,7 +23,7 @@ export abstract class Matcher {
     /**
      * Asserts that a parameter must NOT be present (i.e., is `undefined`).
      * Use this in test definitions to strictly forbid an extra param that
-     * would otherwise be silently tolerated at a 0.75 score.
+     * would otherwise cause the score to drop to 0.
      *
      * Example — ensure the model does NOT send a `limit` param:
      * ```
@@ -232,11 +232,10 @@ class ValueMatcher extends Matcher {
             const actualKeys = Object.keys(actual);
 
             if (actualKeys.length > expectedKeys.length) {
-                // The model provided more keys than expected — cap at 0.75 (additional parameters)
-                // rather than failing outright. This matches the documented scoring behavior:
-                // 0 = missing/incorrect, 0.75 = additional params, 1 = perfect match.
-                // Use `param: Matcher.undefined` to explicitly assert a param should NOT be present.
-                currentScore = Math.min(currentScore, 0.75);
+                // The model provided more keys than expected - this should not happen.
+                // If we want to allow some extra keys, we should specify that in the test definition
+                // by adding matchers for those keys.
+                return 0;
             }
 
             for (const key of expectedKeys) {
