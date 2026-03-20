@@ -6,6 +6,7 @@ import type { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
+import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 
 export const CreateDBUserArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
@@ -60,6 +61,8 @@ export class CreateDBUserTool extends AtlasToolBase {
         roles,
         clusters,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        let shouldGeneratePassword = false;
+
         if (!password) {
             const elicited = await this.elicitation.requestInput(
                 "A password is required to create this Atlas database user.",
@@ -70,15 +73,8 @@ export class CreateDBUserTool extends AtlasToolBase {
         }
 
         if (!password) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "Password is required to create an Atlas database user. Provide `password` in tool arguments.",
-                    },
-                ],
-                isError: true,
-            };
+            shouldGeneratePassword = true;
+            password = await generateSecurePassword();
         }
 
         await ensureCurrentIpInAccessList(this.apiClient, projectId);
@@ -119,7 +115,7 @@ export class CreateDBUserTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `User "${username}" created successfully.`,
+                    text: `User "${username}" created successfully${shouldGeneratePassword ? ` with password: \`${password}\`` : ""}.`,
                 },
             ],
         };
@@ -135,7 +131,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         return (
             `You are about to create a database user in Atlas project \`${projectId}\`:\n\n` +
             `**Username**: \`${username}\`\n\n` +
-            `**Password**: ${password ? "(User-provided password)" : "(Will be requested via elicitation)"}\n\n` +
+            `**Password**: ${password ? "(User-provided password)" : "(Will be requested via elicitation; auto-generated if not provided)"}\n\n` +
             `**Roles**: ${roles.map((role) => `${role.roleName}${role.collectionName ? ` on ${role.databaseName}.${role.collectionName}` : ` on ${role.databaseName}`}`).join(", ")}\n\n` +
             `**Cluster Access**: ${clusters?.length ? clusters.join(", ") : "All clusters in the project"}\n\n` +
             "This will create a new database user with the specified permissions. " +
