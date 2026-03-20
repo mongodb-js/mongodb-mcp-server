@@ -61,22 +61,6 @@ const optionalWorkspaceDiscovery = [
 // Simulate prior conversation context where the project was already established
 const projectContext = `The user is working in Atlas project 'StreamsProject' (projectId: '${projectId}').`;
 
-// Guard against extra optional params the LLM commonly includes
-const optionalManageParams = {
-    pipeline: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    dlq: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    newName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    tier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    resumeFromCheckpoint: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    startAtOperationTime: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    connectionConfig: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    newRegion: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    newTier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    peeringId: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    requesterAccountId: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    requesterVpcId: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-};
-
 describeAccuracyTests(
     [
         {
@@ -87,7 +71,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -105,7 +88,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "stop-processor",
                         workspaceName,
@@ -123,7 +105,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "stop-processor",
                         workspaceName,
@@ -134,7 +115,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -153,7 +133,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "update-workspace",
                         workspaceName,
@@ -171,7 +150,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -190,7 +168,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -209,7 +186,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         workspaceName,
                         action: "accept-peering",
@@ -229,7 +205,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         workspaceName,
                         action: "reject-peering",
@@ -247,7 +222,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -266,7 +240,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "update-workspace",
                         workspaceName,
@@ -284,7 +257,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -307,11 +279,11 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
                         resourceName: processorName,
+                        resumeFromCheckpoint: false,
                         startAtOperationTime: "2026-01-15T08:00:00Z",
                     },
                 },
@@ -331,7 +303,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "stop-processor",
                         workspaceName,
@@ -341,7 +312,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -352,7 +322,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -371,7 +340,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "stop-processor",
                         workspaceName,
@@ -382,7 +350,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -437,7 +404,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "update-connection",
                         workspaceName,
@@ -458,7 +424,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "stop-processor",
                         workspaceName,
@@ -469,7 +434,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -487,7 +451,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "stop-processor",
                         workspaceName,
@@ -498,7 +461,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "modify-processor",
                         workspaceName,
@@ -509,7 +471,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-manage",
                     parameters: {
-                        ...optionalManageParams,
                         projectId,
                         action: "start-processor",
                         workspaceName,
@@ -533,9 +494,6 @@ describeAccuracyTests(
                         action: "diagnose-processor",
                         workspaceName,
                         resourceName: "etl",
-                        responseFormat: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-                        limit: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-                        pageNum: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
                     },
                 },
             ],

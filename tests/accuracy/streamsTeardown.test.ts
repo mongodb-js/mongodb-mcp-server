@@ -1,7 +1,6 @@
 import { formatUntrustedData } from "../../src/tools/tool.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { Matcher } from "./sdk/matcher.js";
 
 const projectId = "68f600519f16226591d054c0";
 const workspaceName = "myworkspace";
@@ -61,11 +60,6 @@ const optionalWorkspaceDiscovery = [
 // Simulate prior conversation context where the project was already established
 const projectContext = `The user is working in Atlas project 'StreamsProject' (projectId: '${projectId}').`;
 
-// Guard against extra optional params the LLM commonly includes
-const optionalTeardownParams = {
-    resourceName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-};
-
 describeAccuracyTests(
     [
         {
@@ -110,7 +104,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-teardown",
                     parameters: {
-                        ...optionalTeardownParams,
                         projectId,
                         resource: "workspace",
                         workspaceName,
@@ -127,7 +120,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-teardown",
                     parameters: {
-                        ...optionalTeardownParams,
                         projectId,
                         resource: "privatelink",
                         resourceName: "pl-abc123",
@@ -144,7 +136,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-teardown",
                     parameters: {
-                        ...optionalTeardownParams,
                         projectId,
                         resource: "peering",
                         resourceName: "pcx-def456",
@@ -186,10 +177,6 @@ describeAccuracyTests(
                         projectId,
                         action: "list-processors",
                         workspaceName,
-                        responseFormat: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-                        resourceName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-                        limit: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-                        pageNum: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
                     },
                 },
                 {

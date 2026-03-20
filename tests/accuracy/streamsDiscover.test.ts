@@ -51,14 +51,6 @@ const optionalWorkspaceDiscovery = [
 // Simulate prior conversation context where the project was already established
 const projectContext = `The user is working in Atlas project 'StreamsProject' (projectId: '${projectId}').`;
 
-// Guard against extra optional params the LLM commonly includes
-const optionalDiscoverParams = {
-    responseFormat: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    resourceName: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    limit: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-    pageNum: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-};
-
 describeAccuracyTests(
     [
         {
@@ -69,7 +61,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "list-workspaces",
                     },
@@ -85,7 +76,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "inspect-workspace",
                         workspaceName,
@@ -102,7 +92,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "list-connections",
                         workspaceName,
@@ -119,7 +108,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "list-processors",
                         workspaceName,
@@ -136,7 +124,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "diagnose-processor",
                         workspaceName,
@@ -154,7 +141,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "get-logs",
                         workspaceName,
@@ -172,9 +158,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
-                        cloudProvider: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-                        region: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
                         projectId,
                         action: "get-networking",
                     },
@@ -190,11 +173,11 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "inspect-connection",
                         workspaceName,
                         resourceName: "events",
+                        responseFormat: "detailed",
                     },
                 },
             ],
@@ -208,11 +191,11 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "inspect-processor",
                         workspaceName,
                         resourceName: processorName,
+                        responseFormat: "detailed",
                     },
                 },
             ],
@@ -226,7 +209,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "get-logs",
                         workspaceName,
@@ -246,7 +228,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "list-workspaces",
                     },
@@ -265,7 +246,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "diagnose-processor",
                         workspaceName,
@@ -275,7 +255,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "get-logs",
                         workspaceName,
@@ -293,7 +272,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "list-processors",
                         workspaceName,
@@ -311,7 +289,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "list-connections",
                         workspaceName,
@@ -329,7 +306,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "get-networking",
                         cloudProvider: "AWS",
@@ -348,9 +324,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
-                        cloudProvider: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
-                        region: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
                         projectId,
                         action: "get-networking",
                         workspaceName,
@@ -368,11 +341,11 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "inspect-processor",
                         workspaceName,
                         resourceName: processorName,
+                        responseFormat: "detailed",
                     },
                 },
             ],
@@ -387,7 +360,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "list-processors",
                         workspaceName,
@@ -405,7 +377,6 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "get-logs",
                         workspaceName,
@@ -424,11 +395,11 @@ describeAccuracyTests(
                 {
                     toolName: "atlas-streams-discover",
                     parameters: {
-                        ...optionalDiscoverParams,
                         projectId,
                         action: "get-logs",
                         workspaceName,
                         resourceName: "etl",
+                        responseFormat: "detailed",
                         logType: "audit",
                     },
                 },
