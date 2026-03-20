@@ -117,7 +117,15 @@ describe("Elicitation Integration Tests", () => {
                 });
 
                 it("should request confirmation for create-db-user tool", async () => {
-                    mockElicitInput.confirmYes();
+                    mockElicitInput.mock
+                        .mockResolvedValueOnce({
+                            action: "accept",
+                            content: { confirmation: "Yes" },
+                        })
+                        .mockResolvedValueOnce({
+                            action: "accept",
+                            content: { password: "test-password-from-elicitation" },
+                        });
 
                     await integration.mcpClient().callTool({
                         name: "atlas-create-db-user",
@@ -128,11 +136,24 @@ describe("Elicitation Integration Tests", () => {
                         },
                     });
 
-                    expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                    expect(mockElicitInput.mock).toHaveBeenCalledTimes(2);
+                    expect(mockElicitInput.mock).toHaveBeenNthCalledWith(
+                        1,
                         {
                             message: expect.stringContaining("You are about to create a database user"),
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                            mode: "form",
+                        },
+                        { timeout: 300000 }
+                    );
+                    expect(mockElicitInput.mock).toHaveBeenNthCalledWith(
+                        2,
+                        {
+                            message: "A password is required to create this Atlas database user.",
+                            requestedSchema: expect.objectContaining({
+                                type: "object",
+                                required: ["password"],
+                            }),
                             mode: "form",
                         },
                         { timeout: 300000 }

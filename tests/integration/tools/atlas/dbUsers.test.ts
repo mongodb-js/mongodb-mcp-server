@@ -98,31 +98,12 @@ describeWithAtlas("db users", (integration) => {
                 });
             });
 
-            it("should create a database user with generated password", async () => {
+            it("should require password when creating a database user", async () => {
                 const response = await createUserWithMCP();
+                expect(response.isError).toBe(true);
                 const elements = getResponseElements(response);
                 expect(elements).toHaveLength(1);
-                expect(elements[0]?.text).toContain("created successfully");
-                expect(elements[0]?.text).toContain(userName);
-                expect(elements[0]?.text).toContain("with password: `");
-
-                const passwordStart = elements[0]?.text.lastIndexOf(":") ?? -1;
-                const passwordEnd = elements[0]?.text.length ?? 1 - 1;
-
-                const password = elements[0]?.text
-                    .substring(passwordStart + 1, passwordEnd - 1)
-                    .replace(/`/g, "")
-                    .trim();
-
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
-                    value: userName,
-                    kind: "user",
-                });
-
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
-                    value: password,
-                    kind: "password",
-                });
+                expect(elements[0]?.text).toContain("Password is required");
             });
 
             it("should add current IP to access list when creating a database user", async () => {
@@ -130,7 +111,7 @@ describeWithAtlas("db users", (integration) => {
                 const session = integration.mcpServer().session;
                 assertApiClientIsAvailable(session);
                 const ipInfo = await session.apiClient.getIpInfo();
-                await createUserWithMCP();
+                await createUserWithMCP("testpassword");
                 const accessList = await session.apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
                 });
@@ -151,7 +132,7 @@ describeWithAtlas("db users", (integration) => {
             it("returns database users by project", async () => {
                 const projectId = getProjectId();
 
-                await createUserWithMCP();
+                await createUserWithMCP("testpassword");
 
                 const response = await integration
                     .mcpClient()

@@ -3,9 +3,9 @@ import type { ToolArgs, OperationType } from "../../tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AtlasToolBase } from "../atlasTool.js";
 import type { CloudDatabaseUser, DatabaseUserRole } from "../../../common/atlas/openapi.js";
-import { generateSecurePassword } from "../../../helpers/generatePassword.js";
 import { ensureCurrentIpInAccessList } from "../../../common/atlas/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
+import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 
 export const CreateDBUserArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
@@ -33,6 +33,18 @@ export const CreateDBUserArgs = {
         .optional(),
 };
 
+const DB_USER_PASSWORD_SCHEMA = {
+    type: "object" as const,
+    properties: {
+        password: {
+            type: "string" as const,
+            title: "Database user password",
+            description: "Provide a password for the new Atlas database user.",
+        },
+    },
+    required: ["password"],
+} satisfies ElicitRequestFormParams["requestedSchema"];
+
 export class CreateDBUserTool extends AtlasToolBase {
     static toolName = "atlas-create-db-user";
     public description = "Create an MongoDB Atlas database user";
@@ -48,11 +60,28 @@ export class CreateDBUserTool extends AtlasToolBase {
         roles,
         clusters,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        await ensureCurrentIpInAccessList(this.apiClient, projectId);
-        const shouldGeneratePassword = !password;
-        if (shouldGeneratePassword) {
-            password = await generateSecurePassword();
+        if (!password) {
+            const elicited = await this.elicitation.requestInput(
+                "A password is required to create this Atlas database user.",
+                DB_USER_PASSWORD_SCHEMA
+            );
+
+            password = elicited.accepted ? elicited.fields.password : undefined;
         }
+
+        if (!password) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Password is required to create an Atlas database user. Provide `password` in tool arguments.",
+                    },
+                ],
+                isError: true,
+            };
+        }
+
+        await ensureCurrentIpInAccessList(this.apiClient, projectId);
 
         const input = {
             groupId: projectId,
@@ -90,7 +119,7 @@ export class CreateDBUserTool extends AtlasToolBase {
             content: [
                 {
                     type: "text",
-                    text: `User "${username}" created successfully${shouldGeneratePassword ? ` with password: \`${password}\`` : ""}.`,
+                    text: `User "${username}" created successfully.`,
                 },
             ],
         };
@@ -106,7 +135,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         return (
             `You are about to create a database user in Atlas project \`${projectId}\`:\n\n` +
             `**Username**: \`${username}\`\n\n` +
-            `**Password**: ${password ? "(User-provided password)" : "(Auto-generated secure password)"}\n\n` +
+            `**Password**: ${password ? "(User-provided password)" : "(Will be requested via elicitation)"}\n\n` +
             `**Roles**: ${roles.map((role) => `${role.roleName}${role.collectionName ? ` on ${role.databaseName}.${role.collectionName}` : ` on ${role.databaseName}`}`).join(", ")}\n\n` +
             `**Cluster Access**: ${clusters?.length ? clusters.join(", ") : "All clusters in the project"}\n\n` +
             "This will create a new database user with the specified permissions. " +
