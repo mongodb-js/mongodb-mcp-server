@@ -1,14 +1,10 @@
 import { z } from "zod";
-import { gunzip } from "node:zlib";
-import { promisify } from "node:util";
 import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "./streamsArgs.js";
-
-const gunzipAsync = promisify(gunzip);
 
 const DiscoverAction = z.enum([
     "list-workspaces",
@@ -18,7 +14,6 @@ const DiscoverAction = z.enum([
     "list-processors",
     "inspect-processor",
     "diagnose-processor",
-    "get-logs",
     "get-networking",
 ]);
 
@@ -34,7 +29,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         "Use 'list-workspaces' to see all workspaces in a project. " +
         "Use inspect actions for details on a specific resource. " +
         "Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. " +
-        "Use 'get-logs' for workspace-level operational or audit logs (optionally filter by processor with resourceName) and 'get-networking' for PrivateLink and account details.";
+        "Use 'get-networking' for PrivateLink and account details.";
 
     public argsShape = {
         projectId: AtlasArgs.projectId().describe(
@@ -51,7 +46,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             .string()
             .optional()
             .describe(
-                "Connection or processor name. Required for 'inspect-connection', 'inspect-processor', and 'diagnose-processor'. Optional for 'get-logs' to filter logs by processor."
+                "Connection or processor name. Required for 'inspect-connection', 'inspect-processor', and 'diagnose-processor'."
             ),
         responseFormat: ResponseFormat.optional().describe(
             "Response detail level. 'concise' returns names and states only. " +
@@ -76,14 +71,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             .optional()
             .describe("Max results per page for list actions. Default: 20."),
         pageNum: z.number().int().min(1).optional().describe("Page number for list actions. Default: 1."),
-        logType: z
-            .enum(["audit", "operational"])
-            .optional()
-            .describe(
-                "Type of logs to retrieve. 'operational' returns runtime logs (errors, Kafka failures, schema issues). " +
-                    "'audit' returns lifecycle events (start/stop). Default: 'operational'. Only for 'get-logs' action. " +
-                    "Logs are retrieved at workspace level; use resourceName to filter by a specific processor."
-            ),
     };
 
     protected async execute({
@@ -96,7 +83,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         region,
         limit,
         pageNum,
-        logType,
     }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         switch (action) {
             case "list-workspaces":
@@ -137,8 +123,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                     this.requireWorkspaceName(workspaceName),
                     this.requireResourceName(resourceName, "processor")
                 );
-            case "get-logs":
-                return this.getLogs(projectId, this.requireWorkspaceName(workspaceName), resourceName, logType);
             case "get-networking":
                 return this.getNetworking(projectId, cloudProvider, region);
             default:
@@ -463,73 +447,6 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                 sections.join("\n\n")
             ),
         };
-    }
-
-    private async getLogs(
-        projectId: string,
-        workspaceName: string,
-        processorName?: string,
-        logType?: string
-    ): Promise<CallToolResult> {
-        const resolvedLogType = logType ?? "operational";
-
-        const data =
-            resolvedLogType === "operational"
-                ? await this.apiClient.downloadOperationalLogs({
-                      params: {
-                          path: { groupId: projectId, tenantName: workspaceName },
-                          query: processorName
-                              ? ({ spName: processorName } as { spName?: string; startDate?: number; endDate?: number })
-                              : {},
-                      },
-                      parseAs: "arrayBuffer",
-                  })
-                : await this.apiClient.downloadAuditLogs({
-                      params: {
-                          path: { groupId: projectId, tenantName: workspaceName },
-                          query: processorName
-                              ? ({ spName: processorName } as { spName?: string; startDate?: number; endDate?: number })
-                              : {},
-                      },
-                      parseAs: "arrayBuffer",
-                  });
-
-        if (!data) {
-            return {
-                content: [{ type: "text", text: `No logs available for workspace '${workspaceName}'.` }],
-            };
-        }
-
-        try {
-            const buffer = Buffer.from(data as unknown as ArrayBuffer);
-            const decompressed = (await gunzipAsync(buffer)).toString("utf-8");
-
-            // Limit output to avoid overwhelming the context
-            const lines = decompressed.split("\n").filter((line) => line.trim());
-            const maxLines = 100;
-            const truncated = lines.length > maxLines;
-            const output = lines.slice(-maxLines).join("\n");
-
-            const header = processorName
-                ? `${resolvedLogType === "operational" ? "Operational" : "Audit"} logs for processor '${processorName}' in workspace '${workspaceName}'`
-                : `${resolvedLogType === "operational" ? "Operational" : "Audit"} logs for workspace '${workspaceName}'`;
-            const truncationNote = truncated ? ` (showing last ${maxLines} of ${lines.length} lines)` : "";
-
-            return {
-                content: formatUntrustedData(`${header}${truncationNote}:`, output),
-            };
-        } catch {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text:
-                            `Could not decompress logs for workspace '${workspaceName}'. ` +
-                            `Try downloading manually:\n  atlas streams download-logs --projectId ${projectId} --workspace ${workspaceName}`,
-                    },
-                ],
-            };
-        }
     }
 
     private async getNetworking(

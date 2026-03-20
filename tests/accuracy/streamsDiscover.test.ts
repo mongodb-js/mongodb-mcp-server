@@ -1,8 +1,6 @@
 import { formatUntrustedData } from "../../src/tools/tool.js";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { Matcher } from "./sdk/matcher.js";
-
 const projectId = "68f600519f16226591d054c0";
 const workspaceName = "myworkspace";
 const processorName = "myprocessor";
@@ -134,23 +132,6 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: `Show me the operational logs for workspace '${workspaceName}'`,
-            systemPrompt: projectContext,
-            expectedToolCalls: [
-                ...optionalWorkspaceDiscovery,
-                {
-                    toolName: "atlas-streams-discover",
-                    parameters: {
-                        projectId,
-                        action: "get-logs",
-                        workspaceName,
-                        logType: Matcher.anyOf(Matcher.value("operational"), Matcher.undefined),
-                    },
-                },
-            ],
-            mockedTools,
-        },
-        {
             prompt: "Show me the networking configuration for my streams project 'StreamsProject'",
             systemPrompt: projectContext,
             expectedToolCalls: [
@@ -199,23 +180,6 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
-        {
-            prompt: `Show me the audit logs for workspace '${workspaceName}'`,
-            systemPrompt: projectContext,
-            expectedToolCalls: [
-                ...optionalWorkspaceDiscovery,
-                {
-                    toolName: "atlas-streams-discover",
-                    parameters: {
-                        projectId,
-                        action: "get-logs",
-                        workspaceName,
-                        logType: "audit",
-                    },
-                },
-            ],
-            mockedTools,
-        },
         // Project discovery test: no project context given, LLM may call atlas-list-projects
         // or ask the user for the project ID — both are valid. Turn 2 supplies the ID so
         // the LLM can call atlas-streams-discover regardless of which path it took.
@@ -236,7 +200,7 @@ describeAccuracyTests(
         {
             prompt: [
                 `Why is my processor '${processorName}' failing in workspace '${workspaceName}'?`,
-                "Show me the error logs",
+                "Can you check the processor health again?",
             ],
             systemPrompt: projectContext,
             expectedToolCalls: [
@@ -254,9 +218,9 @@ describeAccuracyTests(
                     toolName: "atlas-streams-discover",
                     parameters: {
                         projectId,
-                        action: "get-logs",
+                        action: "diagnose-processor",
                         workspaceName,
-                        logType: "operational",
+                        resourceName: processorName,
                     },
                 },
             ],
@@ -361,42 +325,6 @@ describeAccuracyTests(
                         action: "list-processors",
                         workspaceName,
                         pageNum: 2,
-                    },
-                },
-            ],
-            mockedTools,
-        },
-        {
-            prompt: `Show me the error logs for processor 'etl' in workspace '${workspaceName}'`,
-            systemPrompt: projectContext,
-            expectedToolCalls: [
-                ...optionalWorkspaceDiscovery,
-                {
-                    toolName: "atlas-streams-discover",
-                    parameters: {
-                        projectId,
-                        action: "get-logs",
-                        workspaceName,
-                        resourceName: "etl",
-                        logType: Matcher.anyOf(Matcher.value("operational"), Matcher.undefined),
-                    },
-                },
-            ],
-            mockedTools,
-        },
-        {
-            prompt: `When was processor 'etl' last started and stopped in workspace '${workspaceName}'?`,
-            systemPrompt: projectContext,
-            expectedToolCalls: [
-                ...optionalWorkspaceDiscovery,
-                {
-                    toolName: "atlas-streams-discover",
-                    parameters: {
-                        projectId,
-                        action: "get-logs",
-                        workspaceName,
-                        resourceName: "etl",
-                        logType: "audit",
                     },
                 },
             ],
