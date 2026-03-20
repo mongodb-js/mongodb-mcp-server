@@ -128,7 +128,6 @@ async function main(): Promise<void> {
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Closing server due to error: ${error as string}`,
-            noRedaction: true,
         });
 
         try {

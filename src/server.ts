@@ -300,7 +300,6 @@ export class Server<
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
             if (error) {
                 event.properties.result = "failure";
-                event.properties.reason = error.message;
             }
         }
 

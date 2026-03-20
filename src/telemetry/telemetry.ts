@@ -214,7 +214,7 @@ export class Telemetry {
                 this.session.logger.debug({
                     id: LogId.telemetryEmitSuccess,
                     context: "telemetry",
-                    message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
+                    message: `Sent ${allEvents.length} events successfully`,
                 });
 
                 sendSucceeded = true;

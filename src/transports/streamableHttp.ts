@@ -598,7 +598,6 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                     error: {
                         code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
                         message: `failed to handle request`,
-                        data: error instanceof Error ? error.message : String(error),
                     },
                 });
             });
