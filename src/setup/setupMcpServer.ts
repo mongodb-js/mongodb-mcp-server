@@ -241,20 +241,21 @@ const getAvailablePrompts = (
     return availablePrompts;
 };
 
-const promptToOpenConfigFile = async (displayName: string, tool: AIToolType, platform: Platform): Promise<void> => {
-    // TODO: support opening files in Windows in CLOUDP-385463
-    if (platform !== "windows") {
-        let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
-        if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
-            openConfigMessage = `Would you like to open the config file in your default editor?`;
-        }
-        const openConfig = await confirm({
-            message: openConfigMessage,
-            default: true,
-        });
+const promptToOpenConfigFile = async (displayName: string, tool: AIToolType): Promise<void> => {
+    let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
+    if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
+        openConfigMessage = `Would you like to open the config file in your default editor?`;
+    }
+    const openConfig = await confirm({
+        message: openConfigMessage,
+        default: true,
+    });
 
-        if (openConfig) {
-            openConfigSettings(tool);
+    if (openConfig) {
+        try {
+            await openConfigSettings(tool);
+        } catch (error: unknown) {
+            console.log(chalk.red(`Failed to open config file: ${formatError(error)}`));
         }
     }
 };
@@ -297,7 +298,7 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
 
         const availablePrompts = getAvailablePrompts(connectionString, serviceAccountId, serviceAccountSecret);
         guideUserWithSetupSuccess(displayName, availablePrompts);
-        await promptToOpenConfigFile(displayName, tool, platform as Platform);
+        await promptToOpenConfigFile(displayName, tool);
     } catch (error: unknown) {
         // Handle Ctrl+C during prompts (inquirer throws ExitPromptError)
         if (error && typeof error === "object" && "name" in error && error.name === "ExitPromptError") {

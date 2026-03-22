@@ -247,11 +247,23 @@ export abstract class AITool {
         }
     }
 
-    openConfigSettings(): void {
+    async openConfigSettings(): Promise<void> {
         const platform = getPlatform();
-        if (!platform) return;
+        if (!platform) {
+            return;
+        }
         const cmd = this.getOpenConfigCommand(this.configPath, platform, this.toolType);
-        if (cmd) exec(cmd);
+        if (cmd) {
+            await new Promise((resolve, reject) => {
+                exec(cmd, (error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(undefined);
+                    }
+                });
+            });
+        }
     }
 }
 
@@ -388,8 +400,8 @@ class OpenCode extends AITool {
 }
 
 // Opens the config file for the given tool using the tool's platform-specific command.
-export const openConfigSettings = (tool: AIToolType): void => {
-    AI_TOOL_REGISTRY[tool].openConfigSettings();
+export const openConfigSettings = (tool: AIToolType): Promise<void> => {
+    return AI_TOOL_REGISTRY[tool].openConfigSettings();
 };
 
 export const AI_TOOL_REGISTRY: Record<AIToolType, AITool> = {
