@@ -12,6 +12,8 @@ import { formatError, getPlatform } from "./setupAiToolsUtils.js";
 import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
+import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
+import { NullLogger } from "../common/logging/loggerBase.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -147,6 +149,21 @@ const validatePlatform = (): Platform => {
     return platform;
 };
 
+const validateDocker = async (): Promise<boolean> => {
+    const client = await defaultCreateAtlasLocalClient({ logger: new NullLogger() });
+    if (client) {
+        try {
+            // Use the client to confirm docker is available and running
+            await client.listDeployments();
+            return true;
+        } catch {
+            // Can't connect to docker daemon, treat as if docker isn't available and return false
+        }
+    }
+
+    return false;
+};
+
 const printInstructions = (): void => {
     console.log("To install a Local MCP Server configuration, you will need at least ONE of the following:");
     console.log("1. A MongoDB connection string (requires a cluster or local MongoDB instance)");
@@ -213,24 +230,48 @@ const promptForServiceAccountSecret = async (): Promise<string> => {
 const validateCredentials = (
     connectionString: string,
     serviceAccountId: string,
-    serviceAccountSecret: string
+    serviceAccountSecret: string,
+    hasDocker: boolean
 ): void => {
     // If either the connection string is missing or one of the service account credentials, throw error
     if (!connectionString && (!serviceAccountId || !serviceAccountSecret)) {
-        console.log(chalk.red("Please try setting up again with connection string or service account credentials."));
+        console.log(
+            chalk.yellow(
+                "No credentials have been provided, so the MCP Server will not be able to access your MongoDB data or Atlas project."
+            )
+        );
+
+        if (hasDocker) {
+            console.log(
+                chalk.yellow(
+                    "Since you have Docker installed, you can still use the MCP server with a local Atlas instance running in a container."
+                )
+            );
+        } else {
+            console.log(
+                chalk.red(
+                    "Since you don't have Docker installed, you can only connect to a MongoDB instance dynamically, " +
+                        chalk.bold(
+                            chalk.red(
+                                "which is strongly discouraged as it will expose your connection string to the LLM."
+                            )
+                        )
+                )
+            );
+        }
         printNewLine();
-        process.exit(1);
     }
 };
 
 const getAvailablePrompts = (
     connectionString: string,
     serviceAccountId: string,
-    serviceAccountSecret: string
+    serviceAccountSecret: string,
+    hasDocker: boolean
 ): string[] => {
     const availablePrompts: string[] = [];
     if (connectionString) {
-        availablePrompts.push('\t"List the collections in my Atlas cluster"');
+        availablePrompts.push('\t"List the collections in my MongoDB instance"');
         availablePrompts.push('\t"Show me some db stats about my Atlas cluster"');
     }
 
@@ -238,6 +279,18 @@ const getAvailablePrompts = (
         availablePrompts.push('\t"What are the clusters in my project?"');
         availablePrompts.push('\t"Does my project have any active alerts?"');
     }
+
+    if (hasDocker) {
+        availablePrompts.push('\t"Create a local Atlas deployment and connect to it"');
+        availablePrompts.push('\t"How many databases are there in my local Atlas instance?"');
+    }
+
+    if (availablePrompts.length === 0) {
+        availablePrompts.push(
+            "\t[strongly discouraged] Connect to a MongoDB instance at mongodb://localhost:27017 and list the databases"
+        );
+    }
+
     return availablePrompts;
 };
 
@@ -280,6 +333,8 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
         validatePlatform();
         printInstructions();
 
+        const hasDocker = await validateDocker();
+
         const tool = await promptForAITool(platform as Platform);
         const displayName = AI_TOOL_REGISTRY[tool].name;
         printNewLine();
@@ -292,11 +347,16 @@ export const runSetup = async (config: UserConfig): Promise<void> => {
         const serviceAccountSecret = await promptForServiceAccountSecret();
         printNewLine();
 
-        validateCredentials(connectionString, serviceAccountId, serviceAccountSecret);
+        validateCredentials(connectionString, serviceAccountId, serviceAccountSecret, hasDocker);
 
         await configureEditor(tool, connectionString, serviceAccountId, serviceAccountSecret, isReadOnly);
 
-        const availablePrompts = getAvailablePrompts(connectionString, serviceAccountId, serviceAccountSecret);
+        const availablePrompts = getAvailablePrompts(
+            connectionString,
+            serviceAccountId,
+            serviceAccountSecret,
+            hasDocker
+        );
         guideUserWithSetupSuccess(displayName, availablePrompts);
         await promptToOpenConfigFile(displayName, tool);
     } catch (error: unknown) {

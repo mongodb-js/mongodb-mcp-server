@@ -102,3 +102,15 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         }
     }
 }
+
+export class NullLogger extends LoggerBase {
+    protected type?: LoggerType;
+
+    constructor() {
+        super(undefined);
+    }
+
+    protected logCore(): void {
+        // No-op logger, does not log anything
+    }
+}

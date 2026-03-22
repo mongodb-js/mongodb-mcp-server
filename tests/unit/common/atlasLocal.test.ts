@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultCreateAtlasLocalClient, type LibraryLoader } from "../../../src/common/atlasLocal.js";
 import type { Client } from "@mongodb-js/atlas-local";
-import { NullLogger } from "../../utils/index.js";
+import { NullLogger } from "../../../src/common/logging/loggerBase.js";
 
 describe("Atlas Local", () => {
     describe("defaultCreateAtlasLocalClient", () => {

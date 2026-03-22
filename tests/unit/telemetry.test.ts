@@ -4,7 +4,7 @@ import { Telemetry } from "../../src/telemetry/telemetry.js";
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { afterEach, beforeAll, beforeEach, describe, it, vi, expect } from "vitest";
-import { NullLogger } from "../../tests/utils/index.js";
+import { NullLogger } from "../../src/common/logging/loggerBase.js";
 import type { MockedFunction } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import { defaultTestConfig, expectDefined } from "../integration/helpers.js";

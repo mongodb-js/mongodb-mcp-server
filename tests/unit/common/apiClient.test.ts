@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../../../src/common/atlas/apiClient.js";
 import { packageInfo } from "../../../src/common/packageInfo.js";
 import type { CommonProperties, TelemetryEvent, TelemetryResult } from "../../../src/telemetry/types.js";
-import { NullLogger } from "../../../tests/utils/index.js";
+import { NullLogger } from "../../../src/common/logging/loggerBase.js";
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
