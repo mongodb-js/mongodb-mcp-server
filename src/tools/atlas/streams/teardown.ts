@@ -4,6 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "./streamsArgs.js";
+import { LogId } from "../../../common/logging/index.js";
 
 const TeardownResource = z.enum(["processor", "connection", "workspace", "privatelink", "peering"]);
 
@@ -117,8 +118,13 @@ export class StreamsTeardownTool extends StreamsToolBase {
                     params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
                 });
             }
-        } catch {
+        } catch (error: unknown) {
             // Processor may be in error state — proceed with delete attempt
+            this.session.logger.debug({
+                id: LogId.streamsProcessorStateLookupFailure,
+                context: "streams-teardown",
+                message: `Failed to get processor state before delete: ${error instanceof Error ? error.message : String(error)}`,
+            });
         }
 
         await this.apiClient.deleteStreamProcessor({

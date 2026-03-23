@@ -727,7 +727,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             body: body as never,
         });
 
-        let startMessage = "Processor created in STOPPED state.";
+        let startMessage = "Processor created in CREATED state.";
         if (args.autoStart) {
             await this.apiClient.startStreamProcessor({
                 params: {

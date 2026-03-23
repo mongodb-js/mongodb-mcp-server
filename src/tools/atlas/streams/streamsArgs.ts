@@ -104,7 +104,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "PrivateLink vendor. AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT'. Defaults to 'GENERIC' if omitted."
+                "PrivateLink vendor. AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT'. The Atlas API defaults to 'GENERIC' if omitted."
             ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
         dnsDomain: z

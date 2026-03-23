@@ -13,6 +13,7 @@ import { MockMetrics } from "../../../mocks/metrics.js";
 
 describe("StreamsManageTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
+    let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let tool: StreamsManageTool;
 
     beforeEach(() => {
@@ -33,15 +34,16 @@ describe("StreamsManageTool", () => {
             rejectVpcPeeringConnection: vi.fn().mockResolvedValue({}),
         };
 
-        const mockLogger = {
+        mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        };
+        const typedLogger = mockLogger as unknown as CompositeLogger;
 
         const mockSession = {
-            logger: mockLogger,
+            logger: typedLogger,
             apiClient: mockApiClient as unknown as ApiClient,
         } as unknown as Session;
 
@@ -266,7 +268,7 @@ describe("StreamsManageTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("stopped");
         });
 
-        it("should return already-stopped message for STOPPED processor", async () => {
+        it("should return not-running message for STOPPED processor", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
             const result = await exec({
@@ -275,8 +277,40 @@ describe("StreamsManageTool", () => {
                 resourceName: "proc1",
             });
 
-            expect((result.content[0] as { text: string }).text).toContain("already stopped");
+            expect((result.content[0] as { text: string }).text).toContain("not running");
+            expect((result.content[0] as { text: string }).text).toContain("STOPPED");
             expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
+        });
+
+        it("should return not-running message for CREATED processor", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "CREATED", name: "proc1" });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "stop-processor",
+                resourceName: "proc1",
+            });
+
+            expect((result.content[0] as { text: string }).text).toContain("not running");
+            expect((result.content[0] as { text: string }).text).toContain("CREATED");
+            expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
+        });
+
+        it("should log debug message when getStreamProcessor throws during stop", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("500 Internal Server Error"));
+
+            await exec({
+                ...baseArgs,
+                action: "stop-processor",
+                resourceName: "proc1",
+            });
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-manage",
+                    message: expect.stringContaining("500 Internal Server Error"),
+                })
+            );
         });
     });
 
@@ -429,6 +463,35 @@ describe("StreamsManageTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("updated");
         });
 
+        it("should return error when workspace has no cloudProvider", async () => {
+            mockApiClient.getStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { region: "VIRGINIA_USA" },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "OREGON_USA",
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("cloud provider");
+            expect(mockApiClient.updateStreamWorkspace).not.toHaveBeenCalled();
+        });
+
+        it("should succeed when update response omits dataProcessRegion", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({});
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "OREGON_USA",
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
         it("should return error when API response shows region did not change", async () => {
             mockApiClient.updateStreamWorkspace!.mockResolvedValue({
                 dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
@@ -502,6 +565,24 @@ describe("StreamsManageTool", () => {
                     }),
                 })
             );
+        });
+
+        it("should omit type from update body when getStreamConnection returns no type", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "conn1",
+                state: "READY",
+            });
+
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { bootstrapServers: "broker:9092" },
+            });
+
+            const callBody = mockApiClient.updateStreamConnection.mock.calls[0][0].body;
+            expect(callBody).not.toHaveProperty("type");
+            expect(callBody).toHaveProperty("name", "conn1");
         });
 
         it("should throw when connectionConfig is missing", async () => {

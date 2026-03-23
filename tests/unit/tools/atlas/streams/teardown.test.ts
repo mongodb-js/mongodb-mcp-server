@@ -12,6 +12,7 @@ import { MockMetrics } from "../../../mocks/metrics.js";
 
 describe("StreamsTeardownTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
+    let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let tool: StreamsTeardownTool;
 
     beforeEach(() => {
@@ -27,15 +28,16 @@ describe("StreamsTeardownTool", () => {
             deleteVpcPeeringConnection: vi.fn(),
         };
 
-        const mockLogger = {
+        mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        };
+        const typedLogger = mockLogger as unknown as CompositeLogger;
 
         const mockSession = {
-            logger: mockLogger,
+            logger: typedLogger,
             apiClient: mockApiClient as unknown as ApiClient,
         } as unknown as Session;
 
@@ -108,6 +110,12 @@ describe("StreamsTeardownTool", () => {
             expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
             expect(mockApiClient.deleteStreamProcessor).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("deleted");
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-teardown",
+                    message: expect.stringContaining("400 Bad Request"),
+                })
+            );
         });
 
         it("should delete a STOPPED processor without stopping first", async () => {
