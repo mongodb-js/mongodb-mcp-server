@@ -397,7 +397,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up an S3 PrivateLink connection in us-east-1 for my streams project",
+            prompt: "Set up an AWS S3 vendor PrivateLink connection in us-east-1 for my streams project with service endpoint com.amazonaws.us-east-1.s3",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -422,7 +422,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up an AWS MSK PrivateLink for my streams project using ARN arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+            prompt: "Set up an AWS MSK vendor PrivateLink for my streams project using ARN arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -512,7 +512,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up a GCP Confluent PrivateLink for my streams project with service attachment URI projects/my-project/regions/us-central1/serviceAttachments/confluent-attach-1",
+            prompt: "Set up a GCP Confluent vendor PrivateLink for my streams project with service attachment URI projects/my-project/regions/us-central1/serviceAttachments/confluent-attach-1",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
