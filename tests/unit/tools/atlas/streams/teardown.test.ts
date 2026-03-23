@@ -113,6 +113,7 @@ describe("StreamsTeardownTool", () => {
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({
                     context: "streams-teardown",
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     message: expect.stringContaining("400 Bad Request"),
                 })
             );

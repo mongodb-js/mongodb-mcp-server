@@ -418,7 +418,12 @@ export class StreamsManageTool extends StreamsToolBase {
         });
 
         const updatedRegion = updated?.dataProcessRegion?.region;
-        if (args.newRegion && updatedRegion != null && updatedRegion !== args.newRegion) {
+        if (
+            args.newRegion &&
+            updatedRegion !== undefined &&
+            updatedRegion !== null &&
+            updatedRegion !== args.newRegion
+        ) {
             return {
                 content: [
                     {
