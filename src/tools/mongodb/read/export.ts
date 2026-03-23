@@ -6,7 +6,7 @@ import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.j
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
-import { getAggregateArgs } from "./aggregate.js";
+import { AggregateArgs } from "./aggregate.js";
 
 export class ExportTool extends MongoDBToolBase {
     static toolName = "export";
@@ -38,9 +38,7 @@ export class ExportTool extends MongoDBToolBase {
                         name: z
                             .literal("aggregate")
                             .describe("The literal name 'aggregate' to represent an aggregation cursor as target."),
-                        arguments: z
-                            .object(getAggregateArgs(this.isFeatureEnabled("search")))
-                            .describe("The arguments for 'aggregate' operation."),
+                        arguments: z.object(AggregateArgs).describe("The arguments for 'aggregate' operation."),
                     }),
                 ])
             )

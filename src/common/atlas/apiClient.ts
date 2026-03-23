@@ -618,7 +618,7 @@ export class ApiClient {
     async downloadAuditLogs(options: FetchOptions<operations["downloadGroupStreamAuditLogs"]>) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/auditLogs",
-            options
+            { ...options, headers: { Accept: "application/vnd.atlas.2023-02-01+gzip", ...options?.headers } }
         );
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -781,7 +781,7 @@ export class ApiClient {
     async downloadOperationalLogs(options: FetchOptions<operations["downloadGroupStreamOperationalLogs"]>) {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}:downloadOperationalLogs",
-            options
+            { ...options, headers: { Accept: "application/vnd.atlas.2025-03-12+gzip", ...options?.headers } }
         );
         if (error) {
             throw ApiClientError.fromError(response, error);

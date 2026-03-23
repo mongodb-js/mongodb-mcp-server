@@ -74,7 +74,6 @@ describe("StreamsManageTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
-    // Helper to call execute with partial args (tests validate missing fields at runtime)
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
 
@@ -353,7 +352,36 @@ describe("StreamsManageTool", () => {
     });
 
     describe("update-workspace", () => {
-        it("should update workspace with new tier", async () => {
+        it("should update workspace with region and tier", async () => {
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "OREGON_USA",
+                newTier: "SP30",
+            });
+
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                body: { region: "OREGON_USA", streamConfig: { tier: "SP30" } },
+            });
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should update workspace with region only", async () => {
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "DUBLIN_IRL",
+            });
+
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                body: { region: "DUBLIN_IRL" },
+            });
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should update workspace with tier only", async () => {
             const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
@@ -376,20 +404,6 @@ describe("StreamsManageTool", () => {
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("No updates specified");
         });
-
-        it("should update region only", async () => {
-            const result = await exec({
-                ...baseArgs,
-                action: "update-workspace",
-                newRegion: "OREGON_USA",
-            });
-
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { dataProcessRegion: { region: "OREGON_USA" } },
-            });
-            expect((result.content[0] as { text: string }).text).toContain("updated");
-        });
     });
 
     describe("update-connection", () => {
@@ -404,6 +418,40 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("conn1");
             expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should normalize bootstrapServers array to comma-separated string", async () => {
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { bootstrapServers: ["broker1:9092", "broker2:9092"] },
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        bootstrapServers: "broker1:9092,broker2:9092",
+                    }),
+                })
+            );
+        });
+
+        it("should normalize schemaRegistryUrls string to array", async () => {
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { schemaRegistryUrls: "https://sr.example.com" },
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        schemaRegistryUrls: ["https://sr.example.com"],
+                    }),
+                })
+            );
         });
 
         it("should throw when connectionConfig is missing", async () => {

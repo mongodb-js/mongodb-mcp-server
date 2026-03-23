@@ -22,8 +22,6 @@ describe("StreamsDiscoverTool", () => {
             getStreamConnection: vi.fn(),
             getStreamProcessors: vi.fn(),
             getStreamProcessor: vi.fn(),
-            downloadOperationalLogs: vi.fn(),
-            downloadAuditLogs: vi.fn(),
             listPrivateLinkConnections: vi.fn(),
             getAccountDetails: vi.fn(),
         };
@@ -73,7 +71,6 @@ describe("StreamsDiscoverTool", () => {
     });
 
     const baseArgs = { projectId: "proj1" };
-    // Helper to call execute with partial args (tests validate missing fields at runtime)
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
 
@@ -431,75 +428,6 @@ describe("StreamsDiscoverTool", () => {
             await expect(exec({ ...baseArgs, action: "inspect-processor", workspaceName: "ws1" })).rejects.toThrow(
                 "resourceName is required"
             );
-        });
-    });
-
-    describe("get-logs", () => {
-        it("should decompress and return operational logs", async () => {
-            const { gzipSync } = await import("node:zlib");
-            const logData = "2024-01-01 log line 1\n2024-01-01 log line 2\n";
-            const compressed = gzipSync(Buffer.from(logData));
-            const arrayBuffer = compressed.buffer.slice(
-                compressed.byteOffset,
-                compressed.byteOffset + compressed.byteLength
-            );
-            mockApiClient.downloadOperationalLogs!.mockResolvedValue(arrayBuffer);
-
-            const result = await exec({
-                ...baseArgs,
-                action: "get-logs",
-                workspaceName: "ws1",
-            });
-
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Operational logs");
-            expect(text).toContain("log line 1");
-        });
-
-        it("should use audit log API when logType is audit", async () => {
-            const { gzipSync } = await import("node:zlib");
-            const logData = "audit entry\n";
-            const compressed = gzipSync(Buffer.from(logData));
-            const arrayBuffer = compressed.buffer.slice(
-                compressed.byteOffset,
-                compressed.byteOffset + compressed.byteLength
-            );
-            mockApiClient.downloadAuditLogs!.mockResolvedValue(arrayBuffer);
-
-            const result = await exec({
-                ...baseArgs,
-                action: "get-logs",
-                workspaceName: "ws1",
-                logType: "audit",
-            });
-
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Audit logs");
-            expect(mockApiClient.downloadAuditLogs).toHaveBeenCalledOnce();
-        });
-
-        it("should return no-data message when API returns null", async () => {
-            mockApiClient.downloadOperationalLogs!.mockResolvedValue(null);
-
-            const result = await exec({
-                ...baseArgs,
-                action: "get-logs",
-                workspaceName: "ws1",
-            });
-
-            expect((result.content[0] as { text: string }).text).toContain("No logs available");
-        });
-
-        it("should return fallback message when decompression fails", async () => {
-            mockApiClient.downloadOperationalLogs!.mockResolvedValue(new ArrayBuffer(10));
-
-            const result = await exec({
-                ...baseArgs,
-                action: "get-logs",
-                workspaceName: "ws1",
-            });
-
-            expect((result.content[0] as { text: string }).text).toContain("Could not decompress");
         });
     });
 

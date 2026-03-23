@@ -49,9 +49,6 @@ const expectedDefaults = {
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
     atlasTemporaryDatabaseUserLifetimeMs: 4 * 60 * 60 * 1000, // 4 hours
     voyageApiKey: "",
-    vectorSearchDimensions: 1024,
-    vectorSearchSimilarityFunction: "euclidean",
-    embeddingsValidation: true,
     previewFeatures: [],
     dryRun: false,
     allowRequestOverrides: false,

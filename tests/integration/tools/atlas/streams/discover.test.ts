@@ -128,45 +128,6 @@ describeWithStreams("atlas-streams-discover", (integration) => {
             expect(content).toContain("PrivateLink");
         });
 
-        it("get-logs — operational logs", async () => {
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-streams-discover",
-                arguments: {
-                    projectId: getProjectId(),
-                    action: "get-logs",
-                    workspaceName: getWorkspaceName(),
-                    logType: "operational",
-                },
-            });
-            expect(response.isError).toBeFalsy();
-            const content = getResponseContent(response.content);
-            // Any of these are valid code paths: logs returned, empty, or decompression issue
-            expect(
-                content.includes("logs for workspace") ||
-                    content.includes("No logs available") ||
-                    content.includes("Could not decompress")
-            ).toBe(true);
-        });
-
-        it("get-logs — audit logs", async () => {
-            const response = await integration.mcpClient().callTool({
-                name: "atlas-streams-discover",
-                arguments: {
-                    projectId: getProjectId(),
-                    action: "get-logs",
-                    workspaceName: getWorkspaceName(),
-                    logType: "audit",
-                },
-            });
-            expect(response.isError).toBeFalsy();
-            const content = getResponseContent(response.content);
-            expect(
-                content.includes("logs for workspace") ||
-                    content.includes("No logs available") ||
-                    content.includes("Could not decompress")
-            ).toBe(true);
-        });
-
         it("inspect-workspace — error without workspaceName", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "atlas-streams-discover",

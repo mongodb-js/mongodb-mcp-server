@@ -29,7 +29,6 @@ updates:
         patterns:
           - ai
           - "@ai-sdk/*"
-          - voyage-ai-provider
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

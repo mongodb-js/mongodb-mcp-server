@@ -80,13 +80,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -262,22 +255,8 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -338,13 +317,6 @@
           "type": "named",
           "name": "--dryRun",
           "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
-          "name": "--embeddingsValidation",
-          "description": "When set to false, disables validation of embeddings dimensions.",
           "isRequired": false,
           "format": "boolean"
         },
@@ -513,21 +485,8 @@
         },
         {
           "type": "named",
-          "name": "--vectorSearchDimensions",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--vectorSearchSimilarityFunction",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
           "name": "--voyageApiKey",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false
         }
       ]
@@ -603,13 +562,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EMBEDDINGS_VALIDATION",
-          "description": "When set to false, disables validation of embeddings dimensions.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_EXPORT_CLEANUP_INTERVAL_MS",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -785,22 +737,8 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_VECTOR_SEARCH_DIMENSIONS",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_VECTOR_SEARCH_SIMILARITY_FUNCTION",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_VOYAGE_API_KEY",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -861,13 +799,6 @@
           "type": "named",
           "name": "--dryRun",
           "description": "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
-          "name": "--embeddingsValidation",
-          "description": "When set to false, disables validation of embeddings dimensions.",
           "isRequired": false,
           "format": "boolean"
         },
@@ -1036,21 +967,8 @@
         },
         {
           "type": "named",
-          "name": "--vectorSearchDimensions",
-          "description": "Default number of dimensions for vector search embeddings.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--vectorSearchSimilarityFunction",
-          "description": "Default similarity function for vector search: 'euclidean', 'cosine', or 'dotProduct'.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
           "name": "--voyageApiKey",
-          "description": "API key for Voyage AI embeddings service (required for vector search operations with text-to-embedding conversion).",
+          "description": "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities).",
           "isRequired": false
         }
       ]
