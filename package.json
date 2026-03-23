@@ -66,6 +66,7 @@
   "scripts": {
     "start": "node dist/index.js --transport http --loggers 'stderr, mcp' --previewFeatures search",
     "start:stdio": "node dist/index.js --transport stdio --loggers 'stderr, mcp' --previewFeatures search",
+    "start:setup": "pnpm run build && node dist/index.js setup --previewFeatures setup",
     "prepare": "husky && pnpm run build",
     "build:update-package-version": "tsx scripts/updatePackageVersion.ts",
     "build:esm": "tsc --project tsconfig.esm.json && chmod +x dist/esm/index.js",
@@ -153,6 +154,8 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@inquirer/prompts": "^8.0.2",
+    "@inquirer/select": "^5.1.0",
     "@mcp-ui/server": "^5.13.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@mongodb-js/device-id": "^0.4.6",
@@ -160,7 +163,9 @@
     "@mongosh/arg-parser": "^5.0.2",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "bson": "^7.2.0",
+    "chalk": "^5.6.2",
     "express": "^5.1.0",
+    "jsonc-parser": "^3.3.1",
     "lru-cache": "^11.2.6",
     "mongodb-build-info": "^1.9.6",
     "mongodb-connection-string-url": "^7.0.1",
@@ -171,6 +176,7 @@
     "node-machine-id": "1.1.12",
     "oauth4webapi": "^3.8.5",
     "openapi-fetch": "^0.15.0",
+    "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
     "yaml": "^2.8.1",
     "zod": "^3.25.76",
