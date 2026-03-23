@@ -5,7 +5,7 @@ import z4 from "zod/v4";
 
 function analyzeSuccessResponse(
     operation: OpenAPIV3_1.OperationObject,
-    openapi: OpenAPIV3_1.Document,
+    openapi: OpenAPIV3_1.Document
 ): {
     hasResponseBody: boolean;
     acceptOverride: string | undefined;
@@ -118,7 +118,7 @@ async function main(): Promise<void> {
             let requiredParams = !!operation.requestBody;
             const { hasResponseBody, acceptOverride, responseBodySchemaKey } = analyzeSuccessResponse(
                 operation,
-                openapi,
+                openapi
             );
 
             for (const param of operation.parameters || []) {
