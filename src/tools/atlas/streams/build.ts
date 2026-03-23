@@ -769,7 +769,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (!args.privateLinkConfig) {
             throw new Error(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
-                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', dnsDomain, dnsSubDomain:[]}\n" +
+                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', serviceEndpointId, dnsDomain, dnsSubDomain: string[] (use [] if none)}\n" +
                     "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
                     "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +

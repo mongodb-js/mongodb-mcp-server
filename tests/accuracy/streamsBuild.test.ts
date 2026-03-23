@@ -391,7 +391,7 @@ describeAccuracyTests(
                             region: Matcher.anyOf(Matcher.undefined, Matcher.value("us-east-1")),
                             arn: "arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123",
                             dnsDomain: "streaming.example.com",
-                            dnsSubDomain: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                            dnsSubDomain: Matcher.undefined,
                             vendor: Matcher.anyOf(Matcher.undefined, Matcher.value("GENERIC")),
                         },
                     },
