@@ -86,14 +86,7 @@ async function main(): Promise<void> {
     }
 
     if (isSetupRequested) {
-        if (config.previewFeatures.includes("setup")) {
-            await handleSetupRequest(config);
-        } else {
-            console.error(
-                "Automated MCP setup is in preview. If you want to run the setup flow, enable the 'setup' preview feature"
-            );
-            process.exit(1);
-        }
+        await handleSetupRequest(config);
     }
 
     if (config.dryRun) {
