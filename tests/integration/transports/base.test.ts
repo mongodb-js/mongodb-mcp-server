@@ -92,7 +92,7 @@ describe("TransportRunnerBase", () => {
                 userConfig: {
                     ...defaultTestConfig,
                     httpPort: 0,
-                    previewFeatures: ["mcpUI", "search"],
+                    previewFeatures: ["mcpUI"],
                 },
             });
 

@@ -8,7 +8,6 @@ import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
 import { defaultCreateApiClient, Elicitation, Keychain, Telemetry } from "../../src/lib.js";
-import { VectorSearchEmbeddingsManager } from "../../src/common/search/vectorSearchEmbeddingsManager.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
@@ -187,7 +186,6 @@ describe("Server integration test", () => {
             connectionManager,
             keychain: Keychain.root,
             connectionErrorHandler,
-            vectorSearchEmbeddingsManager: new VectorSearchEmbeddingsManager(config, connectionManager),
             atlasLocalClient: await defaultCreateAtlasLocalClient({ logger }),
             apiClient: defaultCreateApiClient(
                 {

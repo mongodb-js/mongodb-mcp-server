@@ -3,7 +3,7 @@ import { StreamsToolBase } from "./streamsToolBase.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "./streamsArgs.js";
+import { ConnectionConfig, StreamsArgs } from "./streamsArgs.js";
 
 const ManageAction = z.enum([
     "start-processor",
@@ -31,8 +31,15 @@ export class StreamsManageTool extends StreamsToolBase {
         ),
         workspaceName: StreamsArgs.workspaceName().describe("Workspace name containing the resource to manage."),
         action: ManageAction.describe(
-            "Action to perform. Processor must be stopped before 'modify-processor'. " +
-                "Use 'start-processor' to begin or resume processing, 'stop-processor' to pause."
+            "Action to perform. One of: " +
+                "'start-processor' — begin or resume processing (requires resourceName). " +
+                "'stop-processor' — pause processing (requires resourceName). " +
+                "'modify-processor' — change pipeline, DLQ, or rename (requires resourceName and at least one of: pipeline, dlq, newName; processor must be stopped first). " +
+                "'update-workspace' — change workspace tier or region. " +
+                "'update-connection' — update connection config (requires resourceName). " +
+                "'accept-peering' — accept a VPC peering request (requires peeringId, requesterAccountId, requesterVpcId). " +
+                "'reject-peering' — reject a VPC peering request (requires peeringId). " +
+                "For peering actions, workspaceName can be any workspace in the project (peering is project-level)."
         ),
         resourceName: z
             .string()
@@ -65,7 +72,9 @@ export class StreamsManageTool extends StreamsToolBase {
             .array(z.record(z.unknown()))
             .optional()
             .describe(
-                "New aggregation pipeline. Only for 'modify-processor'. Processor must be stopped first. " +
+                "New pipeline stages as an array of objects, e.g. " +
+                    "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
+                    "Only for 'modify-processor'. Processor must be stopped first. " +
                     "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."
             ),
         dlq: z
@@ -91,13 +100,11 @@ export class StreamsManageTool extends StreamsToolBase {
             .describe("New default tier for workspace. Only for 'update-workspace'."),
 
         // update-connection options
-        connectionConfig: z
-            .record(z.unknown())
-            .optional()
-            .describe(
-                "Updated connection configuration. Only for 'update-connection'. " +
-                    "Note: networking config cannot be modified after creation — to change networking, delete and recreate the connection."
-            ),
+        connectionConfig: ConnectionConfig.optional().describe(
+            "Updated connection configuration. Only for 'update-connection'. " +
+                "Provide only the fields to change. " +
+                "Note: networking config and connection type cannot be modified after creation — to change these, delete and recreate the connection."
+        ),
 
         // peering options
         peeringId: z
@@ -357,7 +364,7 @@ export class StreamsManageTool extends StreamsToolBase {
     private async updateWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const body: Record<string, unknown> = {};
         if (args.newRegion) {
-            body.dataProcessRegion = { region: args.newRegion };
+            body.region = args.newRegion;
         }
         if (args.newTier) {
             body.streamConfig = { tier: args.newTier };
@@ -397,9 +404,10 @@ export class StreamsManageTool extends StreamsToolBase {
             throw new Error("connectionConfig is required to update a connection.");
         }
 
+        const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
         await this.apiClient.updateStreamConnection({
             params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
-            body: args.connectionConfig as never,
+            body: normalizedConfig as never,
         });
 
         return {

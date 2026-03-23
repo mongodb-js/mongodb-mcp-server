@@ -82,7 +82,6 @@ export function describeAccuracyTests(
         const userConfig: Partial<{ [k in keyof UserConfig]: string }> = {
             apiClientId: process.env.MDB_API_CLIENT_ID,
             apiClientSecret: process.env.MDB_API_CLIENT_SECRET,
-            voyageApiKey: process.env.MDB_VOYAGE_API_KEY,
             ...partialUserConfig,
         };
 
@@ -121,7 +120,7 @@ export function describeAccuracyTests(
             const toolsForModel = await testMCPClient.vercelTools();
 
             const timeBeforePrompt = Date.now();
-            const result = await agent.prompt(testConfig.prompt, model, toolsForModel);
+            const result = await agent.prompt(testConfig.prompt, model, toolsForModel, testConfig.systemPrompt);
             const timeAfterPrompt = Date.now();
 
             const llmToolCalls = testMCPClient.getLLMToolCalls();

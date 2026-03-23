@@ -295,7 +295,6 @@ export class Server<
             event.properties.disabled_tools = this.userConfig.disabledTools || [];
             event.properties.confirmation_required_tools = this.userConfig.confirmationRequiredTools || [];
             event.properties.previewFeatures = this.userConfig.previewFeatures;
-            event.properties.embeddingProviderConfigured = !!this.userConfig.voyageApiKey;
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;

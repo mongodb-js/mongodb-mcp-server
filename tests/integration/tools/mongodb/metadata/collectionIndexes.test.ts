@@ -8,7 +8,6 @@ import {
     databaseCollectionInvalidArgs,
     getDataFromUntrustedContent,
     getResponseContent,
-    defaultTestConfig,
     expectDefined,
 } from "../../../helpers.js";
 import {
@@ -366,10 +365,6 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => ({
-            ...defaultTestConfig,
-            previewFeatures: ["search"],
-        }),
         downloadOptions: { search: true },
     }
 );
@@ -465,10 +460,6 @@ describeWithMongoDB(
         });
     },
     {
-        getUserConfig: () => ({
-            ...defaultTestConfig,
-            previewFeatures: ["search"],
-        }),
         downloadOptions: {
             autoEmbed: true,
             mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,
@@ -479,7 +470,7 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "collectionIndexes tool without voyage API key",
+    "collectionIndexes tool with search support but without voyage API key",
     (integration) => {
         let collection: Collection;
 
@@ -499,24 +490,17 @@ describeWithMongoDB(
                 },
             ]);
         });
-        it("does not return search indexes", async () => {
+        it("returns search indexes when the cluster supports search", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "collection-indexes",
                 arguments: { database: integration.randomDbName(), collection: "foo" },
             });
 
             const elements = getResponseElements(response.content);
-            expect(elements).toHaveLength(2);
+            expect(elements).toHaveLength(4);
             // Expect 1 regular index - _id_
             expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo"`);
-
-            const responseContent = getResponseContent(response.content);
-            expect(responseContent).not.toContain("search and vector search indexes");
-
-            // Ensure that we do have search indexes
-            const searchIndexes = await collection.listSearchIndexes().toArray();
-            expect(searchIndexes).toHaveLength(1);
-            expect(searchIndexes[0]).toHaveProperty("name", "my-vector-index");
+            expect(elements[2]?.text).toContain(`Found 1 search and vector search indexes in the collection "foo"`);
         });
     },
     {

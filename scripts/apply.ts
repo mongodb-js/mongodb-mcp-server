@@ -45,6 +45,7 @@ async function main(): Promise<void> {
         requiredParams: boolean;
         tag: string;
         hasResponseBody: boolean;
+        acceptOverride: string | undefined;
     }[] = [];
 
     const openapi = JSON.parse(specFile) as OpenAPIV3_1.Document;
@@ -61,6 +62,7 @@ async function main(): Promise<void> {
 
             let requiredParams = !!operation.requestBody;
             let hasResponseBody = false;
+            let acceptOverride: string | undefined;
             for (const code in operation.responses) {
                 try {
                     const httpCode = parseInt(code, 10);
@@ -71,6 +73,9 @@ async function main(): Promise<void> {
                             for (const contentType in responseObject.content) {
                                 const content = responseObject.content[contentType];
                                 hasResponseBody = !!content?.schema;
+                                if (!contentType.endsWith("+json")) {
+                                    acceptOverride = contentType;
+                                }
                             }
                         }
                     }
@@ -93,6 +98,7 @@ async function main(): Promise<void> {
                 operationId: operation.operationId || "",
                 requiredParams,
                 hasResponseBody,
+                acceptOverride,
                 tag: operation.tags?.[0] ?? "",
             });
         }
@@ -100,10 +106,14 @@ async function main(): Promise<void> {
 
     const operationOutput = operations
         .map((operation) => {
-            const { methodName, operationId, method, path, requiredParams, hasResponseBody } = operation;
+            const { methodName, operationId, method, path, requiredParams, hasResponseBody, acceptOverride } =
+                operation;
+            const optionsArg = acceptOverride
+                ? `{ ...options, headers: { Accept: "${acceptOverride}", ...options?.headers } }`
+                : `options`;
             return `// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>) {
-    const { ${hasResponseBody ? `data, ` : ``}error, response } = await this.client.${method}("${path}", options);
+    const { ${hasResponseBody ? `data, ` : ``}error, response } = await this.client.${method}("${path}", ${optionsArg});
     if (error) {
         throw ApiClientError.fromError(response, error);
     }

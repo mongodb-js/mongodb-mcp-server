@@ -72,7 +72,6 @@ describe("StreamsTeardownTool", () => {
     });
 
     const baseArgs = { projectId: "proj1" };
-    // Helper to call execute/getConfirmationMessage with partial args (tests validate missing fields at runtime)
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);

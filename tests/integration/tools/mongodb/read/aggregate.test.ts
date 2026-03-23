@@ -34,7 +34,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
         ...databaseCollectionParameters,
         {
             name: "pipeline",
-            description: "An array of aggregation stages to execute.",
+            description: pipelineDescriptionWithVectorSearch,
             type: "array",
             required: true,
         },
@@ -542,8 +542,7 @@ describeWithMongoDB(
 describeWithMongoDB(
     "aggregate tool with atlas search enabled",
     (integration) => {
-        beforeEach(async ({ skip }) => {
-            skip(!process.env.MDB_VOYAGE_API_KEY);
+        beforeEach(async () => {
             await integration.mongoClient().db(integration.randomDbName()).collection("databases").drop();
         });
 
@@ -606,50 +605,6 @@ describeWithMongoDB(
             expect(responseContent).toContain(
                 `Error running aggregate: Could not find an index with name "non_existing" in namespace "${integration.randomDbName()}.databases".`
             );
-        });
-
-        it("should emit tool event with auto-embedding usage metadata", async () => {
-            const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
-            vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
-
-            await waitUntilSearchIsReady(integration.mongoClient());
-            await createVectorSearchIndexAndWait(integration.mongoClient(), integration.randomDbName(), "databases", [
-                {
-                    type: "vector",
-                    path: "description_embedding",
-                    numDimensions: 256,
-                    similarity: "cosine",
-                    quantization: "none",
-                },
-            ]);
-
-            await integration.mcpClient().callTool({
-                name: "aggregate",
-                arguments: {
-                    database: integration.randomDbName(),
-                    collection: "databases",
-                    pipeline: [
-                        {
-                            $vectorSearch: {
-                                index: "default",
-                                path: "description_embedding",
-                                queryVector: "some data",
-                                numCandidates: 10,
-                                limit: 10,
-                                embeddingParameters: {
-                                    model: "voyage-3-large",
-                                    outputDimension: "256",
-                                },
-                            },
-                        },
-                    ],
-                },
-            });
-
-            expect(mockEmitEvents).toHaveBeenCalled();
-            const emittedEvent = mockEmitEvents.mock.lastCall?.[0][0] as ToolEvent;
-            expectDefined(emittedEvent);
-            expect(emittedEvent.properties.embeddingsGeneratedBy).toBe("mcp");
         });
 
         for (const [dataType, embedding] of Object.entries(DOCUMENT_EMBEDDINGS)) {
@@ -915,254 +870,10 @@ describeWithMongoDB(
                 });
             }
         }
-
-        describe("when querying with a pre-filter", () => {
-            it("should fail the validation if the vector search index does not index any pre-filter fields", async () => {
-                await waitUntilSearchIsReady(integration.mongoClient());
-
-                const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
-                await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
-
-                await createVectorSearchIndexAndWait(
-                    integration.mongoClient(),
-                    integration.randomDbName(),
-                    "databases",
-                    [
-                        {
-                            type: "vector",
-                            path: "description_embedding",
-                            numDimensions: 256,
-                            similarity: "euclidean",
-                            quantization: "none",
-                        },
-                    ]
-                );
-
-                // now query the index
-                await integration.connectMcpClient();
-                const response = await integration.mcpClient().callTool({
-                    name: "aggregate",
-                    arguments: {
-                        database: integration.randomDbName(),
-                        collection: "databases",
-                        pipeline: [
-                            {
-                                $vectorSearch: {
-                                    index: "default",
-                                    path: "description_embedding",
-                                    queryVector: DOCUMENT_EMBEDDINGS.float,
-                                    numCandidates: 10,
-                                    limit: 10,
-                                    embeddingParameters: {
-                                        model: "voyage-3-large",
-                                        outputDimension: "256",
-                                        outputDType: "float",
-                                    },
-                                    filter: { name: 10 },
-                                },
-                            },
-                            {
-                                $project: {
-                                    description_embedding: 0,
-                                },
-                            },
-                        ],
-                    },
-                });
-
-                expect(response.isError).toBe(true);
-                expect(JSON.stringify(response.content)).toContain(
-                    "Error running aggregate: Vector search stage contains filter on fields that are not indexed by index default - name"
-                );
-            });
-
-            it("should fail the validation if the pre-filter are not indexed as part of vector search index", async () => {
-                await waitUntilSearchIsReady(integration.mongoClient());
-
-                const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
-                await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
-
-                await createVectorSearchIndexAndWait(
-                    integration.mongoClient(),
-                    integration.randomDbName(),
-                    "databases",
-                    [
-                        {
-                            type: "vector",
-                            path: "description_embedding",
-                            numDimensions: 256,
-                            similarity: "euclidean",
-                            quantization: "none",
-                        },
-                        {
-                            type: "filter",
-                            path: "year",
-                        },
-                    ]
-                );
-
-                // now query the index
-                await integration.connectMcpClient();
-                const response = await integration.mcpClient().callTool({
-                    name: "aggregate",
-                    arguments: {
-                        database: integration.randomDbName(),
-                        collection: "databases",
-                        pipeline: [
-                            {
-                                $vectorSearch: {
-                                    index: "default",
-                                    path: "description_embedding",
-                                    queryVector: DOCUMENT_EMBEDDINGS.float,
-                                    numCandidates: 10,
-                                    limit: 10,
-                                    embeddingParameters: {
-                                        model: "voyage-3-large",
-                                        outputDimension: "256",
-                                        outputDType: "float",
-                                    },
-                                    filter: { name: 10 },
-                                },
-                            },
-                            {
-                                $project: {
-                                    description_embedding: 0,
-                                },
-                            },
-                        ],
-                    },
-                });
-
-                expect(response.isError).toBe(true);
-                expect(JSON.stringify(response.content)).toContain(
-                    "Error running aggregate: Vector search stage contains filter on fields that are not indexed by index default - name"
-                );
-            });
-
-            it("should succeed the validation if the pre-filter are also indexed as part of vector search index", async () => {
-                await waitUntilSearchIsReady(integration.mongoClient());
-
-                const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
-                await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
-
-                await createVectorSearchIndexAndWait(
-                    integration.mongoClient(),
-                    integration.randomDbName(),
-                    "databases",
-                    [
-                        {
-                            type: "vector",
-                            path: "description_embedding",
-                            numDimensions: 256,
-                            similarity: "euclidean",
-                            quantization: "none",
-                        },
-                        {
-                            type: "filter",
-                            path: "name",
-                        },
-                    ]
-                );
-
-                // now query the index
-                await integration.connectMcpClient();
-                const response = await integration.mcpClient().callTool({
-                    name: "aggregate",
-                    arguments: {
-                        database: integration.randomDbName(),
-                        collection: "databases",
-                        pipeline: [
-                            {
-                                $vectorSearch: {
-                                    index: "default",
-                                    path: "description_embedding",
-                                    queryVector: DOCUMENT_EMBEDDINGS.float,
-                                    numCandidates: 10,
-                                    limit: 10,
-                                    embeddingParameters: {
-                                        model: "voyage-3-large",
-                                        outputDimension: "256",
-                                        outputDType: "float",
-                                    },
-                                    filter: { name: 10 },
-                                },
-                            },
-                            {
-                                $project: {
-                                    description_embedding: 0,
-                                },
-                            },
-                        ],
-                    },
-                });
-
-                expect(!!response.isError).toBe(false);
-                expect(JSON.stringify(response.content)).toContain("The aggregation resulted in 0 documents.");
-            });
-        });
-
-        describe("outputDimension transformation", () => {
-            it("should successfully transform outputDimension string to number", async () => {
-                await waitUntilSearchIsReady(integration.mongoClient());
-
-                const collection = integration.mongoClient().db(integration.randomDbName()).collection("databases");
-                await collection.insertOne({ name: "mongodb", description_embedding: DOCUMENT_EMBEDDINGS.float });
-
-                await createVectorSearchIndexAndWait(
-                    integration.mongoClient(),
-                    integration.randomDbName(),
-                    "databases",
-                    [
-                        {
-                            type: "vector",
-                            path: "description_embedding",
-                            numDimensions: 2048,
-                            similarity: "cosine",
-                            quantization: "none",
-                        },
-                    ]
-                );
-
-                await integration.connectMcpClient();
-                const response = await integration.mcpClient().callTool({
-                    name: "aggregate",
-                    arguments: {
-                        database: integration.randomDbName(),
-                        collection: "databases",
-                        pipeline: [
-                            {
-                                $vectorSearch: {
-                                    index: "default",
-                                    path: "description_embedding",
-                                    queryVector: "example query",
-                                    numCandidates: 10,
-                                    limit: 10,
-                                    embeddingParameters: {
-                                        model: "voyage-3-large",
-                                        outputDimension: "2048", // Pass as string literal
-                                    },
-                                },
-                            },
-                            {
-                                $project: {
-                                    description_embedding: 0,
-                                },
-                            },
-                        ],
-                    },
-                });
-
-                const responseContent = getResponseContent(response);
-                // String should succeed and be transformed to number internally
-                expect(responseContent).toContain("The aggregation resulted in");
-            });
-        });
     },
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["search"],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
             indexCheck: true,
@@ -1398,8 +1109,7 @@ describeWithMongoDB(
     {
         getUserConfig: () => ({
             ...defaultTestConfig,
-            voyageApiKey: process.env.MDB_VOYAGE_API_KEY ?? "",
-            previewFeatures: ["search"],
+            previewFeatures: [],
             maxDocumentsPerQuery: -1,
             maxBytesPerQuery: -1,
             indexCheck: true,
