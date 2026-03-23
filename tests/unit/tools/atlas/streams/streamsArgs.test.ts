@@ -127,4 +127,43 @@ describe("PrivateLinkConfig", () => {
         const result = PrivateLinkConfig.parse({ provider: "AWS", region: "us-east-1", customField: "custom" });
         expect(result.customField).toBe("custom");
     });
+
+    it("should accept dnsSubDomain as an array of strings", () => {
+        const result = PrivateLinkConfig.parse({
+            provider: "AWS",
+            vendor: "CONFLUENT",
+            dnsDomain: "example.com",
+            dnsSubDomain: ["zone-a", "zone-b"],
+        });
+        expect(result.dnsSubDomain).toEqual(["zone-a", "zone-b"]);
+    });
+
+    it("should accept dnsSubDomain as an empty array", () => {
+        const result = PrivateLinkConfig.parse({
+            provider: "AWS",
+            vendor: "CONFLUENT",
+            dnsDomain: "example.com",
+            dnsSubDomain: [],
+        });
+        expect(result.dnsSubDomain).toEqual([]);
+    });
+
+    it("should reject dnsSubDomain as a plain string", () => {
+        const result = PrivateLinkConfig.safeParse({
+            provider: "AWS",
+            vendor: "CONFLUENT",
+            dnsSubDomain: "not-an-array",
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it("should accept azureResourceIds", () => {
+        const result = PrivateLinkConfig.parse({
+            provider: "AZURE",
+            vendor: "CONFLUENT",
+            dnsDomain: "example.com",
+            azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1"],
+        });
+        expect(result.azureResourceIds).toEqual(["/subscriptions/sub1/resourceGroups/rg1"]);
+    });
 });

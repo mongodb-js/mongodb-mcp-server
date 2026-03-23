@@ -397,6 +397,142 @@ describeAccuracyTests(
             mockedTools,
         },
         {
+            prompt: "Set up an S3 PrivateLink connection in us-east-1 for my streams project",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.anyValue,
+                        privateLinkConfig: {
+                            provider: Matcher.value("AWS"),
+                            region: Matcher.anyOf(Matcher.value("us-east-1"), Matcher.anyValue),
+                            vendor: Matcher.value("S3"),
+                            serviceEndpointId: Matcher.anyOf(
+                                Matcher.value("com.amazonaws.us-east-1.s3"),
+                                Matcher.anyValue
+                            ),
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up an AWS MSK PrivateLink for my streams project using ARN arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.anyValue,
+                        privateLinkConfig: {
+                            provider: Matcher.value("AWS"),
+                            vendor: Matcher.value("MSK"),
+                            arn: Matcher.value("arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123"),
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up an AWS Kinesis PrivateLink in us-east-1 for my streams project",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.anyValue,
+                        privateLinkConfig: {
+                            provider: Matcher.value("AWS"),
+                            vendor: Matcher.value("KINESIS"),
+                            region: Matcher.anyOf(Matcher.value("us-east-1"), Matcher.anyValue),
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up an Azure EventHub PrivateLink for my streams project with DNS domain mynamespace.servicebus.windows.net and endpoint ID /subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.anyValue,
+                        privateLinkConfig: {
+                            provider: Matcher.value("AZURE"),
+                            vendor: Matcher.value("EVENTHUB"),
+                            dnsDomain: Matcher.value("mynamespace.servicebus.windows.net"),
+                            serviceEndpointId: Matcher.anyOf(
+                                Matcher.value(
+                                    "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace"
+                                ),
+                                Matcher.anyValue
+                            ),
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up an Azure Confluent PrivateLink for my streams project with DNS domain pkc-abc123.eastus2.azure.confluent.cloud",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.anyValue,
+                        privateLinkConfig: {
+                            provider: Matcher.value("AZURE"),
+                            vendor: Matcher.value("CONFLUENT"),
+                            dnsDomain: Matcher.value("pkc-abc123.eastus2.azure.confluent.cloud"),
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up a GCP Confluent PrivateLink for my streams project with service attachment URI projects/my-project/regions/us-central1/serviceAttachments/confluent-attach-1",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.anyValue,
+                        privateLinkConfig: {
+                            provider: Matcher.value("GCP"),
+                            vendor: Matcher.value("CONFLUENT"),
+                            gcpServiceAttachmentUris: Matcher.anyValue,
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
             prompt: `Create and immediately start a processor named 'live-etl' in workspace '${workspaceName}' that reads from 'events' and writes to 'mycluster' collection 'output.data'`,
             systemPrompt: projectContext,
             expectedToolCalls: [
