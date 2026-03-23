@@ -364,6 +364,12 @@ export class StreamsManageTool extends StreamsToolBase {
     private async updateWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const body: Record<string, unknown> = {};
         if (args.newRegion) {
+            // The Atlas API requires cloudProvider alongside region in the update request body.
+            // Fetch the current workspace to get the existing cloudProvider.
+            const workspace = await this.apiClient.getStreamWorkspace({
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
+            });
+            body.cloudProvider = workspace?.dataProcessRegion?.cloudProvider;
             body.region = args.newRegion;
         }
         if (args.newTier) {
@@ -382,10 +388,25 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        await this.apiClient.updateStreamWorkspace({
+        const updated = await this.apiClient.updateStreamWorkspace({
             params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
             body: body as never,
         });
+
+        if (args.newRegion && updated?.dataProcessRegion?.region !== args.newRegion) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text:
+                            `Failed to update workspace region to '${args.newRegion}'. ` +
+                            `Current region is '${updated?.dataProcessRegion?.region ?? "unknown"}'. ` +
+                            `Verify the region name is valid for the workspace's cloud provider.`,
+                    },
+                ],
+                isError: true,
+            };
+        }
 
         return {
             content: [
@@ -404,10 +425,14 @@ export class StreamsManageTool extends StreamsToolBase {
             throw new Error("connectionConfig is required to update a connection.");
         }
 
+        const { type: connectionType } = (await this.apiClient.getStreamConnection({
+            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
+        })) as { type?: string };
+
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
         await this.apiClient.updateStreamConnection({
             params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
-            body: normalizedConfig as never,
+            body: { ...normalizedConfig, type: connectionType, name } as never,
         });
 
         return {

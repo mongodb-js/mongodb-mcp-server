@@ -22,8 +22,12 @@ describe("StreamsManageTool", () => {
             startStreamProcessorWith: vi.fn().mockResolvedValue({}),
             stopStreamProcessor: vi.fn().mockResolvedValue({}),
             updateStreamProcessor: vi.fn().mockResolvedValue({}),
-            getStreamWorkspace: vi.fn().mockResolvedValue({ streamConfig: { maxTierSize: "SP50" } }),
+            getStreamWorkspace: vi.fn().mockResolvedValue({
+                streamConfig: { maxTierSize: "SP50" },
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+            }),
             updateStreamWorkspace: vi.fn().mockResolvedValue({}),
+            getStreamConnection: vi.fn().mockResolvedValue({ name: "conn1", type: "Kafka", state: "READY" }),
             updateStreamConnection: vi.fn().mockResolvedValue({}),
             acceptVpcPeeringConnection: vi.fn().mockResolvedValue({}),
             rejectVpcPeeringConnection: vi.fn().mockResolvedValue({}),
@@ -352,7 +356,12 @@ describe("StreamsManageTool", () => {
     });
 
     describe("update-workspace", () => {
-        it("should update workspace with region and tier", async () => {
+        it("should update workspace with region and tier, including cloudProvider from current workspace", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "OREGON_USA" },
+                streamConfig: { tier: "SP30" },
+            });
+
             const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
@@ -360,39 +369,67 @@ describe("StreamsManageTool", () => {
                 newTier: "SP30",
             });
 
+            expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
             expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
                 params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { region: "OREGON_USA", streamConfig: { tier: "SP30" } },
+                body: { cloudProvider: "AWS", region: "OREGON_USA", streamConfig: { tier: "SP30" } },
             });
             expect((result.content[0] as { text: string }).text).toContain("updated");
         });
 
-        it("should update workspace with region only", async () => {
+        it("should update workspace with region only, including cloudProvider from current workspace", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
+            });
+
             const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
                 newRegion: "DUBLIN_IRL",
             });
 
+            expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
             expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
                 params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { region: "DUBLIN_IRL" },
+                body: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
             });
             expect((result.content[0] as { text: string }).text).toContain("updated");
         });
 
-        it("should update workspace with tier only", async () => {
+        it("should update workspace with tier only without fetching cloudProvider", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                streamConfig: { tier: "SP30" },
+            });
+
             const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
                 newTier: "SP30",
             });
 
+            expect(mockApiClient.getStreamWorkspace).not.toHaveBeenCalled();
             expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
                 params: { path: { groupId: "proj1", tenantName: "ws1" } },
                 body: { streamConfig: { tier: "SP30" } },
             });
             expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should return error when API response shows region did not change", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "INVALID_REGION",
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("Failed to update workspace region");
+            expect((result.content[0] as { text: string }).text).toContain("INVALID_REGION");
         });
 
         it("should return error when no updates specified", async () => {
@@ -472,6 +509,28 @@ describe("StreamsManageTool", () => {
                     connectionConfig: { bootstrapServers: "broker:9092" },
                 })
             ).rejects.toThrow("resourceName is required");
+        });
+
+        it("should include connection type from existing connection in the update body", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "conn1",
+                type: "Kafka",
+                state: "READY",
+            });
+
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: {
+                    authentication: { mechanism: "PLAIN", username: "new-user", password: "new-pass" },
+                },
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "conn1" } },
+                body: expect.objectContaining({ type: "Kafka" }),
+            });
         });
     });
 
