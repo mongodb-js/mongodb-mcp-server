@@ -580,9 +580,16 @@ describe("StreamsManageTool", () => {
                 connectionConfig: { bootstrapServers: "broker:9092" },
             });
 
-            const callBody = mockApiClient.updateStreamConnection.mock.calls[0][0].body;
-            expect(callBody).not.toHaveProperty("type");
-            expect(callBody).toHaveProperty("name", "conn1");
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.not.objectContaining({ type: expect.anything() }),
+                })
+            );
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({ name: "conn1" }),
+                })
+            );
         });
 
         it("should throw when connectionConfig is missing", async () => {

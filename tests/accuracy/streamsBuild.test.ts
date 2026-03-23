@@ -373,7 +373,10 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up an AWS PrivateLink connection for my streams project with ARN arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123 and DNS domain streaming.example.com",
+            prompt: [
+                "Set up an AWS PrivateLink connection for my streams project with ARN arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123 and DNS domain streaming.example.com",
+                "No specific vendor, just use the default",
+            ],
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -389,7 +392,7 @@ describeAccuracyTests(
                             arn: "arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123",
                             dnsDomain: "streaming.example.com",
                             dnsSubDomain: Matcher.anyOf(Matcher.undefined, Matcher.string()),
-                            vendor: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                            vendor: Matcher.anyOf(Matcher.undefined, Matcher.value("GENERIC")),
                         },
                     },
                 },
