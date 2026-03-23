@@ -108,13 +108,17 @@ export class StreamsTeardownTool extends StreamsToolBase {
         const workspace = this.requireWorkspaceName(args);
         const name = this.requireResourceName(args);
 
-        const processor = await this.apiClient.getStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
-        });
-        if (processor?.state === "STARTED") {
-            await this.apiClient.stopStreamProcessor({
+        try {
+            const processor = await this.apiClient.getStreamProcessor({
                 params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
             });
+            if (processor?.state === "STARTED") {
+                await this.apiClient.stopStreamProcessor({
+                    params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
+                });
+            }
+        } catch {
+            // Processor may be in error state — proceed with delete attempt
         }
 
         await this.apiClient.deleteStreamProcessor({

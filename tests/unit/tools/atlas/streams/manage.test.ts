@@ -253,6 +253,19 @@ describe("StreamsManageTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("stopped");
         });
 
+        it("should proceed with stop when getStreamProcessor throws (error state)", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("400 Bad Request"));
+
+            const result = await exec({
+                ...baseArgs,
+                action: "stop-processor",
+                resourceName: "proc1",
+            });
+
+            expect(mockApiClient.stopStreamProcessor).toHaveBeenCalledOnce();
+            expect((result.content[0] as { text: string }).text).toContain("stopped");
+        });
+
         it("should return already-stopped message for STOPPED processor", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 

@@ -278,18 +278,22 @@ export class StreamsManageTool extends StreamsToolBase {
     private async stopProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "stop-processor");
 
-        const processor = await this.apiClient.getStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-        });
-        if (processor?.state === "STOPPED" || processor?.state === "CREATED") {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `Processor '${name}' is already stopped (state: ${processor.state}). No action needed.`,
-                    },
-                ],
-            };
+        try {
+            const processor = await this.apiClient.getStreamProcessor({
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+            });
+            if (processor?.state === "STOPPED" || processor?.state === "CREATED") {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Processor '${name}' is already stopped (state: ${processor.state}). No action needed.`,
+                        },
+                    ],
+                };
+            }
+        } catch {
+            // Processor may be in error state — proceed with stop attempt
         }
 
         await this.apiClient.stopStreamProcessor({

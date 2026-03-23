@@ -94,6 +94,22 @@ describe("StreamsTeardownTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("deleted");
         });
 
+        it("should proceed with delete when getStreamProcessor throws (error state)", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("400 Bad Request"));
+            mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                workspaceName: "ws1",
+                resourceName: "proc1",
+            });
+
+            expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
+            expect(mockApiClient.deleteStreamProcessor).toHaveBeenCalledOnce();
+            expect((result.content[0] as { text: string }).text).toContain("deleted");
+        });
+
         it("should delete a STOPPED processor without stopping first", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
             mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
