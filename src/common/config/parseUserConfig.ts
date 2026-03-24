@@ -86,7 +86,7 @@ export function parseUserConfig({
     // TODO: Separate correctly parsed user config from all other valid
     // arguments relevant to mongosh's args-parser.
     const userConfig: UserConfig = { ...parsed, ...configParseResult.data };
-    registerKnownSecretsInRootKeychain(userConfig);
+    registerConfigSecrets(userConfig, Keychain.root);
     return {
         parsed: userConfig,
         warnings,
@@ -153,9 +153,12 @@ function parseUserConfigSources<T extends typeof UserConfigSchema>({
     };
 }
 
-function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): void {
-    const keychain = Keychain.root;
-
+/**
+ * Registers known secret fields from the given config on the provided keychain.
+ * Called once on `Keychain.root` during initial config parsing, and again on
+ * each session's child keychain to cover config-override secrets.
+ */
+export function registerConfigSecrets(userConfig: Partial<UserConfig>, keychain: Keychain): void {
     const maybeRegister = (value: string | undefined, kind: Secret["kind"]): void => {
         if (value) {
             keychain.register(value, kind);

@@ -2,28 +2,46 @@ import type { Secret } from "mongodb-redact";
 export type { Secret } from "mongodb-redact";
 
 /**
- * This class holds the secrets of a single server. Ideally, we might want to have a keychain
- * per session, but right now the loggers are set up by server and are not aware of the concept
- * of session and this would require a bigger refactor.
+ * Holds secrets for redaction in logging and telemetry pipelines.
  *
- * Whenever we identify or create a secret (for example, Atlas login, CLI arguments...) we
- * should register them in the root Keychain (`Keychain.root.register`) or preferably
- * on the session keychain if available `this.session.keychain`.
+ * Keychains form a parent-child hierarchy:
+ * - `Keychain.root` stores base config secrets (registered during config parsing).
+ * - Each session creates a child via `Keychain.root.createChild()` to hold
+ *   session-specific secrets (e.g. generated credentials, config override values).
+ *
+ * `allSecrets` aggregates secrets from the entire parent chain so that redaction
+ * covers both global and session-scoped values.
+ *
+ * When a secret is registered on a child keychain it is also propagated to the
+ * parent so that shared loggers (ConsoleLogger, DiskLogger) — which reference
+ * the root keychain — can redact session-specific secrets as well.
  **/
 export class Keychain {
     private secrets: Secret[];
     private static rootKeychain: Keychain = new Keychain();
+    private readonly parent?: Keychain;
 
-    constructor() {
+    constructor(parent?: Keychain) {
         this.secrets = [];
+        this.parent = parent;
     }
 
     static get root(): Keychain {
         return Keychain.rootKeychain;
     }
 
+    /**
+     * Creates a child keychain whose `allSecrets` includes this keychain's
+     * secrets. Secrets registered on the child also propagate upward so
+     * shared loggers that reference an ancestor still redact them.
+     */
+    createChild(): Keychain {
+        return new Keychain(this);
+    }
+
     register(value: Secret["value"], kind: Secret["kind"]): void {
         this.secrets.push({ value, kind });
+        this.parent?.register(value, kind);
     }
 
     clearAllSecrets(): void {
@@ -31,7 +49,8 @@ export class Keychain {
     }
 
     get allSecrets(): Secret[] {
-        return [...this.secrets];
+        const parentSecrets = this.parent?.allSecrets ?? [];
+        return [...parentSecrets, ...this.secrets];
     }
 }
 
