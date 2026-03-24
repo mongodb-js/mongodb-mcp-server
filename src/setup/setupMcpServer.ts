@@ -13,7 +13,7 @@ import { packageInfo } from "../common/packageInfo.js";
 import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
-import { NullLogger } from "../common/logging/loggerBase.js";
+import { NullLogger } from "../common/logging/index.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -244,13 +244,13 @@ const validateCredentials = (
         if (hasDocker) {
             console.log(
                 chalk.yellow(
-                    "Since you have Docker installed, you can still use the MCP server with a local Atlas instance running in a container."
+                    "Since you have Docker running, you can still use the MCP server with a local Atlas instance running in a container."
                 )
             );
         } else {
             console.log(
                 chalk.red(
-                    "Since you don't have Docker installed, you can only connect to a MongoDB instance dynamically, " +
+                    "Since you don't have Docker running, you can only connect to a MongoDB instance dynamically, " +
                         chalk.bold(
                             chalk.red(
                                 "which is strongly discouraged as it will expose your connection string to the LLM."

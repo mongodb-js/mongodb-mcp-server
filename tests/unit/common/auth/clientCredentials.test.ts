@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as oauth from "oauth4webapi";
 import { ClientCredentialsAuthProvider } from "../../../../src/common/atlas/auth/clientCredentials.js";
-import { NullLogger } from "../../../../src/common/logging/loggerBase.js";
+import { NullLogger } from "../../../../src/common/logging/index.js";
 
 vi.mock("oauth4webapi", () => ({
     clientCredentialsGrantRequest: vi.fn(),
