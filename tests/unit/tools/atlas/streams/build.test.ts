@@ -996,5 +996,66 @@ describe("StreamsBuildTool", () => {
                 })
             ).rejects.toThrow("privateLinkConfig.provider is required");
         });
+
+        it("should create PrivateLink without workspaceName", async () => {
+            await exec({
+                projectId: "proj1",
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "S3",
+                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "S3",
+                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                },
+            });
+        });
+    });
+
+    describe("workspaceName requirement", () => {
+        it("should throw when workspaceName is missing for workspace resource", async () => {
+            await expect(
+                exec({
+                    projectId: "proj1",
+                    resource: "workspace",
+                    cloudProvider: "AWS",
+                    region: "VIRGINIA_USA",
+                })
+            ).rejects.toThrow("workspaceName is required");
+        });
+
+        it("should throw when workspaceName is missing for connection resource", async () => {
+            await expect(
+                exec({
+                    projectId: "proj1",
+                    resource: "connection",
+                    connectionName: "conn1",
+                    connectionType: "Sample",
+                })
+            ).rejects.toThrow("workspaceName is required");
+        });
+
+        it("should throw when workspaceName is missing for processor resource", async () => {
+            await expect(
+                exec({
+                    projectId: "proj1",
+                    resource: "processor",
+                    processorName: "proc1",
+                    pipeline: [
+                        { $source: { connectionName: "src" } },
+                        { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                    ],
+                })
+            ).rejects.toThrow("workspaceName is required");
+        });
     });
 });

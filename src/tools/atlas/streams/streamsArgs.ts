@@ -101,7 +101,9 @@ export const PrivateLinkConfig = z
         region: z
             .string()
             .optional()
-            .describe("Cloud region for the PrivateLink endpoint. Required for all vendors except AWS MSK."),
+            .describe(
+                "Cloud region for the PrivateLink endpoint. Required for all vendors except AWS MSK. Use cloud-native region names: AWS 'us-east-1', Azure 'eastus2', GCP 'us-central1'."
+            ),
         // AWS
         vendor: z
             .string()

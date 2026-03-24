@@ -385,13 +385,16 @@ describeAccuracyTests(
                     parameters: {
                         projectId,
                         resource: "privatelink",
-                        workspaceName: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: "AWS",
                             region: Matcher.anyOf(Matcher.undefined, Matcher.value("us-east-1")),
-                            arn: "arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123",
-                            dnsDomain: "streaming.example.com",
-                            dnsSubDomain: Matcher.undefined,
+                            arn: Matcher.anyOf(
+                                Matcher.value("arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123"),
+                                Matcher.anyValue
+                            ),
+                            dnsDomain: Matcher.anyOf(Matcher.value("streaming.example.com"), Matcher.anyValue),
+                            dnsSubDomain: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
                             vendor: Matcher.anyOf(Matcher.undefined, Matcher.value("GENERIC")),
                         },
                     },
@@ -409,7 +412,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
                             region: Matcher.value("us-east-1"),
@@ -434,7 +437,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
                             vendor: Matcher.value("MSK"),
@@ -455,7 +458,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
                             vendor: Matcher.value("KINESIS"),
@@ -476,7 +479,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AZURE"),
                             vendor: Matcher.value("EVENTHUB"),
@@ -504,7 +507,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AZURE"),
                             vendor: Matcher.value("CONFLUENT"),
@@ -526,7 +529,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("GCP"),
                             vendor: Matcher.value("CONFLUENT"),
