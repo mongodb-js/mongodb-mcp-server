@@ -10,10 +10,15 @@ permissions:
 
 jobs:
   label:
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Apply label based on conventional commit prefix
-        if: github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
