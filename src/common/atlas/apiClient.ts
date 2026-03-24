@@ -214,7 +214,7 @@ export class ApiClient {
     }
 
     // DO NOT EDIT. This is auto-generated code.
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
     async listClusterDetails(
         options?: FetchOptions<operations["listClusterDetails"]>
     ): Promise<components["schemas"]["PaginatedOrgGroupView"]> {
@@ -848,6 +848,6 @@ export class ApiClient {
         }
         return data;
     }
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     // DO NOT EDIT. This is auto-generated code.
 }

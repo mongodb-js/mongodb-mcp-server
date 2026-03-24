@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
 import type { Keychain } from "../keychain.js";
-import type { EventMap, DefaultEventMap, LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
+import type { DefaultEventMap, EventMap, LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
 
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
     private readonly defaultUnredactedLogger: LoggerType = "mcp";
