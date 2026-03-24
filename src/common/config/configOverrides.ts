@@ -3,6 +3,12 @@ import { UserConfigSchema, configRegistry } from "./userConfig.js";
 import type { RequestContext } from "../../transports/base.js";
 import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
 
+export class ConfigOverrideError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
 export const CONFIG_HEADER_PREFIX = "x-mongodb-mcp-";
 export const CONFIG_QUERY_PREFIX = "mongodbMcp";
 
@@ -35,7 +41,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
         !baseConfig.allowRequestOverrides &&
         (Object.keys(overridesFromHeaders).length > 0 || Object.keys(overridesFromQuery).length > 0)
     ) {
-        throw new Error("Request overrides are not enabled");
+        throw new ConfigOverrideError("Request overrides are not enabled");
     }
 
     // Apply header overrides first
@@ -55,7 +61,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
 
         // Prevent overriding secret fields via query params
         if (meta?.isSecret) {
-            throw new Error(`Config key ${key} can only be overriden with headers.`);
+            throw new ConfigOverrideError(`Config key ${key} can only be overriden with headers.`);
         }
 
         const behavior = meta?.overrideBehavior || "not-allowed";
@@ -98,7 +104,7 @@ function extractConfigOverrides(
 
 function assertValidConfigKey(key: string): asserts key is keyof typeof UserConfigSchema.shape {
     if (!(key in UserConfigSchema.shape)) {
-        throw new Error(`Invalid config key: ${key}`);
+        throw new ConfigOverrideError(`Invalid config key: ${key}`);
     }
 }
 
@@ -115,12 +121,12 @@ export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigF
 function parseConfigValue(key: keyof typeof UserConfigSchema.shape, value: unknown): unknown {
     const fieldSchema = UserConfigSchema.shape[key];
     if (!fieldSchema) {
-        throw new Error(`Invalid config key: ${key}`);
+        throw new ConfigOverrideError(`Invalid config key: ${key}`);
     }
 
     const result = fieldSchema.safeParse(value);
     if (!result.success) {
-        throw new Error(
+        throw new ConfigOverrideError(
             `Invalid configuration for the following fields:\n${result.error.issues.map((issue) => `${key} - ${issue.message}`).join("\n")}`
         );
     }
@@ -156,12 +162,10 @@ function applyOverride(
     behavior: OverrideBehavior
 ): unknown {
     if (typeof behavior === "function") {
-        // Custom logic function returns the value to use (potentially transformed)
-        // or throws an error if the override cannot be applied
         try {
             return behavior(baseValue, overrideValue);
         } catch (error) {
-            throw new Error(
+            throw new ConfigOverrideError(
                 `Cannot apply override for ${key}: ${error instanceof Error ? error.message : String(error)}`
             );
         }
@@ -174,10 +178,10 @@ function applyOverride(
             if (Array.isArray(baseValue) && Array.isArray(overrideValue)) {
                 return [...(baseValue as unknown[]), ...(overrideValue as unknown[])];
             }
-            throw new Error(`Cannot merge non-array values for ${key}`);
+            throw new ConfigOverrideError(`Cannot merge non-array values for ${key}`);
 
         case "not-allowed":
-            throw new Error(`Config key ${key} is not allowed to be overridden`);
+            throw new ConfigOverrideError(`Config key ${key} is not allowed to be overridden`);
         default:
             return baseValue;
     }
