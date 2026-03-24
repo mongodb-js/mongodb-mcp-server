@@ -350,10 +350,10 @@ For more information, see the [Copilot CLI documentation](https://docs.github.co
 - `atlas-list-db-users` - List MongoDB Atlas database users
 - `atlas-list-orgs` - List MongoDB Atlas organizations
 - `atlas-list-projects` - List MongoDB Atlas projects
-- `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with an aggregation pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.
-- `atlas-streams-discover` - Discover and inspect Atlas Stream Processing resources. Also use for 'why is my processor failing', 'what workspaces do I have', 'show processor stats', or 'check processor health'. Use 'list-workspaces' to see all workspaces in a project. Use inspect actions for details on a specific resource. Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. Use 'get-logs' for operational or audit logs and 'get-networking' for PrivateLink and account details.
+- `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.
+- `atlas-streams-discover` - Discover and inspect Atlas Stream Processing resources. Also use for 'why is my processor failing', 'what workspaces do I have', 'show processor stats', or 'check processor health'. Use 'list-workspaces' to see all workspaces in a project. Use inspect actions for details on a specific resource. Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. Use 'get-networking' for PrivateLink and account details.
 - `atlas-streams-manage` - Manage Atlas Stream Processing resources: start/stop processors, modify pipelines, update configurations. Also use for 'change the pipeline', 'scale up my processor', or 'update my workspace tier'. Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.
-- `atlas-streams-teardown` - Delete Atlas Stream Processing resources. Also use for 'remove my workspace', 'delete all processors', or 'clean up my streams environment'. Performs basic safety checks before deletion: summarizes counts of processors and connections, highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. Use `atlas-streams-discover` to review resources before deleting.
+- `atlas-streams-teardown` - Delete Atlas Stream Processing resources. Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. Performs basic safety checks before deletion: summarizes counts of processors and connections, highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. Use `atlas-streams-discover` to review resources before deleting.
 
 NOTE: atlas tools are only available when you set credentials on [configuration](#configuration) section.
 
@@ -558,11 +558,6 @@ The MongoDB MCP Server may offer functionality that is still in development and 
 
 List of available preview features:
 
-- `streams` - Enables Atlas Stream Processing tools for building, managing, and debugging streaming data pipelines:
-  - Create and manage stream processing workspaces, connections (Kafka, Cluster, S3, and more), and processors.
-  - Start, stop, modify, and monitor stream processors.
-  - Diagnose processor issues with combined health reports including state, stats, and connection health.
-  - Requires Atlas API credentials with appropriate stream processing permissions. See [Atlas API Permissions](#atlas-api-permissions).
 - `mcpUI` - Enables an optional web-based UI for interacting with the MCP server.
 
 ### Atlas API Access

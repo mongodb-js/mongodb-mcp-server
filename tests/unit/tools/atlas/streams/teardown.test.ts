@@ -12,6 +12,7 @@ import { MockMetrics } from "../../../mocks/metrics.js";
 
 describe("StreamsTeardownTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
+    let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let tool: StreamsTeardownTool;
 
     beforeEach(() => {
@@ -27,21 +28,22 @@ describe("StreamsTeardownTool", () => {
             deleteVpcPeeringConnection: vi.fn(),
         };
 
-        const mockLogger = {
+        mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        };
+        const typedLogger = mockLogger as unknown as CompositeLogger;
 
         const mockSession = {
-            logger: mockLogger,
+            logger: typedLogger,
             apiClient: mockApiClient as unknown as ApiClient,
         } as unknown as Session;
 
         const mockConfig = {
             confirmationRequiredTools: [],
-            previewFeatures: ["streams"],
+            previewFeatures: [],
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
@@ -72,7 +74,6 @@ describe("StreamsTeardownTool", () => {
     });
 
     const baseArgs = { projectId: "proj1" };
-    // Helper to call execute/getConfirmationMessage with partial args (tests validate missing fields at runtime)
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
@@ -93,6 +94,29 @@ describe("StreamsTeardownTool", () => {
             expect(mockApiClient.stopStreamProcessor).toHaveBeenCalledOnce();
             expect(mockApiClient.deleteStreamProcessor).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("deleted");
+        });
+
+        it("should proceed with delete when getStreamProcessor throws (error state)", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("400 Bad Request"));
+            mockApiClient.deleteStreamProcessor!.mockResolvedValue({});
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                workspaceName: "ws1",
+                resourceName: "proc1",
+            });
+
+            expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
+            expect(mockApiClient.deleteStreamProcessor).toHaveBeenCalledOnce();
+            expect((result.content[0] as { text: string }).text).toContain("deleted");
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-teardown",
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    message: expect.stringContaining("400 Bad Request"),
+                })
+            );
         });
 
         it("should delete a STOPPED processor without stopping first", async () => {

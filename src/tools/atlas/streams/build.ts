@@ -4,7 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ElicitRequestFormParams } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "./streamsArgs.js";
+import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "./streamsArgs.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -99,7 +99,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         "Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. " +
         "Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). " +
         "Use resource='connection' to add a data source or sink to an existing workspace. " +
-        "Use resource='processor' to deploy a stream processor with an aggregation pipeline. " +
+        "Use resource='processor' to deploy a stream processor with a pipeline. " +
         "Use resource='privatelink' to set up private networking. " +
         "Typical workflow: create workspace → add connections → deploy processor.";
 
@@ -151,20 +151,11 @@ export class StreamsBuildTool extends StreamsToolBase {
                 "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
                 "Sample: provides sample data for testing (no config needed)."
         ),
-        connectionConfig: z
-            .record(z.unknown())
-            .optional()
-            .describe(
-                "Type-specific connection configuration. Typically required for non-Sample connections when resource='connection'. " +
-                    "For connectionType='Sample', no config is needed. You may also provide an empty or partial config; missing fields can be filled via elicitation. " +
-                    "Kafka: {bootstrapServers: string (comma-separated), authentication: {mechanism: 'PLAIN'|'SCRAM-256'|'SCRAM-512', username: string, password: string}, security: {protocol: 'SASL_SSL'|'SASL_PLAINTEXT'|'SSL'}}. " +
-                    "Cluster: {clusterName: string, dbRoleToExecute: {role: string, type: 'BUILT_IN'|'CUSTOM'}}. " +
-                    "S3: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
-                    "AWSKinesisDataStreams: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
-                    "AWSLambda: {aws: {roleArn: string}} (roleArn must be registered via Atlas Cloud Provider Access). " +
-                    "Https: {url: string, headers: Record<string, string>}. " +
-                    "SchemaRegistry: {provider: 'CONFLUENT', schemaRegistryUrls: [string], schemaRegistryAuthentication: {type: 'USER_INFO'|'SASL_INHERIT', username: string, password: string}}. Use 'USER_INFO' with explicit credentials or 'SASL_INHERIT' to inherit from a Kafka connection."
-            ),
+        connectionConfig: ConnectionConfig.optional().describe(
+            "Type-specific connection configuration. Only for resource='connection'. " +
+                "Omit entirely for connectionType='Sample' (no config needed). " +
+                "You may pass a partial config — the tool uses elicitation to collect missing required fields directly from the user."
+        ),
 
         // Processor fields
         processorName: StreamsArgs.processorName()
@@ -174,11 +165,12 @@ export class StreamsBuildTool extends StreamsToolBase {
             .array(z.record(z.unknown()))
             .optional()
             .describe(
-                "Aggregation pipeline stages. Required when resource='processor'. " +
+                "Pipeline stages for the stream processor. Required when resource='processor'. " +
                     "Must start with a $source stage and end with a terminal stage ($merge, $emit, $https, or $externalFunction). " +
                     "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
                     "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
                     "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
+                    "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a terminal stage or execution='sync' for mid-pipeline enrichment. " +
                     "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
                     "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
                     "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
@@ -193,25 +185,23 @@ export class StreamsBuildTool extends StreamsToolBase {
                 coll: z.string().describe("Collection name for DLQ documents"),
             })
             .optional()
-            .describe("Dead letter queue configuration. Recommended for resource='processor'."),
+            .describe(
+                "Dead letter queue configuration. Only for resource='processor'. " +
+                    "Only include when the user explicitly requests a DLQ, or when the pipeline uses $https with default onError='dlq'. " +
+                    "The DLQ connection must already exist in the workspace."
+            ),
         autoStart: z
             .boolean()
             .optional()
-            .describe("Start the processor immediately after creation. Default: false. Only for resource='processor'."),
+            .describe(
+                "Start the processor immediately after creation. Default: false. Only for resource='processor'. " +
+                    "Omit unless the user explicitly asks to start the processor right away."
+            ),
 
         // PrivateLink fields
-        privateLinkProvider: CloudProvider.optional().describe(
-            "Cloud provider for PrivateLink. Required when resource='privatelink'."
+        privateLinkConfig: PrivateLinkConfig.optional().describe(
+            "PrivateLink configuration including provider and provider-specific fields. Required when resource='privatelink'."
         ),
-        privateLinkConfig: z
-            .record(z.unknown())
-            .optional()
-            .describe(
-                "Provider-specific PrivateLink configuration. Required when resource='privatelink'. " +
-                    "AWS: {region, vendor, arn, dnsDomain, dnsSubDomain}. " +
-                    "Azure: {region, serviceEndpointId}. " +
-                    "GCP: {region, gcpServiceAttachmentUris}."
-            ),
     };
 
     protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
@@ -291,7 +281,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
 
-        const config: Record<string, unknown> = { ...args.connectionConfig };
+        const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
         const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType);
         if (missingInfo) {
@@ -309,12 +299,17 @@ export class StreamsBuildTool extends StreamsToolBase {
             body: body as never,
         });
 
+        const privateLinkWarning =
+            config?.networking?.access?.type === "PRIVATE_LINK"
+                ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
+                : "";
+
         return {
             content: [
                 {
                     type: "text",
                     text:
-                        `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${args.workspaceName}'.\n\n` +
+                        `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${args.workspaceName}'.${privateLinkWarning}\n\n` +
                         `Next: Add more connections or deploy a processor with \`atlas-streams-build\` resource='processor'. ` +
                         `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, or $emit stages.`,
                 },
@@ -353,11 +348,6 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async validateKafkaConfig(config: Record<string, unknown>): Promise<CallToolResult | null> {
-        // Normalize bootstrapServers: accept array and convert to comma-separated string
-        if (Array.isArray(config.bootstrapServers)) {
-            config.bootstrapServers = (config.bootstrapServers as string[]).join(",");
-        }
-
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
@@ -446,11 +436,6 @@ export class StreamsBuildTool extends StreamsToolBase {
                 delete config.endpoint;
                 delete config.schemaRegistryUrl;
             }
-        }
-
-        // Normalize schemaRegistryUrls: accept a single string and wrap in array
-        if (typeof config.schemaRegistryUrls === "string") {
-            config.schemaRegistryUrls = [config.schemaRegistryUrls];
         }
 
         // Normalize common alternative key names for authentication
@@ -742,7 +727,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             body: body as never,
         });
 
-        let startMessage = "Processor created in STOPPED state.";
+        let startMessage = "Processor created in CREATED state.";
         if (args.autoStart) {
             await this.apiClient.startStreamProcessor({
                 params: {
@@ -781,19 +766,24 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createPrivateLink(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
-        if (!args.privateLinkProvider) {
-            throw new Error("privateLinkProvider is required. Choose from: AWS, AZURE, GCP.");
-        }
         if (!args.privateLinkConfig) {
             throw new Error(
-                "privateLinkConfig is required. Provide provider-specific configuration " +
-                    "(AWS: {region, vendor, arn, dnsDomain, dnsSubDomain}, Azure: {region, serviceEndpointId}, GCP: {region, gcpServiceAttachmentUris})."
+                "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
+                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', serviceEndpointId, dnsDomain, dnsSubDomain: string[] (use [] if none)}\n" +
+                    "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
+                    "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
+                    "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
+                    "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', dnsDomain, serviceEndpointId}\n" +
+                    "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', dnsDomain}\n" +
+                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', gcpServiceAttachmentUris}"
             );
+        }
+        if (!args.privateLinkConfig.provider) {
+            throw new Error("privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP.");
         }
 
         const body: Record<string, unknown> = {
             ...args.privateLinkConfig,
-            provider: args.privateLinkProvider,
         };
 
         await this.apiClient.createPrivateLinkConnection({
@@ -806,7 +796,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 {
                     type: "text",
                     text:
-                        `PrivateLink connection created for ${args.privateLinkProvider}. ` +
+                        `PrivateLink connection created for ${args.privateLinkConfig.provider}. ` +
                         `It may take a few minutes to become active. ` +
                         `Use \`atlas-streams-discover\` with action 'get-networking' to check status.\n\n` +
                         `Once active, create connections with networking.access.type='PRIVATE_LINK' to use it.`,

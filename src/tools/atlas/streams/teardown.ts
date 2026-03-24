@@ -4,6 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "./streamsArgs.js";
+import { LogId } from "../../../common/logging/index.js";
 
 const TeardownResource = z.enum(["processor", "connection", "workspace", "privatelink", "peering"]);
 
@@ -13,7 +14,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
 
     public description =
         "Delete Atlas Stream Processing resources. " +
-        "Also use for 'remove my workspace', 'delete all processors', or 'clean up my streams environment'. " +
+        "Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. " +
         "Performs basic safety checks before deletion: summarizes counts of processors and connections, " +
         "highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. " +
         "Use `atlas-streams-discover` to review resources before deleting.";
@@ -108,12 +109,21 @@ export class StreamsTeardownTool extends StreamsToolBase {
         const workspace = this.requireWorkspaceName(args);
         const name = this.requireResourceName(args);
 
-        const processor = await this.apiClient.getStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
-        });
-        if (processor?.state === "STARTED") {
-            await this.apiClient.stopStreamProcessor({
+        try {
+            const processor = await this.apiClient.getStreamProcessor({
                 params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
+            });
+            if (processor?.state === "STARTED") {
+                await this.apiClient.stopStreamProcessor({
+                    params: { path: { groupId: args.projectId, tenantName: workspace, processorName: name } },
+                });
+            }
+        } catch (error: unknown) {
+            // Processor may be in error state — proceed with delete attempt
+            this.session.logger.debug({
+                id: LogId.streamsProcessorStateLookupFailure,
+                context: "streams-teardown",
+                message: `Failed to get processor state before delete: ${error instanceof Error ? error.message : String(error)}`,
             });
         }
 

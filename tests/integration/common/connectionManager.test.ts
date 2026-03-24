@@ -40,7 +40,10 @@ describeWithMongoDB("Connection Manager", (integration) => {
             };
 
             for (const [event, spy] of Object.entries(connectionManagerSpies)) {
-                connectionManager().events.on(event as keyof ConnectionManagerEvents, spy);
+                connectionManager().events.on(
+                    event as keyof ConnectionManagerEvents,
+                    spy as (...args: ConnectionManagerEvents[keyof ConnectionManagerEvents]) => void
+                );
             }
 
             await connectionManager().connect({

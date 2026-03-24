@@ -83,7 +83,7 @@ describe("StreamsToolBase", () => {
 
         mockConfig = {
             confirmationRequiredTools: [],
-            previewFeatures: ["streams"],
+            previewFeatures: [],
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
@@ -224,25 +224,6 @@ describe("StreamsToolBase", () => {
             // Should NOT contain any streams-specific hints
             expect((result.content[0] as { text: string }).text).not.toContain("atlas-streams-discover");
             expect((result.content[0] as { text: string }).text).not.toContain("Checkpoint conflict");
-        });
-    });
-
-    describe("verifyAllowed", () => {
-        it("should return false when streams feature is not enabled", () => {
-            mockConfig.previewFeatures = [];
-            expect(tool.testVerifyAllowed()).toBe(false);
-        });
-
-        it("should return true when streams feature is enabled and API credentials are set", () => {
-            mockConfig.previewFeatures = ["streams"];
-            expect(tool.testVerifyAllowed()).toBe(true);
-        });
-
-        it("should return false when streams is enabled but no API credentials", () => {
-            mockConfig.previewFeatures = ["streams"];
-            mockConfig.apiClientId = "";
-            mockConfig.apiClientSecret = "";
-            expect(tool.testVerifyAllowed()).toBe(false);
         });
     });
 

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { StreamsArgs } from "../../../../../src/tools/atlas/streams/streamsArgs.js";
+import {
+    ConnectionConfig,
+    PrivateLinkConfig,
+    StreamsArgs,
+} from "../../../../../src/tools/atlas/streams/streamsArgs.js";
 
 describe("StreamsArgs", () => {
     describe("workspaceName", () => {
@@ -59,5 +63,107 @@ describe("StreamsArgs", () => {
         it("should reject names longer than 64 characters", () => {
             expect(schema.safeParse("c".repeat(65)).success).toBe(false);
         });
+    });
+});
+
+describe("ConnectionConfig", () => {
+    describe("passthrough", () => {
+        it("should preserve unknown fields via passthrough", () => {
+            const result = ConnectionConfig.parse({ unknownField: "value", bootstrapServers: "b:9092" });
+            expect(result.unknownField).toBe("value");
+        });
+    });
+
+    describe("ConnectionConfig transforms", () => {
+        describe("bootstrapServers", () => {
+            it("should join an array into a comma-separated string", () => {
+                const result = ConnectionConfig.parse({ bootstrapServers: ["b1:9092", "b2:9092"] });
+                expect(result.bootstrapServers).toBe("b1:9092,b2:9092");
+            });
+
+            it("should unwrap a single-element array", () => {
+                const result = ConnectionConfig.parse({ bootstrapServers: ["broker:9092"] });
+                expect(result.bootstrapServers).toBe("broker:9092");
+            });
+
+            it("should pass through a plain string unchanged", () => {
+                const result = ConnectionConfig.parse({ bootstrapServers: "b1:9092,b2:9092" });
+                expect(result.bootstrapServers).toBe("b1:9092,b2:9092");
+            });
+        });
+
+        describe("schemaRegistryUrls", () => {
+            it("should split a single string into an array", () => {
+                const result = ConnectionConfig.parse({
+                    schemaRegistryUrls: "https://sr1:8081,https://sr2:8081",
+                });
+                expect(result.schemaRegistryUrls).toEqual(["https://sr1:8081", "https://sr2:8081"]);
+            });
+
+            it("should split a comma-separated string and trim whitespace", () => {
+                const result = ConnectionConfig.parse({
+                    schemaRegistryUrls: "https://sr1:8081, https://sr2:8081",
+                });
+                expect(result.schemaRegistryUrls).toEqual(["https://sr1:8081", "https://sr2:8081"]);
+            });
+
+            it("should unwrap a single string into a one-element array", () => {
+                const result = ConnectionConfig.parse({ schemaRegistryUrls: "https://sr:8081" });
+                expect(result.schemaRegistryUrls).toEqual(["https://sr:8081"]);
+            });
+
+            it("should pass through an array unchanged", () => {
+                const result = ConnectionConfig.parse({
+                    schemaRegistryUrls: ["https://sr1:8081", "https://sr2:8081"],
+                });
+                expect(result.schemaRegistryUrls).toEqual(["https://sr1:8081", "https://sr2:8081"]);
+            });
+        });
+    });
+});
+
+describe("PrivateLinkConfig", () => {
+    it("should preserve unknown fields via passthrough", () => {
+        const result = PrivateLinkConfig.parse({ provider: "AWS", region: "us-east-1", customField: "custom" });
+        expect(result.customField).toBe("custom");
+    });
+
+    it("should accept dnsSubDomain as an array of strings", () => {
+        const result = PrivateLinkConfig.parse({
+            provider: "AWS",
+            vendor: "CONFLUENT",
+            dnsDomain: "example.com",
+            dnsSubDomain: ["zone-a", "zone-b"],
+        });
+        expect(result.dnsSubDomain).toEqual(["zone-a", "zone-b"]);
+    });
+
+    it("should accept dnsSubDomain as an empty array", () => {
+        const result = PrivateLinkConfig.parse({
+            provider: "AWS",
+            vendor: "CONFLUENT",
+            dnsDomain: "example.com",
+            dnsSubDomain: [],
+        });
+        expect(result.dnsSubDomain).toEqual([]);
+    });
+
+    it("should reject dnsSubDomain as a plain string", () => {
+        const result = PrivateLinkConfig.safeParse({
+            provider: "AWS",
+            vendor: "CONFLUENT",
+            dnsSubDomain: "not-an-array",
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it("should accept azureResourceIds", () => {
+        const result = PrivateLinkConfig.parse({
+            provider: "AZURE",
+            vendor: "CONFLUENT",
+            dnsDomain: "example.com",
+            azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1"],
+        });
+        expect(result.azureResourceIds).toEqual(["/subscriptions/sub1/resourceGroups/rg1"]);
     });
 });

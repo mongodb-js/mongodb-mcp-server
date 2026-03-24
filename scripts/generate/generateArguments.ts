@@ -278,7 +278,6 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
             if (Array.isArray(defaultValue)) {
                 defaultValueString = `\`"${defaultValue.join(",")}"\``;
             } else {
-                // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
                 switch (typeof defaultValue) {
                     case "number":
                         defaultValueString = `\`${defaultValue}\``;

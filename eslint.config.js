@@ -50,7 +50,7 @@ export default defineConfig([
     {
         files,
         rules: {
-            "@typescript-eslint/switch-exhaustiveness-check": "error",
+            "@typescript-eslint/switch-exhaustiveness-check": ["error", { considerDefaultExhaustiveForUnions: true }],
             "@typescript-eslint/no-non-null-assertion": "error",
             "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
             "@typescript-eslint/consistent-type-exports": [

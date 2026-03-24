@@ -13,6 +13,7 @@ import { MockMetrics } from "../../../mocks/metrics.js";
 
 describe("StreamsManageTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
+    let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let tool: StreamsManageTool;
 
     beforeEach(() => {
@@ -22,28 +23,33 @@ describe("StreamsManageTool", () => {
             startStreamProcessorWith: vi.fn().mockResolvedValue({}),
             stopStreamProcessor: vi.fn().mockResolvedValue({}),
             updateStreamProcessor: vi.fn().mockResolvedValue({}),
-            getStreamWorkspace: vi.fn().mockResolvedValue({ streamConfig: { maxTierSize: "SP50" } }),
+            getStreamWorkspace: vi.fn().mockResolvedValue({
+                streamConfig: { maxTierSize: "SP50" },
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+            }),
             updateStreamWorkspace: vi.fn().mockResolvedValue({}),
+            getStreamConnection: vi.fn().mockResolvedValue({ name: "conn1", type: "Kafka", state: "READY" }),
             updateStreamConnection: vi.fn().mockResolvedValue({}),
             acceptVpcPeeringConnection: vi.fn().mockResolvedValue({}),
             rejectVpcPeeringConnection: vi.fn().mockResolvedValue({}),
         };
 
-        const mockLogger = {
+        mockLogger = {
             info: vi.fn(),
             debug: vi.fn(),
             warning: vi.fn(),
             error: vi.fn(),
-        } as unknown as CompositeLogger;
+        };
+        const typedLogger = mockLogger as unknown as CompositeLogger;
 
         const mockSession = {
-            logger: mockLogger,
+            logger: typedLogger,
             apiClient: mockApiClient as unknown as ApiClient,
         } as unknown as Session;
 
         const mockConfig = {
             confirmationRequiredTools: [],
-            previewFeatures: ["streams"],
+            previewFeatures: [],
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
@@ -74,7 +80,6 @@ describe("StreamsManageTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
-    // Helper to call execute with partial args (tests validate missing fields at runtime)
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) => tool["execute"](args as never);
 
@@ -250,7 +255,20 @@ describe("StreamsManageTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("stopped");
         });
 
-        it("should return already-stopped message for STOPPED processor", async () => {
+        it("should proceed with stop when getStreamProcessor throws (error state)", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("400 Bad Request"));
+
+            const result = await exec({
+                ...baseArgs,
+                action: "stop-processor",
+                resourceName: "proc1",
+            });
+
+            expect(mockApiClient.stopStreamProcessor).toHaveBeenCalledOnce();
+            expect((result.content[0] as { text: string }).text).toContain("stopped");
+        });
+
+        it("should return not-running message for STOPPED processor", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
             const result = await exec({
@@ -259,8 +277,40 @@ describe("StreamsManageTool", () => {
                 resourceName: "proc1",
             });
 
-            expect((result.content[0] as { text: string }).text).toContain("already stopped");
+            expect((result.content[0] as { text: string }).text).toContain("not running");
+            expect((result.content[0] as { text: string }).text).toContain("STOPPED");
             expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
+        });
+
+        it("should return not-running message for CREATED processor", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "CREATED", name: "proc1" });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "stop-processor",
+                resourceName: "proc1",
+            });
+
+            expect((result.content[0] as { text: string }).text).toContain("not running");
+            expect((result.content[0] as { text: string }).text).toContain("CREATED");
+            expect(mockApiClient.stopStreamProcessor).not.toHaveBeenCalled();
+        });
+
+        it("should log debug message when getStreamProcessor throws during stop", async () => {
+            mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("500 Internal Server Error"));
+
+            await exec({
+                ...baseArgs,
+                action: "stop-processor",
+                resourceName: "proc1",
+            });
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    context: "streams-manage",
+                    message: expect.stringContaining("500 Internal Server Error"),
+                })
+            );
         });
     });
 
@@ -353,18 +403,109 @@ describe("StreamsManageTool", () => {
     });
 
     describe("update-workspace", () => {
-        it("should update workspace with new tier", async () => {
+        it("should update workspace with region and tier, including cloudProvider from current workspace", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "OREGON_USA" },
+                streamConfig: { tier: "SP30" },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "OREGON_USA",
+                newTier: "SP30",
+            });
+
+            expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                body: { cloudProvider: "AWS", region: "OREGON_USA", streamConfig: { tier: "SP30" } },
+            });
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should update workspace with region only, including cloudProvider from current workspace", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "DUBLIN_IRL",
+            });
+
+            expect(mockApiClient.getStreamWorkspace).toHaveBeenCalled();
+            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                body: { cloudProvider: "AWS", region: "DUBLIN_IRL" },
+            });
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should update workspace with tier only without fetching cloudProvider", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                streamConfig: { tier: "SP30" },
+            });
+
             const result = await exec({
                 ...baseArgs,
                 action: "update-workspace",
                 newTier: "SP30",
             });
 
+            expect(mockApiClient.getStreamWorkspace).not.toHaveBeenCalled();
             expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
                 params: { path: { groupId: "proj1", tenantName: "ws1" } },
                 body: { streamConfig: { tier: "SP30" } },
             });
             expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should return error when workspace has no cloudProvider", async () => {
+            mockApiClient.getStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { region: "VIRGINIA_USA" },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "OREGON_USA",
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("cloud provider");
+            expect(mockApiClient.updateStreamWorkspace).not.toHaveBeenCalled();
+        });
+
+        it("should succeed when update response omits dataProcessRegion", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({});
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "OREGON_USA",
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should return error when API response shows region did not change", async () => {
+            mockApiClient.updateStreamWorkspace!.mockResolvedValue({
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-workspace",
+                newRegion: "INVALID_REGION",
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("Failed to update workspace region");
+            expect((result.content[0] as { text: string }).text).toContain("INVALID_REGION");
         });
 
         it("should return error when no updates specified", async () => {
@@ -375,20 +516,6 @@ describe("StreamsManageTool", () => {
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("No updates specified");
-        });
-
-        it("should update region only", async () => {
-            const result = await exec({
-                ...baseArgs,
-                action: "update-workspace",
-                newRegion: "OREGON_USA",
-            });
-
-            expect(mockApiClient.updateStreamWorkspace).toHaveBeenCalledWith({
-                params: { path: { groupId: "proj1", tenantName: "ws1" } },
-                body: { dataProcessRegion: { region: "OREGON_USA" } },
-            });
-            expect((result.content[0] as { text: string }).text).toContain("updated");
         });
     });
 
@@ -404,6 +531,65 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.updateStreamConnection).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("conn1");
             expect((result.content[0] as { text: string }).text).toContain("updated");
+        });
+
+        it("should normalize bootstrapServers array to comma-separated string", async () => {
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { bootstrapServers: ["broker1:9092", "broker2:9092"] },
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        bootstrapServers: "broker1:9092,broker2:9092",
+                    }),
+                })
+            );
+        });
+
+        it("should normalize schemaRegistryUrls string to array", async () => {
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { schemaRegistryUrls: "https://sr.example.com" },
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        schemaRegistryUrls: ["https://sr.example.com"],
+                    }),
+                })
+            );
+        });
+
+        it("should omit type from update body when getStreamConnection returns no type", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "conn1",
+                state: "READY",
+            });
+
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: { bootstrapServers: "broker:9092" },
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.not.objectContaining({ type: expect.anything() }),
+                })
+            );
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({ name: "conn1" }),
+                })
+            );
         });
 
         it("should throw when connectionConfig is missing", async () => {
@@ -424,6 +610,28 @@ describe("StreamsManageTool", () => {
                     connectionConfig: { bootstrapServers: "broker:9092" },
                 })
             ).rejects.toThrow("resourceName is required");
+        });
+
+        it("should include connection type from existing connection in the update body", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "conn1",
+                type: "Kafka",
+                state: "READY",
+            });
+
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig: {
+                    authentication: { mechanism: "PLAIN", username: "new-user", password: "new-pass" },
+                },
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "conn1" } },
+                body: expect.objectContaining({ type: "Kafka" }),
+            });
         });
     });
 

@@ -6,13 +6,6 @@ import { ApiClientError } from "../../../common/atlas/apiClientError.js";
 import type { StreamsToolMetadata } from "../../../telemetry/types.js";
 
 export abstract class StreamsToolBase extends AtlasToolBase {
-    protected verifyAllowed(): boolean {
-        if (!this.isFeatureEnabled("streams")) {
-            return false;
-        }
-        return super.verifyAllowed();
-    }
-
     protected override handleError(
         error: unknown,
         args: ToolArgs<typeof this.argsShape>
