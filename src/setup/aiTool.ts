@@ -247,11 +247,23 @@ export abstract class AITool {
         }
     }
 
-    openConfigSettings(): void {
+    async openConfigSettings(): Promise<void> {
         const platform = getPlatform();
-        if (!platform) return;
+        if (!platform) {
+            return;
+        }
         const cmd = this.getOpenConfigCommand(this.configPath, platform, this.toolType);
-        if (cmd) exec(cmd);
+        if (cmd) {
+            await new Promise((resolve, reject) => {
+                exec(cmd, (error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(undefined);
+                    }
+                });
+            });
+        }
     }
 }
 
@@ -262,14 +274,11 @@ class Cursor extends AITool {
     get configPath(): string {
         return path.join(getBasePath(true), ".cursor", "mcp.json");
     }
-    tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
-
     override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "cursor");
             case "windows":
-                // TODO: fix in CLOUDP-385463
                 return `cursor "${configPath}"`;
             case "linux":
                 return getOpenCommandLinux(configPath, "cursor");
@@ -277,6 +286,7 @@ class Cursor extends AITool {
                 return null;
         }
     }
+    tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+I" : "Ctrl+I"} in Cursor to open the Agent panel.\n`;
 }
 
 class VSCode extends AITool {
@@ -299,14 +309,11 @@ class VSCode extends AITool {
                 return "";
         }
     }
-    tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
-
     override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "vscode");
             case "windows":
-                // TODO: fix in CLOUDP-385463
                 return `code "${configPath}"`;
             case "linux":
                 return getOpenCommandLinux(configPath, "vscode");
@@ -314,6 +321,7 @@ class VSCode extends AITool {
                 return null;
         }
     }
+    tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+Shift+I" : "Ctrl+Shift+I"} in VS Code to open the Copilot panel.\n`;
 }
 
 class Windsurf extends AITool {
@@ -322,6 +330,18 @@ class Windsurf extends AITool {
     configFileName = "mcp_config.json";
     get configPath(): string {
         return path.join(getBasePath(true), ".codeium", "windsurf", "mcp_config.json");
+    }
+    override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
+        switch (platform) {
+            case "mac":
+                return getOpenCommandMac(configPath, "windsurf");
+            case "windows":
+                return `windsurf "${configPath}"`;
+            case "linux":
+                return getOpenCommandLinux(configPath, "windsurf");
+            default:
+                return null;
+        }
     }
     tip = `Tip: Press ${getPlatform() === "mac" ? "Cmd+L" : "Ctrl+L"} in Windsurf to open the AI panel.\n`;
 }
@@ -388,8 +408,8 @@ class OpenCode extends AITool {
 }
 
 // Opens the config file for the given tool using the tool's platform-specific command.
-export const openConfigSettings = (tool: AIToolType): void => {
-    AI_TOOL_REGISTRY[tool].openConfigSettings();
+export const openConfigSettings = (tool: AIToolType): Promise<void> => {
+    return AI_TOOL_REGISTRY[tool].openConfigSettings();
 };
 
 export const AI_TOOL_REGISTRY: Record<AIToolType, AITool> = {
