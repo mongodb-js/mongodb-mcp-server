@@ -17,6 +17,7 @@ import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { expectDefined } from "../integration/helpers.js";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
 import { MockMetrics } from "./mocks/metrics.js";
+import { Keychain } from "../../src/common/keychain.js";
 
 describe("ToolBase", () => {
     let mockSession: Session;
@@ -40,7 +41,8 @@ describe("ToolBase", () => {
 
         mockSession = {
             logger: mockLogger,
-        } as Session;
+            keychain: new Keychain(),
+        } as unknown as Session;
 
         mockConfig = {
             confirmationRequiredTools: [],
