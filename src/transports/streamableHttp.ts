@@ -666,7 +666,12 @@ class MonitoringServer extends ExpressBasedHttpServer {
                     const output = await getMetrics();
                     res.set("Content-Type", "text/plain");
                     res.send(output);
-                } catch {
+                } catch (error: unknown) {
+                    this.logger.error({
+                        id: LogId.monitoringServerMetricsFailure,
+                        context: "monitoringServer",
+                        message: `Failed to retrieve metrics: ${String(error)}}`,
+                    });
                     res.status(500).json({ error: "Failed to retrieve metrics" });
                 }
             });

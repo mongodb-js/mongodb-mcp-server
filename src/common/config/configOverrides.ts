@@ -61,7 +61,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
 
         // Prevent overriding secret fields via query params
         if (meta?.isSecret) {
-            throw new ConfigOverrideError(`Config key ${key} can only be overriden with headers.`);
+            throw new ConfigOverrideError(`Config key ${key} can only be overridden with headers.`);
         }
 
         const behavior = meta?.overrideBehavior || "not-allowed";

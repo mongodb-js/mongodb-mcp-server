@@ -184,7 +184,7 @@ function matchingConfigKey(key: string): string | undefined {
     let suggestion = undefined;
     for (const validKey of ALL_CONFIG_KEYS) {
         const lev = levenshtein.get(key, validKey);
-        // Accepting upto 2 typos and should be better than whatever previous
+        // Accepting up to 2 typos and should be better than whatever previous
         // suggestion was.
         if (lev <= 2 && lev < minLev) {
             minLev = lev;
