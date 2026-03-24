@@ -769,13 +769,13 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (!args.privateLinkConfig) {
             throw new Error(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
-                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', serviceEndpointId, dnsDomain, dnsSubDomain: string[] (use [] if none)}\n" +
+                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', region, serviceEndpointId, dnsDomain, dnsSubDomain: string[] of full FQDNs ([] for serverless)}\n" +
                     "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
                     "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
-                    "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', dnsDomain, serviceEndpointId}\n" +
-                    "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', dnsDomain}\n" +
-                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', gcpServiceAttachmentUris}"
+                    "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
+                    "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, azureResourceIds}\n" +
+                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, gcpServiceAttachmentUris}"
             );
         }
         if (!args.privateLinkConfig.provider) {

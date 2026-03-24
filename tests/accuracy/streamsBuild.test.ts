@@ -412,7 +412,7 @@ describeAccuracyTests(
                         workspaceName: Matcher.anyValue,
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
-                            region: Matcher.anyOf(Matcher.value("us-east-1"), Matcher.anyValue),
+                            region: Matcher.value("us-east-1"),
                             vendor: Matcher.value("S3"),
                             serviceEndpointId: Matcher.anyOf(
                                 Matcher.value("com.amazonaws.us-east-1.s3"),
@@ -459,7 +459,7 @@ describeAccuracyTests(
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
                             vendor: Matcher.value("KINESIS"),
-                            region: Matcher.anyOf(Matcher.value("us-east-1"), Matcher.anyValue),
+                            region: Matcher.value("us-east-1"),
                         },
                     },
                 },
@@ -467,7 +467,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up an Azure EventHub PrivateLink for my streams project with DNS domain mynamespace.servicebus.windows.net and endpoint ID /subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
+            prompt: "Set up an Azure EventHub PrivateLink in eastus2 for my streams project with DNS domain mynamespace.servicebus.windows.net and endpoint ID /subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -480,6 +480,7 @@ describeAccuracyTests(
                         privateLinkConfig: {
                             provider: Matcher.value("AZURE"),
                             vendor: Matcher.value("EVENTHUB"),
+                            region: Matcher.value("eastus2"),
                             dnsDomain: Matcher.value("mynamespace.servicebus.windows.net"),
                             serviceEndpointId: Matcher.anyOf(
                                 Matcher.value(
@@ -494,7 +495,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up an Azure Confluent PrivateLink for my streams project with DNS domain pkc-abc123.eastus2.azure.confluent.cloud",
+            prompt: "Set up an Azure Confluent PrivateLink in eastus2 for my streams project with DNS domain pkc-abc123.eastus2.azure.confluent.cloud",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -507,6 +508,7 @@ describeAccuracyTests(
                         privateLinkConfig: {
                             provider: Matcher.value("AZURE"),
                             vendor: Matcher.value("CONFLUENT"),
+                            region: Matcher.value("eastus2"),
                             dnsDomain: Matcher.value("pkc-abc123.eastus2.azure.confluent.cloud"),
                         },
                     },
@@ -515,7 +517,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up a GCP Confluent vendor PrivateLink for my streams project with service attachment URI projects/my-project/regions/us-central1/serviceAttachments/confluent-attach-1",
+            prompt: "Set up a GCP Confluent vendor PrivateLink in us-central1 for my streams project with service attachment URI projects/my-project/regions/us-central1/serviceAttachments/confluent-attach-1",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -528,6 +530,7 @@ describeAccuracyTests(
                         privateLinkConfig: {
                             provider: Matcher.value("GCP"),
                             vendor: Matcher.value("CONFLUENT"),
+                            region: Matcher.value("us-central1"),
                             gcpServiceAttachmentUris: Matcher.anyValue,
                         },
                     },

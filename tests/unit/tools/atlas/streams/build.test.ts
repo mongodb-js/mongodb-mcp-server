@@ -908,6 +908,7 @@ describe("StreamsBuildTool", () => {
                 privateLinkConfig: {
                     provider: "AZURE",
                     vendor: "EVENTHUB",
+                    region: "eastus2",
                     dnsDomain: "mynamespace.servicebus.windows.net",
                     serviceEndpointId:
                         "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
@@ -919,6 +920,7 @@ describe("StreamsBuildTool", () => {
                 body: {
                     provider: "AZURE",
                     vendor: "EVENTHUB",
+                    region: "eastus2",
                     dnsDomain: "mynamespace.servicebus.windows.net",
                     serviceEndpointId:
                         "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
@@ -933,7 +935,9 @@ describe("StreamsBuildTool", () => {
                 privateLinkConfig: {
                     provider: "AZURE",
                     vendor: "CONFLUENT",
+                    region: "eastus2",
                     dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
+                    azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Confluent/abc"],
                 },
             });
 
@@ -942,7 +946,9 @@ describe("StreamsBuildTool", () => {
                 body: {
                     provider: "AZURE",
                     vendor: "CONFLUENT",
+                    region: "eastus2",
                     dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
+                    azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Confluent/abc"],
                 },
             });
         });
@@ -954,6 +960,8 @@ describe("StreamsBuildTool", () => {
                 privateLinkConfig: {
                     provider: "GCP",
                     vendor: "CONFLUENT",
+                    region: "us-central1",
+                    dnsDomain: "pkc-abc123.us-central1.gcp.confluent.cloud",
                     gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
                 },
             });
@@ -963,6 +971,8 @@ describe("StreamsBuildTool", () => {
                 body: {
                     provider: "GCP",
                     vendor: "CONFLUENT",
+                    region: "us-central1",
+                    dnsDomain: "pkc-abc123.us-central1.gcp.confluent.cloud",
                     gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
                 },
             });
