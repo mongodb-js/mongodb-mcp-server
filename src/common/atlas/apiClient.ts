@@ -1,7 +1,7 @@
 import createClient from "openapi-fetch";
 import type { ClientOptions, FetchOptions, Client, Middleware } from "openapi-fetch";
 import { ApiClientError } from "./apiClientError.js";
-import type { paths, operations } from "./openapi.js";
+import type { components, paths, operations } from "./openapi.js";
 import type { CommonProperties, TelemetryEvent } from "../../telemetry/types.js";
 import { packageInfo } from "../packageInfo.js";
 import type { LoggerBase } from "../logging/index.js";
@@ -215,8 +215,9 @@ export class ApiClient {
 
     // DO NOT EDIT. This is auto-generated code.
     /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listClusterDetails(options?: FetchOptions<operations["listClusterDetails"]>) {
+    async listClusterDetails(
+        options?: FetchOptions<operations["listClusterDetails"]>
+    ): Promise<components["schemas"]["PaginatedOrgGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/clusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -224,8 +225,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listGroups(options?: FetchOptions<operations["listGroups"]>) {
+    async listGroups(
+        options?: FetchOptions<operations["listGroups"]>
+    ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -233,8 +235,7 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createGroup(options: FetchOptions<operations["createGroup"]>) {
+    async createGroup(options: FetchOptions<operations["createGroup"]>): Promise<components["schemas"]["Group"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -250,8 +251,7 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getGroup(options: FetchOptions<operations["getGroup"]>) {
+    async getGroup(options: FetchOptions<operations["getGroup"]>): Promise<components["schemas"]["Group"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -259,8 +259,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listAccessListEntries(options: FetchOptions<operations["listGroupAccessListEntries"]>) {
+    async listAccessListEntries(
+        options: FetchOptions<operations["listGroupAccessListEntries"]>
+    ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/accessList", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -268,8 +269,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createAccessListEntry(options: FetchOptions<operations["createGroupAccessListEntry"]>) {
+    async createAccessListEntry(
+        options: FetchOptions<operations["createGroupAccessListEntry"]>
+    ): Promise<components["schemas"]["PaginatedNetworkAccessView"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/accessList", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -288,8 +290,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listAlerts(options: FetchOptions<operations["listGroupAlerts"]>) {
+    async listAlerts(
+        options: FetchOptions<operations["listGroupAlerts"]>
+    ): Promise<components["schemas"]["PaginatedAlertView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/alerts", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -297,8 +300,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listClusters(options: FetchOptions<operations["listGroupClusters"]>) {
+    async listClusters(
+        options: FetchOptions<operations["listGroupClusters"]>
+    ): Promise<components["schemas"]["PaginatedClusterDescription20240805"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/clusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -306,8 +310,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createCluster(options: FetchOptions<operations["createGroupCluster"]>) {
+    async createCluster(
+        options: FetchOptions<operations["createGroupCluster"]>
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/clusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -326,8 +331,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getCluster(options: FetchOptions<operations["getGroupCluster"]>) {
+    async getCluster(
+        options: FetchOptions<operations["getGroupCluster"]>
+    ): Promise<components["schemas"]["ClusterDescription20240805"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}",
             options
@@ -338,10 +344,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listDropIndexSuggestions(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorDropIndexSuggestions"]>
-    ) {
+    ): Promise<components["schemas"]["DropIndexSuggestionsResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/dropIndexSuggestions",
             options
@@ -352,8 +357,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listSchemaAdvice(options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>) {
+    async listSchemaAdvice(
+        options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSchemaAdvice"]>
+    ): Promise<components["schemas"]["SchemaAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/schemaAdvice",
             options
@@ -364,10 +370,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     async listClusterSuggestedIndexes(
         options: FetchOptions<operations["listGroupClusterPerformanceAdvisorSuggestedIndexes"]>
-    ) {
+    ): Promise<components["schemas"]["PerformanceAdvisorResponse"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/clusters/{clusterName}/performanceAdvisor/suggestedIndexes",
             options
@@ -378,8 +383,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listDatabaseUsers(options: FetchOptions<operations["listGroupDatabaseUsers"]>) {
+    async listDatabaseUsers(
+        options: FetchOptions<operations["listGroupDatabaseUsers"]>
+    ): Promise<components["schemas"]["PaginatedApiAtlasDatabaseUserView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/databaseUsers",
             options
@@ -390,8 +396,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createDatabaseUser(options: FetchOptions<operations["createGroupDatabaseUser"]>) {
+    async createDatabaseUser(
+        options: FetchOptions<operations["createGroupDatabaseUser"]>
+    ): Promise<components["schemas"]["CloudDatabaseUser"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/databaseUsers",
             options
@@ -413,8 +420,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listFlexClusters(options: FetchOptions<operations["listGroupFlexClusters"]>) {
+    async listFlexClusters(
+        options: FetchOptions<operations["listGroupFlexClusters"]>
+    ): Promise<components["schemas"]["PaginatedFlexClusters20241113"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/flexClusters", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -422,8 +430,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createFlexCluster(options: FetchOptions<operations["createGroupFlexCluster"]>) {
+    async createFlexCluster(
+        options: FetchOptions<operations["createGroupFlexCluster"]>
+    ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/flexClusters",
             options
@@ -445,8 +454,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getFlexCluster(options: FetchOptions<operations["getGroupFlexCluster"]>) {
+    async getFlexCluster(
+        options: FetchOptions<operations["getGroupFlexCluster"]>
+    ): Promise<components["schemas"]["FlexClusterDescription20241113"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/flexClusters/{name}",
             options
@@ -457,8 +467,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listSlowQueryLogs(options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>) {
+    async listSlowQueryLogs(
+        options: FetchOptions<operations["listGroupProcessPerformanceAdvisorSlowQueryLogs"]>
+    ): Promise<components["schemas"]["PerformanceAdvisorSlowQueryList"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/processes/{processId}/performanceAdvisor/slowQueryLogs",
             options
@@ -469,8 +480,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listStreamWorkspaces(options: FetchOptions<operations["listGroupStreamWorkspaces"]>) {
+    async listStreamWorkspaces(
+        options: FetchOptions<operations["listGroupStreamWorkspaces"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsTenantView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/groups/{groupId}/streams", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -478,8 +490,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createStreamWorkspace(options: FetchOptions<operations["createGroupStreamWorkspace"]>) {
+    async createStreamWorkspace(
+        options: FetchOptions<operations["createGroupStreamWorkspace"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.POST("/api/atlas/v2/groups/{groupId}/streams", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -487,8 +500,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getAccountDetails(options: FetchOptions<operations["getGroupStreamAccountDetails"]>) {
+    async getAccountDetails(
+        options: FetchOptions<operations["getGroupStreamAccountDetails"]>
+    ): Promise<components["schemas"]["AccountDetails"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/accountDetails",
             options
@@ -499,8 +513,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listPrivateLinkConnections(options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>) {
+    async listPrivateLinkConnections(
+        options: FetchOptions<operations["listGroupStreamPrivateLinkConnections"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsPrivateLinkView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
             options
@@ -511,8 +526,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createPrivateLinkConnection(options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>) {
+    async createPrivateLinkConnection(
+        options: FetchOptions<operations["createGroupStreamPrivateLinkConnection"]>
+    ): Promise<components["schemas"]["StreamsPrivateLinkConnection"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections",
             options
@@ -534,8 +550,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getPrivateLinkConnection(options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>) {
+    async getPrivateLinkConnection(
+        options: FetchOptions<operations["getGroupStreamPrivateLinkConnection"]>
+    ): Promise<components["schemas"]["StreamsPrivateLinkConnection"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/privateLinkConnections/{connectionId}",
             options
@@ -590,8 +607,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getStreamWorkspace(options: FetchOptions<operations["getGroupStreamWorkspace"]>) {
+    async getStreamWorkspace(
+        options: FetchOptions<operations["getGroupStreamWorkspace"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
             options
@@ -602,8 +620,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async updateStreamWorkspace(options: FetchOptions<operations["updateGroupStreamWorkspace"]>) {
+    async updateStreamWorkspace(
+        options: FetchOptions<operations["updateGroupStreamWorkspace"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.PATCH(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}",
             options
@@ -626,8 +645,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listStreamConnections(options: FetchOptions<operations["listGroupStreamConnections"]>) {
+    async listStreamConnections(
+        options: FetchOptions<operations["listGroupStreamConnections"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsConnectionView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
             options
@@ -638,8 +658,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createStreamConnection(options: FetchOptions<operations["createGroupStreamConnection"]>) {
+    async createStreamConnection(
+        options: FetchOptions<operations["createGroupStreamConnection"]>
+    ): Promise<components["schemas"]["StreamsConnection"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections",
             options
@@ -661,8 +682,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getStreamConnection(options: FetchOptions<operations["getGroupStreamConnection"]>) {
+    async getStreamConnection(
+        options: FetchOptions<operations["getGroupStreamConnection"]>
+    ): Promise<components["schemas"]["StreamsConnection"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
             options
@@ -673,8 +695,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async updateStreamConnection(options: FetchOptions<operations["updateGroupStreamConnection"]>) {
+    async updateStreamConnection(
+        options: FetchOptions<operations["updateGroupStreamConnection"]>
+    ): Promise<components["schemas"]["StreamsConnection"]> {
         const { data, error, response } = await this.client.PATCH(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/connections/{connectionName}",
             options
@@ -685,8 +708,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async createStreamProcessor(options: FetchOptions<operations["createGroupStreamProcessor"]>) {
+    async createStreamProcessor(
+        options: FetchOptions<operations["createGroupStreamProcessor"]>
+    ): Promise<components["schemas"]["StreamsProcessor"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor",
             options
@@ -708,8 +732,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getStreamProcessor(options: FetchOptions<operations["getGroupStreamProcessor"]>) {
+    async getStreamProcessor(
+        options: FetchOptions<operations["getGroupStreamProcessor"]>
+    ): Promise<components["schemas"]["StreamsProcessorWithStats"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
             options
@@ -720,8 +745,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async updateStreamProcessor(options: FetchOptions<operations["updateGroupStreamProcessor"]>) {
+    async updateStreamProcessor(
+        options: FetchOptions<operations["updateGroupStreamProcessor"]>
+    ): Promise<components["schemas"]["StreamsProcessorWithStats"]> {
         const { data, error, response } = await this.client.PATCH(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processor/{processorName}",
             options
@@ -765,8 +791,9 @@ export class ApiClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getStreamProcessors(options: FetchOptions<operations["getGroupStreamProcessors"]>) {
+    async getStreamProcessors(
+        options: FetchOptions<operations["getGroupStreamProcessors"]>
+    ): Promise<components["schemas"]["PaginatedApiStreamsStreamProcessorWithStatsView"]> {
         const { data, error, response } = await this.client.GET(
             "/api/atlas/v2/groups/{groupId}/streams/{tenantName}/processors",
             options
@@ -789,8 +816,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async withStreamSampleConnections(options: FetchOptions<operations["withGroupStreamSampleConnections"]>) {
+    async withStreamSampleConnections(
+        options: FetchOptions<operations["withGroupStreamSampleConnections"]>
+    ): Promise<components["schemas"]["StreamsTenant"]> {
         const { data, error, response } = await this.client.POST(
             "/api/atlas/v2/groups/{groupId}/streams:withSampleConnections",
             options
@@ -801,8 +829,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async listOrgs(options?: FetchOptions<operations["listOrgs"]>) {
+    async listOrgs(
+        options?: FetchOptions<operations["listOrgs"]>
+    ): Promise<components["schemas"]["PaginatedOrganizationView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
@@ -810,8 +839,9 @@ export class ApiClient {
         return data;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    async getOrgGroups(options: FetchOptions<operations["getOrgGroups"]>) {
+    async getOrgGroups(
+        options: FetchOptions<operations["getOrgGroups"]>
+    ): Promise<components["schemas"]["PaginatedAtlasGroupView"]> {
         const { data, error, response } = await this.client.GET("/api/atlas/v2/orgs/{orgId}/groups", options);
         if (error) {
             throw ApiClientError.fromError(response, error);
