@@ -206,7 +206,6 @@ export class Telemetry {
                         id: LogId.telemetryEmitFailure,
                         context: "telemetry",
                         message: `Error emitting telemetry events: ${result.error?.message ?? "unknown error"}`,
-                        noRedaction: true,
                     });
                     return allEvents;
                 }
@@ -225,7 +224,6 @@ export class Telemetry {
                 id: LogId.telemetryEmitFailure,
                 context: "telemetry",
                 message: `Error emitting telemetry events: ${error instanceof Error ? error.message : String(error)}`,
-                noRedaction: true,
             });
         }
 
