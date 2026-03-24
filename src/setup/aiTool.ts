@@ -334,11 +334,11 @@ class Windsurf extends AITool {
     override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
         switch (platform) {
             case "mac":
-                return getOpenCommandMac(configPath, "cursor");
+                return getOpenCommandMac(configPath, "windsurf");
             case "windows":
                 return `windsurf "${configPath}"`;
             case "linux":
-                return getOpenCommandLinux(configPath, "cursor");
+                return getOpenCommandLinux(configPath, "windsurf");
             default:
                 return null;
         }
