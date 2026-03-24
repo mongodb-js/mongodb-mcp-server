@@ -17,12 +17,27 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         this.logCore(level, {
             ...payload,
             message: this.redactIfNecessary(payload.message, noRedaction),
+            attributes: this.redactAttributes(payload.attributes, noRedaction),
         });
     }
 
     protected abstract readonly type?: LoggerType;
 
     protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+
+    private redactAttributes(
+        attributes: Record<string, string> | undefined,
+        noRedaction: LogPayload["noRedaction"]
+    ): Record<string, string> | undefined {
+        if (!attributes) {
+            return undefined;
+        }
+        const redacted: Record<string, string> = {};
+        for (const [key, value] of Object.entries(attributes)) {
+            redacted[key] = this.redactIfNecessary(value, noRedaction);
+        }
+        return redacted;
+    }
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {
         if (typeof noRedaction === "boolean" && noRedaction) {
