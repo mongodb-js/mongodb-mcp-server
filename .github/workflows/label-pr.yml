@@ -1,0 +1,44 @@
+name: Label PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply label based on conventional commit prefix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -e
+
+          TITLE="$PR_TITLE"
+
+          if [[ "$TITLE" =~ ^feat(\(|!|:) ]]; then
+            LABEL="type: feature"
+          elif [[ "$TITLE" =~ ^fix(\(|!|:) ]]; then
+            LABEL="type: bug"
+          elif [[ "$TITLE" =~ ^docs(\(|!|:) ]]; then
+            LABEL="type: docs"
+          elif [[ "$TITLE" =~ ^chore\(deps ]]; then
+            LABEL="type: dependencies"
+          else
+            # covers: chore, ci, refactor, style, test, build, ops, revert
+            # and any PR using the no-title-validation escape hatch
+            LABEL="type: chore"
+          fi
+
+          # Remove any existing type: * label before applying the new one
+          EXISTING=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name | select(startswith("type: "))] | join(",")')
+          if [[ -n "$EXISTING" ]]; then
+            gh pr edit "$PR_NUMBER" --remove-label "$EXISTING"
+          fi
+
+          gh pr edit "$PR_NUMBER" --add-label "$LABEL"
