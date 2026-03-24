@@ -9,7 +9,6 @@ import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common
 import { ExportsManager } from "../common/exportsManager.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { Keychain } from "../common/keychain.js";
-import { registerConfigSecrets } from "../common/config/parseUserConfig.js";
 import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import {
     type ConnectionErrorHandler,
@@ -319,9 +318,6 @@ export abstract class TransportRunnerBase<
                   )
                 : undefined;
 
-        const sessionKeychain = Keychain.root.createChild();
-        registerConfigSecrets(userConfig, sessionKeychain);
-
         const session = new Session({
             userConfig,
             atlasLocalClient:
@@ -330,7 +326,7 @@ export abstract class TransportRunnerBase<
             connectionErrorHandler: sessionOptions?.connectionErrorHandler ?? this.connectionErrorHandler,
             exportsManager,
             connectionManager,
-            keychain: sessionKeychain,
+            keychain: Keychain.root,
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
 
@@ -360,7 +356,7 @@ export abstract class TransportRunnerBase<
         // We need to create the MCP logger after the server is constructed
         // because it needs the server instance
         if (userConfig.loggers.includes("mcp")) {
-            logger.addLogger(new McpLogger(result, sessionKeychain));
+            logger.addLogger(new McpLogger(result, Keychain.root));
         }
 
         return result;

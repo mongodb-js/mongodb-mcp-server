@@ -33,49 +33,4 @@ describe("Keychain", () => {
             expect(keychain.allSecrets).toEqual([{ value: "123456", kind: "password" }]);
         });
     });
-
-    describe("parent-child keychains", () => {
-        it("child allSecrets includes parent secrets", () => {
-            keychain.register("root-secret", "password");
-            const child = keychain.createChild();
-            child.register("child-secret", "password");
-
-            expect(child.allSecrets).toEqual([
-                { value: "root-secret", kind: "password" },
-                // root-secret again because child.register propagated it to parent
-                { value: "child-secret", kind: "password" },
-                { value: "child-secret", kind: "password" },
-            ]);
-        });
-
-        it("secrets registered on child propagate to parent", () => {
-            const child = keychain.createChild();
-            child.register("child-secret", "password");
-
-            expect(keychain.allSecrets).toContainEqual({ value: "child-secret", kind: "password" });
-        });
-
-        it("clearAllSecrets on child does not affect parent", () => {
-            keychain.register("root-secret", "password");
-            const child = keychain.createChild();
-            child.register("child-secret", "password");
-
-            child.clearAllSecrets();
-            expect(child.allSecrets).toContainEqual({ value: "root-secret", kind: "password" });
-            expect(child.allSecrets).toContainEqual({ value: "child-secret", kind: "password" });
-            expect(keychain.allSecrets).toContainEqual({ value: "root-secret", kind: "password" });
-        });
-
-        it("supports multi-level chains", () => {
-            keychain.register("root-secret", "password");
-            const child = keychain.createChild();
-            const grandchild = child.createChild();
-            grandchild.register("deep-secret", "password");
-
-            const deepSecretEntries = grandchild.allSecrets.filter((s) => s.value === "deep-secret");
-            expect(deepSecretEntries.length).toBeGreaterThanOrEqual(1);
-
-            expect(keychain.allSecrets).toContainEqual({ value: "deep-secret", kind: "password" });
-        });
-    });
 });
