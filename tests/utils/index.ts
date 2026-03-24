@@ -1,5 +1,4 @@
 import { type ConnectionManagerEvents } from "../../src/common/connectionManager.js";
-import { LoggerBase, type LoggerType } from "../../src/common/logging/index.js";
 import { type ConnectionManager } from "../../src/lib.js";
 
 export function createEnvironment(): {
@@ -22,17 +21,6 @@ export function createEnvironment(): {
     };
 }
 
-export class NullLogger extends LoggerBase {
-    protected type?: LoggerType;
-
-    constructor() {
-        super(undefined);
-    }
-
-    protected logCore(): void {
-        // No-op logger, does not log anything
-    }
-}
 /**
  * For a few tests, we need the changeState method to force a connection state
  * which is we have this type to typecast the actual ConnectionManager with
