@@ -40,7 +40,7 @@ describe("StreamsDiscoverTool", () => {
 
         const mockConfig = {
             confirmationRequiredTools: [],
-            previewFeatures: ["streams"],
+            previewFeatures: [],
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",

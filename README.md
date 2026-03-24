@@ -558,11 +558,6 @@ The MongoDB MCP Server may offer functionality that is still in development and 
 
 List of available preview features:
 
-- `streams` - Enables Atlas Stream Processing tools for building, managing, and debugging streaming data pipelines:
-  - Create and manage stream processing workspaces, connections (Kafka, Cluster, S3, and more), and processors.
-  - Start, stop, modify, and monitor stream processors.
-  - Diagnose processor issues with combined health reports including state, stats, and connection health.
-  - Requires Atlas API credentials with appropriate stream processing permissions. See [Atlas API Permissions](#atlas-api-permissions).
 - `mcpUI` - Enables an optional web-based UI for interacting with the MCP server.
 
 ### Atlas API Access

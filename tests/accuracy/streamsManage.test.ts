@@ -499,5 +499,5 @@ describeAccuracyTests(
             mockedTools,
         },
     ],
-    { userConfig: { previewFeatures: "streams" } }
+    {}
 );

@@ -4,6 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs } from "../../tool.js";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, StreamsArgs } from "./streamsArgs.js";
+import { LogId } from "../../../common/logging/index.js";
 
 const ManageAction = z.enum([
     "start-processor",
@@ -278,18 +279,27 @@ export class StreamsManageTool extends StreamsToolBase {
     private async stopProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "stop-processor");
 
-        const processor = await this.apiClient.getStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
-        });
-        if (processor?.state === "STOPPED" || processor?.state === "CREATED") {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `Processor '${name}' is already stopped (state: ${processor.state}). No action needed.`,
-                    },
-                ],
-            };
+        try {
+            const processor = await this.apiClient.getStreamProcessor({
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
+            });
+            if (processor?.state === "STOPPED" || processor?.state === "CREATED") {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Processor '${name}' is not running (state: ${processor.state}). No action needed.`,
+                        },
+                    ],
+                };
+            }
+        } catch (error: unknown) {
+            // Processor may be in error state — proceed with stop attempt
+            this.session.logger.debug({
+                id: LogId.streamsProcessorStateLookupFailure,
+                context: "streams-manage",
+                message: `Failed to get processor state before stop: ${error instanceof Error ? error.message : String(error)}`,
+            });
         }
 
         await this.apiClient.stopStreamProcessor({
@@ -364,6 +374,26 @@ export class StreamsManageTool extends StreamsToolBase {
     private async updateWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         const body: Record<string, unknown> = {};
         if (args.newRegion) {
+            // The Atlas API requires cloudProvider alongside region in the update request body.
+            // Fetch the current workspace to get the existing cloudProvider.
+            const workspace = await this.apiClient.getStreamWorkspace({
+                params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
+            });
+            const cloudProvider = workspace?.dataProcessRegion?.cloudProvider;
+            if (!cloudProvider) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text:
+                                "Unable to update workspace region: the current workspace does not specify a cloud provider. " +
+                                "The Atlas API requires cloudProvider when updating region. Inspect the workspace in Atlas and try again.",
+                        },
+                    ],
+                    isError: true,
+                };
+            }
+            body.cloudProvider = cloudProvider;
             body.region = args.newRegion;
         }
         if (args.newTier) {
@@ -382,10 +412,31 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        await this.apiClient.updateStreamWorkspace({
+        const updated = await this.apiClient.updateStreamWorkspace({
             params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
             body: body as never,
         });
+
+        const updatedRegion = updated?.dataProcessRegion?.region;
+        if (
+            args.newRegion &&
+            updatedRegion !== undefined &&
+            updatedRegion !== null &&
+            updatedRegion !== args.newRegion
+        ) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text:
+                            `Failed to update workspace region to '${args.newRegion}'. ` +
+                            `Current region is '${updatedRegion}'. ` +
+                            `Verify the region name is valid for the workspace's cloud provider.`,
+                    },
+                ],
+                isError: true,
+            };
+        }
 
         return {
             content: [
@@ -404,10 +455,18 @@ export class StreamsManageTool extends StreamsToolBase {
             throw new Error("connectionConfig is required to update a connection.");
         }
 
+        const { type: connectionType } = (await this.apiClient.getStreamConnection({
+            params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
+        })) as { type?: string };
+
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
         await this.apiClient.updateStreamConnection({
             params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
-            body: normalizedConfig as never,
+            body: {
+                ...normalizedConfig,
+                ...(connectionType !== undefined ? { type: connectionType } : {}),
+                name,
+            } as never,
         });
 
         return {

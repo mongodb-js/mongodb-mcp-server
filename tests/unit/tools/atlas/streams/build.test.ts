@@ -41,7 +41,7 @@ describe("StreamsBuildTool", () => {
 
         const mockConfig = {
             confirmationRequiredTools: [],
-            previewFeatures: ["streams"],
+            previewFeatures: [],
             disabledTools: [],
             apiClientId: "test-id",
             apiClientSecret: "test-secret",
@@ -347,6 +347,23 @@ describe("StreamsBuildTool", () => {
                     connectionName: "conn1",
                 })
             ).rejects.toThrow("connectionType is required");
+        });
+
+        it("should warn about PENDING state when connection uses PrivateLink", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "s3-pl",
+                connectionType: "S3",
+                connectionConfig: {
+                    aws: { roleArn: "arn:aws:iam::123:role/my-role" },
+                    networking: { access: { type: "PRIVATE_LINK", connectionId: "pl-123" } },
+                },
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("PENDING");
+            expect(text).toContain("PrivateLink");
         });
     });
 
@@ -790,17 +807,17 @@ describe("StreamsBuildTool", () => {
     });
 
     describe("createPrivateLink", () => {
-        it("should create PrivateLink connection with correct params", async () => {
+        it("should create AWS CONFLUENT PrivateLink with correct params", async () => {
             await exec({
                 ...baseArgs,
                 resource: "privatelink",
                 privateLinkConfig: {
                     provider: "AWS",
                     region: "us-east-1",
-                    vendor: "AWS",
-                    arn: "arn:aws:...",
+                    vendor: "CONFLUENT",
+                    serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
                     dnsDomain: "example.com",
-                    dnsSubDomain: "sub",
+                    dnsSubDomain: ["sub"],
                 },
             });
 
@@ -809,10 +826,144 @@ describe("StreamsBuildTool", () => {
                 body: {
                     provider: "AWS",
                     region: "us-east-1",
-                    vendor: "AWS",
-                    arn: "arn:aws:...",
+                    vendor: "CONFLUENT",
+                    serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
                     dnsDomain: "example.com",
-                    dnsSubDomain: "sub",
+                    dnsSubDomain: ["sub"],
+                },
+            });
+        });
+
+        it("should create AWS S3 PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "S3",
+                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "S3",
+                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                },
+            });
+        });
+
+        it("should create AWS MSK PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AWS",
+                    vendor: "MSK",
+                    arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "AWS",
+                    vendor: "MSK",
+                    arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+                },
+            });
+        });
+
+        it("should create AWS KINESIS PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "KINESIS",
+                    serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "KINESIS",
+                    serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-abc123",
+                },
+            });
+        });
+
+        it("should create AZURE EVENTHUB PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AZURE",
+                    vendor: "EVENTHUB",
+                    dnsDomain: "mynamespace.servicebus.windows.net",
+                    serviceEndpointId:
+                        "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "AZURE",
+                    vendor: "EVENTHUB",
+                    dnsDomain: "mynamespace.servicebus.windows.net",
+                    serviceEndpointId:
+                        "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
+                },
+            });
+        });
+
+        it("should create AZURE CONFLUENT PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AZURE",
+                    vendor: "CONFLUENT",
+                    dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "AZURE",
+                    vendor: "CONFLUENT",
+                    dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
+                },
+            });
+        });
+
+        it("should create GCP CONFLUENT PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "GCP",
+                    vendor: "CONFLUENT",
+                    gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "GCP",
+                    vendor: "CONFLUENT",
+                    gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
                 },
             });
         });

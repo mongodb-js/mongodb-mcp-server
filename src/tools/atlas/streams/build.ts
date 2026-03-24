@@ -299,12 +299,17 @@ export class StreamsBuildTool extends StreamsToolBase {
             body: body as never,
         });
 
+        const privateLinkWarning =
+            config?.networking?.access?.type === "PRIVATE_LINK"
+                ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
+                : "";
+
         return {
             content: [
                 {
                     type: "text",
                     text:
-                        `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${args.workspaceName}'.\n\n` +
+                        `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${args.workspaceName}'.${privateLinkWarning}\n\n` +
                         `Next: Add more connections or deploy a processor with \`atlas-streams-build\` resource='processor'. ` +
                         `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, or $emit stages.`,
                 },
@@ -722,7 +727,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             body: body as never,
         });
 
-        let startMessage = "Processor created in STOPPED state.";
+        let startMessage = "Processor created in CREATED state.";
         if (args.autoStart) {
             await this.apiClient.startStreamProcessor({
                 params: {
@@ -763,8 +768,14 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async createPrivateLink(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {
             throw new Error(
-                "privateLinkConfig is required. Provide provider and provider-specific configuration " +
-                    "(AWS: {provider, region, vendor, arn, dnsDomain, dnsSubDomain}, Azure: {provider, region, serviceEndpointId}, GCP: {provider, region, gcpServiceAttachmentUris})."
+                "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
+                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', serviceEndpointId, dnsDomain, dnsSubDomain: string[] (use [] if none)}\n" +
+                    "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
+                    "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
+                    "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
+                    "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', dnsDomain, serviceEndpointId}\n" +
+                    "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', dnsDomain}\n" +
+                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', gcpServiceAttachmentUris}"
             );
         }
         if (!args.privateLinkConfig.provider) {

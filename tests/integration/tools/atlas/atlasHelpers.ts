@@ -36,7 +36,7 @@ export function describeWithStreams(name: string, fn: IntegrationTestFunction): 
             apiClientId: process.env.MDB_MCP_API_CLIENT_ID || "test-client",
             apiClientSecret: process.env.MDB_MCP_API_CLIENT_SECRET || "test-secret",
             apiBaseUrl: process.env.MDB_MCP_API_BASE_URL ?? "https://cloud-dev.mongodb.com",
-            previewFeatures: ["streams"],
+            previewFeatures: [],
         }));
         fn(integration);
     });

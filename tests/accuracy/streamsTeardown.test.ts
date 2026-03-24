@@ -208,5 +208,5 @@ describeAccuracyTests(
             },
         },
     ],
-    { userConfig: { previewFeatures: "streams" } }
+    {}
 );
