@@ -6,12 +6,14 @@ on:
 
 permissions:
   pull-requests: write
+  issues: write
 
 jobs:
   label:
     runs-on: ubuntu-latest
     steps:
       - name: Apply label based on conventional commit prefix
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
