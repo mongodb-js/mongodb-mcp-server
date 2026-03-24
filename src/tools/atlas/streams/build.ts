@@ -111,10 +111,14 @@ export class StreamsBuildTool extends StreamsToolBase {
             "What to create. Start with 'workspace', then 'connection', then 'processor'. " +
                 "Use 'privatelink' only if connections need private networking."
         ),
-        workspaceName: StreamsArgs.workspaceName().describe(
-            "For 'workspace': the name to create. For others: the existing workspace to add to. " +
-                "Use `atlas-streams-discover` with action 'list-workspaces' to see existing workspaces."
-        ),
+        workspaceName: StreamsArgs.workspaceName()
+            .optional()
+            .describe(
+                "Workspace name. Required for workspace, connection, and processor resources. " +
+                    "Not required for privatelink (which is project-level). " +
+                    "For 'workspace': the name to create. For others: the existing workspace to add to. " +
+                    "Use `atlas-streams-discover` with action 'list-workspaces' to see existing workspaces."
+            ),
 
         // Workspace fields
         cloudProvider: CloudProvider.optional().describe("Cloud provider. Required when resource='workspace'."),
@@ -222,7 +226,15 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
     }
 
+    private requireWorkspaceName(args: ToolArgs<typeof this.argsShape>): string {
+        if (!args.workspaceName) {
+            throw new Error("workspaceName is required for this resource type.");
+        }
+        return args.workspaceName;
+    }
+
     private async createWorkspace(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        const workspaceName = this.requireWorkspaceName(args);
         if (!args.cloudProvider) {
             throw new Error("cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP.");
         }
@@ -233,7 +245,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         const body = {
-            name: args.workspaceName,
+            name: workspaceName,
             dataProcessRegion: {
                 cloudProvider: args.cloudProvider,
                 region: args.region,
@@ -263,7 +275,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 {
                     type: "text",
                     text:
-                        `Workspace '${args.workspaceName}' created in ${args.cloudProvider}/${args.region} (${args.tier ?? "SP10"}).${sampleNote}\n\n` +
+                        `Workspace '${workspaceName}' created in ${args.cloudProvider}/${args.region} (${args.tier ?? "SP10"}).${sampleNote}\n\n` +
                         `Next: Add data source/sink connections with \`atlas-streams-build\` resource='connection', ` +
                         `then deploy a processor with resource='processor'.`,
                 },
@@ -272,6 +284,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createConnection(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
             throw new Error("connectionName is required when adding a connection.");
         }
@@ -295,7 +308,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         };
 
         await this.apiClient.createStreamConnection({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
+            params: { path: { groupId: args.projectId, tenantName: workspaceName } },
             body: body as never,
         });
 
@@ -309,7 +322,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 {
                     type: "text",
                     text:
-                        `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${args.workspaceName}'.${privateLinkWarning}\n\n` +
+                        `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${workspaceName}'.${privateLinkWarning}\n\n` +
                         `Next: Add more connections or deploy a processor with \`atlas-streams-build\` resource='processor'. ` +
                         `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, or $emit stages.`,
                 },
@@ -696,6 +709,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createProcessor(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        const workspaceName = this.requireWorkspaceName(args);
         if (!args.processorName) {
             throw new Error("processorName is required when deploying a processor.");
         }
@@ -710,7 +724,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const connectionError = await this.validatePipelineConnections(
             args.projectId,
-            args.workspaceName,
+            workspaceName,
             args.pipeline,
             args.dlq
         );
@@ -723,7 +737,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         };
 
         await this.apiClient.createStreamProcessor({
-            params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
+            params: { path: { groupId: args.projectId, tenantName: workspaceName } },
             body: body as never,
         });
 
@@ -733,7 +747,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 params: {
                     path: {
                         groupId: args.projectId,
-                        tenantName: args.workspaceName,
+                        tenantName: workspaceName,
                         processorName: args.processorName,
                     },
                 },
@@ -755,7 +769,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 {
                     type: "text",
                     text:
-                        `${startMessage} Processor '${args.processorName}' deployed in workspace '${args.workspaceName}'.${dlqNote}\n\n` +
+                        `${startMessage} Processor '${args.processorName}' deployed in workspace '${workspaceName}'.${dlqNote}\n\n` +
                         (args.autoStart
                             ? `Use \`atlas-streams-discover\` with action 'diagnose-processor' to monitor health.`
                             : `Use \`atlas-streams-manage\` with action 'start-processor' to begin processing.`) +
@@ -769,13 +783,13 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (!args.privateLinkConfig) {
             throw new Error(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
-                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', serviceEndpointId, dnsDomain, dnsSubDomain: string[] (use [] if none)}\n" +
+                    "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', region, serviceEndpointId, dnsDomain, dnsSubDomain: string[] of full FQDNs ([] for serverless)}\n" +
                     "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
                     "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
-                    "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', dnsDomain, serviceEndpointId}\n" +
-                    "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', dnsDomain}\n" +
-                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', gcpServiceAttachmentUris}"
+                    "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
+                    "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, azureResourceIds}\n" +
+                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, gcpServiceAttachmentUris}"
             );
         }
         if (!args.privateLinkConfig.provider) {

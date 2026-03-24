@@ -485,7 +485,9 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                 region: pl.region,
                 state: pl.state,
                 vendor: pl.vendor,
+                ...(pl.errorMessage && { errorMessage: pl.errorMessage }),
             }));
+
             sections.push(`## PrivateLink Connections\n${JSON.stringify(pls, null, 2)}`);
         } else {
             sections.push("## PrivateLink Connections\nNo PrivateLink connections found.");

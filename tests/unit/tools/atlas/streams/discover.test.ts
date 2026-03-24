@@ -447,6 +447,30 @@ describe("StreamsDiscoverTool", () => {
             expect(text).toContain("pl-1");
         });
 
+        it("should include errorMessage when present", async () => {
+            mockApiClient.listPrivateLinkConnections!.mockResolvedValue({
+                results: [
+                    {
+                        _id: "pl-fail",
+                        provider: "AWS",
+                        region: "us-east-1",
+                        state: "FAILED",
+                        vendor: "CONFLUENT",
+                        errorMessage: "VPC endpoint rejected",
+                    },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "get-networking",
+            });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("FAILED");
+            expect(text).toContain("VPC endpoint rejected");
+        });
+
         it("should include account details when cloudProvider and region are provided", async () => {
             mockApiClient.listPrivateLinkConnections!.mockResolvedValue({ results: [] });
             mockApiClient.getAccountDetails!.mockResolvedValue({ awsAccountId: "123456789" });
