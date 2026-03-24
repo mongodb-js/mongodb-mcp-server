@@ -3,6 +3,24 @@ import fs from "fs/promises";
 import type { OpenAPIV3_1 } from "openapi-types";
 import z4 from "zod/v4";
 
+/** Extracts the `#/components/schemas/<key>` segment from the preferred JSON response media type. */
+function extractResponseBodySchemaKey(responseObject: OpenAPIV3_1.ResponseObject): string | undefined {
+    if (!responseObject.content) {
+        return undefined;
+    }
+    const contentTypes = Object.keys(responseObject.content);
+    const preferred = contentTypes.find((ct) => ct.includes("json")) ?? contentTypes[0];
+    const media = preferred ? responseObject.content[preferred] : undefined;
+    const schema = media?.schema;
+    if (schema && typeof schema === "object" && "$ref" in schema && typeof schema.$ref === "string") {
+        const refMatch = /^#\/components\/schemas\/([^/]+)$/.exec(schema.$ref);
+        if (refMatch?.[1] !== undefined) {
+            return refMatch[1];
+        }
+    }
+    return undefined;
+}
+
 function analyzeSuccessResponse(
     operation: OpenAPIV3_1.OperationObject,
     openapi: OpenAPIV3_1.Document
@@ -36,18 +54,8 @@ function analyzeSuccessResponse(
                     acceptOverride = contentType;
                 }
             }
-            if (responseBodySchemaKey !== undefined) {
-                continue;
-            }
-            const contentTypes = Object.keys(responseObject.content);
-            const preferred = contentTypes.find((ct) => ct.includes("json")) ?? contentTypes[0];
-            const media = preferred ? responseObject.content[preferred] : undefined;
-            const schema = media?.schema;
-            if (schema && typeof schema === "object" && "$ref" in schema && typeof schema.$ref === "string") {
-                const refMatch = /^#\/components\/schemas\/([^/]+)$/.exec(schema.$ref);
-                if (refMatch?.[1] !== undefined) {
-                    responseBodySchemaKey = refMatch[1];
-                }
+            if (responseBodySchemaKey === undefined) {
+                responseBodySchemaKey = extractResponseBodySchemaKey(responseObject);
             }
         } catch {
             continue;
