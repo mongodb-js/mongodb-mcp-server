@@ -632,10 +632,6 @@ class MonitoringServer extends ExpressBasedHttpServer {
     private readonly features: MonitoringServerFeature[];
     private readonly metrics: Metrics;
 
-    public get expressApp(): express.Express {
-        return this.app;
-    }
-
     private constructor({
         host,
         port,
@@ -675,5 +671,9 @@ class MonitoringServer extends ExpressBasedHttpServer {
         }
 
         return Promise.resolve();
+    }
+
+    public get expressApp(): express.Express {
+        return this.app;
     }
 }
