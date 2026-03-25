@@ -305,6 +305,27 @@ Alternatively, create or edit the configuration file `~/.copilot/mcp-config.json
 
 For more information, see the [Copilot CLI documentation](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli).
 
+#### Option 7: OpenCode
+
+Create or edit your OpenCode config file (`~/.config/opencode/opencode.jsonc` or project-specific `./opencode.jsonc`):
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "MongoDB": {
+      "type": "local",
+      "command": ["npx", "-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "environment": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
+      }
+    }
+  }
+}
+```
+
+For more information, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
+
 ## 🛠️ Supported Tools
 
 ### Tool List
