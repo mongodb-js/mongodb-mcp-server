@@ -308,9 +308,8 @@ For more information, see the [Copilot CLI documentation](https://docs.github.co
 
 #### Option 7: OpenCode
 
-Create or edit your OpenCode config file (`~/.config/opencode/opencode.jsonc` or project-specific `./opencode.jsonc`):
+Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or project-specific `./opencode.json`):
 
-```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
@@ -326,7 +325,7 @@ Create or edit your OpenCode config file (`~/.config/opencode/opencode.jsonc` or
 }
 ```
 
-For more information, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
+For more information about configuring OpenCode as an MCP client, including the expected syntax and options, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
 
 ## 🛠️ Supported Tools
 
