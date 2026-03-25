@@ -81,11 +81,16 @@ export class EventCache {
             const batch = allEvents.slice(0, batchSize);
             if (batch.length === 0) return undefined;
 
-            const { removeProcessed, result } = await processor(batch.map((e) => e.event));
-            if (removeProcessed) {
-                this.removeEvents(batch.map((e) => e.id));
+            try {
+                const { removeProcessed, result } = await processor(batch.map((e) => e.event));
+                if (removeProcessed) {
+                    this.removeEvents(batch.map((e) => e.id));
+                }
+                return result;
+            } catch {
+                // Processor threw — leave events in cache for retry
+                return undefined;
             }
-            return result;
         });
     }
 

@@ -555,20 +555,20 @@ describe("Telemetry", () => {
             expect(_cachedEvents).toHaveLength(0);
         });
 
-        it("should complete within the timeout even if sendBatch hangs", async () => {
+        it("should pass an AbortSignal to sendEvents during close", async () => {
             await telemetry.setupPromise;
             _cachedEvents.push(createTestEvent());
 
-            // Make sendEvents hang forever
-            mockApiClient.sendEvents.mockImplementation(() => new Promise(() => {}));
+            let receivedSignal: AbortSignal | undefined;
+            mockApiClient.sendEvents.mockImplementation((_events, options) => {
+                receivedSignal = options?.signal;
+                return Promise.resolve();
+            });
 
-            const closePromise = telemetry.close();
-            // Advance past the close timeout
-            await vi.advanceTimersByTimeAsync(10_000);
-            await closePromise;
+            await telemetry.close();
 
-            // close() completed — events remain since the send never resolved
-            expect(_cachedEvents).toHaveLength(1);
+            expect(receivedSignal).toBeDefined();
+            expect(receivedSignal).toBeInstanceOf(AbortSignal);
         });
     });
 

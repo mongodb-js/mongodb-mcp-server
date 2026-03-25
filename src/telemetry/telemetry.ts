@@ -10,6 +10,7 @@ import { detectContainerEnv } from "../helpers/container.js";
 import type { DeviceId } from "../helpers/deviceId.js";
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
+import { Timer } from "./timer.js";
 
 type SendResult = {
     status: "success" | "rate-limited" | "error" | "empty";
@@ -56,8 +57,7 @@ export class Telemetry {
     private eventCache: EventCache;
     private deviceId: DeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
-    /** Single timer that drives send attempts — either at SEND_INTERVAL_MS or at a backoff delay. */
-    private sendTimer: ReturnType<typeof setTimeout> | undefined;
+    private readonly timer = new Timer();
 
     private constructor(
         private readonly session: Session,
@@ -105,27 +105,18 @@ export class Telemetry {
             return;
         }
 
-        try {
-            this.setupPromise = Promise.all([this.deviceId.get(), detectContainerEnv()]);
-            const [deviceIdValue, containerEnv] = await this.setupPromise;
+        this.setupPromise = Promise.all([this.deviceId.get(), detectContainerEnv()]);
+        const [deviceIdValue, containerEnv] = await this.setupPromise;
 
-            this.commonProperties.device_id = deviceIdValue;
-            this.commonProperties.is_container_env = containerEnv ? "true" : "false";
-        } catch (error) {
-            this.session.logger.debug({
-                id: LogId.telemetryEmitFailure,
-                context: "telemetry",
-                message: `Telemetry setup failed: ${error instanceof Error ? error.message : String(error)}`,
-                noRedaction: true,
-            });
-        }
+        this.commonProperties.device_id = deviceIdValue;
+        this.commonProperties.is_container_env = containerEnv ? "true" : "false";
 
         this.isBufferingEvents = false;
         this.scheduleSend();
     }
 
     public async close(): Promise<void> {
-        this.cancelScheduledSend();
+        this.timer.cancel();
 
         this.session.logger.debug({
             id: LogId.telemetryClose,
@@ -133,11 +124,8 @@ export class Telemetry {
             context: "telemetry",
         });
 
-        // Best-effort: send one final batch before closing
-        const timeout = new Promise<void>((resolve) => {
-            setTimeout(resolve, CLOSE_TIMEOUT_MS).unref();
-        });
-        await Promise.race([this.sendBatch(), timeout]);
+        // Best-effort: send one final batch before closing, bounded by CLOSE_TIMEOUT_MS
+        await this.sendBatch({ signal: AbortSignal.timeout(CLOSE_TIMEOUT_MS) });
     }
 
     /**
@@ -183,23 +171,12 @@ export class Telemetry {
     }
 
     /**
-     * Schedules the next send attempt using a single setTimeout.
-     * Replaces any previously scheduled send.
+     * Schedules the next send attempt. Replaces any previously scheduled send.
      */
     private scheduleSend(delayMs: number = SEND_INTERVAL_MS): void {
-        this.cancelScheduledSend();
-        this.sendTimer = setTimeout(() => {
-            this.sendTimer = undefined;
+        this.timer.schedule(() => {
             void this.sendBatchAndReschedule();
         }, delayMs);
-        this.sendTimer.unref();
-    }
-
-    private cancelScheduledSend(): void {
-        if (this.sendTimer !== undefined) {
-            clearTimeout(this.sendTimer);
-            this.sendTimer = undefined;
-        }
     }
 
     /**
@@ -242,7 +219,7 @@ export class Telemetry {
      * On success the sent events are removed; on failure they stay in the cache.
      * Does not reschedule — the caller decides what to do next.
      */
-    private async sendBatch(): Promise<SendResult> {
+    private async sendBatch({ signal }: { signal?: AbortSignal } = {}): Promise<SendResult> {
         if (!this.session.apiClient || this.eventCache.size === 0) return { status: "empty" };
 
         const apiClient = this.session.apiClient;
@@ -254,7 +231,7 @@ export class Telemetry {
                 message: `Attempting to send ${events.length} events`,
             });
 
-            const sendResult = await this.sendEvents(apiClient, events);
+            const sendResult = await this.sendEvents(apiClient, events, signal);
 
             if (sendResult.status !== "success") {
                 if (sendResult.status !== "rate-limited") {
@@ -284,9 +261,9 @@ export class Telemetry {
     /**
      * Sends events through the API client after redacting sensitive data.
      */
-    private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<SendResult> {
+    private async sendEvents(client: ApiClient, events: BaseEvent[], signal?: AbortSignal): Promise<SendResult> {
         try {
-            const signal = AbortSignal.timeout(SEND_TIMEOUT_MS);
+            const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
@@ -295,7 +272,7 @@ export class Telemetry {
                         ...redact(event.properties, this.session.keychain.allSecrets),
                     },
                 })),
-                { signal }
+                { signal: effectiveSignal }
             );
             return { status: "success" };
         } catch (error) {

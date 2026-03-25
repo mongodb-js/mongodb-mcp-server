@@ -107,14 +107,24 @@ describe("EventCache", () => {
             expect(observedBySecond).toEqual([]);
         });
 
+        it("should keep events in cache and return undefined when the processor throws", async () => {
+            cache.appendEvents([createEvent("survive")]);
+
+            const result = await cache.processOldestBatch(10, () => {
+                throw new Error("boom");
+            });
+
+            expect(result).toBeUndefined();
+            expect(cache.size).toBe(1);
+            expect(cache.getEvents()[0]?.event.properties.command).toBe("survive");
+        });
+
         it("should release the lock when the processor throws", async () => {
             cache.appendEvents([createEvent("survive")]);
 
-            await expect(
-                cache.processOldestBatch(10, () => {
-                    throw new Error("boom");
-                })
-            ).rejects.toThrow("boom");
+            await cache.processOldestBatch(10, () => {
+                throw new Error("boom");
+            });
 
             // A subsequent call should be able to acquire the lock
             let secondRan = false;
