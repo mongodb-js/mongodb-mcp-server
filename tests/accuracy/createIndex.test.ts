@@ -252,7 +252,6 @@ describeAccuracyTests(
         },
     ],
     {
-        userConfig: { previewFeatures: "search" },
         clusterConfig: {
             search: true,
         },
