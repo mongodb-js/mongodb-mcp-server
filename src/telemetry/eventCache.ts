@@ -67,19 +67,29 @@ export class EventCache {
     }
 
     /**
-     * Under exclusive access: reads cached events, passes them to the processor,
-     * then replaces the cache contents with the events returned by the processor.
+     * Under exclusive access: takes up to `batchSize` oldest events and passes them
+     * to the processor. If the processor signals `removeProcessed: true`, those events
+     * are removed from the cache; otherwise they remain untouched.
+     * Returns the `result` from the processor, or `undefined` if the cache was empty.
      */
-    public async processAndClear(processor: (cachedEvents: BaseEvent[]) => Promise<BaseEvent[]>): Promise<void> {
-        await this.runExclusive(async () => {
-            const cachedEvents = this.getEvents();
-            const remainingEvents = await processor(cachedEvents.map((e) => e.event));
+    public async processOldestBatch<T>(
+        batchSize: number,
+        processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
+    ): Promise<T | undefined> {
+        return this.runExclusive(async () => {
+            const allEvents = this.getEvents();
+            const batch = allEvents.slice(0, batchSize);
+            if (batch.length === 0) return undefined;
 
-            if (cachedEvents.length > 0) {
-                this.removeEvents(cachedEvents.map((e) => e.id));
-            }
-            if (remainingEvents.length > 0) {
-                this.appendEvents(remainingEvents);
+            try {
+                const { removeProcessed, result } = await processor(batch.map((e) => e.event));
+                if (removeProcessed) {
+                    this.removeEvents(batch.map((e) => e.id));
+                }
+                return result;
+            } catch {
+                // Processor threw — leave events in cache for retry
+                return undefined;
             }
         });
     }

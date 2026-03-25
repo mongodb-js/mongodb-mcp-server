@@ -28,6 +28,7 @@ export const LogId = {
     deviceIdResolutionError: mongoLogId(1_002_006),
     deviceIdTimeout: mongoLogId(1_002_007),
     telemetryClose: mongoLogId(1_002_008),
+    telemetryRateLimited: mongoLogId(1_002_009),
 
     toolExecute: mongoLogId(1_003_001),
     toolExecuteFailure: mongoLogId(1_003_002),

@@ -1,6 +1,14 @@
 import { ApiClient } from "../../src/common/atlas/apiClient.js";
+import { ApiClientError } from "../../src/common/atlas/apiClientError.js";
 import type { Session } from "../../src/common/session.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
+import {
+    Telemetry,
+    nextBackoffMs,
+    BATCH_SIZE,
+    SEND_INTERVAL_MS,
+    INITIAL_BACKOFF_MS,
+    MAX_BACKOFF_MS,
+} from "../../src/telemetry/telemetry.js";
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
 import { afterEach, beforeAll, beforeEach, describe, it, vi, expect } from "vitest";
@@ -19,6 +27,23 @@ const MockApiClient = vi.mocked(ApiClient);
 vi.mock("../../src/telemetry/eventCache.js");
 const MockEventCache = vi.mocked(EventCache);
 
+// Mock container detection to avoid file I/O in tests
+vi.mock("../../src/helpers/container.js", () => ({
+    detectContainerEnv: vi.fn().mockResolvedValue(false),
+}));
+
+describe("nextBackoffMs", () => {
+    it("should double the current backoff", () => {
+        expect(nextBackoffMs(60_000)).toBe(120_000);
+        expect(nextBackoffMs(120_000)).toBe(240_000);
+    });
+
+    it("should cap at MAX_BACKOFF_MS", () => {
+        expect(nextBackoffMs(MAX_BACKOFF_MS)).toBe(MAX_BACKOFF_MS);
+        expect(nextBackoffMs(MAX_BACKOFF_MS / 2 + 1)).toBe(MAX_BACKOFF_MS);
+    });
+});
+
 describe("Telemetry", () => {
     let mockApiClient: {
         sendEvents: MockedFunction<(events: BaseEvent[], options?: { signal?: AbortSignal }) => Promise<void>>;
@@ -26,11 +51,15 @@ describe("Telemetry", () => {
         isAuthConfigured: MockedFunction<() => boolean>;
     };
     let mockEventCache: {
+        size: number;
         getEvents: MockedFunction<() => { id: number; event: BaseEvent }[]>;
         removeEvents: MockedFunction<(ids: number[]) => void>;
         appendEvents: MockedFunction<(events: BaseEvent[]) => void>;
-        processAndClear: MockedFunction<
-            (processor: (cachedEvents: BaseEvent[]) => Promise<BaseEvent[]>) => Promise<void>
+        processOldestBatch: MockedFunction<
+            <T>(
+                batchSize: number,
+                processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
+            ) => Promise<T | undefined>
         >;
     };
     let session: Session;
@@ -38,7 +67,9 @@ describe("Telemetry", () => {
     let mockDeviceId: DeviceId;
     let config: UserConfig;
 
-    // Helper function to create properly typed test events
+    // In-memory store backing the stateful mock EventCache
+    let _cachedEvents: BaseEvent[] = [];
+
     function createTestEvent(options?: {
         result?: TelemetryResult;
         component?: string;
@@ -67,92 +98,75 @@ describe("Telemetry", () => {
         };
     }
 
-    function emitEventsForTest(events: BaseEvent[]): Promise<void> {
-        return new Promise((resolve) => {
+    /**
+     * Emits events and advances fake timers to trigger the send timer.
+     * Returns once the telemetry emits an outcome event.
+     */
+    async function emitEventsForTest(events: BaseEvent[]): Promise<void> {
+        const eventFired = new Promise<void>((resolve) => {
             telemetry.events.once("events-emitted", resolve);
             telemetry.events.once("events-send-failed", resolve);
             telemetry.events.once("events-skipped", resolve);
-
-            telemetry.emitEvents(events);
         });
+
+        telemetry.emitEvents(events);
+        await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+        return eventFired;
     }
 
-    // Helper function to verify mock calls to reduce duplication
-    function verifyMockCalls({
-        sendEventsCalls = 0,
-        removeEventsCalls = 0,
-        appendEventsCalls = 0,
-        sendEventsCalledWith = undefined,
-        appendEventsCalledWith = undefined,
-    }: {
-        sendEventsCalls?: number;
-        removeEventsCalls?: number;
-        appendEventsCalls?: number;
-        sendEventsCalledWith?: BaseEvent[] | undefined;
-        appendEventsCalledWith?: BaseEvent[] | undefined;
-    } = {}): void {
-        const { calls: sendEvents } = mockApiClient.sendEvents.mock;
-        const { calls: removeEvents } = mockEventCache.removeEvents.mock;
-        const { calls: appendEvents } = mockEventCache.appendEvents.mock;
-
-        expect(sendEvents.length).toBe(sendEventsCalls);
-        expect(removeEvents.length).toBe(removeEventsCalls);
-        expect(appendEvents.length).toBe(appendEventsCalls);
-
-        if (sendEventsCalledWith) {
-            expect(sendEvents[0]?.[0]).toEqual(
-                sendEventsCalledWith.map((event) => ({
-                    ...event,
-                    properties: {
-                        ...telemetry.getCommonProperties(),
-                        ...event.properties,
-                    },
-                }))
-            );
-        }
-
-        if (appendEventsCalledWith) {
-            expect(appendEvents[0]?.[0]).toEqual(appendEventsCalledWith);
-        }
+    function createRateLimitedError(): ApiClientError {
+        return ApiClientError.fromError(
+            { status: 429, statusText: "Too Many Requests" } as Response,
+            "Too Many Requests"
+        );
     }
 
     beforeEach(() => {
+        vi.useFakeTimers();
+        _cachedEvents = [];
         config = { ...defaultTestConfig, telemetry: "enabled" };
-        // Reset mocks before each test
         vi.clearAllMocks();
 
         // Setup mocked API client
         mockApiClient = vi.mocked(new MockApiClient({ baseUrl: "" }, new NullLogger()));
-
         mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
         mockApiClient.validateAuthConfig = vi.fn().mockReturnValue(Promise.resolve());
         mockApiClient.isAuthConfigured = vi.fn().mockReturnValue(true);
 
-        // Setup mocked EventCache
+        // Setup a stateful mocked EventCache backed by _cachedEvents
         mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;
-        mockEventCache.getEvents = vi.fn().mockReturnValue([]);
-        mockEventCache.removeEvents = vi.fn();
-        mockEventCache.appendEvents = vi.fn();
-        mockEventCache.processAndClear = vi
+        Object.defineProperty(mockEventCache, "size", { get: () => _cachedEvents.length, configurable: true });
+        mockEventCache.getEvents = vi.fn().mockImplementation(() => _cachedEvents.map((event, id) => ({ id, event })));
+        mockEventCache.removeEvents = vi.fn().mockImplementation((ids: number[]) => {
+            _cachedEvents = _cachedEvents.filter((_, i) => !ids.includes(i));
+        });
+        mockEventCache.appendEvents = vi.fn().mockImplementation((events: BaseEvent[]) => {
+            _cachedEvents.push(...events);
+        });
+        mockEventCache.processOldestBatch = vi
             .fn()
-            .mockImplementation(async (processor: (cachedEvents: BaseEvent[]) => Promise<BaseEvent[]>) => {
-                const cachedEvents = mockEventCache.getEvents();
-                const remainingEvents = await processor(cachedEvents.map((e) => e.event));
+            .mockImplementation(
+                async <T>(
+                    batchSize: number,
+                    processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
+                ): Promise<T | undefined> => {
+                    const allEvents = mockEventCache.getEvents();
+                    const batch = allEvents.slice(0, batchSize);
+                    if (batch.length === 0) return undefined;
 
-                if (cachedEvents.length > 0) {
-                    mockEventCache.removeEvents(cachedEvents.map((e) => e.id));
+                    const { removeProcessed, result } = await processor(batch.map((e) => e.event));
+                    if (removeProcessed) {
+                        mockEventCache.removeEvents(batch.map((e) => e.id));
+                    }
+                    return result;
                 }
-                if (remainingEvents.length > 0) {
-                    mockEventCache.appendEvents(remainingEvents);
-                }
-            });
+            );
         MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
 
         mockDeviceId = {
             get: vi.fn().mockResolvedValue("test-device-id"),
         } as unknown as DeviceId;
 
-        // Create a simplified session with our mocked API client
         session = {
             apiClient: mockApiClient as unknown as ApiClient,
             sessionId: "test-session-id",
@@ -171,59 +185,79 @@ describe("Telemetry", () => {
         config.telemetry = "enabled";
     });
 
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     describe("when telemetry is enabled", () => {
-        it("should send events successfully", async () => {
+        it("should not send immediately on emitEvents — only after the timer fires", async () => {
             const testEvent = createTestEvent();
+            await telemetry.setupPromise;
 
+            telemetry.emitEvents([testEvent]);
+
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+            expect(mockEventCache.appendEvents).toHaveBeenCalledWith([testEvent]);
+
+            await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+        });
+
+        it("should send events successfully and remove them from cache", async () => {
+            const testEvent = createTestEvent();
             await telemetry.setupPromise;
 
             await emitEventsForTest([testEvent]);
 
-            verifyMockCalls({
-                sendEventsCalls: 1,
-                sendEventsCalledWith: [testEvent],
-            });
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            expect(mockEventCache.removeEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents).toHaveLength(0);
         });
 
-        it("should cache events when sending fails", async () => {
+        it("should leave events in cache when sending fails", async () => {
             mockApiClient.sendEvents.mockRejectedValueOnce(new Error("API error"));
-
             const testEvent = createTestEvent();
-
             await telemetry.setupPromise;
 
             await emitEventsForTest([testEvent]);
 
-            verifyMockCalls({
-                sendEventsCalls: 1,
-                appendEventsCalls: 1,
-                appendEventsCalledWith: [testEvent],
-            });
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            // processOldestBatch does NOT remove on failure — events stay
+            expect(mockEventCache.removeEvents).not.toHaveBeenCalled();
+            expect(_cachedEvents).toHaveLength(1);
         });
 
-        it("should include cached events when sending", async () => {
-            const cachedEvent = createTestEvent({
-                command: "cached-command",
-                component: "cached-component",
-            });
+        it("should include previously cached events when sending", async () => {
+            const cachedEvent = createTestEvent({ command: "cached-command", component: "cached-component" });
+            const newEvent = createTestEvent({ command: "new-command", component: "new-component" });
 
-            const newEvent = createTestEvent({
-                command: "new-command",
-                component: "new-component",
-            });
-
-            // Set up mock to return cached events
-            mockEventCache.getEvents.mockReturnValueOnce([{ id: 0, event: cachedEvent }]);
+            // Pre-populate the cache
+            _cachedEvents.push(cachedEvent);
 
             await telemetry.setupPromise;
-
             await emitEventsForTest([newEvent]);
 
-            verifyMockCalls({
-                sendEventsCalls: 1,
-                removeEventsCalls: 1,
-                sendEventsCalledWith: [cachedEvent, newEvent],
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0];
+            expect(sentEvents).toHaveLength(2);
+        });
+
+        it("should send at most BATCH_SIZE events per timer tick", async () => {
+            const events = Array.from({ length: BATCH_SIZE + 5 }, (_, i) => createTestEvent({ command: `event-${i}` }));
+            _cachedEvents.push(...events);
+
+            await telemetry.setupPromise;
+
+            const eventFired = new Promise<void>((resolve) => {
+                telemetry.events.once("events-emitted", resolve);
             });
+            await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+            await eventFired;
+
+            const sentEvents = mockApiClient.sendEvents.mock.calls[0]?.[0];
+            expect(sentEvents).toHaveLength(BATCH_SIZE);
+            expect(_cachedEvents).toHaveLength(5);
         });
 
         it("should correctly add common properties to events", async () => {
@@ -231,28 +265,24 @@ describe("Telemetry", () => {
 
             const commonProps = telemetry.getCommonProperties();
 
-            // Use explicit type assertion
-            const expectedProps: Record<string, string> = {
+            expect(commonProps).toMatchObject({
                 mcp_client_version: "1.0.0",
                 mcp_client_name: "test-agent",
                 session_id: "test-session-id",
                 config_atlas_auth: "true",
-                config_connection_string: expect.any(String) as unknown as string,
                 device_id: "test-device-id",
-            };
-
-            expect(commonProps).toMatchObject(expectedProps);
+            });
         });
 
         it("should add hostingMode to events if set", async () => {
+            vi.clearAllTimers();
             telemetry = Telemetry.create(session, config, mockDeviceId, {
                 eventCache: mockEventCache as unknown as EventCache,
                 commonProperties: { hosting_mode: "vscode-extension" },
             });
             await telemetry.setupPromise;
 
-            const commonProps = telemetry.getCommonProperties();
-            expect(commonProps.hosting_mode).toBe("vscode-extension");
+            expect(telemetry.getCommonProperties().hosting_mode).toBe("vscode-extension");
 
             await emitEventsForTest([createTestEvent()]);
 
@@ -273,11 +303,9 @@ describe("Telemetry", () => {
             });
 
             it("should successfully resolve the device ID", async () => {
-                const mockDeviceId = {
-                    get: vi.fn().mockResolvedValue("test-device-id"),
-                } as unknown as DeviceId;
-
-                telemetry = Telemetry.create(session, config, mockDeviceId);
+                vi.clearAllTimers();
+                const devId = { get: vi.fn().mockResolvedValue("test-device-id") } as unknown as DeviceId;
+                telemetry = Telemetry.create(session, config, devId);
 
                 expect(telemetry["isBufferingEvents"]).toBe(true);
                 expect(telemetry.getCommonProperties().device_id).toBe(undefined);
@@ -289,38 +317,104 @@ describe("Telemetry", () => {
             });
 
             it("should handle device ID resolution failure gracefully", async () => {
-                const mockDeviceId = {
-                    get: vi.fn().mockResolvedValue("unknown"),
-                } as unknown as DeviceId;
-
-                telemetry = Telemetry.create(session, config, mockDeviceId);
+                vi.clearAllTimers();
+                const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
+                telemetry = Telemetry.create(session, config, devId);
 
                 expect(telemetry["isBufferingEvents"]).toBe(true);
-                expect(telemetry.getCommonProperties().device_id).toBe(undefined);
-
                 await telemetry.setupPromise;
 
                 expect(telemetry["isBufferingEvents"]).toBe(false);
-                // Should use "unknown" as fallback when device ID resolution fails
                 expect(telemetry.getCommonProperties().device_id).toBe("unknown");
             });
 
             it("should handle device ID timeout gracefully", async () => {
-                const mockDeviceId = {
-                    get: vi.fn().mockResolvedValue("unknown"),
-                } as unknown as DeviceId;
-
-                telemetry = Telemetry.create(session, config, mockDeviceId);
+                vi.clearAllTimers();
+                const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
+                telemetry = Telemetry.create(session, config, devId);
 
                 expect(telemetry["isBufferingEvents"]).toBe(true);
-                expect(telemetry.getCommonProperties().device_id).toBe(undefined);
-
                 await telemetry.setupPromise;
 
                 expect(telemetry["isBufferingEvents"]).toBe(false);
-                // Should use "unknown" as fallback when device ID times out
                 expect(telemetry.getCommonProperties().device_id).toBe("unknown");
             });
+        });
+    });
+
+    describe("rate limiting and backoff", () => {
+        it("should stop the normal send timer when receiving a 429", async () => {
+            mockApiClient.sendEvents.mockRejectedValueOnce(createRateLimitedError());
+            await telemetry.setupPromise;
+
+            await emitEventsForTest([createTestEvent()]);
+
+            // The next send should be delayed by INITIAL_BACKOFF_MS, not SEND_INTERVAL_MS
+            vi.clearAllMocks();
+            _cachedEvents.push(createTestEvent());
+            await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+        });
+
+        it("should retry after the backoff delay", async () => {
+            mockApiClient.sendEvents.mockRejectedValueOnce(createRateLimitedError());
+            await telemetry.setupPromise;
+
+            await emitEventsForTest([createTestEvent()]);
+
+            vi.clearAllMocks();
+            _cachedEvents.push(createTestEvent());
+            // Advance past the backoff delay — the timer should fire and send
+            await vi.advanceTimersByTimeAsync(INITIAL_BACKOFF_MS);
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+        });
+
+        it("should double the backoff on consecutive 429s", async () => {
+            await telemetry.setupPromise;
+            expect(telemetry["backoffMs"]).toBe(INITIAL_BACKOFF_MS);
+
+            // First 429
+            mockApiClient.sendEvents.mockRejectedValueOnce(createRateLimitedError());
+            await emitEventsForTest([createTestEvent()]);
+            expect(telemetry["backoffMs"]).toBe(INITIAL_BACKOFF_MS * 2);
+
+            // Second 429
+            mockApiClient.sendEvents.mockRejectedValueOnce(createRateLimitedError());
+            _cachedEvents.push(createTestEvent());
+            await vi.advanceTimersByTimeAsync(INITIAL_BACKOFF_MS);
+            expect(telemetry["backoffMs"]).toBe(INITIAL_BACKOFF_MS * 4);
+        });
+
+        it("should cap backoff at MAX_BACKOFF_MS", async () => {
+            await telemetry.setupPromise;
+            telemetry["backoffMs"] = MAX_BACKOFF_MS;
+
+            mockApiClient.sendEvents.mockRejectedValueOnce(createRateLimitedError());
+            await emitEventsForTest([createTestEvent()]);
+
+            expect(telemetry["backoffMs"]).toBe(MAX_BACKOFF_MS);
+        });
+
+        it("should reset backoff after a successful send", async () => {
+            await telemetry.setupPromise;
+            telemetry["backoffMs"] = MAX_BACKOFF_MS;
+
+            await emitEventsForTest([createTestEvent()]);
+
+            expect(telemetry["backoffMs"]).toBe(INITIAL_BACKOFF_MS);
+        });
+
+        it("should not apply backoff for non-429 errors", async () => {
+            mockApiClient.sendEvents.mockRejectedValueOnce(new Error("Network error"));
+            await telemetry.setupPromise;
+
+            await emitEventsForTest([createTestEvent()]);
+
+            // The next send should fire at the normal interval, not a backoff delay
+            vi.clearAllMocks();
+            _cachedEvents.push(createTestEvent());
+            await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -333,12 +427,13 @@ describe("Telemetry", () => {
             config.telemetry = "enabled";
         });
 
-        it("should not send events", async () => {
+        it("should not send or cache events", async () => {
             const testEvent = createTestEvent();
 
             await emitEventsForTest([testEvent]);
 
-            verifyMockCalls();
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+            expect(mockEventCache.appendEvents).not.toHaveBeenCalled();
         });
     });
 
@@ -358,12 +453,13 @@ describe("Telemetry", () => {
             }
         });
 
-        it("should not send events", async () => {
+        it("should not send or cache events", async () => {
             const testEvent = createTestEvent();
 
             await emitEventsForTest([testEvent]);
 
-            verifyMockCalls();
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+            expect(mockEventCache.appendEvents).not.toHaveBeenCalled();
         });
     });
 
@@ -377,7 +473,6 @@ describe("Telemetry", () => {
                 session.keychain.register("secret-token", "password");
                 session.keychain.register("secret-password-version", "password");
 
-                // Simulates sensitive data across random properties
                 const sensitiveStaticProps = {
                     mcp_server_version: "secret-server-version",
                     mcp_server_name: "secret-server-name",
@@ -387,11 +482,11 @@ describe("Telemetry", () => {
                     os_version: "secret-password-version",
                 };
 
+                vi.clearAllTimers();
                 telemetry = Telemetry.create(session, config, mockDeviceId, {
                     eventCache: mockEventCache as unknown as EventCache,
                     commonProperties: sensitiveStaticProps,
                 });
-
                 await telemetry.setupPromise;
 
                 await emitEventsForTest([createTestEvent()]);
@@ -399,7 +494,6 @@ describe("Telemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                // get event properties
                 const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
@@ -413,7 +507,6 @@ describe("Telemetry", () => {
             });
 
             it("should redact sensitive data from CommonProperties", async () => {
-                // register the common properties as sensitive data
                 session.keychain.register("test-device-id", "password");
                 session.keychain.register(session.sessionId, "password");
 
@@ -423,14 +516,11 @@ describe("Telemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                // get event properties
                 const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
-                const eventProps = sentEvent.properties;
-
-                expect(eventProps.device_id).toBe("<password>");
-                expect(eventProps.session_id).toBe("<password>");
+                expect(sentEvent.properties.device_id).toBe("<password>");
+                expect(sentEvent.properties.session_id).toBe("<password>");
             });
 
             it("should redact sensitive data that is added to events", async () => {
@@ -444,23 +534,49 @@ describe("Telemetry", () => {
                 const calls = mockApiClient.sendEvents.mock.calls;
                 expect(calls).toHaveLength(1);
 
-                // get event properties
                 const sentEvent = calls[0]?.[0][0] as { properties: Record<string, unknown> };
                 expectDefined(sentEvent);
 
-                const eventProps = sentEvent.properties;
-                expect(eventProps.device_id).toBe("<password>");
-                expect(eventProps.session_id).toBe("<password>");
-                expect(eventProps.component).toBe("<password>");
+                expect(sentEvent.properties.device_id).toBe("<password>");
+                expect(sentEvent.properties.session_id).toBe("<password>");
+                expect(sentEvent.properties.component).toBe("<password>");
             });
         });
     });
 
+    describe("close", () => {
+        it("should send one final batch on close", async () => {
+            await telemetry.setupPromise;
+            _cachedEvents.push(createTestEvent());
+
+            await telemetry.close();
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents).toHaveLength(0);
+        });
+
+        it("should pass an AbortSignal to sendEvents during close", async () => {
+            await telemetry.setupPromise;
+            _cachedEvents.push(createTestEvent());
+
+            let receivedSignal: AbortSignal | undefined;
+            mockApiClient.sendEvents.mockImplementation((_events, options) => {
+                receivedSignal = options?.signal;
+                return Promise.resolve();
+            });
+
+            await telemetry.close();
+
+            expect(receivedSignal).toBeDefined();
+            expect(receivedSignal).toBeInstanceOf(AbortSignal);
+        });
+    });
+
     /**
-     * These tests use the real EventCache (via importActual) so getEvents/removeEvents are shared.
-     * This is a regression test to ensure that the emit lock prevents the same events from being sent twice.
+     * Regression test: the processOldestBatch exclusive lock prevents the same events
+     * from being sent twice when sendBatch is triggered concurrently.
      */
-    describe("when sending multiple events concurrently", () => {
+    describe("when sendBatch is triggered concurrently", () => {
         let RealEventCache: typeof EventCache;
 
         beforeAll(async () => {
@@ -468,7 +584,7 @@ describe("Telemetry", () => {
             RealEventCache = mod.EventCache;
         });
 
-        it("should not send the same cached events twice", async () => {
+        it("should not send the same cached event twice when two batches overlap", async () => {
             const eventCache = new RealEventCache();
             const CACHED_MARKER = "cached-race-test";
 
@@ -476,27 +592,13 @@ describe("Telemetry", () => {
 
             mockApiClient.sendEvents.mockResolvedValue(undefined);
 
+            vi.clearAllTimers();
             const raceTelemetry = Telemetry.create(session, config, mockDeviceId, {
                 eventCache,
             });
             await raceTelemetry.setupPromise;
 
-            const emitted = new Promise<void>((resolve) => {
-                let count = 0;
-                const onDone = (): void => {
-                    count++;
-                    if (count >= 2) resolve();
-                };
-                raceTelemetry.events.once("events-emitted", onDone);
-                raceTelemetry.events.once("events-send-failed", onDone);
-                raceTelemetry.events.once("events-emitted", onDone);
-                raceTelemetry.events.once("events-send-failed", onDone);
-            });
-
-            raceTelemetry.emitEvents([createTestEvent({ command: "event-a" })]);
-            raceTelemetry.emitEvents([createTestEvent({ command: "event-b" })]);
-
-            await emitted;
+            await Promise.all([raceTelemetry["sendBatch"](), raceTelemetry["sendBatch"]()]);
 
             let cachedEventSendCount = 0;
             for (const call of mockApiClient.sendEvents.mock.calls) {
@@ -506,57 +608,6 @@ describe("Telemetry", () => {
                 }
             }
             expect(cachedEventSendCount, "Cached event should be sent exactly once").toBe(1);
-        });
-
-        it("should send cached event only once when the first send is delayed", async () => {
-            const eventCache = new RealEventCache();
-            const CACHED_MARKER = "cached-regression-test";
-
-            eventCache.appendEvents([createTestEvent({ command: CACHED_MARKER, component: "cached" })]);
-
-            const delayMs = 50;
-            let sendCallCount = 0;
-            mockApiClient.sendEvents.mockImplementation(() => {
-                sendCallCount++;
-                if (sendCallCount === 1) {
-                    return new Promise((resolve) => setTimeout(resolve, delayMs));
-                }
-                return Promise.resolve();
-            });
-
-            const raceTelemetry = Telemetry.create(session, config, mockDeviceId, {
-                eventCache,
-            });
-            await raceTelemetry.setupPromise;
-
-            const emitted = new Promise<void>((resolve) => {
-                let count = 0;
-                const onDone = (): void => {
-                    count++;
-                    if (count >= 2) resolve();
-                };
-                raceTelemetry.events.once("events-emitted", onDone);
-                raceTelemetry.events.once("events-send-failed", onDone);
-                raceTelemetry.events.once("events-emitted", onDone);
-                raceTelemetry.events.once("events-send-failed", onDone);
-            });
-
-            raceTelemetry.emitEvents([createTestEvent({ command: "event-a" })]);
-            raceTelemetry.emitEvents([createTestEvent({ command: "event-b" })]);
-
-            await emitted;
-
-            let cachedEventSendCount = 0;
-            for (const call of mockApiClient.sendEvents.mock.calls) {
-                const events = call[0] as Array<{ properties?: { command?: string } }>;
-                for (const e of events) {
-                    if (e.properties?.command === CACHED_MARKER) cachedEventSendCount++;
-                }
-            }
-            expect(
-                cachedEventSendCount,
-                "Regression: without the emit lock, both concurrent emit() read the same cache; cached would be 2"
-            ).toBe(1);
         });
     });
 });
