@@ -284,10 +284,7 @@ export class Telemetry {
     /**
      * Sends events through the API client after redacting sensitive data.
      */
-    private async sendEvents(
-        client: ApiClient,
-        events: BaseEvent[],
-    ): Promise<SendResult> {
+    private async sendEvents(client: ApiClient, events: BaseEvent[]): Promise<SendResult> {
         try {
             const signal = AbortSignal.timeout(SEND_TIMEOUT_MS);
             await client.sendEvents(

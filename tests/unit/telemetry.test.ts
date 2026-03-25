@@ -136,9 +136,7 @@ describe("Telemetry", () => {
         // Setup a stateful mocked EventCache backed by _cachedEvents
         mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;
         Object.defineProperty(mockEventCache, "size", { get: () => _cachedEvents.length, configurable: true });
-        mockEventCache.getEvents = vi
-            .fn()
-            .mockImplementation(() => _cachedEvents.map((event, id) => ({ id, event })));
+        mockEventCache.getEvents = vi.fn().mockImplementation(() => _cachedEvents.map((event, id) => ({ id, event })));
         mockEventCache.removeEvents = vi.fn().mockImplementation((ids: number[]) => {
             _cachedEvents = _cachedEvents.filter((_, i) => !ids.includes(i));
         });
@@ -246,9 +244,7 @@ describe("Telemetry", () => {
         });
 
         it("should send at most BATCH_SIZE events per timer tick", async () => {
-            const events = Array.from({ length: BATCH_SIZE + 5 }, (_, i) =>
-                createTestEvent({ command: `event-${i}` })
-            );
+            const events = Array.from({ length: BATCH_SIZE + 5 }, (_, i) => createTestEvent({ command: `event-${i}` }));
             _cachedEvents.push(...events);
 
             await telemetry.setupPromise;
