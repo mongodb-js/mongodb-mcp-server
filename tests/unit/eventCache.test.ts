@@ -17,34 +17,61 @@ describe("EventCache", () => {
         cache = new EventCache();
     });
 
-    describe("processAndClear", () => {
-        it("should remove events from the cache when the processor returns an empty array", async () => {
+    describe("processOldestBatch", () => {
+        it("should remove events when the processor signals removeProcessed: true", async () => {
             cache.appendEvents([createEvent("a"), createEvent("b")]);
             expect(cache.size).toBe(2);
 
-            await cache.processAndClear(() => Promise.resolve([]));
+            const result = await cache.processOldestBatch(10, () =>
+                Promise.resolve({ removeProcessed: true, result: "ok" })
+            );
 
+            expect(result).toBe("ok");
             expect(cache.size).toBe(0);
         });
 
-        it("should re-cache events returned by the processor", async () => {
-            const eventA = createEvent("a");
-            cache.appendEvents([eventA, createEvent("b")]);
+        it("should keep events when the processor signals removeProcessed: false", async () => {
+            cache.appendEvents([createEvent("a"), createEvent("b")]);
 
-            await cache.processAndClear(() => Promise.resolve([eventA]));
+            const result = await cache.processOldestBatch(10, () =>
+                Promise.resolve({ removeProcessed: false, result: "failed" })
+            );
 
+            expect(result).toBe("failed");
+            expect(cache.size).toBe(2);
+        });
+
+        it("should return undefined when the cache is empty", async () => {
+            const result = await cache.processOldestBatch(10, () =>
+                Promise.resolve({ removeProcessed: true, result: "should-not-reach" })
+            );
+
+            expect(result).toBeUndefined();
+        });
+
+        it("should only process up to batchSize events", async () => {
+            cache.appendEvents([createEvent("a"), createEvent("b"), createEvent("c")]);
+
+            let receivedCount = 0;
+            await cache.processOldestBatch(2, (events) => {
+                receivedCount = events.length;
+                return Promise.resolve({ removeProcessed: true, result: null });
+            });
+
+            expect(receivedCount).toBe(2);
             expect(cache.size).toBe(1);
-            const remaining = cache.getEvents();
-            expect(remaining[0]?.event.properties.command).toBe("a");
+            // The remaining event is whichever wasn't in the first batch
+            const remaining = cache.getEvents().map((e) => e.event.properties.command);
+            expect(remaining).toHaveLength(1);
         });
 
         it("should pass cached events to the processor", async () => {
             cache.appendEvents([createEvent("x"), createEvent("y")]);
 
             let receivedCommands: string[] = [];
-            await cache.processAndClear((events) => {
+            await cache.processOldestBatch(10, (events) => {
                 receivedCommands = events.map((e) => e.properties.command as string);
-                return Promise.resolve([]);
+                return Promise.resolve({ removeProcessed: true, result: null });
             });
 
             expect(receivedCommands).toEqual(expect.arrayContaining(["x", "y"]));
@@ -62,93 +89,45 @@ describe("EventCache", () => {
                 resolveFirst = r;
             });
 
-            const first = cache.processAndClear(async (events) => {
+            const first = cache.processOldestBatch(10, async (events) => {
                 observedByFirst.push(...events.map((e) => e.properties.command as string));
                 await firstBlocked;
-                return [];
+                return { removeProcessed: true, result: null };
             });
 
-            const second = cache.processAndClear((events) => {
+            const second = cache.processOldestBatch(10, (events) => {
                 observedBySecond.push(...events.map((e) => e.properties.command as string));
-                return Promise.resolve([]);
+                return Promise.resolve({ removeProcessed: true, result: null });
             });
 
-            // The second call should be blocked while the first holds the lock.
-            // Release the first after a tick to let the second proceed.
             resolveFirst!();
-
             await Promise.all([first, second]);
 
             expect(observedByFirst).toEqual(["cached"]);
             expect(observedBySecond).toEqual([]);
         });
 
-        it("should serialize three concurrent calls in order", async () => {
-            cache.appendEvents([createEvent("initial")]);
-
-            const order: number[] = [];
-
-            let resolve1: (() => void) | undefined;
-            let resolve2: (() => void) | undefined;
-            const block1 = new Promise<void>((r) => {
-                resolve1 = r;
-            });
-            const block2 = new Promise<void>((r) => {
-                resolve2 = r;
-            });
-
-            const p1 = cache.processAndClear(async () => {
-                order.push(1);
-                await block1;
-                return [createEvent("from-first")];
-            });
-
-            const p2 = cache.processAndClear(async (events) => {
-                order.push(2);
-                expect(events.map((e) => e.properties.command)).toEqual(["from-first"]);
-                await block2;
-                return [];
-            });
-
-            const p3 = cache.processAndClear((events) => {
-                order.push(3);
-                expect(events).toEqual([]);
-                return Promise.resolve([]);
-            });
-
-            resolve1!();
-            resolve2!();
-            await Promise.all([p1, p2, p3]);
-
-            expect(order).toEqual([1, 2, 3]);
-        });
-
         it("should release the lock when the processor throws", async () => {
             cache.appendEvents([createEvent("survive")]);
 
             await expect(
-                cache.processAndClear(() => {
+                cache.processOldestBatch(10, () => {
                     throw new Error("boom");
                 })
             ).rejects.toThrow("boom");
 
-            // Events should still be in the cache because the processor threw
-            // before returning (processAndClear removes before calling processor,
-            // then re-adds what it returns — but the throw prevents the re-add
-            // from the return path, so the original removal stands).
-            // A subsequent call should be able to acquire the lock.
+            // A subsequent call should be able to acquire the lock
             let secondRan = false;
-            await cache.processAndClear(() => {
+            await cache.processOldestBatch(10, () => {
                 secondRan = true;
-                return Promise.resolve([]);
+                return Promise.resolve({ removeProcessed: true, result: null });
             });
 
             expect(secondRan).toBe(true);
         });
 
         it("should not duplicate cached events across concurrent calls even with delays", async () => {
-            const CACHED = createEvent("cached-marker");
-            cache.appendEvents([CACHED]);
+            cache.appendEvents([createEvent("cached-marker")]);
 
             const allObserved: string[][] = [];
 
@@ -157,30 +136,30 @@ describe("EventCache", () => {
                 resolveFirst = r;
             });
 
-            const first = cache.processAndClear(async (events) => {
+            const first = cache.processOldestBatch(10, async (events) => {
                 allObserved.push(events.map((e) => e.properties.command as string));
                 await firstDelay;
-                return [];
+                return { removeProcessed: true, result: null };
             });
 
-            const second = cache.processAndClear((events) => {
+            const second = cache.processOldestBatch(10, (events) => {
                 allObserved.push(events.map((e) => e.properties.command as string));
-                return Promise.resolve([]);
+                return Promise.resolve({ removeProcessed: true, result: null });
             });
 
-            const third = cache.processAndClear((events) => {
+            const third = cache.processOldestBatch(10, (events) => {
                 allObserved.push(events.map((e) => e.properties.command as string));
-                return Promise.resolve([]);
+                return Promise.resolve({ removeProcessed: true, result: null });
             });
 
             resolveFirst!();
             await Promise.all([first, second, third]);
 
-            const totalCachedMarkerSeen = allObserved.flat().filter((cmd) => cmd === "cached-marker").length;
-            expect(totalCachedMarkerSeen, "cached event should be observed by exactly one processor").toBe(1);
+            // Only the first processor should have seen the event; the others
+            // never ran because the cache was empty (processOldestBatch returns
+            // undefined without calling the processor).
+            expect(allObserved).toHaveLength(1);
             expect(allObserved[0]).toEqual(["cached-marker"]);
-            expect(allObserved[1]).toEqual([]);
-            expect(allObserved[2]).toEqual([]);
         });
     });
 });
