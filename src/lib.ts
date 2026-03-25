@@ -73,3 +73,4 @@ export { PrometheusMetrics } from "./common/metrics/prometheusMetrics.js";
 export { createDefaultMetrics } from "./common/metrics/metricDefinitions.js";
 export type { DefaultMetrics } from "./common/metrics/metricDefinitions.js";
 export type { Metrics, MetricDefinitions } from "./common/metrics/metricsTypes.js";
+export { default as express } from "express";
