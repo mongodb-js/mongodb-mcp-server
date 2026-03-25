@@ -149,9 +149,7 @@ When adding new tools to the MCP server:
 
 To release a new version of the MCP server, follow these steps:
 
-1. Ensure there is a Jira _Release_ ticket in the [`MCP` project](https://jira.mongodb.org/projects/MCP) for the new release and move it to _In Progress_.
-2. Verify that the Jira tickets you expect to be released are correctly mapped to the expected Release version. Add any additional required documentation to the release ticket.
-3. To create a new version, go to the GitHub repository Actions tab and run the "Prepare Release" workflow with one of the following options:
+1. To create a new version, go to the GitHub repository Actions tab and run the "Prepare Release" workflow with one of the following options:
    - `patch` (e.g., 1.0.0 → 1.0.1) for backward-compatible bug fixes
    - `minor` (e.g., 1.0.0 → 1.1.0) for backward-compatible new features
    - `major` (e.g., 1.0.0 → 2.0.0) for breaking changes
@@ -160,15 +158,13 @@ To release a new version of the MCP server, follow these steps:
 
    > **Note**: Stable releases are published under the `latest` tag on NPM and are intended for production use. Pre-release versions are published under the `prerelease` tag and serve as release candidates for early access and feedback before being released as stable versions.
 
-4. This creates a pull request with the version change.
-5. Merge this pull request if all looks correct. This will trigger the "Publish" workflow which will publish it to **NPM**, **Docker** and the **MCP Registry**.
-6. Verify that the new version is published correctly by checking:
+2. This creates a pull request with the version change. The PR body includes a summary of the Jira `vNext` ticket status — check it for any unresolved tickets and ensure they are either resolved or moved out of `vNext` before merging.
+3. Merge this pull request if all looks correct. This will trigger the "Publish" workflow which will publish it to **NPM**, **Docker** and the **MCP Registry**. It will also automatically rename the Jira `vNext` version to the released version number and create a new `vNext` for the next release.
+4. Verify that the new version is published correctly by checking:
    - NPM: https://www.npmjs.com/package/mongodb-mcp-server
    - Docker: https://hub.docker.com/r/mongodb/mongodb-mcp-server
    - MCP Registry: `curl "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mongodb-js%2Fmongodb-mcp-server/versions/latest"`
-7. Close the Jira ticket for the release.
-8. Go to the [Releases](https://jira.mongodb.org/projects/MCP?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased) section the and rename the `vNext` to the new version number and mark it as Released. Create a new `vNext` for the next release.
-9. Post an update in the `#mongodb-mcp` Slack channel.
+5. Post an update in the `#mongodb-mcp` Slack channel.
 
 ### Code Quality
 
