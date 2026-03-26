@@ -20,6 +20,26 @@ import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 
+/**
+ * Configuration options for the StreamableHttpRunner.
+ * Extends the base TransportRunnerConfig with HTTP-transport-specific options.
+ *
+ * @template TUserConfig - The type of user configuration
+ * @template TMetrics - The type of metrics definitions
+ */
+export type StreamableHttpTransportRunnerConfig<
+    TUserConfig extends UserConfig = UserConfig,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = TransportRunnerConfig<TUserConfig, TMetrics> & {
+    /**
+     * An externally managed monitoring server instance to use instead of the default one.
+     * When provided, the runner will not create its own monitoring server and will use
+     * this instance instead. The monitoring server will be started when the runner starts
+     * and must be stopped manually by the caller.
+     */
+    monitoringServer?: MonitoringServer;
+};
+
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
@@ -33,10 +53,24 @@ export class StreamableHttpRunner<
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
-    public monitoringServer: MonitoringServer | undefined;
+    private readonly monitoringServer: MonitoringServer | undefined;
 
-    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
+    constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
+        const host = config.userConfig.monitoringServerHost ?? config.userConfig.healthCheckHost;
+        const port = config.userConfig.monitoringServerPort ?? config.userConfig.healthCheckPort;
+        // Use externally provided monitoring server or create one if host/port are configured
+        this.monitoringServer =
+            config.monitoringServer ??
+            (host !== undefined && port !== undefined
+                ? new MonitoringServer({
+                      host,
+                      port,
+                      features: config.userConfig.monitoringServerFeatures,
+                      logger: this.logger,
+                      metrics: this.metrics,
+                  })
+                : undefined);
     }
 
     /** Starts the transport runner. */
@@ -60,13 +94,8 @@ export class StreamableHttpRunner<
         });
         await this.mcpServer.start();
 
-        this.monitoringServer = await MonitoringServer.create({
-            host: this.userConfig.monitoringServerHost ?? this.userConfig.healthCheckHost,
-            port: this.userConfig.monitoringServerPort ?? this.userConfig.healthCheckPort,
-            features: this.userConfig.monitoringServerFeatures,
-            logger: this.logger,
-            metrics: this.metrics,
-        });
+        // Start the monitoring server if one exists (either externally provided or created in constructor)
+        await this.monitoringServer?.start();
 
         this.logger.info({
             message: "Streamable HTTP Transport started",
@@ -606,33 +635,11 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     }
 }
 
-class MonitoringServer extends ExpressBasedHttpServer {
-    static async create({
-        host,
-        port,
-        features,
-        logger,
-        metrics,
-    }: {
-        host: string | undefined;
-        port: number | undefined;
-        features: MonitoringServerFeature[];
-        logger: LoggerBase;
-        metrics: Metrics;
-    }): Promise<MonitoringServer | undefined> {
-        if (!host || port === undefined) {
-            return undefined;
-        }
-
-        const server = new MonitoringServer({ host, port, features, logger, metrics });
-        await server.start();
-        return server;
-    }
-
+export class MonitoringServer extends ExpressBasedHttpServer {
     private readonly features: MonitoringServerFeature[];
     private readonly metrics: Metrics;
 
-    private constructor({
+    constructor({
         host,
         port,
         features,
@@ -671,9 +678,5 @@ class MonitoringServer extends ExpressBasedHttpServer {
         }
 
         return Promise.resolve();
-    }
-
-    public get expressApp(): express.Express {
-        return this.app;
     }
 }
