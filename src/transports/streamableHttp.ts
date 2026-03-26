@@ -32,12 +32,10 @@ export type StreamableHttpTransportRunnerConfig<
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > = TransportRunnerConfig<TUserConfig, TMetrics> & {
     /**
-     * An externally managed monitoring server instance to use instead of the default one.
      * When provided, the runner will not create its own monitoring server and will use
-     * this instance instead. The monitoring server will be started when the runner starts
-     * and must be stopped manually by the caller.
+     * this instance instead. The monitoring server will be started when the runner starts.
      */
-    monitoringServer?: MonitoringServer;
+    monitoringServer?: MonitoringServer<TMetrics>;
 };
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
@@ -635,9 +633,9 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     }
 }
 
-export class MonitoringServer extends ExpressBasedHttpServer {
+export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
     private readonly features: MonitoringServerFeature[];
-    private readonly metrics: Metrics;
+    private readonly metrics: Metrics<TMetrics>;
 
     constructor({
         host,
@@ -650,7 +648,7 @@ export class MonitoringServer extends ExpressBasedHttpServer {
         port: number;
         features: MonitoringServerFeature[];
         logger: LoggerBase;
-        metrics: Metrics;
+        metrics: Metrics<TMetrics>;
     }) {
         super({ port, hostname: host, logger, logContext: "monitoringServer" });
         this.features = features;
