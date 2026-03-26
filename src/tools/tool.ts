@@ -14,6 +14,7 @@ import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
+import { redact } from "mongodb-redact";
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -814,11 +815,13 @@ export abstract class ToolBase<
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         args: z.infer<z.ZodObject<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
+        const rawMessage = error instanceof Error ? error.message : String(error);
+        const safeMessage = redact(rawMessage, this.session.keychain.allSecrets);
         return {
             content: [
                 {
                     type: "text",
-                    text: `Error running ${this.name}: ${error instanceof Error ? error.message : String(error)}`,
+                    text: `Error running ${this.name}: ${safeMessage}`,
                 },
             ],
             isError: true,

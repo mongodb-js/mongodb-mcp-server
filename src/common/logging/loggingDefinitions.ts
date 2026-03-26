@@ -85,4 +85,6 @@ export const LogId = {
     assistantSearchKnowledgeError: mongoLogId(1_011_002),
 
     streamsProcessorStateLookupFailure: mongoLogId(1_012_001),
+
+    monitoringServerMetricsFailure: mongoLogId(1_013_001),
 } as const;
