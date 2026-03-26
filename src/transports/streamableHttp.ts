@@ -33,7 +33,7 @@ export class StreamableHttpRunner<
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
-    private monitoringServer: MonitoringServer | undefined;
+    public monitoringServer: MonitoringServer | undefined;
 
     constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
