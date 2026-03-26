@@ -908,6 +908,7 @@ describe("StreamsBuildTool", () => {
                 privateLinkConfig: {
                     provider: "AZURE",
                     vendor: "EVENTHUB",
+                    region: "eastus2",
                     dnsDomain: "mynamespace.servicebus.windows.net",
                     serviceEndpointId:
                         "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
@@ -919,6 +920,7 @@ describe("StreamsBuildTool", () => {
                 body: {
                     provider: "AZURE",
                     vendor: "EVENTHUB",
+                    region: "eastus2",
                     dnsDomain: "mynamespace.servicebus.windows.net",
                     serviceEndpointId:
                         "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
@@ -933,7 +935,9 @@ describe("StreamsBuildTool", () => {
                 privateLinkConfig: {
                     provider: "AZURE",
                     vendor: "CONFLUENT",
+                    region: "eastus2",
                     dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
+                    azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Confluent/abc"],
                 },
             });
 
@@ -942,7 +946,9 @@ describe("StreamsBuildTool", () => {
                 body: {
                     provider: "AZURE",
                     vendor: "CONFLUENT",
+                    region: "eastus2",
                     dnsDomain: "pkc-abc123.eastus2.azure.confluent.cloud",
+                    azureResourceIds: ["/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Confluent/abc"],
                 },
             });
         });
@@ -954,6 +960,8 @@ describe("StreamsBuildTool", () => {
                 privateLinkConfig: {
                     provider: "GCP",
                     vendor: "CONFLUENT",
+                    region: "us-central1",
+                    dnsDomain: "pkc-abc123.us-central1.gcp.confluent.cloud",
                     gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
                 },
             });
@@ -963,6 +971,8 @@ describe("StreamsBuildTool", () => {
                 body: {
                     provider: "GCP",
                     vendor: "CONFLUENT",
+                    region: "us-central1",
+                    dnsDomain: "pkc-abc123.us-central1.gcp.confluent.cloud",
                     gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
                 },
             });
@@ -985,6 +995,67 @@ describe("StreamsBuildTool", () => {
                     privateLinkConfig: { region: "us-east-1" },
                 })
             ).rejects.toThrow("privateLinkConfig.provider is required");
+        });
+
+        it("should create PrivateLink without workspaceName", async () => {
+            await exec({
+                projectId: "proj1",
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "S3",
+                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith({
+                params: { path: { groupId: "proj1" } },
+                body: {
+                    provider: "AWS",
+                    region: "us-east-1",
+                    vendor: "S3",
+                    serviceEndpointId: "com.amazonaws.us-east-1.s3",
+                },
+            });
+        });
+    });
+
+    describe("workspaceName requirement", () => {
+        it("should throw when workspaceName is missing for workspace resource", async () => {
+            await expect(
+                exec({
+                    projectId: "proj1",
+                    resource: "workspace",
+                    cloudProvider: "AWS",
+                    region: "VIRGINIA_USA",
+                })
+            ).rejects.toThrow("workspaceName is required");
+        });
+
+        it("should throw when workspaceName is missing for connection resource", async () => {
+            await expect(
+                exec({
+                    projectId: "proj1",
+                    resource: "connection",
+                    connectionName: "conn1",
+                    connectionType: "Sample",
+                })
+            ).rejects.toThrow("workspaceName is required");
+        });
+
+        it("should throw when workspaceName is missing for processor resource", async () => {
+            await expect(
+                exec({
+                    projectId: "proj1",
+                    resource: "processor",
+                    processorName: "proc1",
+                    pipeline: [
+                        { $source: { connectionName: "src" } },
+                        { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                    ],
+                })
+            ).rejects.toThrow("workspaceName is required");
         });
     });
 });

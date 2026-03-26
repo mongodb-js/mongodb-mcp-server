@@ -98,7 +98,12 @@ export const PrivateLinkConfig = z
     .object({
         // Common
         provider: z.enum(["AWS", "AZURE", "GCP"]).describe("Cloud provider for the PrivateLink endpoint. Required."),
-        region: z.string().optional().describe("Cloud region for the PrivateLink endpoint."),
+        region: z
+            .string()
+            .optional()
+            .describe(
+                "Cloud region for the PrivateLink endpoint. Required for all vendors except AWS MSK. Use cloud-native region names: AWS 'us-east-1', Azure 'eastus2', GCP 'us-central1'."
+            ),
         // AWS
         vendor: z
             .string()
@@ -110,31 +115,33 @@ export const PrivateLinkConfig = z
         dnsDomain: z
             .string()
             .optional()
-            .describe("DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, and AZURE CONFLUENT."),
+            .describe(
+                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT."
+            ),
         dnsSubDomain: z
             .array(z.string())
             .optional()
             .describe(
-                "DNS subdomains (availability zones). Required for AWS CONFLUENT (set to [] if cluster has no subdomains)."
+                "DNS subdomains. Each value must contain the dnsDomain. Required for AWS CONFLUENT (use [] for serverless clusters)."
             ),
         // Azure
         serviceEndpointId: z
             .string()
             .optional()
             .describe(
-                "Service endpoint ID. For AWS S3: S3 VPC endpoint service name (e.g. 'com.amazonaws.us-east-1.s3'). For AWS CONFLUENT: VPC Endpoint service name. For AZURE EVENTHUB: namespace endpoint ID. For AZURE CONFLUENT: Private Endpoint resource ID."
+                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT or GCP CONFLUENT."
             ),
         azureResourceIds: z
             .array(z.string())
             .optional()
             .describe(
-                "Azure Resource IDs of availability zones. For AZURE CONFLUENT and EVENTHUB multi-zone deployments."
+                "Azure Resource IDs. Required for AZURE CONFLUENT (instead of serviceEndpointId). Do NOT provide for AZURE EVENTHUB."
             ),
         // GCP
         gcpServiceAttachmentUris: z
             .array(z.string())
             .optional()
-            .describe("GCP Private Service Connect attachment URIs. GCP only."),
+            .describe("GCP Private Service Connect attachment URIs. Required for GCP CONFLUENT."),
     })
     .passthrough();
 
