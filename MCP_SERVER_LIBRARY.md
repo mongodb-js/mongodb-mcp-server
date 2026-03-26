@@ -14,6 +14,10 @@ This guide explains how to embed and extend the MongoDB MCP Server as a library 
   - [Use Case 4: Selective Tool Registration](#use-case-4-selective-tool-registration)
 - [API Reference](#api-reference)
 - [Advanced Topics](#advanced-topics)
+  - [Custom Connection Management](#custom-connection-management)
+  - [Custom Error Handling](#custom-error-handling)
+  - [Externally Managed Monitoring Server](#externally-managed-monitoring-server)
+  - [Custom Logging](#custom-logging)
 - [Examples](#examples)
 
 ## Overview
@@ -1032,6 +1036,96 @@ const runner = new CustomStreamableHttpRunner({
 
 await runner.start();
 ```
+
+### Externally Managed Monitoring Server
+
+By default, `StreamableHttpRunner` creates and owns a `MonitoringServer` (health-check + Prometheus metrics endpoint) in its constructor and starts it when `start()` is called. You can instead create the `MonitoringServer` yourself and pass it in via `TransportRunnerConfig.monitoringServer`. This is useful when you need to:
+
+- Keep the monitoring endpoint alive while restarting or recreating MCP runners.
+- Share a single monitoring endpoint across multiple `StreamableHttpRunner` instances.
+- Control startup order (e.g., expose `/health` before accepting MCP traffic).
+
+#### Example: Shared Monitoring Server Across Multiple Runners
+
+```typescript
+import {
+  MonitoringServer,
+  PrometheusMetrics,
+  StreamableHttpRunner,
+  UserConfigSchema,
+  NullLogger,
+  createDefaultMetrics,
+} from "mongodb-mcp-server";
+
+// 1. Create shared infrastructure: a single metrics instance backed by a
+//    dedicated Prometheus registry, and a shared logger.
+const logger = new NullLogger(); // replace with your own LoggerBase implementation
+
+const metrics = new PrometheusMetrics({
+  definitions: createDefaultMetrics(),
+  // Optionally: collectProcessMetrics: true to add Node.js runtime metrics
+});
+
+// 2. Create the monitoring server independently using the constructor.
+//    It will be started by each runner's start() method.
+const monitoringServer = new MonitoringServer({
+  host: "127.0.0.1",
+  port: 9090,
+  features: ["health-check", "metrics"],
+  logger,
+  metrics,
+});
+
+// 3. Start two MCP runners that share the same monitoring server and metrics.
+//    Neither runner will create its own MonitoringServer because one is
+//    already provided. Note: the monitoring server will be started by the first
+//    runner that calls start().
+const runnerA = new StreamableHttpRunner({
+  userConfig: UserConfigSchema.parse({
+    transport: "http",
+    httpPort: 3001,
+    httpHost: "127.0.0.1",
+    connectionString: process.env.MONGODB_URI_A,
+  }),
+  metrics,
+  monitoringServer,
+});
+
+const runnerB = new StreamableHttpRunner({
+  userConfig: UserConfigSchema.parse({
+    transport: "http",
+    httpPort: 3002,
+    httpHost: "127.0.0.1",
+    connectionString: process.env.MONGODB_URI_B,
+  }),
+  metrics,
+  monitoringServer,
+});
+
+// Start both runners - the monitoring server will be started by runnerA.start()
+await runnerA.start();
+console.log(`Monitoring server running at ${monitoringServer.serverAddress}`);
+await runnerB.start();
+
+console.log(`Runner A listening at ${runnerA.serverAddress}`);
+console.log(`Runner B listening at ${runnerB.serverAddress}`);
+
+// 4. On shutdown, close the runners.
+//    The monitoring server will be stopped automatically by each runner's
+//    close() method. Since all runners share the same monitoring server,
+//    the first one to close will stop it.
+process.on("SIGTERM", async () => {
+  await Promise.all([runnerA.close(), runnerB.close()]);
+  process.exit(0);
+});
+```
+
+**Key points:**
+
+- When `monitoringServer` is provided, the runner skips creating its own, so `monitoringServerHost`/`monitoringServerPort` in `UserConfig` are ignored.
+- Pass the **same** `metrics` instance to both the `MonitoringServer` and every `StreamableHttpRunner` so that the `/metrics` endpoint aggregates data from all runners into a single Prometheus scrape target.
+- The monitoring server **is** stopped by `runner.close()`. When multiple runners share the same monitoring server, the first runner to close will stop it.
+- If you need the monitoring server to be available before MCP runners start, call `monitoringServer.start()` manually before `runner.start()`.
 
 ### Custom Logging
 
