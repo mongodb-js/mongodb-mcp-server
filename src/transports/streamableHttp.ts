@@ -55,20 +55,10 @@ export class StreamableHttpRunner<
 
     constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
-        const host = config.userConfig.monitoringServerHost ?? config.userConfig.healthCheckHost;
-        const port = config.userConfig.monitoringServerPort ?? config.userConfig.healthCheckPort;
         // Use externally provided monitoring server or create one if host/port are configured
         this.monitoringServer =
             config.monitoringServer ??
-            (host !== undefined && port !== undefined
-                ? new MonitoringServer({
-                      host,
-                      port,
-                      features: config.userConfig.monitoringServerFeatures,
-                      logger: this.logger,
-                      metrics: this.metrics,
-                  })
-                : undefined);
+            MonitoringServer.fromConfig({ userConfig: config.userConfig, logger: this.logger, metrics: this.metrics });
     }
 
     /** Starts the transport runner. */
@@ -655,6 +645,24 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
         super({ port, hostname: host, logger, logContext: "monitoringServer" });
         this.features = features;
         this.metrics = metrics;
+    }
+
+    static fromConfig<TMetrics extends DefaultMetrics = DefaultMetrics>({
+        userConfig,
+        logger,
+        metrics,
+    }: {
+        userConfig: UserConfig;
+        logger: LoggerBase;
+        metrics: Metrics<TMetrics>;
+    }): MonitoringServer<TMetrics> | undefined {
+        const host = userConfig.monitoringServerHost ?? userConfig.healthCheckHost;
+        const port = userConfig.monitoringServerPort ?? userConfig.healthCheckPort;
+        if (host === undefined || port === undefined) {
+            return undefined;
+        }
+
+        return new MonitoringServer({ host, port, features: userConfig.monitoringServerFeatures, logger, metrics });
     }
 
     protected override setupRoutes(): Promise<void> {
