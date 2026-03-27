@@ -15,20 +15,6 @@ describe("MonitoringServer", () => {
         server = undefined;
     });
 
-    describe("constructor", () => {
-        it("creates a monitoring server with the given configuration", () => {
-            server = new MonitoringServer({
-                host: "127.0.0.1",
-                port: 0, // Random port
-                features: ["health-check", "metrics"],
-                logger,
-                metrics,
-            });
-
-            expect(server).toBeDefined();
-        });
-    });
-
     describe("start", () => {
         it("starts the server and makes it reachable", async () => {
             server = new MonitoringServer({
