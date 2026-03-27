@@ -276,4 +276,95 @@ describe("Server integration test", () => {
             expect(warningMessages.length).toBeGreaterThan(0);
         });
     });
+
+    describe("log level clamping", () => {
+        let server: Server | undefined;
+        let inMemoryTransport: InMemoryTransport | undefined;
+
+        afterEach(async () => {
+            await inMemoryTransport?.close();
+            await server?.close();
+        });
+
+        it("should clamp requested level to floor when client requests more verbose level", async () => {
+            // Set floor to "warning" - client should not be able to go below this
+            const config: UserConfig = {
+                ...defaultTestConfig,
+                mcpClientLogLevel: "warning",
+            };
+
+            const { server: s, transport } = await initServerWithTools([TestToolOne], config);
+            server = s;
+            inMemoryTransport = transport as InMemoryTransport;
+            await server.connect(inMemoryTransport);
+
+            // Verify initial level matches floor
+            expect(server.mcpLogLevel).toBe("warning");
+
+            const writer = inMemoryTransport.input.getWriter();
+
+            // Client requests "debug" (more verbose/lower than floor) - should be clamped to "warning"
+            await writer.write({
+                jsonrpc: "2.0",
+                id: 100,
+                method: "logging/setLevel",
+                params: { level: "debug" },
+            });
+
+            // Should be clamped to floor, not the requested level
+            expect(server.mcpLogLevel).toBe("warning");
+
+            // Client requests "info" (still more verbose than "warning") - should be clamped
+            await writer.write({
+                jsonrpc: "2.0",
+                id: 101,
+                method: "logging/setLevel",
+                params: { level: "info" },
+            });
+
+            expect(server.mcpLogLevel).toBe("warning");
+
+            writer.releaseLock();
+        });
+
+        it("should accept stricter levels unchanged", async () => {
+            // Set floor to "info"
+            const config: UserConfig = {
+                ...defaultTestConfig,
+                mcpClientLogLevel: "info",
+            };
+
+            const { server: s, transport } = await initServerWithTools([TestToolOne], config);
+            server = s;
+            inMemoryTransport = transport as InMemoryTransport;
+            await server.connect(inMemoryTransport);
+
+            // Verify initial level matches floor
+            expect(server.mcpLogLevel).toBe("info");
+
+            const writer = inMemoryTransport.input.getWriter();
+
+            // Client requests "warning" (stricter) - should be accepted
+            await writer.write({
+                jsonrpc: "2.0",
+                id: 200,
+                method: "logging/setLevel",
+                params: { level: "warning" },
+            });
+
+            expect(server.mcpLogLevel).toBe("warning");
+
+            // Client requests "error" (even stricter) - should be accepted
+            await writer.write({
+                jsonrpc: "2.0",
+                id: 201,
+                method: "logging/setLevel",
+                params: { level: "error" },
+            });
+
+            expect(server.mcpLogLevel).toBe("error");
+
+            writer.releaseLock();
+        });
+    });
 });

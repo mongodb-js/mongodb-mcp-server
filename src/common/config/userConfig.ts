@@ -66,7 +66,7 @@ const ServerConfigSchema = z4.object({
         .default(getLogPath())
         .describe("Folder to store logs.")
         .register(configRegistry, { defaultValueDescription: "see below*", overrideBehavior: "not-allowed" }),
-    logLevel: z4
+    mcpClientLogLevel: z4
         .enum(MCP_LOG_LEVELS)
         .default("debug")
         .describe("Minimum severity level for log messages forwarded to the MCP client.")
