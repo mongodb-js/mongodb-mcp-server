@@ -63,7 +63,7 @@ export { Telemetry } from "./telemetry/telemetry.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
 export { Elicitation } from "./elicitation.js";
-export { applyConfigOverrides } from "./common/config/configOverrides.js";
+export { applyConfigOverrides, ConfigOverrideError } from "./common/config/configOverrides.js";
 export { type CloseableTransport, type SessionCloseReason } from "./common/sessionStore.js";
 export { ApiClient, type ApiClientOptions } from "./common/atlas/apiClient.js";
 export type { AuthProvider } from "./common/atlas/auth/authProvider.js";

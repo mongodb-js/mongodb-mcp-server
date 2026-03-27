@@ -278,6 +278,7 @@ describe("configOverrides", () => {
                         .filter(([, behavior]) => typeof behavior === "function")
                         .map(([key]) => key)
                 ).toEqual([
+                    "logLevel",
                     "readOnly",
                     "indexCheck",
                     "idleTimeoutMs",

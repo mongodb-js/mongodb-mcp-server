@@ -4,6 +4,17 @@ import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
+export const MCP_LOG_LEVELS = [
+    "debug",
+    "info",
+    "notice",
+    "warning",
+    "error",
+    "critical",
+    "alert",
+    "emergency",
+] as const;
+
 export interface LogPayload {
     id: MongoLogId;
     context: string;

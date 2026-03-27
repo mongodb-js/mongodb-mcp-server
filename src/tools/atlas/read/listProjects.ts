@@ -35,9 +35,18 @@ export class ListProjectsTool extends AtlasToolBase {
                       path: {
                           orgId,
                       },
+                      query: {
+                          itemsPerPage: 500,
+                      },
                   },
               })
-            : await this.apiClient.listGroups();
+            : await this.apiClient.listGroups({
+                  params: {
+                      query: {
+                          itemsPerPage: 500,
+                      },
+                  },
+              });
 
         if (!data?.results?.length) {
             return {

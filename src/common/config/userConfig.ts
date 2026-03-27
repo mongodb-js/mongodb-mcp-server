@@ -6,9 +6,11 @@ import {
     getLogPath,
     oneWayOverride,
     onlyLowerThanBaseValueOverride,
+    onlyStricterLogLevelOverride,
     onlySubsetOfBaseValueOverride,
     parseBoolean,
 } from "./configUtils.js";
+import { MCP_LOG_LEVELS } from "../logging/loggingTypes.js";
 import { monitoringServerFeatureValues, previewFeatureValues } from "../schemas.js";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
@@ -64,6 +66,11 @@ const ServerConfigSchema = z4.object({
         .default(getLogPath())
         .describe("Folder to store logs.")
         .register(configRegistry, { defaultValueDescription: "see below*", overrideBehavior: "not-allowed" }),
+    logLevel: z4
+        .enum(MCP_LOG_LEVELS)
+        .default("debug")
+        .describe("Minimum severity level for log messages forwarded to the MCP client.")
+        .register(configRegistry, { overrideBehavior: onlyStricterLogLevelOverride(MCP_LOG_LEVELS) }),
     disabledTools: z4
         .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z4.array(z4.string()))
         .default([])

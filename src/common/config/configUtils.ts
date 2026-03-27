@@ -1,8 +1,5 @@
 import path from "path";
 import os from "os";
-import { ALL_CONFIG_KEYS } from "./userConfig.js";
-import * as levenshteinModule from "ts-levenshtein";
-const levenshtein = levenshteinModule.default;
 
 /// Custom logic function to apply the override value.
 /// Returns the value to use (which may be transformed from newValue).
@@ -41,22 +38,6 @@ export type ConfigFieldMeta = {
     overrideBehavior?: OverrideBehavior;
     [key: string]: unknown;
 };
-
-export function matchingConfigKey(key: string): string | undefined {
-    let minLev = Number.MAX_VALUE;
-    let suggestion = undefined;
-    for (const validKey of ALL_CONFIG_KEYS) {
-        const lev = levenshtein.get(key, validKey);
-        // Accepting upto 2 typos and should be better than whatever previous
-        // suggestion was.
-        if (lev <= 2 && lev < minLev) {
-            minLev = lev;
-            suggestion = validKey;
-        }
-    }
-
-    return suggestion;
-}
 
 export function getLocalDataPath(): string {
     return process.platform === "win32"
@@ -146,6 +127,27 @@ export function onlyLowerThanBaseValueOverride(): CustomOverrideLogic {
         }
         if (newValue >= oldValue) {
             throw new Error(`Can only set to a value lower than the base value`);
+        }
+        return newValue;
+    };
+}
+
+/**
+ * Allow overriding a log level only to a stricter (higher severity) value.
+ * The ordered list must go from least to most severe.
+ */
+export function onlyStricterLogLevelOverride(orderedLevels: readonly string[]): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        if (typeof oldValue !== "string" || typeof newValue !== "string") {
+            throw new Error(`Expected string log level values`);
+        }
+        const oldIdx = orderedLevels.indexOf(oldValue);
+        const newIdx = orderedLevels.indexOf(newValue);
+        if (oldIdx === -1 || newIdx === -1) {
+            throw new Error(`Unknown log level`);
+        }
+        if (newIdx < oldIdx) {
+            throw new Error(`Can only override to a stricter (higher severity) log level`);
         }
         return newValue;
     };

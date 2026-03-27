@@ -12,6 +12,7 @@ import type { CompositeLogger } from "../../../../../src/common/logging/index.js
 import type { TelemetryToolMetadata } from "../../../../../src/telemetry/types.js";
 import { UIRegistry } from "../../../../../src/ui/registry/index.js";
 import { MockMetrics } from "../../../mocks/metrics.js";
+import { Keychain } from "../../../../../src/common/keychain.js";
 
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";
@@ -77,6 +78,7 @@ describe("StreamsToolBase", () => {
         mockSession = {
             logger: mockLogger,
             apiClient: {},
+            keychain: new Keychain(),
         } as unknown as Session;
 
         mockConfig = {

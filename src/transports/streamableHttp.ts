@@ -16,7 +16,7 @@ import {
 } from "./base.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
-import { applyConfigOverrides } from "../common/config/configOverrides.js";
+import { applyConfigOverrides, ConfigOverrideError } from "../common/config/configOverrides.js";
 import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 
@@ -620,12 +620,14 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                     context: "streamableHttpTransport",
                     message: `Error handling request: ${error instanceof Error ? error.message : String(error)}`,
                 });
+
+                const message = error instanceof ConfigOverrideError ? error.message : `failed to handle request`;
+
                 res.status(400).json({
                     jsonrpc: "2.0",
                     error: {
                         code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                        message: `failed to handle request`,
-                        data: error instanceof Error ? error.message : String(error),
+                        message,
                     },
                 });
             });
@@ -669,8 +671,13 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
                     const output = await getMetrics();
                     res.set("Content-Type", "text/plain");
                     res.send(output);
-                } catch (err) {
-                    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+                } catch (error: unknown) {
+                    this.logger.error({
+                        id: LogId.monitoringServerMetricsFailure,
+                        context: "monitoringServer",
+                        message: `Failed to retrieve metrics: ${String(error)}}`,
+                    });
+                    res.status(500).json({ error: "Failed to retrieve metrics" });
                 }
             });
         }

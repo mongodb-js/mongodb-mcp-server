@@ -1,20 +1,11 @@
 import type { Server } from "../../server.js";
 import type { UserConfig } from "../config/userConfig.js";
 import type { Keychain } from "../keychain.js";
-import type { LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
+import { type LoggerType, type LogLevel, type LogPayload, MCP_LOG_LEVELS } from "./loggingTypes.js";
 import { LoggerBase } from "./loggerBase.js";
 
 export class McpLogger<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends LoggerBase {
-    public static readonly LOG_LEVELS: LogLevel[] = [
-        "debug",
-        "info",
-        "notice",
-        "warning",
-        "error",
-        "critical",
-        "alert",
-        "emergency",
-    ] as const;
+    public static readonly LOG_LEVELS: readonly LogLevel[] = MCP_LOG_LEVELS;
 
     public constructor(
         private readonly server: Server<TUserConfig, TContext>,

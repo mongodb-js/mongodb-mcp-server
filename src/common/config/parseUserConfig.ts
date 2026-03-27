@@ -1,8 +1,7 @@
 import { type CliOptions, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { Keychain } from "../keychain.js";
 import type { Secret } from "../keychain.js";
-import { matchingConfigKey } from "./configUtils.js";
-import { UserConfigSchema, type UserConfig } from "./userConfig.js";
+import { UserConfigSchema, ALL_CONFIG_KEYS, type UserConfig } from "./userConfig.js";
 import {
     defaultParserOptions as defaultArgParserOptions,
     createParseArgsWithCliOptions,
@@ -10,6 +9,8 @@ import {
     UnknownArgumentError,
 } from "@mongosh/arg-parser/arg-parser";
 import { z as z4 } from "zod/v4";
+import * as levenshteinModule from "ts-levenshtein";
+const levenshtein = levenshteinModule.default;
 
 export type ParserOptions = typeof defaultArgParserOptions;
 
@@ -176,6 +177,22 @@ function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): vo
     maybeRegister(userConfig.username, "user");
     maybeRegister(userConfig.voyageApiKey, "password");
     maybeRegister(userConfig.connectionString, "mongodb uri");
+}
+
+function matchingConfigKey(key: string): string | undefined {
+    let minLev = Number.MAX_VALUE;
+    let suggestion = undefined;
+    for (const validKey of ALL_CONFIG_KEYS) {
+        const lev = levenshtein.get(key, validKey);
+        // Accepting up to 2 typos and should be better than whatever previous
+        // suggestion was.
+        if (lev <= 2 && lev < minLev) {
+            minLev = lev;
+            suggestion = validKey;
+        }
+    }
+
+    return suggestion;
 }
 
 function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): string[] {

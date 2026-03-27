@@ -206,7 +206,6 @@ export class Telemetry {
                         id: LogId.telemetryEmitFailure,
                         context: "telemetry",
                         message: `Error emitting telemetry events: ${result.error?.message ?? "unknown error"}`,
-                        noRedaction: true,
                     });
                     return allEvents;
                 }
@@ -214,7 +213,7 @@ export class Telemetry {
                 this.session.logger.debug({
                     id: LogId.telemetryEmitSuccess,
                     context: "telemetry",
-                    message: `Sent ${allEvents.length} events successfully: ${JSON.stringify(allEvents)}`,
+                    message: `Sent ${allEvents.length} events successfully`,
                 });
 
                 sendSucceeded = true;
@@ -225,7 +224,6 @@ export class Telemetry {
                 id: LogId.telemetryEmitFailure,
                 context: "telemetry",
                 message: `Error emitting telemetry events: ${error instanceof Error ? error.message : String(error)}`,
-                noRedaction: true,
             });
         }
 
