@@ -98,6 +98,33 @@ describe("Logger", () => {
             expect(getLastConsoleMessage()).to.not.contain("123456");
         });
 
+        it("redacts sensitive information in attributes", () => {
+            keychain.register("123456", "password");
+            consoleLogger.info({
+                id: LogId.serverInitialized,
+                context: "test",
+                message: "Safe message",
+                attributes: { sessionKey: "contains 123456 value" },
+            });
+
+            expect(consoleErrorSpy).toHaveBeenCalledOnce();
+            expect(getLastConsoleMessage()).to.contain("sessionKey=contains <password> value");
+            expect(getLastConsoleMessage()).to.not.contain("123456");
+        });
+
+        it("redacts sensitive information from built-in patterns in attributes", () => {
+            consoleLogger.info({
+                id: LogId.serverInitialized,
+                context: "test",
+                message: "Safe message",
+                attributes: { detail: "contact foo@bar.com for info" },
+            });
+
+            expect(consoleErrorSpy).toHaveBeenCalledOnce();
+            expect(getLastConsoleMessage()).to.contain("detail=contact <email> for info");
+            expect(getLastConsoleMessage()).to.not.contain("foo@bar.com");
+        });
+
         it("allows disabling redaction for all loggers", () => {
             const payload = {
                 ...mockSensitivePayload,
