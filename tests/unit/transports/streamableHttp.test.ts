@@ -14,7 +14,6 @@ describe("StreamableHttpRunner", () => {
         describe("with external server", () => {
             afterEach(async () => {
                 await runner?.close();
-                await externalServer?.stop();
                 runner = undefined;
                 externalServer = undefined;
             });
