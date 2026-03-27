@@ -385,13 +385,16 @@ describeAccuracyTests(
                     parameters: {
                         projectId,
                         resource: "privatelink",
-                        workspaceName: Matcher.anyOf(Matcher.undefined, Matcher.string()),
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: "AWS",
                             region: Matcher.anyOf(Matcher.undefined, Matcher.value("us-east-1")),
-                            arn: "arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123",
-                            dnsDomain: "streaming.example.com",
-                            dnsSubDomain: Matcher.undefined,
+                            arn: Matcher.anyOf(
+                                Matcher.value("arn:aws:vpce:us-east-1:123456789012:vpc-endpoint/vpce-abc123"),
+                                Matcher.anyValue
+                            ),
+                            dnsDomain: Matcher.anyOf(Matcher.value("streaming.example.com"), Matcher.anyValue),
+                            dnsSubDomain: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
                             vendor: Matcher.anyOf(Matcher.undefined, Matcher.value("GENERIC")),
                         },
                     },
@@ -409,10 +412,10 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
-                            region: Matcher.anyOf(Matcher.value("us-east-1"), Matcher.anyValue),
+                            region: Matcher.value("us-east-1"),
                             vendor: Matcher.value("S3"),
                             serviceEndpointId: Matcher.anyOf(
                                 Matcher.value("com.amazonaws.us-east-1.s3"),
@@ -434,7 +437,7 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
                             vendor: Matcher.value("MSK"),
@@ -455,11 +458,11 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AWS"),
                             vendor: Matcher.value("KINESIS"),
-                            region: Matcher.anyOf(Matcher.value("us-east-1"), Matcher.anyValue),
+                            region: Matcher.value("us-east-1"),
                         },
                     },
                 },
@@ -467,7 +470,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up an Azure EventHub PrivateLink for my streams project with DNS domain mynamespace.servicebus.windows.net and endpoint ID /subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
+            prompt: "Set up an Azure EventHub PrivateLink in eastus2 for my streams project with DNS domain mynamespace.servicebus.windows.net and endpoint ID /subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.EventHub/namespaces/mynamespace",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -476,10 +479,11 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AZURE"),
                             vendor: Matcher.value("EVENTHUB"),
+                            region: Matcher.value("eastus2"),
                             dnsDomain: Matcher.value("mynamespace.servicebus.windows.net"),
                             serviceEndpointId: Matcher.anyOf(
                                 Matcher.value(
@@ -494,7 +498,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up an Azure Confluent PrivateLink for my streams project with DNS domain pkc-abc123.eastus2.azure.confluent.cloud",
+            prompt: "Set up an Azure Confluent PrivateLink in eastus2 for my streams project with DNS domain pkc-abc123.eastus2.azure.confluent.cloud",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -503,10 +507,11 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("AZURE"),
                             vendor: Matcher.value("CONFLUENT"),
+                            region: Matcher.value("eastus2"),
                             dnsDomain: Matcher.value("pkc-abc123.eastus2.azure.confluent.cloud"),
                         },
                     },
@@ -515,7 +520,7 @@ describeAccuracyTests(
             mockedTools,
         },
         {
-            prompt: "Set up a GCP Confluent vendor PrivateLink for my streams project with service attachment URI projects/my-project/regions/us-central1/serviceAttachments/confluent-attach-1",
+            prompt: "Set up a GCP Confluent vendor PrivateLink in us-central1 for my streams project with service attachment URI projects/my-project/regions/us-central1/serviceAttachments/confluent-attach-1",
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalProjectDiscovery,
@@ -524,10 +529,11 @@ describeAccuracyTests(
                     parameters: {
                         projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
                         resource: Matcher.value("privatelink"),
-                        workspaceName: Matcher.anyValue,
+                        workspaceName: Matcher.undefined,
                         privateLinkConfig: {
                             provider: Matcher.value("GCP"),
                             vendor: Matcher.value("CONFLUENT"),
+                            region: Matcher.value("us-central1"),
                             gcpServiceAttachmentUris: Matcher.anyValue,
                         },
                     },

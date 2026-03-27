@@ -31,6 +31,7 @@ export {
     type LoggerType,
     type LogLevel,
     CompositeLogger,
+    NullLogger,
 } from "./common/logging/index.js";
 export { StreamableHttpRunner } from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
