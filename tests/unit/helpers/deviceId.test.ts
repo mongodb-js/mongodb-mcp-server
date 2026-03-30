@@ -13,7 +13,7 @@ describe("deviceId", () => {
     let deviceId: DeviceId;
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
         testLogger = new CompositeLogger();
     });
 
