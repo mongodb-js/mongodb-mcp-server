@@ -20,6 +20,65 @@ import { applyConfigOverrides, ConfigOverrideError } from "../common/config/conf
 import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 
+/**
+ * Configuration options for extracting monitoring server settings from UserConfig.
+ */
+export type MonitoringServerConfig = {
+    monitoringServerHost?: string;
+    monitoringServerPort?: number;
+    healthCheckHost?: string;
+    healthCheckPort?: number;
+    monitoringServerFeatures: MonitoringServerFeature[];
+};
+
+/**
+ * Constructor arguments for creating a MonitoringServer instance.
+ */
+export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    host: string;
+    port: number;
+    features: MonitoringServerFeature[];
+    logger: LoggerBase;
+    metrics: Metrics<TMetrics>;
+};
+
+/**
+ * A function to create a custom MonitoringServer instance.
+ * When provided, the runner will use this function instead of the default MonitoringServer constructor.
+ */
+export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => MonitoringServer<TMetrics> | undefined;
+
+/**
+ * Creates a default MonitoringServer instance from the provided constructor arguments.
+ */
+export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => MonitoringServer<TMetrics> = <TMetrics extends DefaultMetrics = DefaultMetrics>(
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => new MonitoringServer<TMetrics>(args);
+
+/**
+ * Configuration options for the StreamableHttpRunner.
+ * Extends the base TransportRunnerConfig with HTTP-transport-specific options.
+ *
+ * @template TUserConfig - The type of user configuration
+ * @template TMetrics - The type of metrics definitions
+ */
+export type StreamableHttpTransportRunnerConfig<
+    TUserConfig extends UserConfig = UserConfig,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = TransportRunnerConfig<TUserConfig, TMetrics> & {
+    /**
+     * When provided, the runner will use this function to create the monitoring server
+     * instead of using the default MonitoringServer constructor. This allows for
+     * customizing the monitoring server (e.g., adding custom routes) while still
+     * receiving the constructor arguments that would normally be used.
+     */
+    createMonitoringServer?: CreateMonitoringServerFn<TMetrics>;
+};
+
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
 const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
@@ -33,10 +92,25 @@ export class StreamableHttpRunner<
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
-    private monitoringServer: MonitoringServer | undefined;
+    private readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
 
-    constructor(config: TransportRunnerConfig<TUserConfig, TMetrics>) {
+    constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
+        // Create monitoring server if host/port are configured
+        const host = config.userConfig.monitoringServerHost ?? config.userConfig.healthCheckHost;
+        const port = config.userConfig.monitoringServerPort ?? config.userConfig.healthCheckPort;
+        if (host !== undefined && port !== undefined) {
+            const args: MonitoringServerConstructorArgs<TMetrics> = {
+                host,
+                port,
+                features: config.userConfig.monitoringServerFeatures,
+                logger: this.logger,
+                metrics: this.metrics,
+            };
+            this.monitoringServer = (config.createMonitoringServer ?? createDefaultMonitoringServer)(args);
+        } else {
+            this.monitoringServer = undefined;
+        }
     }
 
     /** Starts the transport runner. */
@@ -60,13 +134,8 @@ export class StreamableHttpRunner<
         });
         await this.mcpServer.start();
 
-        this.monitoringServer = await MonitoringServer.create({
-            host: this.userConfig.monitoringServerHost ?? this.userConfig.healthCheckHost,
-            port: this.userConfig.monitoringServerPort ?? this.userConfig.healthCheckPort,
-            features: this.userConfig.monitoringServerFeatures,
-            logger: this.logger,
-            metrics: this.metrics,
-        });
+        // Start the monitoring server if one exists (either externally provided or created in constructor)
+        await this.monitoringServer?.start();
 
         this.logger.info({
             message: "Streamable HTTP Transport started",
@@ -608,33 +677,11 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     }
 }
 
-class MonitoringServer extends ExpressBasedHttpServer {
-    static async create({
-        host,
-        port,
-        features,
-        logger,
-        metrics,
-    }: {
-        host: string | undefined;
-        port: number | undefined;
-        features: MonitoringServerFeature[];
-        logger: LoggerBase;
-        metrics: Metrics;
-    }): Promise<MonitoringServer | undefined> {
-        if (!host || port === undefined) {
-            return undefined;
-        }
-
-        const server = new MonitoringServer({ host, port, features, logger, metrics });
-        await server.start();
-        return server;
-    }
-
+export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
     private readonly features: MonitoringServerFeature[];
-    private readonly metrics: Metrics;
+    private readonly metrics: Metrics<TMetrics>;
 
-    private constructor({
+    constructor({
         host,
         port,
         features,
@@ -645,11 +692,29 @@ class MonitoringServer extends ExpressBasedHttpServer {
         port: number;
         features: MonitoringServerFeature[];
         logger: LoggerBase;
-        metrics: Metrics;
+        metrics: Metrics<TMetrics>;
     }) {
         super({ port, hostname: host, logger, logContext: "monitoringServer" });
         this.features = features;
         this.metrics = metrics;
+    }
+
+    static fromConfig<TMetrics extends DefaultMetrics = DefaultMetrics>({
+        userConfig,
+        logger,
+        metrics,
+    }: {
+        userConfig: UserConfig;
+        logger: LoggerBase;
+        metrics: Metrics<TMetrics>;
+    }): MonitoringServer<TMetrics> | undefined {
+        const host = userConfig.monitoringServerHost ?? userConfig.healthCheckHost;
+        const port = userConfig.monitoringServerPort ?? userConfig.healthCheckPort;
+        if (host === undefined || port === undefined) {
+            return undefined;
+        }
+
+        return new MonitoringServer({ host, port, features: userConfig.monitoringServerFeatures, logger, metrics });
     }
 
     protected override setupRoutes(): Promise<void> {

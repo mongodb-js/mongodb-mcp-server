@@ -31,9 +31,18 @@ export {
     type LoggerType,
     type LogLevel,
     CompositeLogger,
+    ConsoleLogger,
     NullLogger,
 } from "./common/logging/index.js";
-export { StreamableHttpRunner } from "./transports/streamableHttp.js";
+export {
+    StreamableHttpRunner,
+    MonitoringServer,
+    createDefaultMonitoringServer,
+    type StreamableHttpTransportRunnerConfig,
+    type CreateMonitoringServerFn,
+    type MonitoringServerConstructorArgs,
+    type MonitoringServerConfig,
+} from "./transports/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
 export {
     TransportRunnerBase,
