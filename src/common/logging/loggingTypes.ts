@@ -1,19 +1,11 @@
 import type { MongoLogId } from "mongodb-log-writer";
 
 import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
+import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 
-export const MCP_LOG_LEVELS = [
-    "debug",
-    "info",
-    "notice",
-    "warning",
-    "error",
-    "critical",
-    "alert",
-    "emergency",
-] as const;
+export const MCP_LOG_LEVELS = LoggingMessageNotificationSchema.shape.params.shape.level.options;
 
 export interface LogPayload {
     id: MongoLogId;
