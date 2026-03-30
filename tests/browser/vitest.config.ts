@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { playwright } from "@vitest/browser-playwright";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
@@ -24,7 +25,7 @@ export default defineConfig({
                     browser: "chromium",
                 },
             ],
-            provider: "playwright",
+            provider: playwright(),
             headless: true,
         },
         coverage: {

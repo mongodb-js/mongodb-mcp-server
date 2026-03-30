@@ -12,7 +12,8 @@
     "mongodb-mcp-server": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.24.2",
     "@types/node": "^25.5.0",
-    "@vitest/browser": "^3.2.4",
+    "@vitest/browser": "^4.1.2",
+    "@vitest/browser-playwright": "^4.1.2",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
     "evp_bytestokey": "^1.0.3",
@@ -23,6 +24,6 @@
     "typescript": "^5.9.2",
     "util": "^0.12.5",
     "vite": "^7.2.4",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.2"
   }
 }
