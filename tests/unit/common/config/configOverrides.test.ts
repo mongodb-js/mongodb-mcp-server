@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyConfigOverrides, getConfigMeta, nameToConfigKey } from "../../../../src/common/config/configOverrides.js";
+import { onlyStricterLogLevelOverride } from "../../../../src/common/config/configUtils.js";
 import { UserConfigSchema, type UserConfig } from "../../../../src/common/config/userConfig.js";
 import type { RequestContext } from "../../../../src/transports/base.js";
 
@@ -278,7 +279,7 @@ describe("configOverrides", () => {
                         .filter(([, behavior]) => typeof behavior === "function")
                         .map(([key]) => key)
                 ).toEqual([
-                    "logLevel",
+                    "mcpClientLogLevel",
                     "readOnly",
                     "indexCheck",
                     "idleTimeoutMs",
@@ -319,6 +320,124 @@ describe("configOverrides", () => {
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, indexCheck: true } as UserConfig, request })
                 ).toThrow("Cannot apply override for indexCheck: Can only set to true");
+            });
+
+            describe("mcpClientLogLevel (onlyStricterLogLevelOverride)", () => {
+                const baseConfigWithLogLevel = (level: string): UserConfig =>
+                    ({ ...baseConfig, mcpClientLogLevel: level }) as UserConfig;
+
+                // MCP log levels in order (least to most severe):
+                // debug < info < notice < warning < error < critical < alert < emergency
+                it("should allow override to the same log level (equal)", () => {
+                    const request: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "info" },
+                    };
+                    const result = applyConfigOverrides({
+                        baseConfig: baseConfigWithLogLevel("info"),
+                        request,
+                    });
+                    expect(result.mcpClientLogLevel).toBe("info");
+                });
+
+                it("should allow override to a stricter (higher severity) log level", () => {
+                    // debug -> info (stricter)
+                    const request1: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "info" },
+                    };
+                    const result1 = applyConfigOverrides({
+                        baseConfig: baseConfigWithLogLevel("debug"),
+                        request: request1,
+                    });
+                    expect(result1.mcpClientLogLevel).toBe("info");
+
+                    // debug -> error (stricter - skip multiple levels)
+                    const request2: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "error" },
+                    };
+                    const result2 = applyConfigOverrides({
+                        baseConfig: baseConfigWithLogLevel("debug"),
+                        request: request2,
+                    });
+                    expect(result2.mcpClientLogLevel).toBe("error");
+
+                    // info -> warning (stricter - adjacent)
+                    const request3: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "warning" },
+                    };
+                    const result3 = applyConfigOverrides({
+                        baseConfig: baseConfigWithLogLevel("info"),
+                        request: request3,
+                    });
+                    expect(result3.mcpClientLogLevel).toBe("warning");
+
+                    // warning -> emergency (stricter - most severe)
+                    const request4: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "emergency" },
+                    };
+                    const result4 = applyConfigOverrides({
+                        baseConfig: baseConfigWithLogLevel("warning"),
+                        request: request4,
+                    });
+                    expect(result4.mcpClientLogLevel).toBe("emergency");
+                });
+
+                it("should reject override to a looser (lower severity) log level", () => {
+                    // error -> debug (looser)
+                    const request: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "debug" },
+                    };
+                    expect(() =>
+                        applyConfigOverrides({ baseConfig: baseConfigWithLogLevel("error"), request })
+                    ).toThrow("Can only override to a stricter (higher severity) log level");
+                });
+
+                it("should reject override to a looser adjacent log level", () => {
+                    // warning -> info (looser - adjacent)
+                    const request: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "info" },
+                    };
+                    expect(() =>
+                        applyConfigOverrides({ baseConfig: baseConfigWithLogLevel("warning"), request })
+                    ).toThrow("Can only override to a stricter (higher severity) log level");
+                });
+
+                it("should reject override from most severe to any other level", () => {
+                    // emergency -> emergency (same - allowed)
+                    const sameRequest: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "emergency" },
+                    };
+                    const sameResult = applyConfigOverrides({
+                        baseConfig: baseConfigWithLogLevel("emergency"),
+                        request: sameRequest,
+                    });
+                    expect(sameResult.mcpClientLogLevel).toBe("emergency");
+
+                    // emergency -> anything else (rejected)
+                    const looserRequest: RequestContext = {
+                        headers: { "x-mongodb-mcp-mcp-client-log-level": "alert" },
+                    };
+                    expect(() =>
+                        applyConfigOverrides({
+                            baseConfig: baseConfigWithLogLevel("emergency"),
+                            request: looserRequest,
+                        })
+                    ).toThrow("Can only override to a stricter (higher severity) log level");
+                });
+
+                it("should allow any override from least severe (debug)", () => {
+                    // debug -> any level should be allowed
+                    const levels = ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"];
+                    for (const level of levels) {
+                        const request: RequestContext = {
+                            headers: { "x-mongodb-mcp-mcp-client-log-level": level },
+                        };
+                        const result = applyConfigOverrides({
+                            baseConfig: baseConfigWithLogLevel("debug"),
+                            request,
+                        });
+                        expect(result.mcpClientLogLevel).toBe(level);
+                    }
+                });
             });
         });
 
@@ -428,6 +547,116 @@ describe("configOverrides", () => {
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
                 expect(result.disabledTools).toEqual(["tool1", "tool2", "tool3"]);
             });
+        });
+    });
+});
+
+describe("onlyStricterLogLevelOverride", () => {
+    // Test with a custom ordered list to verify the logic works independently of MCP_LOG_LEVELS
+    const testLevels = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
+    const overrideFn = onlyStricterLogLevelOverride(testLevels);
+
+    describe("accept cases", () => {
+        it("should allow equal log level (same value)", () => {
+            expect(overrideFn("debug", "debug")).toBe("debug");
+            expect(overrideFn("error", "error")).toBe("error");
+        });
+
+        it("should allow stricter (higher severity) log level", () => {
+            // Adjacent levels
+            expect(overrideFn("debug", "info")).toBe("info");
+            expect(overrideFn("info", "warn")).toBe("warn");
+
+            // Skip levels
+            expect(overrideFn("trace", "error")).toBe("error");
+            expect(overrideFn("debug", "fatal")).toBe("fatal");
+        });
+
+        it("should allow any override from least severe level", () => {
+            for (const level of testLevels) {
+                expect(overrideFn("trace", level)).toBe(level);
+            }
+        });
+    });
+
+    describe("reject cases", () => {
+        it("should reject looser (lower severity) log level", () => {
+            expect(() => overrideFn("error", "debug")).toThrow(
+                "Can only override to a stricter (higher severity) log level"
+            );
+        });
+
+        it("should reject adjacent looser level", () => {
+            expect(() => overrideFn("warn", "info")).toThrow(
+                "Can only override to a stricter (higher severity) log level"
+            );
+        });
+
+        it("should reject any override from most severe level", () => {
+            // Same level is allowed
+            expect(overrideFn("fatal", "fatal")).toBe("fatal");
+
+            // Any lower level is rejected
+            for (const level of testLevels.slice(0, -1)) {
+                expect(() => overrideFn("fatal", level)).toThrow(
+                    "Can only override to a stricter (higher severity) log level"
+                );
+            }
+        });
+    });
+
+    describe("error cases", () => {
+        it("should throw for unknown old log level", () => {
+            expect(() => overrideFn("unknown", "error")).toThrow("Unknown log level");
+        });
+
+        it("should throw for unknown new log level", () => {
+            expect(() => overrideFn("error", "unknown")).toThrow("Unknown log level");
+        });
+
+        it("should throw when both levels are unknown", () => {
+            expect(() => overrideFn("unknown1", "unknown2")).toThrow("Unknown log level");
+        });
+
+        it("should throw for non-string old value", () => {
+            expect(() => overrideFn(123 as unknown as string, "error")).toThrow("Expected string log level values");
+            expect(() => overrideFn(null as unknown as string, "error")).toThrow("Expected string log level values");
+            expect(() => overrideFn(undefined as unknown as string, "error")).toThrow(
+                "Expected string log level values"
+            );
+        });
+
+        it("should throw for non-string new value", () => {
+            expect(() => overrideFn("error", 123 as unknown as string)).toThrow("Expected string log level values");
+            expect(() => overrideFn("error", null as unknown as string)).toThrow("Expected string log level values");
+            expect(() => overrideFn("error", undefined as unknown as string)).toThrow(
+                "Expected string log level values"
+            );
+        });
+
+        it("should throw when both values are non-strings", () => {
+            expect(() => overrideFn(123 as unknown as string, 456 as unknown as string)).toThrow(
+                "Expected string log level values"
+            );
+        });
+    });
+
+    describe("edge cases with empty or single-level lists", () => {
+        it("should handle single-level list", () => {
+            const singleLevelFn = onlyStricterLogLevelOverride(["only"]);
+            expect(singleLevelFn("only", "only")).toBe("only");
+            // No stricter level exists, so any override to a different value fails first as unknown
+            expect(() => singleLevelFn("only", "other")).toThrow("Unknown log level");
+        });
+
+        it("should handle two-level list", () => {
+            const twoLevelFn = onlyStricterLogLevelOverride(["low", "high"]);
+            expect(twoLevelFn("low", "low")).toBe("low");
+            expect(twoLevelFn("low", "high")).toBe("high");
+            expect(twoLevelFn("high", "high")).toBe("high");
+            expect(() => twoLevelFn("high", "low")).toThrow(
+                "Can only override to a stricter (higher severity) log level"
+            );
         });
     });
 });

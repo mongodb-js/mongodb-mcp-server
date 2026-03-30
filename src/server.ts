@@ -158,7 +158,7 @@ export class Server<
         this.toolContext = toolContext;
         this.metrics = metrics;
 
-        this._mcpLogLevel = userConfig.logLevel;
+        this._mcpLogLevel = userConfig.mcpClientLogLevel;
         this.mcpLogLevelFloor = this._mcpLogLevel;
     }
 
