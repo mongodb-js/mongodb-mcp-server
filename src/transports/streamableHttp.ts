@@ -21,6 +21,45 @@ import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 
 /**
+ * Configuration options for extracting monitoring server settings from UserConfig.
+ */
+export type MonitoringServerConfig = {
+    monitoringServerHost?: string;
+    monitoringServerPort?: number;
+    healthCheckHost?: string;
+    healthCheckPort?: number;
+    monitoringServerFeatures: MonitoringServerFeature[];
+};
+
+/**
+ * Constructor arguments for creating a MonitoringServer instance.
+ */
+export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    host: string;
+    port: number;
+    features: MonitoringServerFeature[];
+    logger: LoggerBase;
+    metrics: Metrics<TMetrics>;
+};
+
+/**
+ * A function to create a custom MonitoringServer instance.
+ * When provided, the runner will use this function instead of the default MonitoringServer constructor.
+ */
+export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => MonitoringServer<TMetrics> | undefined;
+
+/**
+ * Creates a default MonitoringServer instance from the provided constructor arguments.
+ */
+export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => MonitoringServer<TMetrics> = <TMetrics extends DefaultMetrics = DefaultMetrics>(
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => new MonitoringServer<TMetrics>(args);
+
+/**
  * Configuration options for the StreamableHttpRunner.
  * Extends the base TransportRunnerConfig with HTTP-transport-specific options.
  *
@@ -32,10 +71,12 @@ export type StreamableHttpTransportRunnerConfig<
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > = TransportRunnerConfig<TUserConfig, TMetrics> & {
     /**
-     * When provided, the runner will not create its own monitoring server and will use
-     * this instance instead. The monitoring server will be started when the runner starts.
+     * When provided, the runner will use this function to create the monitoring server
+     * instead of using the default MonitoringServer constructor. This allows for
+     * customizing the monitoring server (e.g., adding custom routes) while still
+     * receiving the constructor arguments that would normally be used.
      */
-    monitoringServer?: MonitoringServer<TMetrics>;
+    createMonitoringServer?: CreateMonitoringServerFn<TMetrics>;
 };
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
@@ -51,14 +92,25 @@ export class StreamableHttpRunner<
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
-    private readonly monitoringServer: MonitoringServer | undefined;
+    private readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
 
     constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
-        // Use externally provided monitoring server or create one if host/port are configured
-        this.monitoringServer =
-            config.monitoringServer ??
-            MonitoringServer.fromConfig({ userConfig: config.userConfig, logger: this.logger, metrics: this.metrics });
+        // Create monitoring server if host/port are configured
+        const host = config.userConfig.monitoringServerHost ?? config.userConfig.healthCheckHost;
+        const port = config.userConfig.monitoringServerPort ?? config.userConfig.healthCheckPort;
+        if (host !== undefined && port !== undefined) {
+            const args: MonitoringServerConstructorArgs<TMetrics> = {
+                host,
+                port,
+                features: config.userConfig.monitoringServerFeatures,
+                logger: this.logger,
+                metrics: this.metrics,
+            };
+            this.monitoringServer = (config.createMonitoringServer ?? createDefaultMonitoringServer)(args);
+        } else {
+            this.monitoringServer = undefined;
+        }
     }
 
     /** Starts the transport runner. */

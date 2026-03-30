@@ -1,5 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { StreamableHttpRunner, MonitoringServer } from "../../../src/transports/streamableHttp.js";
+import {
+    StreamableHttpRunner,
+    MonitoringServer,
+    type CreateMonitoringServerFn,
+    type MonitoringServerConstructorArgs,
+} from "../../../src/transports/streamableHttp.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import type express from "express";
 import type { DefaultMetrics, Metrics } from "../../../src/lib.js";
@@ -8,18 +13,19 @@ import { MockMetrics } from "../mocks/metrics.js";
 
 describe("StreamableHttpRunner", () => {
     describe("monitoring server initialization", () => {
-        let runner: StreamableHttpRunner | undefined;
-        let externalServer: MonitoringServer | undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let runner: StreamableHttpRunner<any> | undefined;
+        let customServer: MonitoringServer | undefined;
 
-        describe("with external server", () => {
+        describe("with custom createMonitoringServer hook", () => {
             afterEach(async () => {
                 await runner?.close();
                 runner = undefined;
-                externalServer = undefined;
+                customServer = undefined;
             });
 
-            it("uses an externally provided monitoringServer instead of creating one", async () => {
-                externalServer = new MonitoringServer({
+            it("uses a custom createMonitoringServer hook to create a monitoring server", async () => {
+                customServer = new MonitoringServer({
                     host: "127.0.0.1",
                     port: 3002,
                     features: ["health-check"],
@@ -27,31 +33,47 @@ describe("StreamableHttpRunner", () => {
                     metrics: new MockMetrics() as unknown as Metrics<DefaultMetrics>,
                 });
 
+                const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = () => customServer;
+
                 runner = new StreamableHttpRunner({
-                    userConfig: defaultTestConfig,
-                    monitoringServer: externalServer,
+                    userConfig: {
+                        ...defaultTestConfig,
+                        monitoringServerHost: "127.0.0.1",
+                        monitoringServerPort: 3002,
+                    },
+                    createMonitoringServer,
                 });
 
-                expect(getMonitoringServer(runner)).toBe(externalServer);
+                expect(getMonitoringServer(runner)).toBe(customServer);
 
                 await runner.start();
 
-                // Verify the external server is actually serving requests
-                const address = externalServer.serverAddress;
+                // Verify the custom server is actually serving requests
+                const address = customServer.serverAddress;
                 expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual({ status: "ok" });
             });
 
-            it("supports extending MonitoringServer with custom routes", async () => {
-                externalServer = new CustomMonitoringServer();
+            it("supports extending MonitoringServer with custom routes via hook", async () => {
+                const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = (args) => {
+                    return new CustomMonitoringServer(args);
+                };
 
                 runner = new StreamableHttpRunner({
-                    userConfig: defaultTestConfig,
-                    monitoringServer: externalServer,
+                    userConfig: {
+                        ...defaultTestConfig,
+                        monitoringServerHost: "127.0.0.1",
+                        monitoringServerPort: 3002,
+                        monitoringServerFeatures: ["health-check", "metrics"],
+                    },
+                    createMonitoringServer,
                 });
+
+                customServer = getMonitoringServer(runner);
+                expect(customServer).toBeInstanceOf(CustomMonitoringServer);
 
                 await runner.start();
 
-                const address = externalServer.serverAddress;
+                const address = customServer!.serverAddress;
 
                 // Verify custom routes work
                 expect(await fetch(`${address}/custom-route`).then((res) => res.json())).toEqual({
@@ -65,6 +87,21 @@ describe("StreamableHttpRunner", () => {
                 expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual({ status: "ok" });
                 const metricsResponse = await fetch(`${address}/metrics`);
                 expect(metricsResponse.status).toBe(200);
+            });
+
+            it("allows createMonitoringServer to return undefined to skip creating a monitoring server", () => {
+                const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = () => undefined;
+
+                runner = new StreamableHttpRunner({
+                    userConfig: {
+                        ...defaultTestConfig,
+                        monitoringServerHost: "127.0.0.1",
+                        monitoringServerPort: 3002,
+                    },
+                    createMonitoringServer,
+                });
+
+                expect(getMonitoringServer(runner)).toBeUndefined();
             });
         });
 
@@ -148,14 +185,8 @@ function getMonitoringServer(runner: StreamableHttpRunner<any>): MonitoringServe
 }
 
 class CustomMonitoringServer extends MonitoringServer {
-    constructor() {
-        super({
-            host: "127.0.0.1",
-            port: 3002,
-            features: ["health-check", "metrics"],
-            logger: new NullLogger(),
-            metrics: new MockMetrics() as unknown as Metrics<DefaultMetrics>,
-        });
+    constructor(args: MonitoringServerConstructorArgs<DefaultMetrics>) {
+        super(args);
     }
 
     override async setupRoutes(): Promise<void> {
