@@ -1,7 +1,14 @@
 import type { MockInstance } from "vitest";
 import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
 import type { LoggerType, LogLevel } from "../../src/common/logging/index.js";
-import { CompositeLogger, ConsoleLogger, DiskLogger, LogId, McpLogger } from "../../src/common/logging/index.js";
+import {
+    CompositeLogger,
+    ConsoleLogger,
+    DiskLogger,
+    LogId,
+    McpLogger,
+    MCP_LOG_LEVELS,
+} from "../../src/common/logging/index.js";
 import os from "os";
 import * as path from "path";
 import * as fs from "fs/promises";
@@ -387,7 +394,7 @@ describe("Logger", () => {
         });
 
         it("MCPLogger.LOG_LEVELS contains all possible levels", () => {
-            expect(McpLogger.LOG_LEVELS).toEqual(LoggingMessageNotificationSchema.shape.params.shape.level.options);
+            expect(MCP_LOG_LEVELS).toEqual(LoggingMessageNotificationSchema.shape.params.shape.level.options);
         });
     });
 });

@@ -3,7 +3,7 @@ import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logging/index.js";
-import { LogId, McpLogger, MCP_LOG_LEVELS } from "./common/logging/index.js";
+import { LogId, MCP_LOG_LEVELS } from "./common/logging/index.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
 import type { UserConfig } from "./common/config/userConfig.js";
 import { type ServerEvent } from "./telemetry/types.js";
@@ -221,7 +221,7 @@ export class Server<
         });
 
         this.mcpServer.server.setRequestHandler(SetLevelRequestSchema, ({ params }) => {
-            if (!McpLogger.LOG_LEVELS.includes(params.level)) {
+            if (!MCP_LOG_LEVELS.includes(params.level)) {
                 throw new Error(`Invalid log level: ${params.level}`);
             }
 
