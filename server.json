@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.9.0",
+  "version": "1.9.1-prerelease.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.9.0",
+      "version": "1.9.1-prerelease.1",
       "transport": {
         "type": "stdio"
       },
@@ -196,6 +196,13 @@
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MCP_CLIENT_LOG_LEVEL",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         },
         {
@@ -431,6 +438,12 @@
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--mcpClientLogLevel",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false
         },
         {
           "type": "named",
@@ -493,7 +506,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.9.0",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.9.1-prerelease.1",
       "transport": {
         "type": "stdio"
       },
@@ -678,6 +691,13 @@
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MCP_CLIENT_LOG_LEVEL",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         },
         {
@@ -913,6 +933,12 @@
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
           "isRequired": false,
           "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--mcpClientLogLevel",
+          "description": "Minimum severity level for log messages forwarded to the MCP client.",
+          "isRequired": false
         },
         {
           "type": "named",
