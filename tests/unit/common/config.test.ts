@@ -40,6 +40,7 @@ const expectedDefaults = {
     transport: "stdio",
     httpPort: 3000,
     httpHost: "127.0.0.1",
+    mcpClientLogLevel: "debug",
     loggers: ["disk", "mcp"],
     idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
     notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes

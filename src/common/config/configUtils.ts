@@ -132,6 +132,27 @@ export function onlyLowerThanBaseValueOverride(): CustomOverrideLogic {
     };
 }
 
+/**
+ * Allow overriding a log level only to a stricter (higher severity) value.
+ * The ordered list must go from least to most severe.
+ */
+export function onlyStricterLogLevelOverride(orderedLevels: readonly string[]): CustomOverrideLogic {
+    return (oldValue, newValue) => {
+        if (typeof oldValue !== "string" || typeof newValue !== "string") {
+            throw new Error(`Expected string log level values`);
+        }
+        const oldIdx = orderedLevels.indexOf(oldValue);
+        const newIdx = orderedLevels.indexOf(newValue);
+        if (oldIdx === -1 || newIdx === -1) {
+            throw new Error(`Unknown log level`);
+        }
+        if (newIdx < oldIdx) {
+            throw new Error(`Can only override to a stricter (higher severity) log level`);
+        }
+        return newValue;
+    };
+}
+
 /** Allow overriding only to a subset of an array but not a superset */
 export function onlySubsetOfBaseValueOverride(): CustomOverrideLogic {
     return (oldValue, newValue) => {

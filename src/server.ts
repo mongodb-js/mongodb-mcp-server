@@ -3,7 +3,7 @@ import type { Session } from "./common/session.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { Resources } from "./resources/resources.js";
 import type { LogLevel } from "./common/logging/index.js";
-import { LogId, McpLogger } from "./common/logging/index.js";
+import { LogId, McpLogger, MCP_LOG_LEVELS } from "./common/logging/index.js";
 import type { Telemetry } from "./telemetry/telemetry.js";
 import type { UserConfig } from "./common/config/userConfig.js";
 import { type ServerEvent } from "./telemetry/types.js";
@@ -123,7 +123,9 @@ export class Server<
     public readonly toolContext?: TContext;
     public readonly metrics: Metrics<TMetrics>;
 
-    private _mcpLogLevel: LogLevel = "debug";
+    private _mcpLogLevel: LogLevel;
+    /** Lowest log level allowed to be sent to the MCP client. */
+    private readonly mcpLogLevelFloor: LogLevel;
 
     public get mcpLogLevel(): LogLevel {
         return this._mcpLogLevel;
@@ -155,6 +157,9 @@ export class Server<
         this.uiRegistry = uiRegistry;
         this.toolContext = toolContext;
         this.metrics = metrics;
+
+        this._mcpLogLevel = userConfig.mcpClientLogLevel;
+        this.mcpLogLevelFloor = this._mcpLogLevel;
     }
 
     async connect(transport: Transport): Promise<void> {
@@ -220,7 +225,9 @@ export class Server<
                 throw new Error(`Invalid log level: ${params.level}`);
             }
 
-            this._mcpLogLevel = params.level;
+            const requestedIdx = MCP_LOG_LEVELS.indexOf(params.level);
+            const floorIdx = MCP_LOG_LEVELS.indexOf(this.mcpLogLevelFloor);
+            this._mcpLogLevel = requestedIdx >= floorIdx ? params.level : this.mcpLogLevelFloor;
             return {};
         });
 
