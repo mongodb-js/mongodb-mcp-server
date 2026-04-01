@@ -239,8 +239,10 @@ describe("StreamableHttpRunner", () => {
             });
 
             expect(createSessionStore).toHaveBeenCalledWith({
-                idleTimeoutMs: 120_000,
-                notificationTimeoutMs: 60_000,
+                options: {
+                    idleTimeoutMS: 120_000,
+                    notificationTimeoutMS: 60_000,
+                },
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 logger: expect.any(Object),
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
