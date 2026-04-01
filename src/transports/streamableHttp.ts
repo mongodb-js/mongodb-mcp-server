@@ -7,7 +7,7 @@ import type {
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "../common/logging/index.js";
 import { CompositeLogger, LogId } from "../common/logging/index.js";
-import { SessionStore } from "../common/sessionStore.js";
+import { type ISessionStore, type CreateSessionStoreFn, createDefaultSessionStore } from "../common/sessionStore.js";
 import {
     TransportRunnerBase,
     type TransportRunnerConfig,
@@ -32,34 +32,6 @@ export type MonitoringServerConfig = {
 };
 
 /**
- * Constructor arguments for creating a MonitoringServer instance.
- */
-export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    host: string;
-    port: number;
-    features: MonitoringServerFeature[];
-    logger: LoggerBase;
-    metrics: Metrics<TMetrics>;
-};
-
-/**
- * A function to create a custom MonitoringServer instance.
- * When provided, the runner will use this function instead of the default MonitoringServer constructor.
- */
-export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => MonitoringServer<TMetrics> | undefined;
-
-/**
- * Creates a default MonitoringServer instance from the provided constructor arguments.
- */
-export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => MonitoringServer<TMetrics> = <TMetrics extends DefaultMetrics = DefaultMetrics>(
-    args: MonitoringServerConstructorArgs<TMetrics>
-) => new MonitoringServer<TMetrics>(args);
-
-/**
  * Configuration options for the StreamableHttpRunner.
  * Extends the base TransportRunnerConfig with HTTP-transport-specific options.
  *
@@ -77,6 +49,15 @@ export type StreamableHttpTransportRunnerConfig<
      * receiving the constructor arguments that would normally be used.
      */
     createMonitoringServer?: CreateMonitoringServerFn<TMetrics>;
+
+    /**
+     * When provided, the runner will use this function to create the session store
+     * instead of using the default SessionStore constructor. This allows for
+     * customizing session storage (e.g., Redis-backed storage, custom timeout behavior,
+     * or shared session state across instances) while still receiving the constructor
+     * arguments that would normally be used.
+     */
+    createSessionStore?: CreateSessionStoreFn<StreamableHTTPServerTransport, TMetrics>;
 };
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
@@ -93,23 +74,28 @@ export class StreamableHttpRunner<
 > extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
     private readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
+    private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 
     constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
+
+        this.sessionStore = (config.createSessionStore ?? createDefaultSessionStore<StreamableHTTPServerTransport>)({
+            idleTimeoutMs: this.userConfig.idleTimeoutMs,
+            notificationTimeoutMs: this.userConfig.notificationTimeoutMs,
+            logger: this.logger,
+            metrics: this.metrics,
+        });
         // Create monitoring server if host/port are configured
         const host = config.userConfig.monitoringServerHost ?? config.userConfig.healthCheckHost;
         const port = config.userConfig.monitoringServerPort ?? config.userConfig.healthCheckPort;
         if (host !== undefined && port !== undefined) {
-            const args: MonitoringServerConstructorArgs<TMetrics> = {
+            this.monitoringServer = (config.createMonitoringServer ?? createDefaultMonitoringServer)({
                 host,
                 port,
                 features: config.userConfig.monitoringServerFeatures,
                 logger: this.logger,
                 metrics: this.metrics,
-            };
-            this.monitoringServer = (config.createMonitoringServer ?? createDefaultMonitoringServer)(args);
-        } else {
-            this.monitoringServer = undefined;
+            });
         }
     }
 
@@ -131,6 +117,7 @@ export class StreamableHttpRunner<
                 this.createServerForRequest({ request, serverOptions, sessionOptions }),
             logger: this.logger,
             metrics: this.metrics,
+            sessionStore: this.sessionStore,
         });
         await this.mcpServer.start();
 
@@ -340,7 +327,7 @@ abstract class ExpressBasedHttpServer {
 }
 
 class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
-    private sessionStore!: SessionStore<StreamableHTTPServerTransport>;
+    private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     private readonly userConfig: UserConfig;
@@ -359,6 +346,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         sessionOptions,
         logger,
         metrics,
+        sessionStore,
     }: {
         userConfig: TUserConfig;
         createServerForRequest: (createParams: {
@@ -370,6 +358,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
         metrics: Metrics<DefaultMetrics>;
+        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     }) {
         super({
             port: userConfig.httpPort,
@@ -382,6 +371,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.createServerForRequest = createServerForRequest;
         this.userConfig = userConfig;
         this.metrics = metrics;
+        this.sessionStore = sessionStore;
     }
 
     public async stop(): Promise<void> {
@@ -471,13 +461,6 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
 
     protected override async setupRoutes(): Promise<void> {
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
-
-        this.sessionStore = new SessionStore(
-            this.userConfig.idleTimeoutMs,
-            this.userConfig.notificationTimeoutMs,
-            this.logger,
-            this.metrics
-        );
 
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
         this.app.use((req, res, next) => {
@@ -676,6 +659,34 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         };
     }
 }
+
+/**
+ * Constructor arguments for creating a MonitoringServer instance.
+ */
+export type MonitoringServerConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    host: string;
+    port: number;
+    features: MonitoringServerFeature[];
+    logger: LoggerBase;
+    metrics: Metrics<TMetrics>;
+};
+
+/**
+ * A function to create a custom MonitoringServer instance.
+ * When provided, the runner will use this function instead of the default MonitoringServer constructor.
+ */
+export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => MonitoringServer<TMetrics> | undefined;
+
+/**
+ * Creates a default MonitoringServer instance from the provided constructor arguments.
+ */
+export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => MonitoringServer<TMetrics> = <TMetrics extends DefaultMetrics = DefaultMetrics>(
+    args: MonitoringServerConstructorArgs<TMetrics>
+) => new MonitoringServer<TMetrics>(args);
 
 export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
     private readonly features: MonitoringServerFeature[];

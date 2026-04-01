@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import {
     StreamableHttpRunner,
     MonitoringServer,
@@ -10,6 +10,8 @@ import type express from "express";
 import type { DefaultMetrics, Metrics } from "../../../src/lib.js";
 import { NullLogger } from "../../../src/common/logging/index.js";
 import { MockMetrics } from "../mocks/metrics.js";
+import type { CreateSessionStoreFn, ISessionStore } from "../../../src/common/sessionStore.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 describe("StreamableHttpRunner", () => {
     describe("monitoring server initialization", () => {
@@ -176,12 +178,89 @@ describe("StreamableHttpRunner", () => {
             });
         });
     });
+
+    describe("session store initialization", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let runner: StreamableHttpRunner<any> | undefined;
+
+        afterEach(async () => {
+            await runner?.close();
+            runner = undefined;
+        });
+
+        it("uses a custom createSessionStore hook to create a session store", () => {
+            const mockSessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+                getSession: vi.fn(),
+                setSession: vi.fn(),
+                closeSession: vi.fn().mockResolvedValue(undefined),
+                closeAllSessions: vi.fn().mockResolvedValue(undefined),
+            };
+
+            const createSessionStore: CreateSessionStoreFn<StreamableHTTPServerTransport> = () => mockSessionStore;
+
+            runner = new StreamableHttpRunner({
+                userConfig: defaultTestConfig,
+                createSessionStore,
+            });
+
+            expect(getSessionStore(runner)).toBe(mockSessionStore);
+        });
+
+        it("uses default SessionStore when createSessionStore is not provided", () => {
+            runner = new StreamableHttpRunner({
+                userConfig: defaultTestConfig,
+            });
+
+            const sessionStore = getSessionStore(runner);
+            expect(sessionStore).toBeDefined();
+            expect(sessionStore).toHaveProperty("getSession");
+            expect(sessionStore).toHaveProperty("setSession");
+            expect(sessionStore).toHaveProperty("closeSession");
+            expect(sessionStore).toHaveProperty("closeAllSessions");
+        });
+
+        it("passes correct args to createSessionStore hook", () => {
+            const createSessionStore = vi.fn().mockReturnValue({
+                getSession: vi.fn(),
+                setSession: vi.fn(),
+                closeSession: vi.fn().mockResolvedValue(undefined),
+                closeAllSessions: vi.fn().mockResolvedValue(undefined),
+            });
+
+            const customConfig = {
+                ...defaultTestConfig,
+                idleTimeoutMs: 120_000,
+                notificationTimeoutMs: 60_000,
+            };
+
+            runner = new StreamableHttpRunner({
+                userConfig: customConfig,
+                createSessionStore: createSessionStore as CreateSessionStoreFn<StreamableHTTPServerTransport>,
+            });
+
+            expect(createSessionStore).toHaveBeenCalledWith({
+                idleTimeoutMs: 120_000,
+                notificationTimeoutMs: 60_000,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                logger: expect.any(Object),
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                metrics: expect.any(Object),
+            });
+        });
+    });
 });
 
 // Access private field for white-box testing of constructor logic
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getMonitoringServer(runner: StreamableHttpRunner<any>): MonitoringServer | undefined {
     return (runner as unknown as { monitoringServer: MonitoringServer | undefined }).monitoringServer;
+}
+
+// Access private field for white-box testing of constructor logic
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<StreamableHTTPServerTransport> | undefined {
+    return (runner as unknown as { sessionStore: ISessionStore<StreamableHTTPServerTransport> | undefined })
+        .sessionStore;
 }
 
 class CustomMonitoringServer extends MonitoringServer {
