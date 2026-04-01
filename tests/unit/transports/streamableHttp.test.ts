@@ -191,7 +191,7 @@ describe("StreamableHttpRunner", () => {
         it("uses a custom createSessionStore hook to create a session store", () => {
             const mockSessionStore: ISessionStore<StreamableHTTPServerTransport> = {
                 getSession: vi.fn(),
-                setSession: vi.fn(),
+                addSession: vi.fn(),
                 closeSession: vi.fn().mockResolvedValue(undefined),
                 closeAllSessions: vi.fn().mockResolvedValue(undefined),
             };
@@ -214,7 +214,7 @@ describe("StreamableHttpRunner", () => {
             const sessionStore = getSessionStore(runner);
             expect(sessionStore).toBeDefined();
             expect(sessionStore).toHaveProperty("getSession");
-            expect(sessionStore).toHaveProperty("setSession");
+            expect(sessionStore).toHaveProperty("addSession");
             expect(sessionStore).toHaveProperty("closeSession");
             expect(sessionStore).toHaveProperty("closeAllSessions");
         });
@@ -222,7 +222,7 @@ describe("StreamableHttpRunner", () => {
         it("passes correct args to createSessionStore hook", () => {
             const createSessionStore = vi.fn().mockReturnValue({
                 getSession: vi.fn(),
-                setSession: vi.fn(),
+                addSession: vi.fn(),
                 closeSession: vi.fn().mockResolvedValue(undefined),
                 closeAllSessions: vi.fn().mockResolvedValue(undefined),
             });

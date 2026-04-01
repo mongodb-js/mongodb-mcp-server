@@ -23,7 +23,7 @@ export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_s
  */
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     getSession(sessionId: string): T | undefined;
-    setSession(sessionId: string, transport: T, logger: LoggerBase): void;
+    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): void;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
 }
@@ -38,19 +38,29 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         };
     } = {};
 
-    constructor(
-        private readonly idleTimeoutMS: number,
-        private readonly notificationTimeoutMS: number,
-        private readonly logger: LoggerBase,
-        private readonly metrics: Metrics<DefaultMetrics>
-    ) {
-        if (idleTimeoutMS <= 0) {
+    private readonly idleTimeoutMS: number;
+    private readonly notificationTimeoutMS: number;
+    private readonly logger: LoggerBase;
+    private readonly metrics: Metrics<DefaultMetrics>;
+
+    constructor(params: {
+        options: { idleTimeoutMS: number; notificationTimeoutMS: number };
+        logger: LoggerBase;
+        metrics: Metrics<DefaultMetrics>;
+    }) {
+        const { options, logger, metrics } = params;
+        this.idleTimeoutMS = options.idleTimeoutMS;
+        this.notificationTimeoutMS = options.notificationTimeoutMS;
+        this.logger = logger;
+        this.metrics = metrics;
+
+        if (this.idleTimeoutMS <= 0) {
             throw new Error("idleTimeoutMS must be greater than 0");
         }
-        if (notificationTimeoutMS <= 0) {
+        if (this.notificationTimeoutMS <= 0) {
             throw new Error("notificationTimeoutMS must be greater than 0");
         }
-        if (idleTimeoutMS <= notificationTimeoutMS) {
+        if (this.idleTimeoutMS <= this.notificationTimeoutMS) {
             throw new Error("idleTimeoutMS must be greater than notificationTimeoutMS");
         }
     }
@@ -88,7 +98,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         });
     }
 
-    setSession(sessionId: string, transport: T, logger: LoggerBase): void {
+    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): void {
+        const { sessionId, transport, logger } = params;
         const session = this.sessions[sessionId];
         if (session) {
             throw new Error(`Session ${sessionId} already exists`);
@@ -164,8 +175,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
  * Constructor arguments for creating a SessionStore instance.
  */
 export type SessionStoreConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
-    idleTimeoutMs: number;
-    notificationTimeoutMs: number;
+    options: { idleTimeoutMS: number; notificationTimeoutMS: number };
     logger: LoggerBase;
     metrics: Metrics<TMetrics>;
 };
@@ -185,6 +195,6 @@ export type CreateSessionStoreFn<
 export function createDefaultSessionStore<
     TTransport extends CloseableTransport = CloseableTransport,
     TMetrics extends DefaultMetrics = DefaultMetrics,
->(args: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport> {
-    return new SessionStore(args.idleTimeoutMs, args.notificationTimeoutMs, args.logger, args.metrics);
+>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport> {
+    return new SessionStore(params);
 }

@@ -80,8 +80,10 @@ export class StreamableHttpRunner<
         super(config);
 
         this.sessionStore = (config.createSessionStore ?? createDefaultSessionStore<StreamableHTTPServerTransport>)({
-            idleTimeoutMs: this.userConfig.idleTimeoutMs,
-            notificationTimeoutMs: this.userConfig.notificationTimeoutMs,
+            options: {
+                idleTimeoutMS: this.userConfig.idleTimeoutMs,
+                notificationTimeoutMS: this.userConfig.notificationTimeoutMs,
+            },
             logger: this.logger,
             metrics: this.metrics,
         });
@@ -572,7 +574,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
             // reuse it. This may cause issues if server.connect fails as we'll try to use a transport that's
             // not fully set up.
             server.session.logger.setAttribute("sessionId", sessionId);
-            this.sessionStore.setSession(sessionId, transport, server.session.logger);
+            this.sessionStore.addSession({ sessionId, transport, logger: server.session.logger });
 
             const keepAliveLoop = this.startKeepAliveLoop(transport, server);
             transport.onclose = (): void => {
