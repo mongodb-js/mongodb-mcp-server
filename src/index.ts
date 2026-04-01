@@ -37,7 +37,7 @@ function enableFipsIfRequested(): void {
 enableFipsIfRequested();
 
 import crypto from "crypto";
-import { ConsoleLogger, LogId } from "./common/logging/index.js";
+import { LogId, ConsoleLogger } from "./common/logging/index.js";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
@@ -47,6 +47,11 @@ import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import { runSetup } from "./setup/setupMcpServer.js";
+import { DeviceId } from "./helpers/deviceId.js";
+import { PrometheusMetrics, createDefaultMetrics } from "./common/metrics/index.js";
+import { createDefaultSessionStore } from "./common/sessionStore.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createLoggerFromConfig, createMonitoringServerFromConfig } from "./transports/createFromConfig.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -93,13 +98,31 @@ async function main(): Promise<void> {
         await handleDryRunRequest(config);
     }
 
+    // Build all dependencies at the composition root
+    const logger = createLoggerFromConfig(config);
+    const deviceId = DeviceId.create(logger);
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
     const transportRunner =
         config.transport === "stdio"
             ? new StdioRunner({
                   userConfig: config,
+                  logger,
+                  deviceId,
+                  metrics,
               })
             : new StreamableHttpRunner({
                   userConfig: config,
+                  logger,
+                  deviceId,
+                  metrics,
+                  sessionStore: createDefaultSessionStore<StreamableHTTPServerTransport>({
+                      idleTimeoutMs: config.idleTimeoutMs,
+                      notificationTimeoutMs: config.notificationTimeoutMs,
+                      logger,
+                      metrics,
+                  }),
+                  monitoringServer: createMonitoringServerFromConfig(config, logger, metrics),
               });
     const shutdown = (): void => {
         transportRunner.logger.info({
@@ -191,9 +214,16 @@ async function handleSetupRequest(config: UserConfig): Promise<never> {
 
 export async function handleDryRunRequest(config: UserConfig): Promise<never> {
     try {
+        const logger = createLoggerFromConfig(config);
+        const deviceId = DeviceId.create(logger);
+        const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
         const runner = new DryRunModeRunner({
             userConfig: config,
-            logger: {
+            logger,
+            deviceId,
+            metrics,
+            output: {
                 log(message): void {
                     console.log(message);
                 },

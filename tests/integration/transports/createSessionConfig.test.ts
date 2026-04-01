@@ -1,9 +1,14 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, MonitoringServer } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
+import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { PrometheusMetrics, createDefaultMetrics } from "../../../src/common/metrics/index.js";
+import { createDefaultSessionStore } from "../../../src/common/sessionStore.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 describe("createSessionConfig", () => {
     const userConfig = defaultTestConfig;
@@ -18,8 +23,37 @@ describe("createSessionConfig", () => {
             createSessionConfig?: TransportRunnerConfig["createSessionConfig"];
         } = {}
     ): Promise<StreamableHttpRunner> => {
+        const effectiveUserConfig = { ...userConfig, httpPort: 0, ...config.userConfig };
+        const logger = new CompositeLogger();
+        const deviceId = DeviceId.create(logger);
+        const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+        const sessionStore = createDefaultSessionStore<StreamableHTTPServerTransport>({
+            idleTimeoutMs: effectiveUserConfig.idleTimeoutMs,
+            notificationTimeoutMs: effectiveUserConfig.notificationTimeoutMs,
+            logger,
+            metrics,
+        });
+
+        const host = effectiveUserConfig.monitoringServerHost ?? effectiveUserConfig.healthCheckHost;
+        const port = effectiveUserConfig.monitoringServerPort ?? effectiveUserConfig.healthCheckPort;
+        const monitoringServer =
+            host !== undefined && port !== undefined
+                ? new MonitoringServer({
+                      host,
+                      port,
+                      features: effectiveUserConfig.monitoringServerFeatures,
+                      logger,
+                      metrics,
+                  })
+                : undefined;
+
         runner = new StreamableHttpRunner({
-            userConfig: { ...userConfig, httpPort: 0, ...config.userConfig },
+            userConfig: effectiveUserConfig,
+            logger,
+            deviceId,
+            metrics,
+            sessionStore,
+            monitoringServer,
             createSessionConfig: config.createSessionConfig,
         });
         await runner.start();

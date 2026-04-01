@@ -1,4 +1,4 @@
-import { StreamableHttpRunner } from "../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, MonitoringServer } from "../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
@@ -6,6 +6,7 @@ import { defaultTestConfig } from "./helpers.js";
 import { parsePrometheusValue } from "./metricsHelpers.js";
 import type { UserConfig } from "../../src/common/config/userConfig.js";
 import { ToolBase } from "../../src/tools/tool.js";
+import type { AnyToolClass } from "../../src/lib.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { Counter } from "prom-client";
@@ -13,6 +14,54 @@ import type { DefaultMetrics } from "../../src/common/metrics/metricDefinitions.
 import { PrometheusMetrics, createDefaultMetrics } from "../../src/common/metrics/index.js";
 import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
 import type { OperationType, ToolCategory } from "../../src/tools/tool.js";
+import { createDefaultSessionStore } from "../../src/common/sessionStore.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { DeviceId } from "../../src/helpers/deviceId.js";
+import { CompositeLogger } from "../../src/common/logging/index.js";
+import type { Metrics } from "../../src/common/metrics/metricsTypes.js";
+
+// Helper to create a runner with all required dependencies
+function createRunner(
+    config: UserConfig,
+    options?: {
+        tools?: AnyToolClass[];
+        metrics?: Metrics<DefaultMetrics>;
+    }
+): StreamableHttpRunner {
+    const logger = new CompositeLogger();
+    const deviceId = DeviceId.create(logger);
+    const metrics = options?.metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+    const sessionStore = createDefaultSessionStore<StreamableHTTPServerTransport>({
+        idleTimeoutMs: config.idleTimeoutMs,
+        notificationTimeoutMs: config.notificationTimeoutMs,
+        logger,
+        metrics,
+    });
+
+    const host = config.monitoringServerHost ?? config.healthCheckHost;
+    const port = config.monitoringServerPort ?? config.healthCheckPort;
+    const monitoringServer =
+        host !== undefined && port !== undefined
+            ? new MonitoringServer({
+                  host,
+                  port,
+                  features: config.monitoringServerFeatures,
+                  logger,
+                  metrics,
+              })
+            : undefined;
+
+    return new StreamableHttpRunner({
+        userConfig: config,
+        logger,
+        deviceId,
+        metrics,
+        sessionStore,
+        monitoringServer,
+        tools: options?.tools,
+    });
+}
 
 describe("/metrics endpoint", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,7 +100,7 @@ describe("/metrics endpoint", () => {
     const monitoringUrl = (path: string): string => `${runner["monitoringServer"]!.serverAddress}${path}`;
 
     it("reflects built-in tool execution metrics after tool calls", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [EchoTool] });
+        runner = createRunner(config, { tools: [EchoTool] });
         await runner.start();
 
         const client = await connectClient();
@@ -80,7 +129,7 @@ describe("/metrics endpoint", () => {
     });
 
     it("records error_type label on toolExecutionDuration histogram when a tool throws", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [ErrorTool] });
+        runner = createRunner(config, { tools: [ErrorTool] });
         await runner.start();
 
         const client = await connectClient();
@@ -99,7 +148,7 @@ describe("/metrics endpoint", () => {
     });
 
     it("increments mcp_session_created when clients connect", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [NoopTool] });
+        runner = createRunner(config, { tools: [NoopTool] });
         await runner.start();
 
         await connectClient();
@@ -110,7 +159,7 @@ describe("/metrics endpoint", () => {
     });
 
     it("increments mcp_session_closed with reason when sessions close", async () => {
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [NoopTool] });
+        runner = createRunner(config, { tools: [NoopTool] });
         await runner.start();
 
         await connectClient();
@@ -154,7 +203,31 @@ describe("/metrics endpoint", () => {
             }
         }
 
-        runner = new StreamableHttpRunner({ userConfig: config, tools: [CustomTool], metrics });
+        // For custom metrics, we need to use the constructor directly with explicit types
+        const logger = new CompositeLogger();
+        const deviceId = DeviceId.create(logger);
+        const sessionStore = createDefaultSessionStore<StreamableHTTPServerTransport>({
+            idleTimeoutMs: config.idleTimeoutMs,
+            notificationTimeoutMs: config.notificationTimeoutMs,
+            logger,
+            metrics,
+        });
+
+        runner = new StreamableHttpRunner({
+            userConfig: config,
+            logger,
+            deviceId,
+            metrics,
+            sessionStore,
+            monitoringServer: new MonitoringServer({
+                host: config.monitoringServerHost!,
+                port: config.monitoringServerPort!,
+                features: config.monitoringServerFeatures,
+                logger,
+                metrics,
+            }),
+            tools: [CustomTool],
+        });
 
         await runner.start();
 

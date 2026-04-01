@@ -5,24 +5,22 @@ import { Session, type SessionOptions } from "../common/session.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LoggerBase } from "../common/logging/index.js";
-import { CompositeLogger, ConsoleLogger, DiskLogger, McpLogger } from "../common/logging/index.js";
+import { CompositeLogger, McpLogger } from "../common/logging/index.js";
 import { ExportsManager } from "../common/exportsManager.js";
-import { DeviceId } from "../helpers/deviceId.js";
+import type { DeviceId } from "../helpers/deviceId.js";
 import { Keychain } from "../common/keychain.js";
 import { defaultCreateConnectionManager, type ConnectionManagerFactoryFn } from "../common/connectionManager.js";
 import {
-    type ConnectionErrorHandler,
     connectionErrorHandler as defaultConnectionErrorHandler,
+    type ConnectionErrorHandler,
 } from "../common/connectionErrorHandler.js";
 import type { CommonProperties } from "../telemetry/types.js";
 import { Elicitation } from "../elicitation.js";
-import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
-import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
+import { defaultCreateAtlasLocalClient, type AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
-import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
+import { ApiClient, defaultCreateApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
-import { createDefaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
+import type { DefaultMetrics } from "../common/metrics/index.js";
 import type { Metrics } from "../common/metrics/metricsTypes.js";
 
 /**
@@ -89,6 +87,10 @@ type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (conte
  * or supporting custom authentication flows) may require customizing other
  * `TransportRunnerConfig` options as well.
  *
+ * All dependencies (logger, deviceId, metrics) must be provided explicitly.
+ * Use the exported factory functions to construct them if you don't need
+ * customization.
+ *
  * @template TContext - The type of the custom tool context object
  */
 export type TransportRunnerConfig<
@@ -114,6 +116,29 @@ export type TransportRunnerConfig<
     userConfig: TUserConfig;
 
     /**
+     * A pre-constructed logger instance. Required.
+     *
+     * The runner uses this logger directly. Construct one using the exported
+     * logging utilities (e.g., `CompositeLogger`, `ConsoleLogger`, `DiskLogger`).
+     */
+    logger: LoggerBase;
+
+    /**
+     * A pre-constructed `DeviceId` instance. Required.
+     *
+     * Construct using `DeviceId.create(logger)` if you don't need custom behavior.
+     */
+    deviceId: DeviceId;
+
+    /**
+     * A pre-constructed `Metrics` instance. Required.
+     *
+     * Construct using `new PrometheusMetrics({ definitions: createDefaultMetrics() })`
+     * if you don't need custom metrics.
+     */
+    metrics: Metrics<TMetrics>;
+
+    /**
      * @deprecated Use `start({ sessionOptions: {connectionManager: MyCustomConnectionManager} })` instead
      * An optional factory function to generates an instance of
      * `ConnectionManager`. When not provided, MongoDB MCP Server uses an
@@ -134,45 +159,6 @@ export type TransportRunnerConfig<
      * implementation to create the local Atlas client.
      */
     createAtlasLocalClient?: AtlasLocalClientFactoryFn;
-
-    /**
-     * An optional list of loggers to be used in addition to the default logger
-     * implementations. When not provided, MongoDB MCP Server will not utilize
-     * any loggers other than the default that it works with.
-     *
-     * Customize this only if the default enabled loggers (disk/stderr/mcp) are
-     * not covering your use-case.
-     */
-    additionalLoggers?: LoggerBase[];
-
-    /**
-     * An optional `Metrics` instance to use for recording metrics. When not
-     * provided, MongoDB MCP Server creates an internal `PrometheusMetrics`
-     * instance that tracks the built-in default metrics.
-     *
-     * Pass a custom instance when you need to:
-     * - Add application-specific metrics alongside the built-in ones (e.g. for
-     *   use by custom tools).
-     * - Control the underlying Prometheus `Registry` (e.g. to share it with
-     *   other parts of your application).
-     *
-     * The instance must expose every metric in `DefaultMetrics` so that the
-     * built-in tools continue to work correctly.  The recommended way to
-     * construct the value is:
-     *
-     * ```ts
-     * import { PrometheusMetrics, createDefaultMetrics } from "mongodb-mcp-server";
-     * import { Counter } from "prom-client";
-     *
-     * const metrics = new PrometheusMetrics({
-     *     definitions: {
-     *         ...createDefaultMetrics(),
-     *         myCounter: new Counter({ name: "my_counter", help: "...", registers: [] }),
-     *     },
-     * });
-     * ```
-     */
-    metrics?: Metrics<TMetrics>;
 
     /**
      * @deprecated This field will be removed in a future version. Use `createServer({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead.
@@ -217,7 +203,7 @@ export abstract class TransportRunnerBase<
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
     /** @deprecated This field will be removed in a future version. Use `start({ serverOptions: {telemetryProperties: MyCustomTelemetryProperties} })` instead. */
-    protected readonly telemetryProperties: Partial<CommonProperties>;
+    protected readonly telemetryProperties?: Partial<CommonProperties>;
     /** @deprecated This field will be removed in a future version. Use `start({ serverOptions: {tools: [...AllTools, MyCustomTool]} })` instead. */
     protected readonly tools?: AnyToolClass[];
     /** @deprecated This method will be removed in a future version. Extend `StreamableHttpRunner` and override `createServerForRequest` instead. */
@@ -227,47 +213,29 @@ export abstract class TransportRunnerBase<
 
     protected constructor({
         userConfig,
-        createConnectionManager = defaultCreateConnectionManager,
-        connectionErrorHandler = defaultConnectionErrorHandler,
-        createAtlasLocalClient = defaultCreateAtlasLocalClient,
-        additionalLoggers = [],
+        logger,
+        deviceId,
         metrics,
-        telemetryProperties = {},
+        createConnectionManager,
+        connectionErrorHandler,
+        createAtlasLocalClient,
+        telemetryProperties,
         tools,
         createSessionConfig,
-        createApiClient = defaultCreateApiClient,
+        createApiClient,
     }: TransportRunnerConfig<TUserConfig, TMetrics>) {
         this.userConfig = userConfig;
-        this.createConnectionManager = createConnectionManager;
-        this.connectionErrorHandler = connectionErrorHandler;
-        this.createAtlasLocalClient = createAtlasLocalClient;
+        this.logger = logger;
+        this.deviceId = deviceId;
+        this.metrics = metrics;
+        // Deprecated factory functions with defaults for backward compatibility
+        this.createConnectionManager = createConnectionManager ?? defaultCreateConnectionManager;
+        this.connectionErrorHandler = connectionErrorHandler ?? defaultConnectionErrorHandler;
+        this.createAtlasLocalClient = createAtlasLocalClient ?? defaultCreateAtlasLocalClient;
         this.telemetryProperties = telemetryProperties;
         this.tools = tools;
         this.createSessionConfig = createSessionConfig;
-        this.createApiClient = createApiClient;
-        this.metrics = metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() as TMetrics });
-        const loggers: LoggerBase[] = [...additionalLoggers];
-        if (this.userConfig.loggers.includes("stderr")) {
-            loggers.push(new ConsoleLogger(Keychain.root));
-        }
-
-        if (this.userConfig.loggers.includes("disk")) {
-            loggers.push(
-                new DiskLogger(
-                    this.userConfig.logPath,
-                    (err) => {
-                        // If the disk logger fails to initialize, we log the error to stderr and exit
-                        // eslint-disable-next-line no-console
-                        console.error("Error initializing disk logger:", err);
-                        process.exit(1);
-                    },
-                    Keychain.root
-                )
-            );
-        }
-
-        this.logger = new CompositeLogger(...loggers);
-        this.deviceId = DeviceId.create(this.logger);
+        this.createApiClient = createApiClient ?? defaultCreateApiClient;
     }
 
     /**

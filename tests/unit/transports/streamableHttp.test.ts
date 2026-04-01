@@ -2,7 +2,6 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import {
     StreamableHttpRunner,
     MonitoringServer,
-    type CreateMonitoringServerFn,
     type MonitoringServerConstructorArgs,
 } from "../../../src/transports/streamableHttp.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
@@ -10,40 +9,58 @@ import type express from "express";
 import type { DefaultMetrics, Metrics } from "../../../src/lib.js";
 import { NullLogger } from "../../../src/common/logging/index.js";
 import { MockMetrics } from "../mocks/metrics.js";
-import type { CreateSessionStoreFn, ISessionStore } from "../../../src/common/sessionStore.js";
+import { createDefaultSessionStore, type ISessionStore } from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
 
 describe("StreamableHttpRunner", () => {
+    const logger = new NullLogger();
+    const deviceId = DeviceId.create(logger);
+    const metrics = new MockMetrics() as unknown as Metrics<DefaultMetrics>;
+
+    const createBaseRunnerConfig = (): {
+        userConfig: typeof defaultTestConfig;
+        logger: typeof logger;
+        deviceId: typeof deviceId;
+        metrics: typeof metrics;
+        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    } => ({
+        userConfig: defaultTestConfig,
+        logger,
+        deviceId,
+        metrics,
+        sessionStore: createDefaultSessionStore<StreamableHTTPServerTransport>({
+            idleTimeoutMs: defaultTestConfig.idleTimeoutMs,
+            notificationTimeoutMs: defaultTestConfig.notificationTimeoutMs,
+            logger,
+            metrics,
+        }),
+    });
+
     describe("monitoring server initialization", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let runner: StreamableHttpRunner<any> | undefined;
         let customServer: MonitoringServer | undefined;
 
-        describe("with custom createMonitoringServer hook", () => {
+        describe("with injected monitoringServer", () => {
             afterEach(async () => {
                 await runner?.close();
                 runner = undefined;
                 customServer = undefined;
             });
 
-            it("uses a custom createMonitoringServer hook to create a monitoring server", async () => {
+            it("uses an injected monitoring server instance", async () => {
                 customServer = new MonitoringServer({
                     host: "127.0.0.1",
                     port: 3002,
                     features: ["health-check"],
-                    logger: new NullLogger(),
-                    metrics: new MockMetrics() as unknown as Metrics<DefaultMetrics>,
+                    logger,
+                    metrics,
                 });
 
-                const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = () => customServer;
-
                 runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        monitoringServerHost: "127.0.0.1",
-                        monitoringServerPort: 3002,
-                    },
-                    createMonitoringServer,
+                    ...createBaseRunnerConfig(),
+                    monitoringServer: customServer,
                 });
 
                 expect(getMonitoringServer(runner)).toBe(customServer);
@@ -55,27 +72,25 @@ describe("StreamableHttpRunner", () => {
                 expect(await fetch(`${address}/health`).then((res) => res.json())).toEqual({ status: "ok" });
             });
 
-            it("supports extending MonitoringServer with custom routes via hook", async () => {
-                const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = (args) => {
-                    return new CustomMonitoringServer(args);
-                };
-
-                runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        monitoringServerHost: "127.0.0.1",
-                        monitoringServerPort: 3002,
-                        monitoringServerFeatures: ["health-check", "metrics"],
-                    },
-                    createMonitoringServer,
+            it("supports extending MonitoringServer with custom routes via injection", async () => {
+                customServer = new CustomMonitoringServer({
+                    host: "127.0.0.1",
+                    port: 3002,
+                    features: ["health-check", "metrics"],
+                    logger,
+                    metrics,
                 });
 
-                customServer = getMonitoringServer(runner);
-                expect(customServer).toBeInstanceOf(CustomMonitoringServer);
+                runner = new StreamableHttpRunner({
+                    ...createBaseRunnerConfig(),
+                    monitoringServer: customServer,
+                });
+
+                expect(getMonitoringServer(runner)).toBeInstanceOf(CustomMonitoringServer);
 
                 await runner.start();
 
-                const address = customServer!.serverAddress;
+                const address = customServer.serverAddress;
 
                 // Verify custom routes work
                 expect(await fetch(`${address}/custom-route`).then((res) => res.json())).toEqual({
@@ -91,16 +106,10 @@ describe("StreamableHttpRunner", () => {
                 expect(metricsResponse.status).toBe(200);
             });
 
-            it("allows createMonitoringServer to return undefined to skip creating a monitoring server", () => {
-                const createMonitoringServer: CreateMonitoringServerFn<DefaultMetrics> = () => undefined;
-
+            it("allows undefined to skip creating a monitoring server", () => {
                 runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        monitoringServerHost: "127.0.0.1",
-                        monitoringServerPort: 3002,
-                    },
-                    createMonitoringServer,
+                    ...createBaseRunnerConfig(),
+                    monitoringServer: undefined,
                 });
 
                 expect(getMonitoringServer(runner)).toBeUndefined();
@@ -108,73 +117,30 @@ describe("StreamableHttpRunner", () => {
         });
 
         describe("constructor logic (no server startup)", () => {
-            it("creates a MonitoringServer when monitoringServerHost and monitoringServerPort are both set", () => {
-                const runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        monitoringServerHost: "127.0.0.1",
-                        monitoringServerPort: 3002,
-                    },
+            it("stores an injected MonitoringServer", () => {
+                const monitoringServer = new MonitoringServer({
+                    host: "127.0.0.1",
+                    port: 3002,
+                    features: ["health-check"],
+                    logger,
+                    metrics,
                 });
 
-                expect(getMonitoringServer(runner)).toBeInstanceOf(MonitoringServer);
-            });
-
-            it("creates a MonitoringServer when deprecated healthCheckHost and healthCheckPort are both set", () => {
                 const runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        healthCheckHost: "127.0.0.1",
-                        healthCheckPort: 0,
-                    },
+                    ...createBaseRunnerConfig(),
+                    monitoringServer,
                 });
 
-                expect(getMonitoringServer(runner)).toBeInstanceOf(MonitoringServer);
+                expect(getMonitoringServer(runner)).toBe(monitoringServer);
             });
 
-            it("does not create a MonitoringServer when only monitoringServerHost is set", () => {
+            it("does not create a MonitoringServer when undefined is passed", () => {
                 const runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        monitoringServerHost: "127.0.0.1",
-                    },
+                    ...createBaseRunnerConfig(),
+                    monitoringServer: undefined,
                 });
 
                 expect(getMonitoringServer(runner)).toBeUndefined();
-            });
-
-            it("does not create a MonitoringServer when only monitoringServerPort is set", () => {
-                const runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        monitoringServerPort: 9090,
-                    },
-                });
-
-                expect(getMonitoringServer(runner)).toBeUndefined();
-            });
-
-            it("does not create a MonitoringServer when neither host nor port are set", () => {
-                const runner = new StreamableHttpRunner({
-                    userConfig: defaultTestConfig,
-                });
-
-                expect(getMonitoringServer(runner)).toBeUndefined();
-            });
-
-            it("prefers monitoringServerHost/Port over deprecated healthCheckHost/Port", () => {
-                const runner = new StreamableHttpRunner({
-                    userConfig: {
-                        ...defaultTestConfig,
-                        monitoringServerHost: "127.0.0.1",
-                        monitoringServerPort: 9090,
-                        healthCheckHost: "0.0.0.0",
-                        healthCheckPort: 8080,
-                    },
-                });
-
-                // A MonitoringServer should be created (from the non-deprecated fields)
-                expect(getMonitoringServer(runner)).toBeInstanceOf(MonitoringServer);
             });
         });
     });
@@ -188,7 +154,7 @@ describe("StreamableHttpRunner", () => {
             runner = undefined;
         });
 
-        it("uses a custom createSessionStore hook to create a session store", () => {
+        it("uses an injected session store instance", () => {
             const mockSessionStore: ISessionStore<StreamableHTTPServerTransport> = {
                 getSession: vi.fn(),
                 setSession: vi.fn(),
@@ -196,56 +162,32 @@ describe("StreamableHttpRunner", () => {
                 closeAllSessions: vi.fn().mockResolvedValue(undefined),
             };
 
-            const createSessionStore: CreateSessionStoreFn<StreamableHTTPServerTransport> = () => mockSessionStore;
-
             runner = new StreamableHttpRunner({
-                userConfig: defaultTestConfig,
-                createSessionStore,
+                ...createBaseRunnerConfig(),
+                sessionStore: mockSessionStore,
             });
 
             expect(getSessionStore(runner)).toBe(mockSessionStore);
         });
 
-        it("uses default SessionStore when createSessionStore is not provided", () => {
-            runner = new StreamableHttpRunner({
-                userConfig: defaultTestConfig,
+        it("uses the injected session store (default one)", () => {
+            const sessionStore = createDefaultSessionStore<StreamableHTTPServerTransport>({
+                idleTimeoutMs: defaultTestConfig.idleTimeoutMs,
+                notificationTimeoutMs: defaultTestConfig.notificationTimeoutMs,
+                logger,
+                metrics,
             });
 
-            const sessionStore = getSessionStore(runner);
-            expect(sessionStore).toBeDefined();
+            runner = new StreamableHttpRunner({
+                ...createBaseRunnerConfig(),
+                sessionStore,
+            });
+
+            expect(getSessionStore(runner)).toBe(sessionStore);
             expect(sessionStore).toHaveProperty("getSession");
             expect(sessionStore).toHaveProperty("setSession");
             expect(sessionStore).toHaveProperty("closeSession");
             expect(sessionStore).toHaveProperty("closeAllSessions");
-        });
-
-        it("passes correct args to createSessionStore hook", () => {
-            const createSessionStore = vi.fn().mockReturnValue({
-                getSession: vi.fn(),
-                setSession: vi.fn(),
-                closeSession: vi.fn().mockResolvedValue(undefined),
-                closeAllSessions: vi.fn().mockResolvedValue(undefined),
-            });
-
-            const customConfig = {
-                ...defaultTestConfig,
-                idleTimeoutMs: 120_000,
-                notificationTimeoutMs: 60_000,
-            };
-
-            runner = new StreamableHttpRunner({
-                userConfig: customConfig,
-                createSessionStore: createSessionStore as CreateSessionStoreFn<StreamableHTTPServerTransport>,
-            });
-
-            expect(createSessionStore).toHaveBeenCalledWith({
-                idleTimeoutMs: 120_000,
-                notificationTimeoutMs: 60_000,
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                logger: expect.any(Object),
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                metrics: expect.any(Object),
-            });
         });
     });
 });

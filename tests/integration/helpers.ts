@@ -22,6 +22,8 @@ import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
+import type { Metrics } from "../../src/common/metrics/metricsTypes.js";
+import type { DefaultMetrics } from "../../src/common/metrics/index.js";
 
 interface Parameter {
     name: string;
@@ -54,6 +56,22 @@ export const defaultTestConfig: UserConfig = {
 };
 
 export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
+
+/**
+ * Creates common test dependencies (logger, deviceId, metrics) for use in tests.
+ * These are the dependencies now required by TransportRunnerBase.
+ */
+export function createTestDependencies(): {
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    metrics: Metrics<DefaultMetrics>;
+} {
+    const logger = new CompositeLogger();
+    const deviceId = DeviceId.create(logger);
+    const metrics = new MockMetrics();
+
+    return { logger, deviceId, metrics };
+}
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,

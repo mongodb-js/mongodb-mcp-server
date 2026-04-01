@@ -1,9 +1,9 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, MonitoringServer } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { LogId } from "../../../src/common/logging/index.js";
-import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
+import type { LoggerBase } from "../../../src/common/logging/index.js";
+import { LogId, CompositeLogger } from "../../../src/common/logging/index.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
@@ -14,6 +14,58 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { PrometheusMetrics, createDefaultMetrics } from "../../../src/common/metrics/index.js";
+import { createDefaultSessionStore } from "../../../src/common/sessionStore.js";
+import type { Metrics } from "../../../src/common/metrics/metricsTypes.js";
+import type { DefaultMetrics } from "../../../src/common/metrics/index.js";
+import type { ISessionStore } from "../../../src/common/sessionStore.js";
+
+// Helper to create a runner with all required dependencies
+function createRunner(
+    config: UserConfig,
+    options?: {
+        additionalLoggers?: LoggerBase[];
+        telemetryProperties?: Record<string, string>;
+        tools?: AnyToolClass[];
+    }
+): StreamableHttpRunner {
+    const logger = new CompositeLogger(...(options?.additionalLoggers ?? []));
+    const deviceId = DeviceId.create(logger);
+    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() }) as Metrics<DefaultMetrics>;
+
+    const sessionStore: ISessionStore<StreamableHTTPServerTransport> = createDefaultSessionStore({
+        idleTimeoutMs: config.idleTimeoutMs,
+        notificationTimeoutMs: config.notificationTimeoutMs,
+        logger,
+        metrics,
+    });
+
+    // Create monitoring server if configured
+    const host = config.monitoringServerHost ?? config.healthCheckHost;
+    const port = config.monitoringServerPort ?? config.healthCheckPort;
+    const monitoringServer =
+        host !== undefined && port !== undefined
+            ? new MonitoringServer({
+                  host,
+                  port,
+                  features: config.monitoringServerFeatures,
+                  logger,
+                  metrics,
+              })
+            : undefined;
+
+    return new StreamableHttpRunner({
+        userConfig: config,
+        logger,
+        deviceId,
+        metrics,
+        sessionStore,
+        monitoringServer,
+        telemetryProperties: options?.telemetryProperties,
+        tools: options?.tools,
+    });
+}
 
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -86,7 +138,7 @@ describe("StreamableHttpRunner", () => {
         describe(description, () => {
             beforeEach(async () => {
                 config.httpHeaders = headers;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
             });
 
@@ -161,7 +213,7 @@ describe("StreamableHttpRunner", () => {
     describe("with httpBodyLimit configuration", () => {
         beforeEach(async () => {
             config.httpBodyLimit = 1024;
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = createRunner(config);
             await runner.start();
         });
 
@@ -207,7 +259,7 @@ describe("StreamableHttpRunner", () => {
         const runners: StreamableHttpRunner[] = [];
         try {
             for (let i = 0; i < 3; i++) {
-                const runner = new StreamableHttpRunner({ userConfig: config });
+                const runner = createRunner(config);
                 await runner.start();
                 runners.push(runner);
             }
@@ -227,15 +279,11 @@ describe("StreamableHttpRunner", () => {
         });
 
         it("can provide custom logger", async () => {
-            const logger = new InMemoryLogger(new Keychain());
-            const runner = new StreamableHttpRunner({
-                userConfig: config,
-                createConnectionManager: defaultCreateConnectionManager,
-                additionalLoggers: [logger],
-            });
+            const customLogger = new InMemoryLogger(new Keychain());
+            const runner = createRunner(config, { additionalLoggers: [customLogger] });
             await runner.start();
 
-            const messages = logger.messages;
+            const messages = customLogger.messages;
             expect(messages.length).toBeGreaterThan(0);
 
             const serverStartedMessage = messages.filter(
@@ -251,10 +299,7 @@ describe("StreamableHttpRunner", () => {
     describe("with telemetry properties", () => {
         it("merges them with the base properties", async () => {
             config.telemetry = "enabled";
-            runner = new StreamableHttpRunner({
-                userConfig: config,
-                telemetryProperties: { hosting_mode: "vscode-extension" },
-            });
+            runner = createRunner(config, { telemetryProperties: { hosting_mode: "vscode-extension" } });
             await runner.start();
 
             const server = await runner["setupServer"]();
@@ -305,7 +350,7 @@ describe("StreamableHttpRunner", () => {
         beforeEach(async () => {
             config.externallyManagedSessions = true;
 
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = createRunner(config);
             await runner.start();
         });
 
@@ -450,7 +495,7 @@ describe("StreamableHttpRunner", () => {
                         config.notificationTimeoutMs = 500;
 
                         await runner?.close();
-                        runner = new StreamableHttpRunner({ userConfig: config });
+                        runner = createRunner(config);
                         await runner.start();
                     });
 
@@ -504,7 +549,7 @@ describe("StreamableHttpRunner", () => {
         beforeEach(async () => {
             config.externallyManagedSessions = false;
 
-            runner = new StreamableHttpRunner({ userConfig: config });
+            runner = createRunner(config);
             await runner.start();
         });
 
@@ -591,7 +636,7 @@ describe("StreamableHttpRunner", () => {
             });
 
             it("starts the monitoring server when configured", async () => {
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -605,7 +650,7 @@ describe("StreamableHttpRunner", () => {
             it("does not start the monitoring server when not configured", async () => {
                 config.healthCheckHost = undefined;
                 config.healthCheckPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeUndefined();
@@ -613,14 +658,14 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when healthCheck port is missing but host is provided", async () => {
                 config.healthCheckPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("errors out when healthCheck host is missing but port is provided", async () => {
                 config.healthCheckHost = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
@@ -628,14 +673,14 @@ describe("StreamableHttpRunner", () => {
             it("errors out when healthcheck port is equal to MCP server port", async () => {
                 config.healthCheckPort = 3000;
                 config.httpPort = 3000;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("handles correctly when healthCheckPort is set to 0", async () => {
                 config.httpPort = 3000;
                 config.healthCheckPort = 0;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -657,7 +702,7 @@ describe("StreamableHttpRunner", () => {
             });
 
             it("starts the monitoring server and exposes /health by default", async () => {
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeDefined();
@@ -671,7 +716,7 @@ describe("StreamableHttpRunner", () => {
             it("does not start the monitoring server when not configured", async () => {
                 config.monitoringServerHost = undefined;
                 config.monitoringServerPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
 
                 expect(runner["monitoringServer"]).toBeUndefined();
@@ -679,14 +724,14 @@ describe("StreamableHttpRunner", () => {
 
             it("errors out when monitoringServerPort is missing but host is provided", async () => {
                 config.monitoringServerPort = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("errors out when monitoringServerHost is missing but port is provided", async () => {
                 config.monitoringServerHost = undefined;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
 
                 await expect(runner.start()).rejects.toThrowError();
             });
@@ -694,13 +739,13 @@ describe("StreamableHttpRunner", () => {
             it("errors out when monitoringServerPort is equal to MCP server port", async () => {
                 config.monitoringServerPort = 3000;
                 config.httpPort = 3000;
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await expect(runner.start()).rejects.toThrowError();
             });
 
             it("does not expose /metrics when features does not include 'metrics'", async () => {
                 config.monitoringServerFeatures = ["health-check"];
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
 
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
@@ -709,7 +754,7 @@ describe("StreamableHttpRunner", () => {
 
             it("exposes /metrics when features includes 'metrics'", async () => {
                 config.monitoringServerFeatures = ["health-check", "metrics"];
-                runner = new StreamableHttpRunner({ userConfig: config });
+                runner = createRunner(config);
                 await runner.start();
 
                 const metricsResponse = await fetch("http://localhost:3001/metrics");
@@ -724,35 +769,33 @@ describe("StreamableHttpRunner", () => {
         const requestInfoReceived = new Promise<ToolExecutionContext["requestInfo"]>((resolve) => {
             confirmRequestInfoReceived = resolve;
         });
-        runner = new StreamableHttpRunner({
-            userConfig: config,
-            tools: [
-                class RandomTool extends ToolBase {
-                    static toolName = "random-tool";
-                    public description = "Random tool";
-                    public argsShape = {};
-                    static category: ToolCategory = "mongodb";
-                    static operationType: OperationType = "metadata";
-                    protected execute(
-                        _: ToolArgs<typeof this.argsShape>,
-                        { requestInfo }: ToolExecutionContext
-                    ): Promise<CallToolResult> {
-                        confirmRequestInfoReceived?.(requestInfo);
-                        return Promise.resolve({
-                            content: [
-                                {
-                                    type: "text",
-                                    text: "Tool executed",
-                                },
-                            ],
-                        });
-                    }
-                    protected resolveTelemetryMetadata(): TelemetryToolMetadata {
-                        return {};
-                    }
-                },
-            ],
-        });
+
+        class RandomTool extends ToolBase {
+            static toolName = "random-tool";
+            public description = "Random tool";
+            public argsShape = {};
+            static category: ToolCategory = "mongodb";
+            static operationType: OperationType = "metadata";
+            protected execute(
+                _: ToolArgs<typeof this.argsShape>,
+                { requestInfo }: ToolExecutionContext
+            ): Promise<CallToolResult> {
+                confirmRequestInfoReceived?.(requestInfo);
+                return Promise.resolve({
+                    content: [
+                        {
+                            type: "text",
+                            text: "Tool executed",
+                        },
+                    ],
+                });
+            }
+            protected resolveTelemetryMetadata(): TelemetryToolMetadata {
+                return {};
+            }
+        }
+
+        runner = createRunner(config, { tools: [RandomTool] });
         await runner.start();
         const client = await connectClient({ additionalHeaders: { Authorization: "Bearer 1234" } });
         const response = await client.listTools();
@@ -848,8 +891,24 @@ describe("StreamableHttpRunner", () => {
             }
 
             // Initialize custom runner with the config check tool
+            // Need to pass all required dependencies since we're extending StreamableHttpRunner
+            const customLogger = new CompositeLogger();
+            const customDeviceId = DeviceId.create(customLogger);
+            const customMetrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+            const customSessionStore = createDefaultSessionStore<StreamableHTTPServerTransport>({
+                idleTimeoutMs: config.idleTimeoutMs,
+                notificationTimeoutMs: config.notificationTimeoutMs,
+                logger: customLogger,
+                metrics: customMetrics,
+            });
+
             runner = new CustomStreamableHttpRunner({
                 userConfig: config,
+                logger: customLogger,
+                deviceId: customDeviceId,
+                metrics: customMetrics,
+                sessionStore: customSessionStore,
+                monitoringServer: undefined,
                 tools: [ConfigCheckTool],
             });
             await runner.start();
@@ -972,8 +1031,24 @@ describe("StreamableHttpRunner", () => {
                 }
             }
 
+            // Need to pass all required dependencies since we're extending StreamableHttpRunner
+            const customLogger = new CompositeLogger();
+            const customDeviceId = DeviceId.create(customLogger);
+            const customMetrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+            const customSessionStore = createDefaultSessionStore<StreamableHTTPServerTransport>({
+                idleTimeoutMs: config.idleTimeoutMs,
+                notificationTimeoutMs: config.notificationTimeoutMs,
+                logger: customLogger,
+                metrics: customMetrics,
+            });
+
             runner = new CustomStreamableHttpRunner({
                 userConfig: config,
+                logger: customLogger,
+                deviceId: customDeviceId,
+                metrics: customMetrics,
+                sessionStore: customSessionStore,
+                monitoringServer: undefined,
             });
             await runner.start();
 

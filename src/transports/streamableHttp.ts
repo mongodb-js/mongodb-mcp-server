@@ -7,7 +7,7 @@ import type {
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { LoggerBase } from "../common/logging/index.js";
 import { CompositeLogger, LogId } from "../common/logging/index.js";
-import { type ISessionStore, type CreateSessionStoreFn, createDefaultSessionStore } from "../common/sessionStore.js";
+import { type ISessionStore } from "../common/sessionStore.js";
 import {
     TransportRunnerBase,
     type TransportRunnerConfig,
@@ -35,6 +35,10 @@ export type MonitoringServerConfig = {
  * Configuration options for the StreamableHttpRunner.
  * Extends the base TransportRunnerConfig with HTTP-transport-specific options.
  *
+ * All HTTP-specific dependencies (sessionStore, monitoringServer) must be provided
+ * explicitly. Use the exported factory functions to construct them if you don't
+ * need customization.
+ *
  * @template TUserConfig - The type of user configuration
  * @template TMetrics - The type of metrics definitions
  */
@@ -43,21 +47,21 @@ export type StreamableHttpTransportRunnerConfig<
     TMetrics extends DefaultMetrics = DefaultMetrics,
 > = TransportRunnerConfig<TUserConfig, TMetrics> & {
     /**
-     * When provided, the runner will use this function to create the monitoring server
-     * instead of using the default MonitoringServer constructor. This allows for
-     * customizing the monitoring server (e.g., adding custom routes) while still
-     * receiving the constructor arguments that would normally be used.
+     * A pre-constructed session store instance. Required.
+     *
+     * Construct using `createDefaultSessionStore(args)` if you don't need
+     * custom session storage behavior.
      */
-    createMonitoringServer?: CreateMonitoringServerFn<TMetrics>;
+    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
 
     /**
-     * When provided, the runner will use this function to create the session store
-     * instead of using the default SessionStore constructor. This allows for
-     * customizing session storage (e.g., Redis-backed storage, custom timeout behavior,
-     * or shared session state across instances) while still receiving the constructor
-     * arguments that would normally be used.
+     * An optional pre-constructed monitoring server instance.
+     *
+     * If not provided, no monitoring server will be started.
+     * Construct using `createDefaultMonitoringServer(args)` or `MonitoringServer`
+     * constructor directly if you need monitoring capabilities.
      */
-    createSessionStore?: CreateSessionStoreFn<StreamableHTTPServerTransport, TMetrics>;
+    monitoringServer?: MonitoringServer<TMetrics>;
 };
 
 const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
@@ -79,24 +83,8 @@ export class StreamableHttpRunner<
     constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>) {
         super(config);
 
-        this.sessionStore = (config.createSessionStore ?? createDefaultSessionStore<StreamableHTTPServerTransport>)({
-            idleTimeoutMs: this.userConfig.idleTimeoutMs,
-            notificationTimeoutMs: this.userConfig.notificationTimeoutMs,
-            logger: this.logger,
-            metrics: this.metrics,
-        });
-        // Create monitoring server if host/port are configured
-        const host = config.userConfig.monitoringServerHost ?? config.userConfig.healthCheckHost;
-        const port = config.userConfig.monitoringServerPort ?? config.userConfig.healthCheckPort;
-        if (host !== undefined && port !== undefined) {
-            this.monitoringServer = (config.createMonitoringServer ?? createDefaultMonitoringServer)({
-                host,
-                port,
-                features: config.userConfig.monitoringServerFeatures,
-                logger: this.logger,
-                metrics: this.metrics,
-            });
-        }
+        this.sessionStore = config.sessionStore;
+        this.monitoringServer = config.monitoringServer;
     }
 
     /** Starts the transport runner. */
@@ -109,10 +97,23 @@ export class StreamableHttpRunner<
         /** Session options to use when creating the session. */
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     } = {}): Promise<void> {
+        // If already started, no-op
+        if (this.mcpServer) {
+            return;
+        }
+
         this.validateConfig();
+        const userConfig = sessionOptions?.userConfig ?? this.userConfig;
 
         this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
-            userConfig: this.userConfig,
+            httpConfig: {
+                httpPort: userConfig.httpPort,
+                httpHost: userConfig.httpHost,
+                httpBodyLimit: userConfig.httpBodyLimit,
+                httpHeaders: userConfig.httpHeaders,
+                httpResponseType: userConfig.httpResponseType,
+                externallyManagedSessions: userConfig.externallyManagedSessions,
+            },
             createServerForRequest: ({ request }): Promise<Server<TUserConfig, TContext>> =>
                 this.createServerForRequest({ request, serverOptions, sessionOptions }),
             logger: this.logger,
@@ -270,6 +271,11 @@ abstract class ExpressBasedHttpServer {
     protected abstract setupRoutes(): Promise<void>;
 
     public async start(): Promise<void> {
+        // If already started, no-op
+        if (this.httpServer) {
+            return;
+        }
+
         await this.setupRoutes();
 
         const { port, hostname } = this.expressConfig;
@@ -311,6 +317,9 @@ abstract class ExpressBasedHttpServer {
                     }
                 });
             });
+
+            this.httpServer = undefined;
+
             this.logger.info({
                 message: "Server stopped",
                 context: this.logContext,
@@ -326,11 +335,23 @@ abstract class ExpressBasedHttpServer {
     }
 }
 
+/**
+ * The subset of configuration that MCPHttpServer actually needs to operate.
+ * Decoupled from `UserConfig` so the server has no dependency on the full
+ * config shape.
+ */
+type MCPHttpServerHttpConfig = {
+    httpBodyLimit: number;
+    httpHeaders: Record<string, unknown>;
+    httpResponseType: "sse" | "json";
+    externallyManagedSessions: boolean;
+};
+
 class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    private readonly userConfig: UserConfig;
+    private readonly httpConfig: MCPHttpServerHttpConfig;
     private readonly metrics: Metrics<DefaultMetrics>;
 
     private createServerForRequest: (createParams: {
@@ -340,7 +361,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     }) => Promise<Server<TUserConfig, TContext>>;
 
     constructor({
-        userConfig,
+        httpConfig,
         createServerForRequest,
         serverOptions,
         sessionOptions,
@@ -348,7 +369,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         metrics,
         sessionStore,
     }: {
-        userConfig: TUserConfig;
+        httpConfig: MCPHttpServerHttpConfig & { httpPort: number; httpHost: string };
         createServerForRequest: (createParams: {
             request: RequestContext;
             serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
@@ -361,15 +382,15 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     }) {
         super({
-            port: userConfig.httpPort,
-            hostname: userConfig.httpHost,
+            port: httpConfig.httpPort,
+            hostname: httpConfig.httpHost,
             logger,
             logContext: "mcpHttpServer",
         });
         this.serverOptions = serverOptions;
         this.sessionOptions = sessionOptions;
         this.createServerForRequest = createServerForRequest;
-        this.userConfig = userConfig;
+        this.httpConfig = httpConfig;
         this.metrics = metrics;
         this.sessionStore = sessionStore;
     }
@@ -416,8 +437,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         transport: StreamableHTTPServerTransport,
         server: Server<TUserConfig, TContext>
     ): NodeJS.Timeout | undefined {
-        if (this.userConfig.httpResponseType === "json") {
-            // Don't start the ping loop for JSON response type since the connection is short-lived and pings aren't needed
+        if (this.httpConfig.httpResponseType === "json") {
             return undefined;
         }
 
@@ -462,9 +482,9 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     protected override async setupRoutes(): Promise<void> {
         const { StreamableHTTPServerTransport } = await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
-        this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
+        this.app.use(express.json({ limit: this.httpConfig.httpBodyLimit }));
         this.app.use((req, res, next) => {
-            for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
+            for (const [key, value] of Object.entries(this.httpConfig.httpHeaders)) {
                 const header = req.headers[key.toLowerCase()];
                 if (!header || header !== value) {
                     res.status(403).json({ error: `Invalid value for header "${key}"` });
@@ -487,7 +507,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
 
             const transport = this.sessionStore.getSession(sessionId);
             if (!transport) {
-                if (this.userConfig.externallyManagedSessions) {
+                if (this.httpConfig.externallyManagedSessions) {
                     this.logger.debug({
                         id: LogId.streamableHttpTransportSessionNotFound,
                         context: "streamableHttpTransport",
@@ -541,7 +561,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
             sessionId = sessionId ?? getRandomUUID();
             const options: StreamableHTTPServerTransportOptions = {
                 sessionIdGenerator: (): string => sessionId,
-                enableJsonResponse: this.userConfig.httpResponseType === "json",
+                enableJsonResponse: this.httpConfig.httpResponseType === "json",
                 onsessionclosed: async (sessionId): Promise<void> => {
                     try {
                         await this.sessionStore.closeSession({ sessionId, reason: "transport_closed" });
@@ -600,7 +620,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
                 }
 
                 if (isInitializeRequest(req.body)) {
-                    if (sessionId && !this.userConfig.externallyManagedSessions) {
+                    if (sessionId && !this.httpConfig.externallyManagedSessions) {
                         this.logger.debug({
                             id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                             context: "streamableHttpTransport",
@@ -624,7 +644,7 @@ class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unkn
         this.app.get(
             "/mcp",
             this.withErrorHandling(async (req, res): Promise<void> => {
-                if (this.userConfig.httpResponseType === "sse") {
+                if (this.httpConfig.httpResponseType === "sse") {
                     await handleSessionRequest(req, res);
                 } else {
                     // Don't allow SSE upgrades if the response type is JSON

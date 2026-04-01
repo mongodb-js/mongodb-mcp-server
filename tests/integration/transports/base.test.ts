@@ -1,11 +1,33 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import { defaultTestConfig } from "../helpers.js";
+import { defaultTestConfig, createTestDependencies } from "../helpers.js";
 import type { UIRegistry } from "../../../src/ui/registry/index.js";
 import type { Server } from "../../../src/server.js";
+import { createDefaultSessionStore } from "../../../src/common/sessionStore.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 describe("TransportRunnerBase", () => {
     let server: Server | undefined;
+    const { logger, deviceId, metrics } = createTestDependencies();
+
+    const createBaseRunnerConfig = (): {
+        userConfig: typeof defaultTestConfig;
+        logger: typeof logger;
+        deviceId: typeof deviceId;
+        metrics: typeof metrics;
+        sessionStore: ReturnType<typeof createDefaultSessionStore<StreamableHTTPServerTransport>>;
+    } => ({
+        userConfig: defaultTestConfig,
+        logger,
+        deviceId,
+        metrics,
+        sessionStore: createDefaultSessionStore<StreamableHTTPServerTransport>({
+            idleTimeoutMs: defaultTestConfig.idleTimeoutMs,
+            notificationTimeoutMs: defaultTestConfig.notificationTimeoutMs,
+            logger,
+            metrics,
+        }),
+    });
 
     afterEach(async () => {
         if (server) {
@@ -17,6 +39,7 @@ describe("TransportRunnerBase", () => {
     describe("UIRegistry conditional import", () => {
         it("should not set UIRegistry when mcpUI preview feature is not enabled", async () => {
             const runner = new StreamableHttpRunner({
+                ...createBaseRunnerConfig(),
                 userConfig: {
                     ...defaultTestConfig,
                     httpPort: 0,
@@ -31,6 +54,7 @@ describe("TransportRunnerBase", () => {
 
         it("should set UIRegistry when mcpUI preview feature is enabled", async () => {
             const runner = new StreamableHttpRunner({
+                ...createBaseRunnerConfig(),
                 userConfig: {
                     ...defaultTestConfig,
                     httpPort: 0,
@@ -47,6 +71,7 @@ describe("TransportRunnerBase", () => {
 
         it("should use provided UIRegistry from serverOptions when available", async () => {
             const runner = new StreamableHttpRunner({
+                ...createBaseRunnerConfig(),
                 userConfig: {
                     ...defaultTestConfig,
                     httpPort: 0,
@@ -68,6 +93,7 @@ describe("TransportRunnerBase", () => {
 
         it("should not import UIRegistry when serverOptions provides one, even if mcpUI is disabled", async () => {
             const runner = new StreamableHttpRunner({
+                ...createBaseRunnerConfig(),
                 userConfig: {
                     ...defaultTestConfig,
                     httpPort: 0,
@@ -89,6 +115,7 @@ describe("TransportRunnerBase", () => {
 
         it("should handle multiple preview features with mcpUI included", async () => {
             const runner = new StreamableHttpRunner({
+                ...createBaseRunnerConfig(),
                 userConfig: {
                     ...defaultTestConfig,
                     httpPort: 0,

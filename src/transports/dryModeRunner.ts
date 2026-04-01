@@ -4,7 +4,7 @@ import { type Server } from "../server.js";
 import type { CustomizableServerOptions } from "../lib.js";
 
 export type DryRunModeTestHelpers = {
-    logger: {
+    output: {
         log(this: void, message: string): void;
         error(this: void, message: string): void;
     };
@@ -14,11 +14,11 @@ type DryRunModeRunnerConfig = TransportRunnerConfig & DryRunModeTestHelpers;
 
 export class DryRunModeRunner extends TransportRunnerBase {
     private server: Server | undefined;
-    private consoleLogger: DryRunModeTestHelpers["logger"];
+    private output: DryRunModeTestHelpers["output"];
 
-    constructor({ logger, ...transportRunnerConfig }: DryRunModeRunnerConfig) {
+    constructor({ output, ...transportRunnerConfig }: DryRunModeRunnerConfig) {
         super(transportRunnerConfig);
-        this.consoleLogger = logger;
+        this.output = output;
     }
 
     override async start({
@@ -41,8 +41,8 @@ export class DryRunModeRunner extends TransportRunnerBase {
     }
 
     private dumpConfig(): void {
-        this.consoleLogger.log("Configuration:");
-        this.consoleLogger.log(JSON.stringify(this.userConfig, null, 2));
+        this.output.log("Configuration:");
+        this.output.log(JSON.stringify(this.userConfig, null, 2));
     }
 
     private dumpTools(): void {
@@ -53,7 +53,7 @@ export class DryRunModeRunner extends TransportRunnerBase {
                     name: tool.name,
                     category: tool.category,
                 })) ?? [];
-        this.consoleLogger.log("Enabled tools:");
-        this.consoleLogger.log(JSON.stringify(tools, null, 2));
+        this.output.log("Enabled tools:");
+        this.output.log(JSON.stringify(tools, null, 2));
     }
 }

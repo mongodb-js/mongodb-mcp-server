@@ -1,10 +1,15 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, MonitoringServer } from "../../../src/transports/streamableHttp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
 import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
 import type { RequestContext } from "../../../src/transports/base.js";
+import { CompositeLogger } from "../../../src/common/logging/index.js";
+import { DeviceId } from "../../../src/helpers/deviceId.js";
+import { PrometheusMetrics, createDefaultMetrics } from "../../../src/common/metrics/index.js";
+import { createDefaultSessionStore } from "../../../src/common/sessionStore.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 describe("Config Overrides via HTTP", () => {
     let runner: StreamableHttpRunner;
@@ -16,7 +21,38 @@ describe("Config Overrides via HTTP", () => {
         config: UserConfig,
         createSessionConfig?: TransportRunnerConfig["createSessionConfig"]
     ): Promise<void> {
-        runner = new StreamableHttpRunner({ userConfig: config, createSessionConfig });
+        const logger = new CompositeLogger();
+        const deviceId = DeviceId.create(logger);
+        const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+        const sessionStore = createDefaultSessionStore<StreamableHTTPServerTransport>({
+            idleTimeoutMs: config.idleTimeoutMs,
+            notificationTimeoutMs: config.notificationTimeoutMs,
+            logger,
+            metrics,
+        });
+
+        const host = config.monitoringServerHost ?? config.healthCheckHost;
+        const port = config.monitoringServerPort ?? config.healthCheckPort;
+        const monitoringServer =
+            host !== undefined && port !== undefined
+                ? new MonitoringServer({
+                      host,
+                      port,
+                      features: config.monitoringServerFeatures,
+                      logger,
+                      metrics,
+                  })
+                : undefined;
+
+        runner = new StreamableHttpRunner({
+            userConfig: config,
+            logger,
+            deviceId,
+            metrics,
+            sessionStore,
+            monitoringServer,
+            createSessionConfig,
+        });
         await runner.start();
     }
 
