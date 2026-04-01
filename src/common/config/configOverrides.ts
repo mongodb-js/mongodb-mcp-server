@@ -1,6 +1,6 @@
 import type { UserConfig } from "./userConfig.js";
 import { UserConfigSchema, configRegistry } from "./userConfig.js";
-import type { RequestContext } from "../../transports/base.js";
+import type { RequestContext } from "@mongodb-mcp/transport";
 import type { ConfigFieldMeta, OverrideBehavior } from "./configUtils.js";
 
 export class ConfigOverrideError extends Error {

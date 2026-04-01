@@ -1,23 +1,7 @@
-import type { MongoLogId } from "mongodb-log-writer";
+// Re-export logging types from @mongodb-mcp/logging
+export type { LogLevel, LogPayload, LoggerType, EventMap, DefaultEventMap, MongoLogId } from "@mongodb-mcp/logging";
 
-import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
+// Main-package-specific exports
 import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 
-export type LogLevel = LoggingMessageNotification["params"]["level"];
-
 export const MCP_LOG_LEVELS = LoggingMessageNotificationSchema.shape.params.shape.level.options;
-
-export interface LogPayload {
-    id: MongoLogId;
-    context: string;
-    message: string;
-    noRedaction?: boolean | LoggerType | LoggerType[];
-    attributes?: Record<string, string>;
-}
-
-export type LoggerType = "console" | "disk" | "mcp";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type EventMap<T> = Record<keyof T, any[]>;
-
-export type DefaultEventMap = Record<string, never[]>;

@@ -1,21 +1,20 @@
-import { CompositeLogger, ConsoleLogger, DiskLogger, type LoggerBase } from "../common/logging/index.js";
-import { Keychain } from "../common/keychain.js";
+import { MonitoringServer } from "@mongodb-mcp/transport";
+import type { LoggerBase } from "../common/logging/index.js";
 import type { UserConfig } from "../common/config/userConfig.js";
-import { MonitoringServer } from "./streamableHttp.js";
-import type { DefaultMetrics } from "../common/metrics/index.js";
-import type { Metrics } from "../common/metrics/metricsTypes.js";
+import type { Metrics, DefaultMetrics } from "@mongodb-mcp/monitoring";
+import { createDefaultSessionStore, type ISessionStore } from "@mongodb-mcp/transport";
+import type { CloseableTransport } from "@mongodb-mcp/transport";
+import { CompositeLogger, ConsoleLogger, DiskLogger } from "../common/logging/index.js";
+import { Keychain } from "../common/keychain.js";
 
-/**
- * Creates a logger from user configuration.
- * Constructs a CompositeLogger with ConsoleLogger and/or DiskLogger based on config.loggers.
- */
-export function createLoggerFromConfig(config: UserConfig): CompositeLogger {
+export function createLoggerFromConfig(config: UserConfig): LoggerBase {
     const loggers: LoggerBase[] = [];
+
     if (config.loggers.includes("stderr")) {
         loggers.push(new ConsoleLogger(Keychain.root));
     }
 
-    if (config.loggers.includes("disk")) {
+    if (config.loggers.includes("disk") && config.logPath) {
         loggers.push(
             new DiskLogger(
                 config.logPath,
@@ -32,10 +31,6 @@ export function createLoggerFromConfig(config: UserConfig): CompositeLogger {
     return new CompositeLogger(...loggers);
 }
 
-/**
- * Creates a monitoring server from user configuration if monitoring is enabled.
- * Returns undefined if no monitoring host/port is configured.
- */
 export function createMonitoringServerFromConfig<TMetrics extends DefaultMetrics>(
     config: UserConfig,
     logger: LoggerBase,
@@ -43,6 +38,7 @@ export function createMonitoringServerFromConfig<TMetrics extends DefaultMetrics
 ): MonitoringServer<TMetrics> | undefined {
     const host = config.monitoringServerHost ?? config.healthCheckHost;
     const port = config.monitoringServerPort ?? config.healthCheckPort;
+
     if (host !== undefined && port !== undefined) {
         return new MonitoringServer({
             host,
@@ -52,5 +48,19 @@ export function createMonitoringServerFromConfig<TMetrics extends DefaultMetrics
             metrics,
         });
     }
+
     return undefined;
+}
+
+export function createSessionStoreFromConfig<T extends CloseableTransport>(
+    config: UserConfig,
+    logger: LoggerBase,
+    metrics: Metrics<DefaultMetrics>
+): ISessionStore<T> {
+    return createDefaultSessionStore({
+        idleTimeoutMs: config.idleTimeoutMs,
+        notificationTimeoutMs: config.notificationTimeoutMs,
+        logger,
+        metrics,
+    });
 }

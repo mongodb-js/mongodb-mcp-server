@@ -97,6 +97,14 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         this.log("emergency", payload);
     }
 
+    /**
+     * Set an attribute on the logger. Base implementation is a no-op.
+     * Subclasses (like CompositeLogger) can override to store attributes.
+     */
+    public setAttribute(_key: string, _value: unknown): void {
+        // No-op in base class
+    }
+
     protected mapToMongoDBLogLevel(level: LogLevel): "info" | "warn" | "error" | "debug" | "fatal" {
         switch (level) {
             case "info":

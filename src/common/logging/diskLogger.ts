@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import { type MongoLogWriter, MongoLogManager } from "mongodb-log-writer";
 import type { Keychain } from "../keychain.js";
-import type { LogLevel, LogPayload, LoggerType } from "./index.js";
+import type { LogLevel, LogPayload, LoggerType, MongoLogId } from "./index.js";
 import { LoggerBase } from "./loggerBase.js";
 
 export class DiskLogger extends LoggerBase<{ initialized: [] }> {
@@ -53,8 +53,15 @@ export class DiskLogger extends LoggerBase<{ initialized: [] }> {
         }
 
         const { id, context, message } = payload;
+        const mongoLogId = typeof id === "string" ? id : (id as unknown as { __value: string }).__value;
         const mongoDBLevel = this.mapToMongoDBLogLevel(level);
 
-        this.logWriter[mongoDBLevel]("MONGODB-MCP", id, context, message, payload.attributes);
+        this.logWriter[mongoDBLevel](
+            "MONGODB-MCP",
+            mongoLogId as unknown as MongoLogId,
+            context,
+            message,
+            payload.attributes
+        );
     }
 }

@@ -13,6 +13,10 @@ export class DeviceId {
     private readonly getMachineId: () => Promise<string>;
     private timeout: number;
 
+    // Properties matching the transport package interface
+    public id: string = "unknown";
+    public type: string = "machine";
+
     private constructor(logger: LoggerBase, timeout: number = DEVICE_ID_TIMEOUT) {
         this.logger = logger;
         this.timeout = timeout;
@@ -34,6 +38,9 @@ export class DeviceId {
             },
             timeout: this.timeout,
             abortSignal: this.abortController.signal,
+        }).then((id) => {
+            this.id = id;
+            return id;
         });
     }
 
@@ -56,7 +63,10 @@ export class DeviceId {
      * @returns Promise that resolves to the device ID string
      */
     public get(): Promise<string> {
-        return this.deviceIdPromise;
+        return this.deviceIdPromise.then((id) => {
+            this.id = id;
+            return id;
+        });
     }
 
     private handleDeviceIdError(reason: string, error: string): void {

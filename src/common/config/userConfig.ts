@@ -13,7 +13,14 @@ import {
 import { MCP_LOG_LEVELS } from "../logging/loggingTypes.js";
 import { monitoringServerFeatureValues, previewFeatureValues } from "../schemas.js";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
+
+// Transport payload limits (moved from transports/constants.js)
+const TRANSPORT_PAYLOAD_LIMITS = {
+    // ~1 MB - MCP specification maximum content size
+    maxOutputSizeBytes: 1048576,
+    // HTTP transport default body limit
+    http: 1048576,
+} as const;
 
 export const configRegistry = z4.registry<ConfigFieldMeta>();
 

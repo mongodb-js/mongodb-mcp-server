@@ -41,17 +41,20 @@ import { LogId, ConsoleLogger } from "./common/logging/index.js";
 import { parseUserConfig } from "./common/config/parseUserConfig.js";
 import { type UserConfig } from "./common/config/userConfig.js";
 import { packageInfo } from "./common/packageInfo.js";
-import { StdioRunner } from "./transports/stdio.js";
-import { StreamableHttpRunner } from "./transports/streamableHttp.js";
+import { StdioRunner, StreamableHttpRunner, DryRunModeRunner, MCPHttpServer } from "@mongodb-mcp/transport";
+import type { MCPServer, RequestContext } from "@mongodb-mcp/transport";
 import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
-import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import { runSetup } from "./setup/setupMcpServer.js";
 import { DeviceId } from "./helpers/deviceId.js";
-import { PrometheusMetrics, createDefaultMetrics } from "./common/metrics/index.js";
-import { createDefaultSessionStore } from "./common/sessionStore.js";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-mcp/monitoring";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createLoggerFromConfig, createMonitoringServerFromConfig } from "./transports/createFromConfig.js";
+import {
+    createLoggerFromConfig,
+    createMonitoringServerFromConfig,
+    createSessionStoreFromConfig,
+} from "./transports/createFromConfig.js";
+import { createMCPServer } from "./transports/createMCPServer.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -106,26 +109,38 @@ async function main(): Promise<void> {
     const transportRunner =
         config.transport === "stdio"
             ? new StdioRunner({
-                  userConfig: config,
                   logger,
                   deviceId,
                   metrics,
+                  server: await createMCPServer({ config, logger, metrics }),
               })
             : new StreamableHttpRunner({
-                  userConfig: config,
                   logger,
                   deviceId,
                   metrics,
-                  sessionStore: createDefaultSessionStore<StreamableHTTPServerTransport>({
-                      idleTimeoutMs: config.idleTimeoutMs,
-                      notificationTimeoutMs: config.notificationTimeoutMs,
+                  mcpHttpServer: new MCPHttpServer({
+                      createServerForRequest: ({ request }: { request: RequestContext }): Promise<MCPServer> =>
+                          createMCPServer({ config, logger, metrics, request }),
+                      httpConfig: {
+                          httpPort: config.httpPort,
+                          httpHost: config.httpHost,
+                          httpBodyLimit: config.httpBodyLimit,
+                          httpHeaders: config.httpHeaders,
+                          httpResponseType: config.httpResponseType,
+                          externallyManagedSessions: config.externallyManagedSessions,
+                      },
                       logger,
                       metrics,
+                      sessionStore: createSessionStoreFromConfig<StreamableHTTPServerTransport>(
+                          config,
+                          logger,
+                          metrics
+                      ),
                   }),
                   monitoringServer: createMonitoringServerFromConfig(config, logger, metrics),
               });
     const shutdown = (): void => {
-        transportRunner.logger.info({
+        logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Server close requested`,
@@ -134,7 +149,7 @@ async function main(): Promise<void> {
         transportRunner
             .close()
             .then(() => {
-                transportRunner.logger.info({
+                logger.info({
                     id: LogId.serverClosed,
                     context: "server",
                     message: `Server closed`,
@@ -142,7 +157,7 @@ async function main(): Promise<void> {
                 process.exit(0);
             })
             .catch((error: unknown) => {
-                transportRunner.logger.error({
+                logger.error({
                     id: LogId.serverCloseFailure,
                     context: "server",
                     message: `Error closing server: ${error as string}`,
@@ -159,7 +174,7 @@ async function main(): Promise<void> {
     try {
         await transportRunner.start();
     } catch (error: unknown) {
-        transportRunner.logger.info({
+        logger.info({
             id: LogId.serverCloseRequested,
             context: "server",
             message: `Closing server due to error: ${error as string}`,
@@ -167,16 +182,16 @@ async function main(): Promise<void> {
 
         try {
             await transportRunner.close();
-            transportRunner.logger.info({
+            logger.info({
                 id: LogId.serverClosed,
                 context: "server",
                 message: "Server closed",
             });
-        } catch (error: unknown) {
-            transportRunner.logger.error({
+        } catch (closeError: unknown) {
+            logger.error({
                 id: LogId.serverCloseFailure,
                 context: "server",
-                message: `Error closing server: ${error as string}`,
+                message: `Error closing server: ${closeError as string}`,
             });
         }
         throw error;
@@ -184,9 +199,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-    // At this point, we may be in a very broken state, so we can't rely on the logger
-    // being functional. Instead, create a brand new ConsoleLogger and log the error
-    // to the console.
     const logger = new ConsoleLogger(Keychain.root);
     logger.emergency({
         id: LogId.serverStartFailure,
@@ -219,10 +231,10 @@ export async function handleDryRunRequest(config: UserConfig): Promise<never> {
         const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
         const runner = new DryRunModeRunner({
-            userConfig: config,
             logger,
             deviceId,
             metrics,
+            configForDisplay: config,
             output: {
                 log(message): void {
                     console.log(message);

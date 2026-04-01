@@ -1,4 +1,5 @@
-import { StreamableHttpRunner, MonitoringServer } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";

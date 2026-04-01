@@ -11,9 +11,20 @@ import type { Elicitation } from "../elicitation.js";
 import type { PreviewFeature } from "../common/schemas.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
-import { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "../transports/constants.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
-import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
+import type { DefaultMetrics, Metrics } from "@mongodb-mcp/monitoring";
+
+// Transport payload limits (moved from transports/constants.js)
+export const TRANSPORT_PAYLOAD_LIMITS = {
+    // ~1 MB - MCP specification maximum content size
+    maxOutputSizeBytes: 1048576,
+    // HTTP transport default body limit
+    http: 1048576,
+    // Stdio transport has no specific limit (uses maxOutputSizeBytes)
+    stdio: 1048576,
+} as const;
+
+export type TransportType = "stdio" | "http";
 import { redact } from "mongodb-redact";
 
 export type ToolArgs<T extends ZodRawShape> = {
@@ -434,7 +445,7 @@ export abstract class ToolBase<
      */
     protected get toolMeta(): Record<string, unknown> {
         const transport = this.config.transport;
-        let maxRequestPayloadBytes =
+        let maxRequestPayloadBytes: number =
             TRANSPORT_PAYLOAD_LIMITS[transport as TransportType] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
 
         // If the transport is http and the httpBodyLimit is set, use the httpBodyLimit

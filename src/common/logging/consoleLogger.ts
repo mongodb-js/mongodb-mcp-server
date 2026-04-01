@@ -13,7 +13,7 @@ export class ConsoleLogger extends LoggerBase {
         const { id, context, message } = payload;
         // eslint-disable-next-line no-console
         console.error(
-            `[${level.toUpperCase()}] ${id.__value} - ${context}: ${message}${this.serializeAttributes(payload.attributes)}`
+            `[${level.toUpperCase()}] ${typeof id === "string" ? id : id.__value} - ${context}: ${message}${this.serializeAttributes(payload.attributes)}`
         );
     }
 
