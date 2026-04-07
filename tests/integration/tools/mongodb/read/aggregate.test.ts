@@ -1050,11 +1050,11 @@ describeWithMongoDB(
             ]);
 
             // Auto-embed indexes take longer to build because they need to call the voyage API
-            // to generate embeddings for the documents. Using a longer timeout (60s).
-            await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 60_000);
+            // to generate embeddings for the documents. Using a longer timeout (120s).
+            await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
         });
 
-        it("should be able to query autoEmbed text index", { timeout: 70_000 }, async () => {
+        it("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {
@@ -1081,7 +1081,7 @@ describeWithMongoDB(
 
         it(
             "should emit tool event with auto-embedding usage metadata pointing to `mongot`",
-            { timeout: 70_000 },
+            { timeout: 130_000 },
             async () => {
                 const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
                 vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);

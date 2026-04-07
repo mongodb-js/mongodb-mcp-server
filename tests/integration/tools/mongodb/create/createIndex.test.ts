@@ -683,7 +683,7 @@ describeWithMongoDB(
             await collection.drop();
         });
 
-        it("should successfully create auto-embed vector search index", { timeout: 70_000 }, async () => {
+        it("should successfully create auto-embed vector search index", { timeout: 130_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
                 arguments: {
@@ -706,7 +706,7 @@ describeWithMongoDB(
 
             // Wait for auto-embed index to be queryable before checking its properties
             // Auto-embed indexes take longer to build because they need to call the voyage API
-            await waitUntilSearchIndexIsQueryable(collection, "vector_1_vector_auto_embed", 60_000);
+            await waitUntilSearchIndexIsQueryable(collection, "vector_1_vector_auto_embed", 120_000);
 
             const indexes: Document[] = await collection.listSearchIndexes().toArray();
             expect(indexes).toHaveLength(1);
