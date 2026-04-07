@@ -1,4 +1,9 @@
-import { describeWithMongoDB, validateAutoConnectBehavior, waitUntilSearchIsReady } from "../mongodbHelpers.js";
+import {
+    describeWithMongoDB,
+    validateAutoConnectBehavior,
+    waitUntilSearchIsReady,
+    waitUntilSearchIndexIsQueryable,
+} from "../mongodbHelpers.js";
 
 import {
     getResponseContent,
@@ -678,7 +683,7 @@ describeWithMongoDB(
             await collection.drop();
         });
 
-        it("should successfully create auto-embed vector search index", async () => {
+        it("should successfully create auto-embed vector search index", { timeout: 70_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
                 arguments: {
@@ -699,14 +704,14 @@ describeWithMongoDB(
                 `Created the index "vector_1_vector_auto_embed" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
             );
 
+            // Wait for auto-embed index to be queryable before checking its properties
+            // Auto-embed indexes take longer to build because they need to call the voyage API
+            await waitUntilSearchIndexIsQueryable(collection, "vector_1_vector_auto_embed", 60_000);
+
             const indexes: Document[] = await collection.listSearchIndexes().toArray();
             expect(indexes).toHaveLength(1);
             expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
             expect(indexes[0]?.type).toEqual("vectorSearch");
-            // Note: The status reporting here is because of an internal feature
-            // flag. For auto-embed indexes we still don't have status
-            // reporting.
-            expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
             expect(indexes[0]?.latestDefinition).toEqual(
                 expect.objectContaining({
                     type: "vectorSearch",

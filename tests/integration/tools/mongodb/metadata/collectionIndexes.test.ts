@@ -411,9 +411,13 @@ describeWithMongoDB(
                     type: "vectorSearch",
                 },
             ]);
+
+            // Wait for auto-embed index to be queryable before checking its properties
+            // Auto-embed indexes take longer to build because they need to call the voyage API
+            await waitUntilSearchIndexIsQueryable(collection, "my-auto-embed-index", 60_000);
         });
 
-        it("returns the list of indexes including auto-embed indexes", { timeout: SEARCH_TIMEOUT }, async () => {
+        it("returns the list of indexes including auto-embed indexes", { timeout: 70_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "collection-indexes",
                 arguments: { database: integration.randomDbName(), collection: "foo" },
