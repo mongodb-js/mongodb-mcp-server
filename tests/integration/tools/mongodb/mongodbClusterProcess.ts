@@ -52,7 +52,7 @@ export type MongoClusterConfiguration =
 
 const DOWNLOAD_RETRIES = 10;
 
-const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8";
+const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:preview";
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
         if (MongoDBClusterProcess.isSearchOption(config)) {
