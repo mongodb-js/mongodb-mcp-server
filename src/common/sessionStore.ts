@@ -15,7 +15,20 @@ export type CloseableTransport = {
 
 export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown";
 
-export class SessionStore<T extends CloseableTransport = CloseableTransport> {
+/**
+ * Interface for managing MCP transport sessions.
+ *
+ * Implement this interface to provide custom session storage and lifecycle
+ * management (e.g. database-based session storage).
+ */
+export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
+    getSession(sessionId: string): T | undefined;
+    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): void;
+    closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
+    closeAllSessions(): Promise<void>;
+}
+
+export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
     private sessions: {
         [sessionId: string]: {
             logger: LoggerBase;
@@ -25,19 +38,29 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         };
     } = {};
 
-    constructor(
-        private readonly idleTimeoutMS: number,
-        private readonly notificationTimeoutMS: number,
-        private readonly logger: LoggerBase,
-        private readonly metrics: Metrics<DefaultMetrics>
-    ) {
-        if (idleTimeoutMS <= 0) {
+    private readonly idleTimeoutMS: number;
+    private readonly notificationTimeoutMS: number;
+    private readonly logger: LoggerBase;
+    private readonly metrics: Metrics<DefaultMetrics>;
+
+    constructor(params: {
+        options: { idleTimeoutMS: number; notificationTimeoutMS: number };
+        logger: LoggerBase;
+        metrics: Metrics<DefaultMetrics>;
+    }) {
+        const { options, logger, metrics } = params;
+        this.idleTimeoutMS = options.idleTimeoutMS;
+        this.notificationTimeoutMS = options.notificationTimeoutMS;
+        this.logger = logger;
+        this.metrics = metrics;
+
+        if (this.idleTimeoutMS <= 0) {
             throw new Error("idleTimeoutMS must be greater than 0");
         }
-        if (notificationTimeoutMS <= 0) {
+        if (this.notificationTimeoutMS <= 0) {
             throw new Error("notificationTimeoutMS must be greater than 0");
         }
-        if (idleTimeoutMS <= notificationTimeoutMS) {
+        if (this.idleTimeoutMS <= this.notificationTimeoutMS) {
             throw new Error("idleTimeoutMS must be greater than notificationTimeoutMS");
         }
     }
@@ -75,7 +98,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
         });
     }
 
-    setSession(sessionId: string, transport: T, logger: LoggerBase): void {
+    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): void {
+        const { sessionId, transport, logger } = params;
         const session = this.sessions[sessionId];
         if (session) {
             throw new Error(`Session ${sessionId} already exists`);
@@ -145,4 +169,32 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> {
             Object.keys(this.sessions).map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
         );
     }
+}
+
+/**
+ * Constructor arguments for creating a SessionStore instance.
+ */
+export type SessionStoreConstructorArgs<TMetrics extends DefaultMetrics = DefaultMetrics> = {
+    options: { idleTimeoutMS: number; notificationTimeoutMS: number };
+    logger: LoggerBase;
+    metrics: Metrics<TMetrics>;
+};
+
+/**
+ * A function to create a custom SessionStore instance.
+ * When provided, the runner will use this function instead of the default SessionStore constructor.
+ */
+export type CreateSessionStoreFn<
+    TTransport extends CloseableTransport = CloseableTransport,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
+
+/**
+ * Creates a default SessionStore instance from the provided constructor arguments.
+ */
+export function createDefaultSessionStore<
+    TTransport extends CloseableTransport = CloseableTransport,
+    TMetrics extends DefaultMetrics = DefaultMetrics,
+>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport> {
+    return new SessionStore(params);
 }

@@ -515,7 +515,6 @@ describeWithMongoDB(
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("vector_1_vector");
-                expect(indexes[0]?.type).toEqual("vectorSearch");
                 expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
                 expect(indexes[0]?.queryable).toEqual(false);
                 expect(indexes[0]?.latestDefinition).toEqual({
@@ -702,14 +701,9 @@ describeWithMongoDB(
             const indexes: Document[] = await collection.listSearchIndexes().toArray();
             expect(indexes).toHaveLength(1);
             expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
-            expect(indexes[0]?.type).toEqual("vectorSearch");
-            // Note: The status reporting here is because of an internal feature
-            // flag. For auto-embed indexes we still don't have status
-            // reporting.
             expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
             expect(indexes[0]?.latestDefinition).toEqual(
                 expect.objectContaining({
-                    type: "vectorSearch",
                     fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
                 })
             );

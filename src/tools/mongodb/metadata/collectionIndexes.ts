@@ -101,10 +101,51 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[] {
         return indexes.map((index) => ({
             name: (index["name"] ?? "default") as string,
-            type: (index["type"] ?? "UNKNOWN") as string,
+            type: CollectionIndexesTool.resolveIndexType(index),
             status: (index["status"] ?? "UNKNOWN") as string,
             queryable: (index["queryable"] ?? false) as boolean,
             latestDefinition: (index["latestDefinition"] ?? {}) as Record<string, unknown>,
         }));
+    }
+
+    /**
+     * Resolves the search index type from the index document, falling back to
+     * definition structure inference when the server doesn't provide a top-level
+     * `type` field.
+     */
+    private static resolveIndexType(index: Record<string, unknown>): string {
+        // Direct type from server response.
+        // TODO: This is undocumented and is not always present, should be removed in the future.
+        const serverType = index["type"];
+        if (serverType && typeof serverType === "string") {
+            return serverType;
+        }
+
+        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
+        const defType = definition["type"];
+        if (defType && typeof defType === "string") {
+            return defType;
+        }
+
+        // Vector search uses a `fields` array, Atlas search uses `mappings`
+        const fields = definition["fields"];
+        if (Array.isArray(fields)) {
+            // Check for auto-embed indexes (have autoEmbed field type)
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+                return "autoEmbed";
+            }
+            // Check for regular vector search indexes (have vector field type)
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
+                return "vectorSearch";
+            }
+            // Other vector search variations (e.g., mixed with filter fields only)
+            return "vectorSearch";
+        }
+
+        if (definition["mappings"] !== undefined && definition["mappings"] !== null) {
+            return "search";
+        }
+
+        return "UNKNOWN";
     }
 }
