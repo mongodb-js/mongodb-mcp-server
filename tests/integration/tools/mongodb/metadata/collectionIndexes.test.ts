@@ -16,7 +16,7 @@ import {
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
 } from "../mongodbHelpers.js";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getIndexesFromContent = (content?: string): Array<unknown> => {
     const data = getDataFromUntrustedContent(content || "");
@@ -418,31 +418,43 @@ describeWithMongoDB(
         });
 
         it("returns the list of indexes including auto-embed indexes", { timeout: 130_000 }, async () => {
-            const response = await integration.mcpClient().callTool({
-                name: "collection-indexes",
-                arguments: { database: integration.randomDbName(), collection: "foo" },
-            });
-
-            const elements = getResponseElements(response.content);
-            expect(elements).toHaveLength(4);
-
-            // Expect 1 regular index - _id_
-            expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
-            expect(elements[2]?.text).toContain(`Found 2 search and vector search indexes in the collection "foo":`);
-
-            const indexDefinitions = getIndexesFromContent(elements[3]?.text) as {
+            // Poll until the tool reports the correct index type
+            // (the type may be "UNKNOWN" immediately after the index becomes READY)
+            let indexDefinitions: {
                 name: string;
                 type: string;
                 latestDefinition: { fields: unknown[] };
-            }[];
+            }[] = [];
 
-            expect(indexDefinitions).toHaveLength(2);
+            await vi.waitFor(
+                async () => {
+                    const response = await integration.mcpClient().callTool({
+                        name: "collection-indexes",
+                        arguments: { database: integration.randomDbName(), collection: "foo" },
+                    });
+
+                    const elements = getResponseElements(response.content);
+                    expect(elements).toHaveLength(4);
+
+                    // Expect 1 regular index - _id_
+                    expect(elements[0]?.text).toContain(`Found 1 classic indexes in the collection "foo":`);
+                    expect(elements[2]?.text).toContain(
+                        `Found 2 search and vector search indexes in the collection "foo":`
+                    );
+
+                    indexDefinitions = getIndexesFromContent(elements[3]?.text) as typeof indexDefinitions;
+                    expect(indexDefinitions).toHaveLength(2);
+
+                    const vectorIndexDefinition = indexDefinitions.find((def) => def.name === "my-auto-embed-index");
+                    expectDefined(vectorIndexDefinition);
+                    expect(vectorIndexDefinition).toHaveProperty("name", "my-auto-embed-index");
+                    expect(vectorIndexDefinition).toHaveProperty("type", "vectorSearch");
+                },
+                { timeout: 30_000, interval: 1_000 }
+            );
 
             const vectorIndexDefinition = indexDefinitions.find((def) => def.name === "my-auto-embed-index");
             expectDefined(vectorIndexDefinition);
-            expect(vectorIndexDefinition).toHaveProperty("name", "my-auto-embed-index");
-            expect(vectorIndexDefinition).toHaveProperty("type", "vectorSearch");
-
             const fields0 = vectorIndexDefinition.latestDefinition.fields;
             expect(fields0).toHaveLength(1);
             expect(fields0[0]).toHaveProperty("type", "autoEmbed");

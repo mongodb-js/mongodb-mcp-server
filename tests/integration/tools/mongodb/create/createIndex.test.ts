@@ -15,7 +15,7 @@ import {
 } from "../../../helpers.js";
 import type { CreateIndexOutput } from "../../../../../src/tools/mongodb/create/createIndex.js";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describeWithMongoDB("createIndex tool", (integration) => {
     validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
@@ -708,15 +708,26 @@ describeWithMongoDB(
             // Auto-embed indexes take longer to build because they need to call the voyage API
             await waitUntilSearchIndexIsQueryable(collection, "vector_1_vector_auto_embed", 120_000);
 
-            const indexes: Document[] = await collection.listSearchIndexes().toArray();
-            expect(indexes).toHaveLength(1);
-            expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
-            expect(indexes[0]?.type).toEqual("vectorSearch");
-            expect(indexes[0]?.latestDefinition).toEqual(
-                expect.objectContaining({
-                    type: "vectorSearch",
-                    fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
-                })
+            // Poll until the index type is properly reported as "vectorSearch"
+            // (the type may be "UNKNOWN" or undefined immediately after becoming READY)
+            await vi.waitFor(
+                async () => {
+                    const indexes = (await collection.listSearchIndexes().toArray()) as {
+                        name: string;
+                        type?: string;
+                        latestDefinition: { type: string; fields: unknown[] };
+                    }[];
+                    expect(indexes).toHaveLength(1);
+                    expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
+                    expect(indexes[0]?.type).toEqual("vectorSearch");
+                    expect(indexes[0]?.latestDefinition).toEqual(
+                        expect.objectContaining({
+                            type: "vectorSearch",
+                            fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
+                        })
+                    );
+                },
+                { timeout: 30_000, interval: 1_000 }
             );
         });
     },
