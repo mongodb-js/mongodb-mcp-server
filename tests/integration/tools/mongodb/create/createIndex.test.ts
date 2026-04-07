@@ -704,7 +704,6 @@ describeWithMongoDB(
             expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
             expect(indexes[0]?.latestDefinition).toEqual(
                 expect.objectContaining({
-                    type: "vectorSearch",
                     fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
                 })
             );

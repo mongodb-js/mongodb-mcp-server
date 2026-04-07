@@ -128,7 +128,17 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         }
 
         // Vector search uses a `fields` array, Atlas search uses `mappings`
-        if (Array.isArray(definition["fields"])) {
+        const fields = definition["fields"];
+        if (Array.isArray(fields)) {
+            // Check for auto-embed indexes (have autoEmbed field type)
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+                return "autoEmbed";
+            }
+            // Check for regular vector search indexes (have vector field type)
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
+                return "vectorSearch";
+            }
+            // Other vector search variations (e.g., mixed with filter fields only)
             return "vectorSearch";
         }
 
