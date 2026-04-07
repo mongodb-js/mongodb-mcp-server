@@ -1122,9 +1122,6 @@ describeWithMongoDB(
         }),
         downloadOptions: {
             autoEmbed: true,
-            mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,
-            voyageIndexingKey: process.env.MDB_VOYAGE_API_KEY as string,
-            voyageQueryKey: process.env.MDB_VOYAGE_API_KEY as string,
         },
     }
 );
