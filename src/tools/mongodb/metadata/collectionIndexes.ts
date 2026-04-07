@@ -99,15 +99,43 @@ export class CollectionIndexesTool extends MongoDBToolBase {
      * understand which fields are available for searching.
      **/
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[] {
-        return indexes.map((index) => {
-            const latestDefinition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
-            return {
-                name: (index["name"] ?? "default") as string,
-                type: (index["type"] ?? latestDefinition["type"] ?? "UNKNOWN") as string,
-                status: (index["status"] ?? "UNKNOWN") as string,
-                queryable: (index["queryable"] ?? false) as boolean,
-                latestDefinition,
-            };
-        });
+        return indexes.map((index) => ({
+            name: (index["name"] ?? "default") as string,
+            type: CollectionIndexesTool.resolveIndexType(index),
+            status: (index["status"] ?? "UNKNOWN") as string,
+            queryable: (index["queryable"] ?? false) as boolean,
+            latestDefinition: (index["latestDefinition"] ?? {}) as Record<string, unknown>,
+        }));
+    }
+
+    /**
+     * Resolves the search index type from the index document, falling back to
+     * definition structure inference when the server doesn't provide a top-level
+     * `type` field.
+     */
+    private static resolveIndexType(index: Record<string, unknown>): string {
+        // Direct type from server response.
+        // TODO: This is undocumented and is not always present, should be removed in the future.
+        const serverType = index["type"];
+        if (serverType && typeof serverType === "string") {
+            return serverType;
+        }
+
+        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
+        const defType = definition["type"];
+        if (defType && typeof defType === "string") {
+            return defType;
+        }
+
+        // Vector search uses a `fields` array, Atlas search uses `mappings`
+        if (Array.isArray(definition["fields"])) {
+            return "vectorSearch";
+        }
+
+        if (definition["mappings"] !== undefined && definition["mappings"] !== null) {
+            return "search";
+        }
+
+        return "UNKNOWN";
     }
 }
