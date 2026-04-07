@@ -1,9 +1,4 @@
-import {
-    describeWithMongoDB,
-    validateAutoConnectBehavior,
-    waitUntilSearchIsReady,
-    waitUntilSearchIndexIsQueryable,
-} from "../mongodbHelpers.js";
+import { describeWithMongoDB, validateAutoConnectBehavior, waitUntilSearchIsReady } from "../mongodbHelpers.js";
 
 import {
     getResponseContent,
@@ -15,7 +10,7 @@ import {
 } from "../../../helpers.js";
 import type { CreateIndexOutput } from "../../../../../src/tools/mongodb/create/createIndex.js";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describeWithMongoDB("createIndex tool", (integration) => {
     validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
@@ -683,7 +678,7 @@ describeWithMongoDB(
             await collection.drop();
         });
 
-        it("should successfully create auto-embed vector search index", { timeout: 130_000 }, async () => {
+        it("should successfully create auto-embed vector search index", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
                 arguments: {
@@ -704,30 +699,19 @@ describeWithMongoDB(
                 `Created the index "vector_1_vector_auto_embed" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
             );
 
-            // Wait for auto-embed index to be queryable before checking its properties
-            // Auto-embed indexes take longer to build because they need to call the voyage API
-            await waitUntilSearchIndexIsQueryable(collection, "vector_1_vector_auto_embed", 120_000);
-
-            // Poll until the index type is properly reported as "vectorSearch"
-            // (the type may be "UNKNOWN" or undefined immediately after becoming READY)
-            await vi.waitFor(
-                async () => {
-                    const indexes = (await collection.listSearchIndexes().toArray()) as {
-                        name: string;
-                        type?: string;
-                        latestDefinition: { type: string; fields: unknown[] };
-                    }[];
-                    expect(indexes).toHaveLength(1);
-                    expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
-                    expect(indexes[0]?.type).toEqual("vectorSearch");
-                    expect(indexes[0]?.latestDefinition).toEqual(
-                        expect.objectContaining({
-                            type: "vectorSearch",
-                            fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
-                        })
-                    );
-                },
-                { timeout: 30_000, interval: 1_000 }
+            const indexes: Document[] = await collection.listSearchIndexes().toArray();
+            expect(indexes).toHaveLength(1);
+            expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
+            expect(indexes[0]?.type).toEqual("vectorSearch");
+            // Note: The status reporting here is because of an internal feature
+            // flag. For auto-embed indexes we still don't have status
+            // reporting.
+            expect(indexes[0]?.status).toEqual(expect.stringMatching(/PENDING|BUILDING/));
+            expect(indexes[0]?.latestDefinition).toEqual(
+                expect.objectContaining({
+                    type: "vectorSearch",
+                    fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
+                })
             );
         });
     },

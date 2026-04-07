@@ -99,12 +99,15 @@ export class CollectionIndexesTool extends MongoDBToolBase {
      * understand which fields are available for searching.
      **/
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[] {
-        return indexes.map((index) => ({
-            name: (index["name"] ?? "default") as string,
-            type: (index["type"] ?? "UNKNOWN") as string,
-            status: (index["status"] ?? "UNKNOWN") as string,
-            queryable: (index["queryable"] ?? false) as boolean,
-            latestDefinition: (index["latestDefinition"] ?? {}) as Record<string, unknown>,
-        }));
+        return indexes.map((index) => {
+            const latestDefinition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
+            return {
+                name: (index["name"] ?? "default") as string,
+                type: (index["type"] ?? latestDefinition["type"] ?? "UNKNOWN") as string,
+                status: (index["status"] ?? "UNKNOWN") as string,
+                queryable: (index["queryable"] ?? false) as boolean,
+                latestDefinition,
+            };
+        });
     }
 }
