@@ -15,9 +15,9 @@ import { connectionErrorHandler } from "../../src/common/connectionErrorHandler.
 import { type OperationType, ToolBase, type ToolCategory, type ToolClass } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
-import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
+import { InMemoryTransport } from "@mongodb-mcp/transport";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/tools/tool.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
 
 class TestToolOne extends ToolBase {
@@ -205,13 +205,31 @@ describe("Server integration test", () => {
 
         const server = new Server({
             session,
-            userConfig: config,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
             tools: [...tools],
             metrics: new MockMetrics(),
+            options: {
+                mcpClientLogLevel: config.mcpClientLogLevel,
+                apiBaseUrl: config.apiBaseUrl,
+                telemetryMetadata: {
+                    readOnly: config.readOnly,
+                    disabledTools: config.disabledTools,
+                    confirmationRequiredTools: config.confirmationRequiredTools,
+                    previewFeatures: config.previewFeatures,
+                },
+                toolConfig: {
+                    transport: config.transport,
+                    httpBodyLimit: config.httpBodyLimit,
+                    disabledTools: config.disabledTools,
+                    readOnly: config.readOnly,
+                    confirmationRequiredTools: config.confirmationRequiredTools,
+                    previewFeatures: config.previewFeatures,
+                    assistantBaseUrl: config.assistantBaseUrl,
+                },
+            },
         });
 
         const transport = new InMemoryTransport();

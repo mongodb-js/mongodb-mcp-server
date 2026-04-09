@@ -2,6 +2,10 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 
 export class InMemoryTransport implements Transport {
+    private _input: WritableStream<JSONRPCMessage>;
+    private _output: ReadableStream<JSONRPCMessage>;
+    private inputWriter: WritableStreamDefaultWriter<JSONRPCMessage>;
+    private outputController: ReadableStreamDefaultController<JSONRPCMessage> | undefined;
     private onMessageCallback?: (message: JSONRPCMessage) => void;
     private onCloseCallback?: () => void;
     private onErrorCallback?: (error: Error) => void;
@@ -11,6 +15,14 @@ export class InMemoryTransport implements Transport {
 
     public get sessionId(): string | undefined {
         return this._sessionId;
+    }
+
+    get input(): WritableStream<JSONRPCMessage> {
+        return this._input;
+    }
+
+    get output(): ReadableStream<JSONRPCMessage> {
+        return this._output;
     }
 
     onmessage: (message: JSONRPCMessage) => void = (message) => {
@@ -25,6 +37,23 @@ export class InMemoryTransport implements Transport {
         // Default no-op handler
     };
 
+    constructor() {
+        // Create input writable stream (where we write messages to be received by this transport)
+        this._input = new WritableStream<JSONRPCMessage>({
+            write: (message) => {
+                this.onMessageCallback?.(message);
+            },
+        });
+        this.inputWriter = this._input.getWriter();
+
+        // Create output readable stream (where messages are read from this transport)
+        this._output = new ReadableStream<JSONRPCMessage>({
+            start: (controller) => {
+                this.outputController = controller;
+            },
+        });
+    }
+
     async start(): Promise<void> {
         // No-op for in-memory transport
     }
@@ -32,10 +61,14 @@ export class InMemoryTransport implements Transport {
     async close(): Promise<void> {
         this.onCloseCallback?.();
         this.otherTransport?.onCloseCallback?.();
+        this.inputWriter.releaseLock();
     }
 
     async send(message: JSONRPCMessage): Promise<void> {
-        this.otherTransport?.onMessageCallback?.(message);
+        // Write to the other transport's input
+        if (this.otherTransport) {
+            await this.otherTransport.inputWriter.write(message);
+        }
     }
 
     setOtherTransport(transport: InMemoryTransport): void {

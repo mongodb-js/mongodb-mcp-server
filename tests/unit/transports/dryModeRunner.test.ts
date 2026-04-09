@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { DryRunModeRunner, type DryRunModeTestHelpers } from "../../../src/transports/dryModeRunner.js";
+import { DryRunModeRunner, type DryRunModeTestHelpers } from "@mongodb-mcp/transport";
 import { type UserConfig } from "../../../src/common/config/userConfig.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import { NullLogger } from "../../../src/common/logging/index.js";

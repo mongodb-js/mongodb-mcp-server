@@ -6,7 +6,7 @@ import { Server, type ServerOptions } from "../../src/server.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
+import { InMemoryTransport } from "@mongodb-mcp/transport";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -22,8 +22,7 @@ import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
-import type { Metrics } from "../../src/common/metrics/metricsTypes.js";
-import type { DefaultMetrics } from "../../src/common/metrics/index.js";
+import type { Metrics, DefaultMetrics } from "@mongodb-mcp/monitoring";
 
 interface Parameter {
     name: string;
@@ -174,13 +173,31 @@ export function setupIntegrationTest(
 
         mcpServer = new Server({
             session,
-            userConfig,
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
             connectionErrorHandler,
             uiRegistry,
             metrics: new MockMetrics(),
+            options: {
+                mcpClientLogLevel: userConfig.mcpClientLogLevel,
+                apiBaseUrl: userConfig.apiBaseUrl,
+                telemetryMetadata: {
+                    readOnly: userConfig.readOnly,
+                    disabledTools: userConfig.disabledTools,
+                    confirmationRequiredTools: userConfig.confirmationRequiredTools,
+                    previewFeatures: userConfig.previewFeatures,
+                },
+                toolConfig: {
+                    transport: userConfig.transport,
+                    httpBodyLimit: userConfig.httpBodyLimit,
+                    disabledTools: userConfig.disabledTools,
+                    readOnly: userConfig.readOnly,
+                    confirmationRequiredTools: userConfig.confirmationRequiredTools,
+                    previewFeatures: userConfig.previewFeatures,
+                    assistantBaseUrl: userConfig.assistantBaseUrl,
+                },
+            },
             ...serverOptions,
         });
 

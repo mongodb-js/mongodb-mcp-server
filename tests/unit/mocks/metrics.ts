@@ -1,6 +1,4 @@
-import { PrometheusMetrics } from "../../../src/common/metrics/prometheusMetrics.js";
-import { createDefaultMetrics } from "../../../src/common/metrics/metricDefinitions.js";
-import type { DefaultMetrics } from "../../../src/common/metrics/metricDefinitions.js";
+import { PrometheusMetrics, createDefaultMetrics, type DefaultMetrics } from "@mongodb-mcp/monitoring";
 
 export class MockMetrics extends PrometheusMetrics<DefaultMetrics> {
     constructor() {

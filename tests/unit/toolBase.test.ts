@@ -13,7 +13,7 @@ import type { Server } from "../../src/server.js";
 import type { ToolEvent } from "../../src/telemetry/types.js";
 import type { PreviewFeature } from "../../src/common/schemas.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
-import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
+import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/tools/tool.js";
 import { expectDefined } from "../integration/helpers.js";
 import { TestTool, TestToolWithOutputSchema, TestToolWithoutStructuredContent, ErrorTool } from "./mocks/tools.js";
 import { MockMetrics } from "./mocks/metrics.js";

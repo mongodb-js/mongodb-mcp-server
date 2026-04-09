@@ -1,13 +1,16 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import { MonitoringServer } from "@mongodb-mcp/transport";
+import {
+    StreamableHttpRunner,
+    MonitoringServer,
+    createDefaultSessionStore,
+    type TransportRunnerConfig,
+} from "@mongodb-mcp/transport";
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
-import type { RequestContext } from "../../../src/transports/base.js";
+import type { UserConfig } from "../../../src/lib.js";
+import type { RequestContext } from "@mongodb-mcp/transport";
 import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-mcp/monitoring";
-import { createDefaultSessionStore } from "@mongodb-mcp/transport";
 
 describe("Config Overrides via HTTP", () => {
     let runner: StreamableHttpRunner;

@@ -1,10 +1,17 @@
 import type { Server } from "../server.js";
 import type { Session } from "../common/session.js";
-import type { UserConfig } from "../common/config/userConfig.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
 import type { SessionEvents } from "../common/session.js";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LogId } from "../common/logging/index.js";
+
+/**
+ * Common interface for any resource registrable with the Server.
+ * Satisfied by both `ReactiveResource` and standalone resource classes.
+ */
+export interface ServerResource {
+    register(server: Server): void;
+}
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];
 
@@ -19,15 +26,9 @@ export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyo
     events: RelevantEvents;
 };
 
-export abstract class ReactiveResource<
-    Value,
-    RelevantEvents extends readonly (keyof SessionEvents)[],
-    TUserConfig extends UserConfig = UserConfig,
-    TContext = unknown,
-> {
-    protected server?: Server<TUserConfig, TContext>;
+export abstract class ReactiveResource<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> {
+    protected server?: Server;
     protected session: Session;
-    protected config: UserConfig;
     protected telemetry: Telemetry;
 
     protected current: Value;
@@ -40,19 +41,16 @@ export abstract class ReactiveResource<
         resourceConfiguration,
         options,
         session,
-        config,
         telemetry,
         current,
     }: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value, RelevantEvents>;
         session: Session;
-        config: UserConfig;
         telemetry: Telemetry;
         current?: Value;
     }) {
         this.session = session;
-        this.config = config;
         this.telemetry = telemetry;
 
         this.name = resourceConfiguration.name;
@@ -73,7 +71,7 @@ export abstract class ReactiveResource<
         }
     }
 
-    public register(server: Server<TUserConfig, TContext>): void {
+    public register(server: Server): void {
         this.server = server;
         this.server.mcpServer.registerResource(this.name, this.uri, this.resourceConfig, this.resourceCallback);
     }

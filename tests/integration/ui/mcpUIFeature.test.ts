@@ -13,7 +13,7 @@ import { connectionErrorHandler } from "../../../src/common/connectionErrorHandl
 import { Keychain } from "../../../src/common/keychain.js";
 import { Elicitation } from "../../../src/elicitation.js";
 import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js";
-import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
+import { InMemoryTransport } from "@mongodb-mcp/transport";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "../../../src/ui/index.js";
 import { defaultCreateApiClient } from "../../../src/lib.js";

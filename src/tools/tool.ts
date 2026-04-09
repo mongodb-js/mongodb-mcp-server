@@ -700,7 +700,7 @@ export abstract class ToolBase<
         this.context = context;
     }
 
-    public register(server: Server<TUserConfig, TContext, TMetrics>): boolean {
+    public register(server: Server): boolean {
         if (!this.verifyAllowed()) {
             return false;
         }

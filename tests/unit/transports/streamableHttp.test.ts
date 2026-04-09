@@ -1,12 +1,15 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import { MonitoringServer, type MonitoringServerConstructorArgs } from "../../../src/transports/monitoringServer.js";
+import {
+    StreamableHttpRunner,
+    MonitoringServer,
+    createDefaultSessionStore,
+    type ISessionStore,
+} from "@mongodb-mcp/transport";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import type express from "express";
 import type { DefaultMetrics, Metrics } from "../../../src/lib.js";
 import { NullLogger } from "../../../src/common/logging/index.js";
 import { MockMetrics } from "../mocks/metrics.js";
-import { createDefaultSessionStore, type ISessionStore } from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 

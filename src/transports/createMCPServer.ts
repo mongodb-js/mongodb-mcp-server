@@ -6,6 +6,9 @@ import type { LoggerBase } from "../common/logging/index.js";
 import { CompositeLogger } from "../common/logging/index.js";
 import { Session } from "../common/session.js";
 import { Server } from "../server.js";
+import { UserConfigResource } from "../resources/common/config.js";
+import { DebugResource } from "../resources/common/debug.js";
+import { ExportedData } from "../resources/common/exportedData.js";
 import { Telemetry } from "../telemetry/telemetry.js";
 import { Elicitation } from "../elicitation.js";
 import { defaultCreateConnectionManager } from "../common/connectionManager.js";
@@ -83,12 +86,30 @@ export async function createMCPServer({
 
     return new Server({
         session,
-        userConfig: finalConfig,
         telemetry,
         mcpServer: mcpServerInstance,
         elicitation,
         connectionErrorHandler,
         uiRegistry,
         metrics,
+        options: {
+            mcpClientLogLevel: finalConfig.mcpClientLogLevel,
+            connectionString: finalConfig.connectionString,
+            apiClientId: finalConfig.apiClientId,
+            apiClientSecret: finalConfig.apiClientSecret,
+            apiBaseUrl: finalConfig.apiBaseUrl,
+            telemetryMetadata: {
+                readOnly: finalConfig.readOnly,
+                disabledTools: finalConfig.disabledTools,
+                confirmationRequiredTools: finalConfig.confirmationRequiredTools,
+                previewFeatures: finalConfig.previewFeatures,
+            },
+            toolConfig: finalConfig,
+        },
+        resources: [
+            new UserConfigResource(session, finalConfig, telemetry),
+            new DebugResource(session, telemetry),
+            new ExportedData(session),
+        ],
     });
 }

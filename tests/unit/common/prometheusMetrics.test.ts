@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Registry, Counter } from "prom-client";
-import { PrometheusMetrics } from "../../../src/common/metrics/prometheusMetrics.js";
+import { PrometheusMetrics } from "@mongodb-mcp/monitoring";
 
 describe("PrometheusMetrics", () => {
     describe("collectProcessMetrics", () => {

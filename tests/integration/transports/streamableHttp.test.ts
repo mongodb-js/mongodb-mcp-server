@@ -1,5 +1,9 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
+import {
+    StreamableHttpRunner,
+    MonitoringServer,
+    createDefaultSessionStore,
+    type RequestContext,
+} from "@mongodb-mcp/transport";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
@@ -13,14 +17,10 @@ import type { OperationType, ToolArgs, ToolCategory, ToolExecutionContext } from
 import { ToolBase } from "../../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
-import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
-import { PrometheusMetrics, createDefaultMetrics } from "../../../src/common/metrics/index.js";
-import { createDefaultSessionStore } from "../../../src/common/sessionStore.js";
-import type { Metrics } from "../../../src/common/metrics/metricsTypes.js";
-import type { DefaultMetrics } from "../../../src/common/metrics/index.js";
-import type { ISessionStore } from "../../../src/common/sessionStore.js";
+import { PrometheusMetrics, createDefaultMetrics, type DefaultMetrics, type Metrics } from "@mongodb-mcp/monitoring";
+import type { ISessionStore } from "@mongodb-mcp/transport";
 
 // Helper to create a runner with all required dependencies
 function createRunner(

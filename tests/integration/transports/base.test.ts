@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import { StreamableHttpRunner, createDefaultSessionStore } from "@mongodb-mcp/transport";
 import { defaultTestConfig, createTestDependencies } from "../helpers.js";
 import type { UIRegistry } from "../../../src/ui/registry/index.js";
 import type { Server } from "../../../src/server.js";
-import { createDefaultSessionStore } from "../../../src/common/sessionStore.js";
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 describe("TransportRunnerBase", () => {

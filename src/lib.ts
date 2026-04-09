@@ -1,4 +1,11 @@
-export { Server, type ServerOptions, type AnyToolClass } from "./server.js";
+export {
+    Server,
+    type ServerOptions,
+    type ServerRunnerOptions,
+    type TelemetryMetadata,
+    type AnyToolClass,
+} from "./server.js";
+export type { ServerResource } from "./resources/resource.js";
 export { Session, type SessionOptions } from "./common/session.js";
 export { type UserConfig, UserConfigSchema } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";

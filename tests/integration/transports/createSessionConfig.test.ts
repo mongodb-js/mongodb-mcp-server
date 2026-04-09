@@ -1,14 +1,17 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
-import { MonitoringServer } from "@mongodb-mcp/transport";
+import {
+    StreamableHttpRunner,
+    MonitoringServer,
+    createDefaultSessionStore,
+    type TransportRunnerConfig,
+} from "@mongodb-mcp/transport";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
-import type { TransportRunnerConfig, UserConfig } from "../../../src/lib.js";
+import type { UserConfig } from "../../../src/lib.js";
 import { defaultTestConfig, expectDefined } from "../helpers.js";
 import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { DeviceId } from "../../../src/helpers/deviceId.js";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-mcp/monitoring";
-import { createDefaultSessionStore } from "@mongodb-mcp/transport";
 
 describe("createSessionConfig", () => {
     const userConfig = defaultTestConfig;

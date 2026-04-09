@@ -4,7 +4,7 @@ import type { Telemetry } from "../../telemetry/telemetry.js";
 import type { Session } from "../../lib.js";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 
-export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
+export class UserConfigResource extends ReactiveResource<UserConfig, readonly []> {
     constructor(session: Session, config: UserConfig, telemetry: Telemetry) {
         super({
             resourceConfiguration: {
@@ -20,7 +20,6 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly []> {
                 events: [],
             },
             session,
-            config,
             telemetry,
         });
     }
