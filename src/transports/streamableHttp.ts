@@ -239,6 +239,7 @@ type ExpressConfig = {
     hostname: string;
 };
 
+/** @internal */
 abstract class ExpressBasedHttpServer {
     protected httpServer: http.Server | undefined;
     protected app: express.Express;

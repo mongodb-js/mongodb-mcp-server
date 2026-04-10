@@ -1,5 +1,5 @@
-export { Server, type ServerOptions, type AnyToolClass } from "./server.js";
-export { Session, type SessionOptions } from "./common/session.js";
+export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
+export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
 export { type UserConfig, UserConfigSchema } from "./common/config/userConfig.js";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "./common/config/parseUserConfig.js";
 
@@ -33,6 +33,8 @@ export {
     CompositeLogger,
     ConsoleLogger,
     NullLogger,
+    type EventMap,
+    type DefaultEventMap,
 } from "./common/logging/index.js";
 export {
     StreamableHttpRunner,
@@ -49,15 +51,21 @@ export {
     type TransportRunnerConfig,
     type CustomizableServerOptions,
     type CustomizableSessionOptions,
+    type CreateSessionConfigFn,
 } from "./transports/base.js";
 export {
     ConnectionManager,
     ConnectionStateConnected,
     type AnyConnectionState,
     type ConnectionState,
+    type ConnectionStateConnecting,
     type ConnectionStateDisconnected,
     type ConnectionStateErrored,
     type ConnectionManagerFactoryFn,
+    type ConnectionSettings,
+    type ConnectionManagerEvents,
+    type ConnectionTag,
+    type OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
 export {
     connectionErrorHandler,
@@ -68,6 +76,9 @@ export {
 } from "./common/connectionErrorHandler.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export { Telemetry } from "./telemetry/telemetry.js";
+export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
+export { type TelemetryEvents } from "./telemetry/telemetry.js";
+export { EventCache } from "./telemetry/eventCache.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
 export { Elicitation } from "./elicitation.js";
@@ -81,11 +92,18 @@ export {
     type CreateSessionStoreFn,
     type SessionStoreConstructorArgs,
 } from "./common/sessionStore.js";
-export { ApiClient, type ApiClientOptions } from "./common/atlas/apiClient.js";
-export type { AuthProvider } from "./common/atlas/auth/authProvider.js";
-export { type UIRegistryOptions } from "./ui/registry/registry.js";
+export { ExportsManager } from "./common/exportsManager.js";
+export { DeviceId } from "./helpers/deviceId.js";
+export type { MonitoringServerFeature } from "./common/schemas.js";
+export {
+    ApiClient,
+    type ApiClientOptions,
+    type ApiClientFactoryFn,
+    type RequestContext,
+} from "./common/atlas/apiClient.js";
+export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
+export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
 export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
-export { type RequestContext } from "./transports/base.js";
 export { PrometheusMetrics } from "./common/metrics/prometheusMetrics.js";
 export { createDefaultMetrics } from "./common/metrics/metricDefinitions.js";
 export type { DefaultMetrics } from "./common/metrics/metricDefinitions.js";

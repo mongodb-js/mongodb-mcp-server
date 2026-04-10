@@ -3,6 +3,9 @@ import { ListDatabases as LGListDatabases } from "@lg-mcp/embeddable-uis";
 import { useRenderData } from "@lg-mcp/hooks";
 import type { ListDatabasesOutput } from "../../../tools/mongodb/metadata/listDatabases.js";
 
+/**
+ * @internal
+ */
 export type Database = ListDatabasesOutput["databases"][number];
 
 export const ListDatabases = (): ReactElement | null => {

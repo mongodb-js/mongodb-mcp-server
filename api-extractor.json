@@ -1,0 +1,52 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+
+  "mainEntryPointFilePath": "<projectFolder>/dist/esm/lib.d.ts",
+
+  "compiler": {
+    "tsconfigFilePath": "<projectFolder>/tsconfig.esm.json"
+  },
+
+  "apiReport": {
+    "enabled": true,
+    "reportFolder": "<projectFolder>/api-extractor/reports/",
+    "reportFileName": "mongodb-mcp-server",
+    "reportVariants": ["public"]
+  },
+
+  "docModel": {
+    "enabled": false
+  },
+
+  "dtsRollup": {
+    "enabled": false
+  },
+
+  "tsdocMetadata": {
+    "enabled": false
+  },
+
+  "messages": {
+    "compilerMessageReporting": {
+      "default": {
+        "logLevel": "warning"
+      }
+    },
+    "extractorMessageReporting": {
+      "default": {
+        "logLevel": "warning"
+      },
+      "ae-missing-release-tag": {
+        "logLevel": "none"
+      },
+      "ae-unresolved-link": {
+        "logLevel": "warning"
+      }
+    },
+    "tsdocMessageReporting": {
+      "default": {
+        "logLevel": "none"
+      }
+    }
+  }
+}

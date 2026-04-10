@@ -20,8 +20,8 @@ export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"
     atlas?: AtlasClusterConnectionInfo;
 }
 
-type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
-type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
+export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
+export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
 export interface ConnectionState {
     tag: ConnectionTag;

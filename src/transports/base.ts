@@ -69,7 +69,7 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
  * @see {@link RequestContext} to inspect the properties available on
  * `requestContext` object.
  */
-type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
+export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
     request?: RequestContext;
 }) => Promise<TUserConfig> | TUserConfig;
