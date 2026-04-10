@@ -9,7 +9,7 @@ import type { UserConfig } from "./config/userConfig.js";
  */
 export type ConnectionStringHostType = "local" | "atlas" | "atlas_local" | "unknown";
 
-type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
+export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export type ConnectionStringAuthType = "scram" | "ldap" | "kerberos" | OIDCConnectionAuthType | "x.509";
 
 /**

@@ -125,6 +125,19 @@ npx @modelcontextprotocol/inspector -- node dist/esm/index.js
 - Comment your code when necessary, especially for complex logic
 - Use meaningful variable and function names
 
+## Making public API changes
+
+To ensure no unintentional public API changes are introduced, the project uses [API Extractor](https://api-extractor.com/) to track the public-facing API across all package entry points (`.`, `./web`, `./tools`, `./ui`). The generated API report files live in `api-extractor/reports/` and are checked into source control.
+
+### Workflow when changing the public API
+
+1. Make your code changes.
+2. Run `pnpm run update:api` to regenerate the reports.
+3. Review the diff in `api-extractor/reports/`.
+4. Commit the updated reports alongside your code changes.
+
+If you forget to update the reports, `pnpm run check:api` will fail.
+
 ## Reporting Issues
 
 When reporting issues, please include:

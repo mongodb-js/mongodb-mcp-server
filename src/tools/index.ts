@@ -12,6 +12,8 @@ export const AllTools: ToolClass[] = Object.values({
     ...AssistantTools,
 });
 
+export { MongoDBToolBase } from "./mongodb/mongodbTool.js";
+
 // Export all the individual tools for handpicking
 export * from "./atlas/tools.js";
 export * from "./atlasLocal/tools.js";

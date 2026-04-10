@@ -29,10 +29,13 @@ import type { Metrics } from "../common/metrics/metricsTypes.js";
  * Request context containing HTTP headers and query parameters.
  * This type is primarily used by HTTP-based transports.
  */
-export type RequestContext = {
+export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
 };
+
+/** @deprecated Use TransportRequestContext instead */
+export type RequestContext = TransportRequestContext;
 
 export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConfig> = Partial<
     Pick<
@@ -60,18 +63,18 @@ export type CustomizableServerOptions<TUserConfig extends UserConfig = UserConfi
  * 1. `userConfig`: The base `UserConfig` object that MongoDB MCP Server was
  *    started with, either through parsed CLI arguments or a static
  *    configuration injected through `TransportRunnerConfig`
- * 2. `request`: An optional, `RequestContext` object, available only when
+ * 2. `request`: An optional, `TransportRequestContext` object, available only when
  *    MongoDB MCP server is running over HTTP transport, that contains headers
  *    and query parameters received in MCP session initialization object.
  *
  * @see {@link UserConfig} to inspect the properties available on `userConfig`
  * object.
- * @see {@link RequestContext} to inspect the properties available on
+ * @see {@link TransportRequestContext} to inspect the properties available on
  * `requestContext` object.
  */
-type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
+export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
-    request?: RequestContext;
+    request?: TransportRequestContext;
 }) => Promise<TUserConfig> | TUserConfig;
 
 /**

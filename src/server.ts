@@ -16,6 +16,7 @@ import {
     UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { AnyToolBase, ToolCategory, ToolClass } from "./tools/tool.js";
+export type { ToolCategory } from "./tools/tool.js";
 import { validateConnectionString } from "./helpers/connectionOptions.js";
 import { packageInfo } from "./common/packageInfo.js";
 import { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
@@ -75,10 +76,7 @@ export interface ServerOptions<
      *
      * To ensure that you provide compliant tool implementations extend your
      * tool implementation using `ToolBase` class and ensure that they conform
-     * to `ToolClass` type.
-     *
-     * @see {@link ToolClass} for the type that tool classes must conform to
-     * @see {@link ToolBase} for base class for all the tools
+     * to `ToolClass` type from `mongodb-mcp-server/tools`.
      */
     tools?: AnyToolClass[];
     /**

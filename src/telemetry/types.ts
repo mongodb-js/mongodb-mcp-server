@@ -154,7 +154,7 @@ export type AtlasMetadata = {
     org_id?: string;
 };
 
-type AtlasLocalToolMetadata = {
+export type AtlasLocalToolMetadata = {
     atlas_local_deployment_id?: string;
 };
 
