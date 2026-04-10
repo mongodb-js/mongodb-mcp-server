@@ -1,7 +1,6 @@
+#  Bumps the version in package.json and creates a release PR. Once merged, the new
+#  version will be published to npm.
 name: Prepare release
-description: |
-  Bumps the version in package.json and creates a release PR. Once merged, the new
-  version will be published to npm.
 on:
   workflow_dispatch:
     inputs:
@@ -43,6 +42,57 @@ jobs:
         run: |
           pnpm run generate:arguments
 
+      - name: Check Jira vNext ticket status
+        id: jira-status
+        continue-on-error: true
+        env:
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          JIRA_URL="https://jira.mongodb.org"
+          PROJECT_KEY="MCP"
+          AUTH_HEADER="Authorization: Bearer ${JIRA_API_TOKEN}"
+
+          # Fetch all project versions and find vNext
+          versions=$(curl -sSf -H "${AUTH_HEADER}" "${JIRA_URL}/rest/api/2/project/${PROJECT_KEY}/versions")
+          vnext_id=$(echo "${versions}" | jq -r '.[] | select(.name == "vNext") | .id')
+
+          if [[ -z "${vnext_id}" ]]; then
+            echo "::warning::vNext version not found in Jira project ${PROJECT_KEY}"
+            exit 0
+          fi
+
+          urlencode() { echo -n "$1" | jq -sRr @uri; }
+
+          ALL_JQL="project = ${PROJECT_KEY} AND fixVersion = vNext"
+          RESOLVED_JQL="${ALL_JQL} AND resolution != Unresolved"
+          UNRESOLVED_JQL="${ALL_JQL} AND resolution = Unresolved"
+
+          total=$(curl -sSf -H "${AUTH_HEADER}" \
+            "${JIRA_URL}/rest/api/2/search?maxResults=0&jql=$(urlencode "${ALL_JQL}")" \
+            | jq '.total')
+
+          resolved=$(curl -sSf -H "${AUTH_HEADER}" \
+            "${JIRA_URL}/rest/api/2/search?maxResults=0&jql=$(urlencode "${RESOLVED_JQL}")" \
+            | jq '.total')
+
+          unresolved=$((total - resolved))
+
+          vnext_url="${JIRA_URL}/projects/${PROJECT_KEY}/versions/${vnext_id}"
+          all_url="${JIRA_URL}/issues/?jql=$(urlencode "${ALL_JQL}")"
+          resolved_url="${JIRA_URL}/issues/?jql=$(urlencode "${RESOLVED_JQL}")"
+          unresolved_url="${JIRA_URL}/issues/?jql=$(urlencode "${UNRESOLVED_JQL}")"
+
+          if [[ "${unresolved}" -eq 0 ]]; then
+            status="All [${total} tickets](${all_url}) in [vNext](${vnext_url}) are in resolved state."
+          else
+            status="There are [${resolved} resolved](${resolved_url}) and [${unresolved} unresolved](${unresolved_url}) tickets in [vNext](${vnext_url}). Please review and update if necessary."
+          fi
+
+          echo "JIRA_STATUS=${status}" >> "${GITHUB_OUTPUT}"
+
       - name: Create release PR
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # 8.1.0
         id: create-pr
@@ -53,6 +103,8 @@ jobs:
           body: |
             This PR bumps the package version to ${{ steps.bump-version.outputs.NEW_VERSION }}.
             Once merged, the new version will be published to npm.
+
+            ${{ steps.jira-status.outputs.JIRA_STATUS }}
           base: main
           branch: chore_release_${{ steps.bump-version.outputs.NEW_VERSION }}
           author: "${{ steps.app-token.outputs.app-slug}}[bot] <${{ steps.app-token.outputs.app-email }}>"
