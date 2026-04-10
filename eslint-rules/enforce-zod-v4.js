@@ -23,7 +23,7 @@ export default {
         },
     },
     create(context) {
-        const currentFilePath = path.resolve(context.getFilename());
+        const currentFilePath = path.resolve(context.filename);
 
         // Only allow zod v4 import in config.ts
         if (allowedFilePaths.includes(currentFilePath)) {
