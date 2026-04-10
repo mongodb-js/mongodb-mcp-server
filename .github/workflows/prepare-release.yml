@@ -59,12 +59,7 @@ jobs:
           LATEST="${LATEST_TAG#v}"
           NEW="${NEW_VERSION#v}"
 
-          IS_REGRESSION=$(node -e "
-          const semver = require('semver');
-          process.stdout.write(semver.lt(process.argv[1], process.argv[2]) ? 'true' : 'false');
-          " "$NEW" "$LATEST")
-
-          if [[ "$IS_REGRESSION" == "true" ]]; then
+          if ! npx semver -r "< $NEW" "$LATEST" > /dev/null; then
             echo "VERSION_WARNING=⚠️ The new version \`${NEW_VERSION}\` is lower than the latest published release \`${LATEST_TAG}\`. Please verify this is intentional." >> "${GITHUB_OUTPUT}"
           fi
 

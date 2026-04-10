@@ -42,6 +42,8 @@ jobs:
             LABEL="type: chore"
           fi
 
+          echo "Determined label: $LABEL"
+
           # Fetch current type: labels
           LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name | select(startswith("type: "))]')
 
@@ -49,9 +51,11 @@ jobs:
           LABELS_TO_REMOVE=$(echo "$LABELS" | jq -r --arg l "$LABEL" '[.[] | select(. != $l)] | join(",")')
           if [[ -n "$LABELS_TO_REMOVE" ]]; then
             gh pr edit "$PR_NUMBER" --remove-label "$LABELS_TO_REMOVE"
+            echo "Removed labels: $LABELS_TO_REMOVE"
           fi
 
           # Only add the label if it's not already present
           if ! echo "$LABELS" | jq -e --arg l "$LABEL" 'contains([$l])' > /dev/null; then
             gh pr edit "$PR_NUMBER" --add-label "$LABEL"
+            echo "Added label: $LABEL"
           fi
