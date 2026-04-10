@@ -80,7 +80,7 @@
     "check:lint": "eslint .",
     "check:dependencies": "knip --strict",
     "check:format": "prettier -c .",
-    "update:api": "npm run build && concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\" \"api-extractor run --local --config api-extractor/api-extractor-ui.json\"",
+    "update:api": "pnpm run build && concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\" \"api-extractor run --local --config api-extractor/api-extractor-ui.json\"",
     "check:types": "tsc --noEmit --project tsconfig.json",
     "fix": "pnpm run fix:lint && pnpm run reformat",
     "fix:lint": "eslint . --fix",

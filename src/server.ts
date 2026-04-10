@@ -76,7 +76,7 @@ export interface ServerOptions<
      *
      * To ensure that you provide compliant tool implementations extend your
      * tool implementation using `ToolBase` class and ensure that they conform
-     * to `ToolClass` type from `@mongodb-mcp-server/tools`.
+     * to `ToolClass` type from `mongodb-mcp-server/tools`.
      */
     tools?: AnyToolClass[];
     /**

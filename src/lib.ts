@@ -52,6 +52,7 @@ export {
     type CustomizableServerOptions,
     type CustomizableSessionOptions,
     type CreateSessionConfigFn,
+    type TransportRequestContext,
 } from "./transports/base.js";
 export {
     ConnectionManager,

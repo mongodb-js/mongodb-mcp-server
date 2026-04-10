@@ -34,18 +34,6 @@ import type { ZodRawShape } from 'zod';
 // @public (undocumented)
 export type AnyToolClass = ToolClass<any, any, any>;
 
-// Warning: (ae-forgotten-export) The symbol "ApiClientOptions" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "ApiClient" needs to be exported by the entry point web.d.ts
-//
-// @public (undocumented)
-export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
-
-// @public (undocumented)
-export type AtlasLocalClientFactoryFn = (input: {
-    logger: LoggerBase;
-    loader?: LibraryLoader;
-}) => Promise<Client | undefined>;
-
 // Warning: (ae-forgotten-export) The symbol "CommonStaticProperties" needs to be exported by the entry point web.d.ts
 //
 // @public
@@ -81,24 +69,6 @@ export class CompositeLogger extends LoggerBase {
     protected readonly type?: LoggerType;
 }
 
-// Warning: (ae-forgotten-export) The symbol "MongoDBError" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "ErrorCodes" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "ConnectionErrorHandlerContext" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "ConnectionErrorUnhandled" needs to be exported by the entry point web.d.ts
-// Warning: (ae-forgotten-export) The symbol "ConnectionErrorHandled" needs to be exported by the entry point web.d.ts
-//
-// @public (undocumented)
-export type ConnectionErrorHandler = (error: MongoDBError<ErrorCodes.NotConnectedToMongoDB | ErrorCodes.MisconfiguredConnectionString>, additionalContext: ConnectionErrorHandlerContext) => ConnectionErrorUnhandled | ConnectionErrorHandled | Promise<ConnectionErrorUnhandled | ConnectionErrorHandled>;
-
-// Warning: (ae-forgotten-export) The symbol "ConnectionManager" needs to be exported by the entry point web.d.ts
-//
-// @public
-export type ConnectionManagerFactoryFn = (createParams: {
-    logger: LoggerBase;
-    deviceId: DeviceId;
-    userConfig: UserConfig;
-}) => Promise<ConnectionManager>;
-
 // @public
 export function createDefaultMetrics(): {
     readonly toolExecutionDuration: Histogram<"status" | "category" | "tool_name" | "operation_type" | "error_type">;
@@ -109,7 +79,7 @@ export function createDefaultMetrics(): {
 // @public
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
-    request?: RequestContext;
+    request?: TransportRequestContext;
 }) => Promise<TUserConfig> | TUserConfig;
 
 // @public (undocumented)
@@ -175,12 +145,6 @@ export type Metrics<TMetrics extends MetricDefinitions = MetricDefinitions> = {
     getMetrics(): Promise<string>;
 };
 
-// @public
-export type RequestContext = {
-    headers?: Record<string, string | string[] | undefined>;
-    query?: Record<string, string | string[] | undefined>;
-};
-
 // @public (undocumented)
 export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
     constructor(input: ServerOptions<TUserConfig, TContext, TMetrics>);
@@ -188,6 +152,8 @@ export class Server<TUserConfig extends UserConfig = UserConfig, TContext = unkn
     close(): Promise<void>;
     // (undocumented)
     connect(transport: Transport): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionErrorHandler" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
     readonly connectionErrorHandler: ConnectionErrorHandler;
     // Warning: (ae-forgotten-export) The symbol "Elicitation" needs to be exported by the entry point web.d.ts
@@ -255,6 +221,8 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
 // @public (undocumented)
 export class Session extends EventEmitter<SessionEvents> {
     constructor(input: SessionOptions<UserConfig>);
+    // Warning: (ae-forgotten-export) The symbol "ApiClient" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
     readonly apiClient?: ApiClient;
     // (undocumented)
@@ -269,6 +237,8 @@ export class Session extends EventEmitter<SessionEvents> {
     get connectedAtlasCluster(): AtlasClusterConnectionInfo | undefined;
     // (undocumented)
     readonly connectionErrorHandler: ConnectionErrorHandler;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionManager" needs to be exported by the entry point web.d.ts
+    //
     // (undocumented)
     readonly connectionManager: ConnectionManager;
     // Warning: (ae-forgotten-export) The symbol "ConnectionStringInfo" needs to be exported by the entry point web.d.ts
@@ -332,6 +302,12 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
 // @public
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant";
 
+// @public
+export type TransportRequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+    query?: Record<string, string | string[] | undefined>;
+};
+
 // @public (undocumented)
 export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
     protected constructor(input: TransportRunnerConfig<TUserConfig, TMetrics>);
@@ -341,10 +317,16 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     abstract closeTransport(): Promise<void>;
     // @deprecated (undocumented)
     protected readonly connectionErrorHandler: ConnectionErrorHandler;
+    // Warning: (ae-forgotten-export) The symbol "ApiClientFactoryFn" needs to be exported by the entry point web.d.ts
+    //
     // @deprecated (undocumented)
     protected readonly createApiClient: ApiClientFactoryFn;
+    // Warning: (ae-forgotten-export) The symbol "AtlasLocalClientFactoryFn" needs to be exported by the entry point web.d.ts
+    //
     // @deprecated (undocumented)
     protected readonly createAtlasLocalClient: AtlasLocalClientFactoryFn;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionManagerFactoryFn" needs to be exported by the entry point web.d.ts
+    //
     // @deprecated (undocumented)
     protected readonly createConnectionManager: ConnectionManagerFactoryFn;
     protected createServer(input?: {
@@ -363,8 +345,10 @@ export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserC
     logger: LoggerBase;
     // (undocumented)
     metrics: Metrics<TMetrics>;
+    // Warning: (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point web.d.ts
+    //
     // @deprecated (undocumented)
-    protected setupServer(request?: RequestContext, input?: {
+    protected setupServer(request?: RequestContext_2, input?: {
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     }): Promise<Server<TUserConfig, TContext>>;
     // (undocumented)
@@ -546,7 +530,6 @@ export const UserConfigSchema: z.ZodObject<{
 
 // Warnings were encountered during analysis:
 //
-// src/common/atlasLocal.ts:9:5 - (ae-forgotten-export) The symbol "LibraryLoader" needs to be exported by the entry point web.d.ts
 // src/telemetry/types.ts:100:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point web.d.ts
 
 // (No @packageDocumentation comment for this package)

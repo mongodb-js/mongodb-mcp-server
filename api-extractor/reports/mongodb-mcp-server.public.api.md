@@ -422,7 +422,7 @@ export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMe
 // @public
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
     userConfig: TUserConfig;
-    request?: RequestContext_2;
+    request?: TransportRequestContext;
 }) => Promise<TUserConfig> | TUserConfig;
 
 // @public
@@ -1050,6 +1050,12 @@ export interface ToolExecutionContext {
     // (undocumented)
     signal: AbortSignal;
 }
+
+// @public
+export type TransportRequestContext = {
+    headers?: Record<string, string | string[] | undefined>;
+    query?: Record<string, string | string[] | undefined>;
+};
 
 // @public (undocumented)
 export abstract class TransportRunnerBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {

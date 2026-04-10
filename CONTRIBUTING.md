@@ -127,7 +127,7 @@ npx @modelcontextprotocol/inspector -- node dist/esm/index.js
 
 ## Making public API changes
 
-To ensure no unintnentional public API changes are introduced, the project uses [API Extractor](https://api-extractor.com/) to track the public-facing API across all package entry points (`.`, `./web`, `./tools`, `./ui`). The generated API report files live in `api-extractor/reports/` and are checked into source control.
+To ensure no unintentional public API changes are introduced, the project uses [API Extractor](https://api-extractor.com/) to track the public-facing API across all package entry points (`.`, `./web`, `./tools`, `./ui`). The generated API report files live in `api-extractor/reports/` and are checked into source control.
 
 ### Workflow when changing the public API
 

@@ -2,14 +2,10 @@ export { TransportRunnerBase, type TransportRunnerConfig, type CreateSessionConf
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
 export { createDefaultMetrics, type DefaultMetrics } from "./common/metrics/metricDefinitions.js";
 export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
-export { type ConnectionErrorHandler } from "./common/connectionErrorHandler.js";
-export { type ApiClientFactoryFn } from "./common/atlas/apiClient.js";
-export { type AtlasLocalClientFactoryFn } from "./common/atlasLocal.js";
-export { type ConnectionManagerFactoryFn } from "./common/connectionManager.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "./common/logging/index.js";
 export { type Metrics } from "./common/metrics/metricsTypes.js";
-export { type RequestContext } from "./transports/base.js";
+export { type TransportRequestContext } from "./transports/base.js";
 export { type CommonProperties } from "./telemetry/types.js";
 export { Session, type SessionOptions } from "./common/session.js";
 export { type CustomizableServerOptions, type CustomizableSessionOptions } from "./transports/base.js";
