@@ -346,13 +346,47 @@ export async function waitUntilSearchIndexIsQueryable(
     return waitUntilSearchIndexIs(
         collection,
         searchIndex,
-        (index) => index.name === searchIndex && index.status === "READY",
+        (index) => index.name === searchIndex && index.status === "READY" && index.queryable === true,
         timeout,
         interval,
         (searchIndexes) => {
             const index = searchIndexes.find((index) => index.name === searchIndex);
             return `Index ${searchIndex} in ${collection.dbName}.${collection.collectionName} is not ready. Last known status - ${JSON.stringify(index)}`;
         }
+    );
+}
+
+export async function waitUntilVectorSearchReturnsResults(
+    collection: Collection,
+    indexName: string,
+    query: Document,
+    path: string,
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = DEFAULT_RETRY_INTERVAL
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const results = await collection
+                .aggregate([
+                    {
+                        $vectorSearch: {
+                            index: indexName,
+                            path,
+                            query,
+                            limit: 1,
+                            numCandidates: 1,
+                        },
+                    },
+                ])
+                .toArray();
+
+            if (results.length === 0) {
+                throw new Error(
+                    `$vectorSearch on index ${indexName} in ${collection.dbName}.${collection.collectionName} returned 0 results`
+                );
+            }
+        },
+        { timeout, interval }
     );
 }
 

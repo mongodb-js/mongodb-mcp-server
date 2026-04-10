@@ -14,6 +14,7 @@ import {
     validateAutoConnectBehavior,
     waitUntilSearchIndexIsQueryable,
     waitUntilSearchIsReady,
+    waitUntilVectorSearchReturnsResults,
 } from "../mongodbHelpers.js";
 import * as constants from "../../../../../src/helpers/constants.js";
 import { freshInsertDocuments } from "./find.test.js";
@@ -1052,6 +1053,19 @@ describeWithMongoDB(
             // Auto-embed indexes take longer to build because they need to call the voyage API
             // to generate embeddings for the documents. Using a longer timeout (120s).
             await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
+
+            // Embeddings may not be generated yet even after the index is queryable.
+            await waitUntilVectorSearchReturnsResults(
+                collection,
+                "auto-embed-index",
+                { text: "test query" },
+                "plot",
+                120_000
+            );
+        });
+
+        afterEach(async () => {
+            await integration.mongoClient().db(integration.randomDbName()).dropDatabase();
         });
 
         it("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
