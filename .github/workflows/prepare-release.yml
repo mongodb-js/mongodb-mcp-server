@@ -42,6 +42,32 @@ jobs:
         run: |
           pnpm run generate:arguments
 
+      - name: Check version regression
+        id: version-check
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
+        run: |
+          set -euo pipefail
+
+          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName // empty')
+          if [[ -z "$LATEST_TAG" ]]; then
+            exit 0
+          fi
+
+          LATEST="${LATEST_TAG#v}"
+          NEW="${NEW_VERSION#v}"
+
+          IS_REGRESSION=$(node -e "
+          const semver = require('semver');
+          process.stdout.write(semver.lt(process.argv[1], process.argv[2]) ? 'true' : 'false');
+          " "$NEW" "$LATEST")
+
+          if [[ "$IS_REGRESSION" == "true" ]]; then
+            echo "VERSION_WARNING=⚠️ The new version \`${NEW_VERSION}\` is lower than the latest published release \`${LATEST_TAG}\`. Please verify this is intentional." >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Check Jira vNext ticket status
         id: jira-status
         continue-on-error: true
@@ -103,6 +129,8 @@ jobs:
           body: |
             This PR bumps the package version to ${{ steps.bump-version.outputs.NEW_VERSION }}.
             Once merged, the new version will be published to npm.
+
+            ${{ steps.version-check.outputs.VERSION_WARNING }}
 
             ${{ steps.jira-status.outputs.JIRA_STATUS }}
           base: main
