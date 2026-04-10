@@ -6,7 +6,7 @@ import {
     defaultTestConfig,
     expectDefined,
 } from "../../../helpers.js";
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
     createVectorSearchIndexAndWait,
     describeWithMongoDB,
@@ -23,7 +23,7 @@ import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { ToolEvent } from "../../../../../src/telemetry/types.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 import { pipelineDescriptionWithVectorSearch } from "../../../../../src/tools/mongodb/read/aggregate.js";
-import type { Collection } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 
 describeWithMongoDB("aggregate tool", (integration) => {
     afterEach(() => {
@@ -1024,55 +1024,62 @@ describeWithMongoDB(
 describeWithMongoDB(
     "aggregate tool with autoEmbed text support",
     (integration) => {
-        let collection: Collection;
-        beforeEach(async () => {
+        const autoEmbedDbName = new ObjectId().toString();
+
+        beforeAll(async () => {
             await integration.connectMcpClient();
-            collection = integration.mongoClient().db(integration.randomDbName()).collection("movies");
-            await waitUntilSearchIsReady(integration.mongoClient());
+            const client = new MongoClient(integration.connectionString());
+            try {
+                const collection = client.db(autoEmbedDbName).collection("movies");
+                await waitUntilSearchIsReady(client);
 
-            await collection.insertMany([
-                {
-                    plot: "An alien gets stranded on earth looking for scientist who contacted them.",
-                },
-                {
-                    plot: "Story of a pizza and how they got famous in Naples.",
-                },
-            ]);
-
-            // Creating the auto-embed index
-            await collection.createSearchIndexes([
-                {
-                    type: "vectorSearch",
-                    name: "auto-embed-index",
-                    definition: {
-                        fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
+                await collection.insertMany([
+                    {
+                        plot: "An alien gets stranded on earth looking for scientist who contacted them.",
                     },
-                },
-            ]);
+                    {
+                        plot: "Story of a pizza and how they got famous in Naples.",
+                    },
+                ]);
 
-            // Auto-embed indexes take longer to build because they need to call the voyage API
-            // to generate embeddings for the documents. Using a longer timeout (120s).
-            await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
+                await collection.createSearchIndexes([
+                    {
+                        type: "vectorSearch",
+                        name: "auto-embed-index",
+                        definition: {
+                            fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }],
+                        },
+                    },
+                ]);
 
-            // Embeddings may not be generated yet even after the index is queryable.
-            await waitUntilVectorSearchReturnsResults(
-                collection,
-                "auto-embed-index",
-                { text: "test query" },
-                "plot",
-                120_000
-            );
-        });
+                await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
 
-        afterEach(async () => {
-            await integration.mongoClient().db(integration.randomDbName()).dropDatabase();
+                await waitUntilVectorSearchReturnsResults(
+                    collection,
+                    "auto-embed-index",
+                    { text: "test query" },
+                    "plot",
+                    120_000
+                );
+            } finally {
+                await client.close();
+            }
+        }, 300_000);
+
+        afterAll(async () => {
+            const client = new MongoClient(integration.connectionString());
+            try {
+                await client.db(autoEmbedDbName).dropDatabase();
+            } finally {
+                await client.close();
+            }
         });
 
         it("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {
-                    database: integration.randomDbName(),
+                    database: autoEmbedDbName,
                     collection: "movies",
                     pipeline: [
                         {
@@ -1103,7 +1110,7 @@ describeWithMongoDB(
                 await integration.mcpClient().callTool({
                     name: "aggregate",
                     arguments: {
-                        database: integration.randomDbName(),
+                        database: autoEmbedDbName,
                         collection: "movies",
                         pipeline: [
                             {
