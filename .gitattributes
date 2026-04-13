@@ -1,0 +1,2 @@
+# Enforce LF line endings for pnpm lockfile to prevent YAML parsing issues on Windows
+pnpm-lock.yaml text eol=lf
