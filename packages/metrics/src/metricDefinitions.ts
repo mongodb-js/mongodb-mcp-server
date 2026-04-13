@@ -1,7 +1,7 @@
 import { Counter, Histogram } from "prom-client";
 
 /**
- * Creates a new set of default metrics for the MCP server.
+ * Creates a new set of default metrics for an MCP server.
  *
  * NOTE: `registers: []` prevents prom-client from auto-registering these into
  * the global registry; `PrometheusMetrics` registers them into its own

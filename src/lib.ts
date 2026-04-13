@@ -105,7 +105,11 @@ export {
 export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
 export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
 export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
-export { PrometheusMetrics } from "./common/metrics/prometheusMetrics.js";
-export { createDefaultMetrics } from "./common/metrics/metricDefinitions.js";
-export type { DefaultMetrics } from "./common/metrics/metricDefinitions.js";
-export type { Metrics, MetricDefinitions } from "./common/metrics/metricsTypes.js";
+export {
+    PrometheusMetrics,
+    createDefaultMetrics,
+    type DefaultMetrics,
+    type Metrics,
+    type MetricDefinitions,
+    type PrometheusMetricsOptions,
+} from "@mongodb-js/mcp-metrics";

@@ -5,7 +5,7 @@ import type { CustomizableServerOptions } from "./base.js";
 import type { CustomizableSessionOptions } from "./base.js";
 import { TransportRunnerBase, type TransportRunnerConfig } from "./base.js";
 import type { UserConfig } from "../lib.js";
-import type { DefaultMetrics } from "../common/metrics/index.js";
+import type { DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 export class StdioRunner<
     TUserConfig extends UserConfig = UserConfig,

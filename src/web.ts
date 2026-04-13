@@ -5,11 +5,11 @@ export {
     type RequestContext as TransportRequestContextDeprecated,
 } from "./transports/base.js";
 export { UserConfigSchema, type UserConfig } from "./common/config/userConfig.js";
-export { createDefaultMetrics, type DefaultMetrics } from "./common/metrics/metricDefinitions.js";
+export { createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "./common/logging/index.js";
-export { type Metrics, type MetricDefinitions } from "./common/metrics/metricsTypes.js";
+export type { Metrics, MetricDefinitions } from "@mongodb-js/mcp-metrics";
 export { type TransportRequestContext } from "./transports/base.js";
 export {
     type CommonProperties,

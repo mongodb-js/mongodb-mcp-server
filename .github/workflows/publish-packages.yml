@@ -1,0 +1,132 @@
+---
+name: Publish Auxiliary Packages
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/**"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      PACKAGES_TO_PUBLISH: ${{ steps.detect-changes.outputs.PACKAGES_TO_PUBLISH }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Detect packages with version changes
+        id: detect-changes
+        shell: bash
+        run: |
+          set -e
+
+          PACKAGES_TO_PUBLISH="[]"
+
+          for pkg_json in packages/*/package.json; do
+            pkg_dir=$(dirname "$pkg_json")
+            pkg_name=$(jq -r '.name' < "$pkg_json")
+            pkg_version=$(jq -r '.version' < "$pkg_json")
+            git_tag="${pkg_name}@${pkg_version}"
+
+            # Check if this version tag already exists
+            if git rev-parse "$git_tag" >/dev/null 2>&1; then
+              echo "Tag $git_tag already exists, skipping $pkg_name"
+              continue
+            fi
+
+            # Extract the release channel
+            if [[ $pkg_version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(.+))?$ ]]; then
+              if [[ -n "${BASH_REMATCH[2]}" ]]; then
+                CAPTURED_CHANNEL="${BASH_REMATCH[2]}"
+                RELEASE_CHANNEL="${CAPTURED_CHANNEL%%.*}"
+              else
+                RELEASE_CHANNEL="latest"
+              fi
+            else
+              echo "::error title=Invalid Version::Unexpected version ${pkg_version} for ${pkg_name}, skipping"
+              continue
+            fi
+
+            PACKAGES_TO_PUBLISH=$(echo "$PACKAGES_TO_PUBLISH" | jq -c \
+              --arg name "$pkg_name" \
+              --arg version "$pkg_version" \
+              --arg tag "$git_tag" \
+              --arg channel "$RELEASE_CHANNEL" \
+              --arg dir "$pkg_dir" \
+              '. + [{"name": $name, "version": $version, "git_tag": $tag, "channel": $channel, "dir": $dir}]')
+          done
+
+          echo "PACKAGES_TO_PUBLISH=$(echo "$PACKAGES_TO_PUBLISH" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+          count=$(echo "$PACKAGES_TO_PUBLISH" | jq 'length')
+          if [[ "$count" -eq 0 ]]; then
+            echo "::notice title=No Packages to Publish::All auxiliary package versions already have tags"
+          else
+            echo "::notice title=Packages to Publish::Found $count package(s) to publish: $(echo "$PACKAGES_TO_PUBLISH" | jq -r '[.[].git_tag] | join(", ")')"
+          fi
+
+  publish:
+    runs-on: ubuntu-latest
+    environment: Production
+    permissions:
+      contents: write
+      id-token: write
+    needs:
+      - check
+    if: needs.check.outputs.PACKAGES_TO_PUBLISH != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.check.outputs.PACKAGES_TO_PUBLISH) }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+
+      - name: Build package
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter "${{ matrix.package.name }}" run build
+
+      - name: Publish to NPM
+        run: pnpm --filter "${{ matrix.package.name }}" publish --tag ${{ matrix.package.channel }} --no-git-checks
+
+      - name: Create git tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag "${{ matrix.package.git_tag }}" "${{ github.sha }}"
+          git push origin "${{ matrix.package.git_tag }}"
+
+      - name: Wait for package to be available on npm
+        run: |
+          PACKAGE_NAME="${{ matrix.package.name }}"
+          NPM_VERSION="${{ matrix.package.version }}"
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
+
+          echo "Waiting for ${PACKAGE_NAME}@${NPM_VERSION} to be available on npm..."
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if npm view "${PACKAGE_NAME}@${NPM_VERSION}" version >/dev/null 2>&1; then
+              echo "✓ Package ${PACKAGE_NAME}@${NPM_VERSION} is now available on npm"
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_ATTEMPTS: Package not yet available, waiting ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "::error::Package ${PACKAGE_NAME}@${NPM_VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+          exit 1

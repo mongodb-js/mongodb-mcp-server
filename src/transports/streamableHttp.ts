@@ -17,7 +17,7 @@ import {
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides, ConfigOverrideError } from "../common/config/configOverrides.js";
-import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
+import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 
 /**

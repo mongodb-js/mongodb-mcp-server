@@ -9,8 +9,7 @@ import { ToolBase } from "../../src/tools/tool.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../src/telemetry/types.js";
 import { Counter } from "prom-client";
-import type { DefaultMetrics } from "../../src/common/metrics/metricDefinitions.js";
-import { PrometheusMetrics, createDefaultMetrics } from "../../src/common/metrics/index.js";
+import { PrometheusMetrics, createDefaultMetrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { EchoTool, ErrorTool, NoopTool } from "../unit/mocks/tools.js";
 import type { OperationType, ToolCategory } from "../../src/tools/tool.js";
 

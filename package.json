@@ -72,7 +72,7 @@
     "build:esm": "tsc --project tsconfig.esm.json",
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
-    "build": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
+    "build": "pnpm --filter @mongodb-js/mcp-metrics run build && concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\" && pnpm run check:api",
@@ -156,6 +156,7 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
+    "@mongodb-js/mcp-metrics": "workspace:*",
     "@inquirer/prompts": "^8.0.2",
     "@inquirer/select": "^5.1.0",
     "@mcp-ui/server": "^5.13.1",
@@ -178,7 +179,6 @@
     "node-machine-id": "1.1.12",
     "oauth4webapi": "^3.8.5",
     "openapi-fetch": "^0.17.0",
-    "prom-client": "^15.1.3",
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
     "yaml": "^2.8.1",

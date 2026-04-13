@@ -1,8 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { MonitoringServer } from "../../../src/transports/streamableHttp.js";
 import { NullLogger } from "../../../src/common/logging/index.js";
-import { PrometheusMetrics } from "../../../src/common/metrics/prometheusMetrics.js";
-import { createDefaultMetrics } from "../../../src/common/metrics/metricDefinitions.js";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 describe("MonitoringServer", () => {
     let server: MonitoringServer | undefined;
