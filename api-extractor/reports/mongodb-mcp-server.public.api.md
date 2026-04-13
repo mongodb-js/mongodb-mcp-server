@@ -9,23 +9,29 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
-import { Counter } from 'prom-client';
+import { Counter } from '@mongodb-js/mcp-metrics';
+import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import { defaultParserOptions as defaultParserOptions_2 } from '@mongosh/arg-parser/arg-parser';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import EventEmitter from 'events';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { Gauge } from 'prom-client';
-import { Histogram } from 'prom-client';
+import { Gauge } from '@mongodb-js/mcp-metrics';
+import { Histogram } from '@mongodb-js/mcp-metrics';
 import type http from 'http';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
+import { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
-import { Registry } from 'prom-client';
+import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
+import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
+import { Registry } from '@mongodb-js/mcp-metrics';
 import { Secret } from 'mongodb-redact';
 import type { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
@@ -400,12 +406,9 @@ export class ConsoleLogger extends LoggerBase {
     protected readonly type: LoggerType;
 }
 
-// @public
-export function createDefaultMetrics(): {
-    readonly toolExecutionDuration: Histogram<"status" | "category" | "tool_name" | "operation_type" | "error_type">;
-    readonly sessionCreated: Counter<string>;
-    readonly sessionClosed: Counter<"reason">;
-};
+export { Counter }
+
+export { createDefaultMetrics }
 
 // @public
 export const createDefaultMonitoringServer: <TMetrics extends DefaultMetrics = DefaultMetrics>(args: MonitoringServerConstructorArgs<TMetrics>) => MonitoringServer<TMetrics>;
@@ -458,8 +461,7 @@ export const defaultCreateConnectionManager: ConnectionManagerFactoryFn;
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;
 
-// @public (undocumented)
-export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
+export { DefaultMetrics }
 
 // @public (undocumented)
 export const defaultParserOptions: {
@@ -587,6 +589,10 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }>;
 }
 
+export { Gauge }
+
+export { Histogram }
+
 // @public
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     // (undocumented)
@@ -668,16 +674,9 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
-// @public (undocumented)
-export type MetricDefinitions = {
-    [key: string]: Histogram | Counter | Gauge;
-};
+export { MetricDefinitions }
 
-// @public (undocumented)
-export type Metrics<TMetrics extends MetricDefinitions = MetricDefinitions> = {
-    get<K extends keyof TMetrics>(key: K): TMetrics[K];
-    getMetrics(): Promise<string>;
-};
+export { Metrics }
 
 // @public (undocumented)
 export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {
@@ -763,23 +762,14 @@ export function parseUserConfig(input: {
     error: string | undefined;
 };
 
-// @public (undocumented)
-export class PrometheusMetrics<TMetrics extends MetricDefinitions> implements Metrics<TMetrics> {
-    constructor(input: {
-        definitions: TMetrics;
-        collectProcessMetrics?: boolean;
-        registry?: Registry;
-    });
-    // (undocumented)
-    get<K extends keyof TMetrics>(key: K): TMetrics[K];
-    // (undocumented)
-    getMetrics(): Promise<string>;
-    // (undocumented)
-    readonly registry: Registry;
-}
+export { PrometheusMetrics }
+
+export { PrometheusMetricsOptions }
 
 // @public (undocumented)
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
+
+export { Registry }
 
 // @public (undocumented)
 export type RequestContext = {

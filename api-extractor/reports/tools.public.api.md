@@ -10,17 +10,16 @@ import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
-import { Counter } from 'prom-client';
+import type { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import EventEmitter from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { Gauge } from 'prom-client';
-import { Histogram } from 'prom-client';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { IndexDirection } from 'mongodb';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
@@ -2769,7 +2768,6 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // Warning: (ae-forgotten-export) The symbol "UserConfig" needs to be exported by the entry point index.d.ts
-// Warning: (ae-forgotten-export) The symbol "DefaultMetrics" needs to be exported by the entry point index.d.ts
 //
 // @public
 export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
@@ -2799,7 +2797,6 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     //
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature): boolean;
-    // Warning: (ae-forgotten-export) The symbol "Metrics" needs to be exported by the entry point index.d.ts
     protected readonly metrics: Metrics<TMetrics>;
     readonly name: string;
     readonly operationType: OperationType;

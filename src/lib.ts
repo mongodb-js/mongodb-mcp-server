@@ -112,4 +112,8 @@ export {
     type Metrics,
     type MetricDefinitions,
     type PrometheusMetricsOptions,
+    Registry,
+    Gauge,
+    Histogram,
+    Counter,
 } from "@mongodb-js/mcp-metrics";
