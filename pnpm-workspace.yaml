@@ -1,3 +1,19 @@
 packages:
   - "."
   - "tests/browser"
+
+overrides:
+  mongodb: ^7.1.0
+  kerberos: ^7.0.0
+  bson: ^7.2.0
+
+allowBuilds:
+  '@modelcontextprotocol/ext-apps': true
+  core-js: true
+  cpu-features: true
+  esbuild: true
+  kerberos: true
+  mongodb-client-encryption: true
+  os-dns-native: true
+  protobufjs: true
+  ssh2: true
