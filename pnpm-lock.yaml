@@ -66,7 +66,7 @@ importers:
         version: 2.5.6(bson@7.2.0)
       mongodb-redact:
         specifier: ^1.4.6
-        version: 1.4.6
+        version: 1.4.7
       mongodb-schema:
         specifier: ^12.7.0
         version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
@@ -5133,8 +5133,8 @@ packages:
   mongodb-ns@3.1.6:
     resolution: {integrity: sha512-NJs8wuqM9vAVc/9Oy/PMx31Lq87Dnud+qC5c6xXaSKOloNScM5NyxFjsl6XMt2wlQR5Z/be1nm4hfjDBDV7VEA==}
 
-  mongodb-redact@1.4.6:
-    resolution: {integrity: sha512-MF1t9Kx90vIn96Uj9S9EkOuReRgicdVKFds4Y1q6UExMexlTRYPedCahttW4HCg38V0INczoYHVxaSVFgRwhBQ==}
+  mongodb-redact@1.4.7:
+    resolution: {integrity: sha512-wunfnlrGOQDG2ZbSaY7M5myd8OaxwF9o1Y3ijnNcWrLSFw629WPJRqu4EPe4vXFGfFkcGprAkq+ZYdfKZOK5xw==}
 
   mongodb-runner@6.7.1:
     resolution: {integrity: sha512-bYCk1EC0wp4boNyZYJ0Prk6Ye5Mq4ibANzL2RrI2vglSCunjaMfaMIFVJl7isyABwAqJah2RT8va/q8QKa26qQ==}
@@ -12623,7 +12623,7 @@ snapshots:
   mongodb-ns@3.1.6:
     optional: true
 
-  mongodb-redact@1.4.6:
+  mongodb-redact@1.4.7:
     dependencies:
       mongodb-connection-string-url: 7.0.1
       regexp.escape: 2.0.1
