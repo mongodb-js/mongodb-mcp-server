@@ -86,7 +86,6 @@ jobs:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v6
         with:
-          persist-credentials: false
           fetch-depth: 0
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
