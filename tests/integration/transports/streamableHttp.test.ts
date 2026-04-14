@@ -1,8 +1,13 @@
 import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import {
+    createDefaultSessionStore,
+    type ISessionStore,
+    type SessionCloseReason,
+} from "../../../src/common/sessionStore.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { LogId } from "../../../src/common/logging/index.js";
+import { LogId, type LoggerBase } from "../../../src/common/logging/index.js";
 import { defaultCreateConnectionManager } from "../../../src/common/connectionManager.js";
 import { Keychain } from "../../../src/common/keychain.js";
 import { defaultTestConfig, InMemoryLogger, timeout } from "../helpers.js";
@@ -14,6 +19,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { TelemetryToolMetadata } from "../../../src/telemetry/types.js";
 import type { RequestContext } from "../../../src/transports/base.js";
 import type { AnyToolClass, Server } from "../../../src/lib.js";
+import type { IncomingMessage } from "node:http";
+import { AsyncLocalStorage } from "node:async_hooks";
 
 describe("StreamableHttpRunner", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -263,10 +270,15 @@ describe("StreamableHttpRunner", () => {
         });
     });
 
-    const sendHttpRequest = async (method: "initialize" | "tools/list", sessionId?: string): Promise<Response> => {
+    const sendHttpRequest = async (
+        method: "initialize" | "tools/list",
+        sessionId?: string,
+        additionalHeaders: Record<string, string> = {}
+    ): Promise<Response> => {
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
             accept: "application/json, text/event-stream",
+            ...additionalHeaders,
         };
         if (sessionId) {
             headers["mcp-session-id"] = sessionId;
@@ -296,9 +308,9 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
-    const getSessionFromStore = (sessionId: string): StreamableHTTPServerTransport | undefined => {
+    const getSessionFromStore = async (sessionId: string): Promise<StreamableHTTPServerTransport | undefined> => {
         const sessionStore = runner["mcpServer"]!["sessionStore"];
-        return sessionStore.getSession(sessionId);
+        return await sessionStore.getSession(sessionId);
     };
 
     describe("with externallyManagedSessions enabled", () => {
@@ -325,7 +337,7 @@ describe("StreamableHttpRunner", () => {
                     expect(response.tools.length).toBeGreaterThan(0);
 
                     // Verify the session is stored with the external ID
-                    const storedSession = getSessionFromStore(sessionId);
+                    const storedSession = await getSessionFromStore(sessionId);
                     expect(storedSession).toBeDefined();
                 });
 
@@ -337,7 +349,7 @@ describe("StreamableHttpRunner", () => {
                     const response1 = await client1.listTools();
                     expect(response1.tools).toBeDefined();
 
-                    const session1 = getSessionFromStore(sessionId);
+                    const session1 = await getSessionFromStore(sessionId);
                     expect(session1).toBeDefined();
 
                     // Second client reuses the session
@@ -345,7 +357,7 @@ describe("StreamableHttpRunner", () => {
                     const response2 = await client2.listTools();
                     expect(response2.tools).toBeDefined();
 
-                    const session2 = getSessionFromStore(sessionId);
+                    const session2 = await getSessionFromStore(sessionId);
                     expect(session2).toBe(session1);
                 });
 
@@ -357,7 +369,7 @@ describe("StreamableHttpRunner", () => {
                     const response1 = await client1.listTools();
                     expect(response1.tools).toBeDefined();
 
-                    const session1 = getSessionFromStore(sessionId);
+                    const session1 = await getSessionFromStore(sessionId);
                     expect(session1).toBeDefined();
 
                     await client1.close();
@@ -368,7 +380,7 @@ describe("StreamableHttpRunner", () => {
                     expect(response2.tools).toBeDefined();
 
                     // Verify it's the same session - the session should persist even after the first client closes
-                    const session2 = getSessionFromStore(sessionId);
+                    const session2 = await getSessionFromStore(sessionId);
                     expect(session2).toBe(session1);
                 });
 
@@ -391,9 +403,9 @@ describe("StreamableHttpRunner", () => {
                     expect(response2.tools).toBeDefined();
                     expect(response3.tools).toBeDefined();
 
-                    const session1 = getSessionFromStore(sessionId1);
-                    const session2 = getSessionFromStore(sessionId2);
-                    const session3 = getSessionFromStore(sessionId3);
+                    const session1 = await getSessionFromStore(sessionId1);
+                    const session2 = await getSessionFromStore(sessionId2);
+                    const session3 = await getSessionFromStore(sessionId3);
 
                     expect(session1).toBeDefined();
                     expect(session2).toBeDefined();
@@ -411,7 +423,7 @@ describe("StreamableHttpRunner", () => {
 
                     await client.listTools();
 
-                    const session = getSessionFromStore(sessionId);
+                    const session = await getSessionFromStore(sessionId);
                     expect(session).toBeDefined();
                 });
 
@@ -431,7 +443,7 @@ describe("StreamableHttpRunner", () => {
                         expect(data).toContain('data: {"result":{"tools":');
                     }
 
-                    const session = getSessionFromStore(externalSessionId);
+                    const session = await getSessionFromStore(externalSessionId);
                     expect(session).toBeDefined();
                 });
 
@@ -459,11 +471,11 @@ describe("StreamableHttpRunner", () => {
                         const client = await connectClient({ sessionId });
                         await client.listTools();
 
-                        const sessionBefore = getSessionFromStore(sessionId);
+                        const sessionBefore = await getSessionFromStore(sessionId);
                         expect(sessionBefore).toBeDefined();
                         await timeout(1100);
 
-                        const sessionAfter = getSessionFromStore(sessionId);
+                        const sessionAfter = await getSessionFromStore(sessionId);
                         expect(sessionAfter).toBeUndefined();
                     });
                 });
@@ -498,6 +510,203 @@ describe("StreamableHttpRunner", () => {
                 });
             });
         }
+
+        describe("concurrent implicit session initialization", () => {
+            it("should only initialize one session when multiple requests arrive simultaneously", async () => {
+                const sessionId = "concurrent-init-session";
+
+                const responses = await Promise.all([
+                    sendHttpRequest("tools/list", sessionId),
+                    sendHttpRequest("tools/list", sessionId),
+                    sendHttpRequest("tools/list", sessionId),
+                ]);
+
+                for (const response of responses) {
+                    expect(response.ok).toBe(true);
+                }
+
+                const session = await getSessionFromStore(sessionId);
+                expect(session).toBeDefined();
+            });
+
+            it("should use separate sessions for different session IDs arriving concurrently", async () => {
+                const sessionId1 = "concurrent-session-1";
+                const sessionId2 = "concurrent-session-2";
+
+                const responses = await Promise.all([
+                    sendHttpRequest("tools/list", sessionId1),
+                    sendHttpRequest("tools/list", sessionId2),
+                ]);
+
+                for (const response of responses) {
+                    expect(response.ok).toBe(true);
+                }
+
+                const session1 = await getSessionFromStore(sessionId1);
+                const session2 = await getSessionFromStore(sessionId2);
+                expect(session1).toBeDefined();
+                expect(session2).toBeDefined();
+                expect(session1).not.toBe(session2);
+            });
+
+            it("should reuse existing session after concurrent initialization completes", async () => {
+                const sessionId = "concurrent-then-reuse";
+
+                const responses = await Promise.all([
+                    sendHttpRequest("tools/list", sessionId),
+                    sendHttpRequest("tools/list", sessionId),
+                ]);
+                for (const response of responses) {
+                    expect(response.ok).toBe(true);
+                }
+
+                const sessionBefore = await getSessionFromStore(sessionId);
+                expect(sessionBefore).toBeDefined();
+
+                // A follow-up request should reuse the same session without re-initialization
+                const followUp = await sendHttpRequest("tools/list", sessionId);
+                expect(followUp.ok).toBe(true);
+
+                const sessionAfter = await getSessionFromStore(sessionId);
+                expect(sessionAfter).toBe(sessionBefore);
+            });
+
+            describe("with ownership session store", () => {
+                const ownerStorage = new AsyncLocalStorage<string | undefined>();
+
+                class OwnershipSessionStore implements ISessionStore<StreamableHTTPServerTransport> {
+                    private readonly inner: ISessionStore<StreamableHTTPServerTransport>;
+                    private readonly sessionOwners = new Map<string, string>();
+
+                    constructor(inner: ISessionStore<StreamableHTTPServerTransport>) {
+                        this.inner = inner;
+                    }
+
+                    async getSession(sessionId: string): Promise<StreamableHTTPServerTransport | undefined> {
+                        const owner = this.sessionOwners.get(sessionId);
+                        const caller = ownerStorage.getStore();
+                        if (owner !== undefined && caller !== owner) {
+                            return undefined;
+                        }
+                        return this.inner.getSession(sessionId);
+                    }
+
+                    async addSession(params: {
+                        sessionId: string;
+                        transport: StreamableHTTPServerTransport;
+                        logger: LoggerBase;
+                    }): Promise<void> {
+                        await this.inner.addSession(params);
+                        const caller = ownerStorage.getStore();
+                        if (caller) {
+                            this.sessionOwners.set(params.sessionId, caller);
+                        }
+                    }
+
+                    closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void> {
+                        return this.inner.closeSession(params);
+                    }
+
+                    closeAllSessions(): Promise<void> {
+                        return this.inner.closeAllSessions();
+                    }
+                }
+
+                function wrapAppHandle(ownershipRunner: StreamableHttpRunner): void {
+                    type HandleFn = (req: IncomingMessage, ...rest: unknown[]) => void;
+                    const appObj = ownershipRunner["mcpServer"]!["app"] as unknown as {
+                        handle: HandleFn;
+                    };
+                    const originalHandle: HandleFn = appObj.handle.bind(appObj);
+                    appObj.handle = (req: IncomingMessage, ...rest: unknown[]): void => {
+                        const ownerId = req.headers["x-owner-id"] as string | undefined;
+                        ownerStorage.run(ownerId, () => originalHandle(req, ...rest));
+                    };
+                }
+
+                beforeEach(async () => {
+                    await runner?.close();
+
+                    const ownershipRunner = new StreamableHttpRunner({
+                        userConfig: config,
+                        createSessionStore: (args): ISessionStore<StreamableHTTPServerTransport> => {
+                            const inner = createDefaultSessionStore<StreamableHTTPServerTransport>(args);
+                            return new OwnershipSessionStore(inner);
+                        },
+                    });
+                    await ownershipRunner.start();
+                    wrapAppHandle(ownershipRunner);
+
+                    runner = ownershipRunner as typeof runner;
+                });
+
+                it("should deny access when a different owner tries to use another owner's session", async () => {
+                    const sessionId = "owned-session";
+
+                    const ownerAResponse = await sendHttpRequest("tools/list", sessionId, {
+                        "x-owner-id": "owner-a",
+                    });
+                    expect(ownerAResponse.ok).toBe(true);
+
+                    const ownerAFollowUp = await sendHttpRequest("tools/list", sessionId, {
+                        "x-owner-id": "owner-a",
+                    });
+                    expect(ownerAFollowUp.ok).toBe(true);
+
+                    const ownerBResponse = await sendHttpRequest("tools/list", sessionId, {
+                        "x-owner-id": "owner-b",
+                    });
+                    expect(ownerBResponse.ok).toBe(false);
+                    expect(ownerBResponse.status).toBe(404);
+
+                    const ownerBOwnSession = await sendHttpRequest("tools/list", "owner-b-session", {
+                        "x-owner-id": "owner-b",
+                    });
+                    expect(ownerBOwnSession.ok).toBe(true);
+
+                    const ownerACrossAccess = await sendHttpRequest("tools/list", "owner-b-session", {
+                        "x-owner-id": "owner-a",
+                    });
+                    expect(ownerACrossAccess.ok).toBe(false);
+                    expect(ownerACrossAccess.status).toBe(404);
+                });
+
+                it("should enforce ownership even when a rival request races the initializer", async () => {
+                    const sessionId = "raced-session";
+
+                    // Fire requests from owner A and owner B simultaneously for
+                    // the same session ID. Only one can win the initialization;
+                    // the other must be denied because the session will be owned
+                    // by whichever owner's request initializes it first.
+                    const [responseA, responseB] = await Promise.all([
+                        sendHttpRequest("tools/list", sessionId, { "x-owner-id": "owner-a" }),
+                        sendHttpRequest("tools/list", sessionId, { "x-owner-id": "owner-b" }),
+                    ]);
+
+                    const succeeded = [responseA, responseB].filter((r) => r.ok);
+                    const denied = [responseA, responseB].filter((r) => !r.ok);
+                    expect(succeeded).toHaveLength(1);
+                    expect(denied).toHaveLength(1);
+                    expect(denied[0]!.status).toBe(404);
+
+                    const winnerOwner = responseA.ok ? "owner-a" : "owner-b";
+                    const loserOwner = responseA.ok ? "owner-b" : "owner-a";
+
+                    // Winner can still use the session
+                    const winnerFollowUp = await sendHttpRequest("tools/list", sessionId, {
+                        "x-owner-id": winnerOwner,
+                    });
+                    expect(winnerFollowUp.ok).toBe(true);
+
+                    // Loser is still denied
+                    const loserFollowUp = await sendHttpRequest("tools/list", sessionId, {
+                        "x-owner-id": loserOwner,
+                    });
+                    expect(loserFollowUp.ok).toBe(false);
+                    expect(loserFollowUp.status).toBe(404);
+                });
+            });
+        });
     });
 
     describe("with externallyManagedSessions disabled", () => {
@@ -559,7 +768,7 @@ describe("StreamableHttpRunner", () => {
                     expect(data.error?.message).toBe("session not found");
 
                     const sessionStore = runner["mcpServer"]!["sessionStore"];
-                    const session = sessionStore.getSession(unknownSessionId);
+                    const session = await sessionStore.getSession(unknownSessionId);
                     expect(session).toBeUndefined();
                 });
 
