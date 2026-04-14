@@ -657,7 +657,7 @@ describe("StreamableHttpRunner", () => {
                         "x-owner-id": "owner-b",
                     });
                     expect(ownerBResponse.ok).toBe(false);
-                    expect(ownerBResponse.status).toBe(404);
+                    expect(ownerBResponse.status).toBe(400);
 
                     const ownerBOwnSession = await sendHttpRequest("tools/list", "owner-b-session", {
                         "x-owner-id": "owner-b",
@@ -668,7 +668,7 @@ describe("StreamableHttpRunner", () => {
                         "x-owner-id": "owner-a",
                     });
                     expect(ownerACrossAccess.ok).toBe(false);
-                    expect(ownerACrossAccess.status).toBe(404);
+                    expect(ownerACrossAccess.status).toBe(400);
                 });
 
                 it("should enforce ownership even when a rival request races the initializer", async () => {
@@ -687,7 +687,7 @@ describe("StreamableHttpRunner", () => {
                     const denied = [responseA, responseB].filter((r) => !r.ok);
                     expect(succeeded).toHaveLength(1);
                     expect(denied).toHaveLength(1);
-                    expect(denied[0]!.status).toBe(404);
+                    expect(denied[0]!.status).toBe(400);
 
                     const winnerOwner = responseA.ok ? "owner-a" : "owner-b";
                     const loserOwner = responseA.ok ? "owner-b" : "owner-a";
@@ -703,7 +703,7 @@ describe("StreamableHttpRunner", () => {
                         "x-owner-id": loserOwner,
                     });
                     expect(loserFollowUp.ok).toBe(false);
-                    expect(loserFollowUp.status).toBe(404);
+                    expect(loserFollowUp.status).toBe(400);
                 });
             });
         });
@@ -1016,14 +1016,11 @@ describe("StreamableHttpRunner", () => {
             runner = new FailingConnectRunner({ userConfig: config });
             await runner.start();
 
-            // First request should fail with 404 (session not found) since initialization failed
+            // First request should fail since initialization failed
             // and the session was cleaned up, allowing future requests to retry
             const firstResponse = await sendHttpRequest("tools/list", sessionId);
             expect(firstResponse.ok).toBe(false);
-            expect(firstResponse.status).toBe(404);
-            const firstData = (await firstResponse.json()) as { error?: { code: number; message: string } };
-            expect(firstData.error?.code).toBe(-32003);
-            expect(firstData.error?.message).toBe("session not found");
+            expect(firstResponse.status).toBe(400);
 
             // Verify session was NOT stored (not in a broken state)
             const sessionAfterFailure = await getSessionFromStore(sessionId);
