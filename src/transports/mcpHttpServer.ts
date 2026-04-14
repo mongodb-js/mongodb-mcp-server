@@ -293,6 +293,7 @@ export class MCPHttpServer<
             } catch {
                 // Session might not be in the store, that's fine
             }
+            throw error;
         } finally {
             this.pendingInitializations.delete(sessionId);
         }
