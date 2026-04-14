@@ -13,8 +13,8 @@ import {
     type DefaultMetrics,
     type Server,
     type LoggerBase,
-    ConfigOverrideError,
 } from "../lib.js";
+import { ConfigOverrideError } from "../common/config/configOverrides.js";
 import type { CustomizableServerOptions, CustomizableSessionOptions, RequestContext } from "./base.js";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import {
@@ -157,7 +157,7 @@ export class MCPHttpServer<
                     // we can do at this point.
                 }
             }
-        }, 30000);
+        }, 30_000);
 
         return keepAliveLoop;
     }
@@ -259,7 +259,7 @@ export class MCPHttpServer<
             };
 
             const transport = new StreamableHTTPServerTransport(options);
-            // HACK: When we're implicitly initializing the session, we want to configure the session id and _inititized flag on the transport
+            // HACK: When we're implicitly initializing the session, we want to configure the session id and _initialized flag on the transport
             // so that it believes it actually went through the initialization flow. Without it, we'd get errors like "transport not initialized"
             // when we try to use it without initialize request
             if (isImplicitInitialization) {

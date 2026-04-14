@@ -68,7 +68,7 @@ export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> 
                     this.logger.error({
                         id: LogId.monitoringServerMetricsFailure,
                         context: "monitoringServer",
-                        message: `Failed to retrieve metrics: ${String(error)}}`,
+                        message: `Failed to retrieve metrics: ${String(error)}`,
                     });
                     res.status(500).json({ error: "Failed to retrieve metrics" });
                 }

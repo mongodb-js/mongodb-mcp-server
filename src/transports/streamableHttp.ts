@@ -13,14 +13,10 @@ import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 import { MCPHttpServer } from "./mcpHttpServer.js";
-import {
-    type MonitoringServer,
-    type CreateMonitoringServerFn,
-    createDefaultMonitoringServer,
-} from "./monitoringServer.js";
+import { MonitoringServer, type CreateMonitoringServerFn, createDefaultMonitoringServer } from "./monitoringServer.js";
 
-export { createDefaultMonitoringServer };
-export type { MonitoringServer, CreateMonitoringServerFn, MonitoringServerFeature, MCPHttpServer };
+export { createDefaultMonitoringServer, MonitoringServer };
+export type { CreateMonitoringServerFn, MonitoringServerFeature, MCPHttpServer };
 
 /**
  * Configuration options for extracting monitoring server settings from UserConfig.
