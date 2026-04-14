@@ -356,6 +356,25 @@ export async function waitUntilSearchIndexIsQueryable(
     );
 }
 
+export async function waitUntilSearchIndexHasResults(
+    collection: Collection,
+    pipeline: Document[],
+    timeout: number = SEARCH_WAIT_TIMEOUT,
+    interval: number = 1_000
+): Promise<void> {
+    await vi.waitFor(
+        async () => {
+            const results = await collection.aggregate(pipeline).toArray();
+            if (results.length === 0) {
+                throw new Error(
+                    `Vector search pipeline returned no results in ${collection.dbName}.${collection.collectionName}`
+                );
+            }
+        },
+        { timeout, interval }
+    );
+}
+
 export async function createVectorSearchIndexAndWait(
     mongoClient: MongoClient,
     database: string,
