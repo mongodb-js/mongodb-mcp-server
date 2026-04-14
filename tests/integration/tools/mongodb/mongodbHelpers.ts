@@ -346,7 +346,7 @@ export async function waitUntilSearchIndexIsQueryable(
     return waitUntilSearchIndexIs(
         collection,
         searchIndex,
-        (index) => index.name === searchIndex && index.status === "READY",
+        (index) => index.name === searchIndex && index.status === "READY" && index.queryable,
         timeout,
         interval,
         (searchIndexes) => {
