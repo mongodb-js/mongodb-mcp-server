@@ -24,7 +24,7 @@ import {
     JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-} from "./streamableHttp.js";
+} from "./jsonRpcErrorCodes.js";
 
 export class MCPHttpServer<
     TUserConfig extends UserConfig = UserConfig,

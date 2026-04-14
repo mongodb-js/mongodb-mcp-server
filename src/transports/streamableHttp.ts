@@ -62,12 +62,14 @@ export type StreamableHttpTransportRunnerConfig<
     createSessionStore?: CreateSessionStoreFn<StreamableHTTPServerTransport, TMetrics>;
 };
 
-export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
-export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
-export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
-export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
-export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
-export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
+export {
+    JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
+    JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
+    JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
+    JSON_RPC_ERROR_CODE_INVALID_REQUEST,
+    JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
+} from "./jsonRpcErrorCodes.js";
 
 export class StreamableHttpRunner<
     TUserConfig extends UserConfig = UserConfig,
