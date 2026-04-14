@@ -286,13 +286,13 @@ export class MCPHttpServer<
                 context: "streamableHttpTransport",
                 message: `Failed to initialize session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
             });
-            // Remove the partially initialized session on failure
+            // Remove the partially initialized session on failure so that
+            // subsequent requests don't see a broken session and can retry
             try {
                 await this.sessionStore.closeSession({ sessionId, reason: "unknown" });
             } catch {
                 // Session might not be in the store, that's fine
             }
-            throw error;
         } finally {
             this.pendingInitializations.delete(sessionId);
         }

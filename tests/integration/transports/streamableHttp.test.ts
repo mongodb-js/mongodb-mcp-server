@@ -1016,13 +1016,14 @@ describe("StreamableHttpRunner", () => {
             runner = new FailingConnectRunner({ userConfig: config });
             await runner.start();
 
-            // First request should fail due to connection failure
+            // First request should fail with 404 (session not found) since initialization failed
+            // and the session was cleaned up, allowing future requests to retry
             const firstResponse = await sendHttpRequest("tools/list", sessionId);
             expect(firstResponse.ok).toBe(false);
-            expect(firstResponse.status).toBe(400);
+            expect(firstResponse.status).toBe(404);
             const firstData = (await firstResponse.json()) as { error?: { code: number; message: string } };
-            expect(firstData.error?.code).toBe(-32000);
-            expect(firstData.error?.message).toBe("failed to handle request");
+            expect(firstData.error?.code).toBe(-32003);
+            expect(firstData.error?.message).toBe("session not found");
 
             // Verify session was NOT stored (not in a broken state)
             const sessionAfterFailure = await getSessionFromStore(sessionId);
