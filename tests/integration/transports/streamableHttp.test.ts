@@ -979,6 +979,68 @@ describe("StreamableHttpRunner", () => {
         expect(authorizationToken).toBe("Bearer 1234");
     });
 
+    describe("session initialization failure handling", () => {
+        beforeEach(async () => {
+            config.externallyManagedSessions = true;
+            config.httpResponseType = "json";
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+        });
+
+        it("should not store session when server.connect() fails, allowing retry to succeed", async () => {
+            const sessionId = "failing-session-test";
+            let connectCallCount = 0;
+
+            // Create a custom runner that extends StreamableHttpRunner
+            class FailingConnectRunner extends StreamableHttpRunner<UserConfig, unknown> {
+                protected override async createServerForRequest(): Promise<Server<UserConfig, unknown>> {
+                    const server = await super.createServerForRequest({
+                        request: { headers: {}, query: {} },
+                    });
+
+                    // Wrap the connect method to fail on first call
+                    const originalConnect = server.connect.bind(server);
+                    server.connect = async (transport): Promise<void> => {
+                        connectCallCount++;
+                        if (connectCallCount === 1) {
+                            throw new Error("Simulated connection failure");
+                        }
+                        return originalConnect(transport);
+                    };
+
+                    return server;
+                }
+            }
+
+            await runner?.close();
+            runner = new FailingConnectRunner({ userConfig: config });
+            await runner.start();
+
+            // First request should fail due to connection failure
+            const firstResponse = await sendHttpRequest("tools/list", sessionId);
+            expect(firstResponse.ok).toBe(false);
+            expect(firstResponse.status).toBe(400);
+            const firstData = (await firstResponse.json()) as { error?: { code: number; message: string } };
+            expect(firstData.error?.code).toBe(-32000);
+            expect(firstData.error?.message).toBe("failed to handle request");
+
+            // Verify session was NOT stored (not in a broken state)
+            const sessionAfterFailure = await getSessionFromStore(sessionId);
+            expect(sessionAfterFailure).toBeUndefined();
+
+            // Second request should succeed (no broken session blocking it)
+            const secondResponse = await sendHttpRequest("tools/list", sessionId);
+            expect(secondResponse.ok).toBe(true);
+
+            // Verify session is now stored after successful initialization
+            const sessionAfterSuccess = await getSessionFromStore(sessionId);
+            expect(sessionAfterSuccess).toBeDefined();
+
+            // Verify connect was called twice (once failed, once succeeded)
+            expect(connectCallCount).toBe(2);
+        });
+    });
+
     describe("with createServerForRequest override", () => {
         type ToolContext = {
             permissions: "none" | "full";

@@ -286,6 +286,13 @@ export class MCPHttpServer<
                 context: "streamableHttpTransport",
                 message: `Failed to initialize session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
             });
+            // Remove the partially initialized session on failure
+            try {
+                await this.sessionStore.closeSession({ sessionId, reason: "unknown" });
+            } catch {
+                // Session might not be in the store, that's fine
+            }
+            throw error;
         } finally {
             this.pendingInitializations.delete(sessionId);
         }
@@ -309,7 +316,7 @@ export class MCPHttpServer<
 
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
-            if (!sessionId || typeof sessionId !== "string") {
+            if (!sessionId) {
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
             }
 
