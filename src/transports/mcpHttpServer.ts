@@ -259,7 +259,6 @@ export class MCPHttpServer<
             }
 
             server.session.logger.setAttribute("sessionId", sessionId);
-            await this.sessionStore.addSession({ sessionId, transport, logger: server.session.logger });
 
             const keepAliveLoop = this.startKeepAliveLoop(transport, server);
             transport.onclose = (): void => {
@@ -275,6 +274,8 @@ export class MCPHttpServer<
             };
 
             await server.connect(transport);
+
+            await this.sessionStore.addSession({ sessionId, transport, logger: server.session.logger });
         })();
 
         this.pendingInitializations.set(sessionId, initPromise);
