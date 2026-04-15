@@ -788,6 +788,92 @@ describe("StreamableHttpRunner", () => {
         }
     });
 
+    describe("preRouteMiddleware", () => {
+        it("should execute middleware before route handlers", async () => {
+            const middlewareCalls: string[] = [];
+
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start({
+                preRouteMiddleware: [
+                    (_req, _res, next) => {
+                        middlewareCalls.push("middleware-executed");
+                        next();
+                    },
+                ],
+            });
+
+            const client = await connectClient({});
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+            expect(response.tools).toBeDefined();
+            // Middleware should have been called for the initialize and listTools requests
+            expect(middlewareCalls.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it("should allow middleware to reject requests", async () => {
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start({
+                preRouteMiddleware: [
+                    (_req, res, _next) => {
+                        // Block all requests
+                        res.status(403).json({ error: "blocked by middleware" });
+                    },
+                ],
+            });
+
+            const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", accept: "application/json, text/event-stream" },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2024-11-05",
+                        capabilities: {},
+                        clientInfo: { name: "test", version: "0.0.0" },
+                    },
+                }),
+            });
+
+            expect(response.status).toBe(403);
+            const data = (await response.json()) as { error?: string };
+            expect(data.error).toBe("blocked by middleware");
+        });
+
+        it("should run middleware in the order provided", async () => {
+            const order: number[] = [];
+
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start({
+                preRouteMiddleware: [
+                    (_req, _res, next) => {
+                        order.push(1);
+                        next();
+                    },
+                    (_req, _res, next) => {
+                        order.push(2);
+                        next();
+                    },
+                ],
+            });
+
+            await connectClient({});
+            expect(order[0]).toBe(1);
+            expect(order[1]).toBe(2);
+        });
+
+        it("should work without preRouteMiddleware (default behavior)", async () => {
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+
+            const client = await connectClient({});
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+            expect(response.tools.length).toBeGreaterThan(0);
+        });
+    });
+
     describe("monitoring server", () => {
         describe("using legacy healthCheck config (backwards compat)", () => {
             beforeEach(() => {

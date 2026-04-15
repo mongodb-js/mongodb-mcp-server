@@ -1,4 +1,5 @@
 import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type express from "express";
 import type { LoggerBase } from "../common/logging/index.js";
 import { CompositeLogger, LogId } from "../common/logging/index.js";
 import { type ISessionStore, type CreateSessionStoreFn, createDefaultSessionStore } from "../common/sessionStore.js";
@@ -105,11 +106,14 @@ export class StreamableHttpRunner<
     async start({
         serverOptions,
         sessionOptions,
+        preRouteMiddleware,
     }: {
         /** Server options to use when creating the server. */
         serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
         /** Session options to use when creating the session. */
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+        /** Optional Express middleware to run after body parsing but before route handlers. */
+        preRouteMiddleware?: express.RequestHandler[];
     } = {}): Promise<void> {
         this.validateConfig();
 
@@ -120,6 +124,7 @@ export class StreamableHttpRunner<
             logger: this.logger,
             metrics: this.metrics,
             sessionStore: this.sessionStore,
+            preRouteMiddleware,
         });
         await this.mcpServer.start();
 

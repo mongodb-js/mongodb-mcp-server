@@ -33,6 +33,7 @@ export class MCPHttpServer<
     private readonly userConfig: UserConfig;
     private readonly metrics: Metrics<DefaultMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
+    private readonly preRouteMiddleware: express.RequestHandler[];
 
     private createServerForRequest: (createParams: {
         request: TransportRequestContext;
@@ -48,6 +49,7 @@ export class MCPHttpServer<
         logger,
         metrics,
         sessionStore,
+        preRouteMiddleware,
     }: {
         userConfig: TUserConfig;
         createServerForRequest: (createParams: {
@@ -60,6 +62,7 @@ export class MCPHttpServer<
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
         metrics: Metrics<DefaultMetrics>;
         sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+        preRouteMiddleware?: express.RequestHandler[];
     }) {
         super({
             port: userConfig.httpPort,
@@ -73,6 +76,7 @@ export class MCPHttpServer<
         this.userConfig = userConfig;
         this.metrics = metrics;
         this.sessionStore = sessionStore;
+        this.preRouteMiddleware = preRouteMiddleware ?? [];
     }
 
     public async stop(): Promise<void> {
@@ -315,6 +319,11 @@ export class MCPHttpServer<
 
             next();
         });
+
+        // Apply any pre-route middleware (e.g., session validation from downstream services)
+        for (const middleware of this.preRouteMiddleware) {
+            this.app.use(middleware);
+        }
 
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
