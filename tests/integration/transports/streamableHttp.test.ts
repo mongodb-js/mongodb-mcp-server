@@ -1037,6 +1037,83 @@ describe("StreamableHttpRunner", () => {
             // Verify connect was called twice (once failed, once succeeded)
             expect(connectCallCount).toBe(2);
         });
+
+        it("should only call addSession after successful server.connect()", async () => {
+            const sessionId = "addsession-order-test";
+            let connectCallCount = 0;
+            const addSessionCalls: { beforeConnect: boolean; afterConnect: boolean }[] = [];
+
+            // Create a custom runner that tracks the order of operations
+            class TrackingRunner extends StreamableHttpRunner<UserConfig, unknown> {
+                protected override async createServerForRequest(): Promise<Server<UserConfig, unknown>> {
+                    const server = await super.createServerForRequest({
+                        request: { headers: {}, query: {} },
+                    });
+
+                    // Wrap the connect method to track calls
+                    const originalConnect = server.connect.bind(server);
+                    server.connect = async (transport): Promise<void> => {
+                        connectCallCount++;
+                        if (connectCallCount === 1) {
+                            throw new Error("Simulated connection failure");
+                        }
+                        return originalConnect(transport);
+                    };
+
+                    return server;
+                }
+            }
+
+            // Create a session store wrapper that tracks addSession calls
+            const sessionStore = runner["mcpServer"]!["sessionStore"];
+            const originalAddSession = sessionStore.addSession.bind(sessionStore);
+            let addSessionCallCount = 0;
+            sessionStore.addSession = async (params): Promise<void> => {
+                addSessionCallCount++;
+                addSessionCalls.push({
+                    beforeConnect: connectCallCount === 0 || connectCallCount % 2 === 0,
+                    afterConnect: connectCallCount > 0 && connectCallCount % 2 === 1,
+                });
+                return originalAddSession(params);
+            };
+
+            await runner?.close();
+            runner = new TrackingRunner({ userConfig: config });
+            await runner.start();
+
+            // Replace the session store with our wrapped version
+            const newSessionStore = runner["mcpServer"]!["sessionStore"];
+            const newOriginalAddSession = newSessionStore.addSession.bind(newSessionStore);
+            newSessionStore.addSession = async (params): Promise<void> => {
+                addSessionCallCount++;
+                addSessionCalls.push({
+                    beforeConnect: connectCallCount === 0,
+                    afterConnect: connectCallCount > 0,
+                });
+                return newOriginalAddSession(params);
+            };
+
+            // First request should fail since connect() fails
+            const firstResponse = await sendHttpRequest("tools/list", sessionId);
+            expect(firstResponse.ok).toBe(false);
+
+            // addSession should NOT have been called since connect() failed
+            expect(addSessionCallCount).toBe(0);
+
+            // Second request should succeed
+            const secondResponse = await sendHttpRequest("tools/list", sessionId);
+            expect(secondResponse.ok).toBe(true);
+
+            // Now addSession should have been called exactly once, after successful connect()
+            expect(addSessionCallCount).toBe(1);
+            expect(addSessionCalls).toHaveLength(1);
+            expect(addSessionCalls[0]).toEqual({ beforeConnect: false, afterConnect: true });
+
+            // Third request should reuse the existing session without calling addSession again
+            const thirdResponse = await sendHttpRequest("tools/list", sessionId);
+            expect(thirdResponse.ok).toBe(true);
+            expect(addSessionCallCount).toBe(1); // Still only 1 call
+        });
     });
 
     describe("with createServerForRequest override", () => {
