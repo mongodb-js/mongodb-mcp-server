@@ -8,3 +8,4 @@ src/ui/lib/tools
 src/ui/lib/loaders.ts
 temp
 api-extractor/reports
+.github/workflows/*.lock.yml
