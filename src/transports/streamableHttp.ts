@@ -9,7 +9,7 @@ import {
     type CustomizableSessionOptions,
 } from "./base.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
-import { applyConfigOverrides, ConfigOverrideError } from "../common/config/configOverrides.js";
+import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 import { MCPHttpServer } from "./mcpHttpServer.js";
