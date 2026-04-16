@@ -37,9 +37,9 @@ export default defineConfig([
             ],
         },
     },
-    tseslint.configs.recommendedTypeChecked,
     {
         files,
+        extends: [tseslint.configs.recommendedTypeChecked],
         languageOptions: {
             parserOptions: {
                 project: "./tsconfig.json",
@@ -116,6 +116,8 @@ export default defineConfig([
     globalIgnores([
         "node_modules",
         "dist",
+        "**/dist/**",
+        "packages/*/dist/**",
         "src/common/atlas/openapi.d.ts",
         "src/ui/lib",
         "coverage",

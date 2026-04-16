@@ -29,6 +29,7 @@ updates:
         patterns:
           - ai
           - "@ai-sdk/*"
+    versioning-strategy: increase
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
