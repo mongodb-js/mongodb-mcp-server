@@ -10,6 +10,9 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
         expect(listAlerts.inputSchema.type).toBe("object");
         expectDefined(listAlerts.inputSchema.properties);
         expect(listAlerts.inputSchema.properties).toHaveProperty("projectId");
+        expect(listAlerts.inputSchema.properties).toHaveProperty("status");
+        expect(listAlerts.inputSchema.properties).toHaveProperty("limit");
+        expect(listAlerts.inputSchema.properties).toHaveProperty("pageNum");
     });
 
     withProject(integration, ({ getProjectId }) => {
@@ -20,13 +23,11 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
             });
 
             const content = getResponseContent(response.content);
-            // check that there are alerts or no alerts
-            if (content.includes("Found alerts in project")) {
+            if (content.includes("Found")) {
                 expect(content).toContain("<untrusted-user-data-");
-                // expect projectId in the content
                 expect(content).toContain(getProjectId());
             } else {
-                expect(content).toContain("No alerts found");
+                expect(content).toContain("No alerts with status");
             }
         });
     });
