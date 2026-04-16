@@ -26,8 +26,39 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
             if (content.includes("Found")) {
                 expect(content).toContain("<untrusted-user-data-");
                 expect(content).toContain(getProjectId());
+                expect(content).toContain("total:");
             } else {
                 expect(content).toContain("No alerts with status");
+            }
+        });
+
+        it("returns alerts with explicit pagination parameters", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "atlas-list-alerts",
+                arguments: { projectId: getProjectId(), limit: 1, pageNum: 1 },
+            });
+
+            const content = getResponseContent(response.content);
+            if (content.includes("Found")) {
+                expect(content).toContain("<untrusted-user-data-");
+                expect(content).toContain("total:");
+            } else {
+                expect(content).toContain("No alerts with status");
+            }
+        });
+
+        it("returns alerts filtered by status", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "atlas-list-alerts",
+                arguments: { projectId: getProjectId(), status: "CLOSED" },
+            });
+
+            const content = getResponseContent(response.content);
+            if (content.includes("Found")) {
+                expect(content).toContain("<untrusted-user-data-");
+                expect(content).toContain('"CLOSED"');
+            } else {
+                expect(content).toContain('No alerts with status "CLOSED"');
             }
         });
     });
