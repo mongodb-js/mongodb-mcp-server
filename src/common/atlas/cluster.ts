@@ -145,7 +145,8 @@ export async function getProcessIdsFromCluster(
         return cluster.processIds || [];
     } catch (error) {
         throw new Error(
-            `Failed to get processIds from cluster: ${error instanceof Error ? error.message : String(error)}`
+            `Failed to get processIds from cluster: ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error }
         );
     }
 }

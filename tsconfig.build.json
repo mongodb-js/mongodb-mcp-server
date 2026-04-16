@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2020",
+    "lib": ["es2022", "dom", "dom.iterable"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "rootDir": "./src",
