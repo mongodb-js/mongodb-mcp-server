@@ -38,7 +38,7 @@ export {
 } from "./common/logging/index.js";
 export {
     StreamableHttpRunner,
-    MonitoringServer,
+    type MonitoringServer,
     createDefaultMonitoringServer,
     type StreamableHttpTransportRunnerConfig,
     type CreateMonitoringServerFn,
