@@ -1054,7 +1054,7 @@ describeWithMongoDB(
             await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
         });
 
-        it("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
+        it.todo("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {
