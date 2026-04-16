@@ -96,10 +96,10 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     };
     // (undocumented)
     description: string;
-    // Warning: (ae-forgotten-export) The symbol "DbOperationArgs" needs to be exported by the entry point index.d.ts
+    // Warning: (ae-forgotten-export) The symbol "CollOperationArgs" needs to be exported by the entry point index.d.ts
     //
     // (undocumented)
-    protected execute(input: ToolArgs<typeof DbOperationArgs>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollOperationArgs>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
     // Warning: (ae-forgotten-export) The symbol "SearchIndexStatus" needs to be exported by the entry point index.d.ts
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[];
     // (undocumented)
@@ -170,7 +170,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof DbOperationArgs>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollOperationArgs>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CollectionStorageSizeTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)

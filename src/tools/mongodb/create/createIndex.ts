@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 
@@ -191,7 +191,7 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
     static toolName = "create-index";
     public description = "Create an index for a collection";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         name: z.string().optional().describe("The name of the index"),
         // Note: Although it is not required to wrap the discriminated union in
         // an array here because we only expect exactly one definition to be

@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
@@ -17,7 +17,7 @@ export class CountTool extends MongoDBToolBase {
     public description =
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         ...CountArgs,
     };
 

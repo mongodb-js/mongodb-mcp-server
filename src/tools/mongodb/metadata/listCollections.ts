@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
@@ -17,9 +17,7 @@ export type ListCollectionsOutput = z.infer<z.ZodObject<typeof ListCollectionsOu
 export class ListCollectionsTool extends MongoDBToolBase {
     static toolName = "list-collections";
     public description = "List all collections for a given database";
-    public argsShape = {
-        database: DbOperationArgs.database,
-    };
+    public argsShape = DBOperationArgs;
     public override outputSchema = ListCollectionsOutputSchema;
 
     static operationType: OperationType = "metadata";

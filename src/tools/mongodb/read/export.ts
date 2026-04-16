@@ -3,7 +3,7 @@ import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { OperationType, ToolArgs, ToolExecutionContext } from "../../tool.js";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
@@ -12,7 +12,7 @@ export class ExportTool extends MongoDBToolBase {
     static toolName = "export";
     public description = "Export a query or aggregation results in the specified EJSON format.";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         exportTitle: z.string().describe("A short description to uniquely identify the export."),
         // Note: Although it is not required to wrap the discriminated union in
         // an array here because we only expect exactly one exportTarget to be

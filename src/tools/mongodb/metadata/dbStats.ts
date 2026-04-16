@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { DBOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { EJSON } from "bson";
@@ -13,9 +13,7 @@ export type DbStatsOutput = z.infer<z.ZodObject<typeof DbStatsOutputSchema>>;
 export class DbStatsTool extends MongoDBToolBase {
     static toolName = "db-stats";
     public description = "Returns statistics that reflect the use state of a single database";
-    public argsShape = {
-        database: DbOperationArgs.database,
-    };
+    public argsShape = DBOperationArgs;
     public override outputSchema = DbStatsOutputSchema;
 
     static operationType: OperationType = "metadata";

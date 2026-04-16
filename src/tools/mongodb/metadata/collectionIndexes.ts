@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
@@ -32,14 +32,14 @@ type IndexStatus = CollectionIndexesOutput["classicIndexes"][number];
 export class CollectionIndexesTool extends MongoDBToolBase {
     static toolName = "collection-indexes";
     public description = "Describe the indexes for a collection";
-    public argsShape = DbOperationArgs;
+    public argsShape = CollOperationArgs;
     public override outputSchema = CollectionIndexesOutputSchema;
     static operationType: OperationType = "metadata";
 
     protected async execute({
         database,
         collection,
-    }: ToolArgs<typeof DbOperationArgs>): Promise<ToolResult<typeof this.outputSchema>> {
+    }: ToolArgs<typeof CollOperationArgs>): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();
         const indexes = await provider.getIndexes(database, collection);
         const classicIndexes: IndexStatus[] = indexes.map((index) => ({

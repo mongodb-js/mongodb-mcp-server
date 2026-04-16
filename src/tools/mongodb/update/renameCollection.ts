@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 
 const RenameCollectionOutputSchema = {
@@ -16,7 +16,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
     public description = "Renames a collection in a MongoDB database";
     public override outputSchema = RenameCollectionOutputSchema;
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         newName: z.string().describe("The new name for the collection"),
         dropTarget: z.boolean().optional().default(false).describe("If true, drops the target collection if it exists"),
     };
