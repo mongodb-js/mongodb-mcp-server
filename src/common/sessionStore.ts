@@ -22,8 +22,8 @@ export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_s
  * management (e.g. database-based session storage).
  */
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
-    getSession(sessionId: string): T | undefined;
-    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): void;
+    getSession(sessionId: string): Promise<T | undefined>;
+    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): Promise<void>;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
 }
@@ -65,9 +65,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
     }
 
-    getSession(sessionId: string): T | undefined {
+    async getSession(sessionId: string): Promise<T | undefined> {
         this.resetTimeout(sessionId);
-        return this.sessions[sessionId]?.transport;
+        return Promise.resolve(this.sessions[sessionId]?.transport);
     }
 
     private resetTimeout(sessionId: string): void {
@@ -98,7 +98,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         });
     }
 
-    addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): void {
+    async addSession(params: { sessionId: string; transport: T; logger: LoggerBase }): Promise<void> {
         const { sessionId, transport, logger } = params;
         const session = this.sessions[sessionId];
         if (session) {
@@ -126,6 +126,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger,
         };
         this.metrics.get("sessionCreated").inc();
+        return Promise.resolve();
     }
 
     async closeSession({

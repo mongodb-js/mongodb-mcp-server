@@ -62,6 +62,7 @@ Note: The configuration file syntax can be different across clients. Please refe
 - **Claude Desktop**: https://modelcontextprotocol.io/quickstart/user
 - **Cursor**: https://docs.cursor.com/context/model-context-protocol
 - **Copilot CLI**: https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
+- **Opencode CLI**: https://opencode.ai/docs/mcp-servers
 
 > **Default Safety Notice:** All examples below include `--readOnly` by default to ensure safe, read-only access to your data. Remove `--readOnly` if you need to enable write operations.
 
@@ -304,6 +305,28 @@ Alternatively, create or edit the configuration file `~/.copilot/mcp-config.json
 ```
 
 For more information, see the [Copilot CLI documentation](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli).
+
+#### Option 7: OpenCode
+
+Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or project-specific `./opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "MongoDB": {
+      "type": "local",
+      "command": ["npx", "-y", "mongodb-mcp-server@latest", "--readOnly"],
+      "enabled": true,
+      "environment": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27017/myDatabase"
+      }
+    }
+  }
+}
+```
+
+For more information about configuring OpenCode as an MCP client, including the expected syntax and options, see the [OpenCode MCP servers documentation](https://opencode.ai/docs/mcp-servers/).
 
 ## 🛠️ Supported Tools
 

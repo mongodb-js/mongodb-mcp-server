@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { MonitoringServer } from "../../../src/transports/streamableHttp.js";
+import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
 import { NullLogger } from "../../../src/common/logging/index.js";
 import { PrometheusMetrics } from "../../../src/common/metrics/prometheusMetrics.js";
 import { createDefaultMetrics } from "../../../src/common/metrics/metricDefinitions.js";

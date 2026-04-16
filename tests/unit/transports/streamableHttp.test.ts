@@ -1,10 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
     StreamableHttpRunner,
-    MonitoringServer,
     type CreateMonitoringServerFn,
     type MonitoringServerConstructorArgs,
 } from "../../../src/transports/streamableHttp.js";
+import { MonitoringServer } from "../../../src/transports/monitoringServer.js";
 import { defaultTestConfig } from "../../integration/helpers.js";
 import type express from "express";
 import type { DefaultMetrics, Metrics } from "../../../src/lib.js";
