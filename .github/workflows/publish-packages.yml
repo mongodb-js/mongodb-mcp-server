@@ -106,9 +106,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-          git tag "${{ matrix.package.git_tag }}" "${{ github.sha }}"
-          git push origin "${{ matrix.package.git_tag }}"
+          gh api repos/${{ github.repository }}/git/refs \
+            -f ref="refs/tags/${{ matrix.package.git_tag }}" \
+            -f sha="${{ github.sha }}"
 
       - name: Wait for package to be available on npm
         run: |
