@@ -106,6 +106,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git tag "${{ matrix.package.git_tag }}" "${{ github.sha }}"
           git push origin "${{ matrix.package.git_tag }}"
 
