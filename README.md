@@ -310,6 +310,7 @@ For more information, see the [Copilot CLI documentation](https://docs.github.co
 
 Create or edit your OpenCode config file (`~/.config/opencode/opencode.json` or project-specific `./opencode.json`):
 
+```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
