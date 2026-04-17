@@ -73,7 +73,7 @@
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
     "build:package": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
-    "build": "pnpm --filter=@mongodb-js/mcp-metrics run build && pnpm run build:package",
+    "build": "pnpm --filter='./packages/*' run build && pnpm run build:package",
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\" && pnpm run check:api",
