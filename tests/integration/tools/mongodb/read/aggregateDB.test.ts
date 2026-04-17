@@ -117,7 +117,6 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
             name: "aggregate-db",
             arguments: {
                 database: integration.randomDbName(),
-                collection: "people",
                 pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "outpeople" }],
             },
         });
@@ -156,7 +155,6 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
                 name: "aggregate-db",
                 arguments: {
                     database: integration.randomDbName(),
-                    collection: "people",
                     pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $out: "outpeople" }],
                 },
             });
@@ -173,7 +171,6 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
                 name: "aggregate-db",
                 arguments: {
                     database: integration.randomDbName(),
-                    collection: "people",
                     pipeline: [{ $documents: [{ name: "Peter", age: 5 }] }, { $merge: "outpeople" }],
                 },
             });
@@ -187,9 +184,8 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
     validateAutoConnectBehavior(integration, "aggregate-db", () => {
         return {
             args: {
-                database: integration.randomDbName(),
-                collection: "coll1",
-                pipeline: [{ $match: { name: "Liva" } }],
+                database: "admin",
+                pipeline: [{ $currentOp: { allUsers: true, idleSessions: true } }, { $limit: 10 }],
             },
             expectedResponse: "The aggregation resulted in 0 documents",
         };
@@ -305,13 +301,6 @@ describeWithMongoDB(
         });
 
         it("should return only the documents that could fit in responseBytesLimit", async () => {
-            await freshInsertDocuments({
-                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
-                count: 1000,
-                documentMapper(index) {
-                    return { name: `Person ${index}`, age: index };
-                },
-            });
             await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate-db",
@@ -349,7 +338,6 @@ describeWithMongoDB(
                 name: "aggregate-db",
                 arguments: {
                     database: integration.randomDbName(),
-                    collection: "people",
                     pipeline: [{ $documents: initialDocuments }, { $sort: { name: -1 } }],
                     responseBytesLimit: 1 * 1024 * 1024, // 1MB
                 },
