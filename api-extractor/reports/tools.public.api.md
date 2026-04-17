@@ -1940,6 +1940,10 @@ export abstract class MongoDBToolBase extends ToolBase {
     static category: ToolCategory;
     // (undocumented)
     protected ensureConnected(): Promise<NodeDriverServiceProvider>;
+    protected getOperationOptions(signal?: AbortSignal): {
+        signal?: AbortSignal;
+        maxTimeMS?: number;
+    };
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof MongoDBToolBase.argsShape>): Promise<CallToolResult>;
     // (undocumented)
