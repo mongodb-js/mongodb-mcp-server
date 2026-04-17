@@ -581,6 +581,100 @@ describe("Telemetry", () => {
         });
     });
 
+    describe("API client configuration", () => {
+        const LAZY_BASE_URL = "https://telemetry.example.test";
+
+        function createLazyTelemetry(
+            overrides: {
+                telemetry?: "enabled" | "disabled";
+                apiBaseUrl?: string;
+            } = {}
+        ): Telemetry {
+            return Telemetry.create({
+                logger: new NullLogger(),
+                deviceId: mockDeviceId,
+                apiBaseUrl: overrides.apiBaseUrl ?? LAZY_BASE_URL,
+                keychain,
+                telemetry: overrides.telemetry ?? "enabled",
+                getCommonProperties: () => ({}),
+            });
+        }
+
+        describe("when an apiClient is supplied", () => {
+            it("uses the supplied client and never constructs a new one", async () => {
+                // Baseline captures any ApiClient constructions that happened during test
+                // setup (e.g. the mockApiClient itself in beforeEach). The telemetry
+                // pipeline shouldn't add to this count when it already has a client.
+                const baselineConstructions = MockApiClient.mock.calls.length;
+
+                await telemetry.setupPromise;
+                await emitEventsForTest([createTestEvent()]);
+
+                expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+                expect(MockApiClient.mock.calls.length).toBe(baselineConstructions);
+            });
+        });
+
+        describe("when only an apiBaseUrl is supplied", () => {
+            // Cancel the default `telemetry` instance's timers so only the locally-
+            // created lazy telemetry drives the send loop during these tests.
+            beforeEach(() => {
+                vi.clearAllTimers();
+            });
+
+            it("defers ApiClient construction until the first send", async () => {
+                const baselineConstructions = MockApiClient.mock.calls.length;
+
+                const lazyTelemetry = createLazyTelemetry();
+                await lazyTelemetry.setupPromise;
+
+                expect(MockApiClient.mock.calls.length).toBe(baselineConstructions);
+
+                const sent = new Promise<void>((resolve) => {
+                    lazyTelemetry.events.once("events-emitted", resolve);
+                    lazyTelemetry.events.once("events-send-failed", resolve);
+                });
+                lazyTelemetry.emitEvents([createTestEvent()]);
+                await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+                await sent;
+
+                expect(MockApiClient.mock.calls.length).toBe(baselineConstructions + 1);
+                expect(MockApiClient).toHaveBeenLastCalledWith({ baseUrl: LAZY_BASE_URL }, expect.anything());
+            });
+
+            it("reuses the lazily-constructed ApiClient across subsequent sends", async () => {
+                const baselineConstructions = MockApiClient.mock.calls.length;
+
+                const lazyTelemetry = createLazyTelemetry();
+                await lazyTelemetry.setupPromise;
+
+                _cachedEvents.push(createTestEvent({ command: "first" }));
+                const firstResult = await lazyTelemetry["sendBatch"]();
+
+                _cachedEvents.push(createTestEvent({ command: "second" }));
+                const secondResult = await lazyTelemetry["sendBatch"]();
+
+                // Both batches should have sent successfully through the same
+                // lazily-constructed client.
+                expect(firstResult).toEqual({ status: "success" });
+                expect(secondResult).toEqual({ status: "success" });
+                expect(MockApiClient.mock.calls.length).toBe(baselineConstructions + 1);
+            });
+
+            it("does not construct an ApiClient when telemetry is disabled", async () => {
+                const baselineConstructions = MockApiClient.mock.calls.length;
+
+                const disabled = createLazyTelemetry({ telemetry: "disabled" });
+
+                disabled.emitEvents([createTestEvent()]);
+                await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+                await disabled.close();
+
+                expect(MockApiClient.mock.calls.length).toBe(baselineConstructions);
+            });
+        });
+    });
+
     /**
      * Regression test: the processOldestBatch exclusive lock prevents the same events
      * from being sent twice when sendBatch is triggered concurrently.
