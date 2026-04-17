@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "mongodb-mcp-server": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.24.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.5.0",
     "@vitest/browser": "^4.1.2",
     "@vitest/browser-playwright": "^4.1.2",
@@ -23,7 +23,7 @@
     "readable-stream": "^4.7.0",
     "typescript": "^5.9.2",
     "util": "^0.12.5",
-    "vite": "^7.2.4",
+    "vite": "^8.0.8",
     "vitest": "^4.1.2"
   }
 }

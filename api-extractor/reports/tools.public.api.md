@@ -1817,11 +1817,11 @@ export class ListDatabasesTool extends MongoDBToolBase {
             name: z_2.ZodString;
             size: z_2.ZodNumber;
         }, "strip", z_2.ZodTypeAny, {
-            name: string;
             size: number;
+            name: string;
         }, {
-            name: string;
             size: number;
+            name: string;
         }>, "many">;
         totalCount: z_2.ZodNumber;
     };
