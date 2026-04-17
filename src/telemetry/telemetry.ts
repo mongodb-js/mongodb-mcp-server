@@ -61,7 +61,7 @@ export type TelemetryConfig = {
     deviceId: DeviceId;
 
     /** Secrets source used when redacting events prior to sending. */
-    keychain?: Keychain;
+    keychain: Keychain;
 
     /**
      * The user's telemetry preference. When set to `"disabled"`, no events are
@@ -118,7 +118,7 @@ export class Telemetry {
      * so disabled telemetry never allocates a client.
      */
     private apiClientSource: ApiClient | { apiBaseUrl: string };
-    private readonly keychain?: Keychain;
+    private readonly keychain: Keychain;
     private readonly telemetrySetting: "enabled" | "disabled";
     private readonly getHostCommonProperties: () => Partial<CommonProperties>;
 
@@ -390,13 +390,12 @@ export class Telemetry {
     private async sendEvents(client: ApiClient, events: BaseEvent[], signal?: AbortSignal): Promise<SendResult> {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
-            const secrets = this.keychain?.allSecrets ?? [];
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
                     properties: {
-                        ...redact(this.getCommonProperties(), secrets),
-                        ...redact(event.properties, secrets),
+                        ...redact(this.getCommonProperties(), this.keychain.allSecrets),
+                        ...redact(event.properties, this.keychain.allSecrets),
                     },
                 })),
                 { signal: effectiveSignal }

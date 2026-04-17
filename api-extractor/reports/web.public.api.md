@@ -869,8 +869,10 @@ export type StreamsToolMetadata = AtlasMetadata & {
 export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
-    // (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, input?: {
+    // Warning: (ae-forgotten-export) The symbol "TelemetryConfig" needs to be exported by the entry point web.d.ts
+    static create(config: TelemetryConfig): Telemetry;
+    // @deprecated (undocumented)
+    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
         commonProperties?: Partial<CommonProperties>;
         eventCache?: EventCache;
     }): Telemetry;
