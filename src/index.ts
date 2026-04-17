@@ -47,6 +47,7 @@ import { systemCA } from "@mongodb-js/devtools-proxy-support";
 import { Keychain } from "./common/keychain.js";
 import { DryRunModeRunner } from "./transports/dryModeRunner.js";
 import { runSetup } from "./setup/setupMcpServer.js";
+import { SetupTelemetry } from "./setup/setupTelemetry.js";
 
 async function main(): Promise<void> {
     systemCA().catch(() => undefined); // load system CA asynchronously as in mongosh
@@ -185,8 +186,39 @@ function handleVersionRequest(): never {
 }
 
 async function handleSetupRequest(config: UserConfig): Promise<never> {
-    await runSetup(config);
-    process.exit(0);
+    const setupTelemetry = SetupTelemetry.create(config);
+
+    // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
+    // are still captured. Inquirer itself converts Ctrl+C during prompts into
+    // an ExitPromptError which runSetup already handles.
+    let interrupted = false;
+    const onInterrupt = (): void => {
+        if (interrupted) {
+            return;
+        }
+
+        interrupted = true;
+        setupTelemetry.emitCancelled();
+        setupTelemetry
+            .flush()
+            .catch(() => undefined)
+            .finally(() => process.exit(0));
+    };
+    process.on("SIGINT", onInterrupt);
+    process.on("SIGTERM", onInterrupt);
+
+    let exitCode = 0;
+    try {
+        await runSetup(config, setupTelemetry);
+    } catch (error: unknown) {
+        exitCode = 1;
+        console.error(`Setup failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+        process.off("SIGINT", onInterrupt);
+        process.off("SIGTERM", onInterrupt);
+        await setupTelemetry.flush();
+    }
+    process.exit(exitCode);
 }
 
 export async function handleDryRunRequest(config: UserConfig): Promise<never> {

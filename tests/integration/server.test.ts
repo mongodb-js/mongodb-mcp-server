@@ -7,7 +7,8 @@ import { defaultTestConfig, expectDefined, InMemoryLogger } from "./helpers.js";
 import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
-import { defaultCreateApiClient, Elicitation, Keychain, Telemetry } from "../../src/lib.js";
+import { defaultCreateApiClient, Elicitation, Keychain } from "../../src/lib.js";
+import { createTelemetryForTest } from "../utils/telemetryHelpers.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
@@ -199,7 +200,7 @@ describe("Server integration test", () => {
             ),
         });
 
-        const telemetry = Telemetry.create(session, config, deviceId);
+        const telemetry = createTelemetryForTest(session, config, deviceId);
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 

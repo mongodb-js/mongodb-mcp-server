@@ -1,4 +1,4 @@
-import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { createTelemetryForTest } from "../utils/telemetryHelpers.js";
 import { Session } from "../../src/common/session.js";
 import { DeviceId } from "../../src/helpers/deviceId.js";
 import { describe, expect, it } from "vitest";
@@ -20,7 +20,7 @@ describe("Telemetry", () => {
         const actualDeviceId = await deviceId.get();
         const connectionManager = new MCPConnectionManager(config, logger, deviceId);
 
-        const telemetry = Telemetry.create(
+        const telemetry = createTelemetryForTest(
             new Session({
                 userConfig: defaultTestConfig,
                 logger,

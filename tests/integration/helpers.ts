@@ -3,7 +3,7 @@ import { CompositeLogger, LoggerBase } from "../../src/common/logging/index.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
-import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { createTelemetryForTest } from "../utils/telemetryHelpers.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
@@ -134,7 +134,7 @@ export function setupIntegrationTest(
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = Telemetry.create(session, userConfig, deviceId);
+        const telemetry = createTelemetryForTest(session, userConfig, deviceId);
 
         const mcpServerInstance = new McpServer({
             name: "test-server",
