@@ -18,7 +18,7 @@ export const AggregateArgs = {
 };
 
 export class AggregateDBTool extends MongoDBToolBase {
-    static toolName = "aggregateDB";
+    static toolName = "aggregate-db";
     public description = "Run an aggregation against a MongoDB database";
     public argsShape = {
         ...DBOperationArgs,
@@ -153,7 +153,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         const resultsCountAggregation = [...pipeline, { $count: "totalDocuments" }];
         return await operationWithFallback(async (): Promise<number | undefined> => {
             const aggregationResults = await provider
-                .aggregateDB(database, resultsCountAggregation, {
+                .aggregateDb(database, resultsCountAggregation, {
                     signal: abortSignal,
                 })
                 .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)

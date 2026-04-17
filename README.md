@@ -335,6 +335,7 @@ For more information about configuring OpenCode as an MCP client, including the 
 #### MongoDB Database Tools
 
 - `aggregate` - Run an aggregation against a MongoDB collection
+- `aggregate-db` - Run an aggregation against a MongoDB database
 - `collection-indexes` - Describe the indexes for a collection
 - `collection-schema` - Describe the schema for a collection
 - `collection-storage-size` - Gets the size of the collection
