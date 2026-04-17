@@ -1733,7 +1733,10 @@ export class InspectClusterTool extends AtlasToolBase {
 export class ListAlertsTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
+        projectId: z_2.ZodString;
+        status: z_2.ZodDefault<z_2.ZodEnum<["OPEN", "TRACKING", "CLOSED"]>>;
+        limit: z_2.ZodDefault<z_2.ZodNumber>;
+        pageNum: z_2.ZodDefault<z_2.ZodNumber>;
     };
     // (undocumented)
     description: string;
