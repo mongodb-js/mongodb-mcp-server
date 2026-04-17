@@ -284,6 +284,7 @@ describe("configOverrides", () => {
                     "indexCheck",
                     "idleTimeoutMs",
                     "notificationTimeoutMs",
+                    "maxTimeMS",
                     "exportTimeoutMs",
                     "atlasTemporaryDatabaseUserLifetimeMs",
                     "previewFeatures",

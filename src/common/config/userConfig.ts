@@ -177,6 +177,15 @@ const ServerConfigSchema = z4.object({
             "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    maxTimeMS: z4.coerce
+        .number()
+        .int()
+        .min(0, "maxTimeMS must be non-negative")
+        .optional()
+        .describe(
+            "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count."
+        )
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     exportsPath: z4
         .string()
         .default(getExportsPath())

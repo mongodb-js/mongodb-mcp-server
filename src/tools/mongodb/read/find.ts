@@ -64,7 +64,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                                 projection,
                                 limit,
                                 sort,
-                                signal,
+                                ...this.getOperationOptions(signal),
                             })
                             .explain("queryPlanner");
                     },
@@ -78,7 +78,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 projection,
                 limit: limitOnFindCursor.limit,
                 sort,
-                signal,
+                ...this.getOperationOptions(signal),
             });
 
             const [queryResultsCount, cursorResults] = await Promise.all([
@@ -89,7 +89,9 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             // query would have yielded which is why we don't
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
-                            maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
+                            maxTimeMS: this.config.maxTimeMS
+                                ? Math.min(this.config.maxTimeMS, QUERY_COUNT_MAX_TIME_MS_CAP)
+                                : QUERY_COUNT_MAX_TIME_MS_CAP,
                             signal,
                         }),
                     undefined
