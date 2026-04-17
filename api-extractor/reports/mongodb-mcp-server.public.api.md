@@ -1004,7 +1004,6 @@ export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig =
 export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
-    // Warning: (ae-forgotten-export) The symbol "TelemetryConfig" needs to be exported by the entry point lib.d.ts
     static create(config: TelemetryConfig): Telemetry;
     // @deprecated (undocumented)
     static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
@@ -1018,6 +1017,19 @@ export class Telemetry {
     isTelemetryEnabled(): boolean;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
+
+// @public
+export type TelemetryConfig = {
+    logger: LoggerBase;
+    deviceId: DeviceId;
+    keychain: Keychain;
+    telemetry: "enabled" | "disabled";
+    getCommonProperties?: () => Partial<CommonProperties>;
+} & ({
+    apiClient: ApiClient;
+} | {
+    apiBaseUrl: string;
+});
 
 // @public
 export type TelemetryEvent<T> = {

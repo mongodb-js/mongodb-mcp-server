@@ -51,10 +51,10 @@ export function nextBackoffMs(currentMs: number): number {
 }
 
 /**
- * Configuration for the {@link Telemetry} pipeline.
+ * Configuration for the {@link Telemetry} service.
  */
 export type TelemetryConfig = {
-    /** Logger used by the telemetry pipeline for its own diagnostics. */
+    /** Logger used by the telemetry service for its own diagnostics. */
     logger: LoggerBase;
 
     /** Device id source, resolved asynchronously during setup. */
@@ -78,7 +78,7 @@ export type TelemetryConfig = {
      * can simply be returned as constants from this callback.
      *
      * Machine metadata, device id, and container environment are provided by
-     * the pipeline itself and don't need to be returned here.
+     * the service itself and don't need to be returned here.
      */
     getCommonProperties?: () => Partial<CommonProperties>;
 } & (
@@ -114,7 +114,7 @@ export class Telemetry {
     private readonly logger: LoggerBase;
     /**
      * Either the caller-supplied client, or a `{ apiBaseUrl }` marker used to
-     * lazily construct one on first send. Resolved through {@link resolveApiClient}
+     * lazily construct one on first send. Resolved through `resolveApiClient`
      * so disabled telemetry never allocates a client.
      */
     private apiClientSource: ApiClient | { apiBaseUrl: string };
@@ -123,11 +123,11 @@ export class Telemetry {
     private readonly getHostCommonProperties: () => Partial<CommonProperties>;
 
     /**
-     * Machine metadata plus device_id / is_container_env, which the pipeline
+     * Machine metadata plus device_id / is_container_env, which the service
      * resolves itself during setup. Host-supplied properties are merged on
      * top of this at send time.
      */
-    private readonly pipelineCommonProperties: CommonProperties;
+    private readonly commonProperties: CommonProperties;
     private readonly eventCache: EventCache;
     private readonly deviceId: DeviceId;
 
@@ -139,7 +139,7 @@ export class Telemetry {
         this.getHostCommonProperties = config.getCommonProperties ?? ((): Partial<CommonProperties> => ({}));
         this.eventCache = eventCache;
         this.deviceId = config.deviceId;
-        this.pipelineCommonProperties = {
+        this.commonProperties = {
             ...MACHINE_METADATA,
         };
     }
@@ -164,7 +164,7 @@ export class Telemetry {
      */
     static create(config: TelemetryConfig): Telemetry;
     /**
-     * @deprecated Use the {@link TelemetryConfig}-based overload instead. This
+     * @deprecated Use the `TelemetryConfig`-based overload instead. This
      * signature is retained for backwards compatibility and will be removed in
      * a future release.
      */
@@ -244,8 +244,8 @@ export class Telemetry {
         this.setupPromise = Promise.all([this.deviceId.get(), detectContainerEnv()]);
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
-        this.pipelineCommonProperties.device_id = deviceIdValue;
-        this.pipelineCommonProperties.is_container_env = containerEnv ? "true" : "false";
+        this.commonProperties.device_id = deviceIdValue;
+        this.commonProperties.is_container_env = containerEnv ? "true" : "false";
 
         this.isBufferingEvents = false;
         this.scheduleSend();
@@ -280,7 +280,7 @@ export class Telemetry {
      */
     public getCommonProperties(): CommonProperties {
         return {
-            ...this.pipelineCommonProperties,
+            ...this.commonProperties,
             ...this.getHostCommonProperties(),
         };
     }

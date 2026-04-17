@@ -77,8 +77,8 @@ export {
 } from "./common/connectionErrorHandler.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
 export { Telemetry } from "./telemetry/telemetry.js";
-export { type TelemetryEvent, type CommonProperties, type BaseEvent } from "./telemetry/types.js";
-export { type TelemetryEvents } from "./telemetry/telemetry.js";
+export type { TelemetryEvent, CommonProperties, BaseEvent } from "./telemetry/types.js";
+export type { TelemetryEvents, TelemetryConfig } from "./telemetry/telemetry.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { Keychain, registerGlobalSecretToRedact } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
