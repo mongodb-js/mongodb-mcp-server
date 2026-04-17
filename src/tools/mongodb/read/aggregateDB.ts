@@ -37,7 +37,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.ensureConnected();
-            await this.assertOnlyUsesPermittedStages(pipeline);
+            this.assertOnlyUsesPermittedStages(pipeline);
 
             let successMessage: string;
             let documents: unknown[];
@@ -118,7 +118,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }
     }
 
-    private async assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): Promise<void> {
+    private assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): void {
         const writeOperations: OperationType[] = ["update", "create", "delete"];
         let writeStageForbiddenError = "";
 
