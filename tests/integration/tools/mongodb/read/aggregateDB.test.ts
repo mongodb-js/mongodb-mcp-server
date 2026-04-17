@@ -279,7 +279,7 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "aggregate tool with configured max bytes per query",
+    "aggregate-db tool with configured max bytes per query",
     (integration) => {
         const initialDocsCount = 1000;
         const initialDocuments = Array.from({ length: initialDocsCount }).map((_, idx) => ({
@@ -335,7 +335,7 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "aggregate tool with disabled max documents and max bytes per query",
+    "aggregate-db tool with disabled max documents and max bytes per query",
     (integration) => {
         it("should return all the documents that could fit in responseBytesLimit", async () => {
             const initialDocsCount = 1000;
@@ -365,9 +365,9 @@ describeWithMongoDB(
 );
 
 describeWithMongoDB(
-    "aggregate tool with abort signal",
+    "aggregate-db tool with abort signal",
     (integration) => {
-        const initialDocsCount = 10000;
+        const initialDocsCount = 1000;
         const initialDocuments = Array.from({ length: initialDocsCount }).map((_, idx) => ({
             _id: idx,
             description: `Document ${idx}`,
@@ -438,7 +438,7 @@ describeWithMongoDB(
             };
         };
 
-        it("should abort aggregate operation when signal is triggered immediately", async () => {
+        it("should abort aggregate-db operation when signal is triggered immediately", async () => {
             await integration.connectMcpClient();
             const abortController = new AbortController();
 
@@ -455,7 +455,7 @@ describeWithMongoDB(
             expect(error.message).toContain("This operation was aborted");
         });
 
-        it("should abort aggregate operation during cursor iteration", async () => {
+        it("should abort aggregate-db operation during cursor iteration", async () => {
             await integration.connectMcpClient();
             const abortController = new AbortController();
 
