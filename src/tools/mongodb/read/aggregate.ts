@@ -250,7 +250,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     signal: abortSignal,
                 })
                 .maxTimeMS(
-                    this.config.maxTimeMS
+                    this.config.maxTimeMS !== undefined
                         ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
                         : AGG_COUNT_MAX_TIME_MS_CAP
                 )

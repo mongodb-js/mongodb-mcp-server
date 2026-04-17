@@ -54,7 +54,7 @@ export abstract class MongoDBToolBase extends ToolBase {
     protected getOperationOptions(signal?: AbortSignal): { signal?: AbortSignal; maxTimeMS?: number } {
         return {
             ...(signal && { signal }),
-            ...(this.config.maxTimeMS && { maxTimeMS: this.config.maxTimeMS }),
+            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
         };
     }
 

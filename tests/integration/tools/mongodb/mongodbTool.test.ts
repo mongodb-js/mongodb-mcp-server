@@ -427,5 +427,28 @@ describe("MongoDBTool implementations", () => {
 
             expect(options).toEqual({});
         });
+
+        it("should treat maxTimeMS of 0 as a valid value", async () => {
+            await cleanupAndStartServer({ maxTimeMS: 0 });
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const signal = AbortSignal.timeout(5000);
+            const options = randomTool["getOperationOptions"](signal);
+
+            expect(options).toEqual({ signal, maxTimeMS: 0 });
+        });
+
+        it("should return maxTimeMS 0 without signal", async () => {
+            await cleanupAndStartServer({ maxTimeMS: 0 });
+            const tool = mcpServer?.tools.find((t) => t.name === "Random");
+            expectDefined(tool);
+            const randomTool = tool as RandomTool;
+
+            const options = randomTool["getOperationOptions"](undefined);
+
+            expect(options).toEqual({ maxTimeMS: 0 });
+        });
     });
 });
