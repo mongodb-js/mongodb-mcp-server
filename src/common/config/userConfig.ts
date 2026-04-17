@@ -185,7 +185,7 @@ const ServerConfigSchema = z4.object({
         .describe(
             "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count."
         )
-        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     exportsPath: z4
         .string()
         .default(getExportsPath())
