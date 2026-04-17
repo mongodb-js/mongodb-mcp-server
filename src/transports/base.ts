@@ -333,16 +333,14 @@ export abstract class TransportRunnerBase<
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
 
-        // Telemetry always needs an ApiClient so buffered events don't pile up
-        // in the cache forever. When no Atlas credentials are configured, fall
-        // back to an unauthenticated client — the pipeline routes through the
-        // unauth telemetry endpoint automatically.
-        const telemetryApiClient = session.apiClient ?? new ApiClient({ baseUrl: userConfig.apiBaseUrl }, logger);
-
+        // Telemetry needs an ApiClient so buffered events don't pile up in the
+        // cache forever. Reuse the session's authenticated client when we have
+        // one; otherwise hand the service the base URL so it can lazily
+        // construct an unauthenticated client only if/when it actually sends.
         const telemetry = Telemetry.create({
             logger,
             deviceId: this.deviceId,
-            apiClient: telemetryApiClient,
+            ...(session.apiClient ? { apiClient: session.apiClient } : { apiBaseUrl: userConfig.apiBaseUrl }),
             keychain: session.keychain,
             telemetry: userConfig.telemetry,
             getCommonProperties: () => ({

@@ -53,20 +53,12 @@ export function nextBackoffMs(currentMs: number): number {
 /**
  * Configuration for the {@link Telemetry} pipeline.
  */
-export interface TelemetryConfig {
+export type TelemetryConfig = {
     /** Logger used by the telemetry pipeline for its own diagnostics. */
     logger: LoggerBase;
 
     /** Device id source, resolved asynchronously during setup. */
     deviceId: DeviceId;
-
-    /**
-     * API client used to send events. Always required — the pipeline would
-     * otherwise buffer events in the cache forever. When no Atlas credentials
-     * are configured, callers should still pass an unauthenticated
-     * {@link ApiClient}; it will route telemetry through the unauth endpoint.
-     */
-    apiClient: ApiClient;
 
     /** Secrets source used when redacting events prior to sending. */
     keychain?: Keychain;
@@ -89,7 +81,26 @@ export interface TelemetryConfig {
      * the pipeline itself and don't need to be returned here.
      */
     getCommonProperties?: () => Partial<CommonProperties>;
-}
+} & (
+    | {
+          /**
+           * Pre-constructed client used to send events. Use this when the host
+           * already has an {@link ApiClient} instance so telemetry can
+           * reuse it instead of allocating a second client.
+           */
+          apiClient: ApiClient;
+      }
+    | {
+          /**
+           * Base URL for the Atlas API. When supplied instead of an
+           * `apiClient`, the service lazily constructs an unauthenticated
+           * {@link ApiClient} the first time it needs to send a batch — which
+           * means disabled telemetry never allocates one. Events are routed
+           * through the unauthenticated telemetry endpoint.
+           */
+          apiBaseUrl: string;
+      }
+);
 
 export class Telemetry {
     private isBufferingEvents: boolean = true;
@@ -101,7 +112,12 @@ export class Telemetry {
     private readonly timer = new Timer();
 
     private readonly logger: LoggerBase;
-    private readonly apiClient: ApiClient;
+    /**
+     * Either the caller-supplied client, or a `{ apiBaseUrl }` marker used to
+     * lazily construct one on first send. Resolved through {@link resolveApiClient}
+     * so disabled telemetry never allocates a client.
+     */
+    private apiClientSource: ApiClient | { apiBaseUrl: string };
     private readonly keychain?: Keychain;
     private readonly telemetrySetting: "enabled" | "disabled";
     private readonly getHostCommonProperties: () => Partial<CommonProperties>;
@@ -117,7 +133,7 @@ export class Telemetry {
 
     private constructor(config: TelemetryConfig, eventCache: EventCache) {
         this.logger = config.logger;
-        this.apiClient = config.apiClient;
+        this.apiClientSource = "apiClient" in config ? config.apiClient : { apiBaseUrl: config.apiBaseUrl };
         this.keychain = config.keychain;
         this.telemetrySetting = config.telemetry;
         this.getHostCommonProperties = config.getCommonProperties ?? ((): Partial<CommonProperties> => ({}));
@@ -126,6 +142,18 @@ export class Telemetry {
         this.pipelineCommonProperties = {
             ...MACHINE_METADATA,
         };
+    }
+
+    /**
+     * Returns the {@link ApiClient}, constructing an unauthenticated one on
+     * demand when the config only supplied an `apiBaseUrl`. Subsequent calls
+     * reuse the same instance.
+     */
+    private resolveApiClient(): ApiClient {
+        if (!(this.apiClientSource instanceof ApiClient)) {
+            this.apiClientSource = new ApiClient({ baseUrl: this.apiClientSource.apiBaseUrl }, this.logger);
+        }
+        return this.apiClientSource;
     }
 
     /**
@@ -184,12 +212,10 @@ export class Telemetry {
             );
         }
 
-        const apiClient = session.apiClient ?? new ApiClient({ baseUrl: userConfig.apiBaseUrl }, session.logger);
-
         return {
             logger: session.logger,
             deviceId,
-            apiClient,
+            ...(session.apiClient ? { apiClient: session.apiClient } : { apiBaseUrl: userConfig.apiBaseUrl }),
             keychain: session.keychain,
             telemetry: userConfig.telemetry,
             getCommonProperties: () => ({
@@ -331,7 +357,7 @@ export class Telemetry {
                 message: `Attempting to send ${events.length} events`,
             });
 
-            const sendResult = await this.sendEvents(this.apiClient, events, signal);
+            const sendResult = await this.sendEvents(this.resolveApiClient(), events, signal);
 
             if (sendResult.status !== "success") {
                 if (sendResult.status !== "rate-limited") {
