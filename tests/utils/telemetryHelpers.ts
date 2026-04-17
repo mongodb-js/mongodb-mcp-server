@@ -3,6 +3,7 @@ import type { UserConfig } from "../../src/common/config/userConfig.js";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import type { CommonProperties } from "../../src/telemetry/types.js";
 import { Telemetry } from "../../src/telemetry/telemetry.js";
+import { ApiClient } from "../../src/common/atlas/apiClient.js";
 
 export function createTelemetryForTest(
     session: Session,
@@ -13,7 +14,7 @@ export function createTelemetryForTest(
     return Telemetry.create({
         logger: session.logger,
         deviceId,
-        apiClient: session.apiClient,
+        apiClient: session.apiClient ?? new ApiClient({ baseUrl: userConfig.apiBaseUrl }, session.logger),
         keychain: session.keychain,
         telemetry: userConfig.telemetry,
         getCommonProperties: () => ({

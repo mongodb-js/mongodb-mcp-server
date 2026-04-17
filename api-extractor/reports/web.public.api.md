@@ -813,7 +813,7 @@ export class Session extends EventEmitter<SessionEvents> {
     // (undocumented)
     readonly keychain: Keychain;
     // (undocumented)
-    logger: CompositeLogger;
+    readonly logger: CompositeLogger;
     // (undocumented)
     mcpClient?: {
         name?: string;
@@ -870,10 +870,7 @@ export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, input?: {
-        commonProperties?: Partial<CommonProperties>;
-        eventCache?: EventCache;
-    }): Telemetry;
+    static create(config: TelemetryConfig): Telemetry;
     emitEvents(events: BaseEvent[]): void;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
@@ -884,6 +881,16 @@ export class Telemetry {
 
 // @public (undocumented)
 export type TelemetryBoolSet = "true" | "false";
+
+// @public
+export interface TelemetryConfig {
+    apiClient: ApiClient;
+    deviceId: DeviceId;
+    getCommonProperties?: () => Partial<CommonProperties>;
+    keychain?: Keychain;
+    logger: LoggerBase;
+    telemetry: "enabled" | "disabled";
+}
 
 // @public
 export type TelemetryEvent<T> = {

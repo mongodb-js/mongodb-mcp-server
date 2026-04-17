@@ -14,6 +14,8 @@ import { getAuthType } from "../common/connectionInfo.js";
 import { type UserConfig } from "../common/config/userConfig.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { NullLogger } from "../common/logging/index.js";
+import type { TelemetryResult } from "../telemetry/types.js";
+import type { SetupTelemetry } from "./setupTelemetry.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -33,8 +35,18 @@ const buildEnvObject = (
     return env;
 };
 
-const testConnectionString = async (connectionString: string): Promise<string> => {
+type ConnectionTestOutcome = {
+    connectionString: string;
+    /** Final result of the connection attempt, or undefined if the user never tested. */
+    testResult?: TelemetryResult;
+    /** Number of connection attempts the user made (1 = initial attempt, 2+ = with retries). */
+    attempts: number;
+};
+
+const testConnectionString = async (connectionString: string): Promise<ConnectionTestOutcome> => {
+    let attempts = 0;
     while (true) {
+        attempts += 1;
         console.log("\nTesting connection...");
         let serviceProvider: NodeDriverServiceProvider | undefined;
 
@@ -46,7 +58,7 @@ const testConnectionString = async (connectionString: string): Promise<string> =
             });
             await serviceProvider.runCommand("admin", { ping: 1 });
             console.log(chalk.green("✓ Connection successful!"));
-            return connectionString;
+            return { connectionString, testResult: "success", attempts };
         } catch (error: unknown) {
             console.log(chalk.red("\n✗ Connection failed: " + formatError(error)));
             console.log(chalk.yellow("\nPlease check:"));
@@ -63,7 +75,7 @@ const testConnectionString = async (connectionString: string): Promise<string> =
                 connectionString = await password({ message: "Enter your MongoDB connection string:", mask: true });
             } else {
                 console.log(chalk.yellow("\nYou might be proceeding with a potentially invalid connection string."));
-                return connectionString; // Exit loop, proceed with potentially invalid connection string
+                return { connectionString, testResult: "failure", attempts };
             }
         } finally {
             try {
@@ -73,8 +85,12 @@ const testConnectionString = async (connectionString: string): Promise<string> =
             }
         }
     }
+};
 
-    return connectionString;
+type EditorConfigureOutcome = {
+    usedDefaultConfigPath: boolean;
+    result: TelemetryResult;
+    error?: unknown;
 };
 
 const configureEditor = async (
@@ -83,7 +99,7 @@ const configureEditor = async (
     serviceWorkerId: string,
     serviceWorkerSecret: string,
     isReadOnly: boolean
-): Promise<void> => {
+): Promise<EditorConfigureOutcome> => {
     const { name: displayName, configFileName } = AI_TOOL_REGISTRY[tool];
     let { configPath } = AI_TOOL_REGISTRY[tool];
 
@@ -104,8 +120,14 @@ const configureEditor = async (
     configPath = path.resolve(configPath.trim());
 
     const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
-    AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly);
-    console.log(`\nConfiguration saved to ${configPath}`);
+    try {
+        AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly);
+        console.log(`\nConfiguration saved to ${configPath}`);
+        return { usedDefaultConfigPath: useDetectedPath, result: "success" };
+    } catch (error) {
+        console.log(chalk.red(`\nFailed to save configuration: ${formatError(error)}`));
+        return { usedDefaultConfigPath: useDetectedPath, result: "failure", error };
+    }
 };
 
 const printNewLine = (): void => {
@@ -126,7 +148,7 @@ const printLogo = (): void => {
     printNewLine();
 };
 
-const validateNodeVersion = (): void => {
+const validateNodeVersion = (): boolean => {
     const nodeVersion = process.versions.node;
     const requiredNodeRange = packageInfo.engines.node;
     if (!nodeVersion || !semver.satisfies(nodeVersion, requiredNodeRange)) {
@@ -136,17 +158,9 @@ const validateNodeVersion = (): void => {
             )
         );
         printNewLine();
+        return false;
     }
-};
-
-const validatePlatform = (): Platform => {
-    const platform = getPlatform();
-    if (!platform) {
-        console.log(chalk.red("Unsupported platform. Only macOS, Windows and Linux are supported."));
-        printNewLine();
-        process.exit(1);
-    }
-    return platform;
+    return true;
 };
 
 const validateDocker = async (): Promise<boolean> => {
@@ -191,31 +205,47 @@ const promptForReadonly = async (): Promise<boolean> => {
     return await confirm({ message: "Install MCP server as Read-only?", default: false });
 };
 
-const promptForConnectionString = async (config: UserConfig): Promise<string> => {
+type ConnectionStringOutcome = {
+    connectionString: string;
+    provided: boolean;
+    tested: boolean;
+    attempts: number;
+    testResult?: TelemetryResult;
+};
+
+const promptForConnectionString = async (config: UserConfig): Promise<ConnectionStringOutcome> => {
     console.log("Providing a connection string allows the MCP server to read and write data to your MongoDB cluster.");
-    let connectionString = await password({
+    const connectionString = await password({
         message: "Enter your MongoDB connection string (press enter to skip):",
         mask: true,
     });
 
-    if (connectionString) {
-        try {
-            const auth = getAuthType(config, connectionString);
-            if (auth === "scram") {
-                const shouldTest = await confirm({ message: "Test your connection string?", default: true });
-
-                if (shouldTest) {
-                    connectionString = await testConnectionString(connectionString);
-                }
-            }
-            return connectionString;
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (error: unknown) {
-            // If auth type detection failed but user provided a connection string, preserve it
-            return connectionString;
-        }
+    if (!connectionString) {
+        return { connectionString: "", provided: false, tested: false, attempts: 0 };
     }
-    return "";
+
+    try {
+        const auth = getAuthType(config, connectionString);
+        if (auth === "scram") {
+            const shouldTest = await confirm({ message: "Test your connection string?", default: true });
+
+            if (shouldTest) {
+                const outcome = await testConnectionString(connectionString);
+                return {
+                    connectionString: outcome.connectionString,
+                    provided: true,
+                    tested: true,
+                    attempts: outcome.attempts,
+                    testResult: outcome.testResult,
+                };
+            }
+        }
+        return { connectionString, provided: true, tested: false, attempts: 0 };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error: unknown) {
+        // If auth type detection failed but user provided a connection string, preserve it
+        return { connectionString, provided: true, tested: false, attempts: 0 };
+    }
 };
 
 const promptForServiceAccountId = async (): Promise<string> => {
@@ -294,7 +324,13 @@ const getAvailablePrompts = (
     return availablePrompts;
 };
 
-const promptToOpenConfigFile = async (displayName: string, tool: AIToolType): Promise<void> => {
+type OpenConfigOutcome = {
+    opened: boolean;
+    result: TelemetryResult;
+    error?: unknown;
+};
+
+const promptToOpenConfigFile = async (displayName: string, tool: AIToolType): Promise<OpenConfigOutcome> => {
     let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
     if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
         openConfigMessage = `Would you like to open the config file in your default editor?`;
@@ -304,12 +340,16 @@ const promptToOpenConfigFile = async (displayName: string, tool: AIToolType): Pr
         default: true,
     });
 
-    if (openConfig) {
-        try {
-            await openConfigSettings(tool);
-        } catch (error: unknown) {
-            console.log(chalk.red(`Failed to open config file: ${formatError(error)}`));
-        }
+    if (!openConfig) {
+        return { opened: false, result: "success" };
+    }
+
+    try {
+        await openConfigSettings(tool);
+        return { opened: true, result: "success" };
+    } catch (error: unknown) {
+        console.log(chalk.red(`Failed to open config file: ${formatError(error)}`));
+        return { opened: true, result: "failure", error };
     }
 };
 
@@ -325,46 +365,91 @@ const guideUserWithSetupSuccess = (displayName: string, availablePrompts: string
     printNewLine();
 };
 
-export const runSetup = async (config: UserConfig): Promise<void> => {
+/**
+ * Runs the interactive setup wizard. When `setupTelemetry` is provided, each
+ * logical step emits a telemetry event so we can track both overall completion
+ * rates and per-step drop-off.
+ */
+export const runSetup = async (config: UserConfig, setupTelemetry?: SetupTelemetry): Promise<void> => {
     try {
         printLogo();
-        validateNodeVersion();
+        setupTelemetry?.emitStarted();
+
+        const nodeVersionOk = validateNodeVersion();
         const platform = getPlatform();
-        validatePlatform();
+        const platformSupported = platform !== null;
+        if (!platformSupported) {
+            console.log(chalk.red("Unsupported platform. Only macOS, Windows and Linux are supported."));
+            printNewLine();
+            setupTelemetry?.emitPrerequisitesChecked({
+                nodeVersionOk,
+                platformSupported: false,
+                hasDocker: false,
+            });
+            setupTelemetry?.emitFailed(new Error("unsupported_platform"));
+            process.exit(1);
+        }
+
         printInstructions();
 
         const hasDocker = await validateDocker();
+        setupTelemetry?.emitPrerequisitesChecked({ nodeVersionOk, platformSupported, hasDocker });
 
-        const tool = await promptForAITool(platform as Platform);
+        const tool = await promptForAITool(platform);
         const displayName = AI_TOOL_REGISTRY[tool].name;
+        setupTelemetry?.emitAiToolSelected(tool);
         printNewLine();
 
         const isReadOnly = await promptForReadonly();
+        setupTelemetry?.emitReadOnlySelected(isReadOnly);
         printNewLine();
 
-        const connectionString = await promptForConnectionString(config);
+        const connectionOutcome = await promptForConnectionString(config);
+        setupTelemetry?.emitConnectionStringEntered({
+            provided: connectionOutcome.provided,
+            tested: connectionOutcome.tested,
+            attempts: connectionOutcome.attempts,
+            testResult: connectionOutcome.testResult,
+        });
+
         const serviceAccountId = await promptForServiceAccountId();
+        setupTelemetry?.emitServiceAccountIdEntered(Boolean(serviceAccountId));
+
         const serviceAccountSecret = await promptForServiceAccountSecret();
+        setupTelemetry?.emitServiceAccountSecretEntered(Boolean(serviceAccountSecret));
         printNewLine();
 
-        validateCredentials(connectionString, serviceAccountId, serviceAccountSecret, hasDocker);
+        validateCredentials(connectionOutcome.connectionString, serviceAccountId, serviceAccountSecret, hasDocker);
+        setupTelemetry?.emitCredentialsValidated();
 
-        await configureEditor(tool, connectionString, serviceAccountId, serviceAccountSecret, isReadOnly);
+        const editorOutcome = await configureEditor(
+            tool,
+            connectionOutcome.connectionString,
+            serviceAccountId,
+            serviceAccountSecret,
+            isReadOnly
+        );
+        setupTelemetry?.emitEditorConfigured(editorOutcome);
 
         const availablePrompts = getAvailablePrompts(
-            connectionString,
+            connectionOutcome.connectionString,
             serviceAccountId,
             serviceAccountSecret,
             hasDocker
         );
         guideUserWithSetupSuccess(displayName, availablePrompts);
-        await promptToOpenConfigFile(displayName, tool);
+        const openOutcome = await promptToOpenConfigFile(displayName, tool);
+        setupTelemetry?.emitOpenConfigPrompted(openOutcome);
+
+        setupTelemetry?.emitCompleted();
     } catch (error: unknown) {
         // Handle Ctrl+C during prompts (inquirer throws ExitPromptError)
         if (error && typeof error === "object" && "name" in error && error.name === "ExitPromptError") {
             console.log("\n\nSetup cancelled. Goodbye!");
-            process.exit(0);
+            setupTelemetry?.emitCancelled();
+            return;
         }
+        setupTelemetry?.emitFailed(error);
         // Re-throw other errors
         throw error;
     }
