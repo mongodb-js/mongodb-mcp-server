@@ -8,7 +8,6 @@ import {
 } from "../../../helpers.js";
 import { expect, it, afterEach } from "vitest";
 import { describeWithMongoDB, getDocsFromUntrustedContent, validateAutoConnectBehavior } from "../mongodbHelpers.js";
-import { freshInsertDocuments } from "./find.test.js";
 import type { Client } from "@modelcontextprotocol/sdk/client";
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
