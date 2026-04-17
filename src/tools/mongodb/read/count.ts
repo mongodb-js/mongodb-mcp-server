@@ -44,6 +44,7 @@ export class CountTool extends MongoDBToolBase {
                                 query,
                             },
                             verbosity: "queryPlanner",
+                            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
                         },
                         {
                             signal,
