@@ -119,14 +119,11 @@ export function oneWayOverride<T>(allowedValue: T): CustomOverrideLogic {
 /** Allow overriding only to a value lower than the specified value */
 export function onlyLowerThanBaseValueOverride(): CustomOverrideLogic {
     return (oldValue, newValue) => {
-        if (typeof newValue !== "number") {
-            throw new Error(`Unsupported type for new value for override: ${typeof newValue}`);
-        }
-        if (oldValue === undefined) {
-            return newValue;
-        }
         if (typeof oldValue !== "number") {
             throw new Error(`Unsupported type for base value for override: ${typeof oldValue}`);
+        }
+        if (typeof newValue !== "number") {
+            throw new Error(`Unsupported type for new value for override: ${typeof newValue}`);
         }
         if (newValue >= oldValue) {
             throw new Error(`Can only set to a value lower than the base value`);

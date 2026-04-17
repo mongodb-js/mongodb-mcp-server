@@ -942,12 +942,6 @@ describe("custom override logic functions", () => {
             expect(() => customLogic("not a number", 50)).toThrow("Unsupported type for base value for override");
         });
 
-        it("should allow any numeric override when base value is undefined", () => {
-            const customLogic = onlyLowerThanBaseValueOverride();
-            expect(customLogic(undefined, 50)).toBe(50);
-            expect(customLogic(undefined, 0)).toBe(0);
-        });
-
         it("should throw error if new value is not a number", () => {
             const customLogic = onlyLowerThanBaseValueOverride();
             expect(() => customLogic(100, "not a number")).toThrow("Unsupported type for new value for override");
