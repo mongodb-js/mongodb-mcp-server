@@ -123,7 +123,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
-                    ...this.getOperationOptions(signal),
+                    signal,
                 });
 
                 documents = await aggregationCursor.toArray();
