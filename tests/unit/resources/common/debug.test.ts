@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
-import { Telemetry } from "../../../../src/telemetry/telemetry.js";
+import { createTelemetryForTest } from "../../../utils/telemetryHelpers.js";
 import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
@@ -37,7 +37,7 @@ describe("debug resource", () => {
         })
     );
 
-    const telemetry = Telemetry.create(session, { ...defaultTestConfig, telemetry: "disabled" }, deviceId);
+    const telemetry = createTelemetryForTest(session, { ...defaultTestConfig, telemetry: "disabled" }, deviceId);
 
     let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);
 

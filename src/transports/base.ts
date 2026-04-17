@@ -333,8 +333,27 @@ export abstract class TransportRunnerBase<
             apiClient: sessionOptions?.apiClient ?? apiClient,
         });
 
-        const telemetry = Telemetry.create(session, userConfig, this.deviceId, {
-            commonProperties: serverOptions?.telemetryProperties ?? this.telemetryProperties,
+        // Telemetry always needs an ApiClient so buffered events don't pile up
+        // in the cache forever. When no Atlas credentials are configured, fall
+        // back to an unauthenticated client — the pipeline routes through the
+        // unauth telemetry endpoint automatically.
+        const telemetryApiClient = session.apiClient ?? new ApiClient({ baseUrl: userConfig.apiBaseUrl }, logger);
+
+        const telemetry = Telemetry.create({
+            logger,
+            deviceId: this.deviceId,
+            apiClient: telemetryApiClient,
+            keychain: session.keychain,
+            telemetry: userConfig.telemetry,
+            getCommonProperties: () => ({
+                ...(serverOptions?.telemetryProperties ?? this.telemetryProperties),
+                transport: userConfig.transport,
+                mcp_client_version: session.mcpClient?.version,
+                mcp_client_name: session.mcpClient?.name,
+                session_id: session.sessionId,
+                config_atlas_auth: session.apiClient?.isAuthConfigured() ? "true" : "false",
+                config_connection_string: userConfig.connectionString ? "true" : "false",
+            }),
         });
 
         let uiRegistry: UIRegistry | undefined = serverOptions?.uiRegistry;

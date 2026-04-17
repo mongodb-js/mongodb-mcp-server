@@ -1,8 +1,7 @@
-import type { Session } from "../common/session.js";
 import type { BaseEvent, CommonProperties } from "./types.js";
-import type { UserConfig } from "../common/config/userConfig.js";
+import type { LoggerBase } from "../common/logging/index.js";
 import { LogId } from "../common/logging/index.js";
-import type { ApiClient } from "../common/atlas/apiClient.js";
+import { ApiClient } from "../common/atlas/apiClient.js";
 import { ApiClientError } from "../common/atlas/apiClientError.js";
 import { MACHINE_METADATA } from "./constants.js";
 import { EventCache } from "./eventCache.js";
@@ -11,6 +10,9 @@ import type { DeviceId } from "../helpers/deviceId.js";
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
 import { Timer } from "./timer.js";
+import type { Keychain } from "../common/keychain.js";
+import { Session } from "../common/session.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 
 type SendResult = {
     status: "success" | "rate-limited" | "error" | "empty";
@@ -48,31 +50,109 @@ export function nextBackoffMs(currentMs: number): number {
     return Math.min(currentMs * 2, MAX_BACKOFF_MS);
 }
 
+/**
+ * Configuration for the {@link Telemetry} pipeline.
+ */
+export interface TelemetryConfig {
+    /** Logger used by the telemetry pipeline for its own diagnostics. */
+    logger: LoggerBase;
+
+    /** Device id source, resolved asynchronously during setup. */
+    deviceId: DeviceId;
+
+    /**
+     * API client used to send events. Always required — the pipeline would
+     * otherwise buffer events in the cache forever. When no Atlas credentials
+     * are configured, callers should still pass an unauthenticated
+     * {@link ApiClient}; it will route telemetry through the unauth endpoint.
+     */
+    apiClient: ApiClient;
+
+    /** Secrets source used when redacting events prior to sending. */
+    keychain?: Keychain;
+
+    /**
+     * The user's telemetry preference. When set to `"disabled"`, no events are
+     * cached or sent. The DO_NOT_TRACK environment variable is always honored
+     * on top of this setting, so callers don't need to check it themselves.
+     */
+    telemetry: "enabled" | "disabled";
+
+    /**
+     * Returns the host-supplied common properties merged onto every event
+     * (e.g. hosting mode, MCP client identity, transport). Invoked on every
+     * send so values resolved after construction — like the client name/
+     * version exchanged during handshake — are captured. Static properties
+     * can simply be returned as constants from this callback.
+     *
+     * Machine metadata, device id, and container environment are provided by
+     * the pipeline itself and don't need to be returned here.
+     */
+    getCommonProperties?: () => Partial<CommonProperties>;
+}
+
 export class Telemetry {
     private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
     public readonly events: EventEmitter<TelemetryEvents> = new EventEmitter();
 
-    private eventCache: EventCache;
-    private deviceId: DeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
 
-    private constructor(
-        private readonly session: Session,
-        private readonly userConfig: UserConfig,
-        private readonly commonProperties: CommonProperties,
-        { eventCache, deviceId }: { eventCache: EventCache; deviceId: DeviceId }
-    ) {
+    private readonly logger: LoggerBase;
+    private readonly apiClient: ApiClient;
+    private readonly keychain?: Keychain;
+    private readonly telemetrySetting: "enabled" | "disabled";
+    private readonly getHostCommonProperties: () => Partial<CommonProperties>;
+
+    /**
+     * Machine metadata plus device_id / is_container_env, which the pipeline
+     * resolves itself during setup. Host-supplied properties are merged on
+     * top of this at send time.
+     */
+    private readonly pipelineCommonProperties: CommonProperties;
+    private readonly eventCache: EventCache;
+    private readonly deviceId: DeviceId;
+
+    private constructor(config: TelemetryConfig, eventCache: EventCache) {
+        this.logger = config.logger;
+        this.apiClient = config.apiClient;
+        this.keychain = config.keychain;
+        this.telemetrySetting = config.telemetry;
+        this.getHostCommonProperties = config.getCommonProperties ?? ((): Partial<CommonProperties> => ({}));
         this.eventCache = eventCache;
-        this.deviceId = deviceId;
+        this.deviceId = config.deviceId;
+        this.pipelineCommonProperties = {
+            ...MACHINE_METADATA,
+        };
     }
 
+    /**
+     * Constructs a {@link Telemetry} service and kicks off its asynchronous
+     * setup. The returned instance is safe to use immediately — events emitted
+     * before setup completes are buffered and flushed once the background send
+     * loop starts.
+     */
+    static create(config: TelemetryConfig): Telemetry;
+    /**
+     * @deprecated Use the {@link TelemetryConfig}-based overload instead. This
+     * signature is retained for backwards compatibility and will be removed in
+     * a future release.
+     */
     static create(
         session: Session,
         userConfig: UserConfig,
         deviceId: DeviceId,
+        options?: {
+            commonProperties?: Partial<CommonProperties>;
+            eventCache?: EventCache;
+        }
+    ): Telemetry;
+    static create(
+        configOrSession: TelemetryConfig | Session,
+        userConfig?: UserConfig,
+        deviceId?: DeviceId,
         {
             commonProperties = {},
             eventCache = EventCache.getInstance(),
@@ -81,22 +161,52 @@ export class Telemetry {
             eventCache?: EventCache;
         } = {}
     ): Telemetry {
-        const mergedProperties = {
-            ...MACHINE_METADATA,
-            ...commonProperties,
-        };
-        const instance = new Telemetry(session, userConfig, mergedProperties, {
-            eventCache,
-            deviceId,
-        });
+        const resolvedConfig: TelemetryConfig =
+            configOrSession instanceof Session
+                ? Telemetry.buildLegacyConfig(configOrSession, userConfig, deviceId, commonProperties)
+                : configOrSession;
+
+        const instance = new Telemetry(resolvedConfig, eventCache);
 
         void instance.setup();
         return instance;
     }
 
+    private static buildLegacyConfig(
+        session: Session,
+        userConfig: UserConfig | undefined,
+        deviceId: DeviceId | undefined,
+        commonProperties: Partial<CommonProperties>
+    ): TelemetryConfig {
+        if (!userConfig || !deviceId) {
+            throw new TypeError(
+                "Telemetry.create(session, userConfig, deviceId, ...) requires userConfig and deviceId to be provided."
+            );
+        }
+
+        const apiClient = session.apiClient ?? new ApiClient({ baseUrl: userConfig.apiBaseUrl }, session.logger);
+
+        return {
+            logger: session.logger,
+            deviceId,
+            apiClient,
+            keychain: session.keychain,
+            telemetry: userConfig.telemetry,
+            getCommonProperties: () => ({
+                ...commonProperties,
+                transport: userConfig.transport,
+                mcp_client_version: session.mcpClient?.version,
+                mcp_client_name: session.mcpClient?.name,
+                session_id: session.sessionId,
+                config_atlas_auth: session.apiClient?.isAuthConfigured() ? "true" : "false",
+                config_connection_string: userConfig.connectionString ? "true" : "false",
+            }),
+        };
+    }
+
     private async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
-            this.session.logger.info({
+            this.logger.info({
                 id: LogId.telemetryEmitFailure,
                 context: "telemetry",
                 message: "Telemetry is disabled.",
@@ -108,8 +218,8 @@ export class Telemetry {
         this.setupPromise = Promise.all([this.deviceId.get(), detectContainerEnv()]);
         const [deviceIdValue, containerEnv] = await this.setupPromise;
 
-        this.commonProperties.device_id = deviceIdValue;
-        this.commonProperties.is_container_env = containerEnv ? "true" : "false";
+        this.pipelineCommonProperties.device_id = deviceIdValue;
+        this.pipelineCommonProperties.is_container_env = containerEnv ? "true" : "false";
 
         this.isBufferingEvents = false;
         this.scheduleSend();
@@ -118,7 +228,7 @@ export class Telemetry {
     public async close(): Promise<void> {
         this.timer.cancel();
 
-        this.session.logger.debug({
+        this.logger.debug({
             id: LogId.telemetryClose,
             message: `Closing telemetry, attempting to flush up to ${BATCH_SIZE} of ${this.eventCache.size} remaining events`,
             context: "telemetry",
@@ -144,13 +254,8 @@ export class Telemetry {
      */
     public getCommonProperties(): CommonProperties {
         return {
-            ...this.commonProperties,
-            transport: this.userConfig.transport,
-            mcp_client_version: this.session.mcpClient?.version,
-            mcp_client_name: this.session.mcpClient?.name,
-            session_id: this.session.sessionId,
-            config_atlas_auth: this.session.apiClient?.isAuthConfigured() ? "true" : "false",
-            config_connection_string: this.userConfig.connectionString ? "true" : "false",
+            ...this.pipelineCommonProperties,
+            ...this.getHostCommonProperties(),
         };
     }
 
@@ -162,12 +267,7 @@ export class Telemetry {
      * by respecting the DO_NOT_TRACK environment variable.
      */
     public isTelemetryEnabled(): boolean {
-        if (this.userConfig.telemetry === "disabled") {
-            return false;
-        }
-
-        const doNotTrack = "DO_NOT_TRACK" in process.env;
-        return !doNotTrack;
+        return this.telemetrySetting !== "disabled" && !("DO_NOT_TRACK" in process.env);
     }
 
     /**
@@ -198,7 +298,7 @@ export class Telemetry {
         if (result.status === "rate-limited") {
             const delay = this.backoffMs;
             this.backoffMs = nextBackoffMs(this.backoffMs);
-            this.session.logger.debug({
+            this.logger.debug({
                 id: LogId.telemetryRateLimited,
                 context: "telemetry",
                 message: `Rate limited. Backing off for ${delay}ms, next backoff will be ${this.backoffMs}ms`,
@@ -220,22 +320,22 @@ export class Telemetry {
      * Does not reschedule — the caller decides what to do next.
      */
     private async sendBatch({ signal }: { signal?: AbortSignal } = {}): Promise<SendResult> {
-        if (!this.session.apiClient || this.eventCache.size === 0) return { status: "empty" };
-
-        const apiClient = this.session.apiClient;
+        if (this.eventCache.size === 0) {
+            return { status: "empty" };
+        }
 
         const result = await this.eventCache.processOldestBatch(BATCH_SIZE, async (events) => {
-            this.session.logger.debug({
+            this.logger.debug({
                 id: LogId.telemetryEmitStart,
                 context: "telemetry",
                 message: `Attempting to send ${events.length} events`,
             });
 
-            const sendResult = await this.sendEvents(apiClient, events, signal);
+            const sendResult = await this.sendEvents(this.apiClient, events, signal);
 
             if (sendResult.status !== "success") {
                 if (sendResult.status !== "rate-limited") {
-                    this.session.logger.debug({
+                    this.logger.debug({
                         id: LogId.telemetryEmitFailure,
                         context: "telemetry",
                         message: `Error sending telemetry: ${sendResult.error?.message ?? "unknown error"}`,
@@ -246,7 +346,7 @@ export class Telemetry {
                 return { removeProcessed: false, result: sendResult };
             }
 
-            this.session.logger.debug({
+            this.logger.debug({
                 id: LogId.telemetryEmitSuccess,
                 context: "telemetry",
                 message: `Sent ${events.length} events successfully`,
@@ -264,12 +364,13 @@ export class Telemetry {
     private async sendEvents(client: ApiClient, events: BaseEvent[], signal?: AbortSignal): Promise<SendResult> {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
+            const secrets = this.keychain?.allSecrets ?? [];
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
                     properties: {
-                        ...redact(this.getCommonProperties(), this.session.keychain.allSecrets),
-                        ...redact(event.properties, this.session.keychain.allSecrets),
+                        ...redact(this.getCommonProperties(), secrets),
+                        ...redact(event.properties, secrets),
                     },
                 })),
                 { signal: effectiveSignal }

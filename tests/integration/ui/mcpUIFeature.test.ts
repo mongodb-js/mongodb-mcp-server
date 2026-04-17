@@ -4,7 +4,7 @@ import { defaultTestConfig, expectDefined, getResponseElements } from "../helper
 import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { Session } from "../../../src/common/session.js";
-import { Telemetry } from "../../../src/telemetry/telemetry.js";
+import { createTelemetryForTest } from "../../utils/telemetryHelpers.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../../src/server.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
@@ -196,7 +196,7 @@ describe("mcpUI feature with custom UIs", () => {
             ),
         });
 
-        const telemetry = Telemetry.create(session, userConfig, deviceId);
+        const telemetry = createTelemetryForTest(session, userConfig, deviceId);
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 
