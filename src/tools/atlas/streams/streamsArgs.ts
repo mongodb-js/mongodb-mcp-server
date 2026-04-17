@@ -51,7 +51,7 @@ export const ConnectionConfig = z
             .describe("AWS config for S3, Kinesis, and Lambda connections."),
         // Https
         url: z.string().optional().describe("Webhook URL for Https connections."),
-        headers: z.record(z.string()).optional().describe("HTTP headers for Https connections."),
+        headers: z.record(z.string(), z.string()).optional().describe("HTTP headers for Https connections."),
         // SchemaRegistry
         provider: z
             .string()

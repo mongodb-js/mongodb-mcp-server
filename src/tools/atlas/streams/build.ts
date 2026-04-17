@@ -166,7 +166,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             .optional()
             .describe("Processor name. Required when resource='processor'."),
         pipeline: z
-            .array(z.record(z.unknown()))
+            .array(z.record(z.string(), z.unknown()))
             .optional()
             .describe(
                 "Pipeline stages for the stream processor. Required when resource='processor'. " +

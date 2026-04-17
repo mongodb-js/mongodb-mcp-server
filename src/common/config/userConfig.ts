@@ -1,4 +1,4 @@
-import { z as z4 } from "zod/v4";
+import { z } from "zod";
 import {
     type ConfigFieldMeta,
     commaSeparatedToArray,
@@ -15,43 +15,43 @@ import { monitoringServerFeatureValues, previewFeatureValues } from "../schemas.
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../transports/constants.js";
 
-export const configRegistry = z4.registry<ConfigFieldMeta>();
+export const configRegistry = z.registry<ConfigFieldMeta>();
 
-const ServerConfigSchema = z4.object({
-    apiBaseUrl: z4
+const ServerConfigSchema = z.object({
+    apiBaseUrl: z
         .string()
         .default("https://cloud.mongodb.com/")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    assistantBaseUrl: z4
+    assistantBaseUrl: z
         .string()
         .default("https://knowledge.mongodb.com/api/v1/")
         .describe("Base URL for the MongoDB Assistant API.")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    apiClientId: z4
+    apiClientId: z
         .string()
         .optional()
         .describe("Atlas API client ID for authentication. Required for running Atlas tools.")
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
-    apiClientSecret: z4
+    apiClientSecret: z
         .string()
         .optional()
         .describe("Atlas API client secret for authentication. Required for running Atlas tools.")
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
-    connectionString: z4
+    connectionString: z
         .string()
         .optional()
         .describe(
             "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
-    loggers: z4
+    loggers: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
-            z4.array(z4.enum(["stderr", "disk", "mcp"]))
+            z.array(z.enum(["stderr", "disk", "mcp"]))
         )
         .check(
-            z4.minLength(1, "Cannot be an empty array"),
-            z4.refine((val) => new Set(val).size === val.length, {
+            z.minLength(1, "Cannot be an empty array"),
+            z.refine((val) => new Set(val).size === val.length, {
                 message: "Duplicate loggers found in config",
             })
         )
@@ -61,23 +61,23 @@ const ServerConfigSchema = z4.object({
             defaultValueDescription: '`"disk,mcp"` see below*',
             overrideBehavior: "not-allowed",
         }),
-    logPath: z4
+    logPath: z
         .string()
         .default(getLogPath())
         .describe("Folder to store logs.")
         .register(configRegistry, { defaultValueDescription: "see below*", overrideBehavior: "not-allowed" }),
-    mcpClientLogLevel: z4
+    mcpClientLogLevel: z
         .enum(MCP_LOG_LEVELS)
         .default("debug")
         .describe("Minimum severity level for log messages forwarded to the MCP client.")
         .register(configRegistry, { overrideBehavior: onlyStricterLogLevelOverride(MCP_LOG_LEVELS) }),
-    disabledTools: z4
-        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z4.array(z4.string()))
+    disabledTools: z
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
         .default([])
         .describe("An array of tool names, operation types, and/or categories of tools that will be disabled.")
         .register(configRegistry, { overrideBehavior: "merge" }),
-    confirmationRequiredTools: z4
-        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z4.array(z4.string()))
+    confirmationRequiredTools: z
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
         .default([
             "atlas-create-access-list",
             "atlas-create-db-user",
@@ -92,8 +92,8 @@ const ServerConfigSchema = z4.object({
             "An array of tool names that require user confirmation before execution. Requires the client to support elicitation."
         )
         .register(configRegistry, { overrideBehavior: "merge" }),
-    readOnly: z4
-        .preprocess(parseBoolean, z4.boolean())
+    readOnly: z
+        .preprocess(parseBoolean, z.boolean())
         .default(false)
         .describe(
             "When set to true, only allows read, connect, and metadata operation types, disabling create/update/delete operations."
@@ -101,8 +101,8 @@ const ServerConfigSchema = z4.object({
         .register(configRegistry, {
             overrideBehavior: oneWayOverride(true),
         }),
-    indexCheck: z4
-        .preprocess(parseBoolean, z4.boolean())
+    indexCheck: z
+        .preprocess(parseBoolean, z.boolean())
         .default(false)
         .describe(
             "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan."
@@ -110,17 +110,17 @@ const ServerConfigSchema = z4.object({
         .register(configRegistry, {
             overrideBehavior: oneWayOverride(true),
         }),
-    telemetry: z4
+    telemetry: z
         .enum(["enabled", "disabled"])
         .default("enabled")
         .describe("When set to disabled, disables telemetry collection.")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    transport: z4
+    transport: z
         .enum(["stdio", "http"])
         .default("stdio")
         .describe("Either 'stdio' or 'http'.")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    httpPort: z4.coerce
+    httpPort: z.coerce
         .number()
         .int()
         .min(0, "Invalid httpPort: must be at least 0")
@@ -128,12 +128,12 @@ const ServerConfigSchema = z4.object({
         .default(3000)
         .describe("Port number for the HTTP server (only used when transport is 'http'). Use 0 for a random port.")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    httpHost: z4
+    httpHost: z
         .string()
         .default("127.0.0.1")
         .describe("Host address to bind the HTTP server to (only used when transport is 'http').")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    httpHeaders: z4
+    httpHeaders: z
         .object({})
         .loose()
         .default({})
@@ -141,7 +141,7 @@ const ServerConfigSchema = z4.object({
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    httpBodyLimit: z4.coerce
+    httpBodyLimit: z.coerce
         .number()
         .int()
         .min(
@@ -153,89 +153,89 @@ const ServerConfigSchema = z4.object({
             "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    idleTimeoutMs: z4.coerce
+    idleTimeoutMs: z.coerce
         .number()
         .default(600_000)
         .describe("Idle timeout for a client to disconnect (only applies to http transport).")
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
-    notificationTimeoutMs: z4.coerce
+    notificationTimeoutMs: z.coerce
         .number()
         .default(540_000)
         .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport).")
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
-    maxBytesPerQuery: z4.coerce
+    maxBytesPerQuery: z.coerce
         .number()
         .default(16_777_216)
         .describe(
             "The maximum size in bytes for results from a find or aggregate tool call. This serves as an upper bound for the responseBytesLimit parameter in those tools."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    maxDocumentsPerQuery: z4.coerce
+    maxDocumentsPerQuery: z.coerce
         .number()
         .default(100)
         .describe(
             "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    exportsPath: z4
+    exportsPath: z
         .string()
         .default(getExportsPath())
         .describe("Folder to store exported data files.")
         .register(configRegistry, { defaultValueDescription: "see below*", overrideBehavior: "not-allowed" }),
-    exportTimeoutMs: z4.coerce
+    exportTimeoutMs: z.coerce
         .number()
         .default(300_000)
         .describe("Time in milliseconds after which an export is considered expired and eligible for cleanup.")
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
-    exportCleanupIntervalMs: z4.coerce
+    exportCleanupIntervalMs: z.coerce
         .number()
         .default(120_000)
         .describe("Time in milliseconds between export cleanup cycles that remove expired export files.")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    atlasTemporaryDatabaseUserLifetimeMs: z4.coerce
+    atlasTemporaryDatabaseUserLifetimeMs: z.coerce
         .number()
         .default(14_400_000)
         .describe(
             "Time in milliseconds that temporary database users created when connecting to MongoDB Atlas clusters will remain active before being automatically deleted."
         )
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
-    voyageApiKey: z4
+    voyageApiKey: z
         .string()
         .default("")
         .describe(
             "API key for Voyage AI embeddings service (required for creating Atlas Local deployments with auto-embed vector search capabilities)."
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
-    previewFeatures: z4
+    previewFeatures: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
-            z4.array(z4.enum(previewFeatureValues))
+            z.array(z.enum(previewFeatureValues))
         )
         .default([])
         .describe("An array of preview features that are enabled.")
         .register(configRegistry, { overrideBehavior: onlySubsetOfBaseValueOverride() }),
-    allowRequestOverrides: z4
-        .preprocess(parseBoolean, z4.boolean())
+    allowRequestOverrides: z
+        .preprocess(parseBoolean, z.boolean())
         .default(false)
         .describe(
             "When set to true, allows configuration values to be overridden via request headers and query parameters."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    dryRun: z4
+    dryRun: z
         .boolean()
         .default(false)
         .describe(
             "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    externallyManagedSessions: z4
+    externallyManagedSessions: z
         .boolean()
         .default(false)
         .describe(
             "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    httpResponseType: z4
+    httpResponseType: z
         .enum(["sse", "json"])
         .default("sse")
         .describe(
@@ -243,7 +243,7 @@ const ServerConfigSchema = z4.object({
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     /** @deprecated Use `monitoringServerPort` instead. */
-    healthCheckPort: z4
+    healthCheckPort: z
         .number()
         .int()
         .min(0, "Invalid healthCheckPort: must be at least 0")
@@ -255,7 +255,7 @@ const ServerConfigSchema = z4.object({
         .register(configRegistry, { overrideBehavior: "not-allowed" })
         .register(argMetadata, { deprecationReplacement: "monitoringServerPort" }),
     /** @deprecated Use `monitoringServerHost` instead. */
-    healthCheckHost: z4
+    healthCheckHost: z
         .string()
         .optional()
         .describe(
@@ -263,7 +263,7 @@ const ServerConfigSchema = z4.object({
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" })
         .register(argMetadata, { deprecationReplacement: "monitoringServerHost" }),
-    monitoringServerPort: z4
+    monitoringServerPort: z
         .number()
         .int()
         .min(0, "Invalid monitoringServerPort: must be at least 0")
@@ -273,17 +273,17 @@ const ServerConfigSchema = z4.object({
             "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    monitoringServerHost: z4
+    monitoringServerHost: z
         .string()
         .optional()
         .describe(
             "Host address to bind the monitoring HTTP server to (only used when transport is 'http'). If provided, `monitoringServerPort` must also be set."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    monitoringServerFeatures: z4
+    monitoringServerFeatures: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
-            z4.array(z4.enum(monitoringServerFeatureValues))
+            z.array(z.enum(monitoringServerFeatureValues))
         )
         .default(["health-check"])
         .describe(
@@ -292,11 +292,11 @@ const ServerConfigSchema = z4.object({
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
 
-export const UserConfigSchema = z4.object({
+export const UserConfigSchema = z.object({
     ...MongoshCliOptionsSchema.shape,
     ...ServerConfigSchema.shape,
 });
 
-export type UserConfig = z4.infer<typeof UserConfigSchema>;
+export type UserConfig = z.infer<typeof UserConfigSchema>;
 
 export const ALL_CONFIG_KEYS = Object.keys(UserConfigSchema.shape) as (keyof UserConfig)[];

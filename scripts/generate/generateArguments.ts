@@ -11,7 +11,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { UserConfigSchema, configRegistry } from "../../src/common/config/userConfig.js";
 import { execSync } from "child_process";
-import type { z as z4 } from "zod/v4";
+import type { z } from "zod";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,25 +58,25 @@ interface ConfigMetadata {
 /**
  * Derives the primitive type from a Zod schema by unwrapping wrappers like default, optional, preprocess, etc.
  */
-function deriveZodType(schema: z4.ZodType): "string" | "number" | "boolean" | "array" {
+function deriveZodType(schema: z.ZodType): "string" | "number" | "boolean" | "array" {
     const def = schema.def as unknown as Record<string, unknown>;
     const typeName = def.type as string;
 
     // Handle wrapped types (default, optional, nullable, etc.)
     if (typeName === "default" || typeName === "optional" || typeName === "nullable") {
-        const innerType = def.innerType as z4.ZodType;
+        const innerType = def.innerType as z.ZodType;
         return deriveZodType(innerType);
     }
 
     // Handle preprocess - look at the schema being processed into
     if (typeName === "pipe") {
-        const out = def.out as z4.ZodType;
+        const out = def.out as z.ZodType;
         return deriveZodType(out);
     }
 
     // Handle coerce wrapper
     if (typeName === "coerce") {
-        const innerType = def.innerType as z4.ZodType;
+        const innerType = def.innerType as z.ZodType;
         return deriveZodType(innerType);
     }
 

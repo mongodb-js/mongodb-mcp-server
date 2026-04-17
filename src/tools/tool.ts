@@ -1,4 +1,4 @@
-import type { z, ZodRawShape, ZodTypeAny } from "zod";
+import type { z, ZodRawShape } from "zod";
 import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
@@ -38,7 +38,7 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
 type StructuredToolResult<OutputSchema extends ZodRawShape> = {
     content: { type: "text"; text: string }[];
     isError?: boolean;
-    structuredContent: z.objectOutputType<OutputSchema, ZodTypeAny>;
+    structuredContent: z.infer<z.ZodObject<OutputSchema>>;
 };
 
 /**

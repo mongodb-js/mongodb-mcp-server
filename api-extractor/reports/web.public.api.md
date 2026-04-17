@@ -25,8 +25,7 @@ import type { operations } from './openapi.js';
 import { Secret } from 'mongodb-redact';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { z } from 'zod/v4';
-import { z as z_2 } from 'zod';
+import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)
@@ -593,10 +592,13 @@ export interface InProgressExport extends CommonExportData {
 }
 
 // @public (undocumented)
-export type JSONExportFormat = z_2.infer<typeof jsonExportFormat>;
+export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
 // @public (undocumented)
-export const jsonExportFormat: z_2.ZodEnum<["relaxed", "canonical"]>;
+export const jsonExportFormat: z.ZodEnum<{
+    relaxed: "relaxed";
+    canonical: "canonical";
+}>;
 
 // @public
 export class Keychain {
@@ -915,7 +917,7 @@ export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdv
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
-    [K in keyof T]: z_2.infer<T[K]>;
+    [K in keyof T]: z.infer<T[K]>;
 };
 
 // @public
@@ -937,7 +939,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(): ConnectionMetadata;
-    protected handleError(error: unknown, args: z_2.infer<z_2.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     isEnabled(): boolean;
