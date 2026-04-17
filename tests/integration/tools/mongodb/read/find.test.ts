@@ -578,6 +578,21 @@ describeWithMongoDB(
             const docs = getDocsFromUntrustedContent(content);
             expect(docs.length).toEqual(5);
         });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 10_000 }),
+    }
+);
+
+describeWithMongoDB(
+    "find tool with low maxTimeMS rejects slow queries",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 5,
+            });
+        });
 
         it("should fail when maxTimeMS is too low for a slow query", async () => {
             await integration.connectMcpClient();
