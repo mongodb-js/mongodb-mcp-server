@@ -83,8 +83,6 @@ function toEJSON<T extends object | undefined>(value: T): T {
     return EJSON.deserialize(value, { relaxed: false }) as T;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function zEJSON(): z.ZodType<Record<string, any>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return z.object({}).passthrough().transform(toEJSON) as unknown as z.ZodType<Record<string, any>>;
+export function zEJSON(): z.ZodRecord<z.ZodString, z.ZodAny> {
+    return z.object({}).loose().transform(toEJSON) as unknown as z.ZodRecord<z.ZodString, z.ZodAny>;
 }
