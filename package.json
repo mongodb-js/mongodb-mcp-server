@@ -169,7 +169,7 @@
     "express": "^5.2.1",
     "jsonc-parser": "^3.3.1",
     "lru-cache": "^11.2.6",
-    "mongodb-build-info": "^1.9.6",
+    "mongodb-build-info": "^1.9.7",
     "mongodb-connection-string-url": "^7.0.1",
     "mongodb-log-writer": "^2.5.7",
     "mongodb-redact": "^1.4.6",
