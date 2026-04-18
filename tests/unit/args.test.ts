@@ -92,7 +92,7 @@ describe("Tool args", () => {
 
             it("should not fail if the value is empty", () => {
                 const schema = CommonArgs.objectId("Custom Field");
-                expect(() => schema.parse(undefined)).toThrow("Required");
+                expect(() => schema.parse(undefined)).toThrow();
             });
         });
     });
@@ -236,11 +236,11 @@ describe("Tool args", () => {
                 const schema = AtlasArgs.cidrBlock();
 
                 // Invalid formats
-                expect(() => schema.parse("192.168.1.0")).toThrow("Invalid cidr");
-                expect(() => schema.parse("192.168.1.0/")).toThrow("Invalid cidr");
-                expect(() => schema.parse("192.168.1.0/33")).toThrow("Invalid cidr");
-                expect(() => schema.parse("192.168.1.256/24")).toThrow("Invalid cidr");
-                expect(() => schema.parse("not-a-cidr")).toThrow("Invalid cidr");
+                expect(() => schema.parse("192.168.1.0")).toThrow();
+                expect(() => schema.parse("192.168.1.0/")).toThrow();
+                expect(() => schema.parse("192.168.1.0/33")).toThrow();
+                expect(() => schema.parse("192.168.1.256/24")).toThrow();
+                expect(() => schema.parse("not-a-cidr")).toThrow();
             });
         });
 

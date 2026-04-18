@@ -18,14 +18,12 @@ import type { FindCursor } from 'mongodb';
 import type { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import type { IndexDirection } from 'mongodb';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
 import type { Secret } from 'mongodb-redact';
-import { SortDirection } from 'mongodb';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
@@ -410,7 +408,7 @@ export class CreateIndexTool extends MongoDBToolBase {
         name: z.ZodOptional<z.ZodString>;
         definition: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
             type: z.ZodLiteral<"classic">;
-            keys: z.ZodObject<{}, z.core.$catchall<z.ZodCustom<IndexDirection, IndexDirection>>>;
+            keys: z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"2d">, z.ZodLiteral<"2dsphere">, z.ZodLiteral<"text">, z.ZodLiteral<"geoHaystack">, z.ZodLiteral<"hashed">]>>;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"vectorSearch">;
             fields: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
@@ -721,7 +719,9 @@ export class ExplainTool extends MongoDBToolBase {
                 filter: z.ZodOptional<z.ZodType<Record<string, any>, unknown, z.core.$ZodTypeInternals<Record<string, any>, unknown>>>;
                 projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
                 limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                sort: z.ZodOptional<z.ZodObject<{}, z.core.$catchall<z.ZodCustom<SortDirection, SortDirection>>>>;
+                sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
+                    $meta: z.ZodString;
+                }, z.core.$strip>]>>>;
             }, z.core.$strip>;
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodLiteral<"count">;
@@ -765,7 +765,9 @@ export class ExportTool extends MongoDBToolBase {
                 limit: z.ZodOptional<z.ZodNumber>;
                 filter: z.ZodOptional<z.ZodType<Record<string, any>, unknown, z.core.$ZodTypeInternals<Record<string, any>, unknown>>>;
                 projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
-                sort: z.ZodOptional<z.ZodObject<{}, z.core.$catchall<z.ZodCustom<SortDirection, SortDirection>>>>;
+                sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
+                    $meta: z.ZodString;
+                }, z.core.$strip>]>>>;
             }, z.core.$strip>;
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodLiteral<"aggregate">;
@@ -824,7 +826,9 @@ export class FindTool extends MongoDBToolBase {
         filter: z.ZodOptional<z.ZodType<Record<string, any>, unknown, z.core.$ZodTypeInternals<Record<string, any>, unknown>>>;
         projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        sort: z.ZodOptional<z.ZodObject<{}, z.core.$catchall<z.ZodCustom<SortDirection, SortDirection>>>>;
+        sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
+            $meta: z.ZodString;
+        }, z.core.$strip>]>>>;
         database: z.ZodString;
         collection: z.ZodString;
     };

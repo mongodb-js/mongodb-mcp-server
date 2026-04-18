@@ -3,6 +3,32 @@ import { zEJSON } from "../args.js";
 
 export const AnyAggregateStage = zEJSON();
 
+// Mirrors mongodb's IndexDirection type. The driver additionally accepts
+// arbitrary `number` values, but only 1 and -1 are meaningful in practice -
+// constraining to the literals gives the LLM a descriptive JSON Schema and
+// catches typos at validation time.
+export const IndexDirectionSchema = z.union([
+    z.literal(1),
+    z.literal(-1),
+    z.literal("2d"),
+    z.literal("2dsphere"),
+    z.literal("text"),
+    z.literal("geoHaystack"),
+    z.literal("hashed"),
+]);
+
+// Mirrors mongodb's SortDirection type. Covers every literal the driver accepts,
+// plus the `{ $meta: string }` form used for text-score sorting.
+export const SortDirectionSchema = z.union([
+    z.literal(1),
+    z.literal(-1),
+    z.literal("asc"),
+    z.literal("desc"),
+    z.literal("ascending"),
+    z.literal("descending"),
+    z.object({ $meta: z.string() }),
+]);
+
 const zCommonVectorSearchStageParams = z.object({
     exact: z
         .boolean()
