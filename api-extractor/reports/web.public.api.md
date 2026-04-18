@@ -224,11 +224,6 @@ export interface AuthProvider {
     validate(): Promise<boolean>;
 }
 
-// @public (undocumented)
-export type AutoEmbeddingsUsageMetadata = ConnectionMetadata & {
-    embeddingsGeneratedBy: "mongot";
-};
-
 // @public
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
 
@@ -913,7 +908,7 @@ export interface TelemetryEvents {
 export type TelemetryResult = "success" | "failure";
 
 // @public
-export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata | AutoEmbeddingsUsageMetadata;
+export type TelemetryToolMetadata = AtlasMetadata | ConnectionMetadata | PerfAdvisorToolMetadata | StreamsToolMetadata;
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {

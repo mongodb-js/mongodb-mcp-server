@@ -17,7 +17,6 @@ import {
     assertVectorSearchFilterFieldsAreIndexed,
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
-import type { AutoEmbeddingsUsageMetadata, ConnectionMetadata } from "../../../telemetry/types.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -129,7 +128,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 documents = await aggregationCursor.toArray();
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
-                const cappedResultsPipeline = [...pipeline];
+                const cappedResultsPipeline: Document[] = [...pipeline];
                 if (this.config.maxDocumentsPerQuery > 0) {
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
@@ -329,24 +328,6 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }
 
         return message;
-    }
-
-    protected resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: CallToolResult }
-    ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
-        const [maybeVectorStage] = args.pipeline;
-        const usesVectorSearch =
-            maybeVectorStage !== null && maybeVectorStage instanceof Object && "$vectorSearch" in maybeVectorStage;
-
-        if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
-            return {
-                ...super.resolveTelemetryMetadata(args, { result }),
-                embeddingsGeneratedBy: "mongot",
-            };
-        }
-
-        return super.resolveTelemetryMetadata(args, { result });
     }
 
     private isSearchStage(stage: Record<string, unknown>): boolean {

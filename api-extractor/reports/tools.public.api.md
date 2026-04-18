@@ -26,13 +26,13 @@ import type { Secret } from 'mongodb-redact';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
-import { ZodAny } from 'zod';
 import { ZodDefault } from 'zod';
 import { ZodEnum } from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
 import { ZodString } from 'zod';
+import { ZodUnknown } from 'zod';
 
 // @public (undocumented)
 export class AggregateTool extends MongoDBToolBase {
@@ -46,7 +46,7 @@ export class AggregateTool extends MongoDBToolBase {
                 path: z.ZodString;
                 numCandidates: z.ZodOptional<z.ZodNumber>;
                 limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 queryVector: z.ZodArray<z.ZodNumber>;
             }, z.core.$strip>, z.ZodObject<{
                 exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
@@ -54,7 +54,7 @@ export class AggregateTool extends MongoDBToolBase {
                 path: z.ZodString;
                 numCandidates: z.ZodOptional<z.ZodNumber>;
                 limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 query: z.ZodObject<{
                     text: z.ZodString;
                 }, z.core.$strip>;
@@ -65,7 +65,7 @@ export class AggregateTool extends MongoDBToolBase {
                     "voyage-code-3": "voyage-code-3";
                 }>>;
             }, z.core.$strip>]>;
-        }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodAny>]>>;
+        }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
         database: z.ZodString;
         collection: z.ZodString;
     };
@@ -75,13 +75,6 @@ export class AggregateTool extends MongoDBToolBase {
     protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "AutoEmbeddingsUsageMetadata" needs to be exported by the entry point index.d.ts
-    //
-    // (undocumented)
-    protected resolveTelemetryMetadata(args: ToolArgs<typeof AggregateTool.argsShape>, input: {
-        result: CallToolResult;
-    }): ConnectionMetadata | AutoEmbeddingsUsageMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -211,6 +204,8 @@ export class ConnectClusterTool extends AtlasToolBase {
     protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
+    //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
         result: CallToolResult;
@@ -268,7 +263,7 @@ export class ConnectTool extends MongoDBToolBase {
 export class CountTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        query: ZodOptional<ZodRecord<ZodString, ZodAny>>;
+        query: ZodOptional<ZodRecord<ZodString, ZodUnknown>>;
         database: ZodString;
         collection: ZodString;
     };
@@ -557,7 +552,7 @@ export type DeleteManyOutput = z.infer<z.ZodObject<typeof DeleteManyOutputSchema
 export class DeleteManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         database: z.ZodString;
         collection: z.ZodString;
     };
@@ -692,7 +687,7 @@ export class ExplainTool extends MongoDBToolBase {
                         path: z.ZodString;
                         numCandidates: z.ZodOptional<z.ZodNumber>;
                         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         queryVector: z.ZodArray<z.ZodNumber>;
                     }, z.core.$strip>, z.ZodObject<{
                         exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
@@ -700,7 +695,7 @@ export class ExplainTool extends MongoDBToolBase {
                         path: z.ZodString;
                         numCandidates: z.ZodOptional<z.ZodNumber>;
                         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         query: z.ZodObject<{
                             text: z.ZodString;
                         }, z.core.$strip>;
@@ -711,12 +706,12 @@ export class ExplainTool extends MongoDBToolBase {
                             "voyage-code-3": "voyage-code-3";
                         }>>;
                     }, z.core.$strip>]>;
-                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodAny>]>>;
+                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
             }, z.core.$strip>;
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodLiteral<"find">;
             arguments: z.ZodObject<{
-                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
                 limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
                 sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
@@ -726,7 +721,7 @@ export class ExplainTool extends MongoDBToolBase {
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodLiteral<"count">;
             arguments: z.ZodObject<{
-                query: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                query: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
             }, z.core.$strip>;
         }, z.core.$strip>], "name">>;
         verbosity: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
@@ -763,7 +758,7 @@ export class ExportTool extends MongoDBToolBase {
             name: z.ZodLiteral<"find">;
             arguments: z.ZodObject<{
                 limit: z.ZodOptional<z.ZodNumber>;
-                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                 projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
                 sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
                     $meta: z.ZodString;
@@ -779,7 +774,7 @@ export class ExportTool extends MongoDBToolBase {
                         path: z.ZodString;
                         numCandidates: z.ZodOptional<z.ZodNumber>;
                         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         queryVector: z.ZodArray<z.ZodNumber>;
                     }, z.core.$strip>, z.ZodObject<{
                         exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
@@ -787,7 +782,7 @@ export class ExportTool extends MongoDBToolBase {
                         path: z.ZodString;
                         numCandidates: z.ZodOptional<z.ZodNumber>;
                         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
                         query: z.ZodObject<{
                             text: z.ZodString;
                         }, z.core.$strip>;
@@ -798,7 +793,7 @@ export class ExportTool extends MongoDBToolBase {
                             "voyage-code-3": "voyage-code-3";
                         }>>;
                     }, z.core.$strip>]>;
-                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodAny>]>>;
+                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
             }, z.core.$strip>;
         }, z.core.$strip>], "name">>;
         jsonExportFormat: z.ZodDefault<z.ZodEnum<{
@@ -823,7 +818,7 @@ export class FindTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
         responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
         limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
         sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
@@ -882,7 +877,7 @@ export type InsertManyOutput = z.infer<z.ZodObject<typeof InsertManyOutputSchema
 export class InsertManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        documents: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodAny>>;
+        documents: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         database: z.ZodString;
         collection: z.ZodString;
     };
@@ -1640,8 +1635,8 @@ export type UpdateManyOutput = z.infer<z.ZodObject<typeof UpdateManyOutputSchema
 export class UpdateManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-        update: z.ZodRecord<z.ZodString, z.ZodAny>;
+        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        update: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         upsert: z.ZodOptional<z.ZodBoolean>;
         database: z.ZodString;
         collection: z.ZodString;
