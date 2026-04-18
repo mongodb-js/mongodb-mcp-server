@@ -129,8 +129,8 @@ importers:
         specifier: ^0.21.2
         version: 0.21.2(@preact/signals-core@1.13.0)(@types/node@25.5.0)(@types/react-dom@19.2.3(@types/react@18.3.27))(@types/react@18.3.27)(typescript@5.9.3)
       '@mongodb-js/oidc-mock-provider':
-        specifier: ^0.13.6
-        version: 0.13.6
+        specifier: ^0.13.7
+        version: 0.13.9
       '@redocly/cli':
         specifier: ^2.28.0
         version: 2.28.0(@opentelemetry/api@1.9.1)(core-js@3.47.0)
@@ -1333,10 +1333,6 @@ packages:
 
   '@mongodb-js/oidc-http-server-pages@1.2.6':
     resolution: {integrity: sha512-z7ETHla5yCwtF18txA8l6G9WVskRNjDQRfM/D/6I6JdjnKaR1Dtsy9lH/LwyDn3O+z3RzPErGtU3mWRjVGWS5g==}
-
-  '@mongodb-js/oidc-mock-provider@0.13.6':
-    resolution: {integrity: sha512-2K7KfCwWquonVKvi/MEPWG+Q8vnTGLMcm1I5En0zf9Jqk6CFuoEnojVK7IJtVHdXYp9oR6fnNCMzir5xs965mQ==}
-    hasBin: true
 
   '@mongodb-js/oidc-mock-provider@0.13.9':
     resolution: {integrity: sha512-Nhsxn80uQnREdXyopITNdUofR/2j38aLMrdorkbmuKqC/Wf/aUNdzVU9mJkOvPbfAl8gRGOkBxuKkDIaOdEg9A==}
@@ -6186,8 +6182,8 @@ packages:
     resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
     engines: {node: '>=8'}
 
-  strip-ansi@7.1.2:
-    resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
+  strip-ansi@7.2.0:
+    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
     engines: {node: '>=12'}
 
   strip-dirs@2.1.0:
@@ -7825,7 +7821,7 @@ snapshots:
     dependencies:
       string-width: 5.1.2
       string-width-cjs: string-width@4.2.3
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
       wrap-ansi-cjs: wrap-ansi@7.0.0
@@ -8373,10 +8369,6 @@ snapshots:
       - supports-color
 
   '@mongodb-js/oidc-http-server-pages@1.2.6': {}
-
-  '@mongodb-js/oidc-mock-provider@0.13.6':
-    dependencies:
-      yargs: 17.7.2
 
   '@mongodb-js/oidc-mock-provider@0.13.9':
     dependencies:
@@ -10817,7 +10809,7 @@ snapshots:
   cliui@9.0.1:
     dependencies:
       string-width: 7.2.0
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
       wrap-ansi: 9.0.2
 
   clsx@2.1.1: {}
@@ -13791,13 +13783,13 @@ snapshots:
     dependencies:
       eastasianwidth: 0.2.0
       emoji-regex: 9.2.2
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   string-width@7.2.0:
     dependencies:
       emoji-regex: 10.6.0
       get-east-asian-width: 1.5.0
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   string.prototype.trim@1.2.10:
     dependencies:
@@ -13836,7 +13828,7 @@ snapshots:
     dependencies:
       ansi-regex: 5.0.1
 
-  strip-ansi@7.1.2:
+  strip-ansi@7.2.0:
     dependencies:
       ansi-regex: 6.2.2
 
@@ -14444,13 +14436,13 @@ snapshots:
     dependencies:
       ansi-styles: 6.2.3
       string-width: 5.1.2
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   wrap-ansi@9.0.2:
     dependencies:
       ansi-styles: 6.2.3
       string-width: 7.2.0
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   wrappy@1.0.2: {}
 
