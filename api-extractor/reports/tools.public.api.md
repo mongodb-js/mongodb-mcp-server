@@ -5,7 +5,6 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { AnyZodObject } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { components } from './openapi.js';
@@ -18,156 +17,57 @@ import type { FindCursor } from 'mongodb';
 import type { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import type { IndexDirection } from 'mongodb';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
 import type { Secret } from 'mongodb-redact';
-import { SortDirection } from 'mongodb';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { z } from 'zod/v4';
-import { default as z_2 } from 'zod';
+import { z } from 'zod';
 import { ZodDefault } from 'zod';
 import { ZodEnum } from 'zod';
 import { ZodOptional } from 'zod';
 import type { ZodRawShape } from 'zod';
+import { ZodRecord } from 'zod';
 import { ZodString } from 'zod';
-import type { ZodTypeAny } from 'zod';
+import { ZodUnknown } from 'zod';
 
 // @public (undocumented)
 export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        responseBytesLimit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-        pipeline: z_2.ZodArray<z_2.ZodUnion<[z_2.ZodObject<{
-            $vectorSearch: z_2.ZodUnion<[z_2.ZodObject<{
-                exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-                index: z_2.ZodString;
-                path: z_2.ZodString;
-                numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
-                limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-                filter: z_2.ZodOptional<z_2.AnyZodObject>;
-            } & {
-                queryVector: z_2.ZodArray<z_2.ZodNumber, "many">;
-            }, "strip", z_2.ZodTypeAny, {
-                path: string;
-                index: string;
-                exact: boolean;
-                limit: number;
-                queryVector: number[];
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                numCandidates?: number | undefined;
-            }, {
-                path: string;
-                index: string;
-                queryVector: number[];
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                exact?: boolean | undefined;
-                limit?: number | undefined;
-                numCandidates?: number | undefined;
-            }>, z_2.ZodObject<{
-                exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-                index: z_2.ZodString;
-                path: z_2.ZodString;
-                numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
-                limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-                filter: z_2.ZodOptional<z_2.AnyZodObject>;
-            } & {
-                query: z_2.ZodObject<{
-                    text: z_2.ZodString;
-                }, "strip", z_2.ZodTypeAny, {
-                    text: string;
-                }, {
-                    text: string;
-                }>;
-                model: z_2.ZodOptional<z_2.ZodEnum<["voyage-4", "voyage-4-large", "voyage-4-lite", "voyage-code-3"]>>;
-            }, "strip", z_2.ZodTypeAny, {
-                query: {
-                    text: string;
-                };
-                path: string;
-                index: string;
-                exact: boolean;
-                limit: number;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                numCandidates?: number | undefined;
-                model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-            }, {
-                query: {
-                    text: string;
-                };
-                path: string;
-                index: string;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                exact?: boolean | undefined;
-                limit?: number | undefined;
-                numCandidates?: number | undefined;
-                model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-            }>]>;
-        }, "strip", z_2.ZodTypeAny, {
-            $vectorSearch: {
-                path: string;
-                index: string;
-                exact: boolean;
-                limit: number;
-                queryVector: number[];
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                numCandidates?: number | undefined;
-            } | {
-                query: {
-                    text: string;
-                };
-                path: string;
-                index: string;
-                exact: boolean;
-                limit: number;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                numCandidates?: number | undefined;
-                model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-            };
-        }, {
-            $vectorSearch: {
-                path: string;
-                index: string;
-                queryVector: number[];
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                exact?: boolean | undefined;
-                limit?: number | undefined;
-                numCandidates?: number | undefined;
-            } | {
-                query: {
-                    text: string;
-                };
-                path: string;
-                index: string;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                exact?: boolean | undefined;
-                limit?: number | undefined;
-                numCandidates?: number | undefined;
-                model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-            };
-        }>, z_2.AnyZodObject]>, "many">;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        pipeline: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
+            $vectorSearch: z.ZodUnion<readonly [z.ZodObject<{
+                exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                index: z.ZodString;
+                path: z.ZodString;
+                numCandidates: z.ZodOptional<z.ZodNumber>;
+                limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                queryVector: z.ZodArray<z.ZodNumber>;
+            }, z.core.$strip>, z.ZodObject<{
+                exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                index: z.ZodString;
+                path: z.ZodString;
+                numCandidates: z.ZodOptional<z.ZodNumber>;
+                limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                query: z.ZodObject<{
+                    text: z.ZodString;
+                }, z.core.$strip>;
+                model: z.ZodOptional<z.ZodEnum<{
+                    "voyage-4": "voyage-4";
+                    "voyage-4-large": "voyage-4-large";
+                    "voyage-4-lite": "voyage-4-lite";
+                    "voyage-code-3": "voyage-code-3";
+                }>>;
+            }, z.core.$strip>]>;
+        }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -175,13 +75,6 @@ export class AggregateTool extends MongoDBToolBase {
     protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
-    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "AutoEmbeddingsUsageMetadata" needs to be exported by the entry point index.d.ts
-    //
-    // (undocumented)
-    protected resolveTelemetryMetadata(args: ToolArgs<typeof AggregateTool.argsShape>, input: {
-        result: CallToolResult;
-    }): ConnectionMetadata | AutoEmbeddingsUsageMetadata;
     // (undocumented)
     static toolName: string;
 }
@@ -192,14 +85,14 @@ export const AllTools: ToolClass[];
 // Warning: (ae-forgotten-export) The symbol "CollectionIndexesOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type CollectionIndexesOutput = z_2.infer<z_2.ZodObject<typeof CollectionIndexesOutputSchema>>;
+export type CollectionIndexesOutput = z.infer<z.ZodObject<typeof CollectionIndexesOutputSchema>>;
 
 // @public (undocumented)
 export class CollectionIndexesTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -215,37 +108,19 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        classicIndexes: z_2.ZodArray<z_2.ZodObject<{
-            name: z_2.ZodString;
-            key: z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>;
-        }, "strip", z_2.ZodTypeAny, {
-            name: string;
-            key: Record<string, unknown>;
-        }, {
-            name: string;
-            key: Record<string, unknown>;
-        }>, "many">;
-        searchIndexes: z_2.ZodArray<z_2.ZodObject<{
-            name: z_2.ZodString;
-            type: z_2.ZodString;
-            status: z_2.ZodString;
-            queryable: z_2.ZodBoolean;
-            latestDefinition: z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>;
-        }, "strip", z_2.ZodTypeAny, {
-            type: string;
-            name: string;
-            status: string;
-            queryable: boolean;
-            latestDefinition: Record<string, unknown>;
-        }, {
-            type: string;
-            name: string;
-            status: string;
-            queryable: boolean;
-            latestDefinition: Record<string, unknown>;
-        }>, "many">;
-        classicIndexesCount: z_2.ZodNumber;
-        searchIndexesCount: z_2.ZodNumber;
+        classicIndexes: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            key: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+        }, z.core.$strip>>;
+        searchIndexes: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            type: z.ZodString;
+            status: z.ZodString;
+            queryable: z.ZodBoolean;
+            latestDefinition: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+        }, z.core.$strip>>;
+        classicIndexesCount: z.ZodNumber;
+        searchIndexesCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -254,16 +129,16 @@ export class CollectionIndexesTool extends MongoDBToolBase {
 // Warning: (ae-forgotten-export) The symbol "CollectionSchemaOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type CollectionSchemaOutput = z_2.infer<z_2.ZodObject<typeof CollectionSchemaOutputSchema>>;
+export type CollectionSchemaOutput = z.infer<z.ZodObject<typeof CollectionSchemaOutputSchema>>;
 
 // @public (undocumented)
 export class CollectionSchemaTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        sampleSize: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-        responseBytesLimit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        sampleSize: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -273,8 +148,8 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        schema: z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>;
-        fieldsCount: z_2.ZodNumber;
+        schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+        fieldsCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -283,14 +158,14 @@ export class CollectionSchemaTool extends MongoDBToolBase {
 // Warning: (ae-forgotten-export) The symbol "CollectionStorageSizeOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type CollectionStorageSizeOutput = z_2.infer<z_2.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
+export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
 
 // @public (undocumented)
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -302,8 +177,8 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        size: z_2.ZodNumber;
-        units: z_2.ZodString;
+        size: z.ZodNumber;
+        units: z.ZodString;
     };
     // (undocumented)
     static toolName: string;
@@ -317,7 +192,11 @@ export class ConnectClusterTool extends AtlasToolBase {
     argsShape: {
         projectId: ZodString;
         clusterName: ZodString;
-        connectionType: ZodDefault<ZodEnum<["standard", "private", "privateEndpoint"]>>;
+        connectionType: ZodDefault<ZodEnum<    {
+        standard: "standard";
+        private: "private";
+        privateEndpoint: "privateEndpoint";
+        }>>;
     };
     // (undocumented)
     description: string;
@@ -325,6 +204,8 @@ export class ConnectClusterTool extends AtlasToolBase {
     protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
+    // Warning: (ae-forgotten-export) The symbol "ConnectionMetadata" needs to be exported by the entry point index.d.ts
+    //
     // (undocumented)
     protected resolveTelemetryMetadata(args: ToolArgs<typeof ConnectClusterTool.argsShape>, input: {
         result: CallToolResult;
@@ -362,7 +243,7 @@ export class ConnectTool extends MongoDBToolBase {
     constructor(params: ToolConstructorParams);
     // (undocumented)
     argsShape: {
-        connectionString: z_2.ZodString;
+        connectionString: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -382,7 +263,7 @@ export class ConnectTool extends MongoDBToolBase {
 export class CountTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        query: ZodOptional<AnyZodObject>;
+        query: ZodOptional<ZodRecord<ZodString, ZodUnknown>>;
         database: ZodString;
         collection: ZodString;
     };
@@ -400,11 +281,11 @@ export class CountTool extends MongoDBToolBase {
 export class CreateAccessListTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z_2.ZodString;
-        ipAddresses: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-        cidrBlocks: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-        currentIpAddress: z_2.ZodDefault<z_2.ZodBoolean>;
-        comment: z_2.ZodOptional<z_2.ZodDefault<z_2.ZodString>>;
+        projectId: z.ZodString;
+        ipAddresses: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        cidrBlocks: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        currentIpAddress: z.ZodDefault<z.ZodBoolean>;
+        comment: z.ZodOptional<z.ZodDefault<z.ZodString>>;
     };
     // (undocumented)
     description: string;
@@ -421,14 +302,14 @@ export class CreateAccessListTool extends AtlasToolBase {
 // Warning: (ae-forgotten-export) The symbol "CreateCollectionOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type CreateCollectionOutput = z_2.infer<z_2.ZodObject<typeof CreateCollectionOutputSchema>>;
+export type CreateCollectionOutput = z.infer<z.ZodObject<typeof CreateCollectionOutputSchema>>;
 
 // @public (undocumented)
 export class CreateCollectionTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -438,9 +319,9 @@ export class CreateCollectionTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
-        created: z_2.ZodBoolean;
+        database: z.ZodString;
+        collection: z.ZodString;
+        created: z.ZodBoolean;
     };
     // (undocumented)
     static toolName: string;
@@ -450,23 +331,15 @@ export class CreateCollectionTool extends MongoDBToolBase {
 export class CreateDBUserTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z_2.ZodString;
-        username: z_2.ZodString;
-        password: z_2.ZodOptional<z_2.ZodNullable<z_2.ZodString>>;
-        roles: z_2.ZodArray<z_2.ZodObject<{
-            roleName: z_2.ZodString;
-            databaseName: z_2.ZodDefault<z_2.ZodString>;
-            collectionName: z_2.ZodOptional<z_2.ZodString>;
-        }, "strip", z_2.ZodTypeAny, {
-            databaseName: string;
-            roleName: string;
-            collectionName?: string | undefined;
-        }, {
-            roleName: string;
-            databaseName?: string | undefined;
-            collectionName?: string | undefined;
-        }>, "many">;
-        clusters: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
+        projectId: z.ZodString;
+        username: z.ZodString;
+        password: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        roles: z.ZodArray<z.ZodObject<{
+            roleName: z.ZodString;
+            databaseName: z.ZodDefault<z.ZodString>;
+            collectionName: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>;
+        clusters: z.ZodOptional<z.ZodArray<z.ZodString>>;
     };
     // (undocumented)
     description: string;
@@ -484,9 +357,9 @@ export class CreateDBUserTool extends AtlasToolBase {
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     argsShape: {
-        deploymentName: z_2.ZodOptional<z_2.ZodString>;
-        loadSampleData: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-        imageTag: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodString>>;
+        deploymentName: z.ZodOptional<z.ZodString>;
+        loadSampleData: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+        imageTag: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     };
     // (undocumented)
     description: string;
@@ -521,242 +394,73 @@ export class CreateFreeClusterTool extends AtlasToolBase {
 // Warning: (ae-forgotten-export) The symbol "CreateIndexOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type CreateIndexOutput = z_2.infer<z_2.ZodObject<typeof CreateIndexOutputSchema>>;
+export type CreateIndexOutput = z.infer<z.ZodObject<typeof CreateIndexOutputSchema>>;
 
 // @public (undocumented)
 export class CreateIndexTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        name: z_2.ZodOptional<z_2.ZodString>;
-        definition: z_2.ZodArray<z_2.ZodDiscriminatedUnion<"type", [z_2.ZodObject<{
-            type: z_2.ZodLiteral<"classic">;
-            keys: z_2.ZodObject<{}, "strip", z_2.ZodType<IndexDirection, z_2.ZodTypeDef, IndexDirection>, {}, {}>;
-        }, "strip", z_2.ZodTypeAny, {
-            type: "classic";
-            keys: {};
-        }, {
-            type: "classic";
-            keys: {};
-        }>, z_2.ZodObject<{
-            type: z_2.ZodLiteral<"vectorSearch">;
-            fields: z_2.ZodEffects<z_2.ZodArray<z_2.ZodDiscriminatedUnion<"type", [z_2.ZodObject<{
-                type: z_2.ZodLiteral<"filter">;
-                path: z_2.ZodString;
-            }, "strict", z_2.ZodTypeAny, {
-                type: "filter";
-                path: string;
-            }, {
-                type: "filter";
-                path: string;
-            }>, z_2.ZodObject<{
-                type: z_2.ZodLiteral<"vector">;
-                path: z_2.ZodString;
-                numDimensions: z_2.ZodDefault<z_2.ZodNumber>;
-                similarity: z_2.ZodDefault<z_2.ZodEnum<["cosine", "euclidean", "dotProduct"]>>;
-                quantization: z_2.ZodDefault<z_2.ZodEnum<["none", "scalar", "binary"]>>;
-            }, "strict", z_2.ZodTypeAny, {
-                type: "vector";
-                path: string;
-                numDimensions: number;
-                similarity: "cosine" | "euclidean" | "dotProduct";
-                quantization: "binary" | "none" | "scalar";
-            }, {
-                type: "vector";
-                path: string;
-                numDimensions?: number | undefined;
-                similarity?: "cosine" | "euclidean" | "dotProduct" | undefined;
-                quantization?: "binary" | "none" | "scalar" | undefined;
-            }>, z_2.ZodObject<{
-                type: z_2.ZodLiteral<"autoEmbed">;
-                path: z_2.ZodString;
-                model: z_2.ZodEnum<["voyage-4", "voyage-4-large", "voyage-4-lite", "voyage-code-3"]>;
-                modality: z_2.ZodEnum<["text"]>;
-            }, "strict", z_2.ZodTypeAny, {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            }, {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            }>]>, "atleastone">, [{
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions: number;
-                similarity: "cosine" | "euclidean" | "dotProduct";
-                quantization: "binary" | "none" | "scalar";
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            }, ...({
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions: number;
-                similarity: "cosine" | "euclidean" | "dotProduct";
-                quantization: "binary" | "none" | "scalar";
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            })[]], [{
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions?: number | undefined;
-                similarity?: "cosine" | "euclidean" | "dotProduct" | undefined;
-                quantization?: "binary" | "none" | "scalar" | undefined;
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            }, ...({
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions?: number | undefined;
-                similarity?: "cosine" | "euclidean" | "dotProduct" | undefined;
-                quantization?: "binary" | "none" | "scalar" | undefined;
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            })[]]>;
-        }, "strip", z_2.ZodTypeAny, {
-            type: "vectorSearch";
-            fields: [{
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions: number;
-                similarity: "cosine" | "euclidean" | "dotProduct";
-                quantization: "binary" | "none" | "scalar";
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            }, ...({
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions: number;
-                similarity: "cosine" | "euclidean" | "dotProduct";
-                quantization: "binary" | "none" | "scalar";
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            })[]];
-        }, {
-            type: "vectorSearch";
-            fields: [{
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions?: number | undefined;
-                similarity?: "cosine" | "euclidean" | "dotProduct" | undefined;
-                quantization?: "binary" | "none" | "scalar" | undefined;
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            }, ...({
-                type: "filter";
-                path: string;
-            } | {
-                type: "vector";
-                path: string;
-                numDimensions?: number | undefined;
-                similarity?: "cosine" | "euclidean" | "dotProduct" | undefined;
-                quantization?: "binary" | "none" | "scalar" | undefined;
-            } | {
-                type: "autoEmbed";
-                path: string;
-                model: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3";
-                modality: "text";
-            })[]];
-        }>, z_2.ZodObject<{
-            type: z_2.ZodLiteral<"search">;
-            analyzer: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodString>>;
-            mappings: z_2.ZodEffects<z_2.ZodObject<{
-                dynamic: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-                fields: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodObject<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">>>>;
-            }, "strip", z_2.ZodTypeAny, {
-                dynamic: boolean;
-                fields?: Record<string, z_2.objectOutputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">> | undefined;
-            }, {
-                fields?: Record<string, z_2.objectInputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">> | undefined;
-                dynamic?: boolean | undefined;
-            }>, {
-                dynamic: boolean;
-                fields?: Record<string, z_2.objectOutputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">> | undefined;
-            }, {
-                fields?: Record<string, z_2.objectInputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">> | undefined;
-                dynamic?: boolean | undefined;
-            }>;
-            numPartitions: z_2.ZodEffects<z_2.ZodDefault<z_2.ZodUnion<[z_2.ZodLiteral<"1">, z_2.ZodLiteral<"2">, z_2.ZodLiteral<"4">]>>, number, "1" | "2" | "4" | undefined>;
-        }, "strip", z_2.ZodTypeAny, {
-            type: "search";
-            mappings: {
-                dynamic: boolean;
-                fields?: Record<string, z_2.objectOutputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">> | undefined;
-            };
-            analyzer: string;
-            numPartitions: number;
-        }, {
-            type: "search";
-            mappings: {
-                fields?: Record<string, z_2.objectInputType<{
-                    type: z_2.ZodEnum<["autocomplete", "boolean", "date", "document", "embeddedDocuments", "geo", "number", "objectId", "string", "token", "uuid"]>;
-                }, z_2.ZodTypeAny, "passthrough">> | undefined;
-                dynamic?: boolean | undefined;
-            };
-            analyzer?: string | undefined;
-            numPartitions?: "1" | "2" | "4" | undefined;
-        }>]>, "many">;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        name: z.ZodOptional<z.ZodString>;
+        definition: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+            type: z.ZodLiteral<"classic">;
+            keys: z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"2d">, z.ZodLiteral<"2dsphere">, z.ZodLiteral<"text">, z.ZodLiteral<"geoHaystack">, z.ZodLiteral<"hashed">]>>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"vectorSearch">;
+            fields: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+                type: z.ZodLiteral<"filter">;
+                path: z.ZodString;
+            }, z.core.$strict>, z.ZodObject<{
+                type: z.ZodLiteral<"vector">;
+                path: z.ZodString;
+                numDimensions: z.ZodDefault<z.ZodNumber>;
+                similarity: z.ZodDefault<z.ZodEnum<{
+                    cosine: "cosine";
+                    euclidean: "euclidean";
+                    dotProduct: "dotProduct";
+                }>>;
+                quantization: z.ZodDefault<z.ZodEnum<{
+                    binary: "binary";
+                    none: "none";
+                    scalar: "scalar";
+                }>>;
+            }, z.core.$strict>, z.ZodObject<{
+                type: z.ZodLiteral<"autoEmbed">;
+                path: z.ZodString;
+                model: z.ZodEnum<{
+                    "voyage-4": "voyage-4";
+                    "voyage-4-large": "voyage-4-large";
+                    "voyage-4-lite": "voyage-4-lite";
+                    "voyage-code-3": "voyage-code-3";
+                }>;
+                modality: z.ZodEnum<{
+                    text: "text";
+                }>;
+            }, z.core.$strict>], "type">>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"search">;
+            analyzer: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+            mappings: z.ZodObject<{
+                dynamic: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+                    type: z.ZodEnum<{
+                        string: "string";
+                        number: "number";
+                        boolean: "boolean";
+                        date: "date";
+                        uuid: "uuid";
+                        autocomplete: "autocomplete";
+                        document: "document";
+                        embeddedDocuments: "embeddedDocuments";
+                        geo: "geo";
+                        objectId: "objectId";
+                        token: "token";
+                    }>;
+                }, z.core.$loose>>>;
+            }, z.core.$strip>;
+            numPartitions: z.ZodPipe<z.ZodDefault<z.ZodUnion<readonly [z.ZodLiteral<"1">, z.ZodLiteral<"2">, z.ZodLiteral<"4">]>>, z.ZodTransform<number, "1" | "2" | "4">>;
+        }, z.core.$strip>], "type">>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -766,10 +470,14 @@ export class CreateIndexTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
-        indexName: z_2.ZodString;
-        indexType: z_2.ZodEnum<["classic", "vectorSearch", "search"]>;
+        database: z.ZodString;
+        collection: z.ZodString;
+        indexName: z.ZodString;
+        indexType: z.ZodEnum<{
+            search: "search";
+            vectorSearch: "vectorSearch";
+            classic: "classic";
+        }>;
     };
     // (undocumented)
     static toolName: string;
@@ -795,13 +503,13 @@ export class CreateProjectTool extends AtlasToolBase {
 // Warning: (ae-forgotten-export) The symbol "DbStatsOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type DbStatsOutput = z_2.infer<z_2.ZodObject<typeof DbStatsOutputSchema>>;
+export type DbStatsOutput = z.infer<z.ZodObject<typeof DbStatsOutputSchema>>;
 
 // @public (undocumented)
 export class DbStatsTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z_2.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -811,7 +519,7 @@ export class DbStatsTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        stats: z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>;
+        stats: z.ZodRecord<z.ZodString, z.ZodUnknown>;
     };
     // (undocumented)
     static toolName: string;
@@ -838,15 +546,15 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
 // Warning: (ae-forgotten-export) The symbol "DeleteManyOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type DeleteManyOutput = z_2.infer<z_2.ZodObject<typeof DeleteManyOutputSchema>>;
+export type DeleteManyOutput = z.infer<z.ZodObject<typeof DeleteManyOutputSchema>>;
 
 // @public (undocumented)
 export class DeleteManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        filter: z_2.ZodOptional<z_2.AnyZodObject>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -858,9 +566,9 @@ export class DeleteManyTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
-        deletedCount: z_2.ZodNumber;
+        database: z.ZodString;
+        collection: z.ZodString;
+        deletedCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -869,14 +577,14 @@ export class DeleteManyTool extends MongoDBToolBase {
 // Warning: (ae-forgotten-export) The symbol "DropCollectionOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type DropCollectionOutput = z_2.infer<z_2.ZodObject<typeof DropCollectionOutputSchema>>;
+export type DropCollectionOutput = z.infer<z.ZodObject<typeof DropCollectionOutputSchema>>;
 
 // @public (undocumented)
 export class DropCollectionTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -888,9 +596,9 @@ export class DropCollectionTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
-        dropped: z_2.ZodBoolean;
+        database: z.ZodString;
+        collection: z.ZodString;
+        dropped: z.ZodBoolean;
     };
     // (undocumented)
     static toolName: string;
@@ -899,13 +607,13 @@ export class DropCollectionTool extends MongoDBToolBase {
 // Warning: (ae-forgotten-export) The symbol "DropDatabaseOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type DropDatabaseOutput = z_2.infer<z_2.ZodObject<typeof DropDatabaseOutputSchema>>;
+export type DropDatabaseOutput = z.infer<z.ZodObject<typeof DropDatabaseOutputSchema>>;
 
 // @public (undocumented)
 export class DropDatabaseTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z_2.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -917,8 +625,8 @@ export class DropDatabaseTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        dropped: z_2.ZodBoolean;
+        database: z.ZodString;
+        dropped: z.ZodBoolean;
     };
     // (undocumented)
     static toolName: string;
@@ -927,16 +635,19 @@ export class DropDatabaseTool extends MongoDBToolBase {
 // Warning: (ae-forgotten-export) The symbol "DropIndexOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type DropIndexOutput = z_2.infer<z_2.ZodObject<typeof DropIndexOutputSchema>>;
+export type DropIndexOutput = z.infer<z.ZodObject<typeof DropIndexOutputSchema>>;
 
 // @public (undocumented)
 export class DropIndexTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        indexName: z_2.ZodString;
-        type: z_2.ZodEnum<["classic", "search"]>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        indexName: z.ZodString;
+        type: z.ZodEnum<{
+            search: "search";
+            classic: "classic";
+        }>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -948,10 +659,10 @@ export class DropIndexTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
-        indexName: z_2.ZodString;
-        dropped: z_2.ZodBoolean;
+        database: z.ZodString;
+        collection: z.ZodString;
+        indexName: z.ZodString;
+        dropped: z.ZodBoolean;
     };
     // (undocumented)
     static toolName: string;
@@ -960,335 +671,67 @@ export class DropIndexTool extends MongoDBToolBase {
 // Warning: (ae-forgotten-export) The symbol "ExplainOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type ExplainOutput = z_2.infer<z_2.ZodObject<typeof ExplainOutputSchema>>;
+export type ExplainOutput = z.infer<z.ZodObject<typeof ExplainOutputSchema>>;
 
 // @public (undocumented)
 export class ExplainTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        method: z_2.ZodArray<z_2.ZodDiscriminatedUnion<"name", [z_2.ZodObject<{
-            name: z_2.ZodLiteral<"aggregate">;
-            arguments: z_2.ZodObject<{
-                pipeline: z_2.ZodArray<z_2.ZodUnion<[z_2.ZodObject<{
-                    $vectorSearch: z_2.ZodUnion<[z_2.ZodObject<{
-                        exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-                        index: z_2.ZodString;
-                        path: z_2.ZodString;
-                        numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
-                        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-                        filter: z_2.ZodOptional<z_2.AnyZodObject>;
-                    } & {
-                        queryVector: z_2.ZodArray<z_2.ZodNumber, "many">;
-                    }, "strip", z_2.ZodTypeAny, {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    }, {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    }>, z_2.ZodObject<{
-                        exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-                        index: z_2.ZodString;
-                        path: z_2.ZodString;
-                        numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
-                        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-                        filter: z_2.ZodOptional<z_2.AnyZodObject>;
-                    } & {
-                        query: z_2.ZodObject<{
-                            text: z_2.ZodString;
-                        }, "strip", z_2.ZodTypeAny, {
-                            text: string;
-                        }, {
-                            text: string;
-                        }>;
-                        model: z_2.ZodOptional<z_2.ZodEnum<["voyage-4", "voyage-4-large", "voyage-4-lite", "voyage-code-3"]>>;
-                    }, "strip", z_2.ZodTypeAny, {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    }, {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    }>]>;
-                }, "strip", z_2.ZodTypeAny, {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                }, {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                }>, z_2.AnyZodObject]>, "many">;
-            }, "strip", z_2.ZodTypeAny, {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            }, {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            }>;
-        }, "strip", z_2.ZodTypeAny, {
-            name: "aggregate";
-            arguments: {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            };
-        }, {
-            name: "aggregate";
-            arguments: {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            };
-        }>, z_2.ZodObject<{
-            name: z_2.ZodLiteral<"find">;
-            arguments: z_2.ZodObject<{
-                filter: z_2.ZodOptional<z_2.AnyZodObject>;
-                projection: z_2.ZodOptional<z_2.ZodObject<{}, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{}, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{}, z_2.ZodTypeAny, "passthrough">>>;
-                limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-                sort: z_2.ZodOptional<z_2.ZodObject<{}, "strip", z_2.ZodType<SortDirection, z_2.ZodTypeDef, SortDirection>, {}, {}>>;
-            }, "strip", z_2.ZodTypeAny, {
-                limit: number;
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                projection?: z_2.objectOutputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            }, {
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                limit?: number | undefined;
-                projection?: z_2.objectInputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            }>;
-        }, "strip", z_2.ZodTypeAny, {
-            name: "find";
-            arguments: {
-                limit: number;
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                projection?: z_2.objectOutputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            };
-        }, {
-            name: "find";
-            arguments: {
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                limit?: number | undefined;
-                projection?: z_2.objectInputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            };
-        }>, z_2.ZodObject<{
-            name: z_2.ZodLiteral<"count">;
-            arguments: z_2.ZodObject<{
-                query: z_2.ZodOptional<z_2.AnyZodObject>;
-            }, "strip", z_2.ZodTypeAny, {
-                query?: {
-                    [x: string]: any;
-                } | undefined;
-            }, {
-                query?: {
-                    [x: string]: any;
-                } | undefined;
-            }>;
-        }, "strip", z_2.ZodTypeAny, {
-            name: "count";
-            arguments: {
-                query?: {
-                    [x: string]: any;
-                } | undefined;
-            };
-        }, {
-            name: "count";
-            arguments: {
-                query?: {
-                    [x: string]: any;
-                } | undefined;
-            };
-        }>]>, "many">;
-        verbosity: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodEnum<["queryPlanner", "queryPlannerExtended", "executionStats", "allPlansExecution"]>>>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        method: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+            name: z.ZodLiteral<"aggregate">;
+            arguments: z.ZodObject<{
+                pipeline: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
+                    $vectorSearch: z.ZodUnion<readonly [z.ZodObject<{
+                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                        index: z.ZodString;
+                        path: z.ZodString;
+                        numCandidates: z.ZodOptional<z.ZodNumber>;
+                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                        queryVector: z.ZodArray<z.ZodNumber>;
+                    }, z.core.$strip>, z.ZodObject<{
+                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                        index: z.ZodString;
+                        path: z.ZodString;
+                        numCandidates: z.ZodOptional<z.ZodNumber>;
+                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                        query: z.ZodObject<{
+                            text: z.ZodString;
+                        }, z.core.$strip>;
+                        model: z.ZodOptional<z.ZodEnum<{
+                            "voyage-4": "voyage-4";
+                            "voyage-4-large": "voyage-4-large";
+                            "voyage-4-lite": "voyage-4-lite";
+                            "voyage-code-3": "voyage-code-3";
+                        }>>;
+                    }, z.core.$strip>]>;
+                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>, z.ZodObject<{
+            name: z.ZodLiteral<"find">;
+            arguments: z.ZodObject<{
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
+                limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
+                    $meta: z.ZodString;
+                }, z.core.$strip>]>>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>, z.ZodObject<{
+            name: z.ZodLiteral<"count">;
+            arguments: z.ZodObject<{
+                query: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>], "name">>;
+        verbosity: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
+            queryPlanner: "queryPlanner";
+            queryPlannerExtended: "queryPlannerExtended";
+            executionStats: "executionStats";
+            allPlansExecution: "allPlansExecution";
+        }>>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1298,9 +741,9 @@ export class ExplainTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        explainResult: z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>;
-        method: z_2.ZodString;
-        verbosity: z_2.ZodString;
+        explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+        method: z.ZodString;
+        verbosity: z.ZodString;
     };
     // (undocumented)
     static toolName: string;
@@ -1310,303 +753,55 @@ export class ExplainTool extends MongoDBToolBase {
 export class ExportTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        exportTitle: z_2.ZodString;
-        exportTarget: z_2.ZodArray<z_2.ZodDiscriminatedUnion<"name", [z_2.ZodObject<{
-            name: z_2.ZodLiteral<"find">;
-            arguments: z_2.ZodObject<{
-                limit: z_2.ZodOptional<z_2.ZodNumber>;
-                filter: z_2.ZodOptional<z_2.AnyZodObject>;
-                projection: z_2.ZodOptional<z_2.ZodObject<{}, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{}, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{}, z_2.ZodTypeAny, "passthrough">>>;
-                sort: z_2.ZodOptional<z_2.ZodObject<{}, "strip", z_2.ZodType<SortDirection, z_2.ZodTypeDef, SortDirection>, {}, {}>>;
-            }, "strip", z_2.ZodTypeAny, {
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                limit?: number | undefined;
-                projection?: z_2.objectOutputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            }, {
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                limit?: number | undefined;
-                projection?: z_2.objectInputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            }>;
-        }, "strip", z_2.ZodTypeAny, {
-            name: "find";
-            arguments: {
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                limit?: number | undefined;
-                projection?: z_2.objectOutputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            };
-        }, {
-            name: "find";
-            arguments: {
-                sort?: {} | undefined;
-                filter?: {
-                    [x: string]: any;
-                } | undefined;
-                limit?: number | undefined;
-                projection?: z_2.objectInputType<{}, z_2.ZodTypeAny, "passthrough"> | undefined;
-            };
-        }>, z_2.ZodObject<{
-            name: z_2.ZodLiteral<"aggregate">;
-            arguments: z_2.ZodObject<{
-                pipeline: z_2.ZodArray<z_2.ZodUnion<[z_2.ZodObject<{
-                    $vectorSearch: z_2.ZodUnion<[z_2.ZodObject<{
-                        exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-                        index: z_2.ZodString;
-                        path: z_2.ZodString;
-                        numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
-                        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-                        filter: z_2.ZodOptional<z_2.AnyZodObject>;
-                    } & {
-                        queryVector: z_2.ZodArray<z_2.ZodNumber, "many">;
-                    }, "strip", z_2.ZodTypeAny, {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    }, {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    }>, z_2.ZodObject<{
-                        exact: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-                        index: z_2.ZodString;
-                        path: z_2.ZodString;
-                        numCandidates: z_2.ZodOptional<z_2.ZodNumber>;
-                        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-                        filter: z_2.ZodOptional<z_2.AnyZodObject>;
-                    } & {
-                        query: z_2.ZodObject<{
-                            text: z_2.ZodString;
-                        }, "strip", z_2.ZodTypeAny, {
-                            text: string;
-                        }, {
-                            text: string;
-                        }>;
-                        model: z_2.ZodOptional<z_2.ZodEnum<["voyage-4", "voyage-4-large", "voyage-4-lite", "voyage-code-3"]>>;
-                    }, "strip", z_2.ZodTypeAny, {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    }, {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    }>]>;
-                }, "strip", z_2.ZodTypeAny, {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                }, {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                }>, z_2.AnyZodObject]>, "many">;
-            }, "strip", z_2.ZodTypeAny, {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            }, {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            }>;
-        }, "strip", z_2.ZodTypeAny, {
-            name: "aggregate";
-            arguments: {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        exact: boolean;
-                        limit: number;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            };
-        }, {
-            name: "aggregate";
-            arguments: {
-                pipeline: ({
-                    [x: string]: any;
-                } | {
-                    $vectorSearch: {
-                        path: string;
-                        index: string;
-                        queryVector: number[];
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                    } | {
-                        query: {
-                            text: string;
-                        };
-                        path: string;
-                        index: string;
-                        filter?: {
-                            [x: string]: any;
-                        } | undefined;
-                        exact?: boolean | undefined;
-                        limit?: number | undefined;
-                        numCandidates?: number | undefined;
-                        model?: "voyage-4" | "voyage-4-large" | "voyage-4-lite" | "voyage-code-3" | undefined;
-                    };
-                })[];
-            };
-        }>]>, "many">;
-        jsonExportFormat: z_2.ZodDefault<z_2.ZodEnum<["relaxed", "canonical"]>>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        exportTitle: z.ZodString;
+        exportTarget: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+            name: z.ZodLiteral<"find">;
+            arguments: z.ZodObject<{
+                limit: z.ZodOptional<z.ZodNumber>;
+                filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
+                sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
+                    $meta: z.ZodString;
+                }, z.core.$strip>]>>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>, z.ZodObject<{
+            name: z.ZodLiteral<"aggregate">;
+            arguments: z.ZodObject<{
+                pipeline: z.ZodArray<z.ZodUnion<readonly [z.ZodObject<{
+                    $vectorSearch: z.ZodUnion<readonly [z.ZodObject<{
+                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                        index: z.ZodString;
+                        path: z.ZodString;
+                        numCandidates: z.ZodOptional<z.ZodNumber>;
+                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                        queryVector: z.ZodArray<z.ZodNumber>;
+                    }, z.core.$strip>, z.ZodObject<{
+                        exact: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+                        index: z.ZodString;
+                        path: z.ZodString;
+                        numCandidates: z.ZodOptional<z.ZodNumber>;
+                        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+                        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                        query: z.ZodObject<{
+                            text: z.ZodString;
+                        }, z.core.$strip>;
+                        model: z.ZodOptional<z.ZodEnum<{
+                            "voyage-4": "voyage-4";
+                            "voyage-4-large": "voyage-4-large";
+                            "voyage-4-lite": "voyage-4-lite";
+                            "voyage-code-3": "voyage-code-3";
+                        }>>;
+                    }, z.core.$strip>]>;
+                }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+            }, z.core.$strip>;
+        }, z.core.$strip>], "name">>;
+        jsonExportFormat: z.ZodDefault<z.ZodEnum<{
+            relaxed: "relaxed";
+            canonical: "canonical";
+        }>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1622,13 +817,15 @@ export class ExportTool extends MongoDBToolBase {
 export class FindTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        responseBytesLimit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-        filter: z_2.ZodOptional<z_2.AnyZodObject>;
-        projection: z_2.ZodOptional<z_2.ZodObject<{}, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{}, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{}, z_2.ZodTypeAny, "passthrough">>>;
-        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-        sort: z_2.ZodOptional<z_2.ZodObject<{}, "strip", z_2.ZodType<SortDirection, z_2.ZodTypeDef, SortDirection>, {}, {}>>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        projection: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>;
+        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
+            $meta: z.ZodString;
+        }, z.core.$strip>]>>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1644,11 +841,16 @@ export class FindTool extends MongoDBToolBase {
 export class GetPerformanceAdvisorTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z_2.ZodString;
-        clusterName: z_2.ZodString;
-        operations: z_2.ZodDefault<z_2.ZodArray<z_2.ZodEnum<["suggestedIndexes", "dropIndexSuggestions", "slowQueryLogs", "schemaSuggestions"]>, "many">>;
-        since: z_2.ZodOptional<z_2.ZodString>;
-        namespaces: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
+        projectId: z.ZodString;
+        clusterName: z.ZodString;
+        operations: z.ZodDefault<z.ZodArray<z.ZodEnum<{
+            suggestedIndexes: "suggestedIndexes";
+            slowQueryLogs: "slowQueryLogs";
+            dropIndexSuggestions: "dropIndexSuggestions";
+            schemaSuggestions: "schemaSuggestions";
+        }>>>;
+        since: z.ZodOptional<z.ZodString>;
+        namespaces: z.ZodOptional<z.ZodArray<z.ZodString>>;
     };
     // (undocumented)
     description: string;
@@ -1669,15 +871,15 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
 // Warning: (ae-forgotten-export) The symbol "InsertManyOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type InsertManyOutput = z_2.infer<z_2.ZodObject<typeof InsertManyOutputSchema>>;
+export type InsertManyOutput = z.infer<z.ZodObject<typeof InsertManyOutputSchema>>;
 
 // @public (undocumented)
 export class InsertManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        documents: z_2.ZodArray<z_2.AnyZodObject, "many">;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        documents: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1687,10 +889,10 @@ export class InsertManyTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
-        insertedCount: z_2.ZodNumber;
-        insertedIds: z_2.ZodArray<z_2.ZodUnknown, "many">;
+        database: z.ZodString;
+        collection: z.ZodString;
+        insertedCount: z.ZodNumber;
+        insertedIds: z.ZodArray<z.ZodUnknown>;
     };
     // (undocumented)
     static toolName: string;
@@ -1733,7 +935,14 @@ export class InspectClusterTool extends AtlasToolBase {
 export class ListAlertsTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
+        projectId: z.ZodString;
+        status: z.ZodDefault<z.ZodEnum<{
+            CLOSED: "CLOSED";
+            OPEN: "OPEN";
+            TRACKING: "TRACKING";
+        }>>;
+        limit: z.ZodDefault<z.ZodNumber>;
+        pageNum: z.ZodDefault<z.ZodNumber>;
     };
     // (undocumented)
     description: string;
@@ -1764,13 +973,13 @@ export class ListClustersTool extends AtlasToolBase {
 // Warning: (ae-forgotten-export) The symbol "ListCollectionsOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type ListCollectionsOutput = z_2.infer<z_2.ZodObject<typeof ListCollectionsOutputSchema>>;
+export type ListCollectionsOutput = z.infer<z.ZodObject<typeof ListCollectionsOutputSchema>>;
 
 // @public (undocumented)
 export class ListCollectionsTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z_2.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1780,14 +989,10 @@ export class ListCollectionsTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        collections: z_2.ZodArray<z_2.ZodObject<{
-            name: z_2.ZodString;
-        }, "strip", z_2.ZodTypeAny, {
-            name: string;
-        }, {
-            name: string;
-        }>, "many">;
-        totalCount: z_2.ZodNumber;
+        collections: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+        }, z.core.$strip>>;
+        totalCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -1796,7 +1001,7 @@ export class ListCollectionsTool extends MongoDBToolBase {
 // Warning: (ae-forgotten-export) The symbol "ListDatabasesOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type ListDatabasesOutput = z_2.infer<z_2.ZodObject<typeof ListDatabasesOutputSchema>>;
+export type ListDatabasesOutput = z.infer<z.ZodObject<typeof ListDatabasesOutputSchema>>;
 
 // @public (undocumented)
 export class ListDatabasesTool extends MongoDBToolBase {
@@ -1810,17 +1015,11 @@ export class ListDatabasesTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        databases: z_2.ZodArray<z_2.ZodObject<{
-            name: z_2.ZodString;
-            size: z_2.ZodNumber;
-        }, "strip", z_2.ZodTypeAny, {
-            name: string;
-            size: number;
-        }, {
-            name: string;
-            size: number;
-        }>, "many">;
-        totalCount: z_2.ZodNumber;
+        databases: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            size: z.ZodNumber;
+        }, z.core.$strip>>;
+        totalCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -1909,14 +1108,17 @@ export class ListProjectsTool extends AtlasToolBase {
 // Warning: (ae-forgotten-export) The symbol "LogsOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type LogsOutput = z_2.infer<z_2.ZodObject<typeof LogsOutputSchema>>;
+export type LogsOutput = z.infer<z.ZodObject<typeof LogsOutputSchema>>;
 
 // @public (undocumented)
 export class LogsTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        type: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodEnum<["global", "startupWarnings"]>>>;
-        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
+        type: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
+            global: "global";
+            startupWarnings: "startupWarnings";
+        }>>>;
+        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
     };
     // (undocumented)
     description: string;
@@ -1926,9 +1128,9 @@ export class LogsTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        logs: z_2.ZodArray<z_2.ZodString, "many">;
-        totalLinesWritten: z_2.ZodNumber;
-        shownCount: z_2.ZodNumber;
+        logs: z.ZodArray<z.ZodString>;
+        totalLinesWritten: z.ZodNumber;
+        shownCount: z.ZodNumber;
     };
     // (undocumented)
     static toolName: string;
@@ -1961,16 +1163,16 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
 // Warning: (ae-forgotten-export) The symbol "RenameCollectionOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type RenameCollectionOutput = z_2.infer<z_2.ZodObject<typeof RenameCollectionOutputSchema>>;
+export type RenameCollectionOutput = z.infer<z.ZodObject<typeof RenameCollectionOutputSchema>>;
 
 // @public (undocumented)
 export class RenameCollectionTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        newName: z_2.ZodString;
-        dropTarget: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodBoolean>>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        newName: z.ZodString;
+        dropTarget: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1982,10 +1184,10 @@ export class RenameCollectionTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        oldCollection: z_2.ZodString;
-        newCollection: z_2.ZodString;
-        renamed: z_2.ZodBoolean;
+        database: z.ZodString;
+        oldCollection: z.ZodString;
+        newCollection: z.ZodString;
+        renamed: z.ZodBoolean;
     };
     // (undocumented)
     static toolName: string;
@@ -1995,18 +1197,12 @@ export class RenameCollectionTool extends MongoDBToolBase {
 export class SearchKnowledgeTool extends AssistantToolBase {
     // (undocumented)
     argsShape: {
-        query: z_2.ZodString;
-        limit: z_2.ZodDefault<z_2.ZodOptional<z_2.ZodNumber>>;
-        dataSources: z_2.ZodOptional<z_2.ZodArray<z_2.ZodObject<{
-            name: z_2.ZodString;
-            versionLabel: z_2.ZodOptional<z_2.ZodString>;
-        }, "strip", z_2.ZodTypeAny, {
-            name: string;
-            versionLabel?: string | undefined;
-        }, {
-            name: string;
-            versionLabel?: string | undefined;
-        }>, "many">>;
+        query: z.ZodString;
+        limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        dataSources: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            versionLabel: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
     };
     // (undocumented)
     static category: ToolCategory;
@@ -2026,345 +1222,112 @@ export class SearchKnowledgeTool extends AssistantToolBase {
 export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z_2.ZodString;
-        resource: z_2.ZodEnum<["workspace", "connection", "processor", "privatelink"]>;
-        workspaceName: z_2.ZodOptional<z_2.ZodString>;
-        cloudProvider: z_2.ZodOptional<z_2.ZodEnum<["AWS", "AZURE", "GCP"]>>;
-        region: z_2.ZodOptional<z_2.ZodString>;
-        tier: z_2.ZodOptional<z_2.ZodEnum<["SP2", "SP5", "SP10", "SP30", "SP50"]>>;
-        includeSampleData: z_2.ZodOptional<z_2.ZodBoolean>;
-        connectionName: z_2.ZodOptional<z_2.ZodString>;
-        connectionType: z_2.ZodOptional<z_2.ZodEnum<["Kafka", "Cluster", "S3", "Https", "AWSKinesisDataStreams", "AWSLambda", "SchemaRegistry", "Sample"]>>;
-        connectionConfig: z_2.ZodOptional<z_2.ZodObject<{
-            bootstrapServers: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodString, z_2.ZodArray<z_2.ZodString, "many">]>, string, string | string[]>>;
-            authentication: z_2.ZodOptional<z_2.ZodObject<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            security: z_2.ZodOptional<z_2.ZodObject<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            clusterName: z_2.ZodOptional<z_2.ZodString>;
-            dbRoleToExecute: z_2.ZodOptional<z_2.ZodObject<{
-                role: z_2.ZodOptional<z_2.ZodString>;
-                type: z_2.ZodOptional<z_2.ZodEnum<["BUILT_IN", "CUSTOM"]>>;
-            }, "strip", z_2.ZodTypeAny, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }>>;
-            aws: z_2.ZodOptional<z_2.ZodObject<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            url: z_2.ZodOptional<z_2.ZodString>;
-            headers: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodString>>;
-            provider: z_2.ZodOptional<z_2.ZodString>;
-            schemaRegistryUrls: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodArray<z_2.ZodString, "many">, z_2.ZodString]>, string[], string | string[]>>;
-            schemaRegistryAuthentication: z_2.ZodOptional<z_2.ZodObject<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            networking: z_2.ZodOptional<z_2.ZodObject<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-        }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-            bootstrapServers: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodString, z_2.ZodArray<z_2.ZodString, "many">]>, string, string | string[]>>;
-            authentication: z_2.ZodOptional<z_2.ZodObject<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            security: z_2.ZodOptional<z_2.ZodObject<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            clusterName: z_2.ZodOptional<z_2.ZodString>;
-            dbRoleToExecute: z_2.ZodOptional<z_2.ZodObject<{
-                role: z_2.ZodOptional<z_2.ZodString>;
-                type: z_2.ZodOptional<z_2.ZodEnum<["BUILT_IN", "CUSTOM"]>>;
-            }, "strip", z_2.ZodTypeAny, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }>>;
-            aws: z_2.ZodOptional<z_2.ZodObject<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            url: z_2.ZodOptional<z_2.ZodString>;
-            headers: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodString>>;
-            provider: z_2.ZodOptional<z_2.ZodString>;
-            schemaRegistryUrls: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodArray<z_2.ZodString, "many">, z_2.ZodString]>, string[], string | string[]>>;
-            schemaRegistryAuthentication: z_2.ZodOptional<z_2.ZodObject<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            networking: z_2.ZodOptional<z_2.ZodObject<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-        }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-            bootstrapServers: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodString, z_2.ZodArray<z_2.ZodString, "many">]>, string, string | string[]>>;
-            authentication: z_2.ZodOptional<z_2.ZodObject<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            security: z_2.ZodOptional<z_2.ZodObject<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            clusterName: z_2.ZodOptional<z_2.ZodString>;
-            dbRoleToExecute: z_2.ZodOptional<z_2.ZodObject<{
-                role: z_2.ZodOptional<z_2.ZodString>;
-                type: z_2.ZodOptional<z_2.ZodEnum<["BUILT_IN", "CUSTOM"]>>;
-            }, "strip", z_2.ZodTypeAny, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }>>;
-            aws: z_2.ZodOptional<z_2.ZodObject<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            url: z_2.ZodOptional<z_2.ZodString>;
-            headers: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodString>>;
-            provider: z_2.ZodOptional<z_2.ZodString>;
-            schemaRegistryUrls: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodArray<z_2.ZodString, "many">, z_2.ZodString]>, string[], string | string[]>>;
-            schemaRegistryAuthentication: z_2.ZodOptional<z_2.ZodObject<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            networking: z_2.ZodOptional<z_2.ZodObject<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-        }, z_2.ZodTypeAny, "passthrough">>>;
-        processorName: z_2.ZodOptional<z_2.ZodString>;
-        pipeline: z_2.ZodOptional<z_2.ZodArray<z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>, "many">>;
-        dlq: z_2.ZodOptional<z_2.ZodObject<{
-            connectionName: z_2.ZodString;
-            db: z_2.ZodString;
-            coll: z_2.ZodString;
-        }, "strip", z_2.ZodTypeAny, {
-            coll: string;
-            connectionName: string;
-            db: string;
-        }, {
-            coll: string;
-            connectionName: string;
-            db: string;
+        projectId: z.ZodString;
+        resource: z.ZodEnum<{
+            processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
+            privatelink: "privatelink";
+        }>;
+        workspaceName: z.ZodOptional<z.ZodString>;
+        cloudProvider: z.ZodOptional<z.ZodEnum<{
+            AWS: "AWS";
+            AZURE: "AZURE";
+            GCP: "GCP";
         }>>;
-        autoStart: z_2.ZodOptional<z_2.ZodBoolean>;
-        privateLinkConfig: z_2.ZodOptional<z_2.ZodObject<{
-            provider: z_2.ZodEnum<["AWS", "AZURE", "GCP"]>;
-            region: z_2.ZodOptional<z_2.ZodString>;
-            vendor: z_2.ZodOptional<z_2.ZodString>;
-            arn: z_2.ZodOptional<z_2.ZodString>;
-            dnsDomain: z_2.ZodOptional<z_2.ZodString>;
-            dnsSubDomain: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-            serviceEndpointId: z_2.ZodOptional<z_2.ZodString>;
-            azureResourceIds: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-            gcpServiceAttachmentUris: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-        }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-            provider: z_2.ZodEnum<["AWS", "AZURE", "GCP"]>;
-            region: z_2.ZodOptional<z_2.ZodString>;
-            vendor: z_2.ZodOptional<z_2.ZodString>;
-            arn: z_2.ZodOptional<z_2.ZodString>;
-            dnsDomain: z_2.ZodOptional<z_2.ZodString>;
-            dnsSubDomain: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-            serviceEndpointId: z_2.ZodOptional<z_2.ZodString>;
-            azureResourceIds: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-            gcpServiceAttachmentUris: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-        }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-            provider: z_2.ZodEnum<["AWS", "AZURE", "GCP"]>;
-            region: z_2.ZodOptional<z_2.ZodString>;
-            vendor: z_2.ZodOptional<z_2.ZodString>;
-            arn: z_2.ZodOptional<z_2.ZodString>;
-            dnsDomain: z_2.ZodOptional<z_2.ZodString>;
-            dnsSubDomain: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-            serviceEndpointId: z_2.ZodOptional<z_2.ZodString>;
-            azureResourceIds: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-            gcpServiceAttachmentUris: z_2.ZodOptional<z_2.ZodArray<z_2.ZodString, "many">>;
-        }, z_2.ZodTypeAny, "passthrough">>>;
+        region: z.ZodOptional<z.ZodString>;
+        tier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        includeSampleData: z.ZodOptional<z.ZodBoolean>;
+        connectionName: z.ZodOptional<z.ZodString>;
+        connectionType: z.ZodOptional<z.ZodEnum<{
+            Cluster: "Cluster";
+            Kafka: "Kafka";
+            S3: "S3";
+            Https: "Https";
+            AWSKinesisDataStreams: "AWSKinesisDataStreams";
+            AWSLambda: "AWSLambda";
+            SchemaRegistry: "SchemaRegistry";
+            Sample: "Sample";
+        }>>;
+        connectionConfig: z.ZodOptional<z.ZodObject<{
+            bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
+            authentication: z.ZodOptional<z.ZodObject<{
+                mechanism: z.ZodOptional<z.ZodEnum<{
+                    PLAIN: "PLAIN";
+                    "SCRAM-256": "SCRAM-256";
+                    "SCRAM-512": "SCRAM-512";
+                    OAUTHBEARER: "OAUTHBEARER";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            security: z.ZodOptional<z.ZodObject<{
+                protocol: z.ZodOptional<z.ZodEnum<{
+                    SASL_SSL: "SASL_SSL";
+                    SASL_PLAINTEXT: "SASL_PLAINTEXT";
+                    SSL: "SSL";
+                }>>;
+            }, z.core.$loose>>;
+            clusterName: z.ZodOptional<z.ZodString>;
+            dbRoleToExecute: z.ZodOptional<z.ZodObject<{
+                role: z.ZodOptional<z.ZodString>;
+                type: z.ZodOptional<z.ZodEnum<{
+                    CUSTOM: "CUSTOM";
+                    BUILT_IN: "BUILT_IN";
+                }>>;
+            }, z.core.$strip>>;
+            aws: z.ZodOptional<z.ZodObject<{
+                roleArn: z.ZodOptional<z.ZodString>;
+                testBucket: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            url: z.ZodOptional<z.ZodString>;
+            headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+            provider: z.ZodOptional<z.ZodString>;
+            schemaRegistryUrls: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString]>, z.ZodTransform<string[], string | string[]>>>;
+            schemaRegistryAuthentication: z.ZodOptional<z.ZodObject<{
+                type: z.ZodOptional<z.ZodEnum<{
+                    USER_INFO: "USER_INFO";
+                    SASL_INHERIT: "SASL_INHERIT";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            networking: z.ZodOptional<z.ZodObject<{
+                access: z.ZodOptional<z.ZodObject<{
+                    type: z.ZodOptional<z.ZodString>;
+                    connectionId: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
+            }, z.core.$loose>>;
+        }, z.core.$loose>>;
+        processorName: z.ZodOptional<z.ZodString>;
+        pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
+        dlq: z.ZodOptional<z.ZodObject<{
+            connectionName: z.ZodString;
+            db: z.ZodString;
+            coll: z.ZodString;
+        }, z.core.$strip>>;
+        autoStart: z.ZodOptional<z.ZodBoolean>;
+        privateLinkConfig: z.ZodOptional<z.ZodObject<{
+            provider: z.ZodEnum<{
+                AWS: "AWS";
+                AZURE: "AZURE";
+                GCP: "GCP";
+            }>;
+            region: z.ZodOptional<z.ZodString>;
+            vendor: z.ZodOptional<z.ZodString>;
+            arn: z.ZodOptional<z.ZodString>;
+            dnsDomain: z.ZodOptional<z.ZodString>;
+            dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
+            serviceEndpointId: z.ZodOptional<z.ZodString>;
+            azureResourceIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+            gcpServiceAttachmentUris: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        }, z.core.$loose>>;
     };
     // (undocumented)
     description: string;
@@ -2380,15 +1343,27 @@ export class StreamsBuildTool extends StreamsToolBase {
 export class StreamsDiscoverTool extends StreamsToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z_2.ZodString;
-        action: z_2.ZodEnum<["list-workspaces", "inspect-workspace", "list-connections", "inspect-connection", "list-processors", "inspect-processor", "diagnose-processor", "get-networking"]>;
-        workspaceName: z_2.ZodOptional<z_2.ZodString>;
-        resourceName: z_2.ZodOptional<z_2.ZodString>;
-        responseFormat: z_2.ZodOptional<z_2.ZodEnum<["concise", "detailed"]>>;
-        cloudProvider: z_2.ZodOptional<z_2.ZodString>;
-        region: z_2.ZodOptional<z_2.ZodString>;
-        limit: z_2.ZodOptional<z_2.ZodNumber>;
-        pageNum: z_2.ZodOptional<z_2.ZodNumber>;
+        projectId: z.ZodString;
+        action: z.ZodEnum<{
+            "list-workspaces": "list-workspaces";
+            "inspect-workspace": "inspect-workspace";
+            "list-connections": "list-connections";
+            "inspect-connection": "inspect-connection";
+            "list-processors": "list-processors";
+            "inspect-processor": "inspect-processor";
+            "diagnose-processor": "diagnose-processor";
+            "get-networking": "get-networking";
+        }>;
+        workspaceName: z.ZodOptional<z.ZodString>;
+        resourceName: z.ZodOptional<z.ZodString>;
+        responseFormat: z.ZodOptional<z.ZodEnum<{
+            concise: "concise";
+            detailed: "detailed";
+        }>>;
+        cloudProvider: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+        limit: z.ZodOptional<z.ZodNumber>;
+        pageNum: z.ZodOptional<z.ZodNumber>;
     };
     // (undocumented)
     description: string;
@@ -2404,316 +1379,95 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 export class StreamsManageTool extends StreamsToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z_2.ZodString;
-        workspaceName: z_2.ZodString;
-        action: z_2.ZodEnum<["start-processor", "stop-processor", "modify-processor", "update-workspace", "update-connection", "accept-peering", "reject-peering"]>;
-        resourceName: z_2.ZodOptional<z_2.ZodString>;
-        tier: z_2.ZodOptional<z_2.ZodEnum<["SP2", "SP5", "SP10", "SP30", "SP50"]>>;
-        resumeFromCheckpoint: z_2.ZodOptional<z_2.ZodBoolean>;
-        startAtOperationTime: z_2.ZodOptional<z_2.ZodString>;
-        pipeline: z_2.ZodOptional<z_2.ZodArray<z_2.ZodRecord<z_2.ZodString, z_2.ZodUnknown>, "many">>;
-        dlq: z_2.ZodOptional<z_2.ZodObject<{
-            connectionName: z_2.ZodString;
-            db: z_2.ZodString;
-            coll: z_2.ZodString;
-        }, "strip", z_2.ZodTypeAny, {
-            coll: string;
-            connectionName: string;
-            db: string;
-        }, {
-            coll: string;
-            connectionName: string;
-            db: string;
+        projectId: z.ZodString;
+        workspaceName: z.ZodString;
+        action: z.ZodEnum<{
+            "start-processor": "start-processor";
+            "stop-processor": "stop-processor";
+            "modify-processor": "modify-processor";
+            "update-workspace": "update-workspace";
+            "update-connection": "update-connection";
+            "accept-peering": "accept-peering";
+            "reject-peering": "reject-peering";
+        }>;
+        resourceName: z.ZodOptional<z.ZodString>;
+        tier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
         }>>;
-        newName: z_2.ZodOptional<z_2.ZodString>;
-        newRegion: z_2.ZodOptional<z_2.ZodString>;
-        newTier: z_2.ZodOptional<z_2.ZodEnum<["SP2", "SP5", "SP10", "SP30", "SP50"]>>;
-        connectionConfig: z_2.ZodOptional<z_2.ZodObject<{
-            bootstrapServers: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodString, z_2.ZodArray<z_2.ZodString, "many">]>, string, string | string[]>>;
-            authentication: z_2.ZodOptional<z_2.ZodObject<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            security: z_2.ZodOptional<z_2.ZodObject<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            clusterName: z_2.ZodOptional<z_2.ZodString>;
-            dbRoleToExecute: z_2.ZodOptional<z_2.ZodObject<{
-                role: z_2.ZodOptional<z_2.ZodString>;
-                type: z_2.ZodOptional<z_2.ZodEnum<["BUILT_IN", "CUSTOM"]>>;
-            }, "strip", z_2.ZodTypeAny, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }>>;
-            aws: z_2.ZodOptional<z_2.ZodObject<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            url: z_2.ZodOptional<z_2.ZodString>;
-            headers: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodString>>;
-            provider: z_2.ZodOptional<z_2.ZodString>;
-            schemaRegistryUrls: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodArray<z_2.ZodString, "many">, z_2.ZodString]>, string[], string | string[]>>;
-            schemaRegistryAuthentication: z_2.ZodOptional<z_2.ZodObject<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            networking: z_2.ZodOptional<z_2.ZodObject<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-        }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-            bootstrapServers: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodString, z_2.ZodArray<z_2.ZodString, "many">]>, string, string | string[]>>;
-            authentication: z_2.ZodOptional<z_2.ZodObject<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            security: z_2.ZodOptional<z_2.ZodObject<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            clusterName: z_2.ZodOptional<z_2.ZodString>;
-            dbRoleToExecute: z_2.ZodOptional<z_2.ZodObject<{
-                role: z_2.ZodOptional<z_2.ZodString>;
-                type: z_2.ZodOptional<z_2.ZodEnum<["BUILT_IN", "CUSTOM"]>>;
-            }, "strip", z_2.ZodTypeAny, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }>>;
-            aws: z_2.ZodOptional<z_2.ZodObject<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            url: z_2.ZodOptional<z_2.ZodString>;
-            headers: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodString>>;
-            provider: z_2.ZodOptional<z_2.ZodString>;
-            schemaRegistryUrls: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodArray<z_2.ZodString, "many">, z_2.ZodString]>, string[], string | string[]>>;
-            schemaRegistryAuthentication: z_2.ZodOptional<z_2.ZodObject<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            networking: z_2.ZodOptional<z_2.ZodObject<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-        }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-            bootstrapServers: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodString, z_2.ZodArray<z_2.ZodString, "many">]>, string, string | string[]>>;
-            authentication: z_2.ZodOptional<z_2.ZodObject<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                mechanism: z_2.ZodOptional<z_2.ZodEnum<["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            security: z_2.ZodOptional<z_2.ZodObject<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                protocol: z_2.ZodOptional<z_2.ZodEnum<["SASL_SSL", "SASL_PLAINTEXT", "SSL"]>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            clusterName: z_2.ZodOptional<z_2.ZodString>;
-            dbRoleToExecute: z_2.ZodOptional<z_2.ZodObject<{
-                role: z_2.ZodOptional<z_2.ZodString>;
-                type: z_2.ZodOptional<z_2.ZodEnum<["BUILT_IN", "CUSTOM"]>>;
-            }, "strip", z_2.ZodTypeAny, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }, {
-                type?: "CUSTOM" | "BUILT_IN" | undefined;
-                role?: string | undefined;
-            }>>;
-            aws: z_2.ZodOptional<z_2.ZodObject<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                roleArn: z_2.ZodOptional<z_2.ZodString>;
-                testBucket: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            url: z_2.ZodOptional<z_2.ZodString>;
-            headers: z_2.ZodOptional<z_2.ZodRecord<z_2.ZodString, z_2.ZodString>>;
-            provider: z_2.ZodOptional<z_2.ZodString>;
-            schemaRegistryUrls: z_2.ZodOptional<z_2.ZodEffects<z_2.ZodUnion<[z_2.ZodArray<z_2.ZodString, "many">, z_2.ZodString]>, string[], string | string[]>>;
-            schemaRegistryAuthentication: z_2.ZodOptional<z_2.ZodObject<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                type: z_2.ZodOptional<z_2.ZodEnum<["USER_INFO", "SASL_INHERIT"]>>;
-                username: z_2.ZodOptional<z_2.ZodString>;
-                password: z_2.ZodOptional<z_2.ZodString>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-            networking: z_2.ZodOptional<z_2.ZodObject<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                access: z_2.ZodOptional<z_2.ZodObject<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, "passthrough", z_2.ZodTypeAny, z_2.objectOutputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">, z_2.objectInputType<{
-                    type: z_2.ZodOptional<z_2.ZodString>;
-                    connectionId: z_2.ZodOptional<z_2.ZodString>;
-                }, z_2.ZodTypeAny, "passthrough">>>;
-            }, z_2.ZodTypeAny, "passthrough">>>;
-        }, z_2.ZodTypeAny, "passthrough">>>;
-        peeringId: z_2.ZodOptional<z_2.ZodString>;
-        requesterAccountId: z_2.ZodOptional<z_2.ZodString>;
-        requesterVpcId: z_2.ZodOptional<z_2.ZodString>;
+        resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
+        startAtOperationTime: z.ZodOptional<z.ZodString>;
+        pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
+        dlq: z.ZodOptional<z.ZodObject<{
+            connectionName: z.ZodString;
+            db: z.ZodString;
+            coll: z.ZodString;
+        }, z.core.$strip>>;
+        newName: z.ZodOptional<z.ZodString>;
+        newRegion: z.ZodOptional<z.ZodString>;
+        newTier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        connectionConfig: z.ZodOptional<z.ZodObject<{
+            bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
+            authentication: z.ZodOptional<z.ZodObject<{
+                mechanism: z.ZodOptional<z.ZodEnum<{
+                    PLAIN: "PLAIN";
+                    "SCRAM-256": "SCRAM-256";
+                    "SCRAM-512": "SCRAM-512";
+                    OAUTHBEARER: "OAUTHBEARER";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            security: z.ZodOptional<z.ZodObject<{
+                protocol: z.ZodOptional<z.ZodEnum<{
+                    SASL_SSL: "SASL_SSL";
+                    SASL_PLAINTEXT: "SASL_PLAINTEXT";
+                    SSL: "SSL";
+                }>>;
+            }, z.core.$loose>>;
+            clusterName: z.ZodOptional<z.ZodString>;
+            dbRoleToExecute: z.ZodOptional<z.ZodObject<{
+                role: z.ZodOptional<z.ZodString>;
+                type: z.ZodOptional<z.ZodEnum<{
+                    CUSTOM: "CUSTOM";
+                    BUILT_IN: "BUILT_IN";
+                }>>;
+            }, z.core.$strip>>;
+            aws: z.ZodOptional<z.ZodObject<{
+                roleArn: z.ZodOptional<z.ZodString>;
+                testBucket: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            url: z.ZodOptional<z.ZodString>;
+            headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+            provider: z.ZodOptional<z.ZodString>;
+            schemaRegistryUrls: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString]>, z.ZodTransform<string[], string | string[]>>>;
+            schemaRegistryAuthentication: z.ZodOptional<z.ZodObject<{
+                type: z.ZodOptional<z.ZodEnum<{
+                    USER_INFO: "USER_INFO";
+                    SASL_INHERIT: "SASL_INHERIT";
+                }>>;
+                username: z.ZodOptional<z.ZodString>;
+                password: z.ZodOptional<z.ZodString>;
+            }, z.core.$loose>>;
+            networking: z.ZodOptional<z.ZodObject<{
+                access: z.ZodOptional<z.ZodObject<{
+                    type: z.ZodOptional<z.ZodString>;
+                    connectionId: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
+            }, z.core.$loose>>;
+        }, z.core.$loose>>;
+        peeringId: z.ZodOptional<z.ZodString>;
+        requesterAccountId: z.ZodOptional<z.ZodString>;
+        requesterVpcId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
@@ -2731,10 +1485,16 @@ export class StreamsManageTool extends StreamsToolBase {
 export class StreamsTeardownTool extends StreamsToolBase {
     // (undocumented)
     argsShape: {
-        projectId: z_2.ZodString;
-        resource: z_2.ZodEnum<["processor", "connection", "workspace", "privatelink", "peering"]>;
-        workspaceName: z_2.ZodOptional<z_2.ZodString>;
-        resourceName: z_2.ZodOptional<z_2.ZodString>;
+        projectId: z.ZodString;
+        resource: z.ZodEnum<{
+            processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
+            privatelink: "privatelink";
+            peering: "peering";
+        }>;
+        workspaceName: z.ZodOptional<z.ZodString>;
+        resourceName: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
@@ -2753,7 +1513,7 @@ export class SwitchConnectionTool extends MongoDBToolBase {
     constructor(params: ToolConstructorParams);
     // (undocumented)
     argsShape: {
-        connectionString: z_2.ZodOptional<z_2.ZodString>;
+        connectionString: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     description: string;
@@ -2769,7 +1529,7 @@ export class SwitchConnectionTool extends MongoDBToolBase {
 
 // @public (undocumented)
 export type ToolArgs<T extends ZodRawShape> = {
-    [K in keyof T]: z_2.infer<T[K]>;
+    [K in keyof T]: z.infer<T[K]>;
 };
 
 // Warning: (ae-forgotten-export) The symbol "UserConfig" needs to be exported by the entry point index.d.ts
@@ -2795,7 +1555,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(): ConnectionMetadata;
-    protected handleError(error: unknown, args: z_2.infer<z_2.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     isEnabled(): boolean;
@@ -2873,17 +1633,17 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
 // Warning: (ae-forgotten-export) The symbol "UpdateManyOutputSchema" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
-export type UpdateManyOutput = z_2.infer<z_2.ZodObject<typeof UpdateManyOutputSchema>>;
+export type UpdateManyOutput = z.infer<z.ZodObject<typeof UpdateManyOutputSchema>>;
 
 // @public (undocumented)
 export class UpdateManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        filter: z_2.ZodOptional<z_2.AnyZodObject>;
-        update: z_2.AnyZodObject;
-        upsert: z_2.ZodOptional<z_2.ZodBoolean>;
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
+        filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        update: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+        upsert: z.ZodOptional<z.ZodBoolean>;
+        database: z.ZodString;
+        collection: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -2893,12 +1653,12 @@ export class UpdateManyTool extends MongoDBToolBase {
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
-        database: z_2.ZodString;
-        collection: z_2.ZodString;
-        matchedCount: z_2.ZodNumber;
-        modifiedCount: z_2.ZodNumber;
-        upsertedCount: z_2.ZodNumber;
-        upsertedId: z_2.ZodOptional<z_2.ZodString>;
+        database: z.ZodString;
+        collection: z.ZodString;
+        matchedCount: z.ZodNumber;
+        modifiedCount: z.ZodNumber;
+        upsertedCount: z.ZodNumber;
+        upsertedId: z.ZodOptional<z.ZodString>;
     };
     // (undocumented)
     static toolName: string;

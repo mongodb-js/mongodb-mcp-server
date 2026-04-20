@@ -87,7 +87,8 @@ const writeConfigFile = (configPath: string, config: McpConfig): void => {
     } catch (err: unknown) {
         throw new Error(
             `Could not write config to ${resolvedPath}: ${formatError(err)}. ` +
-                "Check that the path is correct and you have permission to write to that location."
+                "Check that the path is correct and you have permission to write to that location.",
+            { cause: err }
         );
     }
     if (!fs.existsSync(resolvedPath)) {

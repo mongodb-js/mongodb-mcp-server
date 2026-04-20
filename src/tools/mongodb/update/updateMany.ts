@@ -77,7 +77,7 @@ export class UpdateManyTool extends MongoDBToolBase {
             upsert,
         });
 
-        let message = "";
+        let message: string;
         if (result.matchedCount === 0 && result.modifiedCount === 0 && result.upsertedCount === 0) {
             message = "No documents matched the filter.";
         } else {

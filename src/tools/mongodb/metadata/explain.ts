@@ -8,7 +8,7 @@ import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
 const ExplainOutputSchema = {
-    explainResult: z.record(z.unknown()),
+    explainResult: z.record(z.string(), z.unknown()),
     method: z.string(),
     verbosity: z.string(),
 };

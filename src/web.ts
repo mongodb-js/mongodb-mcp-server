@@ -9,49 +9,47 @@ export { createDefaultMetrics, type DefaultMetrics } from "./common/metrics/metr
 export { Server, type ServerOptions, type AnyToolClass, type ToolCategory } from "./server.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { LoggerBase, CompositeLogger, type EventMap, type DefaultEventMap } from "./common/logging/index.js";
-export { type Metrics, type MetricDefinitions } from "./common/metrics/metricsTypes.js";
-export { type TransportRequestContext } from "./transports/base.js";
-export {
-    type CommonProperties,
-    type TelemetryBoolSet,
-    type CommonStaticProperties,
-    type TelemetryResult,
-    type TelemetryToolMetadata,
-    type ConnectionMetadata,
-    type AtlasMetadata,
-    type AtlasLocalToolMetadata,
-    type PerfAdvisorToolMetadata,
-    type StreamsToolMetadata,
-    type AutoEmbeddingsUsageMetadata,
+export type { Metrics, MetricDefinitions } from "./common/metrics/metricsTypes.js";
+export type { TransportRequestContext } from "./transports/base.js";
+export type {
+    CommonProperties,
+    TelemetryBoolSet,
+    CommonStaticProperties,
+    TelemetryResult,
+    TelemetryToolMetadata,
+    ConnectionMetadata,
+    AtlasMetadata,
+    AtlasLocalToolMetadata,
+    PerfAdvisorToolMetadata,
+    StreamsToolMetadata,
 } from "./telemetry/types.js";
 export { Session, type SessionOptions, type SessionEvents } from "./common/session.js";
-export { type CustomizableServerOptions, type CustomizableSessionOptions } from "./transports/base.js";
-export { type LogLevel, type LogPayload, type LoggerType } from "./common/logging/loggingTypes.js";
+export type { CustomizableServerOptions, CustomizableSessionOptions } from "./transports/base.js";
+export type { LogLevel, LogPayload, LoggerType } from "./common/logging/loggingTypes.js";
 export { Keychain } from "./common/keychain.js";
 export type { Secret } from "./common/keychain.js";
-export {
-    type ConnectionErrorHandler,
-    type ConnectionErrorHandled,
-    type ConnectionErrorUnhandled,
-    type ConnectionErrorHandlerContext,
+export type {
+    ConnectionErrorHandler,
+    ConnectionErrorHandled,
+    ConnectionErrorUnhandled,
+    ConnectionErrorHandlerContext,
 } from "./common/connectionErrorHandler.js";
 export { Elicitation, type ElicitedInputResult } from "./elicitation.js";
-export {
-    ConnectionManager,
-    ConnectionStateConnected,
-    type ConnectionStateConnecting,
-    type ConnectionSettings,
-    type ConnectionManagerFactoryFn,
-    type AtlasClusterConnectionInfo,
-    type ConnectionStringInfo,
-    type AnyConnectionState,
-    type ConnectionStateDisconnected,
-    type ConnectionStateErrored,
-    type ConnectionManagerEvents,
-    type ConnectionState,
-    type OIDCConnectionAuthType,
-    type ConnectionTag,
+export type {
+    ConnectionStateConnecting,
+    ConnectionSettings,
+    ConnectionManagerFactoryFn,
+    AtlasClusterConnectionInfo,
+    ConnectionStringInfo,
+    AnyConnectionState,
+    ConnectionStateDisconnected,
+    ConnectionStateErrored,
+    ConnectionManagerEvents,
+    ConnectionState,
+    OIDCConnectionAuthType,
+    ConnectionTag,
 } from "./common/connectionManager.js";
+export { ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
 export {
     ExportsManager,
     type AvailableExport,
@@ -70,7 +68,7 @@ export {
     type ApiClientFactoryFn,
     type RequestContext,
 } from "./common/atlas/apiClient.js";
-export { type AtlasLocalClientFactoryFn, type LibraryLoader } from "./common/atlasLocal.js";
+export type { AtlasLocalClientFactoryFn, LibraryLoader } from "./common/atlasLocal.js";
 export { UIRegistry } from "./ui/registry/registry.js";
 export {
     ToolBase,
@@ -82,13 +80,13 @@ export {
     type ToolExecutionContext,
 } from "./tools/tool.js";
 export { Telemetry, type TelemetryEvents } from "./telemetry/telemetry.js";
-export { type TelemetryEvent, type BaseEvent } from "./telemetry/types.js";
+export type { TelemetryEvent, BaseEvent } from "./telemetry/types.js";
 export { EventCache } from "./telemetry/eventCache.js";
 export { ErrorCodes, MongoDBError } from "./common/errors.js";
-export { type AuthProvider, type Credentials } from "./common/atlas/auth/authProvider.js";
-export {
-    type ConnectionStringAuthType,
-    type ConnectionStringHostType,
-    type OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType,
+export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
+export type {
+    ConnectionStringAuthType,
+    ConnectionStringHostType,
+    OIDCConnectionAuthType as ConnectionInfoOIDCConnectionAuthType,
 } from "./common/connectionInfo.js";
-export { type PreviewFeature, previewFeatureValues } from "./common/schemas.js";
+export type { PreviewFeature, previewFeatureValues } from "./common/schemas.js";

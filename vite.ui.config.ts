@@ -178,9 +178,6 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: Object.fromEntries(components.map((name) => [name, resolve(entriesDir, `${name}.html`)])),
-            output: {
-                inlineDynamicImports: false,
-            },
         },
         assetsInlineLimit: 100000000,
         sourcemap: false,

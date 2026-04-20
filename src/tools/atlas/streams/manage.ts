@@ -70,7 +70,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
         // modify-processor options
         pipeline: z
-            .array(z.record(z.unknown()))
+            .array(z.record(z.string(), z.unknown()))
             .optional()
             .describe(
                 "New pipeline stages as an array of objects, e.g. " +

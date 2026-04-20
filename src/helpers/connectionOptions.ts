@@ -53,7 +53,8 @@ export function validateConnectionString(connectionString: string, looseValidati
         new ConnectionString(connectionString, { looseValidation });
     } catch (error) {
         throw new Error(
-            `Invalid connection string with error: ${error instanceof Error ? error.message : String(error)}`
+            `Invalid connection string with error: ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error }
         );
     }
 }
