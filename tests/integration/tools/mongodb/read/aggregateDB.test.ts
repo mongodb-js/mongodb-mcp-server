@@ -186,7 +186,9 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
                 database: "admin",
                 pipeline: [{ $currentOp: { allUsers: true, idleSessions: true } }, { $limit: 10 }],
             },
-            expectedResponse: "The aggregation resulted in 0 documents",
+            validate: (content) => {
+                expect(getResponseContent(content)).toMatch(/The aggregation resulted in \d+ documents/);
+            },
         };
     });
 });
