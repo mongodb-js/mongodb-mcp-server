@@ -36,8 +36,7 @@ import { Secret } from 'mongodb-redact';
 import type { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import { z } from 'zod/v4';
-import { default as z_2 } from 'zod';
+import { z } from 'zod';
 import type { ZodRawShape } from 'zod';
 
 // @public (undocumented)

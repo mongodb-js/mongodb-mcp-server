@@ -101,59 +101,59 @@ describeWithMongoDB("createIndex tool", (integration) => {
         const createIndexTool = tools.find((tool) => tool.name === "create-index");
         const definitionProperty = createIndexTool?.inputSchema.properties?.definition as {
             type: string;
-            items: { anyOf: Array<{ properties: Record<string, Record<string, unknown>> }> };
+            items: { oneOf: Array<{ properties: Record<string, Record<string, unknown>> }> };
         };
         expectDefined(definitionProperty);
 
         expect(definitionProperty.type).toEqual("array");
 
-        // We should see "classic", "vectorSearch", and "search" options in the anyOf array.
-        expect(definitionProperty.items.anyOf).toHaveLength(3);
+        // We should see "classic", "vectorSearch", and "search" options in the oneOf array.
+        expect(definitionProperty.items.oneOf).toHaveLength(3);
 
         // Classic index definition
-        expect(definitionProperty.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "classic" });
-        expect(definitionProperty.items.anyOf?.[0]?.properties?.keys).toBeDefined();
+        expect(definitionProperty.items.oneOf?.[0]?.properties?.type).toEqual({ type: "string", const: "classic" });
+        expect(definitionProperty.items.oneOf?.[0]?.properties?.keys).toBeDefined();
 
         // Vector search index definition
-        expect(definitionProperty.items.anyOf?.[1]?.properties?.type).toEqual({
+        expect(definitionProperty.items.oneOf?.[1]?.properties?.type).toEqual({
             type: "string",
             const: "vectorSearch",
         });
-        expect(definitionProperty.items.anyOf?.[1]?.properties?.fields).toBeDefined();
+        expect(definitionProperty.items.oneOf?.[1]?.properties?.fields).toBeDefined();
 
-        const fields = definitionProperty.items.anyOf?.[1]?.properties?.fields as {
+        const fields = definitionProperty.items.oneOf?.[1]?.properties?.fields as {
             type: string;
-            items: { anyOf: Array<{ type: string; properties: Record<string, Record<string, unknown>> }> };
+            items: { oneOf: Array<{ type: string; properties: Record<string, Record<string, unknown>> }> };
         };
 
         expect(fields.type).toEqual("array");
-        expect(fields.items.anyOf).toHaveLength(3);
-        expect(fields.items.anyOf?.[0]?.type).toEqual("object");
-        expect(fields.items.anyOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
-        expectDefined(fields.items.anyOf?.[0]?.properties?.path);
+        expect(fields.items.oneOf).toHaveLength(3);
+        expect(fields.items.oneOf?.[0]?.type).toEqual("object");
+        expect(fields.items.oneOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
+        expectDefined(fields.items.oneOf?.[0]?.properties?.path);
 
-        expect(fields.items.anyOf?.[1]?.type).toEqual("object");
-        expect(fields.items.anyOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
-        expectDefined(fields.items.anyOf?.[1]?.properties?.path);
-        expectDefined(fields.items.anyOf?.[1]?.properties?.quantization);
-        expectDefined(fields.items.anyOf?.[1]?.properties?.numDimensions);
-        expectDefined(fields.items.anyOf?.[1]?.properties?.similarity);
+        expect(fields.items.oneOf?.[1]?.type).toEqual("object");
+        expect(fields.items.oneOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
+        expectDefined(fields.items.oneOf?.[1]?.properties?.path);
+        expectDefined(fields.items.oneOf?.[1]?.properties?.quantization);
+        expectDefined(fields.items.oneOf?.[1]?.properties?.numDimensions);
+        expectDefined(fields.items.oneOf?.[1]?.properties?.similarity);
 
-        expect(fields.items.anyOf?.[2]?.type).toEqual("object");
-        expect(fields.items.anyOf?.[2]?.properties?.type).toEqual({ type: "string", const: "autoEmbed" });
-        expectDefined(fields.items.anyOf?.[2]?.properties?.path);
-        expectDefined(fields.items.anyOf?.[2]?.properties?.model);
-        expectDefined(fields.items.anyOf?.[2]?.properties?.modality);
+        expect(fields.items.oneOf?.[2]?.type).toEqual("object");
+        expect(fields.items.oneOf?.[2]?.properties?.type).toEqual({ type: "string", const: "autoEmbed" });
+        expectDefined(fields.items.oneOf?.[2]?.properties?.path);
+        expectDefined(fields.items.oneOf?.[2]?.properties?.model);
+        expectDefined(fields.items.oneOf?.[2]?.properties?.modality);
 
         // Atlas search index definition
-        expect(definitionProperty.items.anyOf?.[2]?.properties?.type).toEqual({
+        expect(definitionProperty.items.oneOf?.[2]?.properties?.type).toEqual({
             type: "string",
             const: "search",
         });
-        expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.analyzer);
-        expectDefined(definitionProperty.items.anyOf?.[2]?.properties?.mappings);
+        expectDefined(definitionProperty.items.oneOf?.[2]?.properties?.analyzer);
+        expectDefined(definitionProperty.items.oneOf?.[2]?.properties?.mappings);
 
-        const mappings = definitionProperty.items.anyOf?.[2]?.properties?.mappings as {
+        const mappings = definitionProperty.items.oneOf?.[2]?.properties?.mappings as {
             type: string;
             properties: Record<string, Record<string, unknown>>;
         };

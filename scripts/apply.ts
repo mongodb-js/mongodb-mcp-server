@@ -1,7 +1,7 @@
 import { createParseArgs } from "@mongosh/arg-parser/arg-parser";
 import fs from "fs/promises";
 import type { OpenAPIV3_1 } from "openapi-types";
-import z4 from "zod/v4";
+import { z } from "zod";
 
 /** Extracts the `#/components/schemas/<key>` segment from the preferred JSON response media type. */
 function extractResponseBodySchemaKey(responseObject: OpenAPIV3_1.ResponseObject): string | undefined {
@@ -88,7 +88,7 @@ function findObjectFromRef<T>(obj: T | OpenAPIV3_1.ReferenceObject, openapi: Ope
 async function main(): Promise<void> {
     const {
         parsed: { spec, file },
-    } = createParseArgs({ schema: z4.object({ spec: z4.string(), file: z4.string() }) })({
+    } = createParseArgs({ schema: z.object({ spec: z.string(), file: z.string() }) })({
         args: process.argv.slice(2),
     });
 

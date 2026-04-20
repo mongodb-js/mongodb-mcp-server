@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, type ToolResult } from "../../tool.js";
-import type { IndexDirection } from "mongodb";
-import { modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
+import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../mongodbSchemas.js";
 
 const CreateIndexOutputSchema = {
     database: z.string(),
@@ -206,7 +205,9 @@ Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoE
                     z
                         .object({
                             type: z.literal("classic"),
-                            keys: z.object({}).catchall(z.custom<IndexDirection>()).describe("The index definition"),
+                            keys: z
+                                .record(z.string(), IndexDirectionSchema.describe("The index key and its direction"))
+                                .describe("The index definition"),
                         })
                         .describe("Definition for a MongoDB index (e.g. ascending/descending/geospatial/text)."),
                     this.vectorSearchIndexDefinition,

@@ -42,8 +42,9 @@ export const AtlasArgs = {
             .max(64, "Cluster name must be 64 characters or less")
             .regex(ALLOWED_CLUSTER_NAME_CHARACTERS_REGEX, ALLOWED_CLUSTER_NAME_CHARACTERS_ERROR),
 
-    connectionType: (): z.ZodDefault<z.ZodEnum<["standard", "private", "privateEndpoint"]>> =>
-        z.enum(["standard", "private", "privateEndpoint"]).default("standard"),
+    connectionType: (): z.ZodDefault<
+        z.ZodEnum<{ standard: "standard"; private: "private"; privateEndpoint: "privateEndpoint" }>
+    > => z.enum(["standard", "private", "privateEndpoint"]).default("standard"),
 
     projectName: (): z.ZodString =>
         z
@@ -59,9 +60,9 @@ export const AtlasArgs = {
             .max(100, "Username must be 100 characters or less")
             .regex(ALLOWED_USERNAME_CHARACTERS_REGEX, ALLOWED_USERNAME_CHARACTERS_ERROR),
 
-    ipAddress: (): z.ZodString => z.string().ip({ version: "v4" }),
+    ipAddress: (): z.ZodString => z.string().ipv4(),
 
-    cidrBlock: (): z.ZodString => z.string().cidr(),
+    cidrBlock: (): z.ZodString => z.string().cidrv4(),
 
     region: (): z.ZodString =>
         z
@@ -82,6 +83,8 @@ function toEJSON<T extends object | undefined>(value: T): T {
     return EJSON.deserialize(value, { relaxed: false }) as T;
 }
 
-export function zEJSON(): z.AnyZodObject {
-    return z.object({}).passthrough().transform(toEJSON) as unknown as z.AnyZodObject;
+// The runtime schema is a ZodPipe (object → EJSON transform), but we advertise
+// it as a ZodRecord so the public API surface renders cleanly as { [key: string]: unknown }
+export function zEJSON(): z.ZodRecord<z.ZodString, z.ZodUnknown> {
+    return z.object({}).loose().transform(toEJSON) as unknown as z.ZodRecord<z.ZodString, z.ZodUnknown>;
 }
