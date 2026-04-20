@@ -32,7 +32,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
                     { $group: { _id: null, value: { $sum: "$storageStats.size" } } },
                 ],
                 {
-                    signal,
+                    ...this.getOperationOptions(signal),
                 }
             )
             .toArray()) as [{ value: number }];

@@ -97,7 +97,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                                         collection,
                                         pipeline,
                                         {
-                                            signal,
+                                            ...this.getOperationOptions(signal),
                                         },
                                         { writeConcern: undefined }
                                     )
@@ -133,7 +133,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
-                    signal,
+                    ...this.getOperationOptions(signal),
                 });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
@@ -248,7 +248,11 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
                 })
-                .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)
+                .maxTimeMS(
+                    this.config.maxTimeMS !== undefined
+                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
+                        : AGG_COUNT_MAX_TIME_MS_CAP
+                )
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

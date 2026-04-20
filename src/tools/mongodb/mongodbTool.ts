@@ -47,6 +47,17 @@ export abstract class MongoDBToolBase extends ToolBase {
         return this.session.serviceProvider;
     }
 
+    /**
+     * Returns common operation options (signal, maxTimeMS) to pass to service provider methods.
+     * If `maxTimeMS` is configured, it will be included in the returned options.
+     */
+    protected getOperationOptions(signal?: AbortSignal): { signal?: AbortSignal; maxTimeMS?: number } {
+        return {
+            ...(signal && { signal }),
+            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+        };
+    }
+
     public register(server: Server): boolean {
         this.server = server;
         return super.register(server);
