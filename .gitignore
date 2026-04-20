@@ -20,3 +20,7 @@ coverage
 # Development tool files
 .yalc
 yalc.lock
+
+# Ignoring AI Tools directories
+.claude/
+.kiro/
