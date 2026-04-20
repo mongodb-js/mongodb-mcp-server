@@ -308,15 +308,17 @@ export abstract class TransportRunnerBase<
             sessionOptions?.connectionManager ??
             (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
 
+        const { apiClientId, apiClientSecret } = userConfig;
         const apiClientOptions: ApiClientOptions = {
             baseUrl: userConfig.apiBaseUrl,
+            credentials:
+                apiClientId && apiClientSecret
+                    ? {
+                          clientId: apiClientId,
+                          clientSecret: apiClientSecret,
+                      }
+                    : undefined,
         };
-        if (userConfig.apiClientId && userConfig.apiClientSecret) {
-            apiClientOptions.credentials = {
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            };
-        }
         const apiClient = new ApiClient(apiClientOptions, logger);
 
         const session = new Session({
