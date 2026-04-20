@@ -111,7 +111,7 @@
     "@microsoft/api-extractor": "^7.58.2",
     "@modelcontextprotocol/inspector": "^0.21.2",
     "@mongodb-js/oidc-mock-provider": "^0.13.7",
-    "@redocly/cli": "^2.28.0",
+    "@redocly/cli": "^2.29.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.5.0",
