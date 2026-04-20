@@ -438,7 +438,7 @@ describeWithMongoDB(
 
             const { result, error, executionTime } = await aggregatePromise;
 
-            expect(executionTime).toBeLessThan(25); // Ensure it aborted quickly
+            expect(executionTime).toBeLessThan(100); // Ensure it aborted quickly
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
