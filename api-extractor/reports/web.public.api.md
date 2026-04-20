@@ -780,7 +780,7 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
 export class Session extends EventEmitter<SessionEvents> {
     constructor(input: SessionOptions<UserConfig>);
     // (undocumented)
-    readonly apiClient?: ApiClient;
+    readonly apiClient: ApiClient;
     // (undocumented)
     assertSearchSupported(): Promise<void>;
     // (undocumented)
@@ -836,7 +836,7 @@ export type SessionEvents = {
 // @public (undocumented)
 export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     // (undocumented)
-    apiClient?: ApiClient;
+    apiClient: ApiClient;
     // (undocumented)
     atlasLocalClient?: Client;
     // (undocumented)
