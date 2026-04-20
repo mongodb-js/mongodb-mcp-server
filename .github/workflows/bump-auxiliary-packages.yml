@@ -46,9 +46,12 @@ jobs:
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # 8.1.1
         id: create-pr
         with:
-          title: "chore: bump ${{ steps.bump.outputs.SUMMARY }}"
+          title: "chore: bump auxiliary packages"
           token: ${{ steps.app-token.outputs.token }}
-          commit-message: "chore: bump ${{ steps.bump.outputs.SUMMARY }}"
+          commit-message: |
+            chore: bump auxiliary packages
+
+            ${{ steps.bump.outputs.SUMMARY }}
           body: |
             This PR bumps auxiliary package versions: ${{ steps.bump.outputs.SUMMARY }}.
             Once merged, the new versions will be published to npm.

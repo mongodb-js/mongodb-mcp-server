@@ -18,7 +18,7 @@ import semver from "semver";
 import type { ReleaseType } from "semver";
 import { z } from "zod";
 
-export const BUMP_COMMIT_PREFIX = "chore: bump ";
+export const BUMP_COMMIT_PREFIX = "chore: bump auxiliary packages";
 const ROOT = join(import.meta.dirname, "..");
 
 const BUMP_ORDER: Record<string, number> = { major: 3, minor: 2, patch: 1 };
