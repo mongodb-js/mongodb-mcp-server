@@ -11,26 +11,24 @@ import {
 } from "../../src/telemetry/telemetry.js";
 import type { BaseEvent, CommonProperties, TelemetryEvent, TelemetryResult } from "../../src/telemetry/types.js";
 import { EventCache } from "../../src/telemetry/eventCache.js";
-import { afterEach, beforeAll, beforeEach, describe, it, vi, expect } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vitest";
 import { NullLogger } from "../../src/common/logging/nullLogger.js";
-import type { MockedFunction } from "vitest";
+import type { MockedFunction, MockInstance } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
 import { defaultTestConfig, expectDefined } from "../integration/helpers.js";
 import { Keychain } from "../../src/common/keychain.js";
 import { type UserConfig } from "../../src/common/config/userConfig.js";
 
-// Mock the ApiClient to avoid real API calls
-vi.mock("../../src/common/atlas/apiClient.js");
-const MockApiClient = vi.mocked(ApiClient);
-
-// Mock EventCache to control and verify caching behavior
-vi.mock("../../src/telemetry/eventCache.js");
-const MockEventCache = vi.mocked(EventCache);
-
 // Mock container detection to avoid file I/O in tests
 vi.mock("../../src/helpers/container.js", () => ({
     detectContainerEnv: vi.fn().mockResolvedValue(false),
 }));
+
+// Restore any spies installed by individual describe blocks so tests in
+// different blocks don't interfere with each other.
+afterAll(() => {
+    vi.restoreAllMocks();
+});
 
 describe("nextBackoffMs", () => {
     it("should double the current backoff", () => {
@@ -127,43 +125,44 @@ describe("Telemetry", () => {
         config = { ...defaultTestConfig, telemetry: "enabled" };
         vi.clearAllMocks();
 
-        // Setup mocked API client
-        mockApiClient = vi.mocked(
-            new MockApiClient({ baseUrl: "" }, new NullLogger())
-        ) as unknown as typeof mockApiClient;
-        mockApiClient.sendEvents = vi.fn().mockResolvedValue(undefined);
-        mockApiClient.validateAuthConfig = vi.fn().mockReturnValue(Promise.resolve());
-        mockApiClient.isAuthConfigured = vi.fn().mockReturnValue(true);
+        mockApiClient = {
+            sendEvents: vi.fn().mockResolvedValue(undefined),
+            validateAuthConfig: vi.fn().mockReturnValue(Promise.resolve()),
+            isAuthConfigured: vi.fn().mockReturnValue(true),
+        };
 
-        // Setup a stateful mocked EventCache backed by _cachedEvents
-        mockEventCache = new MockEventCache() as unknown as typeof mockEventCache;
-        Object.defineProperty(mockEventCache, "size", { get: () => _cachedEvents.length, configurable: true });
-        mockEventCache.getEvents = vi.fn().mockImplementation(() => _cachedEvents.map((event, id) => ({ id, event })));
-        mockEventCache.removeEvents = vi.fn().mockImplementation((ids: number[]) => {
-            _cachedEvents = _cachedEvents.filter((_, i) => !ids.includes(i));
-        });
-        mockEventCache.appendEvents = vi.fn().mockImplementation((events: BaseEvent[]) => {
-            _cachedEvents.push(...events);
-        });
-        mockEventCache.processOldestBatch = vi
-            .fn()
-            .mockImplementation(
-                async <T>(
-                    batchSize: number,
-                    processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
-                ): Promise<T | undefined> => {
-                    const allEvents = mockEventCache.getEvents();
-                    const batch = allEvents.slice(0, batchSize);
-                    if (batch.length === 0) return undefined;
+        // Stateful plain-object mock for EventCache backed by _cachedEvents.
+        mockEventCache = {
+            get size(): number {
+                return _cachedEvents.length;
+            },
+            getEvents: vi.fn().mockImplementation(() => _cachedEvents.map((event, id) => ({ id, event }))),
+            removeEvents: vi.fn().mockImplementation((ids: number[]) => {
+                _cachedEvents = _cachedEvents.filter((_, i) => !ids.includes(i));
+            }),
+            appendEvents: vi.fn().mockImplementation((events: BaseEvent[]) => {
+                _cachedEvents.push(...events);
+            }),
+            processOldestBatch: vi
+                .fn()
+                .mockImplementation(
+                    async <T>(
+                        batchSize: number,
+                        processor: (events: BaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
+                    ): Promise<T | undefined> => {
+                        const allEvents = mockEventCache.getEvents();
+                        const batch = allEvents.slice(0, batchSize);
+                        if (batch.length === 0) return undefined;
 
-                    const { removeProcessed, result } = await processor(batch.map((e) => e.event));
-                    if (removeProcessed) {
-                        mockEventCache.removeEvents(batch.map((e) => e.id));
+                        const { removeProcessed, result } = await processor(batch.map((e) => e.event));
+                        if (removeProcessed) {
+                            mockEventCache.removeEvents(batch.map((e) => e.id));
+                        }
+                        return result;
                     }
-                    return result;
-                }
-            );
-        MockEventCache.getInstance = vi.fn().mockReturnValue(mockEventCache as unknown as EventCache);
+                ),
+        } as unknown as typeof mockEventCache;
+        vi.spyOn(EventCache, "getInstance").mockReturnValue(mockEventCache as unknown as EventCache);
 
         mockDeviceId = {
             get: vi.fn().mockResolvedValue("test-device-id"),
@@ -579,15 +578,8 @@ describe("Telemetry", () => {
      * from being sent twice when sendBatch is triggered concurrently.
      */
     describe("when sendBatch is triggered concurrently", () => {
-        let RealEventCache: typeof EventCache;
-
-        beforeAll(async () => {
-            const mod = await vi.importActual<{ EventCache: typeof EventCache }>("../../src/telemetry/eventCache.js");
-            RealEventCache = mod.EventCache;
-        });
-
         it("should not send the same cached event twice when two batches overlap", async () => {
-            const eventCache = new RealEventCache();
+            const eventCache = new EventCache();
             const CACHED_MARKER = "cached-race-test";
 
             eventCache.appendEvents([createTestEvent({ command: CACHED_MARKER, component: "cached" })]);
@@ -611,5 +603,122 @@ describe("Telemetry", () => {
             }
             expect(cachedEventSendCount, "Cached event should be sent exactly once").toBe(1);
         });
+    });
+});
+
+/**
+ * Regression tests for telemetry dispatch when Atlas credentials are / are not
+ * configured. Telemetry must be emitted in both cases:
+ *   - with credentials    -> POST to `api/private/v1.0/telemetry/events` (auth)
+ *   - without credentials -> POST to `api/private/unauth/telemetry/events`
+ */
+describe("Telemetry credentials handling", () => {
+    const API_BASE = "https://api.test.com";
+    const USER_AGENT = "test-user-agent";
+
+    let fetchSpy: MockInstance<typeof fetch>;
+
+    const mockDeviceId = {
+        get: vi.fn().mockResolvedValue("test-device-id"),
+    } as unknown as DeviceId;
+
+    function createMockSession(apiClient: ApiClient): Session {
+        return {
+            apiClient,
+            sessionId: "test-session-id",
+            mcpClient: { name: "test-agent", version: "1.0.0" },
+            logger: new NullLogger(),
+            keychain: new Keychain(),
+        } as unknown as Session;
+    }
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        fetchSpy.mockRestore();
+        vi.clearAllMocks();
+    });
+
+    it.each([
+        {
+            label: "with atlas credentials",
+            credentials: { clientId: "cid", clientSecret: "csec" },
+            expectedPath: "/api/private/v1.0/telemetry/events",
+            expectAuthHeader: true,
+        },
+        {
+            label: "without atlas credentials",
+            credentials: {},
+            expectedPath: "/api/private/unauth/telemetry/events",
+            expectAuthHeader: false,
+        },
+    ])("sends telemetry events $label", async ({ credentials, expectedPath, expectAuthHeader }) => {
+        const apiClient = new ApiClient(
+            {
+                baseUrl: API_BASE,
+                credentials,
+                userAgent: USER_AGENT,
+            },
+            new NullLogger()
+        );
+
+        // When credentials are present, short-circuit the OAuth token fetch
+        // so the test stays focused on the telemetry dispatch rather than the
+        // auth flow (which is covered elsewhere).
+        if (credentials.clientId) {
+            expect(apiClient.isAuthConfigured()).toBe(true);
+            apiClient.authProvider!.getAuthHeaders = vi.fn().mockResolvedValue({ Authorization: "Bearer mockToken" });
+        } else {
+            expect(apiClient.isAuthConfigured()).toBe(false);
+        }
+
+        const config: UserConfig = { ...defaultTestConfig, telemetry: "enabled" };
+        const telemetry = Telemetry.create(createMockSession(apiClient), config, mockDeviceId, {
+            eventCache: new EventCache(),
+        });
+        await telemetry.setupPromise;
+
+        const emitCompleted = new Promise<void>((resolve) => {
+            telemetry.events.once("events-emitted", resolve);
+            telemetry.events.once("events-send-failed", resolve);
+            telemetry.events.once("events-skipped", resolve);
+        });
+        telemetry.emitEvents([
+            {
+                timestamp: new Date().toISOString(),
+                source: "mdbmcp",
+                properties: {
+                    component: "test-component",
+                    duration_ms: 0,
+                    result: "success" as TelemetryResult,
+                    category: "test",
+                    command: "test-command",
+                },
+            },
+        ]);
+        await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+        await emitCompleted;
+
+        const matchingCall = fetchSpy.mock.calls.find(([input]) => {
+            const href = input instanceof URL ? input.href : typeof input === "string" ? input : input.url;
+            return href === new URL(expectedPath, API_BASE).href;
+        });
+
+        expect(matchingCall, `expected a POST to ${expectedPath}`).toBeDefined();
+
+        const [, init] = matchingCall!;
+        expect(init?.method).toBe("POST");
+        const headers = init?.headers as Record<string, string>;
+        expect(headers["Content-Type"]).toBe("application/json");
+        expect(headers["User-Agent"]).toBe(USER_AGENT);
+        if (expectAuthHeader) {
+            expect(headers.Authorization).toBe("Bearer mockToken");
+        } else {
+            expect(headers.Authorization).toBeUndefined();
+        }
     });
 });
