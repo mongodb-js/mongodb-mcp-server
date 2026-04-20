@@ -44,7 +44,7 @@ export class MCPHttpServer<
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    protected readonly userConfig: UserConfig;
+    protected readonly userConfig: TUserConfig;
     private readonly metrics: Metrics<DefaultMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
 
