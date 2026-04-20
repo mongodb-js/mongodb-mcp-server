@@ -84,7 +84,7 @@ jobs:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
           private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
       - name: Create Issue
-        uses: imjohnbo/issue-bot@572eed14422c4d6ca37e870f97e7da209422f5bd
+        uses: imjohnbo/issue-bot@3188c6ce06249206709d3b1f274d0d4c5a521601
         with:
           token: ${{ steps.app-token.outputs.token }}
           title: Release Failure for Docker Image on ${{ steps.release-meta.outputs.DATE }}

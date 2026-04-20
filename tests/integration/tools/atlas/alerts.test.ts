@@ -10,6 +10,9 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
         expect(listAlerts.inputSchema.type).toBe("object");
         expectDefined(listAlerts.inputSchema.properties);
         expect(listAlerts.inputSchema.properties).toHaveProperty("projectId");
+        expect(listAlerts.inputSchema.properties).toHaveProperty("status");
+        expect(listAlerts.inputSchema.properties).toHaveProperty("limit");
+        expect(listAlerts.inputSchema.properties).toHaveProperty("pageNum");
     });
 
     withProject(integration, ({ getProjectId }) => {
@@ -20,13 +23,42 @@ describeWithAtlas("atlas-list-alerts", (integration) => {
             });
 
             const content = getResponseContent(response.content);
-            // check that there are alerts or no alerts
-            if (content.includes("Found alerts in project")) {
+            if (content.includes("Found")) {
                 expect(content).toContain("<untrusted-user-data-");
-                // expect projectId in the content
                 expect(content).toContain(getProjectId());
+                expect(content).toContain("total:");
             } else {
-                expect(content).toContain("No alerts found");
+                expect(content).toContain("No alerts with status");
+            }
+        });
+
+        it("returns alerts with explicit pagination parameters", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "atlas-list-alerts",
+                arguments: { projectId: getProjectId(), limit: 1, pageNum: 1 },
+            });
+
+            const content = getResponseContent(response.content);
+            if (content.includes("Found")) {
+                expect(content).toContain("<untrusted-user-data-");
+                expect(content).toContain("total:");
+            } else {
+                expect(content).toContain("No alerts with status");
+            }
+        });
+
+        it("returns alerts filtered by status", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "atlas-list-alerts",
+                arguments: { projectId: getProjectId(), status: "CLOSED" },
+            });
+
+            const content = getResponseContent(response.content);
+            if (content.includes("Found")) {
+                expect(content).toContain("<untrusted-user-data-");
+                expect(content).toContain('"CLOSED"');
+            } else {
+                expect(content).toContain('No alerts with status "CLOSED"');
             }
         });
     });

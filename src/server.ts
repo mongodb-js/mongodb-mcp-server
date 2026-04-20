@@ -347,7 +347,8 @@ export class Server<
             } catch (error) {
                 throw new Error(
                     "Connection string validation failed with error: " +
-                        (error instanceof Error ? error.message : String(error))
+                        (error instanceof Error ? error.message : String(error)),
+                    { cause: error }
                 );
             }
         }
@@ -371,14 +372,17 @@ export class Server<
                         });
                     }
                 } catch (error) {
-                    throw new Error(`Invalid apiBaseUrl: ${error instanceof Error ? error.message : String(error)}`);
+                    throw new Error(`Invalid apiBaseUrl: ${error instanceof Error ? error.message : String(error)}`, {
+                        cause: error,
+                    });
                 }
 
                 await this.session.apiClient.validateAuthConfig();
             } catch (error) {
                 if (this.userConfig.connectionString === undefined) {
                     throw new Error(
-                        `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`
+                        `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
+                        { cause: error }
                     );
                 }
 

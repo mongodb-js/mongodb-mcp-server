@@ -67,7 +67,7 @@ function extractToolInformation(): ToolInfo[] {
                 operationType: ToolClass.operationType,
             });
         } catch (error) {
-            throw new Error(`Error instantiating tool ${ToolClass.name}: ${String(error)}`);
+            throw new Error(`Error instantiating tool ${ToolClass.name}: ${String(error)}`, { cause: error });
         }
     }
 

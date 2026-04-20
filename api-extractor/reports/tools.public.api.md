@@ -1732,7 +1732,10 @@ export class InspectClusterTool extends AtlasToolBase {
 export class ListAlertsTool extends AtlasToolBase {
     // (undocumented)
     argsShape: {
-        projectId: ZodString;
+        projectId: z_2.ZodString;
+        status: z_2.ZodDefault<z_2.ZodEnum<["OPEN", "TRACKING", "CLOSED"]>>;
+        limit: z_2.ZodDefault<z_2.ZodNumber>;
+        pageNum: z_2.ZodDefault<z_2.ZodNumber>;
     };
     // (undocumented)
     description: string;
@@ -1813,11 +1816,11 @@ export class ListDatabasesTool extends MongoDBToolBase {
             name: z_2.ZodString;
             size: z_2.ZodNumber;
         }, "strip", z_2.ZodTypeAny, {
-            name: string;
             size: number;
+            name: string;
         }, {
-            name: string;
             size: number;
+            name: string;
         }>, "many">;
         totalCount: z_2.ZodNumber;
     };
