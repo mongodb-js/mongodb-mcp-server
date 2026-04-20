@@ -76,7 +76,7 @@
     "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
     "prettier": "prettier",
     "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\" && pnpm run check:api",
-    "check:api": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"api-extractor run --config api-extractor/api-extractor-tools.json\" \"api-extractor run --config api-extractor/api-extractor-ui.json\"",
+    "check:api": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"api-extractor run --config api-extractor/api-extractor-tools.json\" \"api-extractor run --config api-extractor/api-extractor-ui.json\" || (echo '\\nPublic API check failed. If you intended to change the public API, run:\\n\\n  pnpm run update:api\\n' && exit 1)",
     "check:lint": "eslint .",
     "check:dependencies": "knip --strict",
     "check:format": "prettier -c .",
