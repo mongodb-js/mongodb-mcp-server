@@ -84,7 +84,7 @@ If you use [colima](https://github.com/abiosoft/colima) to run Docker on Mac, yo
 
 ### Restart Server
 
-- Run `pnpm run build` to re-build the server if you made changes to the code
+- Run `pnpm run -r build` to re-build the server if you made changes to the code
 - Press `Cmd + Shift + P` and type List MCP Servers
 - Select the MCP server you want to restart
 - Select the option to restart the server

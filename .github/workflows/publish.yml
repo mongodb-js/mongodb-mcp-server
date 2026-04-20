@@ -93,7 +93,7 @@ jobs:
       - name: Build
         run: |
           pnpm install --frozen-lockfile
-          pnpm run build
+          pnpm run -r build
       - name: Publish to NPM
         run: |
           pnpm publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
