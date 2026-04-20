@@ -42,7 +42,7 @@ export {
     createDefaultMcpHttpServer,
     type MCPHttpServerConstructorArgs,
     type CreateMcpHttpServerFn,
-    type MonitoringServer,
+    MonitoringServer,
     createDefaultMonitoringServer,
     type StreamableHttpTransportRunnerConfig,
     type CreateMonitoringServerFn,
