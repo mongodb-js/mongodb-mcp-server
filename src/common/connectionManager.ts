@@ -29,7 +29,10 @@ export interface ConnectionState {
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
-const MCP_TEST_DATABASE = "#mongodb-mcp";
+// Fallback database for search index check when no accessible database is found
+const MCP_FALLBACK_TEST_DATABASE = "#mongodb-mcp";
+// System databases that should be skipped when searching for accessible databases
+const SYSTEM_DATABASES = new Set(["admin", "local", "config", "$external"]);
 
 export const defaultDriverOptions: ConnectionInfo["driverOptions"] = {
     readConcern: {
@@ -62,7 +65,10 @@ export class ConnectionStateConnected implements ConnectionState {
                 // with a cursor otherwise will throw an Error.
                 // the Search Index Management Service might not be ready yet, but
                 // we assume that the agent can retry in that situation.
-                await this.serviceProvider.getSearchIndexes(MCP_TEST_DATABASE, "test");
+                // Try to find an accessible database dynamically instead of using
+                // a hardcoded database name that may not exist or be accessible.
+                const databaseName = await this.findAccessibleDatabase();
+                await this.serviceProvider.getSearchIndexes(databaseName, "test");
                 this._isSearchSupported = true;
             } catch {
                 this._isSearchSupported = false;
@@ -70,6 +76,27 @@ export class ConnectionStateConnected implements ConnectionState {
         }
 
         return this._isSearchSupported;
+    }
+
+    /**
+     * Find an accessible database for search index operations.
+     * Tries to list databases and find a non-system database that the user can access.
+     */
+    private async findAccessibleDatabase(): Promise<string> {
+        try {
+            // List all databases from admin
+            const dbs = (await this.serviceProvider.listDatabases("")).databases as {
+                name: string;
+            }[];
+            // Find first non-system database
+            const accessibleDb = dbs.find((db) => !SYSTEM_DATABASES.has(db.name));
+            if (accessibleDb) {
+                return accessibleDb.name;
+            }
+        } catch {
+            // If listing databases fails (e.g., permission issues), fall back to default
+        }
+        return MCP_FALLBACK_TEST_DATABASE;
     }
 }
 
