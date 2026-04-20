@@ -115,13 +115,13 @@
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.5.0",
     "@types/proper-lockfile": "^4.1.4",
-    "@types/react": "^18.3.0",
+    "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.3",
     "@types/semver": "^7.7.0",
     "@types/yargs-parser": "^21.0.3",
     "@typescript-eslint/parser": "^8.58.1",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.4",
     "@vitest/eslint-plugin": "^1.6.15",
     "ai": "^6.0.158",
     "concurrently": "^9.2.1",
@@ -153,7 +153,7 @@
     "vite": "^8.0.8",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.4"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.0.2",
@@ -182,7 +182,7 @@
     "semver": "^7.7.2",
     "ts-levenshtein": "^1.0.7",
     "yaml": "^2.8.1",
-    "zod": "^3.25.76"
+    "zod": "^4.0.0"
   },
   "peerDependencies": {
     "@types/express": "^5.0.3"
@@ -198,12 +198,14 @@
     "overrides": {
       "mongodb": "^7.1.0",
       "kerberos": "^7.0.0",
-      "bson": "^7.2.0"
+      "bson": "^7.2.0",
+      "zod": "^4.0.0"
     }
   },
   "overrides": {
     "mongodb": "^7.1.0",
     "kerberos": "^7.0.0",
-    "bson": "^7.2.0"
+    "bson": "^7.2.0",
+    "zod": "^4.0.0"
   }
 }

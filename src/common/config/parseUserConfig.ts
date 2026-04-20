@@ -8,7 +8,7 @@ import {
     CliOptionsSchema,
     UnknownArgumentError,
 } from "@mongosh/arg-parser/arg-parser";
-import { z as z4 } from "zod/v4";
+import { z } from "zod";
 import * as levenshteinModule from "ts-levenshtein";
 const levenshtein = levenshteinModule.default;
 
@@ -35,7 +35,7 @@ export function parseUserConfig({
     parserOptions = defaultParserOptions,
 }: {
     args: string[];
-    overrides?: z4.ZodRawShape;
+    overrides?: z.ZodRawShape;
     parserOptions?: ParserOptions;
 }): {
     warnings: string[];
@@ -43,7 +43,7 @@ export function parseUserConfig({
     error: string | undefined;
 } {
     const schema = overrides
-        ? z4.object({
+        ? z.object({
               ...UserConfigSchema.shape,
               ...overrides,
           })
@@ -106,9 +106,9 @@ function parseUserConfigSources<T extends typeof UserConfigSchema>({
 }): {
     error: string | undefined;
     warnings: string[];
-    parsed: Partial<CliOptions & z4.infer<T>>;
+    parsed: Partial<CliOptions & z.infer<T>>;
 } {
-    let parsed: Partial<CliOptions & z4.infer<T>>;
+    let parsed: Partial<CliOptions & z.infer<T>>;
     let deprecated: Record<string, string>;
     try {
         const { parsed: parsedResult, deprecated: deprecatedResult } = createParseArgsWithCliOptions({

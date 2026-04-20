@@ -8,7 +8,7 @@ const CollectionIndexesOutputSchema = {
     classicIndexes: z.array(
         z.object({
             name: z.string(),
-            key: z.record(z.unknown()),
+            key: z.record(z.string(), z.unknown()),
         })
     ),
     searchIndexes: z.array(
@@ -17,7 +17,7 @@ const CollectionIndexesOutputSchema = {
             type: z.string(),
             status: z.string(),
             queryable: z.boolean(),
-            latestDefinition: z.record(z.unknown()),
+            latestDefinition: z.record(z.string(), z.unknown()),
         })
     ),
     classicIndexesCount: z.number(),
