@@ -19,7 +19,8 @@ import { Elicitation } from "../elicitation.js";
 import type { AtlasLocalClientFactoryFn } from "../common/atlasLocal.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import { ApiClient, type ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import type { ApiClientOptions, ApiClientFactoryFn } from "../common/atlas/apiClient.js";
+import { ApiClient } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
 import { createDefaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
@@ -307,19 +308,16 @@ export abstract class TransportRunnerBase<
             sessionOptions?.connectionManager ??
             (await this.createConnectionManager({ logger: logger, deviceId: this.deviceId, userConfig }));
 
-        const apiClient =
-            userConfig.apiClientId && userConfig.apiClientSecret
-                ? new ApiClient(
-                      {
-                          baseUrl: userConfig.apiBaseUrl,
-                          credentials: {
-                              clientId: userConfig.apiClientId,
-                              clientSecret: userConfig.apiClientSecret,
-                          },
-                      },
-                      logger
-                  )
-                : undefined;
+        const apiClientOptions: ApiClientOptions = {
+            baseUrl: userConfig.apiBaseUrl,
+        };
+        if (userConfig.apiClientId && userConfig.apiClientSecret) {
+            apiClientOptions.credentials = {
+                clientId: userConfig.apiClientId,
+                clientSecret: userConfig.apiClientSecret,
+            };
+        }
+        const apiClient = new ApiClient(apiClientOptions, logger);
 
         const session = new Session({
             userConfig,

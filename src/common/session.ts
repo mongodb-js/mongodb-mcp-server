@@ -29,7 +29,7 @@ export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     keychain: Keychain;
     atlasLocalClient?: Client;
     connectionErrorHandler: ConnectionErrorHandler;
-    apiClient?: ApiClient;
+    apiClient: ApiClient;
 }
 
 export type SessionEvents = {
@@ -44,7 +44,7 @@ export class Session extends EventEmitter<SessionEvents> {
     readonly sessionId: string = new ObjectId().toString();
     readonly exportsManager: ExportsManager;
     readonly connectionManager: ConnectionManager;
-    readonly apiClient?: ApiClient;
+    readonly apiClient: ApiClient;
     readonly atlasLocalClient?: Client;
     readonly keychain: Keychain;
     readonly connectionErrorHandler: ConnectionErrorHandler;

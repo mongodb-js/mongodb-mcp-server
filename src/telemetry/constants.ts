@@ -7,8 +7,8 @@ import { type CommonStaticProperties } from "./types.js";
 export const MACHINE_METADATA: CommonStaticProperties = {
     mcp_server_version: packageInfo.version,
     mcp_server_name: packageInfo.mcpServerName,
-    platform: process.platform,
-    arch: process.arch,
-    os_type: process.platform,
-    os_version: process.version,
+    platform: typeof process !== "undefined" ? process.platform : "browser",
+    arch: typeof process !== "undefined" ? process.arch : "unknown",
+    os_type: typeof process !== "undefined" ? process.platform : "unknown",
+    os_version: typeof process !== "undefined" ? process.version : "unknown",
 } as const;
