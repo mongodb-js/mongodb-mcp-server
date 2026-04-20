@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "1.9.0-prererelease.2",
+  "version": "1.9.1-prerelease.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "1.9.0-prererelease.2",
+      "version": "1.9.1-prerelease.2",
       "transport": {
         "type": "stdio"
       },
@@ -194,6 +194,13 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MAX_TIME_M_S",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -436,6 +443,13 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--maxTimeMS",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
           "isRequired": false,
           "format": "number"
         },
@@ -506,7 +520,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.9.0-prererelease.2",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:1.9.1-prerelease.2",
       "transport": {
         "type": "stdio"
       },
@@ -689,6 +703,13 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_MAX_TIME_M_S",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -931,6 +952,13 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--maxTimeMS",
+          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
           "isRequired": false,
           "format": "number"
         },
