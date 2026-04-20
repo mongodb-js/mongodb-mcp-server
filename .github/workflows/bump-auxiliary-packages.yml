@@ -30,7 +30,7 @@ jobs:
       - name: Bump package versions
         id: bump
         run: |
-          output=$(pnpm run --silent bump:packages)
+          output=$(pnpm run --silent bump)
           echo "$output"
 
           if echo "$output" | grep -q "^Bumped:"; then

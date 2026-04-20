@@ -37,7 +37,7 @@ jobs:
       - name: Bump versions
         id: bump-version
         run: |
-          pnpm run bump:packages -- --override mongodb-mcp-server:${{ inputs.version }}
+          pnpm run bump -- --override mongodb-mcp-server:${{ inputs.version }}
           NEW_VERSION=$(npm pkg get version | tr -d '"')
           echo "NEW_VERSION=v${NEW_VERSION}" >> $GITHUB_OUTPUT
 
