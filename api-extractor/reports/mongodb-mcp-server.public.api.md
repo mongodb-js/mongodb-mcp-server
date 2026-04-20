@@ -27,7 +27,7 @@ import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver
 import type { operations } from './openapi.js';
 import { Registry } from 'prom-client';
 import { Secret } from 'mongodb-redact';
-import type { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
@@ -992,6 +992,8 @@ export class StreamableHttpRunner<TUserConfig extends UserConfig = UserConfig, T
         sessionOptions?: CustomizableSessionOptions<TUserConfig>;
     }): Promise<void>;
 }
+
+export { StreamableHTTPServerTransport }
 
 // @public
 export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = TransportRunnerConfig<TUserConfig, TMetrics> & {

@@ -45,6 +45,7 @@ export {
     type MonitoringServerConstructorArgs,
     type MonitoringServerConfig,
 } from "./transports/streamableHttp.js";
+export { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
 export {
     TransportRunnerBase,
