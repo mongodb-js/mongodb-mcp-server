@@ -23,6 +23,20 @@ import {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
 } from "./jsonRpcErrorCodes.js";
 
+export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+    userConfig: TUserConfig;
+    createServerForRequest: (createParams: {
+        request: TransportRequestContext;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }) => Promise<Server<TUserConfig, TContext>>;
+    logger: LoggerBase;
+    serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+    sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    metrics: Metrics<DefaultMetrics>;
+    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+};
+
 export class MCPHttpServer<
     TUserConfig extends UserConfig = UserConfig,
     TContext = unknown,
@@ -30,10 +44,9 @@ export class MCPHttpServer<
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
     private readonly serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
     private readonly sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-    private readonly userConfig: UserConfig;
+    protected readonly userConfig: UserConfig;
     private readonly metrics: Metrics<DefaultMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
-    private readonly preRouteMiddleware: express.RequestHandler[];
 
     private createServerForRequest: (createParams: {
         request: TransportRequestContext;
@@ -49,21 +62,7 @@ export class MCPHttpServer<
         logger,
         metrics,
         sessionStore,
-        preRouteMiddleware,
-    }: {
-        userConfig: TUserConfig;
-        createServerForRequest: (createParams: {
-            request: TransportRequestContext;
-            serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-            sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-        }) => Promise<Server<TUserConfig, TContext>>;
-        logger: LoggerBase;
-        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
-        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
-        metrics: Metrics<DefaultMetrics>;
-        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
-        preRouteMiddleware?: express.RequestHandler[];
-    }) {
+    }: MCPHttpServerConstructorArgs<TUserConfig, TContext>) {
         super({
             port: userConfig.httpPort,
             hostname: userConfig.httpHost,
@@ -76,7 +75,6 @@ export class MCPHttpServer<
         this.userConfig = userConfig;
         this.metrics = metrics;
         this.sessionStore = sessionStore;
-        this.preRouteMiddleware = preRouteMiddleware ?? [];
     }
 
     public async stop(): Promise<void> {
@@ -305,8 +303,7 @@ export class MCPHttpServer<
         return sessionId;
     }
 
-    // eslint-disable-next-line @typescript-eslint/require-await
-    protected override async setupRoutes(): Promise<void> {
+    protected setupMiddlewares(): void {
         this.app.use(express.json({ limit: this.userConfig.httpBodyLimit }));
         this.app.use((req, res, next) => {
             for (const [key, value] of Object.entries(this.userConfig.httpHeaders)) {
@@ -319,12 +316,11 @@ export class MCPHttpServer<
 
             next();
         });
+    }
 
-        // Apply any pre-route middleware (e.g., session validation from downstream services)
-        for (const middleware of this.preRouteMiddleware) {
-            this.app.use(middleware);
-        }
-
+    // eslint-disable-next-line @typescript-eslint/require-await
+    protected override async setupRoutes(): Promise<void> {
+        this.setupMiddlewares();
         const handleSessionRequest = async (req: express.Request, res: express.Response): Promise<void> => {
             const sessionId = req.headers["mcp-session-id"];
             if (!sessionId) {
@@ -439,3 +435,18 @@ export class MCPHttpServer<
         };
     }
 }
+
+/**
+ * A function to create a custom MCPHttpServer instance.
+ * When provided, the runner will use this function instead of the default MCPHttpServer constructor.
+ */
+export type CreateMcpHttpServerFn<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = (
+    args: MCPHttpServerConstructorArgs<TUserConfig, TContext>
+) => MCPHttpServer<TUserConfig, TContext>;
+
+/**
+ * Creates a default MCPHttpServer instance from the provided constructor arguments.
+ */
+export const createDefaultMcpHttpServer = <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(
+    args: MCPHttpServerConstructorArgs<TUserConfig, TContext>
+): MCPHttpServer<TUserConfig, TContext> => new MCPHttpServer<TUserConfig, TContext>(args);

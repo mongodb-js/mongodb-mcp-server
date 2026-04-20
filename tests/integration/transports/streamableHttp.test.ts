@@ -1,4 +1,5 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import type express from "express";
+import { StreamableHttpRunner, MCPHttpServer } from "../../../src/transports/streamableHttp.js";
 import {
     createDefaultSessionStore,
     type ISessionStore,
@@ -788,38 +789,50 @@ describe("StreamableHttpRunner", () => {
         }
     });
 
-    describe("preRouteMiddleware", () => {
-        it("should execute middleware before route handlers", async () => {
+    describe("createMcpHttpServer factory", () => {
+        it("should use custom MCPHttpServer subclass via factory", async () => {
             const middlewareCalls: string[] = [];
 
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await runner.start({
-                preRouteMiddleware: [
-                    (_req, _res, next) => {
-                        middlewareCalls.push("middleware-executed");
-                        next();
-                    },
-                ],
+            runner = new StreamableHttpRunner({
+                userConfig: config,
+                createMcpHttpServer(args): MCPHttpServer {
+                    return new (class extends MCPHttpServer {
+                        protected override setupMiddlewares(): void {
+                            this.app.use(
+                                (_req: express.Request, _res: express.Response, next: express.NextFunction) => {
+                                    middlewareCalls.push("middleware-executed");
+                                    next();
+                                }
+                            );
+                            super.setupMiddlewares();
+                        }
+                    })(args);
+                },
             });
+            await runner.start();
 
             const client = await connectClient({});
             const response = await client.listTools();
             expect(response).toBeDefined();
             expect(response.tools).toBeDefined();
-            // Middleware should have been called for the initialize and listTools requests
             expect(middlewareCalls.length).toBeGreaterThanOrEqual(1);
         });
 
-        it("should allow middleware to reject requests", async () => {
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await runner.start({
-                preRouteMiddleware: [
-                    (_req, res, _next) => {
-                        // Block all requests
-                        res.status(403).json({ error: "blocked by middleware" });
-                    },
-                ],
+        it("should allow factory to create a server that rejects requests", async () => {
+            runner = new StreamableHttpRunner({
+                userConfig: config,
+                createMcpHttpServer(args): MCPHttpServer {
+                    return new (class extends MCPHttpServer {
+                        protected override setupMiddlewares(): void {
+                            this.app.use((_req: express.Request, res: express.Response) => {
+                                res.status(403).json({ error: "blocked by middleware" });
+                            });
+                            super.setupMiddlewares();
+                        }
+                    })(args);
+                },
             });
+            await runner.start();
 
             const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
                 method: "POST",
@@ -841,29 +854,7 @@ describe("StreamableHttpRunner", () => {
             expect(data.error).toBe("blocked by middleware");
         });
 
-        it("should run middleware in the order provided", async () => {
-            const order: number[] = [];
-
-            runner = new StreamableHttpRunner({ userConfig: config });
-            await runner.start({
-                preRouteMiddleware: [
-                    (_req, _res, next) => {
-                        order.push(1);
-                        next();
-                    },
-                    (_req, _res, next) => {
-                        order.push(2);
-                        next();
-                    },
-                ],
-            });
-
-            await connectClient({});
-            expect(order[0]).toBe(1);
-            expect(order[1]).toBe(2);
-        });
-
-        it("should work without preRouteMiddleware (default behavior)", async () => {
+        it("should work without custom factory (default behavior)", async () => {
             runner = new StreamableHttpRunner({ userConfig: config });
             await runner.start();
 

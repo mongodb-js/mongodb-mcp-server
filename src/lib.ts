@@ -38,6 +38,10 @@ export {
 } from "./common/logging/index.js";
 export {
     StreamableHttpRunner,
+    MCPHttpServer,
+    createDefaultMcpHttpServer,
+    type MCPHttpServerConstructorArgs,
+    type CreateMcpHttpServerFn,
     type MonitoringServer,
     createDefaultMonitoringServer,
     type StreamableHttpTransportRunnerConfig,
