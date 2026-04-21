@@ -16,9 +16,7 @@ import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { NullLogger } from "../common/logging/index.js";
 import type { TelemetryResult } from "../telemetry/types.js";
 import { SetupTelemetry } from "./setupTelemetry.js";
-import { Keychain } from "../common/keychain.js";
-
-const keychain = new Keychain();
+import { Keychain, registerGlobalSecretToRedact } from "../common/keychain.js";
 
 const buildEnvObject = (
     connectionString: string,
@@ -63,7 +61,7 @@ const testConnectionString = async (
             console.log(chalk.green("✓ Connection successful!"));
             return { connectionString, testResult: "success", attempts };
         } catch (error: unknown) {
-            console.log(chalk.red("\n✗ Connection failed: " + formatError(error, keychain)));
+            console.log(chalk.red("\n✗ Connection failed: " + formatError(error)));
             console.log(chalk.yellow("\nPlease check:"));
             console.log(chalk.yellow("  • Your database user credentials are correct"));
             console.log(chalk.yellow("  • Your IP address is allowed in Network Access"));
@@ -126,7 +124,7 @@ const configureEditor = async (
         console.log(`\nConfiguration saved to ${configPath}`);
         return { usedDefaultConfigPath: useDetectedPath, result: "success" };
     } catch (error: unknown) {
-        console.log(chalk.red(`\nFailed to save configuration: ${formatError(error, keychain)}`));
+        console.log(chalk.red(`\nFailed to save configuration: ${formatError(error)}`));
         return { usedDefaultConfigPath: useDetectedPath, result: "failure", error };
     }
 };
@@ -226,7 +224,7 @@ const promptForConnectionString = async (
         return { connectionString: "", provided: false, tested: false, attempts: 0 };
     }
 
-    keychain.register(connectionString, "mongodb uri");
+    registerGlobalSecretToRedact(connectionString, "mongodb uri");
 
     try {
         const auth = getAuthType(config, connectionString);
@@ -261,7 +259,7 @@ const promptForServiceAccountSecret = async (): Promise<string> => {
         message: "Enter your Atlas Service Account Secret (press enter to skip):",
         mask: true,
     });
-    keychain.register(secret, "private key");
+    registerGlobalSecretToRedact(secret, "private key");
     return secret;
 };
 
@@ -357,7 +355,7 @@ const promptToOpenConfigFile = async (
         await openConfigSettings(tool);
         return { opened: true, result: "success" };
     } catch (error: unknown) {
-        console.log(chalk.red(`Failed to open config file: ${formatError(error, keychain)}`));
+        console.log(chalk.red(`Failed to open config file: ${formatError(error)}`));
         return { opened: true, result: "failure", error };
     }
 };
@@ -380,7 +378,7 @@ const guideUserWithSetupSuccess = (displayName: string, availablePrompts: string
  * rates and per-step drop-off.
  */
 export const runSetup = async (config: UserConfig): Promise<never> => {
-    const setupTelemetry = SetupTelemetry.create(config, keychain);
+    const setupTelemetry = SetupTelemetry.create(config, Keychain.root);
 
     // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
     // are still captured. Inquirer itself converts Ctrl+C during prompts into

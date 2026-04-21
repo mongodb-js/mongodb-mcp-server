@@ -1038,6 +1038,11 @@ export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig =
 export class Telemetry {
     // (undocumented)
     close(): Promise<void>;
+    // @deprecated (undocumented)
+    static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
+        commonProperties?: Partial<CommonProperties>;
+        eventCache?: EventCache;
+    }): Telemetry;
     // (undocumented)
     static create(config: TelemetryConfig): Telemetry;
     emitEvents(events: BaseEvent[]): void;
@@ -1052,10 +1057,11 @@ export class Telemetry {
 export interface TelemetryConfig {
     apiClient: ApiClient;
     deviceId: DeviceId;
+    enabled: boolean;
+    eventCache?: EventCache;
     getCommonProperties?: () => Partial<CommonProperties>;
     keychain?: Keychain;
     logger: LoggerBase;
-    telemetry: "enabled" | "disabled";
 }
 
 // @public
@@ -1329,7 +1335,7 @@ export const UserConfigSchema: z.ZodObject<{
 // src/common/config/configOverrides.ts:29:5 - (ae-forgotten-export) The symbol "RequestContext_2" needs to be exported by the entry point lib.d.ts
 // src/common/exportsManager.ts:166:9 - (ae-forgotten-export) The symbol "JSONExportFormat" needs to be exported by the entry point lib.d.ts
 // src/telemetry/types.ts:17:9 - (ae-forgotten-export) The symbol "TelemetryResult" needs to be exported by the entry point lib.d.ts
-// src/telemetry/types.ts:186:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
+// src/telemetry/types.ts:182:5 - (ae-forgotten-export) The symbol "TelemetryBoolSet" needs to be exported by the entry point lib.d.ts
 
 // (No @packageDocumentation comment for this package)
 

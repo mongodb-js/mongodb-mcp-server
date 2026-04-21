@@ -1,5 +1,5 @@
 import os from "os";
-import type { Keychain } from "../common/keychain.js";
+import { Keychain } from "../common/keychain.js";
 import { redact } from "mongodb-redact";
 
 export type Platform = "mac" | "windows" | "linux";
@@ -16,7 +16,7 @@ export const getPlatform = (): Platform | null => {
     }
 };
 
-export const formatError = (error: unknown, keychain: Keychain): string => {
+export const formatError = (error: unknown): string => {
     const message = error instanceof Error ? error.message : String(error);
-    return redact(message, keychain.allSecrets);
+    return redact(message, Keychain.root.allSecrets);
 };
