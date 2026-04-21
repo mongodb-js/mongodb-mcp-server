@@ -20,7 +20,7 @@ import type {
  */
 export type SetupTelemetryContext = Omit<
     SetupEventProperties,
-    "command" | "setup_session_id" | "step_index" | "last_step" | "error_type" | "total_duration_ms"
+    "command" | "setup_session_id" | "last_step" | "error_type" | "total_duration_ms"
 >;
 
 export const toBoolSet = (value: boolean | undefined): TelemetryBoolSet | undefined => {

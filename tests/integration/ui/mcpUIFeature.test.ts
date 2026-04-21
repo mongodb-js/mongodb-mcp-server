@@ -4,7 +4,6 @@ import { defaultTestConfig, expectDefined, getResponseElements } from "../helper
 import { CompositeLogger } from "../../../src/common/logging/index.js";
 import { ExportsManager } from "../../../src/common/exportsManager.js";
 import { Session } from "../../../src/common/session.js";
-import { createTelemetryForTest } from "../../utils/telemetryHelpers.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../../src/server.js";
 import { MCPConnectionManager } from "../../../src/common/connectionManager.js";
@@ -16,7 +15,7 @@ import { defaultCreateAtlasLocalClient } from "../../../src/common/atlasLocal.js
 import { InMemoryTransport } from "../../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "../../../src/ui/index.js";
-import { defaultCreateApiClient } from "../../../src/lib.js";
+import { defaultCreateApiClient, Telemetry } from "../../../src/lib.js";
 import { MockMetrics } from "../../unit/mocks/metrics.js";
 
 describeWithMongoDB(
@@ -196,7 +195,13 @@ describe("mcpUI feature with custom UIs", () => {
             ),
         });
 
-        const telemetry = createTelemetryForTest(session, userConfig, deviceId);
+        const telemetry = Telemetry.create({
+            logger,
+            deviceId,
+            apiClient: session.apiClient,
+            keychain: session.keychain,
+            enabled: false,
+        });
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 

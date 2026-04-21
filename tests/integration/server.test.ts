@@ -8,7 +8,6 @@ import { describeWithMongoDB } from "./tools/mongodb/mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase, UserConfig } from "../../src/lib.js";
 import { defaultCreateApiClient, Elicitation, Keychain } from "../../src/lib.js";
-import { createTelemetryForTest } from "../utils/telemetryHelpers.js";
 import { defaultCreateAtlasLocalClient } from "../../src/common/atlasLocal.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Server } from "../../src/server.js";
@@ -20,6 +19,7 @@ import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "../../src/transports/constants.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
+import { Telemetry } from "../../src/telemetry/telemetry.js";
 
 class TestToolOne extends ToolBase {
     static toolName = "test-tool-one";
@@ -200,7 +200,14 @@ describe("Server integration test", () => {
             ),
         });
 
-        const telemetry = createTelemetryForTest(session, config, deviceId);
+        const telemetry = Telemetry.create({
+            logger,
+            deviceId,
+            apiClient: session.apiClient,
+            keychain: session.keychain,
+            enabled: false,
+        });
+
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({ server: mcpServerInstance.server });
 

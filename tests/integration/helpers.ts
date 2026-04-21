@@ -3,7 +3,6 @@ import { CompositeLogger, LoggerBase } from "../../src/common/logging/index.js";
 import { ExportsManager } from "../../src/common/exportsManager.js";
 import { Session } from "../../src/common/session.js";
 import { Server, type ServerOptions } from "../../src/server.js";
-import { createTelemetryForTest } from "../utils/telemetryHelpers.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "../../src/transports/inMemoryTransport.js";
@@ -22,6 +21,7 @@ import { UserConfigSchema } from "../../src/common/config/userConfig.js";
 import type { OperationType } from "../../src/tools/tool.js";
 import { defaultCreateApiClient, type ApiClient } from "../../src/common/atlas/apiClient.js";
 import { MockMetrics } from "../unit/mocks/metrics.js";
+import { Telemetry } from "../../src/telemetry/telemetry.js";
 
 interface Parameter {
     name: string;
@@ -134,7 +134,13 @@ export function setupIntegrationTest(
 
         userConfig.telemetry = "disabled";
 
-        const telemetry = createTelemetryForTest(session, userConfig, deviceId);
+        const telemetry = Telemetry.create({
+            logger,
+            deviceId,
+            apiClient: session.apiClient,
+            keychain: session.keychain,
+            enabled: false,
+        });
 
         const mcpServerInstance = new McpServer({
             name: "test-server",

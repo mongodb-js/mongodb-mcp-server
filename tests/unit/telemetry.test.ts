@@ -15,9 +15,8 @@ import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vites
 import { NullLogger } from "../../src/common/logging/nullLogger.js";
 import type { MockedFunction, MockInstance } from "vitest";
 import type { DeviceId } from "../../src/helpers/deviceId.js";
-import { defaultTestConfig, expectDefined } from "../integration/helpers.js";
+import { expectDefined } from "../integration/helpers.js";
 import { Keychain } from "../../src/common/keychain.js";
-import { type UserConfig } from "../../src/common/config/userConfig.js";
 
 // Mock container detection to avoid file I/O in tests
 vi.mock("../../src/helpers/container.js", () => ({
@@ -63,7 +62,6 @@ describe("Telemetry", () => {
     let keychain: Keychain;
     let telemetry: Telemetry;
     let mockDeviceId: DeviceId;
-    let config: UserConfig;
     const sessionId = "test-session-id";
     const mcpClient = { name: "test-agent", version: "1.0.0" };
 
@@ -73,14 +71,14 @@ describe("Telemetry", () => {
             deviceId: mockDeviceId,
             apiClient: mockApiClient as unknown as ApiClient,
             keychain,
-            telemetry: config.telemetry,
+            enabled: true,
             getCommonProperties: () => ({
-                transport: config.transport,
+                transport: "stdio",
                 mcp_client_version: mcpClient.version,
                 mcp_client_name: mcpClient.name,
                 session_id: sessionId,
                 config_atlas_auth: mockApiClient.isAuthConfigured() ? "true" : "false",
-                config_connection_string: config.connectionString ? "true" : "false",
+                config_connection_string: "false",
             }),
             ...overrides,
         });
@@ -143,7 +141,6 @@ describe("Telemetry", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         _cachedEvents = [];
-        config = { ...defaultTestConfig, telemetry: "enabled" };
         vi.clearAllMocks();
 
         mockApiClient = {
@@ -190,9 +187,9 @@ describe("Telemetry", () => {
         } as unknown as DeviceId;
 
         keychain = new Keychain();
-        telemetry = createTelemetry();
-
-        config.telemetry = "enabled";
+        telemetry = createTelemetry({
+            enabled: true,
+        });
     });
 
     afterEach(() => {
@@ -316,12 +313,10 @@ describe("Telemetry", () => {
                 const devId = { get: vi.fn().mockResolvedValue("test-device-id") } as unknown as DeviceId;
                 telemetry = createTelemetry({ deviceId: devId });
 
-                expect(telemetry["isBufferingEvents"]).toBe(true);
                 expect(telemetry.getCommonProperties().device_id).toBe(undefined);
 
                 await telemetry.setupPromise;
 
-                expect(telemetry["isBufferingEvents"]).toBe(false);
                 expect(telemetry.getCommonProperties().device_id).toBe("test-device-id");
             });
 
@@ -330,10 +325,8 @@ describe("Telemetry", () => {
                 const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
                 telemetry = createTelemetry({ deviceId: devId });
 
-                expect(telemetry["isBufferingEvents"]).toBe(true);
                 await telemetry.setupPromise;
 
-                expect(telemetry["isBufferingEvents"]).toBe(false);
                 expect(telemetry.getCommonProperties().device_id).toBe("unknown");
             });
 
@@ -342,10 +335,8 @@ describe("Telemetry", () => {
                 const devId = { get: vi.fn().mockResolvedValue("unknown") } as unknown as DeviceId;
                 telemetry = createTelemetry({ deviceId: devId });
 
-                expect(telemetry["isBufferingEvents"]).toBe(true);
                 await telemetry.setupPromise;
 
-                expect(telemetry["isBufferingEvents"]).toBe(false);
                 expect(telemetry.getCommonProperties().device_id).toBe("unknown");
             });
         });
@@ -430,12 +421,9 @@ describe("Telemetry", () => {
     describe("when telemetry is disabled", () => {
         beforeEach(() => {
             vi.clearAllTimers();
-            config.telemetry = "disabled";
-            telemetry = createTelemetry();
-        });
-
-        afterEach(() => {
-            config.telemetry = "enabled";
+            telemetry = createTelemetry({
+                enabled: false,
+            });
         });
 
         it("should not send or cache events", async () => {
@@ -675,13 +663,12 @@ describe("Telemetry credentials handling", () => {
             expect(apiClient.isAuthConfigured()).toBe(false);
         }
 
-        const config: UserConfig = { ...defaultTestConfig, telemetry: "enabled" };
         const telemetry = Telemetry.create({
             logger: new NullLogger(),
             deviceId: mockDeviceId,
             apiClient,
             keychain: new Keychain(),
-            telemetry: config.telemetry,
+            enabled: true,
         });
         await telemetry.setupPromise;
 

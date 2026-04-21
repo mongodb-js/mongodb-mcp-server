@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SetupTelemetry } from "../../../src/setup/setupTelemetry.js";
 import type { Telemetry } from "../../../src/telemetry/telemetry.js";
 import type { BaseEvent, SetupEventProperties } from "../../../src/telemetry/types.js";
+import type { DeviceId } from "../../../src/helpers/deviceId.js";
 
 type EmittedEvent = BaseEvent & { properties: SetupEventProperties };
 
@@ -27,7 +28,9 @@ describe("SetupTelemetry", () => {
 
     beforeEach(() => {
         mock = createMockTelemetry();
-        setupTelemetry = new SetupTelemetry(mock.telemetry);
+        setupTelemetry = new SetupTelemetry(mock.telemetry, {
+            get: vi.fn().mockResolvedValue("test-device-id"),
+        } as unknown as DeviceId);
     });
 
     it("should emit events with component=setup and category=setup", () => {

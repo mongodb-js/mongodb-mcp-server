@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugResource } from "../../../../src/resources/common/debug.js";
 import { Session } from "../../../../src/common/session.js";
-import { createTelemetryForTest } from "../../../utils/telemetryHelpers.js";
 import { CompositeLogger } from "../../../../src/common/logging/index.js";
 import { MCPConnectionManager } from "../../../../src/common/connectionManager.js";
 import { ExportsManager } from "../../../../src/common/exportsManager.js";
@@ -9,7 +8,7 @@ import { DeviceId } from "../../../../src/helpers/deviceId.js";
 import { Keychain } from "../../../../src/common/keychain.js";
 import { defaultTestConfig } from "../../../integration/helpers.js";
 import { connectionErrorHandler } from "../../../../src/common/connectionErrorHandler.js";
-import { defaultCreateApiClient } from "../../../../src/lib.js";
+import { defaultCreateApiClient, Telemetry } from "../../../../src/lib.js";
 
 describe("debug resource", () => {
     const logger = new CompositeLogger();
@@ -37,7 +36,13 @@ describe("debug resource", () => {
         })
     );
 
-    const telemetry = createTelemetryForTest(session, { ...defaultTestConfig, telemetry: "disabled" }, deviceId);
+    const telemetry = Telemetry.create({
+        logger,
+        deviceId,
+        apiClient: session.apiClient,
+        keychain: session.keychain,
+        enabled: false,
+    });
 
     let debugResource: DebugResource = new DebugResource(session, defaultTestConfig, telemetry);
 
