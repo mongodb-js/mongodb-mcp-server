@@ -1027,6 +1027,8 @@ export class StreamableHttpRunner<TUserConfig extends UserConfig = UserConfig, T
     }): Promise<void>;
 }
 
+export { StreamableHTTPServerTransport }
+
 // @public
 export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics, TContext = unknown> = TransportRunnerConfig<TUserConfig, TMetrics> & {
     createMonitoringServer?: CreateMonitoringServerFn<TMetrics>;
