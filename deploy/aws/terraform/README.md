@@ -57,26 +57,26 @@ This directory contains a fully self-contained Terraform module that:
 └─────────────────────────────────────────────────────────┘
 ```
 
-| Component | Terraform file | AWS resource |
-|---|---|---|
-| Container registry | `ecr.tf` | `aws_ecr_repository` |
-| Docker build + push | `ecr.tf` | `null_resource` (local-exec) |
-| Execution role | `iam.tf` | `aws_iam_role` + policies |
-| Authentication | `cognito.tf` | `aws_cognito_user_pool` + domain + client |
-| Test user | `cognito.tf` | `aws_cognito_user` |
-| MCP runtime | `agentcore.tf` | AWS CLI via `null_resource` |
+| Component           | Terraform file | AWS resource                              |
+| ------------------- | -------------- | ----------------------------------------- |
+| Container registry  | `ecr.tf`       | `aws_ecr_repository`                      |
+| Docker build + push | `ecr.tf`       | `null_resource` (local-exec)              |
+| Execution role      | `iam.tf`       | `aws_iam_role` + policies                 |
+| Authentication      | `cognito.tf`   | `aws_cognito_user_pool` + domain + client |
+| Test user           | `cognito.tf`   | `aws_cognito_user`                        |
+| MCP runtime         | `agentcore.tf` | AWS CLI via `null_resource`               |
 
 ---
 
 ## Prerequisites
 
-| Tool | Minimum version | Notes |
-|---|---|---|
-| Terraform | 1.6.0 | `terraform version` |
-| AWS CLI | v2 | `aws --version` |
-| Docker | 24+ with Buildx | `docker buildx version` |
-| Python | 3.9+ | Only for `get_token.py` |
-| boto3 | any | `pip install boto3` |
+| Tool      | Minimum version | Notes                   |
+| --------- | --------------- | ----------------------- |
+| Terraform | 1.6.0           | `terraform version`     |
+| AWS CLI   | v2              | `aws --version`         |
+| Docker    | 24+ with Buildx | `docker buildx version` |
+| Python    | 3.9+            | Only for `get_token.py` |
+| boto3     | any             | `pip install boto3`     |
 
 **AWS permissions required** (for the identity running `terraform apply`):
 
@@ -115,21 +115,21 @@ deploy/aws/terraform/
 
 ## Variables reference
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `aws_region` | No | `us-east-1` | AWS region for all resources |
-| `ecr_repository_name` | No | `mongodb-mcp-server` | Name of the ECR repository |
-| `image_tag` | No | `latest` | Docker image tag |
-| `agentcore_runtime_name` | No | `mongodb-mcp-server` | AgentCore runtime name |
-| `cognito_user_pool_name` | No | `mongodb-mcp-server-pool` | Cognito user pool name |
-| `cognito_test_username` | No | `mcp-test-user` | Test user's Cognito username |
-| `cognito_test_user_email` | **Yes** | — | Test user's email address |
-| `cognito_test_user_password` | **Yes** | — | Temporary password (first login only) |
-| `mdb_connection_string` | No | `""` | MongoDB connection string (`mongodb://` format) |
-| `mdb_api_client_id` | No | `""` | MongoDB Atlas API client ID |
-| `mdb_api_client_secret` | No | `""` | MongoDB Atlas API client secret |
-| `dockerfile_context_path` | No | `..` | Path to the directory containing `Dockerfile` |
-| `tags` | No | `{Project, ManagedBy}` | Tags applied to all AWS resources |
+| Variable                     | Required | Default                   | Description                                     |
+| ---------------------------- | -------- | ------------------------- | ----------------------------------------------- |
+| `aws_region`                 | No       | `us-east-1`               | AWS region for all resources                    |
+| `ecr_repository_name`        | No       | `mongodb-mcp-server`      | Name of the ECR repository                      |
+| `image_tag`                  | No       | `latest`                  | Docker image tag                                |
+| `agentcore_runtime_name`     | No       | `mongodb-mcp-server`      | AgentCore runtime name                          |
+| `cognito_user_pool_name`     | No       | `mongodb-mcp-server-pool` | Cognito user pool name                          |
+| `cognito_test_username`      | No       | `mcp-test-user`           | Test user's Cognito username                    |
+| `cognito_test_user_email`    | **Yes**  | —                         | Test user's email address                       |
+| `cognito_test_user_password` | **Yes**  | —                         | Temporary password (first login only)           |
+| `mdb_connection_string`      | No       | `""`                      | MongoDB connection string (`mongodb://` format) |
+| `mdb_api_client_id`          | No       | `""`                      | MongoDB Atlas API client ID                     |
+| `mdb_api_client_secret`      | No       | `""`                      | MongoDB Atlas API client secret                 |
+| `dockerfile_context_path`    | No       | `..`                      | Path to the directory containing `Dockerfile`   |
+| `tags`                       | No       | `{Project, ManagedBy}`    | Tags applied to all AWS resources               |
 
 > **Note on `mdb_connection_string`:** AgentCore does not support `mongodb+srv://` URIs
 > (no DNS SRV resolution in the managed runtime network). Use the standard `mongodb://` format
@@ -191,6 +191,7 @@ terraform plan -var-file=terraform.tfvars
 ```
 
 Apply all changes. Terraform will:
+
 1. Create the ECR repository.
 2. Build the Docker image for `linux/arm64` and push it to ECR.
 3. Create IAM roles and policies.
@@ -279,11 +280,11 @@ python3 scripts/get_token.py
 
 ### Output formats
 
-| Flag | Output |
-|---|---|
+| Flag                      | Output                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------- |
 | `--output json` (default) | Full JSON with `access_token`, `id_token`, `refresh_token`, `expires_in`, `token_type` |
-| `--output id_token` | Just the raw ID token string (for piping into `curl`) |
-| `--output access_token` | Just the raw access token string |
+| `--output id_token`       | Just the raw ID token string (for piping into `curl`)                                  |
+| `--output access_token`   | Just the raw access token string                                                       |
 
 ### Smoke-testing against the live runtime
 
@@ -477,6 +478,7 @@ aws logs tail /aws/bedrock-agentcore/mongodb-mcp-server --follow
 ```
 
 Common causes:
+
 - Invalid `MDB_MCP_CONNECTION_STRING` — the server will fail to connect to MongoDB on startup.
 - `mongodb+srv://` URI used — not supported; use `mongodb://` with a direct host.
 - Container OOM — increase memory in the AgentCore runtime configuration if needed.
