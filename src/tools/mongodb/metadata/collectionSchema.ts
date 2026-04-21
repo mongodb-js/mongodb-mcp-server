@@ -10,7 +10,7 @@ import { isObjectEmpty } from "../../../helpers/isObjectEmpty.js";
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
 const CollectionSchemaOutputSchema = {
-    schema: z.record(z.unknown()),
+    schema: z.record(z.string(), z.unknown()),
     fieldsCount: z.number(),
 };
 
@@ -44,7 +44,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             collection,
             [{ $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } }],
             {
-                signal,
+                ...this.getOperationOptions(signal),
             }
         );
         const { documents } = await collectCursorUntilMaxBytesLimit({

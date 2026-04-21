@@ -44,6 +44,7 @@ export class CountTool extends MongoDBToolBase {
                                 query,
                             },
                             verbosity: "queryPlanner",
+                            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
                         },
                         {
                             signal,
@@ -55,7 +56,7 @@ export class CountTool extends MongoDBToolBase {
         }
 
         const count = await provider.countDocuments(database, collection, query, {
-            signal,
+            ...this.getOperationOptions(signal),
         });
 
         return {

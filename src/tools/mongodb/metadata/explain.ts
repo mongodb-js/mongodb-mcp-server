@@ -8,7 +8,7 @@ import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
 
 const ExplainOutputSchema = {
-    explainResult: z.record(z.unknown()),
+    explainResult: z.record(z.string(), z.unknown()),
     method: z.string(),
     verbosity: z.string(),
 };
@@ -79,7 +79,7 @@ export class ExplainTool extends MongoDBToolBase {
                         collection,
                         pipeline,
                         {
-                            signal,
+                            ...this.getOperationOptions(signal),
                         },
                         {
                             writeConcern: undefined,
@@ -93,7 +93,7 @@ export class ExplainTool extends MongoDBToolBase {
                 result = await provider
                     .find(database, collection, filter as Document, {
                         ...rest,
-                        signal,
+                        ...this.getOperationOptions(signal),
                     })
                     .explain(verbosity);
                 break;

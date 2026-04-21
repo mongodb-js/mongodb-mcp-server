@@ -551,3 +551,67 @@ describeWithMongoDB("find tool with abort signal", (integration) => {
         expect(content).toContain('Query on collection "abort_collection"');
     });
 });
+
+describeWithMongoDB(
+    "find tool with configured maxTimeMS",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 5,
+            });
+        });
+
+        it("should return results when maxTimeMS is sufficient", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {},
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain('Query on collection "foo"');
+            const docs = getDocsFromUntrustedContent(content);
+            expect(docs.length).toEqual(5);
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 10_000 }),
+    }
+);
+
+describeWithMongoDB(
+    "find tool with low maxTimeMS rejects slow queries",
+    (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 5,
+            });
+        });
+
+        it("should fail when maxTimeMS is too low for a slow query", async () => {
+            await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: {
+                    database: integration.randomDbName(),
+                    collection: "foo",
+                    filter: {
+                        $where: "function() { sleep(1000); return true; }",
+                    },
+                },
+            });
+
+            const content = getResponseContent(response);
+            expect(content).toContain("operation exceeded time limit");
+        });
+    },
+    {
+        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100 }),
+    }
+);

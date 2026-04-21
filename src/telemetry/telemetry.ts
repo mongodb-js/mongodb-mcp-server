@@ -193,7 +193,17 @@ export class Telemetry {
      * done on every call so an operator can opt out mid-process.
      */
     public isTelemetryEnabled(): boolean {
-        return this.telemetrySetting !== "disabled" && !("DO_NOT_TRACK" in process.env);
+        if (this.telemetrySetting === "disabled") {
+            return false;
+        }
+
+        // In browser environments, we don't have access to the process object, so we default to true.
+        if (typeof process === "undefined" || !process.env) {
+            return true;
+        }
+
+        // In Node.js environments, we check the DO_NOT_TRACK environment variable.
+        return !("DO_NOT_TRACK" in process.env);
     }
 
     /**
@@ -246,7 +256,9 @@ export class Telemetry {
      * Does not reschedule — the caller decides what to do next.
      */
     private async sendBatch({ signal }: { signal?: AbortSignal } = {}): Promise<SendResult> {
-        if (this.eventCache.size === 0) return { status: "empty" };
+        if (this.eventCache.size === 0) {
+            return { status: "empty" };
+        }
 
         const result = await this.eventCache.processOldestBatch(BATCH_SIZE, async (events) => {
             this.logger.debug({

@@ -17,7 +17,6 @@ import {
     assertVectorSearchFilterFieldsAreIndexed,
     type SearchIndex,
 } from "../../../helpers/assertVectorSearchFilterFieldsAreIndexed.js";
-import type { AutoEmbeddingsUsageMetadata, ConnectionMetadata } from "../../../telemetry/types.js";
 
 export const pipelineDescriptionWithVectorSearch = `\
 An array of aggregation stages to execute.
@@ -98,7 +97,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                                         collection,
                                         pipeline,
                                         {
-                                            signal,
+                                            ...this.getOperationOptions(signal),
                                         },
                                         { writeConcern: undefined }
                                     )
@@ -129,12 +128,12 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 documents = await aggregationCursor.toArray();
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
-                const cappedResultsPipeline = [...pipeline];
+                const cappedResultsPipeline: Document[] = [...pipeline];
                 if (this.config.maxDocumentsPerQuery > 0) {
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
-                    signal,
+                    ...this.getOperationOptions(signal),
                 });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
@@ -249,7 +248,11 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
                 })
-                .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)
+                .maxTimeMS(
+                    this.config.maxTimeMS !== undefined
+                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
+                        : AGG_COUNT_MAX_TIME_MS_CAP
+                )
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;
@@ -329,24 +332,6 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
         }
 
         return message;
-    }
-
-    protected resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
-        { result }: { result: CallToolResult }
-    ): ConnectionMetadata | AutoEmbeddingsUsageMetadata {
-        const [maybeVectorStage] = args.pipeline;
-        const usesVectorSearch =
-            maybeVectorStage !== null && maybeVectorStage instanceof Object && "$vectorSearch" in maybeVectorStage;
-
-        if (usesVectorSearch && "query" in maybeVectorStage["$vectorSearch"]) {
-            return {
-                ...super.resolveTelemetryMetadata(args, { result }),
-                embeddingsGeneratedBy: "mongot",
-            };
-        }
-
-        return super.resolveTelemetryMetadata(args, { result });
     }
 
     private isSearchStage(stage: Record<string, unknown>): boolean {

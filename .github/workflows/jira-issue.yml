@@ -26,7 +26,7 @@ jobs:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - name: Create JIRA ticket
-        uses: mongodb/apix-action/create-jira@v13
+        uses: mongodb/apix-action/create-jira@v14
         id: create
         continue-on-error: true
         with:
@@ -62,7 +62,7 @@ jobs:
 
       - name: Remove create-jira label
         if: github.event.action == 'labeled' && github.event.label.name == 'create-jira'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             try {
@@ -88,14 +88,14 @@ jobs:
 
       - name: Find JIRA ticket by GitHub issue number
         id: find_jira
-        uses: mongodb/apix-action/find-jira@v13
+        uses: mongodb/apix-action/find-jira@v14
         with:
           token: ${{ secrets.JIRA_API_TOKEN }}
           jql: "project = MCP AND description ~ '${{ github.event.issue.html_url }}'"
 
       - name: Close JIRA ticket
         if: steps.find_jira.outputs.found == 'true'
-        uses: mongodb/apix-action/transition-jira@v13
+        uses: mongodb/apix-action/transition-jira@v14
         id: close_jira_ticket
         continue-on-error: true
         with:

@@ -5,7 +5,7 @@ import { EJSON } from "bson";
 import { z } from "zod";
 
 const DbStatsOutputSchema = {
-    stats: z.record(z.unknown()),
+    stats: z.record(z.string(), z.unknown()),
 };
 
 export type DbStatsOutput = z.infer<z.ZodObject<typeof DbStatsOutputSchema>>;
@@ -30,6 +30,7 @@ export class DbStatsTool extends MongoDBToolBase {
             {
                 dbStats: 1,
                 scale: 1,
+                ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
             },
             { signal }
         );

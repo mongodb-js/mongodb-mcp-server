@@ -3,7 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
-import type { FindCursor, SortDirection } from "mongodb";
+import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
 import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorUntilMaxBytes.js";
@@ -11,6 +11,7 @@ import { operationWithFallback } from "../../../helpers/operationWithFallback.js
 import { ONE_MB, QUERY_COUNT_MAX_TIME_MS_CAP, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { zEJSON } from "../../args.js";
 import { LogId } from "../../../common/logging/index.js";
+import { SortDirectionSchema } from "../mongodbSchemas.js";
 
 export const FindArgs = {
     filter: zEJSON()
@@ -23,8 +24,7 @@ export const FindArgs = {
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
     limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
     sort: z
-        .object({})
-        .catchall(z.custom<SortDirection>())
+        .record(z.string(), SortDirectionSchema.describe("The sort key and its direction"))
         .optional()
         .describe(
             "A document, describing the sort order, matching the syntax of the sort argument of cursor.sort(). The keys of the object are the fields to sort on, while the values are the sort directions (1 for ascending, -1 for descending)."
@@ -64,7 +64,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                                 projection,
                                 limit,
                                 sort,
-                                signal,
+                                ...this.getOperationOptions(signal),
                             })
                             .explain("queryPlanner");
                     },
@@ -78,7 +78,7 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                 projection,
                 limit: limitOnFindCursor.limit,
                 sort,
-                signal,
+                ...this.getOperationOptions(signal),
             });
 
             const [queryResultsCount, cursorResults] = await Promise.all([
@@ -89,7 +89,10 @@ Note to LLM: If the entire query result is required, use the "export" tool inste
                             // query would have yielded which is why we don't
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
-                            maxTimeMS: QUERY_COUNT_MAX_TIME_MS_CAP,
+                            maxTimeMS:
+                                this.config.maxTimeMS !== undefined
+                                    ? Math.min(this.config.maxTimeMS, QUERY_COUNT_MAX_TIME_MS_CAP)
+                                    : QUERY_COUNT_MAX_TIME_MS_CAP,
                             signal,
                         }),
                     undefined
