@@ -15,7 +15,7 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  profile = "<PROFILE_NAME>" # Replace with your AWS CLI profile name if needed
+  profile = "anuj-ps" # Replace with your AWS CLI profile name if needed
 
   default_tags {
     tags = var.tags

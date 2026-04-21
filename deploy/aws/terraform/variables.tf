@@ -56,7 +56,6 @@ variable "mdb_connection_string" {
   description = "MongoDB connection string (mongodb:// format; mongodb+srv:// is not supported by AgentCore)"
   type        = string
   sensitive   = true
-  default     = ""
 }
 
 variable "mdb_api_client_id" {

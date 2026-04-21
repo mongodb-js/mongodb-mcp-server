@@ -23,6 +23,11 @@ output "agentcore_runtime_arn" {
   value       = aws_bedrockagentcore_agent_runtime.mcp.agent_runtime_arn
 }
 
+output "agentcore_log_group" {
+  description = "CloudWatch log group for AgentCore runtime invocation logs"
+  value       = aws_cloudwatch_log_group.agentcore_invocations.name
+}
+
 output "agentcore_invocation_url" {
   description = "URL for invoking the AgentCore runtime"
   value       = "https://bedrock-agentcore.${local.region}.amazonaws.com/runtimes/${urlencode(aws_bedrockagentcore_agent_runtime.mcp.agent_runtime_arn)}/invocations?qualifier=DEFAULT"

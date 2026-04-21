@@ -27,6 +27,15 @@ locals {
 }
 
 # ---------------------------------------------------------------------------
+# CloudWatch log group for AgentCore invocation logs
+# ---------------------------------------------------------------------------
+
+resource "aws_cloudwatch_log_group" "agentcore_invocations" {
+  name              = "/aws/bedrock-agentcore/runtimes/${var.agentcore_runtime_name}"
+  retention_in_days = 30
+}
+
+# ---------------------------------------------------------------------------
 # AgentCore MCP runtime – native aws resource
 # ---------------------------------------------------------------------------
 
@@ -51,13 +60,22 @@ resource "aws_bedrockagentcore_agent_runtime" "mcp" {
     }
   }
 
+  protocol_configuration {
+    server_protocol = "MCP"
+  }
+
   environment_variables = local.mcp_env
 
   depends_on = [
     null_resource.docker_build_push,
     aws_iam_role_policy_attachment.agentcore_ecr,
     aws_iam_role_policy_attachment.agentcore_logs,
+    aws_iam_role_policy_attachment.agentcore_xray,
+    aws_iam_role_policy_attachment.agentcore_metrics,
+    aws_iam_role_policy_attachment.agentcore_workload_identity,
+    aws_iam_role_policy_attachment.agentcore_bedrock,
     aws_cognito_user_pool_client.mcp,
     aws_cognito_user_pool_domain.mcp,
+    aws_cloudwatch_log_group.agentcore_invocations,
   ]
 }
