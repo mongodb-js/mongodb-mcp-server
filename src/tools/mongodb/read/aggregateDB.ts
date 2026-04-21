@@ -44,7 +44,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
             if (pipeline.some((stage) => this.isWriteStage(stage))) {
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
-                    signal,
+                    ...this.getOperationOptions(signal),
                 });
 
                 documents = await aggregationCursor.toArray();
@@ -55,7 +55,7 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                     cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregateDb(database, cappedResultsPipeline, {
-                    signal,
+                    ...this.getOperationOptions(signal),
                 });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
@@ -156,7 +156,11 @@ Note to LLM: If the entire aggregation result is required, use the "export" tool
                 .aggregateDb(database, resultsCountAggregation, {
                     signal: abortSignal,
                 })
-                .maxTimeMS(AGG_COUNT_MAX_TIME_MS_CAP)
+                .maxTimeMS(
+                    this.config.maxTimeMS !== undefined
+                        ? Math.min(this.config.maxTimeMS, AGG_COUNT_MAX_TIME_MS_CAP)
+                        : AGG_COUNT_MAX_TIME_MS_CAP
+                )
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;
