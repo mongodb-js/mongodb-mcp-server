@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  mongodb: ^7.1.0
+  mongodb: ^7.1.1
   kerberos: ^7.0.0
   bson: ^7.2.0
   zod: ^4.0.0
@@ -133,8 +133,8 @@ importers:
         specifier: ^0.13.7
         version: 0.13.9
       '@redocly/cli':
-        specifier: ^2.28.0
-        version: 2.28.0(@opentelemetry/api@1.9.1)(core-js@3.47.0)
+        specifier: ^2.29.0
+        version: 2.29.0(@opentelemetry/api@1.9.1)(core-js@3.47.0)
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -205,8 +205,8 @@ importers:
         specifier: ^6.4.1
         version: 6.4.1
       mongodb:
-        specifier: ^7.1.0
-        version: 7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+        specifier: ^7.1.1
+        version: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-runner:
         specifier: ^6.7.6
         version: 6.7.6(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
@@ -1339,7 +1339,7 @@ packages:
     resolution: {integrity: sha512-pXKYvO4cQM/iYDBttiw8gi07dtXFqZK56AS/gy6gx0XVFujuycExwUtvE6rNMuURD9rrLOFem90nOMUSCoeVRA==}
     peerDependencies:
       '@mongodb-js/oidc-plugin': ^2.0.0
-      mongodb: ^7.1.0
+      mongodb: ^7.1.1
       mongodb-log-writer: ^2.5.6
 
   '@mongodb-js/devtools-proxy-support@0.7.8':
@@ -1358,9 +1358,6 @@ packages:
   '@mongodb-js/oidc-plugin@2.0.8':
     resolution: {integrity: sha512-UHmw5kppOZjOefxZuPcsWNtA3P7PbsjNYaKYz4tbWy6mlH0wkgdf55A3bHuW3SZmvL7ZhpuYTz+gTq2xCr7NVA==}
     engines: {node: '>= 20.19.2'}
-
-  '@mongodb-js/saslprep@1.3.2':
-    resolution: {integrity: sha512-QgA5AySqB27cGTXBFmnpifAi7HxoGUeezwo6p9dI03MuDB6Pp33zgclqVb6oVK3j6I9Vesg0+oojW2XxB59SGg==}
 
   '@mongodb-js/saslprep@1.4.8':
     resolution: {integrity: sha512-kpjr2jy2w71w0oqAMI8oibBmiF9lXxWkEQs5gMkW4hVE48bsqINGLxnCSYW62ck/NHXJQpQEfA9WlJ1sY0eqBg==}
@@ -2358,8 +2355,8 @@ packages:
   '@redocly/cli-otel@0.1.2':
     resolution: {integrity: sha512-Bg7BoO5t1x3lVK+KhA5aGPmeXpQmdf6WtTYHhelKJCsQ+tRMiJoFAQoKHoBHAoNxXrhlS3K9lKFLHGmtxsFQfA==}
 
-  '@redocly/cli@2.28.0':
-    resolution: {integrity: sha512-hAHtMjo4fLdLqZXtZwQqlwGnAiOzEAh7EPbE01rs9j7cewj2btOXrGQW8v6Eg3gDh+i77/DOxxazRWvZ/zAa7w==}
+  '@redocly/cli@2.29.0':
+    resolution: {integrity: sha512-O4lQTgvOhM4Afo4Gm44+KaxzwlPBLtXinqA5NVL7OQcabesindPeSHBdGIBA+KoyCP3KK7ofmCPB71bRyiaYGg==}
     engines: {node: '>=22.12.0 || >=20.19.0 <21.0.0', npm: '>=10'}
     hasBin: true
 
@@ -2373,12 +2370,12 @@ packages:
     resolution: {integrity: sha512-XCBR/9WHJ0cpezuunHMZjuFMl4KqUo7eiFwzrQrvm7lTXt0EBd3No8UY+9OyzXpDfreGEMMtxmaLZ+ksVw378g==}
     engines: {node: '>=18.17.0', npm: '>=9.5.0'}
 
-  '@redocly/openapi-core@2.28.0':
-    resolution: {integrity: sha512-Htpp4PsjKMgEuMT9iJu4iuFFzWCDe8FylvpGaQEA5D7jZXWv+8XvnqhpGCKN2cM/n/Uri2QfqNdw0JlKIC59sg==}
+  '@redocly/openapi-core@2.29.0':
+    resolution: {integrity: sha512-hIbOw1ZY01NhjEGwAuG/OXy19EAY31W7J7b061aNpCzJ8+mFyyy52X4CTrpF2c0rbemSLobXowvAEddVSX1QzQ==}
     engines: {node: '>=22.12.0 || >=20.19.0 <21.0.0', npm: '>=10'}
 
-  '@redocly/respect-core@2.28.0':
-    resolution: {integrity: sha512-svjCRzXsj/EyN7chfB9pTVYvWT1+hlOqMkZVlkrH6PqFKXAHYeP47YRW9+3omUSDBd1Ph4A4J4NBUW1PRph5+g==}
+  '@redocly/respect-core@2.29.0':
+    resolution: {integrity: sha512-9AFUHOwr0ICGHYiSsfcnQO2XVd1qOG3NZx0kk/KBGX4w+PIBMhwjcGP0vyeqtTLz20bpbaChrCGrgiCWsEe55Q==}
     engines: {node: '>=22.12.0 || >=20.19.0 <21.0.0', npm: '>=10'}
 
   '@remote-dom/core@1.10.1':
@@ -5191,8 +5188,8 @@ packages:
     resolution: {integrity: sha512-TPfop6c2AAQJP1QhQwi/uJnuPEeLhMvN9ouJAZ6M9mouH6fCr0WOHLJWx5Z0dSeXJIVy//WTXxZB6yiol1bGEA==}
     hasBin: true
 
-  mongodb@7.1.0:
-    resolution: {integrity: sha512-kMfnKunbolQYwCIyrkxNJFB4Ypy91pYqua5NargS/f8ODNSJxT03ZU3n1JqL4mCzbSih8tvmMEMLpKTT7x5gCg==}
+  mongodb@7.1.1:
+    resolution: {integrity: sha512-067DXiMjcpYQl6bGjWQoTUEE9UoRViTtKFcoqX7z08I+iDZv/emH1g8XEFiO3qiDfXAheT5ozl1VffDTKhIW/w==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       '@aws-sdk/credential-providers': ^3.806.0
@@ -5638,8 +5635,8 @@ packages:
     resolution: {integrity: sha512-WPn+h9RGEExOKdu4bsF4HksG/uzd3cFq3MFtq8PsFeExPse5Ha/VOjQNyHhjboBFwGXGev6muJYTSPAOkROq2g==}
     engines: {node: '>=18'}
 
-  protobufjs@7.5.4:
-    resolution: {integrity: sha512-CvexbZtbov6jW2eXAvLukXjXUW1TzFaivC46BpWc/3BpcCysb5Vffu+B3XHMm8lVEuy2Mm4XGex8hBSg1yapPg==}
+  protobufjs@7.5.5:
+    resolution: {integrity: sha512-3wY1AxV+VBNW8Yypfd1yQY9pXnqTAN+KwQxL8iYm3/BjKYMNg4i0owhEe26PWDOMaIrzeeF98Lqd5NGz4omiIg==}
     engines: {node: '>=12.0.0'}
 
   proxy-addr@2.0.7:
@@ -7669,14 +7666,14 @@ snapshots:
     dependencies:
       lodash.camelcase: 4.3.0
       long: 5.3.2
-      protobufjs: 7.5.4
+      protobufjs: 7.5.5
       yargs: 17.7.2
 
   '@grpc/proto-loader@0.8.0':
     dependencies:
       lodash.camelcase: 4.3.0
       long: 5.3.2
-      protobufjs: 7.5.4
+      protobufjs: 7.5.5
       yargs: 17.7.2
 
   '@hono/node-server@1.19.14(hono@4.12.14)':
@@ -8320,13 +8317,13 @@ snapshots:
 
   '@mongodb-js/device-id@0.4.6': {}
 
-  '@mongodb-js/devtools-connect@3.14.11(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))':
+  '@mongodb-js/devtools-connect@3.14.11(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))':
     dependencies:
       '@mongodb-js/devtools-proxy-support': 0.7.8
       '@mongodb-js/oidc-http-server-pages': 1.2.6
       '@mongodb-js/oidc-plugin': 2.0.8
       lodash.merge: 4.6.2
-      mongodb: 7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-connection-string-url: 7.0.1
       mongodb-log-writer: 2.5.7(bson@7.2.0)
       socks: 2.8.7
@@ -8381,10 +8378,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mongodb-js/saslprep@1.3.2':
-    dependencies:
-      sparse-bitfield: 3.0.3
-
   '@mongodb-js/saslprep@1.4.8':
     dependencies:
       sparse-bitfield: 3.0.3
@@ -8412,7 +8405,7 @@ snapshots:
       '@mongosh/errors': 2.4.6
       '@mongosh/shell-bson': 3.0.1(bson@7.2.0)
       bson: 7.2.0
-      mongodb: 7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-build-info: 1.9.7
       mongodb-connection-string-url: 7.0.1
     transitivePeerDependencies:
@@ -8428,13 +8421,13 @@ snapshots:
   '@mongosh/service-provider-node-driver@5.0.2(mongodb-log-writer@2.5.7(bson@7.2.0))':
     dependencies:
       '@aws-sdk/credential-providers': 3.1003.0
-      '@mongodb-js/devtools-connect': 3.14.11(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))
+      '@mongodb-js/devtools-connect': 3.14.11(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))
       '@mongodb-js/oidc-plugin': 2.0.8
       '@mongosh/errors': 2.4.6
       '@mongosh/service-provider-core': 5.0.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
-      '@mongosh/types': 5.0.1(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))
+      '@mongosh/types': 5.0.1(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))
       gcp-metadata: 7.0.1
-      mongodb: 7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-build-info: 1.9.7
       mongodb-connection-string-url: 7.0.1
       socks: 2.8.7
@@ -8453,9 +8446,9 @@ snapshots:
       '@mongosh/errors': 2.4.6
       bson: 7.2.0
 
-  '@mongosh/types@5.0.1(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))':
+  '@mongosh/types@5.0.1(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))':
     dependencies:
-      '@mongodb-js/devtools-connect': 3.14.11(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))
+      '@mongodb-js/devtools-connect': 3.14.11(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.7(bson@7.2.0))(mongodb@7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7))
     transitivePeerDependencies:
       - '@mongodb-js/oidc-plugin'
       - mongodb
@@ -8533,7 +8526,7 @@ snapshots:
       '@opentelemetry/sdk-logs': 0.202.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-metrics': 2.0.1(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.0.1(@opentelemetry/api@1.9.1)
-      protobufjs: 7.5.4
+      protobufjs: 7.5.5
 
   '@opentelemetry/resources@2.0.1(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -9328,15 +9321,15 @@ snapshots:
     dependencies:
       ulid: 2.4.0
 
-  '@redocly/cli@2.28.0(@opentelemetry/api@1.9.1)(core-js@3.47.0)':
+  '@redocly/cli@2.29.0(@opentelemetry/api@1.9.1)(core-js@3.47.0)':
     dependencies:
       '@opentelemetry/exporter-trace-otlp-http': 0.202.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.0.1(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-node': 2.0.1(@opentelemetry/api@1.9.1)
       '@opentelemetry/semantic-conventions': 1.34.0
       '@redocly/cli-otel': 0.1.2
-      '@redocly/openapi-core': 2.28.0
-      '@redocly/respect-core': 2.28.0
+      '@redocly/openapi-core': 2.29.0
+      '@redocly/respect-core': 2.29.0
       abort-controller: 3.0.0
       ajv: '@redocly/ajv@8.18.0'
       ajv-formats: 3.0.1(@redocly/ajv@8.18.0)
@@ -9388,7 +9381,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@redocly/openapi-core@2.28.0':
+  '@redocly/openapi-core@2.29.0':
     dependencies:
       '@redocly/ajv': 8.18.0
       '@redocly/config': 0.48.0
@@ -9401,12 +9394,12 @@ snapshots:
       pluralize: 8.0.0
       yaml-ast-parser: 0.0.43
 
-  '@redocly/respect-core@2.28.0':
+  '@redocly/respect-core@2.29.0':
     dependencies:
       '@faker-js/faker': 7.6.0
       '@noble/hashes': 1.8.0
       '@redocly/ajv': 8.18.0
-      '@redocly/openapi-core': 2.28.0
+      '@redocly/openapi-core': 2.29.0
       ajv: '@redocly/ajv@8.18.0'
       better-ajv-errors: 1.2.0(@redocly/ajv@8.18.0)
       colorette: 2.0.20
@@ -11114,7 +11107,7 @@ snapshots:
       '@grpc/grpc-js': 1.14.3
       '@grpc/proto-loader': 0.7.15
       docker-modem: 5.0.7
-      protobufjs: 7.5.4
+      protobufjs: 7.5.5
       tar-fs: 2.1.4
       uuid: 10.0.0
     transitivePeerDependencies:
@@ -12503,7 +12496,7 @@ snapshots:
       '@mongodb-js/saslprep': 1.4.8
       '@peculiar/x509': 1.14.3
       debug: 4.4.3(supports-color@10.2.2)
-      mongodb: 7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-connection-string-url: 7.0.1
       yargs: 18.0.0
     transitivePeerDependencies:
@@ -12524,7 +12517,7 @@ snapshots:
       bson: 7.2.0
       cli-table: 0.3.11
       js-yaml: 4.1.1
-      mongodb: 7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
+      mongodb: 7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7)
       mongodb-ns: 3.1.6
       numeral: 2.0.6
       progress: 2.0.3
@@ -12539,9 +12532,9 @@ snapshots:
       - snappy
       - socks
 
-  mongodb@7.1.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
+  mongodb@7.1.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.7):
     dependencies:
-      '@mongodb-js/saslprep': 1.3.2
+      '@mongodb-js/saslprep': 1.4.8
       bson: 7.2.0
       mongodb-connection-string-url: 7.0.1
     optionalDependencies:
@@ -13049,7 +13042,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  protobufjs@7.5.4:
+  protobufjs@7.5.5:
     dependencies:
       '@protobufjs/aspromise': 1.1.2
       '@protobufjs/base64': 1.1.2

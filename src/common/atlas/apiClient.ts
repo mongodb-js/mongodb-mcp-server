@@ -13,6 +13,16 @@ import { AuthProviderFactory } from "./auth/authProvider.js";
 const ATLAS_API_VERSION = "2025-03-12";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
 
+/**
+ * Detects whether we're running on Node.js as opposed to a browser/web
+ * environment. We rely on `process.versions.node` rather than `typeof process`
+ * because bundlers (e.g. Vite) may replace `process` with a literal object
+ * shim in the browser build, which would still be `"object"` at runtime.
+ */
+function isNodeRuntime(): boolean {
+    return typeof process !== "undefined" && process.versions !== undefined && process.versions.node !== undefined;
+}
+
 export interface ApiClientOptions {
     baseUrl: string;
     userAgent?: string;
@@ -49,17 +59,29 @@ export class ApiClient {
         public readonly logger: LoggerBase,
         public readonly authProvider?: AuthProvider
     ) {
-        // createFetch assumes that the first parameter of fetch is always a string
-        // with the URL. However, fetch can also receive a Request object. While
-        // the typechecking complains, createFetch does passthrough the parameters
-        // so it works fine. That said, node-fetch has incompatibilities with the web version
-        // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
-        this.customFetch = createFetch({
-            useEnvironmentVariableProxies: true,
-        }) as unknown as typeof fetch;
+        // In Node we use `createFetch` from devtools-proxy-support to pick up
+        // environment-variable proxy configuration and system CA trust, and we
+        // use node-fetch's Request since its interface is a superset of the
+        // web Request. In the browser those Node-only concerns don't apply and
+        // the implementations aren't available, so we fall back to the native
+        // `fetch`/`Request` globals.
+        if (isNodeRuntime()) {
+            // createFetch assumes that the first parameter of fetch is always a string
+            // with the URL. However, fetch can also receive a Request object. While
+            // the typechecking complains, createFetch does passthrough the parameters
+            // so it works fine. That said, node-fetch has incompatibilities with the web version
+            // of fetch and can lead to genuine issues so we would like to move away of node-fetch dependency.
+            this.customFetch = createFetch({
+                useEnvironmentVariableProxies: true,
+            }) as unknown as typeof fetch;
+        } else {
+            this.customFetch = globalThis.fetch.bind(globalThis);
+        }
         this.options = {
             ...options,
-            userAgent: options.userAgent ?? `AtlasMCP/${packageInfo.version} (${process.platform}; ${process.arch})`,
+            userAgent:
+                options.userAgent ??
+                `AtlasMCP/${packageInfo.version} (${isNodeRuntime() ? `${process.platform}; ${process.arch}` : "browser"})`,
         };
 
         this.authProvider =
@@ -83,7 +105,7 @@ export class ApiClient {
             // NodeFetchRequest has more overloadings than the native Request
             // so it complains here. However, the interfaces are actually compatible
             // so it's not a real problem, just a type checking problem.
-            Request: NodeFetchRequest as unknown as ClientOptions["Request"],
+            Request: (isNodeRuntime() ? NodeFetchRequest : globalThis.Request) as unknown as ClientOptions["Request"],
         });
 
         if (this.authProvider) {

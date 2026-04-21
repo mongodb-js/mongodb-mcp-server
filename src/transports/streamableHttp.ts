@@ -12,11 +12,16 @@ import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
 import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { MonitoringServerFeature } from "../common/schemas.js";
-import { MCPHttpServer } from "./mcpHttpServer.js";
+import {
+    MCPHttpServer,
+    type CreateMcpHttpServerFn,
+    createDefaultMcpHttpServer,
+    type MCPHttpServerConstructorArgs,
+} from "./mcpHttpServer.js";
 import { MonitoringServer, type CreateMonitoringServerFn, createDefaultMonitoringServer } from "./monitoringServer.js";
 
-export { createDefaultMonitoringServer, MonitoringServer };
-export type { CreateMonitoringServerFn, MonitoringServerFeature, MCPHttpServer };
+export { createDefaultMonitoringServer, MonitoringServer, createDefaultMcpHttpServer, MCPHttpServer };
+export type { CreateMonitoringServerFn, MonitoringServerFeature, CreateMcpHttpServerFn, MCPHttpServerConstructorArgs };
 
 /**
  * Configuration options for extracting monitoring server settings from UserConfig.
@@ -39,6 +44,7 @@ export type MonitoringServerConfig = {
 export type StreamableHttpTransportRunnerConfig<
     TUserConfig extends UserConfig = UserConfig,
     TMetrics extends DefaultMetrics = DefaultMetrics,
+    TContext = unknown,
 > = TransportRunnerConfig<TUserConfig, TMetrics> & {
     /**
      * When provided, the runner will use this function to create the monitoring server
@@ -56,6 +62,14 @@ export type StreamableHttpTransportRunnerConfig<
      * arguments that would normally be used.
      */
     createSessionStore?: CreateSessionStoreFn<StreamableHTTPServerTransport, TMetrics>;
+
+    /**
+     * When provided, the runner will use this function to create the MCP HTTP server
+     * instead of using the default MCPHttpServer constructor. This allows for
+     * customizing the HTTP server (e.g., adding pre-route middleware) while still
+     * receiving the constructor arguments that would normally be used.
+     */
+    createMcpHttpServer?: CreateMcpHttpServerFn<TUserConfig, TContext>;
 };
 
 export {
@@ -75,9 +89,11 @@ export class StreamableHttpRunner<
     private mcpServer: MCPHttpServer<TUserConfig, TContext> | undefined;
     private readonly monitoringServer: MonitoringServer<TMetrics> | undefined;
     private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    private readonly createMcpHttpServer: CreateMcpHttpServerFn<TUserConfig, TContext>;
 
-    constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>) {
+    constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics, TContext>) {
         super(config);
+        this.createMcpHttpServer = config.createMcpHttpServer ?? createDefaultMcpHttpServer;
 
         this.sessionStore = (config.createSessionStore ?? createDefaultSessionStore<StreamableHTTPServerTransport>)({
             options: {
@@ -113,7 +129,7 @@ export class StreamableHttpRunner<
     } = {}): Promise<void> {
         this.validateConfig();
 
-        this.mcpServer = new MCPHttpServer<TUserConfig, TContext>({
+        this.mcpServer = this.createMcpHttpServer({
             userConfig: this.userConfig,
             createServerForRequest: ({ request }): Promise<Server<TUserConfig, TContext>> =>
                 this.createServerForRequest({ request, serverOptions, sessionOptions }),

@@ -66,6 +66,7 @@ export class UpdateManyTool extends MongoDBToolBase {
                             ],
                         },
                         verbosity: "queryPlanner",
+                        ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
                     });
                 },
                 logger: this.session.logger,

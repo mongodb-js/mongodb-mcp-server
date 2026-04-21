@@ -166,6 +166,12 @@ export class Telemetry {
             return false;
         }
 
+        // In browser environments, we don't have access to the process object, so we default to true.
+        if (typeof process === "undefined" || !process.env) {
+            return true;
+        }
+
+        // In Node.js environments, we check the DO_NOT_TRACK environment variable.
         const doNotTrack = "DO_NOT_TRACK" in process.env;
         return !doNotTrack;
     }
@@ -220,9 +226,9 @@ export class Telemetry {
      * Does not reschedule — the caller decides what to do next.
      */
     private async sendBatch({ signal }: { signal?: AbortSignal } = {}): Promise<SendResult> {
-        if (!this.session.apiClient || this.eventCache.size === 0) return { status: "empty" };
-
-        const apiClient = this.session.apiClient;
+        if (this.eventCache.size === 0) {
+            return { status: "empty" };
+        }
 
         const result = await this.eventCache.processOldestBatch(BATCH_SIZE, async (events) => {
             this.session.logger.debug({
@@ -231,7 +237,7 @@ export class Telemetry {
                 message: `Attempting to send ${events.length} events`,
             });
 
-            const sendResult = await this.sendEvents(apiClient, events, signal);
+            const sendResult = await this.sendEvents(this.session.apiClient, events, signal);
 
             if (sendResult.status !== "success") {
                 if (sendResult.status !== "rate-limited") {

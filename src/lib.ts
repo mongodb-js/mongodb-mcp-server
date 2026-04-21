@@ -38,13 +38,18 @@ export {
 } from "./common/logging/index.js";
 export {
     StreamableHttpRunner,
-    type MonitoringServer,
+    MCPHttpServer,
+    createDefaultMcpHttpServer,
+    type MCPHttpServerConstructorArgs,
+    type CreateMcpHttpServerFn,
+    MonitoringServer,
     createDefaultMonitoringServer,
     type StreamableHttpTransportRunnerConfig,
     type CreateMonitoringServerFn,
     type MonitoringServerConstructorArgs,
     type MonitoringServerConfig,
 } from "./transports/streamableHttp.js";
+export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
 export {
     TransportRunnerBase,

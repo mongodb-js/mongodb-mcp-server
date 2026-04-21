@@ -1,4 +1,5 @@
-import { StreamableHttpRunner } from "../../../src/transports/streamableHttp.js";
+import type express from "express";
+import { StreamableHttpRunner, MCPHttpServer } from "../../../src/transports/streamableHttp.js";
 import {
     createDefaultSessionStore,
     type ISessionStore,
@@ -786,6 +787,82 @@ describe("StreamableHttpRunner", () => {
                 });
             });
         }
+    });
+
+    describe("createMcpHttpServer factory", () => {
+        it("should use custom MCPHttpServer subclass via factory", async () => {
+            const middlewareCalls: string[] = [];
+
+            runner = new StreamableHttpRunner({
+                userConfig: config,
+                createMcpHttpServer(args): MCPHttpServer {
+                    return new (class extends MCPHttpServer {
+                        protected override setupMiddlewares(): void {
+                            this.app.use(
+                                (_req: express.Request, _res: express.Response, next: express.NextFunction) => {
+                                    middlewareCalls.push("middleware-executed");
+                                    next();
+                                }
+                            );
+                            super.setupMiddlewares();
+                        }
+                    })(args);
+                },
+            });
+            await runner.start();
+
+            const client = await connectClient({});
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+            expect(response.tools).toBeDefined();
+            expect(middlewareCalls.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it("should allow factory to create a server that rejects requests", async () => {
+            runner = new StreamableHttpRunner({
+                userConfig: config,
+                createMcpHttpServer(args): MCPHttpServer {
+                    return new (class extends MCPHttpServer {
+                        protected override setupMiddlewares(): void {
+                            this.app.use((_req: express.Request, res: express.Response) => {
+                                res.status(403).json({ error: "blocked by middleware" });
+                            });
+                            super.setupMiddlewares();
+                        }
+                    })(args);
+                },
+            });
+            await runner.start();
+
+            const response = await fetch(`${runner["mcpServer"]!.serverAddress}/mcp`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", accept: "application/json, text/event-stream" },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2024-11-05",
+                        capabilities: {},
+                        clientInfo: { name: "test", version: "0.0.0" },
+                    },
+                }),
+            });
+
+            expect(response.status).toBe(403);
+            const data = (await response.json()) as { error?: string };
+            expect(data.error).toBe("blocked by middleware");
+        });
+
+        it("should work without custom factory (default behavior)", async () => {
+            runner = new StreamableHttpRunner({ userConfig: config });
+            await runner.start();
+
+            const client = await connectClient({});
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+            expect(response.tools.length).toBeGreaterThan(0);
+        });
     });
 
     describe("monitoring server", () => {

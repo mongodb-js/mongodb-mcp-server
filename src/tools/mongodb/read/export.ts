@@ -74,7 +74,7 @@ export class ExportTool extends MongoDBToolBase {
                 limit,
                 promoteValues: false,
                 bsonRegExp: true,
-                signal,
+                ...this.getOperationOptions(signal),
             });
         } else {
             const { pipeline } = exportTarget.arguments;
@@ -82,7 +82,7 @@ export class ExportTool extends MongoDBToolBase {
                 promoteValues: false,
                 bsonRegExp: true,
                 allowDiskUse: true,
-                signal,
+                ...this.getOperationOptions(signal),
             });
         }
 

@@ -33,7 +33,7 @@ import { PrometheusMetrics } from '@mongodb-js/mcp-metrics';
 import { PrometheusMetricsOptions } from '@mongodb-js/mcp-metrics';
 import { Registry } from '@mongodb-js/mcp-metrics';
 import { Secret } from 'mongodb-redact';
-import type { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { z } from 'zod';
@@ -407,6 +407,9 @@ export class ConsoleLogger extends LoggerBase {
 
 export { Counter }
 
+// @public
+export const createDefaultMcpHttpServer: <TUserConfig extends UserConfig = UserConfig, TContext = unknown>(args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
+
 export { createDefaultMetrics }
 
 // @public
@@ -417,6 +420,9 @@ export function createDefaultSessionStore<TTransport extends CloseableTransport 
 
 // @public @deprecated (undocumented)
 export const createMCPConnectionManager: ConnectionManagerFactoryFn;
+
+// @public
+export type CreateMcpHttpServerFn<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = (args: MCPHttpServerConstructorArgs<TUserConfig, TContext>) => MCPHttpServer<TUserConfig, TContext>;
 
 // @public
 export type CreateMonitoringServerFn<TMetrics extends DefaultMetrics = DefaultMetrics> = (args: MonitoringServerConstructorArgs<TMetrics>) => MonitoringServer<TMetrics> | undefined;
@@ -673,6 +679,36 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
+// Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
+//
+// @public (undocumented)
+export class MCPHttpServer<TUserConfig extends UserConfig = UserConfig, TContext = unknown> extends ExpressBasedHttpServer {
+    constructor(input: MCPHttpServerConstructorArgs<TUserConfig, TContext>);
+    // (undocumented)
+    protected setupMiddlewares(): void;
+    // (undocumented)
+    protected setupRoutes(): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+    // (undocumented)
+    protected readonly userConfig: TUserConfig;
+}
+
+// @public (undocumented)
+export type MCPHttpServerConstructorArgs<TUserConfig extends UserConfig = UserConfig, TContext = unknown> = {
+    userConfig: TUserConfig;
+    createServerForRequest: (createParams: {
+        request: TransportRequestContext;
+        serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+        sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    }) => Promise<Server<TUserConfig, TContext>>;
+    logger: LoggerBase;
+    serverOptions?: CustomizableServerOptions<TUserConfig, TContext>;
+    sessionOptions?: CustomizableSessionOptions<TUserConfig>;
+    metrics: Metrics<DefaultMetrics>;
+    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+};
+
 export { MetricDefinitions }
 
 export { Metrics }
@@ -684,8 +720,6 @@ export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Err
     code: ErrorCode;
 }
 
-// Warning: (ae-forgotten-export) The symbol "ExpressBasedHttpServer" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export class MonitoringServer<TMetrics extends DefaultMetrics = DefaultMetrics> extends ExpressBasedHttpServer {
     constructor(input: {
@@ -842,7 +876,7 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
 export class Session extends EventEmitter<SessionEvents> {
     constructor(input: SessionOptions<UserConfig>);
     // (undocumented)
-    readonly apiClient?: ApiClient;
+    readonly apiClient: ApiClient;
     // (undocumented)
     assertSearchSupported(): Promise<void>;
     // (undocumented)
@@ -901,7 +935,7 @@ export type SessionEvents = {
 // @public (undocumented)
 export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     // (undocumented)
-    apiClient?: ApiClient;
+    apiClient: ApiClient;
     // (undocumented)
     atlasLocalClient?: Client;
     // (undocumented)
@@ -969,7 +1003,7 @@ export class StdioRunner<TUserConfig extends UserConfig = UserConfig, TContext =
 
 // @public (undocumented)
 export class StreamableHttpRunner<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> extends TransportRunnerBase<TUserConfig, TContext, TMetrics> {
-    constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics>);
+    constructor(config: StreamableHttpTransportRunnerConfig<TUserConfig, TMetrics, TContext>);
     // (undocumented)
     closeTransport(): Promise<void>;
     protected createServerForRequest(input: {
@@ -983,10 +1017,13 @@ export class StreamableHttpRunner<TUserConfig extends UserConfig = UserConfig, T
     }): Promise<void>;
 }
 
+export { StreamableHTTPServerTransport }
+
 // @public
-export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics> = TransportRunnerConfig<TUserConfig, TMetrics> & {
+export type StreamableHttpTransportRunnerConfig<TUserConfig extends UserConfig = UserConfig, TMetrics extends DefaultMetrics = DefaultMetrics, TContext = unknown> = TransportRunnerConfig<TUserConfig, TMetrics> & {
     createMonitoringServer?: CreateMonitoringServerFn<TMetrics>;
     createSessionStore?: CreateSessionStoreFn<StreamableHTTPServerTransport, TMetrics>;
+    createMcpHttpServer?: CreateMcpHttpServerFn<TUserConfig, TContext>;
 };
 
 // @public (undocumented)
@@ -1166,6 +1203,7 @@ export const UserConfigSchema: z.ZodObject<{
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     exportsPath: z.ZodDefault<z.ZodString>;
     exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

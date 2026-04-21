@@ -768,7 +768,7 @@ export interface ServerOptions<TUserConfig extends UserConfig = UserConfig, TCon
 export class Session extends EventEmitter<SessionEvents> {
     constructor(input: SessionOptions<UserConfig>);
     // (undocumented)
-    readonly apiClient?: ApiClient;
+    readonly apiClient: ApiClient;
     // (undocumented)
     assertSearchSupported(): Promise<void>;
     // (undocumented)
@@ -824,7 +824,7 @@ export type SessionEvents = {
 // @public (undocumented)
 export interface SessionOptions<TUserConfig extends UserConfig = UserConfig> {
     // (undocumented)
-    apiClient?: ApiClient;
+    apiClient: ApiClient;
     // (undocumented)
     atlasLocalClient?: Client;
     // (undocumented)
@@ -1104,6 +1104,7 @@ export const UserConfigSchema: z.ZodObject<{
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     exportsPath: z.ZodDefault<z.ZodString>;
     exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
