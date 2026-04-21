@@ -73,8 +73,7 @@ export type SetupCommand =
 /**
  * Properties shared across all setup events. Every event carries the full
  * accumulated context known up to that point so each event is independently
- * queryable (e.g. "how many Claude Desktop users who entered a connection
- * string in read-write mode finished setup?").
+ * queryable.
  */
 export type SetupEventProperties = {
     command: SetupCommand;
@@ -84,9 +83,6 @@ export type SetupEventProperties = {
      * the same wizard invocation share this id so they can be correlated.
      */
     setup_session_id: string;
-
-    /** Monotonically increasing index within a run, used to order steps. */
-    step_index: number;
 
     /** The AI tool selected by the user, once known. */
     ai_tool?: string;

@@ -8,6 +8,8 @@ import { EventCache } from "./eventCache.js";
 import { detectContainerEnv } from "../helpers/container.js";
 import type { DeviceId } from "../helpers/deviceId.js";
 import type { Keychain } from "../common/keychain.js";
+import type { Session } from "../common/session.js";
+import type { UserConfig } from "../common/config/userConfig.js";
 import { EventEmitter } from "events";
 import { redact } from "mongodb-redact";
 import { Timer } from "./timer.js";
@@ -45,11 +47,11 @@ export interface TelemetryConfig {
     keychain?: Keychain;
 
     /**
-     * The user's telemetry preference. When set to `"disabled"`, no events are
+     * The user's telemetry preference. When set to `false`, no events are
      * cached or sent. The DO_NOT_TRACK environment variable is always honored
      * on top of this setting, so callers don't need to check it themselves.
      */
-    telemetry: "enabled" | "disabled";
+    enabled: boolean;
 
     /**
      * Returns the host-supplied common properties merged onto every event
@@ -62,6 +64,13 @@ export interface TelemetryConfig {
      * the pipeline itself and don't need to be returned here.
      */
     getCommonProperties?: () => Partial<CommonProperties>;
+
+    /**
+     * Optional override for the underlying event cache. Defaults to the
+     * process-wide singleton returned by {@link EventCache.getInstance}.
+     * Mostly useful for tests or callers that need to isolate caching.
+     */
+    eventCache?: EventCache;
 }
 
 /** The timeout for individual send requests in milliseconds. */
@@ -90,7 +99,6 @@ export function nextBackoffMs(currentMs: number): number {
 }
 
 export class Telemetry {
-    private isBufferingEvents: boolean = true;
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
     public readonly events: EventEmitter<TelemetryEvents> = new EventEmitter();
@@ -98,7 +106,7 @@ export class Telemetry {
     private readonly logger: LoggerBase;
     private readonly apiClient: ApiClient;
     private readonly keychain?: Keychain;
-    private readonly telemetrySetting: "enabled" | "disabled";
+    private readonly enabled: boolean;
     private readonly getHostCommonProperties: () => Partial<CommonProperties>;
     /**
      * Machine metadata plus device_id / is_container_env, which the pipeline
@@ -115,16 +123,50 @@ export class Telemetry {
         this.logger = config.logger;
         this.apiClient = config.apiClient;
         this.keychain = config.keychain;
-        this.telemetrySetting = config.telemetry;
+        this.enabled = config.enabled;
         this.getHostCommonProperties = config.getCommonProperties ?? ((): Partial<CommonProperties> => ({}));
-        this.eventCache = EventCache.getInstance();
+        this.eventCache = config.eventCache ?? EventCache.getInstance();
         this.deviceId = config.deviceId;
         this.pipelineCommonProperties = {
             ...MACHINE_METADATA,
         };
     }
 
-    static create(config: TelemetryConfig): Telemetry {
+    /**
+     * @deprecated Pass a {@link TelemetryConfig} object instead. This
+     * positional-argument overload is preserved for backward compatibility
+     * and will be removed in the next major version.
+     */
+    static create(
+        session: Session,
+        userConfig: UserConfig,
+        deviceId: DeviceId,
+        options?: {
+            commonProperties?: Partial<CommonProperties>;
+            eventCache?: EventCache;
+        }
+    ): Telemetry;
+    static create(config: TelemetryConfig): Telemetry;
+    static create(
+        sessionOrConfig: Session | TelemetryConfig,
+        userConfig?: UserConfig,
+        deviceId?: DeviceId,
+        {
+            commonProperties = {},
+            eventCache = EventCache.getInstance(),
+        }: {
+            commonProperties?: Partial<CommonProperties>;
+            eventCache?: EventCache;
+        } = {}
+    ): Telemetry {
+        const config: TelemetryConfig =
+            userConfig === undefined || deviceId === undefined
+                ? (sessionOrConfig as TelemetryConfig)
+                : legacyConfigFromSession(sessionOrConfig as Session, userConfig, deviceId, {
+                      commonProperties,
+                      eventCache,
+                  });
+
         const instance = new Telemetry(config);
         void instance.setup();
         return instance;
@@ -147,7 +189,6 @@ export class Telemetry {
         this.pipelineCommonProperties.device_id = deviceIdValue;
         this.pipelineCommonProperties.is_container_env = containerEnv ? "true" : "false";
 
-        this.isBufferingEvents = false;
         this.scheduleSend();
     }
 
@@ -193,7 +234,7 @@ export class Telemetry {
      * done on every call so an operator can opt out mid-process.
      */
     public isTelemetryEnabled(): boolean {
-        if (this.telemetrySetting === "disabled") {
+        if (!this.enabled) {
             return false;
         }
 
@@ -322,4 +363,40 @@ export class Telemetry {
             };
         }
     }
+}
+
+/**
+ * Translates the legacy (session, userConfig, deviceId, options) inputs
+ * accepted by the deprecated {@link Telemetry.create} overload into a
+ * {@link TelemetryConfig}.
+ */
+function legacyConfigFromSession(
+    session: Session,
+    userConfig: UserConfig,
+    deviceId: DeviceId,
+    {
+        commonProperties,
+        eventCache,
+    }: {
+        commonProperties: Partial<CommonProperties>;
+        eventCache: EventCache;
+    }
+): TelemetryConfig {
+    return {
+        logger: session.logger,
+        deviceId,
+        apiClient: session.apiClient,
+        keychain: session.keychain,
+        enabled: userConfig.telemetry !== "disabled",
+        eventCache,
+        getCommonProperties: () => ({
+            ...commonProperties,
+            transport: userConfig.transport,
+            mcp_client_version: session.mcpClient?.version,
+            mcp_client_name: session.mcpClient?.name,
+            session_id: session.sessionId,
+            config_atlas_auth: session.apiClient?.isAuthConfigured() ? "true" : "false",
+            config_connection_string: userConfig.connectionString ? "true" : "false",
+        }),
+    };
 }

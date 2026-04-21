@@ -15,7 +15,10 @@ import { type UserConfig } from "../common/config/userConfig.js";
 import { defaultCreateAtlasLocalClient } from "../common/atlasLocal.js";
 import { NullLogger } from "../common/logging/index.js";
 import type { TelemetryResult } from "../telemetry/types.js";
-import type { SetupTelemetry } from "./setupTelemetry.js";
+import { SetupTelemetry } from "./setupTelemetry.js";
+import { Keychain } from "../common/keychain.js";
+
+const keychain = new Keychain();
 
 const buildEnvObject = (
     connectionString: string,
@@ -35,15 +38,15 @@ const buildEnvObject = (
     return env;
 };
 
-type ConnectionTestOutcome = {
+const testConnectionString = async (
+    connectionString: string
+): Promise<{
     connectionString: string;
     /** Final result of the connection attempt, or undefined if the user never tested. */
     testResult?: TelemetryResult;
     /** Number of connection attempts the user made (1 = initial attempt, 2+ = with retries). */
     attempts: number;
-};
-
-const testConnectionString = async (connectionString: string): Promise<ConnectionTestOutcome> => {
+}> => {
     let attempts = 0;
     while (true) {
         attempts += 1;
@@ -60,7 +63,7 @@ const testConnectionString = async (connectionString: string): Promise<Connectio
             console.log(chalk.green("✓ Connection successful!"));
             return { connectionString, testResult: "success", attempts };
         } catch (error: unknown) {
-            console.log(chalk.red("\n✗ Connection failed: " + formatError(error)));
+            console.log(chalk.red("\n✗ Connection failed: " + formatError(error, keychain)));
             console.log(chalk.yellow("\nPlease check:"));
             console.log(chalk.yellow("  • Your database user credentials are correct"));
             console.log(chalk.yellow("  • Your IP address is allowed in Network Access"));
@@ -87,19 +90,17 @@ const testConnectionString = async (connectionString: string): Promise<Connectio
     }
 };
 
-type EditorConfigureOutcome = {
-    usedDefaultConfigPath: boolean;
-    result: TelemetryResult;
-    error?: unknown;
-};
-
 const configureEditor = async (
     tool: AIToolType,
     connectionString: string,
     serviceWorkerId: string,
     serviceWorkerSecret: string,
     isReadOnly: boolean
-): Promise<EditorConfigureOutcome> => {
+): Promise<{
+    usedDefaultConfigPath: boolean;
+    result: TelemetryResult;
+    error?: unknown;
+}> => {
     const { name: displayName, configFileName } = AI_TOOL_REGISTRY[tool];
     let { configPath } = AI_TOOL_REGISTRY[tool];
 
@@ -124,8 +125,8 @@ const configureEditor = async (
         AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly);
         console.log(`\nConfiguration saved to ${configPath}`);
         return { usedDefaultConfigPath: useDetectedPath, result: "success" };
-    } catch (error) {
-        console.log(chalk.red(`\nFailed to save configuration: ${formatError(error)}`));
+    } catch (error: unknown) {
+        console.log(chalk.red(`\nFailed to save configuration: ${formatError(error, keychain)}`));
         return { usedDefaultConfigPath: useDetectedPath, result: "failure", error };
     }
 };
@@ -187,6 +188,7 @@ const printInstructions = (): void => {
     );
     printNewLine();
 };
+
 const promptForAITool = async (platform: Platform): Promise<AIToolType> => {
     return await select<AIToolType>({
         message: "What tool would you like to use the MongoDB MCP Server with?",
@@ -205,15 +207,15 @@ const promptForReadonly = async (): Promise<boolean> => {
     return await confirm({ message: "Install MCP server as Read-only?", default: false });
 };
 
-type ConnectionStringOutcome = {
+const promptForConnectionString = async (
+    config: UserConfig
+): Promise<{
     connectionString: string;
     provided: boolean;
     tested: boolean;
     attempts: number;
     testResult?: TelemetryResult;
-};
-
-const promptForConnectionString = async (config: UserConfig): Promise<ConnectionStringOutcome> => {
+}> => {
     console.log("Providing a connection string allows the MCP server to read and write data to your MongoDB cluster.");
     const connectionString = await password({
         message: "Enter your MongoDB connection string (press enter to skip):",
@@ -223,6 +225,8 @@ const promptForConnectionString = async (config: UserConfig): Promise<Connection
     if (!connectionString) {
         return { connectionString: "", provided: false, tested: false, attempts: 0 };
     }
+
+    keychain.register(connectionString, "mongodb uri");
 
     try {
         const auth = getAuthType(config, connectionString);
@@ -241,8 +245,7 @@ const promptForConnectionString = async (config: UserConfig): Promise<Connection
             }
         }
         return { connectionString, provided: true, tested: false, attempts: 0 };
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error: unknown) {
+    } catch {
         // If auth type detection failed but user provided a connection string, preserve it
         return { connectionString, provided: true, tested: false, attempts: 0 };
     }
@@ -254,7 +257,12 @@ const promptForServiceAccountId = async (): Promise<string> => {
 };
 
 const promptForServiceAccountSecret = async (): Promise<string> => {
-    return await password({ message: "Enter your Atlas Service Account Secret (press enter to skip):", mask: true });
+    const secret = await password({
+        message: "Enter your Atlas Service Account Secret (press enter to skip):",
+        mask: true,
+    });
+    keychain.register(secret, "private key");
+    return secret;
 };
 
 const validateCredentials = (
@@ -324,13 +332,14 @@ const getAvailablePrompts = (
     return availablePrompts;
 };
 
-type OpenConfigOutcome = {
+const promptToOpenConfigFile = async (
+    displayName: string,
+    tool: AIToolType
+): Promise<{
     opened: boolean;
     result: TelemetryResult;
     error?: unknown;
-};
-
-const promptToOpenConfigFile = async (displayName: string, tool: AIToolType): Promise<OpenConfigOutcome> => {
+}> => {
     let openConfigMessage = `Would you like to open the config file in ${displayName}?`;
     if (TOOLS_WITHOUT_EDITORS.includes(tool)) {
         openConfigMessage = `Would you like to open the config file in your default editor?`;
@@ -348,7 +357,7 @@ const promptToOpenConfigFile = async (displayName: string, tool: AIToolType): Pr
         await openConfigSettings(tool);
         return { opened: true, result: "success" };
     } catch (error: unknown) {
-        console.log(chalk.red(`Failed to open config file: ${formatError(error)}`));
+        console.log(chalk.red(`Failed to open config file: ${formatError(error, keychain)}`));
         return { opened: true, result: "failure", error };
     }
 };
@@ -370,10 +379,33 @@ const guideUserWithSetupSuccess = (displayName: string, availablePrompts: string
  * logical step emits a telemetry event so we can track both overall completion
  * rates and per-step drop-off.
  */
-export const runSetup = async (config: UserConfig, setupTelemetry?: SetupTelemetry): Promise<void> => {
+export const runSetup = async (config: UserConfig): Promise<never> => {
+    const setupTelemetry = SetupTelemetry.create(config, keychain);
+
+    // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
+    // are still captured. Inquirer itself converts Ctrl+C during prompts into
+    // an ExitPromptError which runSetup already handles.
+    let interrupted = false;
+    const onInterrupt = (): void => {
+        if (interrupted) {
+            return;
+        }
+
+        interrupted = true;
+        setupTelemetry.emitCancelled();
+        setupTelemetry
+            .flush()
+            .catch(() => undefined)
+            .finally(() => process.exit(0));
+    };
+    process.on("SIGINT", onInterrupt);
+    process.on("SIGTERM", onInterrupt);
+
+    let exitCode = 0;
+
     try {
         printLogo();
-        setupTelemetry?.emitStarted();
+        setupTelemetry.emitStarted();
 
         const nodeVersionOk = validateNodeVersion();
         const platform = getPlatform();
@@ -381,31 +413,30 @@ export const runSetup = async (config: UserConfig, setupTelemetry?: SetupTelemet
         if (!platformSupported) {
             console.log(chalk.red("Unsupported platform. Only macOS, Windows and Linux are supported."));
             printNewLine();
-            setupTelemetry?.emitPrerequisitesChecked({
+            setupTelemetry.emitPrerequisitesChecked({
                 nodeVersionOk,
                 platformSupported: false,
-                hasDocker: false,
             });
-            setupTelemetry?.emitFailed(new Error("unsupported_platform"));
+            setupTelemetry.emitFailed(new Error("unsupported_platform"));
             process.exit(1);
         }
 
         printInstructions();
 
         const hasDocker = await validateDocker();
-        setupTelemetry?.emitPrerequisitesChecked({ nodeVersionOk, platformSupported, hasDocker });
+        setupTelemetry.emitPrerequisitesChecked({ nodeVersionOk, platformSupported, hasDocker });
 
         const tool = await promptForAITool(platform);
         const displayName = AI_TOOL_REGISTRY[tool].name;
-        setupTelemetry?.emitAiToolSelected(tool);
+        setupTelemetry.emitAiToolSelected(tool);
         printNewLine();
 
         const isReadOnly = await promptForReadonly();
-        setupTelemetry?.emitReadOnlySelected(isReadOnly);
+        setupTelemetry.emitReadOnlySelected(isReadOnly);
         printNewLine();
 
         const connectionOutcome = await promptForConnectionString(config);
-        setupTelemetry?.emitConnectionStringEntered({
+        setupTelemetry.emitConnectionStringEntered({
             provided: connectionOutcome.provided,
             tested: connectionOutcome.tested,
             attempts: connectionOutcome.attempts,
@@ -413,14 +444,14 @@ export const runSetup = async (config: UserConfig, setupTelemetry?: SetupTelemet
         });
 
         const serviceAccountId = await promptForServiceAccountId();
-        setupTelemetry?.emitServiceAccountIdEntered(Boolean(serviceAccountId));
+        setupTelemetry.emitServiceAccountIdEntered(Boolean(serviceAccountId));
 
         const serviceAccountSecret = await promptForServiceAccountSecret();
-        setupTelemetry?.emitServiceAccountSecretEntered(Boolean(serviceAccountSecret));
+        setupTelemetry.emitServiceAccountSecretEntered(Boolean(serviceAccountSecret));
         printNewLine();
 
         validateCredentials(connectionOutcome.connectionString, serviceAccountId, serviceAccountSecret, hasDocker);
-        setupTelemetry?.emitCredentialsValidated();
+        setupTelemetry.emitCredentialsValidated();
 
         const editorOutcome = await configureEditor(
             tool,
@@ -429,7 +460,7 @@ export const runSetup = async (config: UserConfig, setupTelemetry?: SetupTelemet
             serviceAccountSecret,
             isReadOnly
         );
-        setupTelemetry?.emitEditorConfigured(editorOutcome);
+        setupTelemetry.emitEditorConfigured(editorOutcome);
 
         const availablePrompts = getAvailablePrompts(
             connectionOutcome.connectionString,
@@ -439,18 +470,26 @@ export const runSetup = async (config: UserConfig, setupTelemetry?: SetupTelemet
         );
         guideUserWithSetupSuccess(displayName, availablePrompts);
         const openOutcome = await promptToOpenConfigFile(displayName, tool);
-        setupTelemetry?.emitOpenConfigPrompted(openOutcome);
+        setupTelemetry.emitOpenConfigPrompted(openOutcome);
 
-        setupTelemetry?.emitCompleted();
+        setupTelemetry.emitCompleted();
     } catch (error: unknown) {
         // Handle Ctrl+C during prompts (inquirer throws ExitPromptError)
+        // Re-throw other errors
         if (error && typeof error === "object" && "name" in error && error.name === "ExitPromptError") {
             console.log("\n\nSetup cancelled. Goodbye!");
-            setupTelemetry?.emitCancelled();
-            return;
+            setupTelemetry.emitCancelled();
+        } else {
+            exitCode = 1;
+            setupTelemetry.emitFailed(error);
+
+            console.error(`Setup failed: ${error instanceof Error ? error.message : String(error)}`);
         }
-        setupTelemetry?.emitFailed(error);
-        // Re-throw other errors
-        throw error;
+    } finally {
+        process.off("SIGINT", onInterrupt);
+        process.off("SIGTERM", onInterrupt);
+        await setupTelemetry.flush();
     }
+
+    process.exit(exitCode);
 };

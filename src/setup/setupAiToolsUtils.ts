@@ -1,4 +1,6 @@
 import os from "os";
+import type { Keychain } from "../common/keychain.js";
+import { redact } from "mongodb-redact";
 
 export type Platform = "mac" | "windows" | "linux";
 export const getPlatform = (): Platform | null => {
@@ -14,4 +16,7 @@ export const getPlatform = (): Platform | null => {
     }
 };
 
-export const formatError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+export const formatError = (error: unknown, keychain: Keychain): string => {
+    const message = error instanceof Error ? error.message : String(error);
+    return redact(message, keychain.allSecrets);
+};

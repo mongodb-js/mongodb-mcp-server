@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { ApiClient } from "../common/atlas/apiClient.js";
-import { Keychain } from "../common/keychain.js";
+import type { Keychain } from "../common/keychain.js";
 import { NullLogger } from "../common/logging/index.js";
 import type { UserConfig } from "../common/config/userConfig.js";
 import { DeviceId } from "../helpers/deviceId.js";
@@ -24,13 +24,16 @@ export type SetupTelemetryContext = Omit<
 >;
 
 export const toBoolSet = (value: boolean | undefined): TelemetryBoolSet | undefined => {
-    if (value === undefined) return undefined;
+    if (value === undefined) {
+        return undefined;
+    }
+
     return value ? "true" : "false";
 };
 
 /**
  * Per-run helper that owns the setup telemetry session: assigns the
- * `setup_session_id`, tracks step ordering and wall-clock durations, and
+ * `setup_session_id`, tracks wall-clock durations, and
  * accumulates context so every event carries the full set of known flags.
  *
  * One instance is constructed per `runSetup` invocation. Callers emit typed
@@ -41,22 +44,16 @@ export class SetupTelemetry {
     private readonly setupSessionId: string = randomUUID();
     private readonly startedAt: number = Date.now();
     private stepStartedAt: number = this.startedAt;
-    private stepIndex: number = 0;
     private lastStep: SetupCommand | undefined;
     private context: SetupTelemetryContext = {};
 
     /**
      * Builds a fully-wired {@link SetupTelemetry} for the setup CLI: a silent
-     * logger (so telemetry's internal chatter doesn't leak into the
+     * logger (so telemetry's internal logging doesn't leak into the
      * interactive wizard), a fresh {@link DeviceId}, an unauthenticated
-     * {@link ApiClient} (the telemetry pipeline falls back to the unauth
-     * endpoint when no credentials are configured), and a {@link Telemetry}
-     * stamped with `hosting_mode: "setup-cli"`.
-     *
-     * The returned instance owns the {@link DeviceId} it created — callers
-     * only need to call {@link flush} before exiting.
+     * {@link ApiClient}, and a {@link Telemetry} instance.
      */
-    public static create(config: UserConfig): SetupTelemetry {
+    public static create(config: UserConfig, keychain: Keychain): SetupTelemetry {
         const logger = new NullLogger();
         const deviceId = DeviceId.create(logger);
         const apiClient = new ApiClient({ baseUrl: config.apiBaseUrl }, logger);
@@ -64,9 +61,8 @@ export class SetupTelemetry {
             logger,
             deviceId,
             apiClient,
-            keychain: Keychain.root,
-            telemetry: config.telemetry,
-            getCommonProperties: () => ({ hosting_mode: "setup-cli" }),
+            keychain,
+            enabled: config.telemetry !== "disabled",
         });
         return new SetupTelemetry(telemetry, deviceId);
     }
@@ -77,14 +73,14 @@ export class SetupTelemetry {
      */
     public constructor(
         private readonly telemetry: Telemetry,
-        private readonly deviceId?: DeviceId
+        private readonly deviceId: DeviceId
     ) {}
 
     /**
      * Merges new context values into the accumulated context. Subsequent
      * events will automatically carry the updated values.
      */
-    public updateContext(patch: SetupTelemetryContext): void {
+    public updateContext(patch: Partial<SetupTelemetryContext>): void {
         this.context = { ...this.context, ...patch };
     }
 
@@ -94,7 +90,7 @@ export class SetupTelemetry {
      * defaults to "success" — callers pass "failure" only when the step's
      * own code path failed (e.g. writing the editor config threw).
      */
-    public emit(
+    private emit(
         command: SetupCommand,
         extra: Partial<SetupEventProperties> = {},
         result: TelemetryResult = "success"
@@ -110,7 +106,6 @@ export class SetupTelemetry {
                 result,
                 command,
                 setup_session_id: this.setupSessionId,
-                step_index: this.stepIndex,
                 ...this.context,
                 ...extra,
             },
@@ -118,7 +113,6 @@ export class SetupTelemetry {
 
         this.telemetry.emitEvents([event]);
 
-        this.stepIndex += 1;
         this.stepStartedAt = now;
         this.lastStep = command;
     }
@@ -130,7 +124,7 @@ export class SetupTelemetry {
     public emitPrerequisitesChecked(props: {
         nodeVersionOk: boolean;
         platformSupported: boolean;
-        hasDocker: boolean;
+        hasDocker?: boolean;
     }): void {
         this.updateContext({
             node_version_ok: toBoolSet(props.nodeVersionOk),
@@ -229,15 +223,15 @@ export class SetupTelemetry {
 
     /**
      * Best-effort flush of any buffered events before the process exits. Also
-     * closes the owned {@link DeviceId} (when one was created via
-     * {@link SetupTelemetry.create}) so callers don't have to juggle
-     * lifetimes themselves.
+     * closes the owned {@link DeviceId}.
      */
     public async flush(): Promise<void> {
         try {
             await this.telemetry.close();
+        } catch {
+            // Ignore errors from telemetry.close()
         } finally {
-            this.deviceId?.close();
+            this.deviceId.close();
         }
     }
 }
