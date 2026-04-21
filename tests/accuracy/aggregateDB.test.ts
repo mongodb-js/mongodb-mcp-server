@@ -26,7 +26,7 @@ describeAccuracyTests([
         ],
     },
     {
-        prompt: "I want to test this query: { $match: { age: { $gt: 28 } } }, I don't have a collection yet. Can you test it with sample data: Alice (age 25), Bob (age 30), and Charlie (age 35)?",
+        prompt: "I want to test this query: { $match: { age: { $gt: 28 } } }. I don't have a collection yet. Can you test it using $documents with these records: {name: 'Alice', age: 25}, {name: 'Bob', age: 30}, {name: 'Charlie', age: 35}?",
         expectedToolCalls: [
             {
                 toolName: "aggregate-db",
@@ -34,11 +34,11 @@ describeAccuracyTests([
                     database: Matcher.string(),
                     pipeline: [
                         {
-                            $documents: Matcher.arrayOrSingle([
-                                Matcher.containing({ age: 30 }),
-                                Matcher.containing({ age: 25 }),
-                                Matcher.containing({ age: 35 }),
-                            ]),
+                            $documents: [
+                                { name: "Alice", age: 25 },
+                                { name: "Bob", age: 30 },
+                                { name: "Charlie", age: 35 },
+                            ],
                         },
                         {
                             $match: {

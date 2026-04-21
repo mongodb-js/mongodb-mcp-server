@@ -186,7 +186,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
                 database: "admin",
                 pipeline: [{ $currentOp: { allUsers: true, idleSessions: true } }, { $limit: 10 }],
             },
-            validate: (content) => {
+            validate: (content): void => {
                 expect(getResponseContent(content)).toMatch(/The aggregation resulted in \d+ documents/);
             },
         };
