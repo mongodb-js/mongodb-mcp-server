@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 import { EventEmitter } from "node:events";
 import type { ChildProcess } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 
 vi.mock("node:child_process", () => ({
     spawn: vi.fn(),
@@ -24,8 +21,7 @@ import {
     buildSkillsAddArgs,
     installSkills,
     promptAndInstallSkills,
-    resolveProjectRoot,
-    CLAUDE_DESKTOP_MESSAGE,
+    NO_SKILLS_MESSAGE,
 } from "../../../src/setup/installSkills.js";
 
 const spawnMock = vi.mocked(spawn);
@@ -65,70 +61,6 @@ describe("buildSkillsAddArgs", () => {
     });
 });
 
-describe("resolveProjectRoot", () => {
-    let tmpRoot: string;
-
-    beforeEach(() => {
-        tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "mdb-skills-test-"));
-    });
-
-    afterEach(() => {
-        fs.rmSync(tmpRoot, { recursive: true, force: true });
-    });
-
-    it("returns kind='git' when .git is found at or above cwd", () => {
-        const repoRoot = path.join(tmpRoot, "repo");
-        const nested = path.join(repoRoot, "src", "nested");
-        fs.mkdirSync(nested, { recursive: true });
-        fs.mkdirSync(path.join(repoRoot, ".git"));
-
-        const result = resolveProjectRoot(nested);
-
-        expect(result.kind).toBe("git");
-        expect(result.root).toBe(repoRoot);
-    });
-
-    it("returns kind='package' when package.json is found but no .git", () => {
-        const pkgRoot = path.join(tmpRoot, "pkg");
-        const nested = path.join(pkgRoot, "src");
-        fs.mkdirSync(nested, { recursive: true });
-        fs.writeFileSync(path.join(pkgRoot, "package.json"), "{}");
-
-        const result = resolveProjectRoot(nested);
-
-        expect(result.kind).toBe("package");
-        expect(result.root).toBe(pkgRoot);
-    });
-
-    it("prefers .git over package.json when both are present", () => {
-        const repoRoot = path.join(tmpRoot, "repo");
-        const pkgRoot = path.join(repoRoot, "pkg");
-        const nested = path.join(pkgRoot, "src");
-        fs.mkdirSync(nested, { recursive: true });
-        fs.mkdirSync(path.join(repoRoot, ".git"));
-        fs.writeFileSync(path.join(pkgRoot, "package.json"), "{}");
-
-        const result = resolveProjectRoot(nested);
-
-        expect(result.kind).toBe("git");
-        expect(result.root).toBe(repoRoot);
-    });
-
-    it("returns kind='none' with cwd as root when no project markers exist", () => {
-        // tmpRoot itself has no .git, no package.json, and (on this test runner)
-        // no ancestors with them up to the OS tmpdir.
-        // Subtle: the machine running this test likely has a package.json in $HOME
-        // or above, so we use a sub-dir of os.tmpdir() which shouldn't.
-        const bare = path.join(tmpRoot, "bare");
-        fs.mkdirSync(bare);
-
-        const result = resolveProjectRoot(bare);
-
-        expect(result.kind).toBe("none");
-        expect(result.root).toBe(bare);
-    });
-});
-
 describe("installSkills", () => {
     let consoleLogSpy: MockInstance<typeof console.log>;
     let consoleErrorSpy: MockInstance<typeof console.error>;
@@ -151,10 +83,10 @@ describe("installSkills", () => {
         expect(spawnMock).not.toHaveBeenCalled();
     });
 
-    it("prints the canonical Claude Desktop message when skipping", async () => {
+    it("prints the no-skills-support message when the tool has no agent ID", async () => {
         await installSkills({ tool: "claudeDesktop", cwd: "/tmp" });
         const printed = consoleLogSpy.mock.calls.map((c: unknown[]) => String(c[0])).join("\n");
-        expect(printed).toContain(CLAUDE_DESKTOP_MESSAGE);
+        expect(printed).toContain(NO_SKILLS_MESSAGE);
     });
 
     it("invokes npx skills@1 with project-scope args when global is false", async () => {
@@ -206,6 +138,18 @@ describe("installSkills", () => {
         expect(printed).toContain("exit 7");
         expect(printed).toContain("npx skills add mongodb/agent-skills --agent cursor");
         expect(printed).toContain("https://github.com/mongodb/agent-skills");
+    });
+
+    it("returns { status: 'failed' } when spawn emits an 'error' event (does not throw)", async () => {
+        const emitter = new EventEmitter();
+        setImmediate(() => emitter.emit("error", new Error("spawn ENOENT")));
+        spawnMock.mockReturnValue(emitter as unknown as ChildProcess);
+
+        // The whole point of this test: installSkills must not propagate the
+        // error out of runSetup. Returning any "failed" outcome is enough.
+        const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
+
+        expect(result.status).toBe("failed");
     });
 });
 
@@ -271,17 +215,18 @@ describe("promptAndInstallSkills", () => {
         expect(spawnMock).not.toHaveBeenCalled();
     });
 
-    it("asks for scope after Y/n=yes and passes global=false when scope='project'", async () => {
+    it("asks for scope after Y/n=yes and installs at opts.cwd (no -g) when scope='project'", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(0));
         confirmMock.mockResolvedValue(true);
         selectMock.mockResolvedValue("project" as unknown as never);
 
-        const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" });
+        const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/some/project/dir" });
 
         expect(result).toEqual({ status: "installed" });
         expect(selectMock).toHaveBeenCalled();
-        const [, args] = spawnMock.mock.calls[0]!;
+        const [, args, opts] = spawnMock.mock.calls[0]!;
         expect(args).not.toContain("-g");
+        expect(opts).toMatchObject({ cwd: "/some/project/dir" });
     });
 
     it("passes global=true when scope='user'", async () => {
@@ -295,58 +240,42 @@ describe("promptAndInstallSkills", () => {
         expect(args).toContain("-g");
     });
 
-    it("defaults scope to 'project' even when no project markers exist", async () => {
-        // Create a scratch dir with no .git and no package.json ancestors.
-        const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mdb-skills-scope-"));
-        try {
-            spawnMock.mockReturnValue(fakeChildProcess(0));
-            confirmMock.mockResolvedValue(true);
-            selectMock.mockResolvedValue("project" as unknown as never);
+    it("always defaults scope to 'project'", async () => {
+        spawnMock.mockReturnValue(fakeChildProcess(0));
+        confirmMock.mockResolvedValue(true);
+        selectMock.mockResolvedValue("project" as unknown as never);
 
-            await promptAndInstallSkills({ tool: "cursor", cwd: scratch });
+        await promptAndInstallSkills({ tool: "cursor", cwd: "/some/dir" });
 
-            expect(selectMock).toHaveBeenCalledTimes(1);
-            const config = selectMock.mock.calls[0]![0] as { default?: string };
-            expect(config.default).toBe("project");
-        } finally {
-            fs.rmSync(scratch, { recursive: true, force: true });
-        }
+        expect(selectMock).toHaveBeenCalledTimes(1);
+        const config = selectMock.mock.calls[0]![0] as { default?: string };
+        expect(config.default).toBe("project");
     });
 
-    it("includes the resolved project root path in the 'Project' choice label", async () => {
-        const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mdb-skills-label-"));
-        try {
-            spawnMock.mockReturnValue(fakeChildProcess(0));
-            confirmMock.mockResolvedValue(true);
-            selectMock.mockResolvedValue("project" as unknown as never);
+    it("includes opts.cwd in the 'Project' choice label", async () => {
+        spawnMock.mockReturnValue(fakeChildProcess(0));
+        confirmMock.mockResolvedValue(true);
+        selectMock.mockResolvedValue("project" as unknown as never);
 
-            await promptAndInstallSkills({ tool: "cursor", cwd: scratch });
+        await promptAndInstallSkills({ tool: "cursor", cwd: "/some/unique/path" });
 
-            const config = selectMock.mock.calls[0]![0] as {
-                choices: ReadonlyArray<{ value: string; name: string }>;
-            };
-            const projectChoice = config.choices.find((c) => c.value === "project");
-            expect(projectChoice).toBeDefined();
-            expect(projectChoice!.name).toContain(scratch);
-        } finally {
-            fs.rmSync(scratch, { recursive: true, force: true });
-        }
+        const config = selectMock.mock.calls[0]![0] as {
+            choices: ReadonlyArray<{ value: string; name: string }>;
+        };
+        const projectChoice = config.choices.find((c) => c.value === "project");
+        expect(projectChoice).toBeDefined();
+        expect(projectChoice!.name).toContain("/some/unique/path");
     });
 
-    it("installs at cwd (not at a global dir) when no project markers exist", async () => {
-        const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mdb-skills-cwd-"));
-        try {
-            spawnMock.mockReturnValue(fakeChildProcess(0));
-            confirmMock.mockResolvedValue(true);
-            selectMock.mockResolvedValue("project" as unknown as never);
+    it("passes opts.cwd as the spawn cwd when scope='user' (even with -g)", async () => {
+        spawnMock.mockReturnValue(fakeChildProcess(0));
+        confirmMock.mockResolvedValue(true);
+        selectMock.mockResolvedValue("user" as unknown as never);
 
-            await promptAndInstallSkills({ tool: "cursor", cwd: scratch });
+        await promptAndInstallSkills({ tool: "cursor", cwd: "/some/caller/dir" });
 
-            const [, args, opts] = spawnMock.mock.calls[0]!;
-            expect(args).not.toContain("-g");
-            expect(opts).toMatchObject({ cwd: scratch });
-        } finally {
-            fs.rmSync(scratch, { recursive: true, force: true });
-        }
+        const [, args, opts] = spawnMock.mock.calls[0]!;
+        expect(args).toContain("-g");
+        expect(opts).toMatchObject({ cwd: "/some/caller/dir" });
     });
 });

@@ -1,6 +1,4 @@
 /* eslint-disable no-console */
-import fs from "node:fs";
-import path from "node:path";
 import { spawn } from "node:child_process";
 import chalk from "chalk";
 import { confirm } from "@inquirer/prompts";
@@ -26,14 +24,10 @@ export interface PromptAndInstallSkillsOptions {
 
 const SKILLS_REPO = "mongodb/agent-skills";
 const SKILLS_REPO_URL = `https://github.com/${SKILLS_REPO}`;
-export const CLAUDE_DESKTOP_MESSAGE =
-    `Claude Desktop doesn't have a filesystem-based skills directory — that's\n` +
-    `an editor-agent feature. Your MongoDB MCP server is configured either\n` +
-    `way, which works in Claude Desktop.\n` +
+export const NO_SKILLS_MESSAGE =
+    `We're unable to install the MongoDB Agent Skills for this tool.\n` +
     `\n` +
-    `To also get the MongoDB skill guidance in Claude Desktop, create a Claude\n` +
-    `Project and paste each skill's SKILL.md content into the Project's custom\n` +
-    `instructions. Skills live at:\n` +
+    `See the MongoDB Agent Skills repo for manual install instructions:\n` +
     `\n` +
     `  ${SKILLS_REPO_URL}`;
 
@@ -50,45 +44,6 @@ export function buildSkillsAddArgs(agentId: string, global: boolean): string[] {
     return args;
 }
 
-export type ProjectRootKind = "git" | "package" | "none";
-
-export interface ProjectRootResolution {
-    root: string;
-    kind: ProjectRootKind;
-}
-
-/**
- * Walk up from `start` looking for a project root. Prefers `.git/`; falls
- * back to `package.json`; if neither exists, returns `start` itself with
- * kind `"none"`.
- */
-export function resolveProjectRoot(start: string): ProjectRootResolution {
-    const absoluteStart = path.resolve(start);
-    const gitRoot = findUp(absoluteStart, (dir) => fs.existsSync(path.join(dir, ".git")));
-    if (gitRoot) {
-        return { root: gitRoot, kind: "git" };
-    }
-    const pkgRoot = findUp(absoluteStart, (dir) => fs.existsSync(path.join(dir, "package.json")));
-    if (pkgRoot) {
-        return { root: pkgRoot, kind: "package" };
-    }
-    return { root: absoluteStart, kind: "none" };
-}
-
-function findUp(start: string, predicate: (dir: string) => boolean): string | null {
-    let dir = start;
-    while (true) {
-        if (predicate(dir)) {
-            return dir;
-        }
-        const parent = path.dirname(dir);
-        if (parent === dir) {
-            return null;
-        }
-        dir = parent;
-    }
-}
-
 /**
  * Shell out to `skills add` for the given tool. Non-zero exit is reported to
  * the user but does not throw — setup has already succeeded by this point.
@@ -96,7 +51,7 @@ function findUp(start: string, predicate: (dir: string) => boolean): string | nu
 export async function installSkills(opts: InstallSkillsOptions): Promise<SkillsInstallOutcome> {
     const agentId = AI_TOOL_REGISTRY[opts.tool].getSkillsAgentId();
     if (agentId === null) {
-        console.log(CLAUDE_DESKTOP_MESSAGE);
+        console.log(NO_SKILLS_MESSAGE);
         return { status: "skipped", reason: "no-agent-id" };
     }
 
@@ -111,11 +66,21 @@ export async function installSkills(opts: InstallSkillsOptions): Promise<SkillsI
     return { status: "failed", exitCode };
 }
 
+// Sentinel exit code used when `spawn` itself fails before the process runs
+// (e.g. `npx` not on PATH). Real exit codes are 0–255, so -1 is unambiguous.
+const SPAWN_ERROR_EXIT_CODE = -1;
+
 function runSkillsAdd(args: string[], cwd: string): Promise<number> {
-    return new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve) => {
         const child = spawn("npx", args, { stdio: "inherit", cwd });
         child.on("close", (code) => resolve(code ?? 0));
-        child.on("error", (err) => reject(err));
+        child.on("error", (err) => {
+            // Spawn-level error (npx missing, etc.). Print the message ourselves
+            // — nothing streamed to stderr because the process never started —
+            // then surface as a non-zero exit so the graceful-failure path runs.
+            console.error(chalk.red(`Failed to spawn the skills CLI: ${err.message}`));
+            resolve(SPAWN_ERROR_EXIT_CODE);
+        });
     });
 }
 
@@ -146,7 +111,7 @@ export async function promptAndInstallSkills(opts: PromptAndInstallSkillsOptions
 
     const tool = AI_TOOL_REGISTRY[opts.tool];
     if (tool.getSkillsAgentId() === null) {
-        console.log(CLAUDE_DESKTOP_MESSAGE);
+        console.log(NO_SKILLS_MESSAGE);
         return { status: "skipped", reason: "no-agent-id" };
     }
 
@@ -158,20 +123,18 @@ export async function promptAndInstallSkills(opts: PromptAndInstallSkillsOptions
         return { status: "skipped", reason: "user-declined" };
     }
 
-    const projectRoot = resolveProjectRoot(opts.cwd);
-
     const scope = await select<"project" | "user">({
         message: "Install scope?",
         default: "project",
         choices: [
-            { value: "project", name: `Project (${projectRoot.root}/)` },
+            { value: "project", name: `Project (${opts.cwd}/)` },
             { value: "user", name: "User (global)" },
         ],
     });
 
     return installSkills({
         tool: opts.tool,
-        cwd: scope === "project" ? projectRoot.root : opts.cwd,
+        cwd: opts.cwd,
         global: scope === "user",
     });
 }
