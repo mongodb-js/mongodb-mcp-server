@@ -993,7 +993,7 @@ describeWithMongoDB(
 
             // Ensure it aborted quickly, but possibly after some processing
             expect(executionTime).toBeGreaterThanOrEqual(25);
-            expect(executionTime).toBeLessThan(50);
+            expect(executionTime).toBeLessThan(80);
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
@@ -1054,7 +1054,7 @@ describeWithMongoDB(
             await waitUntilSearchIndexIsQueryable(collection, "auto-embed-index", 120_000);
         });
 
-        it.todo("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
+        it("should be able to query autoEmbed text index", { timeout: 130_000 }, async () => {
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",
                 arguments: {

@@ -23,8 +23,7 @@ import type { ApiClientOptions, ApiClientFactoryFn } from "../common/atlas/apiCl
 import { ApiClient } from "../common/atlas/apiClient.js";
 import { defaultCreateApiClient } from "../common/atlas/apiClient.js";
 import type { UIRegistry } from "../ui/registry/index.js";
-import { createDefaultMetrics, PrometheusMetrics, type DefaultMetrics } from "../common/metrics/index.js";
-import type { Metrics } from "../common/metrics/metricsTypes.js";
+import { PrometheusMetrics, createDefaultMetrics, type Metrics, type DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 /**
  * Request context containing HTTP headers and query parameters.
