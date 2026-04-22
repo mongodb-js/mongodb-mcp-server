@@ -11,10 +11,11 @@ import { collectCursorUntilMaxBytesLimit } from "../../../helpers/collectCursorU
 import { operationWithFallback } from "../../../helpers/operationWithFallback.js";
 import { AGG_COUNT_MAX_TIME_MS_CAP, ONE_MB, CURSOR_LIMITS_TO_LLM_TEXT } from "../../../helpers/constants.js";
 import { LogId } from "../../../common/logging/index.js";
-import { AnyAggregateStage } from "../mongodbSchemas.js";
+import { AnyAggregateStage, DBAggregateStage } from "../mongodbSchemas.js";
 
 export const AggregateArgs = {
-    pipeline: z.array(AnyAggregateStage).describe("An array of aggregation stages to execute."),
+    pipeline: z.tuple([DBAggregateStage], AnyAggregateStage)
+        .describe("An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages"),
 };
 
 export class AggregateDBTool extends MongoDBToolBase {
