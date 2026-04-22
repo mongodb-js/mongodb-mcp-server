@@ -157,6 +157,78 @@ jobs:
           echo "::error::Package ${PACKAGE_NAME}@${NPM_VERSION} did not become available after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
           exit 1
 
+  publish-auxiliary:
+    runs-on: ubuntu-latest
+    environment: Production
+    permissions:
+      contents: write
+      id-token: write
+    needs:
+      - check
+    if: needs.check.outputs.VERSION_EXISTS == 'true'
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+
+      - name: Check for unpublished auxiliary packages
+        id: check-auxiliary
+        shell: bash
+        run: |
+          set -e
+          HAS_UNPUBLISHED=false
+          for pkg_json in packages/*/package.json; do
+            pkg_name=$(node -p "require('./$pkg_json').name")
+            pkg_version=$(node -p "require('./$pkg_json').version")
+
+            if ! npm view "${pkg_name}@${pkg_version}" version >/dev/null 2>&1; then
+              echo "Unpublished: ${pkg_name}@${pkg_version}"
+              HAS_UNPUBLISHED=true
+            fi
+          done
+          echo "HAS_UNPUBLISHED=${HAS_UNPUBLISHED}" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        if: steps.check-auxiliary.outputs.HAS_UNPUBLISHED == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Publish auxiliary packages to NPM
+        if: steps.check-auxiliary.outputs.HAS_UNPUBLISHED == 'true'
+        run: |
+          pnpm -r --filter './packages/*' publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+
+      - name: Create tags for auxiliary packages
+        if: steps.check-auxiliary.outputs.HAS_UNPUBLISHED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -e
+          for pkg_json in packages/*/package.json; do
+            pkg_name=$(node -p "require('./$pkg_json').name")
+            pkg_version=$(node -p "require('./$pkg_json').version")
+            git_tag="${pkg_name}@${pkg_version}"
+
+            if git rev-parse "$git_tag" >/dev/null 2>&1; then
+              continue
+            fi
+
+            echo "Creating tag ${git_tag}..."
+            gh api repos/${{ github.repository }}/git/refs \
+              -f ref="refs/tags/${git_tag}" \
+              -f sha="${{ github.sha }}"
+          done
+
   docker-push:
     needs: [check, publish]
     uses: ./.github/workflows/docker-publish.yml
