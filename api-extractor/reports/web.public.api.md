@@ -9,16 +9,17 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
-import { Counter } from 'prom-client';
+import { createDefaultMetrics } from '@mongodb-js/mcp-metrics';
+import { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { Gauge } from 'prom-client';
-import { Histogram } from 'prom-client';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { MetricDefinitions } from '@mongodb-js/mcp-metrics';
+import { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
@@ -433,12 +434,7 @@ export interface ConnectionStringInfo {
 // @public (undocumented)
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 
-// @public
-export function createDefaultMetrics(): {
-    readonly toolExecutionDuration: Histogram<"status" | "category" | "tool_name" | "operation_type" | "error_type">;
-    readonly sessionCreated: Counter<string>;
-    readonly sessionClosed: Counter<"reason">;
-};
+export { createDefaultMetrics }
 
 // @public
 export type CreateSessionConfigFn<TUserConfig extends UserConfig = UserConfig> = (context: {
@@ -465,8 +461,7 @@ export type CustomizableSessionOptions<TUserConfig extends UserConfig = UserConf
 // @public (undocumented)
 export type DefaultEventMap = Record<string, never[]>;
 
-// @public (undocumented)
-export type DefaultMetrics = ReturnType<typeof createDefaultMetrics>;
+export { DefaultMetrics }
 
 // @public (undocumented)
 export class DeviceId {
@@ -663,16 +658,9 @@ export interface LogPayload {
     noRedaction?: boolean | LoggerType | LoggerType[];
 }
 
-// @public (undocumented)
-export type MetricDefinitions = {
-    [key: string]: Histogram | Counter | Gauge;
-};
+export { MetricDefinitions }
 
-// @public (undocumented)
-export type Metrics<TMetrics extends MetricDefinitions = MetricDefinitions> = {
-    get<K extends keyof TMetrics>(key: K): TMetrics[K];
-    getMetrics(): Promise<string>;
-};
+export { Metrics }
 
 // @public (undocumented)
 export class MongoDBError<ErrorCode extends ErrorCodes = ErrorCodes> extends Error {

@@ -10,7 +10,7 @@ import {
 } from "./base.js";
 import type { CustomizableServerOptions, Server, UserConfig } from "../lib.js";
 import { applyConfigOverrides } from "../common/config/configOverrides.js";
-import type { DefaultMetrics, Metrics } from "../common/metrics/index.js";
+import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { MonitoringServerFeature } from "../common/schemas.js";
 import {
     MCPHttpServer,

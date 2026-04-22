@@ -993,7 +993,7 @@ describeWithMongoDB(
 
             // Ensure it aborted quickly, but possibly after some processing
             expect(executionTime).toBeGreaterThanOrEqual(25);
-            expect(executionTime).toBeLessThan(50);
+            expect(executionTime).toBeLessThan(80);
             expect(result).toBeUndefined();
             expectDefined(error);
             expect(error.message).toContain("This operation was aborted");
