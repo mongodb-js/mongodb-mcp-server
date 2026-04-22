@@ -14,8 +14,11 @@ import { LogId } from "../../../common/logging/index.js";
 import { AnyAggregateStage, DBAggregateStage } from "../mongodbSchemas.js";
 
 export const AggregateArgs = {
-    pipeline: z.tuple([DBAggregateStage], AnyAggregateStage)
-        .describe("An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages"),
+    pipeline: z
+        .tuple([DBAggregateStage], AnyAggregateStage)
+        .describe(
+            "An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages"
+        ),
 };
 
 export class AggregateDBTool extends MongoDBToolBase {
