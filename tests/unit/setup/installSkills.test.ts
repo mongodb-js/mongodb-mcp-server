@@ -294,4 +294,59 @@ describe("promptAndInstallSkills", () => {
         const [, args] = spawnMock.mock.calls[0]!;
         expect(args).toContain("-g");
     });
+
+    it("defaults scope to 'project' even when no project markers exist", async () => {
+        // Create a scratch dir with no .git and no package.json ancestors.
+        const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mdb-skills-scope-"));
+        try {
+            spawnMock.mockReturnValue(fakeChildProcess(0));
+            confirmMock.mockResolvedValue(true);
+            selectMock.mockResolvedValue("project" as unknown as never);
+
+            await promptAndInstallSkills({ tool: "cursor", cwd: scratch });
+
+            expect(selectMock).toHaveBeenCalledTimes(1);
+            const config = selectMock.mock.calls[0]![0] as { default?: string };
+            expect(config.default).toBe("project");
+        } finally {
+            fs.rmSync(scratch, { recursive: true, force: true });
+        }
+    });
+
+    it("includes the resolved project root path in the 'Project' choice label", async () => {
+        const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mdb-skills-label-"));
+        try {
+            spawnMock.mockReturnValue(fakeChildProcess(0));
+            confirmMock.mockResolvedValue(true);
+            selectMock.mockResolvedValue("project" as unknown as never);
+
+            await promptAndInstallSkills({ tool: "cursor", cwd: scratch });
+
+            const config = selectMock.mock.calls[0]![0] as {
+                choices: ReadonlyArray<{ value: string; name: string }>;
+            };
+            const projectChoice = config.choices.find((c) => c.value === "project");
+            expect(projectChoice).toBeDefined();
+            expect(projectChoice!.name).toContain(scratch);
+        } finally {
+            fs.rmSync(scratch, { recursive: true, force: true });
+        }
+    });
+
+    it("installs at cwd (not at a global dir) when no project markers exist", async () => {
+        const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mdb-skills-cwd-"));
+        try {
+            spawnMock.mockReturnValue(fakeChildProcess(0));
+            confirmMock.mockResolvedValue(true);
+            selectMock.mockResolvedValue("project" as unknown as never);
+
+            await promptAndInstallSkills({ tool: "cursor", cwd: scratch });
+
+            const [, args, opts] = spawnMock.mock.calls[0]!;
+            expect(args).not.toContain("-g");
+            expect(opts).toMatchObject({ cwd: scratch });
+        } finally {
+            fs.rmSync(scratch, { recursive: true, force: true });
+        }
+    });
 });

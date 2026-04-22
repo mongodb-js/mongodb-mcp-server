@@ -24,6 +24,8 @@ export interface PromptAndInstallSkillsOptions {
     cwd: string;
 }
 
+const SKILLS_REPO = "mongodb/agent-skills";
+const SKILLS_REPO_URL = `https://github.com/${SKILLS_REPO}`;
 export const CLAUDE_DESKTOP_MESSAGE =
     `Claude Desktop doesn't have a filesystem-based skills directory — that's\n` +
     `an editor-agent feature. Your MongoDB MCP server is configured either\n` +
@@ -33,13 +35,11 @@ export const CLAUDE_DESKTOP_MESSAGE =
     `Project and paste each skill's SKILL.md content into the Project's custom\n` +
     `instructions. Skills live at:\n` +
     `\n` +
-    `  https://github.com/mongodb/agent-skills`;
+    `  ${SKILLS_REPO_URL}`;
 
 const SKIP_ENV_VAR = "MDB_MCP_SKIP_SKILLS_INSTALL";
-const SKILLS_REPO = "mongodb/agent-skills";
-const SKILLS_REPO_URL = "https://github.com/mongodb/agent-skills";
-// Pinned to skills CLI v1 — see tech-design §"Versioning and supply-chain".
-const SKILLS_CLI_PIN = "skills@1";
+const SKILLS_PACKAGE_VERSION = "1";
+const SKILLS_CLI_PIN = `skills@${SKILLS_PACKAGE_VERSION}`;
 
 /** Assemble the args for `npx` to invoke the pinned skills CLI. */
 export function buildSkillsAddArgs(agentId: string, global: boolean): string[] {
@@ -159,13 +159,12 @@ export async function promptAndInstallSkills(opts: PromptAndInstallSkillsOptions
     }
 
     const projectRoot = resolveProjectRoot(opts.cwd);
-    const defaultScope: "project" | "user" = projectRoot.kind === "none" ? "user" : "project";
 
     const scope = await select<"project" | "user">({
         message: "Install scope?",
-        default: defaultScope,
+        default: "project",
         choices: [
-            { value: "project", name: "Project (this repo)" },
+            { value: "project", name: `Project (${projectRoot.root}/)` },
             { value: "user", name: "User (global)" },
         ],
     });
