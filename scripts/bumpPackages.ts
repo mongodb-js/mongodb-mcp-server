@@ -140,7 +140,7 @@ function getLastVersionCommit(): string | undefined {
         // Find the most recent commit that matches either bump or release pattern
         // Using git log with multiple --grep patterns (OR logic when combined with --all-match disabled)
         const sha = execSync(
-            `git log --all --format=%H --grep="${BUMP_COMMIT_PREFIX}" --grep="${RELEASE_COMMIT_PREFIX}" -1`,
+            `git log --first-parent --format=%H --grep="${BUMP_COMMIT_PREFIX}" --grep="${RELEASE_COMMIT_PREFIX}" -1`,
             {
                 cwd: ROOT,
                 encoding: "utf-8",
