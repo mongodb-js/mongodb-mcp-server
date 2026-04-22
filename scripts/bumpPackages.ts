@@ -137,8 +137,6 @@ function getPackages({ filters, overrideNames }: { filters: string[]; overrideNa
 
 function getLastVersionCommit(): string | undefined {
     try {
-        // Find the most recent commit that matches either bump or release pattern
-        // Using git log with multiple --grep patterns (OR logic when combined with --all-match disabled)
         const sha = execSync(
             `git log --first-parent --format=%H --grep="${BUMP_COMMIT_PREFIX}" --grep="${RELEASE_COMMIT_PREFIX}" -1`,
             {
