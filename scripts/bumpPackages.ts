@@ -19,6 +19,7 @@ import type { ReleaseType } from "semver";
 import { z } from "zod";
 
 export const BUMP_COMMIT_PREFIX = "chore: bump auxiliary packages";
+export const RELEASE_COMMIT_PREFIX = "chore: release mongodb-mcp-server";
 const ROOT = join(import.meta.dirname, "..");
 
 const BUMP_ORDER: Record<string, number> = { major: 3, minor: 2, patch: 1 };
@@ -134,12 +135,15 @@ function getPackages({ filters, overrideNames }: { filters: string[]; overrideNa
     return all.filter((pkg) => filters.includes(pkg.name) || (filters.includes(".") && pkg.isRoot));
 }
 
-function getLastBumpCommit(): string | undefined {
+function getLastVersionCommit(): string | undefined {
     try {
-        const sha = execSync(`git log --all --grep="${BUMP_COMMIT_PREFIX}" --format=%H -1`, {
-            cwd: ROOT,
-            encoding: "utf-8",
-        }).trim();
+        const sha = execSync(
+            `git log --first-parent --format=%H --grep="${BUMP_COMMIT_PREFIX}" --grep="${RELEASE_COMMIT_PREFIX}" -1`,
+            {
+                cwd: ROOT,
+                encoding: "utf-8",
+            }
+        ).trim();
         return sha || undefined;
     } catch {
         return undefined;
@@ -247,11 +251,11 @@ function main(): BumpResult[] {
         return [];
     }
 
-    const lastBumpSha = getLastBumpCommit();
-    if (lastBumpSha) {
-        console.log(`Last bump commit: ${lastBumpSha}`);
+    const lastVersionCommitSha = getLastVersionCommit();
+    if (lastVersionCommitSha) {
+        console.log(`Last version commit: ${lastVersionCommitSha}`);
     } else {
-        console.log("No previous bump commit found, scanning all history");
+        console.log("No previous version commit found, scanning all history");
     }
 
     const results: BumpResult[] = [];
@@ -261,7 +265,7 @@ function main(): BumpResult[] {
         const override = overrideMap.get(pkg.name);
         const result = override
             ? resolveExplicitVersion({ pkg, version: override })
-            : resolveConventionalVersion({ pkg, since: lastBumpSha });
+            : resolveConventionalVersion({ pkg, since: lastVersionCommitSha });
 
         if (!result) {
             if (override) {
