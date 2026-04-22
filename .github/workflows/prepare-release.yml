@@ -31,9 +31,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
       - name: Install dependencies
-        run: |
-          sudo apt-get install -y git-secrets
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Bump versions
         id: bump-version
         run: |
@@ -120,10 +118,12 @@ jobs:
       - name: Create release PR
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # 8.1.1
         id: create-pr
+        env:
+          HUSKY: 0
         with:
-          title: "chore: release ${{ steps.bump-version.outputs.NEW_VERSION }}"
+          title: "chore: release mongodb-mcp-server ${{ steps.bump-version.outputs.NEW_VERSION }}"
           token: ${{ steps.app-token.outputs.token }}
-          commit-message: "chore: release ${{ steps.bump-version.outputs.NEW_VERSION }}"
+          commit-message: "chore: release mongodb-mcp-server ${{ steps.bump-version.outputs.NEW_VERSION }}"
           body: |
             This PR bumps the package version to ${{ steps.bump-version.outputs.NEW_VERSION }}.
             Once merged, the new version will be published to npm.

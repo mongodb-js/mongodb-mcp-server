@@ -19,6 +19,7 @@ import type { ReleaseType } from "semver";
 import { z } from "zod";
 
 export const BUMP_COMMIT_PREFIX = "chore: bump auxiliary packages";
+export const RELEASE_COMMIT_PREFIX = "chore: release mongodb-mcp-server";
 const ROOT = join(import.meta.dirname, "..");
 
 const BUMP_ORDER: Record<string, number> = { major: 3, minor: 2, patch: 1 };
@@ -134,13 +135,56 @@ function getPackages({ filters, overrideNames }: { filters: string[]; overrideNa
     return all.filter((pkg) => filters.includes(pkg.name) || (filters.includes(".") && pkg.isRoot));
 }
 
-function getLastBumpCommit(): string | undefined {
+function getLastVersionCommit(): string | undefined {
     try {
-        const sha = execSync(`git log --all --grep="${BUMP_COMMIT_PREFIX}" --format=%H -1`, {
+        // Look for both bump and release commits, return the most recent one
+        const bumpSha = execSync(`git log --all --grep="${BUMP_COMMIT_PREFIX}" --format=%H -1`, {
             cwd: ROOT,
             encoding: "utf-8",
         }).trim();
-        return sha || undefined;
+
+        const releaseSha = execSync(`git log --all --grep="${RELEASE_COMMIT_PREFIX}" --format=%H -1`, {
+            cwd: ROOT,
+            encoding: "utf-8",
+        }).trim();
+
+        if (!bumpSha && !releaseSha) {
+            return undefined;
+        }
+
+        if (!bumpSha) {
+            return releaseSha;
+        }
+
+        if (!releaseSha) {
+            return bumpSha;
+        }
+
+        // Both exist, find which is more recent by checking if bump is ancestor of release
+        try {
+            execSync(`git merge-base --is-ancestor ${bumpSha} ${releaseSha}`, { cwd: ROOT });
+            // If bump is ancestor of release, release is newer
+            return releaseSha;
+        } catch {
+            // bump is not ancestor of release, so bump is newer or they're on different branches
+            // Check the reverse
+            try {
+                execSync(`git merge-base --is-ancestor ${releaseSha} ${bumpSha}`, { cwd: ROOT });
+                // If release is ancestor of bump, bump is newer
+                return bumpSha;
+            } catch {
+                // Not ancestor either way, fall back to commit date comparison
+                const bumpDate = parseInt(
+                    execSync(`git log -1 --format=%ct ${bumpSha}`, { cwd: ROOT, encoding: "utf-8" }).trim(),
+                    10
+                );
+                const releaseDate = parseInt(
+                    execSync(`git log -1 --format=%ct ${releaseSha}`, { cwd: ROOT, encoding: "utf-8" }).trim(),
+                    10
+                );
+                return bumpDate >= releaseDate ? bumpSha : releaseSha;
+            }
+        }
     } catch {
         return undefined;
     }
@@ -247,11 +291,11 @@ function main(): BumpResult[] {
         return [];
     }
 
-    const lastBumpSha = getLastBumpCommit();
-    if (lastBumpSha) {
-        console.log(`Last bump commit: ${lastBumpSha}`);
+    const lastVersionCommitSha = getLastVersionCommit();
+    if (lastVersionCommitSha) {
+        console.log(`Last version commit: ${lastVersionCommitSha}`);
     } else {
-        console.log("No previous bump commit found, scanning all history");
+        console.log("No previous version commit found, scanning all history");
     }
 
     const results: BumpResult[] = [];
@@ -261,7 +305,7 @@ function main(): BumpResult[] {
         const override = overrideMap.get(pkg.name);
         const result = override
             ? resolveExplicitVersion({ pkg, version: override })
-            : resolveConventionalVersion({ pkg, since: lastBumpSha });
+            : resolveConventionalVersion({ pkg, since: lastVersionCommitSha });
 
         if (!result) {
             if (override) {
