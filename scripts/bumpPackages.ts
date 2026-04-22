@@ -137,54 +137,16 @@ function getPackages({ filters, overrideNames }: { filters: string[]; overrideNa
 
 function getLastVersionCommit(): string | undefined {
     try {
-        // Look for both bump and release commits, return the most recent one
-        const bumpSha = execSync(`git log --all --grep="${BUMP_COMMIT_PREFIX}" --format=%H -1`, {
-            cwd: ROOT,
-            encoding: "utf-8",
-        }).trim();
-
-        const releaseSha = execSync(`git log --all --grep="${RELEASE_COMMIT_PREFIX}" --format=%H -1`, {
-            cwd: ROOT,
-            encoding: "utf-8",
-        }).trim();
-
-        if (!bumpSha && !releaseSha) {
-            return undefined;
-        }
-
-        if (!bumpSha) {
-            return releaseSha;
-        }
-
-        if (!releaseSha) {
-            return bumpSha;
-        }
-
-        // Both exist, find which is more recent by checking if bump is ancestor of release
-        try {
-            execSync(`git merge-base --is-ancestor ${bumpSha} ${releaseSha}`, { cwd: ROOT });
-            // If bump is ancestor of release, release is newer
-            return releaseSha;
-        } catch {
-            // bump is not ancestor of release, so bump is newer or they're on different branches
-            // Check the reverse
-            try {
-                execSync(`git merge-base --is-ancestor ${releaseSha} ${bumpSha}`, { cwd: ROOT });
-                // If release is ancestor of bump, bump is newer
-                return bumpSha;
-            } catch {
-                // Not ancestor either way, fall back to commit date comparison
-                const bumpDate = parseInt(
-                    execSync(`git log -1 --format=%ct ${bumpSha}`, { cwd: ROOT, encoding: "utf-8" }).trim(),
-                    10
-                );
-                const releaseDate = parseInt(
-                    execSync(`git log -1 --format=%ct ${releaseSha}`, { cwd: ROOT, encoding: "utf-8" }).trim(),
-                    10
-                );
-                return bumpDate >= releaseDate ? bumpSha : releaseSha;
+        // Find the most recent commit that matches either bump or release pattern
+        // Using git log with multiple --grep patterns (OR logic when combined with --all-match disabled)
+        const sha = execSync(
+            `git log --all --format=%H --grep="${BUMP_COMMIT_PREFIX}" --grep="${RELEASE_COMMIT_PREFIX}" -1`,
+            {
+                cwd: ROOT,
+                encoding: "utf-8",
             }
-        }
+        ).trim();
+        return sha || undefined;
     } catch {
         return undefined;
     }
