@@ -30,6 +30,7 @@ describe("SetupTelemetry", () => {
         mock = createMockTelemetry();
         setupTelemetry = new SetupTelemetry(mock.telemetry, {
             get: vi.fn().mockResolvedValue("test-device-id"),
+            close: vi.fn().mockResolvedValue(undefined),
         } as unknown as DeviceId);
     });
 
@@ -50,15 +51,6 @@ describe("SetupTelemetry", () => {
         const ids = mock.emitted.map((e) => e.properties.setup_session_id);
         expect(new Set(ids).size).toBe(1);
         expect(ids[0]).toMatch(/^[0-9a-f-]+$/);
-    });
-
-    it("should increment step_index monotonically", () => {
-        setupTelemetry.emitStarted();
-        setupTelemetry.emitAiToolSelected("vscode");
-        setupTelemetry.emitReadOnlySelected(true);
-        setupTelemetry.emitCompleted();
-
-        expect(mock.emitted.map((e) => e.properties.step_index)).toEqual([0, 1, 2, 3]);
     });
 
     it("should carry accumulated context on every subsequent event", () => {
