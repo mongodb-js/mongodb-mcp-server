@@ -62,7 +62,7 @@ export async function installSkills(opts: InstallSkillsOptions): Promise<SkillsI
         return { status: "installed" };
     }
 
-    printInstallFailure(exitCode, agentId);
+    printInstallFailure(exitCode, args);
     return { status: "failed", exitCode };
 }
 
@@ -76,7 +76,17 @@ function runSkillsAdd(args: string[], cwd: string): Promise<number> {
         // through PATHEXT. Our args are controlled and contain no shell
         // metacharacters, so there's no injection risk.
         const child = spawn("npx", args, { stdio: "inherit", cwd, shell: true });
-        child.on("close", (code) => resolve(code ?? 0));
+        child.on("close", (code, signal) => {
+            if (signal !== null) {
+                // Killed by a signal (Ctrl+C, OOM, etc.). `code` is null in this
+                // case, so falling through to `code ?? 0` would mis-report the
+                // install as successful. Surface it as a non-zero sentinel.
+                console.error(chalk.red(`The skills CLI was terminated by signal ${signal}.`));
+                resolve(SPAWN_ERROR_EXIT_CODE);
+                return;
+            }
+            resolve(code ?? 0);
+        });
         child.on("error", (err) => {
             // Spawn-level error (npx missing, etc.). Print the message ourselves
             // — nothing streamed to stderr because the process never started —
@@ -87,7 +97,7 @@ function runSkillsAdd(args: string[], cwd: string): Promise<number> {
     });
 }
 
-function printInstallFailure(exitCode: number, agentId: string): void {
+function printInstallFailure(exitCode: number, args: string[]): void {
     console.log("");
     console.log(
         chalk.red(
@@ -96,7 +106,7 @@ function printInstallFailure(exitCode: number, agentId: string): void {
     );
     console.log("");
     console.log("You can retry manually:");
-    console.log(`  npx skills add ${SKILLS_REPO} --agent ${agentId}`);
+    console.log(`  npx ${args.join(" ")}`);
     console.log("");
     console.log(`Skills repo: ${SKILLS_REPO_URL}`);
     console.log("");
@@ -106,38 +116,55 @@ function printInstallFailure(exitCode: number, agentId: string): void {
  * Prompt the user for whether to install skills, choose a scope, and call
  * `installSkills`. Honors `MDB_MCP_SKIP_SKILLS_INSTALL` as a non-interactive
  * off switch. Null-agent tools (Claude Desktop) skip prompts entirely.
+ *
+ * Never throws — except `ExitPromptError`, which is re-thrown so `runSetup`'s
+ * outer Ctrl+C handler can print "Setup cancelled". All other errors
+ * (invalid skip-env-var value, unexpected prompt failure, etc.) are logged
+ * as warnings and converted to a `failed` outcome so setup can still print
+ * its success summary.
  */
 export async function promptAndInstallSkills(opts: PromptAndInstallSkillsOptions): Promise<SkillsInstallOutcome> {
-    if (parseBoolean(process.env[SKIP_ENV_VAR]) === true) {
-        return { status: "skipped", reason: "env-skip" };
+    try {
+        if (parseBoolean(process.env[SKIP_ENV_VAR]) === true) {
+            return { status: "skipped", reason: "env-skip" };
+        }
+
+        const tool = AI_TOOL_REGISTRY[opts.tool];
+        if (tool.getSkillsAgentId() === null) {
+            console.log(NO_SKILLS_MESSAGE);
+            return { status: "skipped", reason: "no-agent-id" };
+        }
+
+        const shouldInstall = await confirm({
+            message: `Install the MongoDB Agent Skills for ${tool.name}?`,
+            default: true,
+        });
+        if (!shouldInstall) {
+            return { status: "skipped", reason: "user-declined" };
+        }
+
+        const scope = await select<"project" | "user">({
+            message: "Install scope?",
+            default: "project",
+            choices: [
+                { value: "project", name: `Project (${opts.cwd}/)` },
+                { value: "user", name: "User (global)" },
+            ],
+        });
+
+        return await installSkills({
+            tool: opts.tool,
+            cwd: opts.cwd,
+            global: scope === "user",
+        });
+    } catch (error: unknown) {
+        // Ctrl+C: inquirer throws ExitPromptError. Let it propagate so the
+        // top-level runSetup handler can exit cleanly.
+        if (error && typeof error === "object" && "name" in error && error.name === "ExitPromptError") {
+            throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(chalk.yellow(`\nWarning: skills install step failed: ${message}`));
+        return { status: "failed", exitCode: SPAWN_ERROR_EXIT_CODE };
     }
-
-    const tool = AI_TOOL_REGISTRY[opts.tool];
-    if (tool.getSkillsAgentId() === null) {
-        console.log(NO_SKILLS_MESSAGE);
-        return { status: "skipped", reason: "no-agent-id" };
-    }
-
-    const shouldInstall = await confirm({
-        message: `Install the MongoDB Agent Skills for ${tool.name}?`,
-        default: true,
-    });
-    if (!shouldInstall) {
-        return { status: "skipped", reason: "user-declined" };
-    }
-
-    const scope = await select<"project" | "user">({
-        message: "Install scope?",
-        default: "project",
-        choices: [
-            { value: "project", name: `Project (${opts.cwd}/)` },
-            { value: "user", name: "User (global)" },
-        ],
-    });
-
-    return installSkills({
-        tool: opts.tool,
-        cwd: opts.cwd,
-        global: scope === "user",
-    });
 }

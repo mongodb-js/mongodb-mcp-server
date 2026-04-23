@@ -36,7 +36,15 @@ const selectMock = vi.mocked(select);
  */
 function fakeChildProcess(exitCode: number): ChildProcess {
     const emitter = new EventEmitter();
-    setImmediate(() => emitter.emit("close", exitCode));
+    // Match real node `close` semantics: `(code, signal)` where exactly one is non-null.
+    setImmediate(() => emitter.emit("close", exitCode, null));
+    return emitter as unknown as ChildProcess;
+}
+
+/** Simulate a subprocess killed by a signal — close fires with code=null, signal set. */
+function fakeChildProcessKilled(signal: NodeJS.Signals): ChildProcess {
+    const emitter = new EventEmitter();
+    setImmediate(() => emitter.emit("close", null, signal));
     return emitter as unknown as ChildProcess;
 }
 
@@ -136,8 +144,22 @@ describe("installSkills", () => {
             .map((c: unknown[]) => String(c[0]))
             .join("\n");
         expect(printed).toContain("exit 7");
-        expect(printed).toContain("npx skills add mongodb/agent-skills --agent cursor");
+        // The retry command must mirror the real invocation — full npx command
+        // including the pinned CLI and flags actually used.
+        expect(printed).toContain("npx --yes skills@1 add mongodb/agent-skills --agent cursor -y");
         expect(printed).toContain("https://github.com/mongodb/agent-skills");
+    });
+
+    it("retry command in failure message preserves -g when scope was user (global=true)", async () => {
+        spawnMock.mockReturnValue(fakeChildProcess(3));
+
+        await installSkills({ tool: "cursor", cwd: "/tmp", global: true });
+
+        const printed = [...consoleLogSpy.mock.calls, ...consoleErrorSpy.mock.calls]
+            .map((c: unknown[]) => String(c[0]))
+            .join("\n");
+        // Full user-scope retry command, including -g at the end.
+        expect(printed).toContain("npx --yes skills@1 add mongodb/agent-skills --agent cursor -y -g");
     });
 
     it("returns { status: 'failed' } when spawn emits an 'error' event (does not throw)", async () => {
@@ -150,6 +172,25 @@ describe("installSkills", () => {
         const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
 
         expect(result.status).toBe("failed");
+    });
+
+    it("treats a signal-killed subprocess (close fires with code=null) as failed, not installed", async () => {
+        spawnMock.mockReturnValue(fakeChildProcessKilled("SIGTERM"));
+
+        const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
+
+        expect(result.status).toBe("failed");
+        // Exit code should be the spawn-error sentinel, not 0.
+        expect((result as { exitCode: number }).exitCode).not.toBe(0);
+    });
+
+    it("prints the signal name to stderr when the subprocess is killed by a signal", async () => {
+        spawnMock.mockReturnValue(fakeChildProcessKilled("SIGKILL"));
+
+        await installSkills({ tool: "cursor", cwd: "/tmp" });
+
+        const printed = consoleErrorSpy.mock.calls.map((c: unknown[]) => String(c[0])).join("\n");
+        expect(printed).toContain("SIGKILL");
     });
 });
 
@@ -190,10 +231,31 @@ describe("promptAndInstallSkills", () => {
         expect(result).toEqual({ status: "skipped", reason: "user-declined" });
     });
 
-    it("throws when MDB_MCP_SKIP_SKILLS_INSTALL has an invalid value", async () => {
+    it("returns failed (not throws) when MDB_MCP_SKIP_SKILLS_INSTALL has an invalid value, and prints a warning", async () => {
         process.env.MDB_MCP_SKIP_SKILLS_INSTALL = "yes"; // parseBoolean rejects this
+        const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" });
 
-        await expect(promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" })).rejects.toThrow(/Invalid boolean/);
+            // Must not throw — setup has already written MCP config, so a bad
+            // env var here should degrade to a failed outcome, not kill setup.
+            expect(result.status).toBe("failed");
+            const warnings = consoleWarnSpy.mock.calls.map((c: unknown[]) => String(c[0])).join("\n");
+            expect(warnings).toMatch(/invalid boolean/i);
+        } finally {
+            consoleWarnSpy.mockRestore();
+        }
+    });
+
+    it("propagates ExitPromptError from inquirer so runSetup's Ctrl+C handler can run", async () => {
+        // inquirer throws an Error with name='ExitPromptError' on Ctrl+C. That
+        // must still escape promptAndInstallSkills so the outer runSetup catch
+        // can print "Setup cancelled" and exit.
+        const exitError = new Error("User force closed the prompt");
+        exitError.name = "ExitPromptError";
+        confirmMock.mockRejectedValue(exitError);
+
+        await expect(promptAndInstallSkills({ tool: "cursor", cwd: "/tmp" })).rejects.toThrow(/force closed/);
     });
 
     it("skips prompts for Claude Desktop and returns no-agent-id", async () => {
