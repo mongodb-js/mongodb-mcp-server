@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { z } from "zod";
@@ -21,7 +21,7 @@ export class ExplainTool extends MongoDBToolBase {
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         // Note: Although it is not required to wrap the discriminated union in
         // an array here because we only expect exactly one method to be
         // provided here, we unfortunately cannot use the discriminatedUnion as

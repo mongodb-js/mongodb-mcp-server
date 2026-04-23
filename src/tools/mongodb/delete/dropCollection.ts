@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { z } from "zod";
 
@@ -15,7 +15,7 @@ export class DropCollectionTool extends MongoDBToolBase {
     public description =
         "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
     };
     public override outputSchema = DropCollectionOutputSchema;
     static operationType: OperationType = "delete";

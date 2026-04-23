@@ -49,6 +49,7 @@ export {
     type MonitoringServerConstructorArgs,
     type MonitoringServerConfig,
 } from "./transports/streamableHttp.js";
+export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 export { StdioRunner } from "./transports/stdio.js";
 export {
     TransportRunnerBase,
@@ -109,7 +110,15 @@ export {
 export type { AuthProvider, Credentials } from "./common/atlas/auth/authProvider.js";
 export { type UIRegistryOptions, UIRegistry } from "./ui/registry/registry.js";
 export { type ToolExecutionContext, type AnyToolBase } from "./tools/tool.js";
-export { PrometheusMetrics } from "./common/metrics/prometheusMetrics.js";
-export { createDefaultMetrics } from "./common/metrics/metricDefinitions.js";
-export type { DefaultMetrics } from "./common/metrics/metricDefinitions.js";
-export type { Metrics, MetricDefinitions } from "./common/metrics/metricsTypes.js";
+export {
+    PrometheusMetrics,
+    createDefaultMetrics,
+    type DefaultMetrics,
+    type Metrics,
+    type MetricDefinitions,
+    type PrometheusMetricsOptions,
+    Registry,
+    Gauge,
+    Histogram,
+    Counter,
+} from "@mongodb-js/mcp-metrics";

@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -13,13 +13,13 @@ export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionS
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     static toolName = "collection-storage-size";
     public description = "Gets the size of the collection";
-    public argsShape = DbOperationArgs;
+    public argsShape = CollOperationArgs;
     public override outputSchema = CollectionStorageSizeOutputSchema;
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { database, collection }: ToolArgs<typeof DbOperationArgs>,
+        { database, collection }: ToolArgs<typeof CollOperationArgs>,
         { signal }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.ensureConnected();

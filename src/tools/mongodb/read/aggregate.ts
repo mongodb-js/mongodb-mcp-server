@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
@@ -52,7 +52,7 @@ export class AggregateTool extends MongoDBToolBase {
     static toolName = "aggregate";
     public description = "Run an aggregation against a MongoDB collection";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         ...AggregateArgs,
         responseBytesLimit: z.number().optional().default(ONE_MB).describe(`\
 The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. \

@@ -9,16 +9,15 @@ import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { components } from './openapi.js';
 import { ConnectionInfo } from '@mongosh/arg-parser';
-import { Counter } from 'prom-client';
+import type { DefaultMetrics } from '@mongodb-js/mcp-metrics';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import EventEmitter from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { Gauge } from 'prom-client';
-import { Histogram } from 'prom-client';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Metrics } from '@mongodb-js/mcp-metrics';
 import type { MongoLogId } from 'mongodb-log-writer';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { operations } from './openapi.js';
@@ -33,6 +32,24 @@ import type { ZodRawShape } from 'zod';
 import { ZodRecord } from 'zod';
 import { ZodString } from 'zod';
 import { ZodUnknown } from 'zod';
+
+// @public (undocumented)
+export class AggregateDBTool extends MongoDBToolBase {
+    // (undocumented)
+    argsShape: {
+        responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        pipeline: z.ZodTuple<[z.ZodPipe<z.ZodRecord<z.ZodUnion<readonly [z.ZodLiteral<"$changeStream">, z.ZodLiteral<"$currentOp">, z.ZodLiteral<"$documents">, z.ZodLiteral<"$listLocalSessions">, z.ZodLiteral<"$queryStats">]>, z.ZodUnknown>, z.ZodTransform<Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>, Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>>>], z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        database: z.ZodString;
+    };
+    // (undocumented)
+    description: string;
+    // (undocumented)
+    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
+    // (undocumented)
+    static operationType: OperationType;
+    // (undocumented)
+    static toolName: string;
+}
 
 // @public (undocumented)
 export class AggregateTool extends MongoDBToolBase {
@@ -66,8 +83,8 @@ export class AggregateTool extends MongoDBToolBase {
                 }>>;
             }, z.core.$strip>]>;
         }, z.core.$strip>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -91,15 +108,15 @@ export type CollectionIndexesOutput = z.infer<z.ZodObject<typeof CollectionIndex
 export class CollectionIndexesTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
-    // Warning: (ae-forgotten-export) The symbol "DbOperationArgs" needs to be exported by the entry point index.d.ts
+    // Warning: (ae-forgotten-export) The symbol "CollOperationArgs" needs to be exported by the entry point index.d.ts
     //
     // (undocumented)
-    protected execute(input: ToolArgs<typeof DbOperationArgs>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollOperationArgs>): Promise<ToolResult<typeof CollectionIndexesTool.outputSchema>>;
     // Warning: (ae-forgotten-export) The symbol "SearchIndexStatus" needs to be exported by the entry point index.d.ts
     protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[];
     // (undocumented)
@@ -137,8 +154,8 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     argsShape: {
         sampleSize: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
         responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -164,13 +181,13 @@ export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionS
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof DbOperationArgs>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollOperationArgs>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CollectionStorageSizeTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
@@ -264,8 +281,8 @@ export class CountTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
         query: ZodOptional<ZodRecord<ZodString, ZodUnknown>>;
-        database: ZodString;
         collection: ZodString;
+        database: ZodString;
     };
     // (undocumented)
     description: string;
@@ -308,8 +325,8 @@ export type CreateCollectionOutput = z.infer<z.ZodObject<typeof CreateCollection
 export class CreateCollectionTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -459,8 +476,8 @@ export class CreateIndexTool extends MongoDBToolBase {
             }, z.core.$strip>;
             numPartitions: z.ZodPipe<z.ZodDefault<z.ZodUnion<readonly [z.ZodLiteral<"1">, z.ZodLiteral<"2">, z.ZodLiteral<"4">]>>, z.ZodTransform<number, "1" | "2" | "4">>;
         }, z.core.$strip>], "type">>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -553,8 +570,8 @@ export class DeleteManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
         filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -583,8 +600,8 @@ export type DropCollectionOutput = z.infer<z.ZodObject<typeof DropCollectionOutp
 export class DropCollectionTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -646,8 +663,8 @@ export class DropIndexTool extends MongoDBToolBase {
             search: "search";
             classic: "classic";
         }>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -730,8 +747,8 @@ export class ExplainTool extends MongoDBToolBase {
             executionStats: "executionStats";
             allPlansExecution: "allPlansExecution";
         }>>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -800,8 +817,8 @@ export class ExportTool extends MongoDBToolBase {
             relaxed: "relaxed";
             canonical: "canonical";
         }>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -824,8 +841,8 @@ export class FindTool extends MongoDBToolBase {
         sort: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"asc">, z.ZodLiteral<"desc">, z.ZodLiteral<"ascending">, z.ZodLiteral<"descending">, z.ZodObject<{
             $meta: z.ZodString;
         }, z.core.$strip>]>>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -878,8 +895,8 @@ export class InsertManyTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
         documents: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1171,8 +1188,8 @@ export class RenameCollectionTool extends MongoDBToolBase {
     argsShape: {
         newName: z.ZodString;
         dropTarget: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;
@@ -1533,7 +1550,6 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // Warning: (ae-forgotten-export) The symbol "UserConfig" needs to be exported by the entry point index.d.ts
-// Warning: (ae-forgotten-export) The symbol "DefaultMetrics" needs to be exported by the entry point index.d.ts
 //
 // @public
 export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TContext = unknown, TMetrics extends DefaultMetrics = DefaultMetrics> {
@@ -1563,7 +1579,6 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     //
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature): boolean;
-    // Warning: (ae-forgotten-export) The symbol "Metrics" needs to be exported by the entry point index.d.ts
     protected readonly metrics: Metrics<TMetrics>;
     readonly name: string;
     readonly operationType: OperationType;
@@ -1642,8 +1657,8 @@ export class UpdateManyTool extends MongoDBToolBase {
         filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         update: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         upsert: z.ZodOptional<z.ZodBoolean>;
-        database: z.ZodString;
         collection: z.ZodString;
+        database: z.ZodString;
     };
     // (undocumented)
     description: string;

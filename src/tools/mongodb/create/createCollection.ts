@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { OperationType, ToolArgs, ToolResult } from "../../tool.js";
 import { z } from "zod";
 
@@ -14,7 +14,7 @@ export class CreateCollectionTool extends MongoDBToolBase {
     static toolName = "create-collection";
     public description =
         "Creates a new collection in a database. If the database doesn't exist, it will be created automatically.";
-    public argsShape = DbOperationArgs;
+    public argsShape = CollOperationArgs;
     public override outputSchema = CreateCollectionOutputSchema;
 
     static operationType: OperationType = "create";

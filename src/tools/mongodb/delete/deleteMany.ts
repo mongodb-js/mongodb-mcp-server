@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { EJSON } from "bson";
@@ -17,7 +17,7 @@ export class DeleteManyTool extends MongoDBToolBase {
     static toolName = "delete-many";
     public description = "Removes all documents that match the filter from a MongoDB collection";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         filter: zEJSON()
             .optional()
             .describe(

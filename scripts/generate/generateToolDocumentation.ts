@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { AllTools } from "../../src/tools/index.js";
 import { UIRegistry } from "../../src/ui/registry/index.js";
 import { UserConfigSchema } from "../../src/lib.js";
-import { createDefaultMetrics, PrometheusMetrics } from "../../src/common/metrics/index.js";
+import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

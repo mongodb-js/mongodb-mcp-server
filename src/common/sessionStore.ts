@@ -2,8 +2,7 @@ import type { LoggerBase } from "./logging/index.js";
 import { LogId } from "./logging/index.js";
 import type { ManagedTimeout } from "./managedTimeout.js";
 import { setManagedTimeout } from "./managedTimeout.js";
-import type { Metrics } from "./metrics/metricsTypes.js";
-import type { DefaultMetrics } from "./metrics/metricDefinitions.js";
+import type { Metrics, DefaultMetrics } from "@mongodb-js/mcp-metrics";
 
 /**
  * Minimal interface for a transport that can be stored in a SessionStore.
