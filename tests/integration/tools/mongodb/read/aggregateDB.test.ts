@@ -20,13 +20,14 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         ...databaseParameters,
         {
             name: "pipeline",
-            description: "An array of aggregation stages to execute.",
+            description:
+                "An array of aggregation stages to execute. Has to start with a database aggregation stage. https://www.mongodb.com/docs/manual/reference/mql/aggregation-stages/#db.aggregate---stages",
             type: "array",
             required: true,
         },
         {
             name: "responseBytesLimit",
-            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded. Note to LLM: If the entire aggregation result is required, use the "export" tool instead of increasing this limit.`,
+            description: `The maximum number of bytes to return in the response. This value is capped by the server's configured maxBytesPerQuery and cannot be exceeded.`,
             type: "number",
             required: false,
         },
@@ -37,6 +38,7 @@ describeWithMongoDB("aggregate-db tool", (integration) => {
         { database: "test", collection: "foo" },
         { database: "test", pipeline: {} },
         { database: 123, pipeline: [] },
+        { database: "test", pipeline: [{ $match: { name: "Peter" } }] }, // This is invalid because we don't have any documents yet. The first stage has to be a db level aggregate stage
     ]);
 
     it("can run aggregation-db on an existing database", async () => {
