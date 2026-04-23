@@ -84,7 +84,7 @@ export class ConnectionStateConnected implements ConnectionState {
      */
     private async findAccessibleDatabase(): Promise<string> {
         try {
-            // List all databases from admin
+            // List all databases using the current connection context
             const dbs = (await this.serviceProvider.listDatabases("")).databases as {
                 name: string;
             }[];
