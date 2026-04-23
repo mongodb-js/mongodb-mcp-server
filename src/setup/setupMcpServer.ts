@@ -259,7 +259,11 @@ const promptForServiceAccountSecret = async (): Promise<string> => {
         message: "Enter your Atlas Service Account Secret (press enter to skip):",
         mask: true,
     });
-    registerGlobalSecretToRedact(secret, "private key");
+
+    if (secret.trim()) {
+        registerGlobalSecretToRedact(secret, "private key");
+    }
+
     return secret;
 };
 
@@ -372,6 +376,14 @@ const guideUserWithSetupSuccess = (displayName: string, availablePrompts: string
     printNewLine();
 };
 
+class UnsupportedPlatformError extends Error {
+    constructor() {
+        super("Unsupported platform. Only macOS, Windows and Linux are supported.");
+    }
+
+    override name: string = "UnsupportedPlatformError";
+}
+
 /**
  * Runs the interactive setup wizard. When `setupTelemetry` is provided, each
  * logical step emits a telemetry event so we can track both overall completion
@@ -415,8 +427,8 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
                 nodeVersionOk,
                 platformSupported: false,
             });
-            setupTelemetry.emitFailed(new Error("unsupported_platform"));
-            process.exit(1);
+
+            throw new UnsupportedPlatformError();
         }
 
         printInstructions();
@@ -481,7 +493,11 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
             exitCode = 1;
             setupTelemetry.emitFailed(error);
 
-            console.error(`Setup failed: ${error instanceof Error ? error.message : String(error)}`);
+            if (!(error instanceof UnsupportedPlatformError)) {
+                // Don't print the error message for UnsupportedPlatformError since we already
+                // printed it earlier.
+                console.error(`Setup failed: ${error instanceof Error ? error.message : String(error)}`);
+            }
         }
     } finally {
         process.off("SIGINT", onInterrupt);
