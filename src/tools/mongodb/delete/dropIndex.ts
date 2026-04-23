@@ -1,6 +1,6 @@
 import z from "zod";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
 
 const DropIndexOutputSchema = {
@@ -16,7 +16,7 @@ export class DropIndexTool extends MongoDBToolBase {
     static toolName = "drop-index";
     public description = "Drop an index for the provided database and collection.";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         indexName: z.string().nonempty().describe("The name of the index to be dropped."),
         type: z
             .enum(["classic", "search"])

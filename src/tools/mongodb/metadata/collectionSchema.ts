@@ -1,4 +1,4 @@
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolExecutionContext, ToolResult } from "../../tool.js";
 import { formatUntrustedData } from "../../tool.js";
 import { getSimplifiedSchema } from "mongodb-schema";
@@ -20,7 +20,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     static toolName = "collection-schema";
     public description = "Describe the schema for a collection";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),
         responseBytesLimit: z
             .number()

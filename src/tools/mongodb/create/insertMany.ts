@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import { type ToolArgs, type OperationType, formatUntrustedData, type ToolResult } from "../../tool.js";
 import { zEJSON } from "../../args.js";
 import { type Document } from "bson";
@@ -18,7 +18,7 @@ export class InsertManyTool extends MongoDBToolBase {
     public description =
         "Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.";
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         documents: z
             .array(zEJSON().describe("An individual MongoDB document"))
             .describe(

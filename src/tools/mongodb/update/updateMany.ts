@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DbOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
 import { checkIndexUsage } from "../../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
@@ -21,7 +21,7 @@ export class UpdateManyTool extends MongoDBToolBase {
         "Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.";
     public override outputSchema = UpdateManyOutputSchema;
     public argsShape = {
-        ...DbOperationArgs,
+        ...CollOperationArgs,
         filter: zEJSON()
             .optional()
             .describe(
