@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "strict": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "types": ["node"],
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "noImplicitReturns": true,
+    "declaration": true,
+    "declarationMap": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "ts-levenshtein": ["./node_modules/ts-levenshtein/dist/index.d.mts"],
+      "mongodb-connection-string-url": [
+        "./node_modules/mongodb-connection-string-url/lib/index.d.ts"
+      ],
+      "openapi-typescript-helpers": [
+        "./node_modules/openapi-typescript-helpers/index.d.ts"
+      ]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/ui/build/mount.tsx"]
+}

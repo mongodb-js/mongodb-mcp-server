@@ -1,0 +1,65 @@
+---
+name: Checks
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions: {}
+
+jobs:
+  check-style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run style check
+        run: pnpm run check
+
+  check-generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - run: pnpm run generate
+
+  check-dep:
+    name: Check dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies, build and remove dev dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          rm -rf node_modules
+          pnpm pkg set scripts.prepare="exit 0"
+          pnpm install --prod --frozen-lockfile
+      - name: List available tools
+        run: pnpm dlx @modelcontextprotocol/inspector@0.16.5 --cli --method tools/list -- node dist/esm/index.js

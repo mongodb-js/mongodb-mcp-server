@@ -1,0 +1,151 @@
+import { CollOperationArgs, MongoDBToolBase } from "../mongodbTool.js";
+import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import { formatUntrustedData } from "../../tool.js";
+import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+
+const CollectionIndexesOutputSchema = {
+    classicIndexes: z.array(
+        z.object({
+            name: z.string(),
+            key: z.record(z.string(), z.unknown()),
+        })
+    ),
+    searchIndexes: z.array(
+        z.object({
+            name: z.string(),
+            type: z.string(),
+            status: z.string(),
+            queryable: z.boolean(),
+            latestDefinition: z.record(z.string(), z.unknown()),
+        })
+    ),
+    classicIndexesCount: z.number(),
+    searchIndexesCount: z.number(),
+};
+
+export type CollectionIndexesOutput = z.infer<z.ZodObject<typeof CollectionIndexesOutputSchema>>;
+
+type SearchIndexStatus = CollectionIndexesOutput["searchIndexes"][number];
+type IndexStatus = CollectionIndexesOutput["classicIndexes"][number];
+
+export class CollectionIndexesTool extends MongoDBToolBase {
+    static toolName = "collection-indexes";
+    public description = "Describe the indexes for a collection";
+    public argsShape = CollOperationArgs;
+    public override outputSchema = CollectionIndexesOutputSchema;
+    static operationType: OperationType = "metadata";
+
+    protected async execute({
+        database,
+        collection,
+    }: ToolArgs<typeof CollOperationArgs>): Promise<ToolResult<typeof this.outputSchema>> {
+        const provider = await this.ensureConnected();
+        const indexes = await provider.getIndexes(database, collection);
+        const classicIndexes: IndexStatus[] = indexes.map((index) => ({
+            name: index.name as string,
+            key: index.key as Record<string, unknown>,
+        }));
+
+        const searchIndexes: SearchIndexStatus[] = [];
+        if (await this.session.isSearchSupported()) {
+            const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
+            searchIndexes.push(...this.extractSearchIndexDetails(searchIndexDefinitions));
+        }
+
+        return {
+            content: [
+                ...formatUntrustedData(
+                    `Found ${classicIndexes.length} classic indexes in the collection "${collection}":`,
+                    JSON.stringify(classicIndexes)
+                ),
+                ...(searchIndexes.length > 0
+                    ? formatUntrustedData(
+                          `Found ${searchIndexes.length} search and vector search indexes in the collection "${collection}":`,
+                          JSON.stringify(searchIndexes)
+                      )
+                    : []),
+            ],
+            structuredContent: {
+                classicIndexes,
+                searchIndexes,
+                classicIndexesCount: classicIndexes.length,
+                searchIndexesCount: searchIndexes.length,
+            },
+        };
+    }
+
+    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+        // >>>>>>> main
+        if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
+            return {
+                content: [
+                    {
+                        text: `The indexes for "${args.database}.${args.collection}" cannot be determined because the collection does not exist.`,
+                        type: "text",
+                    },
+                ],
+                isError: true,
+            };
+        }
+
+        return super.handleError(error, args) as ToolResult | Promise<ToolResult>;
+    }
+
+    /**
+     * Atlas Search index status contains a lot of information that is not relevant for the agent at this stage.
+     * Like for example, the status on each of the dedicated nodes. We only care about the main status, if it's
+     * queryable and the index name. We are also picking the index definition as it can be used by the agent to
+     * understand which fields are available for searching.
+     **/
+    protected extractSearchIndexDetails(indexes: Record<string, unknown>[]): SearchIndexStatus[] {
+        return indexes.map((index) => ({
+            name: (index["name"] ?? "default") as string,
+            type: CollectionIndexesTool.resolveIndexType(index),
+            status: (index["status"] ?? "UNKNOWN") as string,
+            queryable: (index["queryable"] ?? false) as boolean,
+            latestDefinition: (index["latestDefinition"] ?? {}) as Record<string, unknown>,
+        }));
+    }
+
+    /**
+     * Resolves the search index type from the index document, falling back to
+     * definition structure inference when the server doesn't provide a top-level
+     * `type` field.
+     */
+    private static resolveIndexType(index: Record<string, unknown>): string {
+        // Direct type from server response.
+        // TODO: This is undocumented and is not always present, should be removed in the future.
+        const serverType = index["type"];
+        if (serverType && typeof serverType === "string") {
+            return serverType;
+        }
+
+        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
+        const defType = definition["type"];
+        if (defType && typeof defType === "string") {
+            return defType;
+        }
+
+        // Vector search uses a `fields` array, Atlas search uses `mappings`
+        const fields = definition["fields"];
+        if (Array.isArray(fields)) {
+            // Check for auto-embed indexes (have autoEmbed field type)
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+                return "autoEmbed";
+            }
+            // Check for regular vector search indexes (have vector field type)
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
+                return "vectorSearch";
+            }
+            // Other vector search variations (e.g., mixed with filter fields only)
+            return "vectorSearch";
+        }
+
+        if (definition["mappings"] !== undefined && definition["mappings"] !== null) {
+            return "search";
+        }
+
+        return "UNKNOWN";
+    }
+}

@@ -1,0 +1,11 @@
+dist
+node_modules
+.vscode
+.github
+.git
+# Environment variables
+.env
+
+tests
+coverage
+scripts

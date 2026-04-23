@@ -1,0 +1,214 @@
+{
+  "name": "mongodb-mcp-server",
+  "description": "MongoDB Model Context Protocol Server",
+  "version": "1.10.0",
+  "type": "module",
+  "packageManager": "pnpm@10.23.0",
+  "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/lib.d.ts",
+        "default": "./dist/esm/lib.js"
+      },
+      "require": {
+        "types": "./dist/cjs/lib.d.ts",
+        "default": "./dist/cjs/lib.js"
+      }
+    },
+    "./web": {
+      "import": {
+        "types": "./dist/esm/web.d.ts",
+        "default": "./dist/esm/web.js"
+      },
+      "require": {
+        "types": "./dist/cjs/web.d.ts",
+        "default": "./dist/cjs/web.js"
+      }
+    },
+    "./tools": {
+      "import": {
+        "types": "./dist/esm/tools/index.d.ts",
+        "default": "./dist/esm/tools/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/tools/index.d.ts",
+        "default": "./dist/cjs/tools/index.js"
+      }
+    },
+    "./ui": {
+      "import": {
+        "types": "./dist/esm/ui/index.d.ts",
+        "default": "./dist/esm/ui/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/ui/index.d.ts",
+        "default": "./dist/cjs/ui/index.js"
+      }
+    }
+  },
+  "main": "./dist/cjs/lib.js",
+  "types": "./dist/cjs/lib.d.ts",
+  "author": "MongoDB <info@mongodb.com>",
+  "homepage": "https://github.com/mongodb-js/mongodb-mcp-server",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git"
+  },
+  "bin": {
+    "mongodb-mcp-server": "dist/esm/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "node dist/index.js --transport http --loggers 'stderr, mcp'",
+    "start:stdio": "node dist/index.js --transport stdio --loggers 'stderr, mcp'",
+    "start:setup": "pnpm run build && node dist/index.js setup",
+    "prepare": "husky && pnpm run build",
+    "build:update-package-version": "tsx scripts/updatePackageVersion.ts",
+    "build:esm": "tsc --project tsconfig.esm.json",
+    "build:cjs": "tsc --project tsconfig.cjs.json",
+    "build:universal-package": "tsx scripts/createUniversalPackage.ts",
+    "compile": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
+    "build": "pnpm run -r --include-workspace-root compile",
+    "bump": "node scripts/bumpPackages.ts",
+    "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
+    "prettier": "prettier",
+    "check": "concurrently \"pnpm run build\" \"pnpm run check:types\" \"pnpm run check:lint\" \"pnpm run check:format\" \"pnpm run check:dependencies\" && pnpm run check:api",
+    "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"api-extractor run --config api-extractor/api-extractor-tools.json\" \"api-extractor run --config api-extractor/api-extractor-ui.json\"",
+    "check:api": "pnpm run check:api-report || (printf \"\\nPublic API check failed. If you intended to change the public API, run:\\n\\n  pnpm run update:api\\n\" && exit 1)",
+    "check:lint": "eslint .",
+    "check:dependencies": "knip --strict",
+    "check:format": "prettier -c .",
+    "update:api": "pnpm run build && concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\" \"api-extractor run --local --config api-extractor/api-extractor-ui.json\"",
+    "check:types": "tsc --noEmit --project tsconfig.json",
+    "fix": "pnpm run fix:lint && pnpm run reformat",
+    "fix:lint": "eslint . --fix",
+    "reformat": "prettier --write .",
+    "generate": "pnpm run generate:api && pnpm run generate:arguments && pnpm run generate:ui",
+    "generate:ui": "tsx --tsconfig scripts/generate/tsconfig.json scripts/generate/generateUI.ts",
+    "generate:api": "./scripts/generate.sh",
+    "generate:arguments": "tsx --tsconfig scripts/generate/tsconfig.json scripts/generate/index.ts",
+    "pretest": "pnpm run build",
+    "test": "vitest --project eslint-rules --project unit-and-integration --coverage --run",
+    "test:accuracy": "sh ./scripts/accuracy/runAccuracyTests.sh",
+    "test:browser": "pnpm --filter browser test",
+    "test:long-running-tests": "vitest --project long-running-tests --coverage",
+    "test:local": "SKIP_ATLAS_INTEGRATION_TESTS=true SKIP_ATLAS_LOCAL_TESTS=true pnpm run test",
+    "atlas:cleanup": "vitest --project atlas-cleanup"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@ai-sdk/azure": "^3.0.53",
+    "@ai-sdk/google": "^3.0.61",
+    "@ai-sdk/mcp": "^1.0.36",
+    "@ai-sdk/openai": "^3.0.52",
+    "@emotion/css": "^11.13.5",
+    "@eslint/js": "^10.0.1",
+    "@lg-mcp/embeddable-uis": "^0.1.0",
+    "@lg-mcp/hooks": "^0.2.0",
+    "@microsoft/api-extractor": "^7.58.2",
+    "@modelcontextprotocol/inspector": "^0.21.2",
+    "@mongodb-js/oidc-mock-provider": "^0.13.7",
+    "@redocly/cli": "^2.29.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.5.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.3",
+    "@types/semver": "^7.7.0",
+    "@types/yargs-parser": "^21.0.3",
+    "@typescript-eslint/parser": "^8.58.1",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.4",
+    "@vitest/eslint-plugin": "^1.6.15",
+    "ai": "^6.0.158",
+    "concurrently": "^9.2.1",
+    "duplexpair": "^1.0.2",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.4.0",
+    "happy-dom": "^20.8.3",
+    "husky": "^9.1.7",
+    "jsdom": "^29.0.2",
+    "knip": "^6.4.1",
+    "mongodb": "^7.1.1",
+    "mongodb-runner": "^6.7.6",
+    "openapi-types": "^12.1.3",
+    "openapi-typescript": "^7.13.0",
+    "openapi-typescript-helpers": "^0.1.0",
+    "prettier": "^3.8.1",
+    "proper-lockfile": "^4.1.2",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "semver": "^7.7.4",
+    "simple-git": "^3.32.3",
+    "testcontainers": "^11.14.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.58.1",
+    "uuid": "^13.0.0",
+    "vite": "^8.0.8",
+    "vite-plugin-node-polyfills": "^0.26.0",
+    "vite-plugin-singlefile": "^2.3.2",
+    "vitest": "^4.1.4"
+  },
+  "dependencies": {
+    "@mongodb-js/mcp-metrics": "workspace:*",
+    "@inquirer/prompts": "^8.0.2",
+    "@inquirer/select": "^5.1.3",
+    "@mcp-ui/server": "^5.13.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mongodb-js/device-id": "^0.4.6",
+    "@mongodb-js/devtools-proxy-support": "^0.7.8",
+    "@mongosh/arg-parser": "^5.0.2",
+    "@mongosh/service-provider-node-driver": "^5.0.2",
+    "bson": "^7.2.0",
+    "chalk": "^5.6.2",
+    "express": "^5.2.1",
+    "jsonc-parser": "^3.3.1",
+    "lru-cache": "^11.2.6",
+    "mongodb-build-info": "^1.9.7",
+    "mongodb-connection-string-url": "^7.0.1",
+    "mongodb-log-writer": "^2.5.7",
+    "mongodb-redact": "^1.4.6",
+    "mongodb-schema": "^12.7.0",
+    "node-fetch": "^3.3.2",
+    "node-machine-id": "1.1.12",
+    "oauth4webapi": "^3.8.5",
+    "openapi-fetch": "^0.17.0",
+    "semver": "^7.7.2",
+    "ts-levenshtein": "^1.0.7",
+    "yaml": "^2.8.1",
+    "zod": "^4.0.0"
+  },
+  "peerDependencies": {
+    "@types/express": "^5.0.3"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >= 24.0.0"
+  },
+  "optionalDependencies": {
+    "@mongodb-js/atlas-local": "^1.3.0",
+    "kerberos": "^7.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "mongodb": "^7.1.1",
+      "kerberos": "^7.0.0",
+      "bson": "^7.2.0",
+      "zod": "^4.0.0"
+    }
+  },
+  "overrides": {
+    "mongodb": "^7.1.1",
+    "kerberos": "^7.0.0",
+    "bson": "^7.2.0",
+    "zod": "^4.0.0"
+  }
+}
