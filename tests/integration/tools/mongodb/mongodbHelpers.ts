@@ -156,7 +156,7 @@ export function setupMongoDBIntegrationTest(
 
     const getConnectionString = (): string => {
         if (!mongoCluster) {
-            throw new Error("beforeAll() hook not ran yet");
+            throw new Error("beforeAll() hook has not run yet");
         }
 
         return mongoCluster.connectionString();
@@ -173,7 +173,7 @@ export function setupMongoDBIntegrationTest(
         randomDbName: () => randomDbName,
         connectionStringForUser: (args): string => {
             if (!mongoCluster) {
-                throw new Error("beforeAll() hook not ran yet");
+                throw new Error("beforeAll() hook has not run yet");
             }
             return mongoCluster.connectionStringForUser(args);
         },

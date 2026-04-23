@@ -139,7 +139,10 @@ export class ConnectionStateConnected implements ConnectionState {
         // System databases that should be skipped when searching for accessible databases
         const SYSTEM_DATABASES = new Set(["admin", "local", "config"]);
 
-        const nonSystem = listedNames.filter((name) => !SYSTEM_DATABASES.has(name)).sort((a, b) => a.localeCompare(b));
+        const nonSystem = listedNames
+            .filter((name) => !SYSTEM_DATABASES.has(name))
+            .slice(0, 10)
+            .sort((a, b) => a.localeCompare(b));
 
         const result = new Set<string>();
         const initialDb = this.serviceProvider.initialDb;

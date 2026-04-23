@@ -2,6 +2,7 @@ import type { ConnectionManagerEvents, ConnectionStateConnected } from "../../..
 import { getAuthType, type ConnectionStringAuthType } from "../../../src/common/connectionInfo.js";
 import type { UserConfig } from "../../../src/common/config/userConfig.js";
 import { describeWithMongoDB, waitUntilSearchIsReady } from "../tools/mongodb/mongodbHelpers.js";
+import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
 import { type TestConnectionManager } from "../../utils/index.js";
@@ -300,6 +301,52 @@ describeWithMongoDB(
                 const probedDatabases = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
                 expect(probedDatabases).not.toContain("admin");
                 expect(probedDatabases).toEqual(["#mongodb-mcp"]);
+            });
+        });
+
+        describe("when listDatabases returns many non-system databases", () => {
+            it("only probes the first 10 non-system names from the listing (plus initial DB and fallback)", async () => {
+                const rootConnectionString = integration.connectionStringForUser({
+                    username: SEARCH_PROBE_ROOT_USER.username,
+                    password: SEARCH_PROBE_ROOT_USER.password,
+                    authSource: "admin",
+                    defaultDatabase: "probeanchor",
+                });
+
+                const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
+                    await connectAndSpy(rootConnectionString);
+
+                expect(connectionState.serviceProvider.initialDb).toBe("probeanchor");
+
+                const dbs = Array.from({ length: 15 }, (_, i) => ({
+                    name: `extradb${i}`,
+                }));
+
+                listDatabasesSpy.mockResolvedValue({
+                    databases: [{ name: "admin" }, { name: "local" }, { name: "config" }, ...dbs],
+                });
+
+                getSearchIndexesSpy.mockRejectedValue(
+                    new MongoServerError({
+                        message: "not authorized",
+                        code: 13,
+                        codeName: "Unauthorized",
+                    })
+                );
+
+                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                expect(result).toBe(true);
+
+                const probed = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
+                expect(probed[0]).toBe("probeanchor");
+                for (let i = 0; i < 10; i++) {
+                    expect(probed).toContain(`extradb${i}`);
+                }
+                for (let i = 10; i < dbs.length; i++) {
+                    expect(probed).not.toContain(`extradb${i}`);
+                }
+                expect(probed.at(-1)).toBe("#mongodb-mcp");
+                expect(probed).toHaveLength(12);
             });
         });
 

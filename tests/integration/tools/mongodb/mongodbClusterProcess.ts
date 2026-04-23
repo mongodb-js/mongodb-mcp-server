@@ -200,10 +200,10 @@ export class MongoDBClusterProcess {
         defaultDatabase?: string;
     }): string {
         const cs = new ConnectionString(this.connectionString());
-        cs.username = encodeURIComponent(username);
-        cs.password = encodeURIComponent(password);
+        cs.username = username;
+        cs.password = password;
         if (defaultDatabase !== undefined) {
-            cs.pathname = `/${encodeURIComponent(defaultDatabase)}`;
+            cs.pathname = `/${defaultDatabase}`;
         }
         if (authSource !== undefined) {
             cs.searchParams.set("authSource", authSource);
