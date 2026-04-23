@@ -39,7 +39,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     argsShape: {
         responseBytesLimit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-        pipeline: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        pipeline: z.ZodTuple<[z.ZodPipe<z.ZodRecord<z.ZodUnion<readonly [z.ZodLiteral<"$changeStream">, z.ZodLiteral<"$currentOp">, z.ZodLiteral<"$documents">, z.ZodLiteral<"$listLocalSessions">, z.ZodLiteral<"$queryStats">]>, z.ZodUnknown>, z.ZodTransform<Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>, Record<"$changeStream" | "$currentOp" | "$documents" | "$listLocalSessions" | "$queryStats", unknown>>>], z.ZodRecord<z.ZodString, z.ZodUnknown>>;
         database: z.ZodString;
     };
     // (undocumented)
