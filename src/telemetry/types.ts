@@ -65,6 +65,7 @@ export type SetupCommand =
     | "service_account_secret_entered"
     | "credentials_validated"
     | "editor_configured"
+    | "skills_install_prompted"
     | "open_config_prompted"
     | "completed"
     | "cancelled"
@@ -119,6 +120,18 @@ export type SetupEventProperties = {
 
     /** Whether the user opted to open the config file at the end of setup. */
     opened_config_file?: TelemetryBoolSet;
+
+    /** Outcome of the agent-skills install step. */
+    skills_install_status?: "installed" | "skipped" | "failed";
+
+    /** If the skills step was skipped, why. */
+    skills_skip_reason?: "no-agent-id" | "user-declined" | "env-skip";
+
+    /** Install scope the user chose — present whenever an install was attempted. */
+    skills_install_scope?: "project" | "user";
+
+    /** If skills install failed, the subprocess exit code (-1 sentinel for spawn errors). */
+    skills_install_exit_code?: number;
 
     /** On terminal events, the last completed step before terminating. */
     last_step?: SetupCommand;

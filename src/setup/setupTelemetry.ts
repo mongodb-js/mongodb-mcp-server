@@ -12,6 +12,7 @@ import type {
     TelemetryBoolSet,
     TelemetryResult,
 } from "../telemetry/types.js";
+import type { SkillsInstallOutcome } from "./installSkills.js";
 
 /**
  * Context accumulated as the user progresses through the setup wizard. Each
@@ -190,6 +191,31 @@ export class SetupTelemetry {
     public emitOpenConfigPrompted(props: { opened: boolean; result: TelemetryResult; error?: unknown }): void {
         this.updateContext({ opened_config_file: toBoolSet(props.opened) });
         this.emit("open_config_prompted", props.error ? { error_type: errorName(props.error) } : {}, props.result);
+    }
+
+    /**
+     * Records the outcome of the agent-skills install step. Step-level
+     * `result` is "failure" only when the install was actually attempted and
+     * failed; "skipped" outcomes (user declined, env-skip, tool not supported)
+     * count as success — the step itself completed cleanly.
+     */
+    public emitSkillsInstallPrompted(outcome: SkillsInstallOutcome): void {
+        const patch: Partial<SetupTelemetryContext> = {
+            skills_install_status: outcome.status,
+        };
+        if (outcome.status === "skipped") {
+            patch.skills_skip_reason = outcome.reason;
+        } else {
+            // installed or failed — both can carry scope
+            if (outcome.scope !== undefined) {
+                patch.skills_install_scope = outcome.scope;
+            }
+            if (outcome.status === "failed") {
+                patch.skills_install_exit_code = outcome.exitCode;
+            }
+        }
+        this.updateContext(patch);
+        this.emit("skills_install_prompted", {}, outcome.status === "failed" ? "failure" : "success");
     }
 
     public emitCompleted(): void {

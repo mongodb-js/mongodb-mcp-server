@@ -6,10 +6,14 @@ import select from "@inquirer/select";
 import { AI_TOOL_REGISTRY, type AIToolType } from "./aiTool.js";
 import { parseBoolean } from "../common/config/configUtils.js";
 
+export type SkillsScope = "project" | "user";
+
 export type SkillsInstallOutcome =
-    | { status: "installed" }
+    | { status: "installed"; scope: SkillsScope }
     | { status: "skipped"; reason: "no-agent-id" | "user-declined" | "env-skip" }
-    | { status: "failed"; exitCode: number };
+    // `scope` is optional on failed because the promptAndInstallSkills wrapper
+    // can catch errors that happen before the scope prompt resolves.
+    | { status: "failed"; exitCode: number; scope?: SkillsScope };
 
 export interface InstallSkillsOptions {
     tool: AIToolType;
@@ -55,15 +59,17 @@ export async function installSkills(opts: InstallSkillsOptions): Promise<SkillsI
         return { status: "skipped", reason: "no-agent-id" };
     }
 
-    const args = buildSkillsAddArgs(agentId, opts.global ?? false);
+    const global = opts.global ?? false;
+    const scope: SkillsScope = global ? "user" : "project";
+    const args = buildSkillsAddArgs(agentId, global);
     const exitCode = await runSkillsAdd(args, opts.cwd);
 
     if (exitCode === 0) {
-        return { status: "installed" };
+        return { status: "installed", scope };
     }
 
     printInstallFailure(exitCode, args);
-    return { status: "failed", exitCode };
+    return { status: "failed", exitCode, scope };
 }
 
 // Sentinel exit code used when `spawn` itself fails before the process runs

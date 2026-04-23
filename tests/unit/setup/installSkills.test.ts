@@ -119,20 +119,28 @@ describe("installSkills", () => {
         expect(args).toContain("claude-code");
     });
 
-    it("returns { status: 'installed' } when the CLI exits 0", async () => {
+    it("returns installed with project scope by default when the CLI exits 0", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(0));
 
         const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
 
-        expect(result).toEqual({ status: "installed" });
+        expect(result).toEqual({ status: "installed", scope: "project" });
     });
 
-    it("returns { status: 'failed', exitCode } when the CLI exits non-zero", async () => {
+    it("returns installed with user scope when global=true", async () => {
+        spawnMock.mockReturnValue(fakeChildProcess(0));
+
+        const result = await installSkills({ tool: "cursor", cwd: "/tmp", global: true });
+
+        expect(result).toEqual({ status: "installed", scope: "user" });
+    });
+
+    it("returns failed with exitCode and the scope that was attempted", async () => {
         spawnMock.mockReturnValue(fakeChildProcess(2));
 
-        const result = await installSkills({ tool: "cursor", cwd: "/tmp" });
+        const result = await installSkills({ tool: "cursor", cwd: "/tmp", global: true });
 
-        expect(result).toEqual({ status: "failed", exitCode: 2 });
+        expect(result).toEqual({ status: "failed", exitCode: 2, scope: "user" });
     });
 
     it("prints a failure message including the exit code and a manual-fallback command", async () => {
@@ -284,7 +292,7 @@ describe("promptAndInstallSkills", () => {
 
         const result = await promptAndInstallSkills({ tool: "cursor", cwd: "/some/project/dir" });
 
-        expect(result).toEqual({ status: "installed" });
+        expect(result).toEqual({ status: "installed", scope: "project" });
         expect(selectMock).toHaveBeenCalled();
         const [, args, opts] = spawnMock.mock.calls[0]!;
         expect(args).not.toContain("-g");

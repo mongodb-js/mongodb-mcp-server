@@ -491,6 +491,7 @@ export const runSetup = async (config: UserConfig): Promise<never> => {
         setupTelemetry.emitEditorConfigured(editorOutcome);
 
         const skillsResult = await promptAndInstallSkills({ tool, cwd: process.cwd() });
+        setupTelemetry.emitSkillsInstallPrompted(skillsResult);
 
         const availablePrompts = getAvailablePrompts(
             connectionOutcome.connectionString,
