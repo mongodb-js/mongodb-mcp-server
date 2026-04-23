@@ -34,8 +34,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Bump versions
         id: bump-version
+        env:
+          INPUTS_VERSION: ${{ inputs.version }}
         run: |
-          pnpm run bump -- --override mongodb-mcp-server:${{ inputs.version }}
+          pnpm run bump -- --override "mongodb-mcp-server:$INPUTS_VERSION"
           NEW_VERSION=$(npm pkg get version | tr -d '"')
           echo "NEW_VERSION=v${NEW_VERSION}" >> $GITHUB_OUTPUT
 
@@ -88,7 +90,7 @@ jobs:
 
           urlencode() { echo -n "$1" | jq -sRr @uri; }
 
-          ALL_JQL="project = ${PROJECT_KEY} AND fixVersion = vNext"
+          ALL_JQL="project = ${PROJECT_KEY} AND fixVersion = ${vnext_id}"
           RESOLVED_JQL="${ALL_JQL} AND resolution != Unresolved"
           UNRESOLVED_JQL="${ALL_JQL} AND resolution = Unresolved"
 
